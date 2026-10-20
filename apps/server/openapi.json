@@ -1093,6 +1093,117 @@
         }
       }
     },
+    "/api/v1/public/request-form": {
+      "get": {
+        "operationId": "getRequestFormSettings",
+        "summary": "Request form settings",
+        "description": "Public read of the configured request-draft period (session.timings.requestDraftDays, FACT-SESSION-TIMINGS), the business time zone and the service limit. draftDays is null while the value is NOT CONFIGURED; the wizard then keeps no draft.",
+        "tags": [
+          "requests"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "draftDays",
+                    "maxServices",
+                    "timeZone"
+                  ],
+                  "properties": {
+                    "draftDays": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "maxServices": {
+                      "type": "integer"
+                    },
+                    "timeZone": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "guest",
+            "customer"
+          ],
+          "permission": "request.submit",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/requests.test.ts"
+        }
+      }
+    },
     "/api/v1/public/requests": {
       "post": {
         "operationId": "submitRequest",

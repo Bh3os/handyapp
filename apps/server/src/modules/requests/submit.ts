@@ -9,10 +9,12 @@
 import { randomBytes } from 'node:crypto'
 import { registryServices, type Tx } from '@handyhub/db'
 import { PROJECT_MACHINE, REQUEST_MACHINE } from '@handyhub/domain'
-import { ApiError, type FieldError } from '../../api/errors.js'
+import { ApiError } from '../../api/errors.js'
 import { loadConfig, requireConfigured } from '../../platform/config/index.js'
 import { outbox } from '../../platform/outbox.js'
-import { MAX_SERVICES, type SubmitBody } from './schema.js'
+import { localDate, normalizeUsPhone, semanticProblems, type SubmitBody } from '@handyhub/domain/request-form'
+
+export { localDate, normalizeUsPhone, semanticProblems }
 
 const CROCKFORD = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'
 
@@ -21,14 +23,6 @@ export function newReference(): string {
   let out = ''
   for (const b of randomBytes(8)) out += CROCKFORD[b % 32]
   return `HH-${out}`
-}
-
-/** A US number as E.164, or null. */
-export function normalizeUsPhone(raw: string): string | null {
-  const digits = raw.replace(/\D/g, '')
-  if (digits.length === 10 && /^[2-9]/.test(digits)) return `+1${digits}`
-  if (digits.length === 11 && digits.startsWith('1') && /^[2-9]/.test(digits.slice(1))) return `+${digits}`
-  return null
 }
 
 /** PROPOSED: a form sent less than 3 seconds after it opened is flagged (old repo, 32 D-32-08). */
@@ -41,56 +35,6 @@ export function spamSignals(body: SubmitBody, now: number): string[] {
   const links = `${body.description ?? ''} ${body.otherServicesText ?? ''}`.match(/https?:\/\//gi) ?? []
   if (links.length > 2) signals.push('many_links')
   return signals
-}
-
-/** Today's date (YYYY-MM-DD) in a time zone. */
-export function localDate(now: Date, zone: string): string {
-  const p = Object.fromEntries(
-    new Intl.DateTimeFormat('en-US', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' })
-      .formatToParts(now)
-      .map((x) => [x.type, x.value]),
-  )
-  return `${p['year']}-${p['month']}-${p['day']}`
-}
-
-const field = (name: string, code: string): FieldError => ({ field: `body.${name}`, code, message: '' })
-
-/** The checks JSON schema cannot express; every problem is reported at once, next to its field (HH-INT-09). */
-export function semanticProblems(body: SubmitBody, opts: { today: string; knownServices: ReadonlySet<string> }) {
-  const p: FieldError[] = []
-  const ids = body.services.map((s) => s.serviceId)
-  if (new Set(ids).size !== ids.length) p.push(field('services', 'uniqueItems'))
-  if (ids.length > MAX_SERVICES) p.push(field('services', 'maxItems'))
-  body.services.forEach((s, i) => {
-    if (!opts.knownServices.has(s.serviceId)) p.push(field(`services.${i}.serviceId`, 'enum'))
-  })
-  if (!body.notSure && ids.length === 0) p.push(field('services', 'required'))
-  if ((body.notSure || ids.length === 0) && !body.description?.trim()) p.push(field('description', 'required'))
-  const seen = new Set<string>()
-  ;(body.answers ?? []).forEach((a, i) => {
-    const at = `answers.${i}`
-    if (a.serviceId !== undefined && !ids.includes(a.serviceId)) p.push(field(`${at}.serviceId`, 'enum'))
-    const key = `${a.serviceId ?? ''}/${a.question}`
-    if (seen.has(key)) p.push(field(`${at}.question`, 'uniqueItems'))
-    seen.add(key)
-    if ((a.kind === 'number') !== (a.number !== undefined))
-      p.push(field(`${at}.number`, a.kind === 'number' ? 'required' : 'invalid'))
-    if ((a.kind === 'text') !== (a.text !== undefined))
-      p.push(field(`${at}.text`, a.kind === 'text' ? 'required' : 'invalid'))
-    if (a.kind !== 'number' && (a.unit !== undefined || a.approximate !== undefined))
-      p.push(field(`${at}.unit`, 'invalid'))
-  })
-  const t = body.timing
-  if (t.flexible === (t.preferredDate !== undefined))
-    p.push(field('timing.preferredDate', t.flexible ? 'invalid' : 'required'))
-  if (t.preferredDate !== undefined) {
-    const valid = !Number.isNaN(Date.parse(`${t.preferredDate}T00:00:00Z`))
-    // Tomorrow or later, in the property's local time (OWN-DEC-92).
-    if (!valid || t.preferredDate <= opts.today) p.push(field('timing.preferredDate', 'minimum'))
-  }
-  if (t.windows.includes('any_time') && t.windows.length > 1) p.push(field('timing.windows', 'invalid'))
-  if (!normalizeUsPhone(body.contact.phone)) p.push(field('contact.phone', 'format'))
-  return p
 }
 
 export type Submitted = { requestId: string; projectId: string; reference: string; submittedAt: Date }

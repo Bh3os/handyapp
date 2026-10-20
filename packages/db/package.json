@@ -13,7 +13,8 @@
       "@handyhub/source": "./src/testing.ts",
       "types": "./dist/testing.d.ts",
       "default": "./dist/testing.js"
-    }
+    },
+    "./seed/services.json": "./seed/services.json"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
