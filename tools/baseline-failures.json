@@ -1,0 +1,4 @@
+{
+  "$comment": "Pre-existing test failures (HH-AUD-03), kept apart from new ones. A test marked skip, todo, fails or fixme must be listed here with file, title, reason, recorded date and reviewer; node tools/trace.mjs fails on an unlisted marked test and on a stale entry. Never hide a failure by removing it from here.",
+  "failures": []
+}

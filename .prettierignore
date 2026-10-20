@@ -1,0 +1,14 @@
+# Generated or frozen content: the knowledge graph, the original sources and the graph tool are not reformatted.
+kg
+sources
+docs
+CLAUDE.md
+tools/kg.mjs
+dist
+coverage
+node_modules
+pnpm-lock.yaml
+reports
+.astro
+playwright-report
+test-results

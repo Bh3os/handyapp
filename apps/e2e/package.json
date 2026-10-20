@@ -1,0 +1,14 @@
+{
+  "name": "@handyhub/e2e",
+  "private": true,
+  "type": "module",
+  "description": "End-to-end tests through a real browser against the built server, with axe accessibility scans (ARCH-STACK).",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.56.1"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "name": "@handyhub/money",
+  "private": true,
+  "type": "module",
+  "description": "Integer-cents money calculations, rounding and formatting (RULE-MONEY-CENTS).",
+  "exports": {
+    ".": {
+      "@handyhub/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  }
+}

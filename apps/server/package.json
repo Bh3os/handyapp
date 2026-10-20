@@ -1,0 +1,28 @@
+{
+  "name": "@handyhub/server",
+  "private": true,
+  "type": "module",
+  "description": "Fastify server: the API and the host for the public site, the customer portal and the staff app (ARCH-STACK).",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run test/unit",
+    "test:int": "vitest run test/integration --no-file-parallelism",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@fastify/static": "^10.1.5",
+    "@handyhub/db": "workspace:*",
+    "@handyhub/domain": "workspace:*",
+    "@handyhub/i18n": "workspace:*",
+    "@handyhub/money": "workspace:*",
+    "@handyhub/policy": "workspace:*",
+    "fastify": "^5.12.5"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.23.1",
+    "pg": "^8.23.1",
+    "vite": "^8.3.2"
+  }
+}

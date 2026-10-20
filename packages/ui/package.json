@@ -1,0 +1,18 @@
+{
+  "name": "@handyhub/ui",
+  "private": true,
+  "type": "module",
+  "description": "Design system: tokens, components and functional states shared by the portal and the staff app.",
+  "exports": {
+    ".": {
+      "@handyhub/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  }
+}
