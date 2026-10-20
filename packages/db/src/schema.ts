@@ -307,6 +307,25 @@ export interface IntakeUploadCapabilitiesTable {
   consumed_at: Timestamp | null
 }
 
+export interface OpsQueueItemsTable {
+  id: Generated<string>
+  type: string
+  subject_type: string
+  subject_id: string
+  band: string
+  project_id: string | null
+  reference: string | null
+  subject_status: string | null
+  reason: string
+  assigned_staff_id: string | null
+  due_at: Timestamp | null
+  opened_at: ColumnType<Date, Date | string | undefined, Date | string>
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+  resolved_at: Timestamp | null
+  resolution: string | null
+  version: Generated<number>
+}
+
 export interface PlatformAuditEventsTable {
   id: Generated<string>
   seq: GeneratedAlways<string>
@@ -526,6 +545,7 @@ export interface Database {
   'intake.request_services': IntakeRequestServicesTable
   'intake.requests': IntakeRequestsTable
   'intake.upload_capabilities': IntakeUploadCapabilitiesTable
+  'ops.queue_items': OpsQueueItemsTable
   'platform.audit_events': PlatformAuditEventsTable
   'platform.consent_records': PlatformConsentRecordsTable
   'platform.idempotency_keys': PlatformIdempotencyKeysTable

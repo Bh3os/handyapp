@@ -5,6 +5,7 @@ import type { Secret } from '../providers/types.js'
 import { identityModule } from './identity/index.js'
 import type { ObjectStorage } from '../providers/index.js'
 import { photosModule } from './photos/index.js'
+import { QUEUE_MODULE } from './queue/index.js'
 import { REQUESTS_MODULE } from './requests/index.js'
 
 export type ModuleDeps = {
@@ -21,6 +22,7 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     identityModule({ cookies: { secure: deps.secureCookies }, mfaKey: deps.mfaKey }),
     REQUESTS_MODULE,
     photosModule({ storage: deps.storage ?? null }),
+    QUEUE_MODULE,
   ]
 }
 
