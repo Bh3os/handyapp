@@ -149,12 +149,20 @@ export function createWorker(options: WorkerOptions): Worker {
     })
   }
 
+  // Only events some declared automation consumes are dispatched; any other event stays pending (and visible as
+  // pending in queueStats) until a consumer exists, so no event is marked done before anything handled it.
+  const eventTypes = [
+    ...new Set(registry.all().flatMap((a) => (a.trigger.kind === 'event' ? a.trigger.eventTypes : []))),
+  ]
+
   async function dispatch(): Promise<number> {
+    if (eventTypes.length === 0) return 0
     return withTx(db, async (tx) => {
       const events = await tx
         .selectFrom('platform.outbox_events')
         .selectAll()
         .where('state', '=', 'pending')
+        .where('type', 'in', eventTypes)
         .orderBy('seq')
         .limit(batchSize)
         .forUpdate()
@@ -179,7 +187,6 @@ export function createWorker(options: WorkerOptions): Worker {
             .onConflict((oc) => oc.column('job_key').doNothing())
             .execute()
         }
-        if (consumers.length === 0) log.warn({ eventType: ev.type, eventId: ev.id }, 'outbox event has no automation')
         await tx
           .updateTable('platform.outbox_events')
           .set({ state: 'dispatched', dispatched_at: sql<Date>`now()`, jobs_created: consumers.length })
