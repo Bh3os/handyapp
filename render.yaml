@@ -1,0 +1,44 @@
+# Render Blueprint (TSK-0003; ARCH-STACK, INT-Render, OWN-DEC-73): one web service and one PostgreSQL 16 database.
+# Names, runtime, plan and region match the existing staging service and database, which TSK-0112 points at this
+# repository; nothing here has been applied to Render yet.
+#
+# Values: the repository holds variable names only. Non-secret settings are written below; every secret is
+# `sync: false`, so Render asks the owner for it and it never appears in a file (RULE-SYNTHETIC-DATA). The full list of
+# variables and what each is for is ENV_VARS in apps/server/src/config.ts; the server refuses to start when a required
+# one is missing (staging: HANDYHUB_ENV, DATABASE_URL and ACCESS_GATE_USERS).
+#
+# Health: Render polls /healthz, the only route outside the staging access gate (no database call, no private data).
+# /readyz (database and migrations) sits behind the gate.
+services:
+  - type: web
+    name: handyhub-staging
+    runtime: docker
+    plan: free
+    region: ohio
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /healthz
+    autoDeployTrigger: commit
+    envVars:
+      - key: HANDYHUB_ENV
+        value: staging
+      - key: HOST
+        value: 0.0.0.0
+      - key: DATABASE_URL
+        fromDatabase:
+          name: handyhub-staging-db
+          property: connectionString
+      # The staging access gate's testers, "name:password" pairs; set by the owner in Render.
+      - key: ACCESS_GATE_USERS
+        sync: false
+      # Proxies that append to X-Forwarded-For in front of the service; set once measured on Render (default 0).
+      - key: TRUST_PROXY_HOPS
+        sync: false
+
+databases:
+  - name: handyhub-staging-db
+    databaseName: handyhub_staging_db
+    user: handyhub_staging_db_user
+    plan: free
+    region: ohio
+    postgresMajorVersion: '16'

@@ -28,7 +28,7 @@ export default defineConfig({
   webServer: {
     command: `node ${JSON.stringify(serverEntry)}`,
     url: `http://127.0.0.1:${port}/`,
-    env: { PORT: String(port), HOST: '127.0.0.1' },
+    env: { HANDYHUB_ENV: 'ci', PORT: String(port), HOST: '127.0.0.1' },
     reuseExistingServer: false,
     timeout: 30_000,
   },
