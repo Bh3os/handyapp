@@ -97,6 +97,56 @@ export interface PlatformJobsTable {
   finished_at: Timestamp | null
 }
 
+export interface PlatformMessageDeliveriesTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  message_key: string
+  channel: string
+  audience: string
+  subject_key: string
+  release: string
+  state: string
+  locale: string
+  template_version: number | null
+  outbox_event_id: string | null
+  record_type: string | null
+  record_id: string | null
+  recipient_kind: string
+  recipient_id: string | null
+  destination: string
+  channel_permission: string
+  variables: ColumnType<JsonValue, string | undefined, string>
+  released_by: string | null
+  attempts: Generated<number>
+  provider: string | null
+  provider_message_id: string | null
+  error_code: string | null
+  queued_at: Timestamp | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface PlatformMessageTemplateVersionsTable {
+  message_key: string
+  channel: string
+  audience: string
+  locale: string
+  version: number
+  subject: string | null
+  body: string
+  translation_review: string
+  source_ids: string[]
+  released_by: string
+  released_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface PlatformMessageTemplatesTable {
+  message_key: string
+  channel: string
+  audience: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface PlatformOutboxEventsTable {
   id: Generated<string>
   seq: GeneratedAlways<string>
@@ -158,6 +208,9 @@ export interface Database {
   'platform.audit_events': PlatformAuditEventsTable
   'platform.idempotency_keys': PlatformIdempotencyKeysTable
   'platform.jobs': PlatformJobsTable
+  'platform.message_deliveries': PlatformMessageDeliveriesTable
+  'platform.message_template_versions': PlatformMessageTemplateVersionsTable
+  'platform.message_templates': PlatformMessageTemplatesTable
   'platform.outbox_events': PlatformOutboxEventsTable
   'platform.policy_version': PlatformPolicyVersionTable
   'platform.schema_migration': PlatformSchemaMigrationTable
