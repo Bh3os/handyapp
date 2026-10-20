@@ -1659,6 +1659,145 @@
         }
       }
     },
+    "/api/v1/public/site": {
+      "get": {
+        "operationId": "getPublicSiteFacts",
+        "summary": "Public site facts",
+        "description": "Public read of the configured facts the public site shows: the brand (business.name, FACT-BRAND-IDENTITY), the public phone and email (business.public_contact, FACT-PUBLIC-CONTACT) and the accepted payment method codes (payment.methods, FACT-PAYMENT-METHODS). A value that is NOT CONFIGURED is null, never a default.",
+        "tags": [
+          "site"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "brand",
+                    "contact",
+                    "paymentMethods"
+                  ],
+                  "properties": {
+                    "brand": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "contact": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "configured",
+                        "phone",
+                        "email"
+                      ],
+                      "properties": {
+                        "configured": {
+                          "type": "boolean"
+                        },
+                        "phone": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "email": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "paymentMethods": {
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "guest",
+            "customer"
+          ],
+          "permission": "request.submit",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/site.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/{id}/sessions/revoke": {
       "post": {
         "operationId": "revokeStaffSessions",
