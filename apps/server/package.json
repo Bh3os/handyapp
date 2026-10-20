@@ -24,6 +24,7 @@
     "@node-rs/argon2": "2.2.1",
     "fastify": "^5.12.5",
     "kysely": "^0.29.7",
+    "otpauth": "9.5.2",
     "pino": "^10.4.0"
   },
   "devDependencies": {

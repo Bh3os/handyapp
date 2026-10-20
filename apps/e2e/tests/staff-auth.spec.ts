@@ -74,9 +74,11 @@ test.describe('staff sign-in, invites and password reset (TSK-0014, HH-STAFF-01,
   test('[HH-STAFF-01] the Owner invites a Worker, who sets a password and signs in', async ({ page, browser }) => {
     await signIn(page, OWNER, pw(1))
     await expect(page.getByRole('heading', { level: 1, name: 'Signed in as E2E Owner' })).toBeVisible()
+    // Unsafe requests of a staff session carry its CSRF token (TSK-0015).
+    const csrf = (await (await page.request.get('/api/v1/auth/session')).json()).csrfToken as string
     const res = await page.request.post('/api/v1/staff/invitations', {
       data: { email: WORKER, displayName: 'E2E Worker', role: 'worker', reason: 'End-to-end test' },
-      headers: { 'idempotency-key': 'e2e-invite-worker-0001' },
+      headers: { 'idempotency-key': 'e2e-invite-worker-0001', 'x-csrf-token': csrf },
     })
     expect(res.status()).toBe(201)
     const worker = await browser.newPage()
@@ -97,7 +99,7 @@ test.describe('staff sign-in, invites and password reset (TSK-0014, HH-STAFF-01,
     await page.reload()
     await expect(page.getByRole('heading', { level: 1, name: 'Staff sign-in' })).toBeVisible()
     await signIn(other, OWNER, pw(4))
-    await other.getByRole('button', { name: 'Sign out' }).click()
+    await other.getByRole('button', { name: 'Sign out', exact: true }).click()
     await expect(other.getByRole('heading', { level: 1, name: 'Staff sign-in' })).toBeVisible()
     await other.goto('/staff/')
     await expect(other.getByRole('heading', { level: 1, name: 'Staff sign-in' })).toBeVisible()

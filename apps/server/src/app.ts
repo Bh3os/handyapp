@@ -86,7 +86,7 @@ export async function buildApp({
     api?.resolveActor ?? (db ? staffSessionResolver(db, { secure: config.secureCookies }) : undefined)
   await registerApi(app, {
     db,
-    modules: api?.modules ?? apiModules({ secureCookies: config.secureCookies }),
+    modules: api?.modules ?? apiModules({ secureCookies: config.secureCookies, mfaKey: config.mfaKey }),
     ...(resolveActor ? { resolveActor } : {}),
   })
 

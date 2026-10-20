@@ -37,6 +37,9 @@ services:
       # The first Owner's email: while no Owner exists, one invite is emailed at start (TSK-0014, HH-STAFF-01).
       - key: BOOTSTRAP_OWNER_EMAIL
         sync: false
+      # Seals optional staff authenticator secrets (at least 32 random characters); unset: MFA NOT CONFIGURED (TSK-0015).
+      - key: MFA_ENCRYPTION_KEY
+        sync: false
       # Proxies that append to X-Forwarded-For in front of the service; set once measured on Render (default 0).
       - key: TRUST_PROXY_HOPS
         sync: false

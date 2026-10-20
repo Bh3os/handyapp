@@ -5,13 +5,20 @@
 //   unused for longer is refused and revoked on the next request.
 // - Revocation takes effect on the next request; a disabled account's session can do nothing.
 // - Fresh authentication for sensitive actions: a password entered within FRESH_AUTH_MINUTES (sign-in or re-entry).
+// - TSK-0015: a session is 'mfa_pending' after a correct password while an authenticator is enrolled, and acts for
+//   nobody until the second factor is given (at most MFA_PENDING_MINUTES); every MFA step and every re-entry rotates
+//   the token (the old row is revoked as 'rotated'); a CSRF token derived from the session token protects unsafe
+//   requests (it changes with every rotation and needs no storage).
 import type { Db, Tx } from '@handyhub/db'
 import { sql } from 'kysely'
 import { loadConfig, requireConfigured } from '../../platform/config/index.js'
+import { createHash } from 'node:crypto'
 import { hashToken, newToken, TOKEN } from './tokens.js'
 
 /** PROPOSED: a password entry counts as fresh authentication for 5 minutes (the old repo's step-up window). */
 export const FRESH_AUTH_MINUTES = 5
+/** PROPOSED: a password-only (MFA pending) session must complete the second factor within 10 minutes. */
+export const MFA_PENDING_MINUTES = 10
 /** last_seen_at is written at most once a minute, so every request does not write. */
 const TOUCH_AFTER_MS = 60_000
 
@@ -46,17 +53,59 @@ export function readSessionToken(header: string | undefined, options: CookieOpti
   return null
 }
 
-export async function createSession(tx: Tx, staffUserId: string): Promise<{ id: string; token: string }> {
+export type SessionState = 'mfa_pending' | 'complete'
+
+export async function createSession(
+  tx: Tx,
+  staffUserId: string,
+  state: SessionState = 'complete',
+): Promise<{ id: string; token: string }> {
   const token = newToken()
   const row = await tx
     .insertInto('identity.staff_sessions')
-    .values({ staff_user_id: staffUserId, token_hash: hashToken(token) })
+    .values({ staff_user_id: staffUserId, token_hash: hashToken(token), state })
     .returning('id')
     .executeTakeFirstOrThrow()
   return { id: row.id, token }
 }
 
-export async function revokeSession(tx: Tx, sessionId: string, reason: 'sign_out'): Promise<void> {
+/** The CSRF token of a session: derived from the session token, so only its holder can know it (TSK-0015). */
+export function csrfTokenFor(sessionToken: string): string {
+  return createHash('sha256').update(`csrf|${sessionToken}`).digest('base64url')
+}
+
+/**
+ * Rotates a live session: a new token (and ID) replaces it and the old row is revoked as 'rotated' in one statement,
+ * so a revoke in flight is never undone. `authenticated` marks a fresh password or second-factor entry.
+ */
+export async function rotateSession(
+  tx: Tx,
+  sessionId: string,
+  next: { state: SessionState; authenticated: boolean },
+): Promise<{ id: string; token: string } | null> {
+  const old = await tx
+    .updateTable('identity.staff_sessions')
+    .set({ revoked_at: sql<Date>`now()`, revoke_reason: 'rotated' })
+    .where('id', '=', sessionId)
+    .where('revoked_at', 'is', null)
+    .returning(['staff_user_id', 'authenticated_at'])
+    .executeTakeFirst()
+  if (!old) return null
+  const token = newToken()
+  const row = await tx
+    .insertInto('identity.staff_sessions')
+    .values({
+      staff_user_id: old.staff_user_id,
+      token_hash: hashToken(token),
+      state: next.state,
+      authenticated_at: next.authenticated ? sql<Date>`now()` : old.authenticated_at,
+    })
+    .returning('id')
+    .executeTakeFirstOrThrow()
+  return { id: row.id, token }
+}
+
+export async function revokeSession(tx: Tx, sessionId: string, reason: 'sign_out' | 'revoked_all'): Promise<void> {
   await tx
     .updateTable('identity.staff_sessions')
     .set({ revoked_at: sql<Date>`now()`, revoke_reason: reason })
@@ -69,14 +118,16 @@ export async function revokeSession(tx: Tx, sessionId: string, reason: 'sign_out
 export async function revokeAllSessions(
   tx: Tx,
   staffUserId: string,
-  reason: 'password_set' | 'disabled' | 'revoked_by_owner',
+  reason: 'password_set' | 'disabled' | 'revoked_by_owner' | 'revoked_all' | 'mfa_changed',
+  except?: string,
 ): Promise<number> {
-  const res = await tx
+  let q = tx
     .updateTable('identity.staff_sessions')
     .set({ revoked_at: sql<Date>`now()`, revoke_reason: reason })
     .where('staff_user_id', '=', staffUserId)
     .where('revoked_at', 'is', null)
-    .executeTakeFirst()
+  if (except) q = q.where('id', '<>', except)
+  const res = await q.executeTakeFirst()
   return Number(res.numUpdatedRows)
 }
 
@@ -89,6 +140,10 @@ export type LiveSession = {
   roles: string[]
   capabilities: string[]
   freshAuth: boolean
+  state: SessionState
+  authenticatedAt: Date
+  csrfToken: string
+  mfaEnrolled: boolean
 }
 
 /** Resolves a token to a live session of an active staff user, or null; slides the idle window. */
@@ -102,6 +157,8 @@ export async function resolveSession(db: Db, token: string, now = new Date()): P
       's.last_seen_at',
       's.authenticated_at',
       's.revoked_at',
+      's.state',
+      's.created_at',
       'u.display_name',
       'u.email',
       'u.locale',
@@ -116,6 +173,18 @@ export async function resolveSession(db: Db, token: string, now = new Date()): P
     await db
       .updateTable('identity.staff_sessions')
       .set({ revoked_at: now, revoke_reason: 'idle_expired' })
+      .where('id', '=', row.id)
+      .where('revoked_at', 'is', null)
+      .execute()
+    return null
+  }
+  if (
+    row.state === 'mfa_pending' &&
+    now.getTime() - new Date(row.created_at).getTime() > MFA_PENDING_MINUTES * 60_000
+  ) {
+    await db
+      .updateTable('identity.staff_sessions')
+      .set({ revoked_at: now, revoke_reason: 'mfa_pending_expired' })
       .where('id', '=', row.id)
       .where('revoked_at', 'is', null)
       .execute()
@@ -139,5 +208,16 @@ export async function resolveSession(db: Db, token: string, now = new Date()): P
     roles: grants.filter((g) => g.kind === 'role').map((g) => g.name),
     capabilities: grants.filter((g) => g.kind === 'capability').map((g) => g.name),
     freshAuth: now.getTime() - new Date(row.authenticated_at).getTime() <= FRESH_AUTH_MINUTES * 60_000,
+    state: row.state === 'mfa_pending' ? 'mfa_pending' : 'complete',
+    authenticatedAt: new Date(row.authenticated_at),
+    csrfToken: csrfTokenFor(token),
+    mfaEnrolled: Boolean(
+      await db
+        .selectFrom('identity.staff_mfa')
+        .select('staff_user_id')
+        .where('staff_user_id', '=', row.staff_user_id)
+        .where('confirmed_at', 'is not', null)
+        .executeTakeFirst(),
+    ),
   }
 }
