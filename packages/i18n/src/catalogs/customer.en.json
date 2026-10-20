@@ -1,3 +1,26 @@
 {
-  "portal.title": "HandyHub customer portal"
+  "portal.title": "HandyHub customer portal",
+  "error.VALIDATION_FAILED": "Some of the information is missing or not valid. Check the highlighted fields.",
+  "error.IDEMPOTENCY_KEY_REQUIRED": "This request is missing its retry key. Reload the page and try again.",
+  "error.UNAUTHENTICATED": "Please sign in to continue.",
+  "error.FORBIDDEN": "You do not have permission to do this.",
+  "error.NOT_FOUND": "We could not find what you were looking for.",
+  "error.METHOD_NOT_ALLOWED": "This action is not available here.",
+  "error.STALE_VERSION": "This has been updated since you opened it. Review the current version and try again.",
+  "error.IDEMPOTENCY_CONFLICT": "This request was already sent with different details. Start a new request.",
+  "error.CONFLICT": "This conflicts with a change that was already made. Reload and try again.",
+  "error.PAYLOAD_TOO_LARGE": "What you sent is too large.",
+  "error.UNSUPPORTED_MEDIA_TYPE": "This type of content is not accepted.",
+  "error.PRECONDITION_REQUIRED": "This change needs the version you are editing. Reload and try again.",
+  "error.RATE_LIMITED": "Too many attempts. Wait a moment and try again.",
+  "error.INTERNAL": "Something went wrong on our side. Please try again.",
+  "error.UNAVAILABLE": "This is temporarily unavailable. Please try again shortly.",
+  "error.field.required": "This field is required.",
+  "error.field.type": "This value has the wrong type.",
+  "error.field.format": "This value is not in the expected format.",
+  "error.field.tooLong": "This value is too long or too large.",
+  "error.field.tooShort": "This value is too short or too small.",
+  "error.field.choice": "Choose one of the allowed options.",
+  "error.field.unknown": "This field is not accepted.",
+  "error.field.invalid": "This value is not valid."
 }

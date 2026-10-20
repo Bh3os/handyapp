@@ -61,6 +61,18 @@ export interface PlatformAuditEventsTable {
   request_id: string
 }
 
+export interface PlatformIdempotencyKeysTable {
+  actor_key: string
+  operation: string
+  idempotency_key: string
+  body_hash: string
+  response_status: number
+  response_body: Json
+  request_id: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  expires_at: Timestamp
+}
+
 export interface PlatformJobsTable {
   id: Generated<string>
   seq: GeneratedAlways<string>
@@ -194,6 +206,7 @@ export interface Database {
   'catalog.service_versions': CatalogServiceVersionsTable
   'catalog.services': CatalogServicesTable
   'platform.audit_events': PlatformAuditEventsTable
+  'platform.idempotency_keys': PlatformIdempotencyKeysTable
   'platform.jobs': PlatformJobsTable
   'platform.message_deliveries': PlatformMessageDeliveriesTable
   'platform.message_template_versions': PlatformMessageTemplateVersionsTable
