@@ -20,6 +20,13 @@ export const ENV_VARS = {
   PORT: 'Port to listen on (Render sets it). Default 3000.',
   HOST: 'Interface to listen on. Default 127.0.0.1; 0.0.0.0 in the container.',
   SITE_DIR: 'Directory of the built public site. Default apps/site/dist.',
+  STAFF_DIR:
+    'Directory of the built staff app, served under /staff until host routing exists. Default apps/staff/dist.',
+  STAFF_APP_URL:
+    'Base URL of the staff app for links in staff emails, for example https://staff.handyhub247.com. Default in local and ci: http://<HOST>:<PORT>/staff; unset elsewhere: invite and reset emails are NOT CONFIGURED.',
+  BOOTSTRAP_OWNER_EMAIL:
+    'Email of the first Owner. While no Owner exists, the server creates that invited account at start and emails one invite link; no password is ever set from the environment.',
+  BOOTSTRAP_OWNER_NAME: 'Optional display name of the first Owner.',
   TRUST_PROXY_HOPS: 'Proxies in front of the service that append to X-Forwarded-For. Default 0.',
   LOG_LEVEL: 'fatal, error, warn, info, debug, trace or silent. Default info.',
 } as const
@@ -75,6 +82,12 @@ export interface Config {
   port: number
   host: string
   siteDir: string | undefined
+  staffDir: string | undefined
+  /** Base URL of the staff app for emailed links; undefined while not configured. */
+  staffAppUrl: string | undefined
+  bootstrapOwner: { email: string; displayName: string | null } | null
+  /** Secure, `__Host-` session cookies: staging and production. */
+  secureCookies: boolean
   trustProxyHops: number
   logLevel: LogLevel
   accessGate: AccessGateSettings
@@ -181,12 +194,27 @@ export function loadConfig(source: Readonly<Record<string, string | undefined>>)
   }
 
   const logLevelRaw = get('LOG_LEVEL')
+  const port = integer('PORT', get('PORT'), 3000, 0, 65535)
+  const host = get('HOST') ?? '127.0.0.1'
+  const staffAppUrl = get('STAFF_APP_URL')
+  if (staffAppUrl !== undefined && !(URL.canParse(staffAppUrl) && /^https?:$/.test(new URL(staffAppUrl).protocol)))
+    throw new ConfigError('STAFF_APP_URL must be an http or https URL')
+  if ((env === 'staging' || env === 'production') && staffAppUrl?.startsWith('http:'))
+    throw new ConfigError(`STAFF_APP_URL must use https in ${env}`)
+  const ownerEmail = get('BOOTSTRAP_OWNER_EMAIL')?.trim().toLowerCase()
+  if (ownerEmail !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerEmail))
+    throw new ConfigError('BOOTSTRAP_OWNER_EMAIL must be an email address')
+  const local = env === 'local' || env === 'ci'
   return {
     env,
     databaseUrl,
-    port: integer('PORT', get('PORT'), 3000, 0, 65535),
-    host: get('HOST') ?? '127.0.0.1',
+    port,
+    host,
     siteDir: get('SITE_DIR'),
+    staffDir: get('STAFF_DIR'),
+    staffAppUrl: staffAppUrl ?? (local && port !== 0 ? `http://${host}:${port}/staff` : undefined),
+    bootstrapOwner: ownerEmail ? { email: ownerEmail, displayName: get('BOOTSTRAP_OWNER_NAME')?.trim() || null } : null,
+    secureCookies: !local,
     trustProxyHops: integer('TRUST_PROXY_HOPS', get('TRUST_PROXY_HOPS'), 0, 0, 5),
     logLevel: logLevelRaw === undefined ? 'info' : oneOf('LOG_LEVEL', logLevelRaw, LOG_LEVELS),
     accessGate,

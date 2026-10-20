@@ -31,6 +31,12 @@ services:
       # The staging access gate's testers, "name:password" pairs; set by the owner in Render.
       - key: ACCESS_GATE_USERS
         sync: false
+      # Base URL of the staff app for invite and reset links (https; until host routing: https://<service>/staff).
+      - key: STAFF_APP_URL
+        sync: false
+      # The first Owner's email: while no Owner exists, one invite is emailed at start (TSK-0014, HH-STAFF-01).
+      - key: BOOTSTRAP_OWNER_EMAIL
+        sync: false
       # Proxies that append to X-Forwarded-For in front of the service; set once measured on Render (default 0).
       - key: TRUST_PROXY_HOPS
         sync: false
