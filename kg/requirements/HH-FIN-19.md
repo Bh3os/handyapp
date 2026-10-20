@@ -12,7 +12,7 @@ links:
   uses: ["[[ENT-Invoice]]", "[[ENT-Message]]", "[[FACT-REMINDER-CADENCES]]", "[[FACT-HOURS]]", "[[FACT-TIMEZONE]]", "[[ROLE-OWNER]]"]
   tested_by: ["[[T65]]", "[[T59]]"]
   part_of: ["[[C10]]", "[[S01]]"]
-source: "OWN-DEC-112 (new behaviour; replaces the 3/7-day proposal)"
+source: "OWN-DEC-112 (new behaviour)"
 ---
 - A first and a final payment-reminder draft are prepared after invoice issue at the payment cadence in [[FACT-REMINDER-CADENCES]].
 - Staff release them; sending happens only within contact hours in the business time zone ([[FACT-HOURS]], [[FACT-TIMEZONE]]); a draft released outside hours queues until opening.

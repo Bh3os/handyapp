@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: field
 links:
-  decided_by: ["[[OWN-DEC-109]]", "[[OWN-DEC-68]]", "[[OWN-DEC-75]]", "[[OWN-DEC-121]]"]
+  decided_by: ["[[OWN-DEC-109]]", "[[OWN-DEC-68]]", "[[OWN-DEC-75]]", "[[OWN-DEC-121]]", "[[OWN-DEC-149]]"]
   constrained_by: ["[[RULE-SAFETY-GATES]]"]
   uses: ["[[ENT-Job]]", "[[ENT-Photo]]", "[[ENT-TimeStamp]]", "[[ENT-Walkthrough]]", "[[ENT-QAInspection]]"]
   tested_by: ["[[T55]]", "[[T47]]", "[[T46]]"]
@@ -14,7 +14,7 @@ links:
 source: "OWN-DEC-109 (new behaviour; no guide id)"
 ---
 The sequence is enforced on the server and in the offline app:
-1. **Arrived:** the worker's arrival timestamp ([[HH-WORK-06]]).
+1. **Arrived:** the worker's arrival timestamp ([[HH-WORK-06]]). Between Arrived and Finished there are no interval check-ins, even for a worker alone ([[OWN-DEC-149]]).
 2. **Safety checks:** site conditions, hazards, PPE, tools and materials. An unresolved critical hold blocks work.
 3. **Before photos:** work areas and existing damage, labelled by area or task. Only the upload-failure exception ([[HH-WORK-03]]) lets captured photos stay pending.
 4. **Start Work:** once the checks and before-photo requirements pass, the job checklist unlocks ([[HH-WORK-11]]).

@@ -7,7 +7,7 @@ priority: P0
 area: messaging
 links:
   decided_by: ["[[OWN-DEC-120]]", "[[OWN-DEC-129]]"]
-  depends_on: ["[[HH-COM-10]]", "[[HH-STAFF-06]]"]
+  depends_on: ["[[HH-COM-10]]", "[[HH-OPS-01]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[ENT-Message]]", "[[ENT-Contact]]", "[[ENT-Project]]", "[[ENT-AuditEvent]]", "[[INT-Bird]]", "[[INT-Resend]]"]
   tested_by: ["[[T68]]", "[[T21]]"]
@@ -21,4 +21,4 @@ source: "OWN-DEC-120"
 - If several projects could match, the message goes to **Needs Linking** for staff review.
 - Unmatched messages are private to authorized office staff; other roles are refused.
 - Linking corrections are recorded in the audit log; the original message is kept unchanged.
-- The inbox contributes "Needs Linking", "customer replied" and "delivery failed" items to the action queue ([[HH-STAFF-06]]).
+- The inbox contributes "Needs Linking", "customer replied" and "delivery failed" items to the action queue ([[HH-OPS-01]]).

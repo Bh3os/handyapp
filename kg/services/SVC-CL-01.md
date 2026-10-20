@@ -5,7 +5,7 @@ title: "Routine House Cleaning"
 status: active
 area: business
 links:
-  decided_by: ["[[OWN-DEC-04]]", "[[OWN-DEC-33]]", "[[OWN-DEC-84]]", "[[OWN-DEC-51]]", "[[OWN-DEC-102]]", "[[OWN-DEC-108]]"]
+  decided_by: ["[[OWN-DEC-04]]", "[[OWN-DEC-33]]", "[[OWN-DEC-84]]", "[[OWN-DEC-51]]", "[[OWN-DEC-102]]", "[[OWN-DEC-108]]", "[[OWN-DEC-149]]"]
   uses: ["[[SOP-CL-01]]", "[[FACT-INVENTORY-CL-01]]", "[[FACT-PRICING-PER-JOB]]", "[[FACT-SVC-EXCLUDED-SCOPE]]", "[[FACT-SVC-RECURRING-SERVICE]]", "[[FACT-SVC-LEFT-ITEMS]]", "[[FACT-SVC-LARGE-CLEANING-JOBS]]"]
   constrained_by: ["[[RULE-HUMAN-REVIEW]]", "[[RULE-SAFETY-GATES]]", "[[RULE-NO-INVENTED-FACTS]]", "[[FACT-SVC-EXCLUDED-SCOPE]]", "[[FACT-SVC-SUSPECTED-HAZMAT]]", "[[FACT-SVC-ACCESS-EQUIPMENT]]"]
   part_of: ["[[C01]]", "[[C02]]"]
@@ -104,6 +104,7 @@ HandyHub never performs licensed or unsafe scope: [[FACT-SVC-EXCLUDED-SCOPE]]; s
 - TBD — requires review by safety-liability-manager and a qualified person; owner to approve. No company qualification tags or training records exist yet (source: 31 section 3.1 row 4, GAP).
 - Chemical hazard communication: the worker acknowledges the reviewed SDS summaries for the products on the job, and the app records which summaries each worker acknowledged; the programme scope is the reviewer's decision (source: 29 section 8.2 item 11; spec START-004).
 - Lone work: the pricing file's crew size allows one cleaner alone in an occupied home, and no lone-worker check-in or escalation rule exists. TBD - requires qualified safety reviewer review and an owner decision (source: pricing file "Ideal Crew Size"; 04 CL-01 "labor assumptions"; 02 G-065; Q-31-05).
+- Governed now by [[OWN-DEC-149]]: no interval check-ins for lone work; the worker records only Arrived and Finished. Stop Work stays available at any time.
 - With two employees, a worker never clears their own hold (source: 31 section 8.3 rule 3).
 
 ### Hazards (SOP section 9)
@@ -131,3 +132,4 @@ HandyHub never performs licensed or unsafe scope: [[FACT-SVC-EXCLUDED-SCOPE]]; s
 ## Warranty or callback
 
 - warranty or callback policy (registry 04, label **GAP** + **OPEN QUESTION**): None in CL-01 files (GAP); no re-clean window may be invented, and the CL-02 re-clean clause does not carry over. Return visits are linked to the original job and classified (CX-007, QA-010). OPEN QUESTION: does the owner want any routine re-clean window (owner decision, attorney review) (source: spec CX-007, QA-010)
+- Governed now by: the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]), counted from the reviewed completion date; a claim opens a case with return-visit punch items ([[HH-QA-07]]). No warranty exclusions are defined; any come only from attorney review ([[OQ-ATTORNEY-TERMS]]).

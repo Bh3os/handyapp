@@ -130,3 +130,4 @@ Severity and the order of controls (eliminate, substitute, engineer, administrat
 ## Warranty or callback
 
 - warranty or callback policy (registry 04, label **FACT** + **OPEN QUESTION**): The agreement's "Structural Guarantee" warrants fastening "completely meeting safety weight parameters" with no duration, remedy, exclusions or conditions, while the SOP never checks ratings or hangs the TV (C-HI04-01) and the warranted methods do not cover priced masonry mounts (C-HI04-04). OPEN QUESTION: owner + KY/IN attorney define or withdraw it; return visits classified per CX-007/QA-010; nothing invented (source: agreement §1 L7; spec CX-007, QA-010)
+- Governed now by: the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]), counted from the reviewed completion date; a claim opens a case with return-visit punch items ([[HH-QA-07]]). No warranty exclusions are defined; any come only from attorney review ([[OQ-ATTORNEY-TERMS]]).

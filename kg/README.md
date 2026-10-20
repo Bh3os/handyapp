@@ -5,7 +5,8 @@ This folder is an Obsidian vault: open `kg/` in Obsidian to browse the graph vie
 **Agents never read this folder file by file.** Use the query tool, which returns only the nodes linked to what you are working on:
 
 ```sh
-node tools/kg.mjs ctx TSK-0123      # everything a task needs: its requirements, decisions, rules, facts, tests
+node tools/kg.mjs ctx TSK-0123      # a task: full text of its requirements, tests, rules, facts; titles for the rest
+node tools/kg.mjs ctx TSK-0123 --full entity,decision   # also print those types in full
 node tools/kg.mjs show OWN-DEC-104  # one node and its direct neighbours (titles only)
 node tools/kg.mjs show HH-PAY-03 --depth 2
 node tools/kg.mjs find "deposit"    # search titles and ids

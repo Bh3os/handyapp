@@ -116,28 +116,31 @@ function show(idx, id, depth = 1) {
   }
 }
 
-// Everything needed to work on a node: follow binding edges outwards, print full bodies once, titles for the rest.
-const CTX_FULL = ['implements', 'decided_by', 'constrained_by', 'depends_on', 'uses', 'tested_by', 'part_of']
-function ctx(idx, id) {
+// Everything needed to work on a node, kept small: full text for the node, the requirements it implements, its
+// acceptance tests, and every rule and fact that binds them; titles only for decisions, entities, journeys and the
+// rest (load one with `show <id>`). `--full <type,...>` also prints those types in full, e.g. --full entity,decision.
+const FULL_TYPES = new Set(['requirement', 'acceptance', 'rule', 'fact'])
+function ctx(idx, id, extra = []) {
   const root = idx.nodes[id]
   if (!root) return console.log(`no node ${id}`)
-  const full = new Map(), titles = new Map(); const q = [[id, 0]]
-  while (q.length) {
-    const [cur, d] = q.shift()
-    if (full.has(cur)) continue
-    const n = idx.nodes[cur]; if (!n || n.status === 'superseded') continue
-    full.set(cur, n)
-    for (const [e, ts] of Object.entries(n.links)) for (const t of ts) {
-      const deep = d === 0 ? CTX_FULL.includes(e) : ['decided_by', 'constrained_by', 'uses', 'tested_by'].includes(e)
-      if (deep && d < 3) q.push([t, d + 1]); else if (!full.has(t)) titles.set(t, e)
+  const full = new Set(extra)
+  const shown = new Map([[id, root]]), titles = new Map()
+  const want = (n, depth) => n && n.status !== 'superseded' && (FULL_TYPES.has(n.type) || full.has(n.type)) && (n.type !== 'requirement' || depth <= 1)
+  let frontier = [id]
+  for (let d = 1; d <= 2 && frontier.length; d++) {
+    const next = []
+    for (const cur of frontier) for (const [e, ts] of Object.entries(idx.nodes[cur].links)) for (const t of ts) {
+      if (shown.has(t)) continue
+      const n = idx.nodes[t]
+      if (want(n, d) && (d === 1 || ['constrained_by', 'uses', 'tested_by'].includes(e))) { shown.set(t, n); next.push(t) }
+      else if (!titles.has(t)) titles.set(t, e)
     }
-    // Rules always bind whatever references them.
-    for (const [e, s] of idx.back[cur] ?? []) if (d === 0 && (e === 'implements' || e === 'part_of') && !full.has(s)) titles.set(s, `<-${e}`)
+    frontier = next
   }
-  for (const n of full.values()) console.log(`## ${line(n)}${n.priority ? ' ' + n.priority : ''}\n${n.body}\n`)
-  const rest = [...titles].filter(([t]) => !full.has(t))
+  for (const n of shown.values()) console.log(`## ${line(n)}${n.priority ? ' ' + n.priority : ''}\n${n.body}\n`)
+  const rest = [...titles].filter(([t]) => !shown.has(t))
   if (rest.length) {
-    console.log('## related (titles only; use show <id> for more)')
+    console.log('## linked (titles only; `show <id>` for one)')
     for (const [t, e] of rest) console.log(`- ${e} ${idx.nodes[t] ? line(idx.nodes[t]) : t}`)
   }
 }
@@ -173,7 +176,7 @@ switch (cmd) {
   case 'index': index(false); break
   case 'lint': { const { problems, nodes } = build(); problems.forEach((p) => console.log(p)); console.log(`${Object.keys(nodes).length} nodes, ${problems.length} problems`); process.exitCode = problems.length ? 1 : 0; break }
   case 'show': show(load(), args[0], Number(flag('--depth', 1))); break
-  case 'ctx': ctx(load(), args[0]); break
+  case 'ctx': ctx(load(), args[0], (flag('--full', '') || '').split(',').filter(Boolean)); break
   case 'find': find(load(), args.join(' ')); break
   case 'list': list(load(), args[0] && !args[0].startsWith('--') ? args[0] : undefined, flag('--status')); break
   case 'maps': maps(index(true)); break

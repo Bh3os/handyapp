@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: payments
 links:
-  decided_by: ["[[OWN-DEC-67]]", "[[OWN-DEC-118]]", "[[OWN-DEC-111]]", "[[OWN-DEC-76]]"]
+  decided_by: ["[[OWN-DEC-67]]", "[[OWN-DEC-118]]", "[[OWN-DEC-111]]", "[[OWN-DEC-76]]", "[[OWN-DEC-138]]"]
   depends_on: ["[[HH-STAFF-03]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[ROLE-MATRIX]]", "[[ENT-Payment]]", "[[ENT-Refund]]"]
@@ -16,6 +16,6 @@ source: "guide 20.1 HH-FIN-03; OWN-DEC-67, OWN-DEC-111, OWN-DEC-118"
 ---
 The server checks each of these as its own capability ([[ROLE-MATRIX]]): proposing price, publishing estimates, issuing invoices, recording collection, marking checks cleared and reconciling, approving credits and refunds, and write-offs.
 - Estimators and the Owner publish estimates.
-- The Owner and Office staff record verified payments. A worker records a payment they collected on an assigned job only with an explicit collect permission the Owner granted; every payment names its collector.
-- Refunds, credits, write-offs and deposit waivers are Owner-only, with a fresh sign-in and a reason.
+- The Owner and Office/Dispatcher issue invoices (after the Owner's quality review), enter invoice-specific Square payment links and record verified payments ([[OWN-DEC-138]]). Only the Owner marks a check cleared. A worker records a payment they collected on an assigned job only with an explicit collect permission the Owner granted; every payment names its collector.
+- Refunds, credits, write-offs and deposit waivers are Owner-only, with a fresh sign-in and a reason ([[OWN-DEC-138]]).
 - PROPOSED DECISION: the person who collected a payment never marks it cleared or reconciles it.

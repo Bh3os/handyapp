@@ -6,9 +6,9 @@ status: active
 priority: P0
 area: payments
 links:
-  decided_by: ["[[OWN-DEC-104]]", "[[OWN-DEC-76]]", "[[OWN-DEC-42]]", "[[OWN-DEC-66]]", "[[OWN-DEC-119]]", "[[OWN-DEC-68]]"]
+  decided_by: ["[[OWN-DEC-104]]", "[[OWN-DEC-76]]", "[[OWN-DEC-42]]", "[[OWN-DEC-66]]", "[[OWN-DEC-119]]", "[[OWN-DEC-68]]", "[[OWN-DEC-134]]"]
   constrained_by: ["[[RULE-MONEY-CENTS]]", "[[RULE-NO-INVENTED-FACTS]]"]
-  uses: ["[[ENT-DepositRequirement]]", "[[ENT-Payment]]", "[[ENT-Invoice]]", "[[ENT-AuditEvent]]", "[[FACT-DEPOSIT-RULE]]", "[[FACT-PAYMENT-METHODS]]", "[[ROLE-OWNER]]"]
+  uses: ["[[ENT-DepositRequirement]]", "[[ENT-Payment]]", "[[ENT-Invoice]]", "[[ENT-AuditEvent]]", "[[FACT-DEPOSIT-RULE]]", "[[FACT-PAYMENT-METHODS]]", "[[ROLE-OWNER]]", "[[FACT-CANCELLATION-RULES]]"]
   tested_by: ["[[T36]]", "[[T59]]", "[[T64]]"]
   part_of: ["[[C05]]", "[[S05]]", "[[S01]]"]
 source: "guide 20.1 HH-FIN-02; OWN-DEC-42, 66, 76, 104, 119"
@@ -20,4 +20,4 @@ source: "guide 20.1 HH-FIN-02; OWN-DEC-42, 66, 76, 104, 119"
 - The deposit is satisfied only by verified money: a received check stays pending until cleared and does not satisfy it. At Start Work only, a Square-verified deposit with bookkeeping pending may use the administrative exception ([[HH-WORK-03]]).
 - Only the Owner may waive a required deposit: a job-specific waiver with a fresh sign-in and a written reason, audited. Any other role, including another administrator, is refused. A waiver never marks the deposit paid and never reduces the agreed price.
 - The deposit is credited toward the final invoice exactly once ([[HH-FIN-05]]).
-- No late fees, forfeiture or refund terms exist; a refund question on a deposit routes to the Owner.
+- A cancelled job refunds its deposit by [[FACT-CANCELLATION-RULES]]: in full for a final cancellation with 24 hours or more notice before work starts; less the $50.00 (5000 cents) kept for a cancellation under 24 hours; in full when HandyHub cancels and the customer chooses a refund. Only the Owner records refunds ([[HH-FIN-14]]). No late fees or forfeiture terms exist.

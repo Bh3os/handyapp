@@ -22,11 +22,11 @@ This Agreement governs the localized structural post stabilization, rail re-ties
 * **Inclusions:** Localized repair items checked inside `pricing-fence-repair.md` (e.g., concrete post collars, rail replacements, gate tuning).
   - Governed now by: price: set per job on the estimate, [[FACT-PRICING-PER-JOB]].
 * **Wind/Storm Warranty Disclaimer:** The Company structurally reinforces old fencing to excellent trade standards using fast-setting concrete below regional frost lines. However, because older adjacent fence sections remain worn, the Company cannot issue wind-load warranties for the entire fence perimeter line during catastrophic storm events.
-  - Governed now by: no warranty or guarantee is part of the approved terms ([[OWN-DEC-127]]).
+  - Governed now by: warranty: only the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]); no other warranty or guarantee is part of the approved terms ([[OWN-DEC-127]]).
 
 #### 2. Property Line & Boundary Warranties
 * **Boundary Disclaimer:** Repairs will be executed strictly on the existing fence footprint. The Company is not responsible for verifying property line surveys or boundary disputes between adjacent neighbors. Client warrants that they possess legal ownership or neighbor approval to repair the target line.
-  - Governed now by: no warranty or guarantee is part of the approved terms ([[OWN-DEC-127]]); liability, insurance and waiver wording: attorney and insurance-broker review ([[OQ-ATTORNEY-TERMS]]); no insurance or liability statement is made from this draft ([[RULE-NO-INVENTED-FACTS]]).
+  - Governed now by: warranty: only the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]); no other warranty or guarantee is part of the approved terms ([[OWN-DEC-127]]); liability, insurance and waiver wording: attorney and insurance-broker review ([[OQ-ATTORNEY-TERMS]]); no insurance or liability statement is made from this draft ([[RULE-NO-INVENTED-FACTS]]).
 
 **Client Signature:** _______________________  **Date:** _______________
 **Company Representative Signature:** ______________________  **Date:** _______________

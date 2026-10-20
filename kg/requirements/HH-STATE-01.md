@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: platform
 links:
-  decided_by: ["[[OWN-DEC-64]]", "[[OWN-DEC-77]]", "[[OWN-DEC-82]]", "[[OWN-DEC-96]]", "[[OWN-DEC-98]]", "[[OWN-DEC-100]]", "[[OWN-DEC-101]]", "[[OWN-DEC-103]]", "[[OWN-DEC-107]]", "[[OWN-DEC-108]]", "[[OWN-DEC-109]]", "[[OWN-DEC-111]]", "[[OWN-DEC-112]]", "[[OWN-DEC-118]]", "[[OWN-DEC-124]]"]
+  decided_by: ["[[OWN-DEC-64]]", "[[OWN-DEC-77]]", "[[OWN-DEC-82]]", "[[OWN-DEC-96]]", "[[OWN-DEC-98]]", "[[OWN-DEC-100]]", "[[OWN-DEC-101]]", "[[OWN-DEC-103]]", "[[OWN-DEC-107]]", "[[OWN-DEC-108]]", "[[OWN-DEC-109]]", "[[OWN-DEC-111]]", "[[OWN-DEC-112]]", "[[OWN-DEC-118]]", "[[OWN-DEC-124]]", "[[OWN-DEC-137]]"]
   depends_on: ["[[HH-ARC-03]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]", "[[RULE-SAFETY-GATES]]"]
   uses: ["[[ENT-Request]]", "[[ENT-Estimate]]", "[[ENT-EstimateVersion]]", "[[ENT-Visit]]", "[[ENT-Job]]", "[[ENT-Hold]]", "[[ENT-ChangeOrder]]", "[[ENT-Case]]", "[[ENT-Invoice]]", "[[ENT-Payment]]", "[[ENT-Message]]", "[[ENT-AuditEvent]]"]
@@ -25,7 +25,7 @@ Canonical transitions (guide 23, with later decisions applied):
 | Scheduling task | `open → planning → fulfilled / canceled` | Dispatcher; `fulfilled` only after a committed visit |
 | Visit | `tentative → confirmed → en_route → arrived → completed`; `tentative → expired`; `confirmed → canceled / no_access` | Capacity and eligibility checked; a reschedule adds history and a new committed version, never erases the old one; `en_route` only by the assigned worker's explicit tap ([[OWN-DEC-107]]) |
 | Job | `pending_preparation → ready → in_progress → ready_for_qa → operationally_complete → closed`; `in_progress ↔ paused`; permitted cancellation path; `closed → reopened` by the owner only ([[OWN-DEC-77]]) | Preparation and readiness; start, resume, QA and close gates; a Requirements Hold blocks confirmation and start until cleared with a note ([[OWN-DEC-82]]); finance status is separate |
-| Hold | `open → under_review → resolved / canceled_as_error` | Appropriate authority and evidence; a hard (critical) hold has no generic override; nobody releases a hold they raised ([[OWN-DEC-38]]) |
+| Hold | `open → under_review → resolved / canceled_as_error` | Appropriate authority and evidence; a hard (critical) hold has no generic override; nobody releases a critical safety hold they raised ([[OWN-DEC-38]]); the Owner may set Ready on any job-level Hold / Ready note ([[OWN-DEC-137]]) |
 | Task | `not_started → ready → in_progress → completed`; `in_progress ↔ paused`; `completed → reopened` | Task prerequisites and evidence; reopening needs a reason and is audited; required SOP steps cannot be silently skipped ([[OWN-DEC-108]]) |
 | Change revision | `draft → reviewed → issued → approved / rejected / expired / superseded / withdrawn` | Workers draft, authorized staff publish, the verified customer approves the exact version; affected packet refreshed |
 | Incident | `reported → triaged → action_pending → resolution_review → closed` | Restricted reviewer; hold resolution evaluated separately |

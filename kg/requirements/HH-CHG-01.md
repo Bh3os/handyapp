@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: field
 links:
-  decided_by: ["[[OWN-DEC-108]]", "[[OWN-DEC-83]]"]
+  decided_by: ["[[OWN-DEC-108]]", "[[OWN-DEC-83]]", "[[OWN-DEC-145]]"]
   constrained_by: ["[[RULE-MONEY-CENTS]]", "[[FACT-NO-MINIMUM]]", "[[FACT-TAX-NO-LINE]]"]
   uses: ["[[ENT-ChangeOrder]]", "[[ENT-Job]]"]
   tested_by: ["[[T53]]"]
@@ -16,7 +16,7 @@ source: "guide 18.1 HH-CHG-01"
 Each change-order version ([[ENT-ChangeOrder]]) links to its job and holds:
 - reason and origin (worker proposal, customer request, estimator, emergency follow-up);
 - requested or proposed scope, added and removed quantities with units;
-- price delta in integer cents, rounded once per line half-up, and the revised total; no tax line and no minimum;
+- price lines in integer cents, each greater than $0.00 and rounded once half-up ([[OWN-DEC-145]]), the price delta and the revised total; removed scope is never a negative line; no tax line and no minimum;
 - schedule impact, affected hazards and resources;
 - the evidence photos and measurements;
 - drafter, publisher (estimator or Owner) and version number.

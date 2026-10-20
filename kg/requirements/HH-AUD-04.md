@@ -6,6 +6,7 @@ status: active
 priority: P0
 area: platform
 links:
+  decided_by: ["[[OWN-DEC-136]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]", "[[RULE-MONEY-CENTS]]", "[[RULE-SAFETY-GATES]]", "[[RULE-LANGUAGES]]"]
   tested_by: ["[[T19]]", "[[T33]]", "[[T34]]", "[[T38]]", "[[T59]]"]
   related: ["[[HH-TEST-01]]"]
@@ -29,4 +30,4 @@ A feature is done only when (guide 30.4):
 9. the premium design and unrelated working features keep their behaviour;
 10. documentation, traceability and configuration status match what is actually implemented, configured, verified and active.
 
-The platform is ready for a controlled operational release only after a synthetic customer completes the whole request-to-closeout journey and representative customer and staff roles pass the negative permission, finance, schedule, packet, language and recovery tests. Remaining limitations are recorded; zero defects or absolute security are never promised.
+The platform is ready for a controlled operational release only after a synthetic customer completes the whole request-to-closeout journey and representative customer and staff roles pass the negative permission, finance, schedule, packet, language and recovery tests, and the AI security review of [[HH-SEC-01]] has every finding fixed and recorded ([[OWN-DEC-136]]). Remaining limitations are recorded; zero defects or absolute security are never promised.

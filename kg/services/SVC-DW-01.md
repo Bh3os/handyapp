@@ -138,3 +138,4 @@ Draft entries for the qualified safety professional; severity and the final cont
 ## Warranty or callback
 
 - warranty or callback policy (registry 04, label **GAP** + **OPEN QUESTION**): No warranty or callback policy exists and none is proposed here. Agreement §1 disclaims a "100% molecular texture blend" yet states "seamless flat feathering will be achieved"; plan claims "prevent future sagging or cracking" (C-DW01-05; HUMAN REVIEW: attorney). Return visits must be linked and classified (CX-007, QA-010); care notes via QA-008 (source: agreement L9; plan L16-17; spec CX-007, QA-008, QA-010)
+- Governed now by: the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]), counted from the reviewed completion date; a claim opens a case with return-visit punch items ([[HH-QA-07]]). No warranty exclusions are defined; any come only from attorney review ([[OQ-ATTORNEY-TERMS]]).

@@ -21,7 +21,7 @@ This Agreement governs the drainage clearance, pitch adjustment, and guard mount
 #### 1. Scope & Leak Remediation
 * **Inclusions:** Deep manual leaf mud extraction, downspout high-volume flushing, and miter seam resealing as outlined in `sop-gutter-maintenance.md`.
 * **Guard Warranty:** Installed micro-mesh aluminum leaf screens are designed to block leaves, seed pods, and twigs from clogging the gutter channel. Client acknowledges that ultra-fine shingle asphalt grit or pine needles may require seasonal blowing and are not covered under clog failure warranties.
-  - Governed now by: no warranty or guarantee is part of the approved terms ([[OWN-DEC-127]]).
+  - Governed now by: warranty: only the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]); no other warranty or guarantee is part of the approved terms ([[OWN-DEC-127]]).
 
 #### 2. Pre-Existing Structural Conditions
 * **Fascia Board Decay:** If the crew discovers that the underlying wood fascia board behind a sagging gutter is completely rotted out, work will be paused. The Company cannot drive structural screws into rotted wood backing. Fascia board replacement will be itemized as a separate paid change order before gutters can be secured.

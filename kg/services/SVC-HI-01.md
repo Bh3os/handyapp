@@ -124,3 +124,4 @@ Draft entries for the qualified safety professional; severity and final controls
 ## Warranty or callback
 
 - warranty or callback policy (registry 04, label **GAP** + **OPEN QUESTION**): None in any HI-01 file. Plan copy makes outcome promises ("guarantee perfect symmetry and spacing"; "without sagging") with no warranty basis (C-HI01-V01, C-HI01-02). OPEN QUESTION: owner + KY/IN attorney decide; return visits classified per CX-007/QA-010; nothing invented (source: plan L14, L16; spec CX-007, QA-010)
+- Governed now by: the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]), counted from the reviewed completion date; a claim opens a case with return-visit punch items ([[HH-QA-07]]). No warranty exclusions are defined; any come only from attorney review ([[OQ-ATTORNEY-TERMS]]).

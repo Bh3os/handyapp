@@ -37,7 +37,7 @@ This Commercial/Residential Agreement is executed by **[Your Painting Company Na
 Total project value is fixed at **\$[Amount]**, to be paid as follows:
   - Governed now by: price: set per job on the estimate, [[FACT-PRICING-PER-JOB]]; payment timing and methods: [[FACT-PAYMENT-DUE]], [[FACT-PAYMENT-METHODS]].
 * **Milestone 1:** 40% upfront deposit to secure the operational block and chemical inventory.
-  - Governed now by: deposit: [[FACT-DEPOSIT-RULE]] ([[OWN-DEC-104]]); no forfeiture, refund or late-fee terms are invented; payment timing and methods: [[FACT-PAYMENT-DUE]], [[FACT-PAYMENT-METHODS]].
+  - Governed now by: deposit: [[FACT-DEPOSIT-RULE]] ([[OWN-DEC-104]]); refunds follow [[FACT-CANCELLATION-RULES]] ([[OWN-DEC-134]]); no forfeiture or late-fee terms are invented; payment timing and methods: [[FACT-PAYMENT-DUE]], [[FACT-PAYMENT-METHODS]].
 * **Milestone 2:** 30% due immediately upon completion of full masonry wash, mechanical masking, and setup.
   - Governed now by: payment timing and methods: [[FACT-PAYMENT-DUE]], [[FACT-PAYMENT-METHODS]].
 * **Milestone 3:** 30% due upon de-masking, glass scraping inspection, and clean site handover.

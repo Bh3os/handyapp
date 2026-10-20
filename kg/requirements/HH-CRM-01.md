@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: records
 links:
-  decided_by: ["[[OWN-DEC-117]]", "[[OWN-DEC-96]]", "[[OWN-DEC-79]]"]
+  decided_by: ["[[OWN-DEC-117]]", "[[OWN-DEC-96]]", "[[OWN-DEC-79]]", "[[OWN-DEC-147]]"]
   depends_on: ["[[HH-ID-01]]", "[[HH-STAFF-04]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]", "[[RULE-LANGUAGES]]"]
   uses: ["[[ENT-Customer]]", "[[ENT-Contact]]", "[[ENT-ConsentPreference]]", "[[ENT-Property]]", "[[ENT-Project]]"]
@@ -14,7 +14,7 @@ links:
   part_of: ["[[S03]]"]
 source: "guide 12.1 HH-CRM-01; OWN-DEC-117"
 ---
-- A customer record has a stable ID, display name, contact details with separate email and phone verification, channel permissions (email, call, text, including opt-outs), a separate marketing permission with its consent history, authorized properties, projects and requests, documents, payments, and an activity history (timeline of messages and actions).
+- A customer record has a stable ID, display name, contact details with separate email and phone verification, channel permissions (email, call, text with its SMS opt-in record, including opt-outs, [[HH-INT-22]]), a separate marketing permission with its consent history, authorized properties, projects and requests, documents, payments, and an activity history (timeline of messages and actions).
 - Staff see only role-authorized records and timeline events; internal notes and restricted incidents stay private to permitted roles.
 - Staff view and edit the record through the English or Spanish interface; customer-facing content stays English.
 - Notes never hold passwords, access codes or payment card data.

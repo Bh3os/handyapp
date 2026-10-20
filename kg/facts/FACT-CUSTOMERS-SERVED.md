@@ -6,7 +6,7 @@ status: active
 area: business
 links:
   decided_by: ["[[OWN-DEC-66]]"]
-  related: ["[[OQ-PROPERTY-TYPES]]"]
+  related: ["[[FACT-PROPERTY-TYPES]]"]
 source: "OWN-DEC-66; owner-answers-verbatim 2026-10-05T16:22 [Customers], 18:06 [DW-04/CL-04], 18:13 [Who approves]"
 ---
 **Value:** homeowners, renters, landlords and short-term rental (Airbnb) hosts ([[OWN-DEC-66]]; owner answer 2026-10-05T16:22).

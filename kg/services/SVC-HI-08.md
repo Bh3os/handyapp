@@ -118,3 +118,4 @@ Draft entries from the spec card and the register, pending review by the qualifi
 ## Warranty or callback
 
 - warranty or callback policy (registry 04, label **GAP** + **OPEN QUESTION**): None. The agreement only disclaims drywall fracture when the client "grossly exceeds the manufactured load rating", while SOP and plan copy "guarantee" load (C-HI08-01). No warranty may be added without an owner-approved policy; returns classified under QA-010/CX-007 (source: agreement §1 L8; SOP L12; plan L115; spec QA-010, CX-007)
+- Governed now by: the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]), counted from the reviewed completion date; a claim opens a case with return-visit punch items ([[HH-QA-07]]). No warranty exclusions are defined; any come only from attorney review ([[OQ-ATTORNEY-TERMS]]).

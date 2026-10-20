@@ -34,7 +34,7 @@ This Agreement governs the heavy containment scraping and ceiling updating servi
 * **Total Cleanable Area:** Based on a calculated **[Insert Sq. Ft.]** totaling a contract price of **\$[Amount]**.
   - Governed now by: price: set per job on the estimate, [[FACT-PRICING-PER-JOB]].
 * **Retainer Deposit:** A non-refundable **25% schedule retainer** is required to lock the calendar date.
-  - Governed now by: deposit: [[FACT-DEPOSIT-RULE]] ([[OWN-DEC-104]]); no forfeiture, refund or late-fee terms are invented.
+  - Governed now by: deposit: [[FACT-DEPOSIT-RULE]] ([[OWN-DEC-104]]); refunds follow [[FACT-CANCELLATION-RULES]] ([[OWN-DEC-134]]); no forfeiture or late-fee terms are invented.
 * **Final Walkthrough:** Final payment is due upon successful completion of the specified finish (Level 5 Smooth or Sprayed Texture) before the final containment plastic sheets are removed from the walls.
   - Governed now by: payment timing and methods: [[FACT-PAYMENT-DUE]], [[FACT-PAYMENT-METHODS]].
 

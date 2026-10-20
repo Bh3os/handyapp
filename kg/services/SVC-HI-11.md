@@ -144,3 +144,4 @@ Severity ratings and final controls: TBD — requires review by safety-liability
 ## Warranty or callback
 
 - warranty or callback policy (registry 04, label **GAP** + **OPEN QUESTION**): None defined; no warranty may be added without an owner-approved policy; returns classified under QA-010/CX-007. QA-008 care note: the 60-day staining wait has no product source (source: agreement §2 L11; spec QA-008, QA-010, CX-007)
+- Governed now by: the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]), counted from the reviewed completion date; a claim opens a case with return-visit punch items ([[HH-QA-07]]). No warranty exclusions are defined; any come only from attorney review ([[OQ-ATTORNEY-TERMS]]).

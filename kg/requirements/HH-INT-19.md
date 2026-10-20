@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: intake
 links:
-  decided_by: ["[[OWN-DEC-93]]", "[[OWN-DEC-72]]", "[[OWN-DEC-92]]"]
+  decided_by: ["[[OWN-DEC-93]]", "[[OWN-DEC-72]]", "[[OWN-DEC-92]]", "[[OWN-DEC-147]]"]
   depends_on: ["[[HH-INT-10]]", "[[HH-PRIV-04]]"]
   constrained_by: ["[[RULE-NO-INVENTED-FACTS]]", "[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[ENT-Request]]", "[[ENT-PolicyVersion]]"]
@@ -19,4 +19,4 @@ source: "OWN-DEC-93, OWN-DEC-72; guide 7.1 review row"
 - The submit button reads **"Send Estimate Request."** The summary shows no price and no confirmed time.
 - After success the receipt shows the reference and next steps, and explains that the request is received, not a confirmed appointment ([[HH-INT-12]]).
 
-The server stores, and authorized staff see on the request ([[HH-LEAD-01]]): selected services and per-service answers and notes, the extra-work description beyond five services, the project description, photos and their upload status, the full address with unit, property type, coverage outcome, preferred date or flexible flag, need-help-today flag, preferred windows, preferred contact channel, estimate preference (including "Let HandyHub decide"), the marketing permission with its own consent record, and the privacy notice version.
+The server stores, and authorized staff see on the request ([[HH-LEAD-01]]): selected services and per-service answers and notes, the extra-work description beyond five services, the project description, photos and their upload status, the full address with unit, property type, coverage outcome, preferred date or flexible flag, need-help-today flag, preferred windows, preferred contact channel, estimate preference (including "Let HandyHub decide"), the SMS opt-in and the marketing permission, each with its own consent record ([[HH-INT-22]]), and the privacy notice version.

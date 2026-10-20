@@ -12,5 +12,5 @@ source: "OWN-DEC-31, 102"
 ---
 **Value:** no minimum job value, minimum charge, minimum disclosure or automatic top-up anywhere: estimates, invoices, the website, the request form, agreements or terms.
 
-- The $150 minimum of [[OWN-DEC-06]] is withdrawn ([[OWN-DEC-31]], confirmed by [[OWN-DEC-102]]). Mentions in the vault business files are superseded but not reworded.
+- Decided by [[OWN-DEC-31]] and confirmed by [[OWN-DEC-102]]. Minimum mentions in the vault business files are superseded but not reworded.
 - Historical accepted estimates and invoices are not recalculated ([[HH-BASE-02]]).

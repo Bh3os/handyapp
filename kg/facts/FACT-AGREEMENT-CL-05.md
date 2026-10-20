@@ -20,7 +20,7 @@ This Operational Service Agreement is executed between **[Your Cleaning Company 
 
 #### 1. The Fast-Turnover Window
 * **Operational Timeline:** Company guarantees completion of turnover protocols within the standard hospitality window of **11:00 AM to 3:00 PM** on checkout days, provided immediate property access is given.
-  - Governed now by: no warranty or guarantee is part of the approved terms ([[OWN-DEC-127]]).
+  - Governed now by: warranty: only the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]); no other warranty or guarantee is part of the approved terms ([[OWN-DEC-127]]).
 * **Delay Surcharge:** If checkout is delayed by the host's guests, preventing entry past 11:15 AM, a **\$45 / hour waiting fee** will be charged to offset cleaner downtime.
   - Governed now by: price: set per job on the estimate, [[FACT-PRICING-PER-JOB]].
 

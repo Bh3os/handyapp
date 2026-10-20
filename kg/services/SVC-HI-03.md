@@ -130,3 +130,4 @@ Draft service risk class (PROPOSED, 04 section 6.2): high-risk / specialist revi
 ## Warranty or callback
 
 - warranty or callback policy (registry 04, label **GAP** + **OPEN QUESTION**): None in any file. The plan implies durability ("keeping your driveway cleaner for three times longer") with no basis, while the agreement limits stain outcomes. OPEN QUESTION: owner + KY/IN attorney; return visits classified per CX-007/QA-010; nothing invented (source: plan L45; agreement §1 L8; spec CX-007, QA-010)
+- Governed now by: the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]), counted from the reviewed completion date; a claim opens a case with return-visit punch items ([[HH-QA-07]]). No warranty exclusions are defined; any come only from attorney review ([[OQ-ATTORNEY-TERMS]]).

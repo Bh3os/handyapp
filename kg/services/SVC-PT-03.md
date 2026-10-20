@@ -142,3 +142,4 @@ Draft service risk class (PROPOSED, 04 section 6.2): high-risk / specialist revi
 ## Warranty or callback
 
 - warranty or callback policy (registry 04, label **GAP** + **OPEN QUESTION**): No warranty or callback policy and none is proposed here; the "Masking Warranty" heading has no terms; no coating performance, cure or maintenance guidance; plan performance claims unsupported (C-PT03-02). HUMAN REVIEW: attorney + manufacturer data; return visits classified per CX-007 and QA-010 (source: agreement L12-14; plan L39, L45; spec QA-008, CX-007, QA-010)
+- Governed now by: the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]), counted from the reviewed completion date; a claim opens a case with return-visit punch items ([[HH-QA-07]]). No warranty exclusions are defined; any come only from attorney review ([[OQ-ATTORNEY-TERMS]]).

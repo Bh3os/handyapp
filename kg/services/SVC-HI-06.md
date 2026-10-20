@@ -134,3 +134,4 @@ Severity ratings and final controls: TBD — requires review by safety-liability
 ## Warranty or callback
 
 - warranty or callback policy (registry 04, label **FACT** + **OPEN QUESTION**): The agreement uses a "Guard Warranty" heading and "clog failure warranties" with no terms, duration, remedy or warrantor (HandyHub or manufacturer); the plan says "permanently" (C-HI06-02). OPEN QUESTION: owner + KY/IN attorney; seasonal-maintenance wording belongs in QA-008 care notes; return visits classified per CX-007/QA-010; nothing invented (source: agreement §1 L8; plan L81; spec QA-008, QA-010, CX-007)
+- Governed now by: the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]), counted from the reviewed completion date; a claim opens a case with return-visit punch items ([[HH-QA-07]]). No warranty exclusions are defined; any come only from attorney review ([[OQ-ATTORNEY-TERMS]]).

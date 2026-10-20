@@ -20,14 +20,14 @@ This Agreement governs the relationship between **[Your Cleaning Company Name]**
 
 #### 1. Absolute Vacancy Requirement
 * **Condition of Property:** Client warrants that the property will be **100% vacant of furniture, personal items, and heavy trash bags** before the cleaning team arrives.
-  - Governed now by: no warranty or guarantee is part of the approved terms ([[OWN-DEC-127]]).
+  - Governed now by: warranty: only the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]); no other warranty or guarantee is part of the approved terms ([[OWN-DEC-127]]).
 * **Trash Surcharge:** If heavy trash, discarded boxes, or furniture remnants are left behind for the Company to discard, a **25% Surcharge** will be added to the final bill to cover heavy disposal fees.
   - Governed now by: price: set per job on the estimate, [[FACT-PRICING-PER-JOB]].
 
 #### 2. Inclusions & Inspection Standard
 * **Turnover Standard:** Service covers absolute deep cleaning of bare floors, baseboards, interior window tracks, and empty cabinets as outlined in `move-in-move-out.md`.
 * **Deposit Sign-off:** The Company cleans to professional leasing standards but does not guarantee the return of a security deposit, which is subject entirely to the landlord's subjective discretion.
-  - Governed now by: deposit: [[FACT-DEPOSIT-RULE]] ([[OWN-DEC-104]]); no forfeiture, refund or late-fee terms are invented.
+  - Governed now by: deposit: [[FACT-DEPOSIT-RULE]] ([[OWN-DEC-104]]); refunds follow [[FACT-CANCELLATION-RULES]] ([[OWN-DEC-134]]); no forfeiture or late-fee terms are invented.
 
 #### 3. Scheduling & Penalties
 * **Final Pricing:** Based on the cleanable square footage of **[Insert Sq. Ft / Sq. M]** totaling **\$[Amount]**.

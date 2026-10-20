@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: business
 links:
-  decided_by: ["[[OWN-DEC-11]]", "[[OWN-DEC-35]]", "[[OWN-DEC-66]]", "[[OWN-DEC-86]]", "[[OWN-DEC-115]]"]
+  decided_by: ["[[OWN-DEC-11]]", "[[OWN-DEC-35]]", "[[OWN-DEC-66]]", "[[OWN-DEC-86]]", "[[OWN-DEC-115]]", "[[OWN-DEC-131]]"]
   constrained_by: ["[[RULE-NO-INVENTED-FACTS]]", "[[RULE-HUMAN-REVIEW]]"]
   uses: ["[[FACT-HOURS]]", "[[FACT-RESPONSE-TARGET]]", "[[FACT-PUBLIC-CONTACT]]", "[[FACT-SERVICE-AREA]]"]
   tested_by: ["[[T31]]", "[[T08]]"]
@@ -18,4 +18,4 @@ Neither website, no template and no seed may show or imply anything that is not 
 - **People and proof:** no staff biographies, reviews, testimonials, portfolio, certifications or credentials unless real, verified and permitted ([[OWN-DEC-11]]).
 - **Prices and trades:** no prices, rates or price ranges outside an estimate; no claim of licensed-trade eligibility (gas, electrical, plumbing, HVAC, structural, hazardous materials stay human-review boundaries, [[RULE-HUMAN-REVIEW]]).
 - **Branches and area:** no branches or locations beyond the approved service area ([[FACT-SERVICE-AREA]]); no county page without authentic local content ([[OWN-DEC-57]]).
-- **Contact details:** the public phone and email stay labeled placeholders until the owner supplies them ([[FACT-PUBLIC-CONTACT]]).
+- **Contact details:** the public phone and the public email are both labelled placeholders until the owner supplies real values ([[FACT-PUBLIC-CONTACT]]).

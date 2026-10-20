@@ -24,9 +24,9 @@ This Agreement governs the high-pressure concrete cleaning and surface restorati
 
 #### 2. Pre-Service Site Requirements
 * **Vehicle Clearing:** Client warrants that all vehicles will be removed from the driveway and parked at least 50 feet away from the active wash zones prior to crew arrival.
-  - Governed now by: no warranty or guarantee is part of the approved terms ([[OWN-DEC-127]]).
+  - Governed now by: warranty: only the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]); no other warranty or guarantee is part of the approved terms ([[OWN-DEC-127]]).
 * **Water Access Mandatory:** Client must provide access to an unrestricted external spigot with standard residential water pressure. If water access is frozen or unavailable, a **\$50 dry-run cancellation fee** will apply.
-  - Governed now by: price: set per job on the estimate, [[FACT-PRICING-PER-JOB]]; cancellation and rescheduling: customer requests confirmed by staff, no cancellation fee configured ([[OWN-DEC-107]]).
+  - Governed now by: price: set per job on the estimate, [[FACT-PRICING-PER-JOB]]; cancellation and rescheduling: customer requests confirmed by staff ([[OWN-DEC-107]]), with the fees and refunds of [[FACT-CANCELLATION-RULES]] ([[OWN-DEC-134]]).
 
 **Client Signature:** _______________________  **Date:** _______________
 **Company Representative Signature:** ______________________  **Date:** _______________

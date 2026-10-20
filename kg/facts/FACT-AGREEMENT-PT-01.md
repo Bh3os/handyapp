@@ -33,15 +33,15 @@ This Service Agreement is entered into by and between **[Your Painting Company N
 * **Payment Milestones:**
   - Governed now by: payment timing and methods: [[FACT-PAYMENT-DUE]], [[FACT-PAYMENT-METHODS]].
 	- **Draw 1 (Retainer):** 30% non-refundable deposit to secure the calendar date and procure paint materials.
-  - Governed now by: deposit: [[FACT-DEPOSIT-RULE]] ([[OWN-DEC-104]]); no forfeiture, refund or late-fee terms are invented.
+  - Governed now by: deposit: [[FACT-DEPOSIT-RULE]] ([[OWN-DEC-104]]); refunds follow [[FACT-CANCELLATION-RULES]] ([[OWN-DEC-134]]); no forfeiture or late-fee terms are invented.
 	- **Draw 2 (Prep & Prime):** 40% due upon completion of masking, drywall patching, and priming.
-  - Governed now by: deposit: [[FACT-DEPOSIT-RULE]] ([[OWN-DEC-104]]); no forfeiture, refund or late-fee terms are invented; payment timing and methods: [[FACT-PAYMENT-DUE]], [[FACT-PAYMENT-METHODS]].
+  - Governed now by: deposit: [[FACT-DEPOSIT-RULE]] ([[OWN-DEC-104]]); refunds follow [[FACT-CANCELLATION-RULES]] ([[OWN-DEC-134]]); no forfeiture or late-fee terms are invented; payment timing and methods: [[FACT-PAYMENT-DUE]], [[FACT-PAYMENT-METHODS]].
 	- **Draw 3 (Completion):** 30% due immediately upon final walkthrough inspection on the final day.
-  - Governed now by: deposit: [[FACT-DEPOSIT-RULE]] ([[OWN-DEC-104]]); no forfeiture, refund or late-fee terms are invented; payment timing and methods: [[FACT-PAYMENT-DUE]], [[FACT-PAYMENT-METHODS]].
+  - Governed now by: deposit: [[FACT-DEPOSIT-RULE]] ([[OWN-DEC-104]]); refunds follow [[FACT-CANCELLATION-RULES]] ([[OWN-DEC-134]]); no forfeiture or late-fee terms are invented; payment timing and methods: [[FACT-PAYMENT-DUE]], [[FACT-PAYMENT-METHODS]].
 
 #### 3. Lockout & Late Cancellation
 * **24-Hour Notice:** Client must provide at least 24 hours' notice to cancel or reschedule a session. Failure to do so, or failure to provide home entry when the crew arrives, will incur a flat **\$50 Late Cancellation/Lockout Fee** to cover crew downtime and I-65 bridge toll expenses.
-  - Governed now by: price: set per job on the estimate, [[FACT-PRICING-PER-JOB]]; cancellation and rescheduling: customer requests confirmed by staff, no cancellation fee configured ([[OWN-DEC-107]]).
+  - Governed now by: price: set per job on the estimate, [[FACT-PRICING-PER-JOB]]; cancellation and rescheduling: customer requests confirmed by staff ([[OWN-DEC-107]]), with the fees and refunds of [[FACT-CANCELLATION-RULES]] ([[OWN-DEC-134]]).
 
 **Client Signature:** _______________________  **Date:** _______________
 **Company Representative Signature:** ______________________  **Date:** _______________

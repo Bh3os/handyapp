@@ -6,18 +6,18 @@ status: active
 priority: P0
 area: identity
 links:
-  decided_by: ["[[OWN-DEC-96]]", "[[OWN-DEC-103]]", "[[OWN-DEC-70]]"]
+  decided_by: ["[[OWN-DEC-96]]", "[[OWN-DEC-103]]", "[[OWN-DEC-70]]", "[[OWN-DEC-141]]"]
   depends_on: ["[[HH-ID-04]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]"]
-  uses: ["[[ENT-ProjectAccessGrant]]", "[[FACT-RETENTION-SCHEDULE]]"]
+  uses: ["[[ENT-ProjectAccessGrant]]", "[[FACT-RETENTION-SCHEDULE]]", "[[FACT-SESSION-TIMINGS]]"]
   tested_by: ["[[T18]]"]
   part_of: ["[[C03]]", "[[C05]]", "[[C06]]"]
-source: "guide 8.2 HH-ID-06; OWN-DEC-96, OWN-DEC-103"
+source: "guide 8.2 HH-ID-06; OWN-DEC-96, OWN-DEC-103, OWN-DEC-141"
 ---
-Configurable engineering defaults (the guide's proposal; not owner business facts, adjustable to the identity primitives used):
-- an access invitation expires after 24 hours;
-- a verification code lasts 10 minutes, with a bounded number of attempts and resends;
-- a single-use session-establishment credential is exchanged for a project-scoped session with 30 minutes of inactivity expiry and 8 hours absolute expiry.
+Timings ([[FACT-SESSION-TIMINGS]], owner-accepted in [[OWN-DEC-141]]), stored as active configuration:
+- a one-time verification code expires after 10 minutes, with a bounded number of attempts and resends;
+- a single-use session-establishment credential is exchanged for a project-scoped session that ends after 30 minutes idle or 8 hours in total;
+- a project access invitation expires after 24 hours (configurable engineering default; [[OWN-DEC-141]] set the same value for staff invite links).
 
 Behaviour on expiry:
 - Expiry offers a safe reissue (a new code or link) without losing project state.

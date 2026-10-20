@@ -124,3 +124,4 @@ Draft entries for the qualified safety professional; no control below is approve
 ## Warranty or callback
 
 - warranty or callback policy (registry 04, label **GAP** + **OPEN QUESTION**): None; only disclaimers for settling and network issues. Manufacturer vs workmanship warranty handling undefined (QA-008, QA-010). OPEN QUESTION: owner + KY/IN attorney; return visits classified per CX-007/QA-010; nothing invented (source: agreement §1 L8, §2 L11; spec QA-008, QA-010, CX-007)
+- Governed now by: the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]), counted from the reviewed completion date; a claim opens a case with return-visit punch items ([[HH-QA-07]]). No warranty exclusions are defined; any come only from attorney review ([[OQ-ATTORNEY-TERMS]]).

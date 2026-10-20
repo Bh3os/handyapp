@@ -5,7 +5,7 @@ title: "Hotel-Style Housekeeping"
 status: active
 area: business
 links:
-  decided_by: ["[[OWN-DEC-04]]", "[[OWN-DEC-33]]", "[[OWN-DEC-84]]", "[[OWN-DEC-51]]", "[[OWN-DEC-102]]", "[[OWN-DEC-108]]"]
+  decided_by: ["[[OWN-DEC-04]]", "[[OWN-DEC-33]]", "[[OWN-DEC-84]]", "[[OWN-DEC-51]]", "[[OWN-DEC-102]]", "[[OWN-DEC-108]]", "[[OWN-DEC-149]]"]
   uses: ["[[SOP-CL-06]]", "[[FACT-INVENTORY-CL-06]]", "[[FACT-PRICING-PER-JOB]]", "[[FACT-SVC-EXCLUDED-SCOPE]]", "[[FACT-SVC-RECURRING-SERVICE]]", "[[FACT-SVC-LEFT-ITEMS]]", "[[FACT-SVC-LARGE-CLEANING-JOBS]]"]
   constrained_by: ["[[RULE-HUMAN-REVIEW]]", "[[RULE-SAFETY-GATES]]", "[[RULE-NO-INVENTED-FACTS]]", "[[FACT-SVC-EXCLUDED-SCOPE]]", "[[FACT-SVC-SUSPECTED-HAZMAT]]", "[[FACT-SVC-ACCESS-EQUIPMENT]]"]
   part_of: ["[[C01]]", "[[C02]]"]
@@ -140,6 +140,9 @@ Draft service risk class (PROPOSED, 04 section 6.2): routine with approved contr
 | Occupants, children and pets during work | X-11 | Customer preparation (section 5); keep them away from wet floors, chemicals, steam and cords | Anyone enters the immediate work area during a hazardous step | Qualified safety professional |
 | Keys, alarm and access codes | 04 CL-06 "prerequisites"; spec COM-002; 27 AUTH-009 | Secured fields only; key custody log; secure closeout (section 12) | A lost key; a code exposed; the residence cannot be secured | Privacy owner; owner |
 
+- Governed now by [[OWN-DEC-149]]: no interval check-ins for lone work; the worker records only Arrived and Finished. Stop Work stays available at any time.
+
 ## Warranty or callback
 
 - warranty or callback policy (registry 04, label **GAP** + **OPEN QUESTION**): None (GAP). Makeup visits cover client-requested skips only, not quality complaints; company-missed visits are not addressed. OPEN QUESTION: any re-service policy needs owner approval and attorney review; returns classified per CX-007 and QA-010 (source: pricing L30; agreement §3 L18; spec CX-007, QA-010)
+- Governed now by: the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]), counted from the reviewed completion date; a claim opens a case with return-visit punch items ([[HH-QA-07]]). No warranty exclusions are defined; any come only from attorney review ([[OQ-ATTORNEY-TERMS]]).
