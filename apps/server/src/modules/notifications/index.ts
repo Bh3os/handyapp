@@ -1,0 +1,38 @@
+// Notifications module (TSK-0047): message types, the automatic-message policy, versioned templates and deliveries.
+export { nextContactTime, zonedTimeToUtc } from './contact-hours.js'
+export {
+  createDraft,
+  deliveryIdempotencyKey,
+  DraftError,
+  NOTIFICATION_RETRY,
+  notificationAutomation,
+  releaseAutomation,
+  releaseDraft,
+  releaseTime,
+  RetryableDeliveryError,
+  type Destination,
+  type NotificationAutomationOptions,
+  type NotificationProviders,
+  type Recipient,
+  type Resolved,
+} from './deliveries.js'
+export { MESSAGE_TYPES, messageType, type Audience, type Channel, type MessageType } from './message-types.js'
+export {
+  assertAutomatic,
+  automaticPolicy,
+  NotAutomaticError,
+  NotificationPolicyError,
+  type AutomaticPolicy,
+} from './policy.js'
+export {
+  contentLocale,
+  currentTemplate,
+  messageTypeProblems,
+  releaseTemplateVersion,
+  renderTemplate,
+  TemplateError,
+  templateProblems,
+  type ContentLocale,
+  type ReleasedTemplate,
+  type TemplateDraft,
+} from './templates.js'
