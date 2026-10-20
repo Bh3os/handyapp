@@ -8,11 +8,27 @@
       "@handyhub/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./testing": {
+      "@handyhub/source": "./src/testing.ts",
+      "types": "./dist/testing.d.ts",
+      "default": "./dist/testing.js"
     }
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run test/unit",
+    "test:int": "vitest run test/integration --no-file-parallelism",
+    "db:migrate": "pnpm run build && node --env-file-if-exists=../../.env dist/cli/migrate.js",
+    "db:seed": "pnpm run build && node --env-file-if-exists=../../.env dist/cli/seed.js",
+    "db:types": "pnpm run build && node --env-file-if-exists=../../.env dist/cli/types.js"
+  },
+  "dependencies": {
+    "kysely": "^0.29.7",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.23.1"
   }
 }
