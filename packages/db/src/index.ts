@@ -36,3 +36,21 @@ export {
   type SeedOptions,
 } from './seed.js'
 export { SEEDERS } from './seeders.js'
+export {
+  canAutoSchedule,
+  contentHash,
+  loadServiceSeed,
+  PUBLIC_STATUSES,
+  publicServices,
+  registryServices,
+  SERVICE_CATEGORIES,
+  SERVICES_SEED_FILE,
+  syncServices,
+  type PublicService,
+  type PublicStatus,
+  type RegistryEnvironment,
+  type SchedulingMode,
+  type ServiceCategory,
+  type ServiceSeed,
+  type SyncResult,
+} from './services.js'

@@ -10,6 +10,38 @@ export type JsonValue = string | number | boolean | null | JsonValue[] | { [key:
 /** json and jsonb: parsed on select; written as JSON text (JSON.stringify) so arrays are not sent as SQL arrays. */
 export type Json = ColumnType<JsonValue, string, string>
 
+export interface CatalogServiceVersionsTable {
+  service_id: string
+  version: number
+  name: string
+  aliases: Generated<string[]>
+  staff_label_en: string
+  staff_label_es: string
+  content: Json
+  intake: Json
+  estimate_route: string
+  sop_id: string
+  home_age_limits: boolean
+  source: string | null
+  content_hash: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  approved_at: Timestamp | null
+  approved_by: string | null
+}
+
+export interface CatalogServicesTable {
+  id: string
+  code: string
+  category: string
+  slug: string
+  public_status: Generated<string>
+  scheduling_mode: Generated<string>
+  in_launch_set: Generated<boolean>
+  current_version: number
+  published_version: number | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface PlatformAuditEventsTable {
   id: Generated<string>
   seq: GeneratedAlways<string>
@@ -27,6 +59,46 @@ export interface PlatformAuditEventsTable {
   summary: ColumnType<JsonValue, string | undefined, string>
   step_up_used: Generated<boolean>
   request_id: string
+}
+
+export interface PlatformJobsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  automation: string
+  job_key: string
+  outbox_event_id: string | null
+  event_type: string | null
+  target_type: string | null
+  target_id: string | null
+  payload: ColumnType<JsonValue, string | undefined, string>
+  request_id: string
+  state: Generated<string>
+  run_at: ColumnType<Date, Date | string | undefined, Date | string>
+  attempts: Generated<number>
+  max_attempts: number
+  interrupted: Generated<boolean>
+  locked_by: string | null
+  locked_until: Timestamp | null
+  last_error_class: string | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+  finished_at: Timestamp | null
+}
+
+export interface PlatformOutboxEventsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  type: string
+  aggregate_type: string
+  aggregate_id: string | null
+  aggregate_version: number | null
+  payload: ColumnType<JsonValue, string | undefined, string>
+  idempotency_key: string
+  request_id: string
+  state: Generated<string>
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  dispatched_at: Timestamp | null
+  jobs_created: number | null
 }
 
 export interface PlatformPolicyVersionTable {
@@ -52,7 +124,11 @@ export interface PlatformSchemaMigrationTable {
 }
 
 export interface Database {
+  'catalog.service_versions': CatalogServiceVersionsTable
+  'catalog.services': CatalogServicesTable
   'platform.audit_events': PlatformAuditEventsTable
+  'platform.jobs': PlatformJobsTable
+  'platform.outbox_events': PlatformOutboxEventsTable
   'platform.policy_version': PlatformPolicyVersionTable
   'platform.schema_migration': PlatformSchemaMigrationTable
 }
