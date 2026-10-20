@@ -28,6 +28,7 @@ describe('generated table types (TSK-0004)', () => {
       col('tags', '_text', { elementType: 'text' }),
       col('flags', '_thing_status', { elementType: 'thing_status' }),
       col('payload', 'jsonb'),
+      col('meta', 'jsonb', { hasDefault: true, notNull: false }),
       col('shape', 'point'),
       col('note', 'text', { schema: 'public', table: 'plain' }),
       col('n', 'int4', { schema: 'crm', table: 'thing_view', kind: 'v', notNull: false }),
@@ -40,15 +41,16 @@ describe('generated table types (TSK-0004)', () => {
   })
 
   it('marks identity, defaults, nullability, enums, arrays, json and unknown types', () => {
-    expect(out).toContain('  id: GeneratedAlways<Int8>\n')
+    expect(out).toContain('  id: GeneratedAlways<string>\n')
     expect(out).toContain('  label: string | null\n')
     expect(out).toContain("export type CrmThingStatus = 'active' | 'it\\'s'")
     expect(out).toContain('  status: Generated<CrmThingStatus>\n')
     expect(out).toContain('  due_on: string\n')
-    expect(out).toContain('  created_at: Generated<Timestamp>\n')
+    expect(out).toContain('  created_at: ColumnType<Date, Date | string | undefined, Date | string>\n')
     expect(out).toContain('  tags: string[]\n')
     expect(out).toContain('  flags: string\n')
     expect(out).toContain('  payload: Json\n')
+    expect(out).toContain('  meta: ColumnType<JsonValue | null, string | null | undefined, string | null>\n')
     expect(out).toContain('  shape: unknown\n')
     expect(out).toContain("import type { ColumnType, Generated, GeneratedAlways } from 'kysely'")
   })
