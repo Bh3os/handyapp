@@ -4,9 +4,18 @@
 import { staffTranslator, type StaffKey, type StaffLocale } from '@handyhub/i18n'
 import { Button, Card, Field, StateView } from '@handyhub/ui'
 import { useEffect, useState, type FormEvent } from 'react'
-import { call, type ApiErrorBody, type Fetch } from './api'
+import { call, setCsrfToken, type ApiErrorBody, type Fetch } from './api'
 
-type Session = { staffUserId: string; displayName: string | null; email: string; locale: StaffLocale; roles: string[] }
+type Session = {
+  staffUserId: string
+  displayName: string | null
+  email: string
+  locale: StaffLocale
+  roles: string[]
+  mfaEnrolled: boolean
+  mfaRecommended: boolean
+  csrfToken: string
+}
 
 /** PROPOSED password minimum (apps/server/src/modules/identity/passwords.ts PASSWORD_MIN_LENGTH). */
 const PASSWORD_MIN = 15
@@ -69,7 +78,12 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
     setCurrent(target)
   }
   const route = routeOf(current, appBase)
-  const [session, setSession] = useState<Session | null | undefined>(route.page === 'home' ? undefined : null)
+  const [session, setSessionState] = useState<Session | null | undefined>(route.page === 'home' ? undefined : null)
+  // Every session response carries the session's CSRF token for unsafe requests (TSK-0015).
+  const setSession = (s: Session | null | undefined) => {
+    setCsrfToken(s?.csrfToken ?? null)
+    setSessionState(s)
+  }
   const locale = session?.locale ?? initialLocale
   const t = useT(locale)
 
@@ -106,7 +120,13 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
             onDone={() => go('/sign-in')}
           />
         ) : session ? (
-          <Home t={t} fetchImpl={doFetch} session={session} onSignedOut={() => (setSession(null), go('/sign-in'))} />
+          <Home
+            t={t}
+            fetchImpl={doFetch}
+            session={session}
+            onSession={setSession}
+            onSignedOut={() => (setSession(null), go('/sign-in'))}
+          />
         ) : (
           <StateView kind="loading" title={t('common.loading')} />
         )}
@@ -118,7 +138,8 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
 type T = ReturnType<typeof useT>
 
 function SignIn({ t, fetchImpl, onSignedIn }: { t: T; fetchImpl: Fetch; onSignedIn: (s: Session) => void }) {
-  const [mode, setMode] = useState<'sign-in' | 'forgot' | 'sent'>('sign-in')
+  const [mode, setMode] = useState<'sign-in' | 'forgot' | 'sent' | 'mfa'>('sign-in')
+  const [useRecovery, setUseRecovery] = useState(false)
   const [error, setError] = useState<ApiErrorBody | null>(null)
   const [pending, setPending] = useState(false)
 
@@ -134,14 +155,51 @@ function SignIn({ t, fetchImpl, onSignedIn }: { t: T; fetchImpl: Fetch; onSigned
       else setError(r.error)
       return
     }
-    const r = await call<Session>(fetchImpl, '/auth/sign-in', {
+    if (mode === 'mfa') {
+      const value = form.get('code')
+      const r = await call<Session>(fetchImpl, '/auth/mfa/verify', {
+        method: 'POST',
+        body: useRecovery ? { recoveryCode: value } : { code: value },
+      })
+      setPending(false)
+      if (r.ok) onSignedIn(r.data)
+      else setError(r.error)
+      return
+    }
+    const r = await call<Session | { mfaRequired: true }>(fetchImpl, '/auth/sign-in', {
       method: 'POST',
       body: { email: form.get('email'), password: form.get('password') },
     })
     setPending(false)
-    if (r.ok) onSignedIn(r.data)
+    if (r.ok && r.status === 202) setMode('mfa')
+    else if (r.ok) onSignedIn(r.data as Session)
     else setError(r.error)
   }
+
+  if (mode === 'mfa')
+    return (
+      <section className="staff-auth">
+        <h1 className="hh-h3">{t('mfa.heading')}</h1>
+        <p>{t('mfa.intro')}</p>
+        {error ? <StateView kind="error" title={errorText(t, error)} /> : null}
+        <form className="staff-auth__form" onSubmit={(e) => void submit(e)} noValidate>
+          <Field
+            key={useRecovery ? 'recovery' : 'code'}
+            label={useRecovery ? t('mfa.recoveryCode') : t('mfa.code')}
+            name="code"
+            autoComplete="one-time-code"
+            inputMode={useRecovery ? 'text' : 'numeric'}
+            required
+          />
+          <Button type="submit" pending={pending}>
+            {t('mfa.submit')}
+          </Button>
+        </form>
+        <Button variant="quiet" onClick={() => (setError(null), setUseRecovery(!useRecovery))}>
+          {useRecovery ? t('mfa.useCode') : t('mfa.useRecovery')}
+        </Button>
+      </section>
+    )
 
   if (mode === 'sent')
     return (
@@ -271,26 +329,150 @@ function Home({
   t,
   fetchImpl,
   session,
+  onSession,
   onSignedOut,
 }: {
   t: T
   fetchImpl: Fetch
   session: Session
+  onSession: (s: Session) => void
   onSignedOut: () => void
 }) {
   const [pending, setPending] = useState(false)
-  async function signOut() {
+  async function signOut(everywhere: boolean) {
     setPending(true)
-    await call(fetchImpl, '/auth/sign-out', { method: 'POST' })
+    await call(fetchImpl, everywhere ? '/auth/sessions/revoke-all' : '/auth/sign-out', { method: 'POST' })
     setPending(false)
     onSignedOut()
   }
   return (
-    <section>
+    <section className="staff-auth">
       <h1 className="hh-h3">{t('home.signedInAs', { name: session.displayName ?? session.email })}</h1>
-      <Button variant="secondary" pending={pending} onClick={() => void signOut()}>
-        {t('home.signOut')}
-      </Button>
+      <div className="hh-button-row">
+        <Button variant="secondary" pending={pending} onClick={() => void signOut(false)}>
+          {t('home.signOut')}
+        </Button>
+        <Button variant="quiet" onClick={() => void signOut(true)}>
+          {t('security.signOutEverywhere')}
+        </Button>
+      </div>
+      <Security t={t} fetchImpl={fetchImpl} session={session} onSession={onSession} />
     </section>
+  )
+}
+
+/** Optional MFA (TSK-0015): enrol an authenticator app, confirm it, keep the recovery codes; or remove it. */
+function Security({
+  t,
+  fetchImpl,
+  session,
+  onSession,
+}: {
+  t: T
+  fetchImpl: Fetch
+  session: Session
+  onSession: (s: Session) => void
+}) {
+  const [step, setStep] = useState<'idle' | 'reauth' | 'secret' | 'codes'>('idle')
+  const [after, setAfter] = useState<'enroll' | 'disable'>('enroll')
+  const [secret, setSecret] = useState('')
+  const [codes, setCodes] = useState<string[]>([])
+  const [error, setError] = useState<ApiErrorBody | null>(null)
+
+  async function act(kind: 'enroll' | 'disable') {
+    setError(null)
+    setAfter(kind)
+    const r = await call<{ secret: string }>(fetchImpl, kind === 'enroll' ? '/auth/mfa/enroll' : '/auth/mfa/disable', {
+      method: 'POST',
+    })
+    if (r.ok && kind === 'enroll') {
+      setSecret((r.data as { secret: string }).secret)
+      setStep('secret')
+    } else if (r.ok) {
+      onSession({
+        ...session,
+        mfaEnrolled: false,
+        mfaRecommended: session.roles.some((x) => x === 'owner' || x === 'office'),
+      })
+      setStep('idle')
+    } else if (r.error.code === 'FRESH_AUTH_REQUIRED') setStep('reauth')
+    else setError(r.error)
+  }
+
+  async function reauth(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const r = await call<Session>(fetchImpl, '/auth/reauth', {
+      method: 'POST',
+      body: { password: new FormData(e.currentTarget).get('password') },
+    })
+    if (!r.ok) return setError(r.error)
+    onSession(r.data)
+    setStep('idle')
+    await act(after)
+  }
+
+  async function confirm(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const r = await call<{ recoveryCodes: string[]; session: Session }>(fetchImpl, '/auth/mfa/confirm', {
+      method: 'POST',
+      body: { code: new FormData(e.currentTarget).get('code') },
+    })
+    if (!r.ok) return setError(r.error)
+    setCodes(r.data.recoveryCodes)
+    onSession(r.data.session)
+    setStep('codes')
+  }
+
+  return (
+    <Card title={t('security.heading')} headingLevel={2}>
+      {session.mfaRecommended ? <StateView kind="stale" title={t('security.recommended')} /> : null}
+      {error ? <StateView kind="error" title={errorText(t, error)} /> : null}
+      {step === 'reauth' ? (
+        <form className="staff-auth__form" onSubmit={(e) => void reauth(e)} noValidate>
+          <p>{t('security.reauthIntro')}</p>
+          <Field
+            label={t('signIn.password')}
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            required
+          />
+          <Button type="submit">{t('security.reauthSubmit')}</Button>
+        </form>
+      ) : step === 'secret' ? (
+        <form className="staff-auth__form" onSubmit={(e) => void confirm(e)} noValidate>
+          <p>{t('security.secretIntro')}</p>
+          <p>
+            {t('security.secretLabel')}: <code>{secret}</code>
+          </p>
+          <Field label={t('mfa.code')} name="code" autoComplete="one-time-code" inputMode="numeric" required />
+          <Button type="submit">{t('security.confirm')}</Button>
+        </form>
+      ) : step === 'codes' ? (
+        <div>
+          <p>{t('security.recoveryIntro')}</p>
+          <ul className="staff-auth__codes">
+            {codes.map((c) => (
+              <li key={c}>
+                <code>{c}</code>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <div className="staff-auth">
+          <p>{session.mfaEnrolled ? t('security.enrolled') : t('security.notEnrolled')}</p>
+          {session.mfaEnrolled ? (
+            <Button variant="danger" onClick={() => void act('disable')}>
+              {t('security.disable')}
+            </Button>
+          ) : (
+            <Button variant="secondary" onClick={() => void act('enroll')}>
+              {t('security.enroll')}
+            </Button>
+          )}
+        </div>
+      )}
+    </Card>
   )
 }

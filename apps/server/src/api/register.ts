@@ -8,6 +8,7 @@
 //   committing together with the write;
 // - answers every error in the one safe envelope, in the audience's language, and sets Cache-Control: private,
 //   no-store unless a route says otherwise.
+import { timingSafeEqual } from 'node:crypto'
 import type { Db, Tx } from '@handyhub/db'
 import { withTx } from '@handyhub/db'
 import type { StaffLocale } from '@handyhub/i18n'
@@ -16,6 +17,7 @@ import type { FastifyError, FastifyInstance, FastifyReply, FastifyRequest } from
 import { audit, type AuditActor } from '../platform/audit.js'
 import { currentContext } from '../platform/request-context.js'
 import { ApiError, type ErrorEnvelope, type FieldError } from './errors.js'
+import { requireFreshAuth } from './fresh-auth.js'
 import { actorKey, claim, readIdempotencyKey, requestHash, store, type IdempotencyScope } from './idempotency.js'
 import { errorMessage, fieldKind, fieldMessage, type Audience } from './messages.js'
 import { PAGE_QUERY_PROPERTIES, pageRequest } from './pagination.js'
@@ -173,7 +175,7 @@ async function runRoute(
   req: FastifyRequest,
   reply: FastifyReply,
 ): Promise<FastifyReply> {
-  const { actor } = req.apiActor ?? GUEST
+  const { actor, authenticatedAt } = req.apiActor ?? GUEST
 
   const kind = actorKind(actor)
   if (kind === 'ai' || !route.actors.includes(kind)) throw refuseKind(kind)
@@ -210,6 +212,8 @@ async function runRoute(
     decision = d
   }
 
+  if (route.freshAuthMinutes !== undefined) requireFreshAuth(authenticatedAt, route.freshAuthMinutes)
+
   const page = route.pagination ? pageRequest(req.query as { limit?: number; cursor?: string }) : undefined
   const requestId = currentContext()?.requestId ?? req.id
   let audited = 0
@@ -219,6 +223,7 @@ async function runRoute(
     decision,
     db,
     tx,
+    authenticatedAt,
     page,
     expectedVersion: () => parseIfMatch(req.headers['if-match']),
     audit: async (event) => {
@@ -286,6 +291,13 @@ export async function registerApi(app: FastifyInstance, options: ApiOptions): Pr
         const resolved = await resolveActor(req)
         req.apiActor = resolved
         req.apiAudience = audienceOf(resolved.actor, resolved.locale)
+        // CSRF token (TSK-0015): an unsafe request authenticated by a cookie session carries the session's token.
+        if (resolved.csrfToken !== undefined && !SAFE_METHODS.has(req.method)) {
+          const sent = req.headers['x-csrf-token']
+          const a = Buffer.from(typeof sent === 'string' ? sent : '')
+          const b = Buffer.from(resolved.csrfToken)
+          if (a.length !== b.length || !timingSafeEqual(a, b)) throw new ApiError('CSRF_TOKEN_INVALID')
+        }
       })
 
       api.addHook('onSend', async (_req, reply, payload) => {

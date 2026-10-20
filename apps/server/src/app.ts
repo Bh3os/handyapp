@@ -90,7 +90,7 @@ export async function buildApp({
   await registerApi(app, {
     db,
     trustProxyHops: config.trustProxyHops,
-    modules: api?.modules ?? apiModules({ secureCookies: config.secureCookies }),
+    modules: api?.modules ?? apiModules({ secureCookies: config.secureCookies, mfaKey: config.mfaKey }),
     ...(resolveActor ? { resolveActor } : {}),
   })
 

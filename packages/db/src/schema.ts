@@ -161,6 +161,23 @@ export interface IdentityStaffLinksTable {
   invalidated_at: Timestamp | null
 }
 
+export interface IdentityStaffMfaTable {
+  staff_user_id: string
+  kind: Generated<string>
+  secret_sealed: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  confirmed_at: Timestamp | null
+  last_used_step: Int8 | null
+}
+
+export interface IdentityStaffRecoveryCodesTable {
+  id: Generated<string>
+  staff_user_id: string
+  code_hash: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  used_at: Timestamp | null
+}
+
 export interface IdentityStaffSessionsTable {
   id: Generated<string>
   staff_user_id: string
@@ -170,6 +187,7 @@ export interface IdentityStaffSessionsTable {
   authenticated_at: ColumnType<Date, Date | string | undefined, Date | string>
   revoked_at: Timestamp | null
   revoke_reason: string | null
+  state: Generated<string>
 }
 
 export interface IdentityStaffUsersTable {
@@ -281,6 +299,22 @@ export interface PlatformAuditEventsTable {
   request_id: string
 }
 
+export interface PlatformConsentRecordsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  purpose: string
+  channel: string
+  destination: string
+  subject_kind: string | null
+  subject_id: string | null
+  granted: boolean
+  disclosure_version: string | null
+  source: string
+  evidence: ColumnType<JsonValue, string | undefined, string>
+  recorded_by: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface PlatformIdempotencyKeysTable {
   actor_key: string
   operation: string
@@ -344,6 +378,18 @@ export interface PlatformMessageDeliveriesTable {
   queued_at: Timestamp | null
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+  status_at: Timestamp | null
+}
+
+export interface PlatformMessageDeliveryEventsTable {
+  id: ColumnType<string, bigint | number | string | undefined, bigint | number | string>
+  delivery_id: string
+  receipt_id: string
+  provider_type: string
+  from_state: string
+  to_state: string
+  occurred_at: Timestamp | null
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
 export interface PlatformMessageTemplateVersionsTable {
@@ -442,6 +488,8 @@ export interface Database {
   'identity.rate_limits': IdentityRateLimitsTable
   'identity.role_grants': IdentityRoleGrantsTable
   'identity.staff_links': IdentityStaffLinksTable
+  'identity.staff_mfa': IdentityStaffMfaTable
+  'identity.staff_recovery_codes': IdentityStaffRecoveryCodesTable
   'identity.staff_sessions': IdentityStaffSessionsTable
   'identity.staff_users': IdentityStaffUsersTable
   'identity.verification_attempts': IdentityVerificationAttemptsTable
@@ -450,9 +498,11 @@ export interface Database {
   'intake.request_services': IntakeRequestServicesTable
   'intake.requests': IntakeRequestsTable
   'platform.audit_events': PlatformAuditEventsTable
+  'platform.consent_records': PlatformConsentRecordsTable
   'platform.idempotency_keys': PlatformIdempotencyKeysTable
   'platform.jobs': PlatformJobsTable
   'platform.message_deliveries': PlatformMessageDeliveriesTable
+  'platform.message_delivery_events': PlatformMessageDeliveryEventsTable
   'platform.message_template_versions': PlatformMessageTemplateVersionsTable
   'platform.message_templates': PlatformMessageTemplatesTable
   'platform.outbox_events': PlatformOutboxEventsTable

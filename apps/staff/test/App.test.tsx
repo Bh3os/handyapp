@@ -63,3 +63,37 @@ describe('staff sign-in screens (TSK-0014, HH-STAFF-01)', () => {
     await waitFor(() => expect(screen.getByText(/This link has expired or was already used/)).toBeTruthy())
   })
 })
+
+describe('optional MFA and CSRF in the staff app (TSK-0015, HH-STAFF-01, HH-SEC-02)', () => {
+  it('[HH-STAFF-01] asks for the authenticator code after the password when MFA is enrolled', async () => {
+    const session = {
+      staffUserId: 'u1',
+      displayName: 'Synthetic Owner',
+      email: 'owner@example.test',
+      locale: 'en',
+      roles: ['owner'],
+      mfaEnrolled: true,
+      mfaRecommended: false,
+      csrfToken: 'synthetic-csrf-token',
+    }
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(json(202, { mfaRequired: true }))
+      .mockResolvedValueOnce(json(200, session))
+      .mockResolvedValue(json(200, session))
+    const navigate = vi.fn()
+    render(<App path="/staff/sign-in" base="/staff/" fetchImpl={fetchImpl} navigate={navigate} />)
+    fireEvent.change(screen.getByLabelText(/Email/), { target: { value: 'owner@example.test' } })
+    fireEvent.change(screen.getByLabelText(/^Password/), { target: { value: 'a long enough passphrase' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { level: 1, name: 'Enter your authenticator code' })).toBeTruthy(),
+    )
+    fireEvent.change(screen.getByLabelText(/Authenticator code/), { target: { value: '123456' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/staff/'))
+    const [url, init] = fetchImpl.mock.calls[1] as [string, RequestInit]
+    expect(url).toBe('/api/v1/auth/mfa/verify')
+    expect(JSON.parse(String(init.body))).toEqual({ code: '123456' })
+  })
+})

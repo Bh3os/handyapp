@@ -11,6 +11,8 @@ declare module 'fastify' {
   interface FastifyRequest {
     /** The live staff session of this request, when there is one. */
     staffSession?: LiveSession
+    /** A session waiting for its second factor (TSK-0015): it acts for nobody; only MFA verification reads it. */
+    staffPendingSession?: LiveSession
   }
 }
 
@@ -33,7 +35,16 @@ export function staffSessionResolver(db: Db, cookies: CookieOptions): ResolveAct
     if (!token) return GUEST
     const session = await resolveSession(db, token)
     if (!session) return GUEST
+    if (session.state === 'mfa_pending') {
+      req.staffPendingSession = session
+      return GUEST
+    }
     req.staffSession = session
-    return { actor: staffActorOf(session), locale: session.locale }
+    return {
+      actor: staffActorOf(session),
+      locale: session.locale,
+      csrfToken: session.csrfToken,
+      authenticatedAt: session.authenticatedAt,
+    }
   }
 }

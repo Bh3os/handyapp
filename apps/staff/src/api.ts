@@ -5,6 +5,12 @@ export type ApiResponse<T> = { ok: true; status: number; data: T } | { ok: false
 
 export type Fetch = typeof fetch
 
+let csrfToken: string | null = null
+/** The session's CSRF token (TSK-0015), sent in X-CSRF-Token on every unsafe request. */
+export function setCsrfToken(token: string | null): void {
+  csrfToken = token
+}
+
 export async function call<T>(
   fetchImpl: Fetch,
   path: string,
@@ -15,7 +21,10 @@ export async function call<T>(
     res = await fetchImpl(`/api/v1${path}`, {
       method: options.method ?? 'GET',
       credentials: 'same-origin',
-      headers: options.body === undefined ? {} : { 'content-type': 'application/json' },
+      headers: {
+        ...(options.body === undefined ? {} : { 'content-type': 'application/json' }),
+        ...((options.method ?? 'GET') !== 'GET' && csrfToken ? { 'x-csrf-token': csrfToken } : {}),
+      },
       ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
     })
   } catch {

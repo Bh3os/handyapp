@@ -25,6 +25,7 @@ import {
   type IssueInput,
   type VerifyInput,
 } from '../../src/modules/identity/index.js'
+import { recordConsent } from '../../src/modules/notifications/index.js'
 import { createAutomationRegistry } from '../../src/platform/automation.js'
 import { recordPolicyVersion } from '../../src/platform/config/index.js'
 import { createWorker } from '../../src/platform/jobs.js'
@@ -139,6 +140,18 @@ describe('issuing and delivering codes (TSK-0016, HH-INT-13, OWN-DEC-96)', () =>
   })
 
   it('delivers by text through the SMS provider', async () => {
+    // TSK-0048: a text needs the customer's SMS opt-in (HH-INT-22); this customer gave it on the request form.
+    await withTx(t.db, (tx) =>
+      recordConsent(tx, {
+        purpose: 'transactional_sms',
+        channel: 'sms',
+        destination: '+15025550142',
+        granted: true,
+        source: 'request_form',
+        disclosureVersion: 'synthetic-disclosure-1',
+        recordedBy: 'customer:contact-synthetic-1',
+      }),
+    )
     const r = await issue({ channel: 'sms', destination: '+1 (502) 555-0142' })
     expect(r).toMatchObject({ status: 'issued', maskedDestination: '***0142' })
     const code = await deliveredCode('+15025550142')
