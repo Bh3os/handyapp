@@ -101,6 +101,20 @@ export interface PlatformOutboxEventsTable {
   jobs_created: number | null
 }
 
+export interface PlatformPolicyVersionTable {
+  key: string
+  version: number
+  state: string
+  value: Json | null
+  proposed: Generated<boolean>
+  status: Generated<string>
+  source_ids: string[]
+  effective_from: ColumnType<Date, Date | string | undefined, Date | string>
+  changed_by: string
+  change_reason: string | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface PlatformSchemaMigrationTable {
   version: string
   file: string
@@ -132,6 +146,7 @@ export interface Database {
   'platform.audit_events': PlatformAuditEventsTable
   'platform.jobs': PlatformJobsTable
   'platform.outbox_events': PlatformOutboxEventsTable
+  'platform.policy_version': PlatformPolicyVersionTable
   'platform.schema_migration': PlatformSchemaMigrationTable
   'platform.webhook_receipts': PlatformWebhookReceiptsTable
 }

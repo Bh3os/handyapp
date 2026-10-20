@@ -24,7 +24,12 @@ export function emptyDatabaseSuite(fileLabel: string) {
       const names = rows.map((r) => r.name)
       expect(names).toContain('platform.schema_migration')
       expect(names).not.toContain('public.scratch')
-      for (const name of names.filter((n) => n !== 'platform.schema_migration')) {
+      // platform.policy_version holds only the configuration migration 0005 seeds (TSK-0007).
+      const seeded = await sql<{ by: string }>`SELECT DISTINCT changed_by AS by FROM platform.policy_version`.execute(
+        t.db,
+      )
+      expect(seeded.rows.map((r) => r.by)).toEqual(['migration:0005'])
+      for (const name of names.filter((n) => n !== 'platform.schema_migration' && n !== 'platform.policy_version')) {
         const count = await sql<{ n: number }>`SELECT count(*)::int AS n FROM ${sql.raw(name)}`.execute(t.db)
         expect(count.rows[0]?.n, name).toBe(0)
       }
