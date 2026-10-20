@@ -1,0 +1,125 @@
+# HandyApp CI (TSK-0002, HH-AUD-03). Required checks: secrets, test and e2e; kg checks the graph and the
+# traceability report. Pull-request runs are untrusted: no secrets, read-only token. Actions pinned by SHA.
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  ASTRO_TELEMETRY_DISABLED: '1'
+jobs:
+  secrets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Secret scan (gitleaks 8.30.1, checksum verified, honours .gitleaksignore)
+        run: |
+          curl -sSfLO https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks_8.30.1_linux_x64.tar.gz" | sha256sum -c -
+          tar -xzf gitleaks_8.30.1_linux_x64.tar.gz gitleaks
+          ./gitleaks dir . --no-banner --redact --gitleaks-ignore-path .gitleaksignore
+
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: handyhub
+          POSTGRES_PASSWORD: handyhub
+          POSTGRES_DB: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U handyhub" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://handyhub:handyhub@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: package.json
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+      - name: Format and lint
+        run: pnpm lint
+      - name: Typecheck (strict)
+        run: pnpm typecheck
+      - name: Unit tests
+        run: pnpm test
+      - name: Integration tests (PostgreSQL 16)
+        run: pnpm test:int
+
+  e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: package.json
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm build
+      - name: Install the Chromium pinned by @playwright/test (CI only)
+        run: pnpm --filter @handyhub/e2e exec playwright install --with-deps chromium
+      - name: End-to-end tests with axe scans (built server)
+        run: pnpm e2e
+      - name: Upload the Playwright report and traces (synthetic data only)
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report
+          path: |
+            apps/e2e/playwright-report
+            apps/e2e/test-results
+          retention-days: 7
+
+  kg:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+      - name: Graph lint (0 problems)
+        run: node tools/kg.mjs index && node tools/kg.mjs lint
+      - name: Traceability report and baseline failures
+        run: |
+          status=0
+          node tools/trace.mjs --quiet || status=$?
+          cat reports/traceability.md >> "$GITHUB_STEP_SUMMARY"
+          exit $status
+      - name: Upload the traceability report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: traceability
+          path: reports/
+          retention-days: 30

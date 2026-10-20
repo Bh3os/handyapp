@@ -1,0 +1,15 @@
+{
+  "name": "@handyhub/site",
+  "private": true,
+  "type": "module",
+  "description": "Public website (Astro, static HTML), served by the server on handyhub247.com (ARCH-STACK).",
+  "scripts": {
+    "build": "astro build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "dev": "astro dev"
+  },
+  "dependencies": {
+    "astro": "^7.3.5"
+  }
+}

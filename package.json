@@ -1,0 +1,36 @@
+{
+  "name": "handyapp",
+  "private": true,
+  "type": "module",
+  "description": "HandyApp: rebuild of HandyHub's public site, customer portal and staff app. Source of truth: kg/ (node tools/kg.mjs ctx <TSK>).",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=24.0.0 <25"
+  },
+  "scripts": {
+    "build": "pnpm -r run build",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "pnpm -r run test && node --test tools/*.test.mjs",
+    "test:int": "pnpm -r run test:int",
+    "e2e": "pnpm --filter @handyhub/e2e run e2e",
+    "kg": "node tools/kg.mjs index && node tools/kg.mjs lint",
+    "trace": "node tools/trace.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.0",
+    "@types/node": "^24.19.1",
+    "eslint": "^10.12.0",
+    "globals": "^16.0.0",
+    "prettier": "^3.9.9",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.0",
+    "vitest": "^5.0.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "name": "@handyhub/db",
+  "private": true,
+  "type": "module",
+  "description": "PostgreSQL 16 access through Kysely, numbered SQL migrations and the test database harness.",
+  "exports": {
+    ".": {
+      "@handyhub/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": { "types": ["node"], "customConditions": ["@handyhub/source"] },
+  "include": ["src/**/*.ts", "test", "astro.config.mjs", "vitest.config.ts"],
+  "exclude": ["dist"]
+}

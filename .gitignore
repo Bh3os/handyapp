@@ -1,5 +1,12 @@
 kg/_index.json
 node_modules/
+dist/
+coverage/
+.astro/
+reports/
+playwright-report/
+test-results/
+*.log
 .env
 .env.*
 .obsidian/workspace*.json
