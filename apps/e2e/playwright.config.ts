@@ -73,6 +73,9 @@ export default defineConfig({
         HANDYHUB_ENV: 'ci',
         PORT: String(splitPort),
         HOST: '127.0.0.1',
+        // The first server runs the jobs: the fake object storage of ci lives in each process's memory, so a photo
+        // uploaded there can be processed only there.
+        JOB_WORKER: 'off',
         ...splitEnv,
         ...(databaseUrl ? { DATABASE_URL: databaseUrl, TEST_EMAIL_DESTINATIONS: 'e2e-owner@example.test' } : {}),
       },
@@ -89,6 +92,7 @@ export default defineConfig({
         PORT: String(gatedPort),
         HOST: '127.0.0.1',
         ACCESS_GATE_USERS: GATE_USERS,
+        JOB_WORKER: 'off',
         ...(databaseUrl ? { DATABASE_URL: databaseUrl, TEST_EMAIL_DESTINATIONS: 'e2e-owner@example.test' } : {}),
       },
       reuseExistingServer: false,

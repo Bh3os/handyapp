@@ -37,6 +37,8 @@ export const ENV_VARS = {
     'Key that seals staff authenticator (TOTP) secrets, at least 32 random characters. Unset: optional MFA is NOT CONFIGURED (enrolment refused; nothing else changes). Secret.',
   TRUST_PROXY_HOPS: 'Proxies in front of the service that append to X-Forwarded-For. Default 0.',
   LOG_LEVEL: 'fatal, error, warn, info, debug, trace or silent. Default info.',
+  JOB_WORKER:
+    'on or off. Default on: with a database, this process also runs the job worker. off: it serves requests only and leaves the jobs to another process on the same database.',
   CODE_HASH_KEY:
     'Key for one-time codes and client-address digests, at least 32 characters (TSK-0016). Unset in staging or production: codes NOT CONFIGURED; local and ci use a random key per process. Secret.',
 } as const
@@ -121,6 +123,8 @@ export interface Config {
   mfaKey: Secret | null
   trustProxyHops: number
   logLevel: LogLevel
+  /** Runs the in-process job worker when a database is configured (JOB_WORKER, default on). */
+  jobWorker: boolean
   accessGate: AccessGateSettings
   /** Outside production every response carries X-Robots-Tag: noindex and robots.txt disallows everything. */
   noindex: boolean
@@ -273,6 +277,7 @@ export function loadConfig(source: Readonly<Record<string, string | undefined>>)
     mfaKey: mfaKeyRaw === undefined ? null : new Secret(mfaKeyRaw),
     trustProxyHops: integer('TRUST_PROXY_HOPS', get('TRUST_PROXY_HOPS'), 0, 0, 5),
     logLevel: logLevelRaw === undefined ? 'info' : oneOf('LOG_LEVEL', logLevelRaw, LOG_LEVELS),
+    jobWorker: oneOf('JOB_WORKER', get('JOB_WORKER') ?? 'on', ['on', 'off'] as const) === 'on',
     accessGate,
     noindex: env !== 'production',
   }
