@@ -12,8 +12,10 @@ import {
   CONTACT_CHANNELS,
   EMPTY_VALUES,
   ESTIMATE_PREFERENCES,
+  answerKey,
   fromServer,
   MAX_SERVICES,
+  questionPlan,
   problemKey,
   PROPERTY_TYPES,
   STEPS,
@@ -22,16 +24,23 @@ import {
   toBody,
   validate,
   type FormMeta,
+  type FormService,
   type FormValues,
   type Problem,
   type StepId,
 } from './form.js'
 
-export type WizardService = { id: string; name: string; category: string }
-
 const t = (key: CustomerKey, values?: Record<string, string | number>) => customerTranslator().t(key, values)
 
 // Every label by code, written out so the catalog check sees each key (RULE-LANGUAGES).
+/** The four categories in the owner's order, each with its card text (HH-INT-15, OWN-DEC-90). */
+const CATEGORIES = ['home_improvement', 'drywall', 'painting', 'cleaning'] as const
+const CATEGORY_TEXT: Record<(typeof CATEGORIES)[number], CustomerKey> = {
+  home_improvement: 'request.categoryText.home_improvement',
+  drywall: 'request.categoryText.drywall',
+  painting: 'request.categoryText.painting',
+  cleaning: 'request.categoryText.cleaning',
+}
 const CATEGORY_LABEL: Record<string, CustomerKey> = {
   home_improvement: 'request.category.home_improvement',
   drywall: 'request.category.drywall',
@@ -80,6 +89,7 @@ const STEP_LABEL: Record<StepId, CustomerKey> = {
 /** The fields the error summary links to, by body path; a deeper path (`services.1.serviceId`) uses its group. */
 const FIELD_LABEL: Record<string, CustomerKey> = {
   services: 'request.services.select',
+  answers: 'request.step.job',
   otherServicesText: 'request.services.other',
   description: 'request.job.description',
   'property.street': 'request.property.street',
@@ -125,7 +135,10 @@ async function hash(text: string): Promise<string> {
   return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('')
 }
 
-export default function RequestWizard({ services }: { services: WizardService[] }) {
+export default function RequestWizard() {
+  const [services, setServices] = useState<FormService[]>([])
+  const [openCategory, setOpenCategory] = useState<string>(CATEGORIES[0])
+  const [limitHit, setLimitHit] = useState(false)
   const [phase, setPhase] = useState<Phase>('loading')
   const [values, setValues] = useState<FormValues>(EMPTY_VALUES)
   const [step, setStep] = useState<StepId>('services')
@@ -147,26 +160,35 @@ export default function RequestWizard({ services }: { services: WizardService[] 
     () => (loaded ? new DraftStore(browserStorage(), IDENTITY, settings.draftDays) : null),
     [loaded, settings.draftDays],
   )
-  const known = useMemo(() => new Set(services.map((s) => s.id)), [services])
-
-  // Settings first (the configured draft period), then any saved draft.
+  // Settings (the configured draft period) and the services on offer, then any saved draft.
   useEffect(() => {
     let live = true
-    fetch('/api/v1/public/request-form', { headers: { accept: 'application/json' } })
-      .then(async (r) => (r.ok ? ((await r.json()) as Settings) : { draftDays: null, timeZone: null }))
-      .catch(() => ({ draftDays: null, timeZone: null }))
-      .then((s) => {
-        if (!live) return
-        setSettings(s)
-        const draft = new DraftStore(browserStorage(), IDENTITY, s.draftDays).load()
-        const preselect = new URLSearchParams(window.location.search).get('service')
-        if (preselect && known.has(preselect)) setValues((v) => ({ ...v, services: [preselect] }))
-        setPhase(draft ? 'draftFound' : 'choose')
-      })
+    const json = <T,>(url: string, fallback: T) =>
+      fetch(url, { headers: { accept: 'application/json' } })
+        .then(async (r) => (r.ok ? ((await r.json()) as T) : fallback))
+        .catch(() => fallback)
+    void Promise.all([
+      json<Settings>('/api/v1/public/request-form', { draftDays: null, timeZone: null }),
+      json<{ services: FormService[] }>('/api/v1/public/services', { services: [] }),
+    ]).then(([s, offered]) => {
+      if (!live) return
+      setSettings(s)
+      setServices(offered.services)
+      const draft = new DraftStore(browserStorage(), IDENTITY, s.draftDays).load()
+      // Arriving from a service page: that service's category opens with the service selected (HH-INT-15, T05).
+      const preselect = offered.services.find(
+        (x) => x.id === new URLSearchParams(window.location.search).get('service'),
+      )
+      if (preselect) {
+        setValues((v) => ({ ...v, services: [preselect.id] }))
+        setOpenCategory(preselect.category)
+      }
+      setPhase(draft ? 'draftFound' : 'choose')
+    })
     return () => {
       live = false
     }
-  }, [known])
+  }, [])
 
   useEffect(() => {
     if (phase !== 'form' || !store) return
@@ -191,7 +213,7 @@ export default function RequestWizard({ services }: { services: WizardService[] 
   const opts = {
     now: new Date(),
     zone: settings.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
-    knownServices: known,
+    services,
   }
   const set = <K extends keyof FormValues>(key: K, value: FormValues[K]) => setValues((v) => ({ ...v, [key]: value }))
   const errorFor = (field: string) => {
@@ -220,7 +242,7 @@ export default function RequestWizard({ services }: { services: WizardService[] 
   const send = async () => {
     const all = validate(values, meta, opts)
     if (all.length) return show(all, stepOf(all[0]?.field ?? '') as StepId)
-    const body = toBody(values, meta)
+    const body = toBody(values, meta, services)
     const text = JSON.stringify(body)
     const bodyHash = await hash(text)
     // The same key for a retry of the same content, so a double tap or a retry creates one request (HH-INT-10).
@@ -393,39 +415,129 @@ export default function RequestWizard({ services }: { services: WizardService[] 
     </label>
   )
 
-  const categories = [...new Set(services.map((s) => s.category))]
+  const nameOf = (id: string) => services.find((x) => x.id === id)?.name ?? id
+  const toggle = (id: string, on: boolean) => {
+    if (!on) {
+      setLimitHit(false)
+      return set(
+        'services',
+        values.services.filter((x) => x !== id),
+      )
+    }
+    if (values.services.includes(id)) return
+    // A sixth service is refused; more work goes in the free-text field (HH-INT-15, OWN-DEC-90).
+    if (values.services.length >= MAX_SERVICES) return setLimitHit(true)
+    set('services', [...values.services, id])
+  }
+  const answer = (serviceId: string | undefined, q: { key: string; label: string }) => {
+    const k = answerKey(serviceId, q.key)
+    const a = values.answers[k] ?? { text: '', unknown: false }
+    const put = (next: { text: string; unknown: boolean }) => set('answers', { ...values.answers, [k]: next })
+    return (
+      <div key={k} className="hh-request__question">
+        <Field
+          label={q.label}
+          name={`answer:${k}`}
+          value={a.text}
+          disabled={a.unknown}
+          onChange={(e) => put({ text: e.currentTarget.value, unknown: false })}
+        />
+        {check(`unknown:${k}`, t('request.questions.unknown'), a.unknown, (on) => put({ text: a.text, unknown: on }))}
+      </div>
+    )
+  }
+  const plan = questionPlan(values.services.flatMap((id) => services.filter((x) => x.id === id)))
   const body: Record<StepId, ReactNode> = {
     services: (
       <>
         <p className="hh-muted">{t('request.services.note')}</p>
-        {services.length
-          ? group(
-              'services',
-              'request.services.select',
-              <>
-                <p aria-live="polite">
-                  {t('request.services.count', { count: values.services.length, max: MAX_SERVICES })}
-                </p>
-                {categories.map((c) => (
-                  <div key={c} className="hh-request__category">
-                    <p className="hh-field__label">{label(CATEGORY_LABEL, c)}</p>
-                    {services
-                      .filter((s) => s.category === c)
-                      .map((s) =>
-                        check(`service-${s.id}`, s.name, values.services.includes(s.id), (on) =>
-                          set('services', on ? [...values.services, s.id] : values.services.filter((x) => x !== s.id)),
-                        ),
-                      )}
-                  </div>
-                ))}
-              </>,
-            )
-          : null}
+        <section aria-labelledby="hh-categories-title" className="hh-request__categories">
+          <h3 id="hh-categories-title" className="hh-h3">
+            {t('request.services.choose')}
+          </h3>
+          <div className="hh-request__cards">
+            {CATEGORIES.map((c) => (
+              <button
+                key={c}
+                type="button"
+                className="hh-card hh-request__card"
+                aria-pressed={openCategory === c}
+                onClick={() => setOpenCategory(c)}
+              >
+                <span className="hh-request__card-title">{t(CATEGORY_LABEL[c] as CustomerKey)}</span>
+                <span className="hh-small">{t(CATEGORY_TEXT[c])}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+        {group(
+          'services',
+          'request.services.select',
+          <>
+            {services
+              .filter((x) => x.category === openCategory)
+              .map((x) => check(`service-${x.id}`, x.name, values.services.includes(x.id), (on) => toggle(x.id, on)))}
+          </>,
+        )}
+        <section aria-labelledby="hh-selected-title" className="hh-request__selected">
+          <p id="hh-selected-title" className="hh-field__label" aria-live="polite">
+            {t('request.services.count', { count: values.services.length, max: MAX_SERVICES })}
+          </p>
+          {values.services.length ? (
+            <ul>
+              {values.services.map((id) => (
+                <li key={id}>
+                  <span>{nameOf(id)}</span>{' '}
+                  <Button
+                    variant="quiet"
+                    onClick={() => toggle(id, false)}
+                    aria-label={t('request.services.removeNamed', { name: nameOf(id) })}
+                  >
+                    {t('request.services.remove')}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {limitHit ? (
+            <p role="status" className="hh-field__hint">
+              {t('request.services.limit', { max: MAX_SERVICES })}
+            </p>
+          ) : null}
+        </section>
         {check('notSure', t('request.services.notSure'), values.notSure, (on) => set('notSure', on))}
         {text('otherServicesText', 'otherServicesText', 'request.services.other', { multiline: true, rows: 3 })}
       </>
     ),
-    job: <>{text('description', 'description', 'request.job.description', { multiline: true, rows: 6 })}</>,
+    job: (
+      <>
+        {text('description', 'description', 'request.job.description', { multiline: true, rows: 6, required: true })}
+        {plan.shared.length ? (
+          <section aria-labelledby="hh-q-shared" className="hh-request__questions">
+            <h3 id="hh-q-shared" className="hh-h3">
+              {t('request.questions.shared')}
+            </h3>
+            {plan.shared.map((q) => answer(undefined, q))}
+          </section>
+        ) : null}
+        {plan.perService.map((g) => (
+          <section key={g.serviceId} aria-labelledby={`hh-q-${g.serviceId}`} className="hh-request__questions">
+            <h3 id={`hh-q-${g.serviceId}`} className="hh-h3">
+              {nameOf(g.serviceId)}
+            </h3>
+            {g.questions.map((q) => answer(g.serviceId, q))}
+            <Field
+              label={t('request.questions.notes', { service: nameOf(g.serviceId) })}
+              name={`notes:${g.serviceId}`}
+              multiline
+              rows={2}
+              value={values.notes[g.serviceId] ?? ''}
+              onChange={(e) => set('notes', { ...values.notes, [g.serviceId]: e.currentTarget.value })}
+            />
+          </section>
+        ))}
+      </>
+    ),
     property: (
       <>
         {text('property.street', 'street', 'request.property.street', {
@@ -614,7 +726,7 @@ export default function RequestWizard({ services }: { services: WizardService[] 
   )
 }
 
-function reviewLines(step: StepId, v: FormValues, services: WizardService[]): ReactNode {
+function reviewLines(step: StepId, v: FormValues, services: FormService[]): ReactNode {
   const line = (label: CustomerKey, value: string) =>
     value ? (
       <div key={label}>
@@ -632,8 +744,26 @@ function reviewLines(step: StepId, v: FormValues, services: WizardService[]): Re
         v.notSure ? line('request.services.notSure', '✓') : null,
         line('request.services.other', v.otherServicesText),
       ]
-    case 'job':
-      return [line('request.job.description', v.description)]
+    case 'job': {
+      const plan = questionPlan(v.services.flatMap((id) => services.filter((s) => s.id === id)))
+      const rows = [
+        ...plan.shared.map((q) => ({ id: undefined as string | undefined, q })),
+        ...plan.perService.flatMap((g) => g.questions.map((q) => ({ id: g.serviceId as string | undefined, q }))),
+      ]
+      return [
+        line('request.job.description', v.description),
+        ...rows.map(({ id, q }) => {
+          const a = v.answers[answerKey(id, q.key)]
+          const value = a?.unknown ? t('request.questions.unknown') : (a?.text ?? '')
+          return value ? (
+            <div key={answerKey(id, q.key)}>
+              <dt>{q.label}</dt>
+              <dd>{value}</dd>
+            </div>
+          ) : null
+        }),
+      ]
+    }
     case 'property':
       return [
         line('request.property.street', [v.street, v.unit].filter(Boolean).join(', ')),

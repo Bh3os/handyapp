@@ -13,6 +13,7 @@ const base: SubmitBody = {
   privacyNoticeVersion: 'draft-test-1',
   services: [{ serviceId: 'SVC-DW-01' }],
   notSure: false,
+  description: 'Synthetic description.',
   property: { street: '1 Synthetic Way', city: 'Testville', state: 'KY', zip: '40000', propertyType: 'house' },
   timing: { flexible: true, needHelpToday: false, windows: [] },
   estimatePreference: 'online',
@@ -62,7 +63,9 @@ describe('request submission helpers (TSK-0025, HH-INT-10, HH-INT-11)', () => {
       'body.timing.windows',
     ])
     expect(p({ services: [{ serviceId: 'SVC-DW-01' }, { serviceId: 'SVC-DW-01' }] })).toEqual(['body.services'])
-    expect(p({ services: [], notSure: true })).toEqual(['body.description'])
+    expect(p({ services: [], notSure: true })).toEqual([])
+    // One required project description (HH-SVC-03, TSK-0027).
+    expect(p({ description: '  ' })).toEqual(['body.description'])
     expect(p({ answers: [{ question: 'size', kind: 'unknown', unit: 'ft' }] })).toEqual(['body.answers.0.unit'])
   })
 })

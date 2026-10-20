@@ -1,16 +1,13 @@
 ---
-// The estimate request form (TSK-0026; HH-INT-01, HH-INT-08, HH-INT-09, C02). A React island; it needs the browser
-// (the draft lives in this browser only), so it renders on the client. The services offered are the registry's
-// services the public site may show (OWN-DEC-84: staging or published), with their registry names only.
+// The estimate request form (TSK-0026, TSK-0027; HH-INT-01, HH-INT-08, HH-INT-09, HH-INT-15, HH-SVC-03, C02). A React
+// island; it needs the browser (the draft lives in this browser only), so it renders on the client. The services it
+// offers, with their questions, come from the API (GET /api/v1/public/services): only services the public site may show
+// (OWN-DEC-84), with their registry names and intake inputs.
 import '@handyhub/ui/styles.css'
 import '../request/request.css'
-import seed from '@handyhub/db/seed/services.json'
 import { customerTranslator } from '@handyhub/i18n'
 import RequestWizard from '../request/RequestWizard.tsx'
 
-const services = (seed as { services: { id: string; name: string; category: string; publicStatus: string }[] }).services
-  .filter((s) => s.publicStatus === 'staging' || s.publicStatus === 'published')
-  .map(({ id, name, category }) => ({ id, name, category }))
 const title = customerTranslator().t('request.title')
 ---
 
@@ -25,7 +22,7 @@ const title = customerTranslator().t('request.title')
   <body>
     <main class="hh-request-page">
       <h1 class="hh-h1">{title}</h1>
-      <RequestWizard client:only="react" services={services} />
+      <RequestWizard client:only="react" />
     </main>
   </body>
 </html>

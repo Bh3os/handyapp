@@ -180,7 +180,69 @@ export function localDate(now: Date, zone: string): string {
 const field = (name: string, code: string): FormFieldError => ({ field: `body.${name}`, code, message: '' })
 
 /** The checks JSON schema cannot express; every problem is reported at once, next to its field (HH-INT-09). */
-export function semanticProblems(body: SubmitBody, opts: { today: string; knownServices: ReadonlySet<string> }) {
+/**
+ * A service-specific question (TSK-0027; HH-SVC-03). The wording is the service's own intake input from the registry
+ * (guide 6.2, the SVC-* nodes), shown verbatim; nothing is added to it. Answers are the customer's own words, or
+ * "I don't know", stored as unknown. No question asks for a number: the nodes give no units, so measured answers stay
+ * free text until the owner approves question schemas with units (PROPOSED).
+ */
+export type ServiceQuestion = { key: string; label: string }
+
+/** Intake inputs that are staff review items or rules, never questions for the customer (HH-SVC-03, HI-05). */
+const STAFF_ONLY = /\breview\b|coordination|capability|credentials/i
+
+export function questionKey(label: string): string {
+  const k = label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 64)
+  return /^[a-z]/.test(k) ? k : `q_${k}`.slice(0, 64)
+}
+
+/** The questions of one service, from its registry intake inputs, in their order, without duplicates. */
+export function serviceQuestions(intake: { guideInputs: readonly string[] }): ServiceQuestion[] {
+  const out: ServiceQuestion[] = []
+  for (const raw of intake.guideInputs) {
+    const label = raw.trim()
+    if (!label || STAFF_ONLY.test(label)) continue
+    const key = questionKey(label)
+    if (!out.some((q) => q.key === key)) out.push({ key, label })
+  }
+  return out
+}
+
+/**
+ * Which questions to ask for the selected services: a question several of them share is asked once (answered
+ * without a service ID); the rest are grouped by service.
+ */
+export function questionPlan(selected: readonly { id: string; questions: readonly ServiceQuestion[] }[]): {
+  shared: ServiceQuestion[]
+  perService: { serviceId: string; questions: ServiceQuestion[] }[]
+} {
+  const count = new Map<string, number>()
+  for (const s of selected) for (const q of s.questions) count.set(q.key, (count.get(q.key) ?? 0) + 1)
+  const shared: ServiceQuestion[] = []
+  for (const s of selected)
+    for (const q of s.questions) if ((count.get(q.key) ?? 0) > 1 && !shared.some((x) => x.key === q.key)) shared.push(q)
+  return {
+    shared,
+    perService: selected.map((s) => ({
+      serviceId: s.id,
+      questions: s.questions.filter((q) => (count.get(q.key) ?? 0) === 1),
+    })),
+  }
+}
+
+export function semanticProblems(
+  body: SubmitBody,
+  opts: {
+    today: string
+    knownServices: ReadonlySet<string>
+    /** Question keys per service (from the registry); when given, every answer must be one of the plan's questions. */
+    questions?: ReadonlyMap<string, readonly string[]>
+  },
+) {
   const p: FormFieldError[] = []
   const ids = body.services.map((s) => s.serviceId)
   if (new Set(ids).size !== ids.length) p.push(field('services', 'uniqueItems'))
@@ -189,11 +251,26 @@ export function semanticProblems(body: SubmitBody, opts: { today: string; knownS
     if (!opts.knownServices.has(s.serviceId)) p.push(field(`services.${i}.serviceId`, 'enum'))
   })
   if (!body.notSure && ids.length === 0) p.push(field('services', 'required'))
-  if ((body.notSure || ids.length === 0) && !body.description?.trim()) p.push(field('description', 'required'))
+  // One required project description (HH-SVC-03).
+  if (!body.description?.trim()) p.push(field('description', 'required'))
+  const plan = opts.questions
+    ? questionPlan(
+        ids.map((id) => ({ id, questions: (opts.questions?.get(id) ?? []).map((key) => ({ key, label: key })) })),
+      )
+    : undefined
   const seen = new Set<string>()
   ;(body.answers ?? []).forEach((a, i) => {
     const at = `answers.${i}`
     if (a.serviceId !== undefined && !ids.includes(a.serviceId)) p.push(field(`${at}.serviceId`, 'enum'))
+    else if (plan) {
+      const allowed =
+        a.serviceId === undefined
+          ? plan.shared.map((q) => q.key)
+          : (plan.perService.find((x) => x.serviceId === a.serviceId)?.questions ?? []).map((q) => q.key)
+      if (!allowed.includes(a.question)) p.push(field(`${at}.question`, 'enum'))
+      // No question has a unit yet, so no answer is a number (unknown stays unknown, never zero).
+      if (a.kind === 'number') p.push(field(`${at}.kind`, 'enum'))
+    }
     const key = `${a.serviceId ?? ''}/${a.question}`
     if (seen.has(key)) p.push(field(`${at}.question`, 'uniqueItems'))
     seen.add(key)
