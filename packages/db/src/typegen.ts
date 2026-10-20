@@ -143,6 +143,14 @@ const ARRAY_ELEMENT: Record<string, string> = {
   timestamp: 'Date',
 }
 
+// Select, insert and update types of each helper, matching HELPERS.
+const HELPER_PARTS: Record<string, { select: string; insert: string; update: string }> = {
+  Int8: { select: 'string', insert: 'bigint | number | string', update: 'bigint | number | string' },
+  Numeric: { select: 'string', insert: 'number | string', update: 'number | string' },
+  Timestamp: { select: 'Date', insert: 'Date | string', update: 'Date | string' },
+  Json: { select: 'JsonValue', insert: 'string', update: 'string' },
+}
+
 const HELPERS: Record<string, string> = {
   Int8: 'export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>',
   Numeric: 'export type Numeric = ColumnType<string, number | string, number | string>',
@@ -152,14 +160,6 @@ const HELPERS: Record<string, string> = {
     '/** json and jsonb: parsed on select; written as JSON text (JSON.stringify) so arrays are not sent as SQL arrays. */',
     'export type Json = ColumnType<JsonValue, string, string>',
   ].join('\n'),
-}
-
-/** Select, insert and update types of each ColumnType helper, for columns with defaults or generated values. */
-const HELPER_PARTS: Record<string, readonly [string, string, string]> = {
-  Int8: ['string', 'bigint | number | string', 'bigint | number | string'],
-  Numeric: ['string', 'number | string', 'number | string'],
-  Timestamp: ['Date', 'Date | string', 'Date | string'],
-  Json: ['JsonValue', 'string', 'string'],
 }
 
 function pascal(s: string): string {
@@ -206,27 +206,25 @@ export function renderSchema(catalog: Catalog): string {
       else if (enumNames.has(el)) t = 'string'
       else t = 'unknown'
     } else t = scalar(c.type)
-    // Kysely's Generated<T> and GeneratedAlways<T> do not unwrap a ColumnType, so a helper alias (Timestamp, Int8,
-    // Numeric, Json) is spelled out with its select, insert and update types instead (TSK-0007).
-    const parts = c.elementType === null ? HELPER_PARTS[t] : undefined
     const isView = c.kind === 'v' || c.kind === 'm'
     const nullable = !c.notNull || isView
-    const n = nullable ? ' | null' : ''
-    if (nullable) t = `${t} | null`
-    if (isView) return t
+    const orNull = (x: string) => (nullable ? `${x} | null` : x)
+    // Kysely's Generated and GeneratedAlways do not unwrap a ColumnType, so helper types are spelled out here.
+    const split = HELPER_PARTS[t]
+    if (isView) return orNull(split ? split.select : t)
     if (c.identity === 'a' || c.generated === 's') {
       kysely.add('GeneratedAlways')
-      return `GeneratedAlways<${parts ? `${parts[0]}${n}` : t}>`
+      return `GeneratedAlways<${orNull(split ? split.select : t)}>`
     }
     if (c.identity === 'd' || c.hasDefault) {
-      if (parts) {
+      if (split) {
         kysely.add('ColumnType')
-        return `ColumnType<${parts[0]}${n}, ${parts[1]}${n} | undefined, ${parts[2]}${n}>`
+        return `ColumnType<${orNull(split.select)}, ${orNull(split.insert)} | undefined, ${orNull(split.update)}>`
       }
       kysely.add('Generated')
-      return `Generated<${t}>`
+      return `Generated<${orNull(t)}>`
     }
-    return t
+    return orNull(t)
   }
 
   const tables = new Map<string, { name: string; key: string; lines: string[] }>()

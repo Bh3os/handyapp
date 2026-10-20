@@ -1,11 +1,13 @@
-// Fastify application factory (TSK-0001, TSK-0003). Order: the staging access gate (first, in front of every route),
-// noindex headers outside production, the health checks, robots.txt, then the built public site. Host routing for the
-// portal and the staff app arrives in TSK-0017.
+// Fastify application factory (TSK-0001, TSK-0003, TSK-0011). Order: the request-ID context, the staging access gate
+// (first route hook, in front of every route), noindex headers outside production, the health checks, robots.txt, then
+// the built public site. Host routing for the portal and the staff app arrives in TSK-0017.
 import fastifyStatic from '@fastify/static'
-import Fastify, { type FastifyInstance } from 'fastify'
+import Fastify, { type FastifyBaseLogger, type FastifyInstance } from 'fastify'
 import { accessGateHook, FailureLimiter } from './access-gate.js'
 import type { Config } from './config.js'
 import { databaseReadiness, type ReadinessCheck } from './health.js'
+import { createLogger, type Logger } from './platform/logger.js'
+import { registerRequestContext, requestIdFrom } from './platform/request-context.js'
 
 export interface AppOptions {
   config: Config
@@ -13,8 +15,8 @@ export interface AppOptions {
   readiness?: ReadinessCheck
   /** Gate failure counter; tests pass their own clock. */
   gateLimiter?: FailureLimiter
-  /** Request logging; off in tests. */
-  logger?: boolean
+  /** Request logging: a redacting logger from createLogger(), true for one at config.logLevel, false (tests) for none. */
+  logger?: Logger | boolean
 }
 
 /** Outside production robots.txt disallows everything (RULE-SYNTHETIC-DATA: staging stays out of search). */
@@ -26,9 +28,13 @@ export async function buildApp({
   gateLimiter,
   logger = false,
 }: AppOptions): Promise<FastifyInstance> {
-  const app = Fastify({
-    logger: logger ? { level: config.logLevel, redact: ['req.headers.authorization', 'req.headers.cookie'] } : false,
-  })
+  const genReqId = (req: { headers: Record<string, string | string[] | undefined> }) =>
+    requestIdFrom(req.headers['x-request-id'])
+  const instance = logger === true ? createLogger({ level: config.logLevel, name: 'handyapp' }) : logger || undefined
+  const app: FastifyInstance = instance
+    ? Fastify({ loggerInstance: instance as FastifyBaseLogger, genReqId })
+    : Fastify({ logger: false, genReqId })
+  registerRequestContext(app)
 
   app.addHook(
     'onRequest',

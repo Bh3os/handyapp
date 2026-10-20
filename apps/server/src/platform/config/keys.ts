@@ -1,6 +1,6 @@
 // The configuration keys and the exact shape of each value (TSK-0007; ENT-PolicyVersion, RULE-DECIDED-VALUES-ACTIVE).
 // This file holds no business value: the values are versioned rows in platform.policy_version, seeded by migration
-// 0002 from the fact and decision nodes they cite. Every row read from the database is validated strictly against
+// 0005 from the fact and decision nodes they cite. Every row read from the database is validated strictly against
 // its key's shape; an unknown key, an unknown field or a wrong type fails closed. Money is integer cents.
 
 export class ConfigShapeError extends Error {

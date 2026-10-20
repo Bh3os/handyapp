@@ -102,6 +102,9 @@ importers:
       kysely:
         specifier: ^0.29.7
         version: 0.29.7
+      pino:
+        specifier: ^10.4.0
+        version: 10.4.0
     devDependencies:
       '@types/pg':
         specifier: ^8.23.1

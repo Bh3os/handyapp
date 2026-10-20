@@ -19,7 +19,8 @@
     "@handyhub/money": "workspace:*",
     "@handyhub/policy": "workspace:*",
     "fastify": "^5.12.5",
-    "kysely": "^0.29.7"
+    "kysely": "^0.29.7",
+    "pino": "^10.4.0"
   },
   "devDependencies": {
     "@types/pg": "^8.23.1",
