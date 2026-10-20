@@ -27,6 +27,8 @@
   "error.FRESH_AUTH_REQUIRED": "Enter your password again to do this.",
   "error.LINK_INVALID": "This link has expired or was already used.",
   "error.field.passwordCommon": "This password is too easy to guess. Choose a longer or less common one.",
+  "error.CSRF_TOKEN_INVALID": "Your session needs refreshing. Reload the page and try again.",
+  "error.NOT_CONFIGURED": "This is not set up yet. Ask the owner.",
   "request.title": "Request an Estimate",
   "request.continue.title": "How would you like to continue?",
   "request.continue.guest": "Continue as Guest",
@@ -123,5 +125,16 @@
   "request.photos.problem.unavailable": "Photo uploads aren't available right now. You can send your request without photos.",
   "request.photos.saved": "{count, plural, one {# photo} other {# photos}}",
   "request.photos.failedNotice": "{count, plural, one {# photo failed and won't be included} other {# photos failed and won't be included}}. You can retry or send without them.",
-  "request.receipt.photos": "Photos received: {received}. Still processing: {processing}. Not included: {failed}."
+  "request.receipt.photos": "Photos received: {received}. Still processing: {processing}. Not included: {failed}.",
+  "request.services.choose": "Choose a category",
+  "request.categoryText.home_improvement": "Repairs and installations",
+  "request.categoryText.drywall": "Wall repairs and drywall projects",
+  "request.categoryText.painting": "Painting and surface finishes",
+  "request.categoryText.cleaning": "Home and property cleaning",
+  "request.services.remove": "Remove",
+  "request.services.removeNamed": "Remove {name}",
+  "request.services.limit": "You can choose up to {max} services. Describe any other work in the field below.",
+  "request.questions.unknown": "I don't know",
+  "request.questions.shared": "For your selected services",
+  "request.questions.notes": "Notes for {service}"
 }

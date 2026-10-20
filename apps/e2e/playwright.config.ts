@@ -9,6 +9,8 @@ const executablePath = process.env['E2E_CHROMIUM_EXECUTABLE']
 const port = Number(process.env['E2E_PORT'] ?? 4310)
 const serverEntry = fileURLToPath(new URL('../server/dist/main.js', import.meta.url))
 const migrateEntry = fileURLToPath(new URL('../../packages/db/dist/cli/migrate.js', import.meta.url))
+// The registry, with a fixed set of services shown on the test site (request form, TSK-0027).
+const servicesEntry = fileURLToPath(new URL('./fixtures/services.mjs', import.meta.url))
 // With E2E_DATABASE_URL (a fresh, empty PostgreSQL 16 database; CI provides one) the server runs with the database:
 // migrations first, then staff sign-in (TSK-0014) and every database-backed flow. Without it, those specs skip.
 const databaseUrl = process.env['E2E_DATABASE_URL']
@@ -39,7 +41,7 @@ export default defineConfig({
   webServer: [
     {
       command: databaseUrl
-        ? `node ${JSON.stringify(migrateEntry)} && node ${JSON.stringify(serverEntry)}`
+        ? `node ${JSON.stringify(migrateEntry)} && node ${JSON.stringify(servicesEntry)} && node ${JSON.stringify(serverEntry)}`
         : `node ${JSON.stringify(serverEntry)}`,
       url: `http://127.0.0.1:${port}/`,
       env: {

@@ -13,7 +13,13 @@ import { ApiError } from '../../api/errors.js'
 import { loadConfig, requireConfigured } from '../../platform/config/index.js'
 import { outbox } from '../../platform/outbox.js'
 import { bindDraftPhotos, type PhotoSummary } from '../photos/photos.js'
-import { localDate, normalizeUsPhone, semanticProblems, type SubmitBody } from '@handyhub/domain/request-form'
+import {
+  localDate,
+  normalizeUsPhone,
+  semanticProblems,
+  serviceQuestions,
+  type SubmitBody,
+} from '@handyhub/domain/request-form'
 
 export { localDate, normalizeUsPhone, semanticProblems }
 
@@ -51,7 +57,18 @@ export async function submitRequest(
   const term = requireConfigured(config.get('payment.term_default'))
   const services = new Map((await registryServices(tx)).map((s) => [s.id, s]))
 
-  const problems = semanticProblems(body, { today: localDate(now, zone), knownServices: new Set(services.keys()) })
+  // Each service's questions come from its registry intake inputs; an answer to anything else is refused.
+  const questions = new Map(
+    [...services.values()].map((s) => [
+      s.id,
+      serviceQuestions(s.intake as { guideInputs: string[] }).map((q) => q.key),
+    ]),
+  )
+  const problems = semanticProblems(body, {
+    today: localDate(now, zone),
+    knownServices: new Set(services.keys()),
+    questions,
+  })
   if (problems.length) throw new ApiError('VALIDATION_FAILED', { fieldErrors: problems })
 
   const signals = spamSignals(body, now.getTime())

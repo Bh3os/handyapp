@@ -91,7 +91,9 @@ export async function buildApp({
   await registerApi(app, {
     db,
     trustProxyHops: config.trustProxyHops,
-    modules: api?.modules ?? apiModules({ secureCookies: config.secureCookies, storage: api?.storage ?? null }),
+    modules:
+      api?.modules ??
+      apiModules({ secureCookies: config.secureCookies, mfaKey: config.mfaKey, storage: api?.storage ?? null }),
     ...(resolveActor ? { resolveActor } : {}),
   })
 

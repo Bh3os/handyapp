@@ -90,6 +90,7 @@ describe('environment schema (TSK-0003, OWN-DEC-73, RULE-SYNTHETIC-DATA)', () =>
       'HANDYHUB_ENV',
       'HOST',
       'LOG_LEVEL',
+      'MFA_ENCRYPTION_KEY',
       'PORT',
       'SITE_DIR',
       'STAFF_APP_URL',

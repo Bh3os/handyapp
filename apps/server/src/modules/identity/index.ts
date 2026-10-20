@@ -4,61 +4,42 @@
 // audit. Errors are generic: a wrong password, an unknown email and an account that cannot sign in all answer
 // INVALID_CREDENTIALS, and "Forgot password?" always answers the same, so no response reveals whether an email exists.
 import { STAFF_ROLES } from '@handyhub/policy'
-import { sql } from 'kysely'
 import { ApiError, type FieldError } from '../../api/errors.js'
 import { AUTHENTICATION, type ApiModule, type RouteDef } from '../../api/route.js'
 import { accountForSignIn, createStaffUser, DuplicateStaffEmailError, setPasswordHash } from './accounts.js'
 import { consumeLink, issueLink } from './links.js'
 import { checkPassword, hashPassword, needsRehash, PASSWORD_MIN_LENGTH, verifyPassword } from './passwords.js'
 import { check, hit, networkOf, RATE_RULES } from './rate-limit.js'
+import type { Secret } from '../../providers/types.js'
+import { mfaState, useTotp } from './mfa.js'
+import { securityRoutes } from './security.js'
+import { freshView, mfaPendingView, sessionView, viewOf } from './views.js'
 import {
   clearedSessionCookie as clearedStaffCookie,
   createSession,
+  rotateSession,
   revokeSession,
   sessionCookie as staffSessionCookie,
   type CookieOptions,
-  type LiveSession,
 } from './sessions.js'
 import { normalizeEmail } from './tokens.js'
 
 const TEST = 'test/integration/staff-auth.test.ts'
 
-const sessionView = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['staffUserId', 'displayName', 'email', 'locale', 'roles', 'mfaRecommended'],
-  properties: {
-    staffUserId: { type: 'string' },
-    displayName: { type: ['string', 'null'] },
-    email: { type: 'string' },
-    locale: { type: 'string', enum: ['en', 'es'] },
-    roles: { type: 'array', items: { type: 'string', enum: [...STAFF_ROLES] } },
-    // MFA is optional; Owner and Office accounts see a recommendation (HH-STAFF-01).
-    mfaRecommended: { type: 'boolean' },
-  },
-} as const
-
 const emailField = { type: 'string', minLength: 3, maxLength: 254 } as const
 /** The policy is checked by the server after validation; the schema only bounds the input. */
 const passwordField = { type: 'string', minLength: 1, maxLength: 1024 } as const
-
-function viewOf(s: Pick<LiveSession, 'staffUserId' | 'displayName' | 'email' | 'locale' | 'roles'>) {
-  return {
-    staffUserId: s.staffUserId,
-    displayName: s.displayName,
-    email: s.email,
-    locale: s.locale,
-    roles: s.roles,
-    mfaRecommended: s.roles.includes('owner') || s.roles.includes('office'),
-  }
-}
 
 function passwordError(problem: ReturnType<typeof checkPassword>): FieldError[] {
   const code = problem === 'too_short' ? 'minLength' : problem === 'too_long' ? 'maxLength' : 'passwordCommon'
   return [{ field: 'body.password', code, message: '' }]
 }
 
-export type IdentityDeps = { cookies: CookieOptions }
+export type IdentityDeps = {
+  cookies: CookieOptions
+  /** Seals TOTP secrets; null while MFA is NOT CONFIGURED (MFA_ENCRYPTION_KEY unset). */
+  mfaKey: Secret | null
+}
 
 export function identityModule(deps: IdentityDeps): ApiModule {
   const base = {
@@ -88,7 +69,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
           required: ['email', 'password'],
           properties: { email: emailField, password: passwordField },
         },
-        response: { 200: sessionView },
+        response: { 200: sessionView, 202: mfaPendingView },
       },
       handler: async ({ req, db, tx, audit, auditAlways }) => {
         const { email, password } = req.body as { email: string; password: string }
@@ -116,34 +97,13 @@ export function identityModule(deps: IdentityDeps): ApiModule {
             .set({ password_hash: await hashPassword(password) })
             .where('staff_user_id', '=', account.id)
             .execute()
-        const session = await createSession(trx, account.id)
-        const roles = (
-          await trx
-            .selectFrom('identity.role_grants')
-            .select('name')
-            .where('staff_user_id', '=', account.id)
-            .where('kind', '=', 'role')
-            .where('ended_at', 'is', null)
-            .execute()
-        ).map((r) => r.name)
-        const locale = (
-          await trx
-            .selectFrom('identity.staff_users')
-            .select('locale')
-            .where('id', '=', account.id)
-            .executeTakeFirstOrThrow()
-        ).locale
-        await audit({ target: { type: 'staff_user', id: account.id } })
-        return {
-          body: viewOf({
-            staffUserId: account.id,
-            displayName: account.name,
-            email: account.email,
-            locale: locale === 'es' ? 'es' : 'en',
-            roles,
-          }),
-          headers: { 'set-cookie': staffSessionCookie(session.token, deps.cookies) },
-        }
+        // With an enrolled authenticator the password alone starts a pending session (TSK-0015).
+        const enrolled = (await mfaState(trx, account.id)).enrolled
+        const session = await createSession(trx, account.id, enrolled ? 'mfa_pending' : 'complete')
+        await audit({ target: { type: 'staff_user', id: account.id }, summary: { mfa: enrolled ? 'pending' : 'none' } })
+        const cookie = { 'set-cookie': staffSessionCookie(session.token, deps.cookies) }
+        if (enrolled) return { status: 202, body: { mfaRequired: true }, headers: cookie }
+        return { body: await freshView(trx, account.id, session.token), headers: cookie }
       },
     },
     {
@@ -195,7 +155,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
       operationId: 'staffReauthenticate',
       summary: 'Enter the password again for a sensitive action',
       description:
-        'Fresh authentication (HH-STAFF-03): a correct password marks the session freshly authenticated for a short window. Rate limited; failures are audited.',
+        'Fresh authentication (HH-STAFF-03): a correct password, or the authenticator code when MFA is enrolled, rotates the session (new token and CSRF token) and marks it freshly authenticated. Rate limited; failures are audited.',
       actors: ['staff'],
       permission: AUTHENTICATION,
       kind: 'write',
@@ -206,17 +166,22 @@ export function identityModule(deps: IdentityDeps): ApiModule {
         body: {
           type: 'object',
           additionalProperties: false,
-          required: ['password'],
-          properties: { password: passwordField },
+          properties: { password: passwordField, code: { type: 'string', minLength: 6, maxLength: 6 } },
+          anyOf: [{ required: ['password'] }, { required: ['code'] }],
         },
-        response: { 204: { type: 'null' } },
+        response: { 200: sessionView },
       },
       handler: async ({ req, db, tx, audit, auditAlways }) => {
         const session = req.staffSession
         if (!session || !tx) throw new ApiError('UNAUTHENTICATED')
         await check(db, RATE_RULES.signInAccount, session.email)
+        const body = req.body as { password?: string; code?: string }
         const account = await accountForSignIn(db, session.email)
-        if (!(await verifyPassword(account?.passwordHash ?? null, (req.body as { password: string }).password))) {
+        const ok =
+          body.code !== undefined
+            ? deps.mfaKey !== null && (await useTotp(tx, deps.mfaKey, session.staffUserId, body.code))
+            : await verifyPassword(account?.passwordHash ?? null, body.password ?? '')
+        if (!ok) {
           await hit(db, RATE_RULES.signInAccount, session.email)
           await auditAlways({
             result: 'denied',
@@ -225,13 +190,16 @@ export function identityModule(deps: IdentityDeps): ApiModule {
           })
           throw new ApiError('INVALID_CREDENTIALS')
         }
-        await tx
-          .updateTable('identity.staff_sessions')
-          .set({ authenticated_at: sql<Date>`now()` })
-          .where('id', '=', session.sessionId)
-          .execute()
-        await audit({ target: { type: 'staff_user', id: session.staffUserId } })
-        return { status: 204, body: null }
+        const rotated = await rotateSession(tx, session.sessionId, { state: 'complete', authenticated: true })
+        if (!rotated) throw new ApiError('UNAUTHENTICATED')
+        await audit({
+          target: { type: 'staff_user', id: session.staffUserId },
+          summary: { method: body.code !== undefined ? 'totp' : 'password' },
+        })
+        return {
+          body: await freshView(tx, session.staffUserId, rotated.token),
+          headers: { 'set-cookie': staffSessionCookie(rotated.token, deps.cookies) },
+        }
       },
     },
     {
@@ -398,6 +366,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
       },
     },
   ]
+  routes.push(...securityRoutes(deps, { test: TEST, sessionView }))
   return { name: 'identity', routes }
 }
 

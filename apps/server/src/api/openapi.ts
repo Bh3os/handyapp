@@ -44,6 +44,7 @@ function errorStatuses(route: RouteDef): number[] {
   if (route.kind === 'write') codes.add('CONFLICT').add('PAYLOAD_TOO_LARGE').add('UNSUPPORTED_MEDIA_TYPE')
   if (route.idempotency === 'required') codes.add('IDEMPOTENCY_KEY_REQUIRED').add('IDEMPOTENCY_CONFLICT')
   if (route.permission === 'authentication') codes.add('INVALID_CREDENTIALS').add('LINK_INVALID')
+  if (route.freshAuthMinutes !== undefined) codes.add('FRESH_AUTH_REQUIRED')
   if (route.expectedVersion === 'required') codes.add('PRECONDITION_REQUIRED').add('STALE_VERSION')
   return [...new Set([...codes].map((c) => ERROR_CODES[c].status))].sort((a, b) => a - b)
 }
@@ -91,6 +92,8 @@ export function buildOpenApi(modules: readonly ApiModule[]): Record<string, unkn
         idempotency: route.idempotency,
         expectedVersion: route.expectedVersion,
         rateLimit: route.rateLimit,
+        freshAuthMinutes: route.freshAuthMinutes ?? null,
+        csrf: route.method === 'GET' ? 'not_required' : 'required_with_staff_session',
         audit: route.audit,
         pagination: route.pagination,
         cache: 'private, no-store',

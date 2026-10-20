@@ -1,11 +1,43 @@
 // The request wizard's form model and draft store (TSK-0026; HH-INT-08, HH-INT-09, FACT-SESSION-TIMINGS).
 import { describe, expect, it } from 'vitest'
 import { DraftStore, draftKey, type DraftStorage } from '../src/request/draft.js'
-import { EMPTY_VALUES, fromServer, problemKey, stepOf, toBody, validate, type FormValues } from '../src/request/form.js'
+import {
+  answerKey,
+  answersFor,
+  EMPTY_VALUES,
+  fromServer,
+  problemKey,
+  questionPlan,
+  stepOf,
+  toBody,
+  validate,
+  type FormService,
+  type FormValues,
+} from '../src/request/form.js'
 
 const meta = { formVersion: 'wizard-1', privacyNoticeVersion: 'none-yet' }
 const now = new Date('2026-10-20T16:00:00Z')
-const opts = { now, zone: 'America/Kentucky/Louisville', knownServices: new Set(['SVC-DW-01']) }
+const services: FormService[] = [
+  {
+    id: 'SVC-DW-01',
+    name: 'Patching & Repair',
+    category: 'drywall',
+    questions: [
+      { key: 'moisture', label: 'moisture' },
+      { key: 'texture', label: 'texture' },
+    ],
+  },
+  {
+    id: 'SVC-PT-01',
+    name: 'Residential Interior Painting',
+    category: 'painting',
+    questions: [
+      { key: 'colors', label: 'colors' },
+      { key: 'texture', label: 'texture' },
+    ],
+  },
+]
+const opts = { now, zone: 'America/Kentucky/Louisville', services }
 const complete: FormValues = {
   ...EMPTY_VALUES,
   notSure: true,
@@ -77,6 +109,49 @@ describe('request form validation shared with the server (TSK-0026, HH-INT-09)',
     expect(found.map((p) => [p.field, stepOf(p.field)])).toEqual([
       ['contact.email', 'contact'],
       ['services.0.serviceId', 'services'],
+    ])
+  })
+})
+
+describe('service questions (TSK-0027, HH-SVC-03, T06)', () => {
+  it('asks a question several selected services share once, and the rest per service', () => {
+    expect(questionPlan(services)).toEqual({
+      shared: [{ key: 'texture', label: 'texture' }],
+      perService: [
+        { serviceId: 'SVC-DW-01', questions: [{ key: 'moisture', label: 'moisture' }] },
+        { serviceId: 'SVC-PT-01', questions: [{ key: 'colors', label: 'colors' }] },
+      ],
+    })
+  })
+
+  it("sends I don't know as unknown (never zero), typed answers as text, and skips empty ones", () => {
+    const v: FormValues = {
+      ...complete,
+      notSure: false,
+      services: ['SVC-DW-01', 'SVC-PT-01'],
+      answers: {
+        [answerKey(undefined, 'texture')]: { text: '', unknown: true },
+        [answerKey('SVC-DW-01', 'moisture')]: { text: 'A damp patch, synthetic', unknown: false },
+        [answerKey('SVC-PT-01', 'colors')]: { text: '', unknown: false },
+      },
+      notes: { 'SVC-PT-01': 'Synthetic note' },
+    }
+    expect(answersFor(v, services)).toEqual([
+      { question: 'texture', kind: 'unknown' },
+      { serviceId: 'SVC-DW-01', question: 'moisture', kind: 'text', text: 'A damp patch, synthetic' },
+    ])
+    expect(toBody(v, meta, services).services).toEqual([
+      { serviceId: 'SVC-DW-01' },
+      { serviceId: 'SVC-PT-01', notes: 'Synthetic note' },
+    ])
+    expect(validate(v, meta, opts)).toEqual([])
+  })
+
+  it('refuses a sixth service and an unknown service ID, as the server does', () => {
+    const six = ['SVC-DW-01', 'SVC-PT-01', 'SVC-A', 'SVC-B', 'SVC-C', 'SVC-D']
+    expect(validate({ ...complete, services: six }, meta, opts).map((p) => p.field)).toContain('services')
+    expect(validate({ ...complete, notSure: false, services: ['SVC-HI-99'] }, meta, opts)).toEqual([
+      { field: 'services.0.serviceId', code: 'enum' },
     ])
   })
 })
