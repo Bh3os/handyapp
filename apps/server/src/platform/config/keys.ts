@@ -54,6 +54,8 @@ const shape =
     return out as { readonly [K in keyof S]: ReturnType<S[K]> }
   }
 const hours = int(0, 24 * 366)
+const messageCode: Parser<string> = (v, p) =>
+  typeof v === 'string' && /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/.test(v) ? v : fail(p, 'expected a message type code')
 const contactHoursOnly = { contactHoursOnly: bool }
 
 /** Every configuration key with the parser of its value. Adding a key needs a migration that seeds it. */
@@ -116,6 +118,13 @@ export const CONFIG_KEYS = {
   'business.name': shape({ documentName: text, brand: text }),
   'business.mailing_address': shape({ lines: listOf(text) }),
   'business.public_contact': shape({ phone: text, email: text }),
+  // FACT-AUTOMATIC-MESSAGES (TSK-0047): the one list of messages that send without staff release. Codes are message
+  // types of modules/notifications, which refuses an unknown code when it reads the list.
+  'messages.automatic': shape({
+    customer: listOf(messageCode),
+    staffAccount: listOf(messageCode),
+    staffNotifications: listOf(messageCode),
+  }),
   // RULE-AI-WAVE2: only `false` is a valid value; the database refuses anything else as well.
   'ai.module': shape({ enabled: exactly(false) }),
 } as const satisfies Record<string, Parser<unknown>>
