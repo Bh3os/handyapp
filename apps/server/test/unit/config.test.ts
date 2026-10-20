@@ -83,6 +83,7 @@ describe('environment schema (TSK-0003, OWN-DEC-73, RULE-SYNTHETIC-DATA)', () =>
     expect(loadConfig({ HANDYHUB_ENV: 'ci' })).toMatchObject({ port: 3000, host: '127.0.0.1', trustProxyHops: 0 })
     expect(Object.keys(ENV_VARS).sort()).toEqual([
       'ACCESS_GATE_USERS',
+      'CODE_HASH_KEY',
       'DATABASE_URL',
       'HANDYHUB_ENV',
       'HOST',

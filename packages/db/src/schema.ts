@@ -42,6 +42,51 @@ export interface CatalogServicesTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface IdentityCustomerSessionsTable {
+  id: string
+  token_hash: string
+  contact_ref: string
+  via: string
+  project_ids: Generated<string[]>
+  verified_at: Timestamp
+  fresh_until: Timestamp
+  idle_minutes: number
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  last_seen_at: ColumnType<Date, Date | string | undefined, Date | string>
+  expires_at: Timestamp
+  revoked_at: Timestamp | null
+  revoke_reason: string | null
+}
+
+export interface IdentityVerificationAttemptsTable {
+  id: ColumnType<string, bigint | number | string | undefined, bigint | number | string>
+  code_id: string | null
+  client_key: string | null
+  succeeded: boolean
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface IdentityVerificationCodesTable {
+  id: string
+  purpose: string
+  channel: string
+  destination: string
+  subject_ref: string
+  nonce: string
+  code_digest: string
+  client_key: string | null
+  attempts: Generated<number>
+  max_attempts: number
+  expires_at: Timestamp
+  consumed_at: Timestamp | null
+  superseded_at: Timestamp | null
+  delivery_state: Generated<string>
+  provider_message_id: string | null
+  delivery_error: string | null
+  request_id: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface PlatformAuditEventsTable {
   id: Generated<string>
   seq: GeneratedAlways<string>
@@ -155,6 +200,9 @@ export interface PlatformWebhookReceiptsTable {
 export interface Database {
   'catalog.service_versions': CatalogServiceVersionsTable
   'catalog.services': CatalogServicesTable
+  'identity.customer_sessions': IdentityCustomerSessionsTable
+  'identity.verification_attempts': IdentityVerificationAttemptsTable
+  'identity.verification_codes': IdentityVerificationCodesTable
   'platform.audit_events': PlatformAuditEventsTable
   'platform.idempotency_keys': PlatformIdempotencyKeysTable
   'platform.jobs': PlatformJobsTable

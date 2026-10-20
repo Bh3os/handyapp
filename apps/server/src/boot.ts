@@ -9,6 +9,8 @@ import { AUTOMATIONS } from './automations.js'
 import { loadConfig } from './config.js'
 import { createAutomationRegistry } from './platform/automation.js'
 import { createWorker } from './platform/jobs.js'
+import { codeDeliveryAutomation, customerSessionResolver, readCodeKey } from './modules/identity/index.js'
+import { createProviders } from './providers/index.js'
 import type { Logger } from './platform/logger.js'
 import { readProviderSettings } from './providers/settings.js'
 import { registerWebhookRoutes } from './providers/webhooks.js'
@@ -24,14 +26,18 @@ export interface BootOptions {
 export async function boot(env: Readonly<Record<string, string | undefined>>, options: BootOptions = {}) {
   const config = loadConfig(env)
   const providers = readProviderSettings(env)
-  const registry = createAutomationRegistry(AUTOMATIONS)
+  const codeKey = readCodeKey(env)
   const siteDir = config.siteDir ?? options.defaultSiteDir
+  // One pool for the API, the webhooks and the worker; customer sessions resolve the API caller (TSK-0016).
+  const db = config.databaseUrl ? createDb(config.databaseUrl, { applicationName: 'handyapp-server' }) : undefined
   const app: FastifyInstance = await buildApp({
     config: siteDir === undefined ? config : { ...config, siteDir },
     logger: options.logger ?? false,
+    ...(db ? { api: { db, resolveActor: customerSessionResolver(db) } } : {}),
   })
-  if (config.databaseUrl) {
-    const db = createDb(config.databaseUrl, { applicationName: 'handyapp-server' })
+  const sent = createProviders(providers, { logger: app.log as unknown as Logger })
+  const registry = createAutomationRegistry([...AUTOMATIONS, codeDeliveryAutomation({ providers: sent, codeKey })])
+  if (db) {
     await registerWebhookRoutes(app, { db, secrets: providers.webhookSecrets })
     const worker = createWorker({ db, registry, logger: app.log as unknown as Logger })
     if (options.worker !== false) worker.start()

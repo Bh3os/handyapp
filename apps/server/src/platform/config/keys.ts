@@ -116,6 +116,17 @@ export const CONFIG_KEYS = {
   'business.name': shape({ documentName: text, brand: text }),
   'business.mailing_address': shape({ lines: listOf(text) }),
   'business.public_contact': shape({ phone: text, email: text }),
+  // TSK-0016: attempt, resend and per-client limits for one-time codes (PROPOSED values, HH-ID-06, HH-INT-11) and the
+  // fresh-verification window (HH-ID-07). The code lifetime is session.timings.oneTimeCodeMinutes.
+  'verification.limits': shape({
+    codeDigits: int(6, 10),
+    maxAttemptsPerCode: int(1, 20),
+    resendCooldownSeconds: int(0, 3600),
+    maxCodesPerDestinationPerHour: int(1, 100),
+    maxCodesPerClientPerHour: int(1, 1000),
+    maxFailedAttemptsPerClientPerHour: int(1, 10_000),
+    freshVerificationMinutes: int(1, 24 * 60),
+  }),
   // RULE-AI-WAVE2: only `false` is a valid value; the database refuses anything else as well.
   'ai.module': shape({ enabled: exactly(false) }),
 } as const satisfies Record<string, Parser<unknown>>
