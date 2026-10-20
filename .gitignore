@@ -1,0 +1,5 @@
+kg/_index.json
+node_modules/
+.env
+.env.*
+.obsidian/workspace*.json

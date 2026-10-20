@@ -1,0 +1,40 @@
+---
+id: HH-PRIV-01
+type: requirement
+title: "Data inventory, purpose and access classes, and the retention schedule"
+status: active
+priority: P0
+area: privacy
+links:
+  decided_by: ["[[OWN-DEC-70]]", "[[OWN-DEC-123]]"]
+  depends_on: ["[[HH-DATA-09]]"]
+  constrained_by: ["[[RULE-HUMAN-REVIEW]]", "[[RULE-NO-INVENTED-FACTS]]", "[[RULE-SERVER-AUTHZ]]"]
+  uses: ["[[FACT-RETENTION-SCHEDULE]]", "[[ENT-RetentionReview]]", "[[ENT-AuditEvent]]", "[[INT-Render]]", "[[INT-R2]]", "[[INT-Bird]]", "[[INT-Resend]]", "[[INT-Square]]"]
+  tested_by: ["[[T72]]", "[[T74]]"]
+  part_of: ["[[S09]]", "[[S08]]"]
+source: "guide 25.2 (inventory table) and HH-PRIV-01; OWN-DEC-70, OWN-DEC-123"
+---
+A data inventory lists every category with purpose, owner, retention trigger, period, holds, deletion or anonymization method, backup behaviour and vendor destinations (Render hosting and database, Cloudflare R2 files, Bird SMS, Resend email; Square is used outside the software).
+
+Purpose and access classes (guide 25.2):
+
+| Data class | Purpose | Allowed audience | Control requirement |
+| --- | --- | --- | --- |
+| Contact | Verification and service communication | The customer; relevant office roles | Verified values; channel and purpose preferences; protected exports |
+| Service address | Qualification and work delivery | The authorized customer and operational staff | Collected when needed; confirmed per job |
+| Interior and work photos | Estimation, evidence, quality | Role and project scope; customer-shared items only | Minimize faces, valuables and documents; metadata policy; separate marketing consent |
+| Access secret | Site entry | Assigned staff with need during the visit | Protected field; expiry; never in messages, broad exports or caches |
+| Estimate and approval | Scope and commercial commitment evidence | The authorized customer; estimating, operations and finance as needed | Exact version; retention and hold policy |
+| Payment reference | Receipt and reconciliation | The authorized customer; finance; limited collection role | Minimal references; no card data |
+| Incident | Response, follow-up, evidence | Restricted authorized roles | Minimal sensitive personal detail; legal or incident holds |
+| Worker timestamps | Operations and the accountant's export | Owner | Employment and privacy policy; no customer visibility |
+| Analytics | Reliability and task success | Authorized aggregate reporting | No free-form inputs, access secrets, photos or private IDs |
+| Logs and audit | Reliability, integrity, accountability | Authorized technical and administrative scope | Redaction, controlled access, retention, tamper protection |
+
+Retention:
+- Periods per category come from [[FACT-RETENTION-SCHEDULE]] (configurable defaults the Owner may extend; longer legal, tax, insurance or contractual requirements override them). The schedule also applies to audit records; nothing is kept forever by default.
+- Expired records enter the Owner's deletion-review queue ([[ENT-RetentionReview]]); nothing is deleted automatically.
+- Before deletion the system checks for unresolved complaints, warranties, disputes, claims, investigations, unfiled tax returns, and legal or insurance holds; a hold blocks deletion of the record and its related evidence.
+- There is no separate one-year contact-removal rule for lost requests.
+- Regulated employee medical or exposure records are excluded from routine deletion and need a separate reviewed schedule (human review).
+- Durations that are not in the schedule are never invented.

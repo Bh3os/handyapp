@@ -1,0 +1,20 @@
+---
+id: HH-STAFF-02
+type: requirement
+title: Audited role changes and immediate offboarding that keeps work history
+status: active
+priority: P0
+area: staff
+links:
+  decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-123]]"]
+  depends_on: ["[[HH-STAFF-01]]", "[[HH-STAFF-06]]"]
+  constrained_by: ["[[RULE-SERVER-AUTHZ]]"]
+  uses: ["[[ENT-StaffUser]]", "[[ENT-RoleGrant]]", "[[ENT-Visit]]", "[[ENT-AuditEvent]]"]
+  tested_by: ["[[T27]]"]
+  part_of: ["[[S09]]"]
+source: "guide 10.1 HH-STAFF-02; OWN-DEC-114, OWN-DEC-123"
+---
+- Role assignment, role change, password recovery and offboarding are audited with actor, time and change.
+- Disabling an account immediately blocks every new server operation and revokes all active sessions and tokens. A stale browser session cannot write after offboarding, including queued offline field writes.
+- The employee's job history and evidence are kept.
+- Their upcoming assignments are flagged for reassignment as queue items ([[HH-STAFF-06]]); they are never silently cancelled. The person is removed from future capacity.

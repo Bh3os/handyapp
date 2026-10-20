@@ -1,0 +1,19 @@
+---
+id: HH-ID-09
+type: requirement
+title: Neutral recovery for revoked or expired access, with anti-enumeration reissue
+status: active
+priority: P0
+area: identity
+links:
+  decided_by: ["[[OWN-DEC-97]]"]
+  depends_on: ["[[HH-ID-04]]", "[[HH-INT-11]]"]
+  constrained_by: ["[[RULE-SERVER-AUTHZ]]"]
+  uses: ["[[ENT-ProjectAccessGrant]]"]
+  tested_by: ["[[T18]]", "[[T19]]"]
+  part_of: ["[[C03]]", "[[C06]]"]
+source: "guide 8.2 HH-ID-09; OWN-DEC-97"
+---
+- A revoked or expired grant, or exhausted verification attempts, show a neutral recovery page with no project information.
+- The page offers a safe way to request new access. Reissue wording never reveals whether a contact, project or account exists, and reissue is rate-limited.
+- A reissued grant is limited to that project, even when other projects share the customer or email.
