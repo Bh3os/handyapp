@@ -1,0 +1,86 @@
+// Boot, health checks and the access gate over real HTTP against PostgreSQL 16 (TSK-0003; OWN-DEC-73,
+// RULE-SYNTHETIC-DATA). A fresh migrated database per file comes from @handyhub/db/testing.
+import { createTestDatabase, type TestDatabase } from '@handyhub/db/testing'
+import type { FastifyInstance } from 'fastify'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { boot } from '../../src/boot.js'
+import { ConfigError } from '../../src/config.js'
+import { basic, GATE_USERS, gatePassword } from '../fixtures/env.js'
+
+let testDb: TestDatabase
+let app: FastifyInstance
+let base: string
+
+beforeAll(async () => {
+  testDb = await createTestDatabase()
+  const started = await boot({
+    HANDYHUB_ENV: 'staging',
+    DATABASE_URL: testDb.url,
+    ACCESS_GATE_USERS: GATE_USERS,
+    PORT: '0',
+  })
+  app = started.app
+  base = started.address
+})
+
+afterAll(async () => {
+  await app?.close()
+  await testDb?.drop()
+})
+
+describe('staging boot behind the gate (TSK-0003, OWN-DEC-73)', () => {
+  it('[OWN-DEC-73] the gate denies a request without credentials', async () => {
+    const res = await fetch(`${base}/`)
+    expect(res.status).toBe(401)
+    expect(res.headers.get('www-authenticate')).toMatch(/^Basic realm="HandyHub staging"/)
+    expect(res.headers.get('x-robots-tag')).toBe('noindex, nofollow')
+    const api = await fetch(`${base}/api/requests`, {
+      method: 'POST',
+      body: '{}',
+      headers: { 'content-type': 'application/json' },
+    })
+    expect(api.status).toBe(401)
+  })
+
+  it('[OWN-DEC-73] /healthz answers publicly with no private data', async () => {
+    const res = await fetch(`${base}/healthz`)
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ status: 'ok' })
+  })
+
+  it('[OWN-DEC-73] /readyz answers behind the gate: database reachable, every migration applied', async () => {
+    const res = await fetch(`${base}/readyz`, { headers: { authorization: basic('owner', gatePassword(1)) } })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ status: 'ready', checks: { database: 'ok', migrations: 'ok' } })
+  })
+
+  it('[RULE-SYNTHETIC-DATA] robots.txt disallows everything on staging', async () => {
+    const res = await fetch(`${base}/robots.txt`, { headers: { authorization: basic('tester1', gatePassword(2)) } })
+    expect(await res.text()).toBe('User-agent: *\nDisallow: /\n')
+  })
+})
+
+describe('boot refuses a missing required variable (TSK-0003, RULE-SYNTHETIC-DATA)', () => {
+  it('[RULE-SYNTHETIC-DATA] fails before listening when a required variable is missing', async () => {
+    await expect(boot({ PORT: '0' })).rejects.toBeInstanceOf(ConfigError)
+    await expect(boot({ HANDYHUB_ENV: 'staging', ACCESS_GATE_USERS: GATE_USERS, PORT: '0' })).rejects.toThrow(
+      'DATABASE_URL is required in staging',
+    )
+    await expect(boot({ HANDYHUB_ENV: 'staging', DATABASE_URL: testDb.url, PORT: '0' })).rejects.toThrow(
+      /ACCESS_GATE_USERS is required in staging/,
+    )
+  })
+
+  it('[RULE-SYNTHETIC-DATA] readiness fails on an unreachable database', async () => {
+    const dead = new URL(testDb.url)
+    dead.port = '1'
+    const started = await boot({ HANDYHUB_ENV: 'ci', DATABASE_URL: dead.toString(), PORT: '0' })
+    try {
+      const res = await fetch(`${started.address}/readyz`)
+      expect(res.status).toBe(503)
+      expect(await res.json()).toEqual({ status: 'not_ready', checks: { database: 'fail', migrations: 'fail' } })
+    } finally {
+      await started.app.close()
+    }
+  })
+})
