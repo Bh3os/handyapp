@@ -76,8 +76,11 @@ describe('environment schema (TSK-0003, OWN-DEC-73, RULE-SYNTHETIC-DATA)', () =>
     expect(strongGatePassword('short-A1!')).toBe(false)
   })
 
-  it('validates PORT, TRUST_PROXY_HOPS and LOG_LEVEL and documents every variable by name', () => {
+  it('validates PORT, TRUST_PROXY_HOPS, LOG_LEVEL and JOB_WORKER and documents every variable by name', () => {
     expect(() => loadConfig({ HANDYHUB_ENV: 'ci', PORT: '70000' })).toThrow(/PORT must be a whole number/)
+    expect(() => loadConfig({ HANDYHUB_ENV: 'ci', JOB_WORKER: 'maybe' })).toThrow(/JOB_WORKER must be one of on, off/)
+    expect(loadConfig({ HANDYHUB_ENV: 'ci' }).jobWorker).toBe(true)
+    expect(loadConfig({ HANDYHUB_ENV: 'ci', JOB_WORKER: 'off' }).jobWorker).toBe(false)
     expect(() => loadConfig({ HANDYHUB_ENV: 'ci', TRUST_PROXY_HOPS: '9' })).toThrow(/TRUST_PROXY_HOPS/)
     expect(() => loadConfig({ HANDYHUB_ENV: 'ci', LOG_LEVEL: 'loud' })).toThrow(/LOG_LEVEL/)
     expect(loadConfig({ HANDYHUB_ENV: 'ci' })).toMatchObject({ port: 3000, host: '127.0.0.1', trustProxyHops: 0 })
@@ -89,6 +92,7 @@ describe('environment schema (TSK-0003, OWN-DEC-73, RULE-SYNTHETIC-DATA)', () =>
       'DATABASE_URL',
       'HANDYHUB_ENV',
       'HOST',
+      'JOB_WORKER',
       'LOG_LEVEL',
       'MFA_ENCRYPTION_KEY',
       'PORT',

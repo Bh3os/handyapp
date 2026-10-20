@@ -69,7 +69,7 @@ export async function boot(env: Readonly<Record<string, string | undefined>>, op
       app.log.info({ outcome }, 'first owner bootstrap')
     }
     const worker = createWorker({ db, registry, logger: app.log as unknown as Logger })
-    if (options.worker !== false) worker.start()
+    if (options.worker !== false && config.jobWorker) worker.start()
     app.addHook('onClose', async () => {
       await worker.stop()
       await db.destroy()
