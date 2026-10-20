@@ -7,6 +7,7 @@ import { ConfigError } from './config.js'
 try {
   const { address, config } = await boot(process.env, {
     defaultSiteDir: fileURLToPath(new URL('../../site/dist', import.meta.url)),
+    defaultStaffDir: fileURLToPath(new URL('../../staff/dist', import.meta.url)),
     logger: true,
   })
   process.stdout.write(`server listening on ${address} (${config.env})\n`)

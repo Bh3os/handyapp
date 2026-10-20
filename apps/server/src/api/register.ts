@@ -21,6 +21,7 @@ import { errorMessage, fieldKind, fieldMessage, type Audience } from './messages
 import { PAGE_QUERY_PROPERTIES, pageRequest } from './pagination.js'
 import { RateLimiter } from './rate-limit.js'
 import {
+  AUTHENTICATION,
   routeProblems,
   RouteContractError,
   type ActorKind,
@@ -133,6 +134,24 @@ function toApiError(err: unknown): ApiError {
   return new ApiError('INTERNAL')
 }
 
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
+
+/**
+ * CSRF protection for cookie sessions (HH-SEC-02), on top of SameSite=Strict cookies: a state-changing request from
+ * another site is refused. Browsers send Sec-Fetch-Site and Origin; a request with neither is not a browser request
+ * riding on someone's cookies.
+ */
+export function csrfGuard(req: FastifyRequest): void {
+  if (SAFE_METHODS.has(req.method)) return
+  const site = req.headers['sec-fetch-site']
+  if (typeof site === 'string' && site !== 'same-origin' && site !== 'none') throw new ApiError('FORBIDDEN')
+  const origin = req.headers.origin
+  if (typeof origin === 'string' && origin !== 'null') {
+    const host = URL.canParse(origin) ? new URL(origin).host : ''
+    if (host !== req.headers.host) throw new ApiError('FORBIDDEN')
+  } else if (origin === 'null') throw new ApiError('FORBIDDEN')
+}
+
 function querySchema(route: RouteDef) {
   if (!route.pagination) return route.schema.querystring
   const base = (route.schema.querystring ?? { type: 'object', additionalProperties: false, properties: {} }) as {
@@ -160,7 +179,7 @@ async function runRoute(
   if (kind === 'ai' || !route.actors.includes(kind)) throw refuseKind(kind)
 
   // Counted before anything runs, in its own statement, so a refused or failed call still counts (HH-INT-11).
-  if (route.rateLimit !== 'none') {
+  if (route.rateLimit !== 'none' && route.rateLimit.enforcedBy !== 'handler') {
     const decision = await limiter.consume(route.rateLimit, limiter.callerKey(req, actor))
     if (!decision.allowed) {
       req.log.warn({ bucket: route.rateLimit.bucket }, 'RATE_LIMITED')
@@ -170,10 +189,25 @@ async function runRoute(
 
   const resource = route.resource ? await route.resource({ req, actor, db }) : {}
   if (resource === null) throw new ApiError('NOT_FOUND')
-  const decision = decide(actor, route.permission, resource, { now: new Date(), online: true })
-  if (decision.effect === 'deny') {
-    req.log.warn({ action: decision.action, reason: decision.reason }, 'AUTHZ_DENIED')
-    throw new ApiError(actor.kind === 'staff' && decision.reason !== 'NOT_FOUND' ? 'FORBIDDEN' : 'NOT_FOUND')
+  let decision: Allow | null = null
+  if (route.permission !== AUTHENTICATION) {
+    const body = req.body as { reason?: unknown } | undefined
+    const reason = typeof body?.reason === 'string' ? body.reason : undefined
+    const d = decide(actor, route.permission, resource, {
+      now: new Date(),
+      online: true,
+      ...(reason ? { reason } : {}),
+    })
+    if (d.effect === 'deny') {
+      req.log.warn({ action: d.action, reason: d.reason }, 'AUTHZ_DENIED')
+      if (actor.kind !== 'staff' || d.reason === 'NOT_FOUND') throw new ApiError('NOT_FOUND')
+      if (d.reason === 'REASON_REQUIRED')
+        throw new ApiError('VALIDATION_FAILED', {
+          fieldErrors: [{ field: 'body.reason', code: 'required', message: '' }],
+        })
+      throw new ApiError(d.reason === 'FRESH_AUTH_REQUIRED' ? 'FRESH_AUTH_REQUIRED' : 'FORBIDDEN')
+    }
+    decision = d
   }
 
   const page = route.pagination ? pageRequest(req.query as { limit?: number; cursor?: string }) : undefined
@@ -182,7 +216,7 @@ async function runRoute(
   const context = (tx: Tx | undefined): ApiContext => ({
     req,
     actor,
-    decision: decision as Allow,
+    decision,
     db,
     tx,
     page,
@@ -190,6 +224,12 @@ async function runRoute(
     audit: async (event) => {
       if (!tx) throw new Error(`${route.operationId}: audit events are recorded inside a write route`)
       await audit.record(tx, { ...event, action: event.action ?? route.audit, actor: auditActor(actor), requestId })
+      audited++
+    },
+    auditAlways: async (event) => {
+      await withTx(db, (own) =>
+        audit.record(own, { ...event, action: event.action ?? route.audit, actor: auditActor(actor), requestId }),
+      )
       audited++
     },
   })
@@ -242,6 +282,7 @@ export async function registerApi(app: FastifyInstance, options: ApiOptions): Pr
   await app.register(
     async (api) => {
       api.addHook('onRequest', async (req) => {
+        csrfGuard(req)
         const resolved = await resolveActor(req)
         req.apiActor = resolved
         req.apiAudience = audienceOf(resolved.actor, resolved.locale)

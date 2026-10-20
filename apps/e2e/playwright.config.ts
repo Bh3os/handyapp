@@ -7,8 +7,11 @@ import { defineConfig, devices } from '@playwright/test'
 
 const executablePath = process.env['E2E_CHROMIUM_EXECUTABLE']
 const port = Number(process.env['E2E_PORT'] ?? 4310)
-// The built server, on a fresh database when TEST_DATABASE_URL is set (server.mjs).
-const serverEntry = fileURLToPath(new URL('./server.mjs', import.meta.url))
+const serverEntry = fileURLToPath(new URL('../server/dist/main.js', import.meta.url))
+const migrateEntry = fileURLToPath(new URL('../../packages/db/dist/cli/migrate.js', import.meta.url))
+// With E2E_DATABASE_URL (a fresh, empty PostgreSQL 16 database; CI provides one) the server runs with the database:
+// migrations first, then staff sign-in (TSK-0014) and every database-backed flow. Without it, those specs skip.
+const databaseUrl = process.env['E2E_DATABASE_URL']
 const galleryPort = Number(process.env['E2E_GALLERY_PORT'] ?? 4311)
 const uiDir = fileURLToPath(new URL('../../packages/ui', import.meta.url))
 const viteBin = fileURLToPath(new URL('../../packages/ui/node_modules/vite/bin/vite.js', import.meta.url))
@@ -35,18 +38,18 @@ export default defineConfig({
   expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.01, animations: 'disabled', caret: 'hide' } },
   webServer: [
     {
-      command: `node ${JSON.stringify(serverEntry)}`,
+      command: databaseUrl
+        ? `node ${JSON.stringify(migrateEntry)} && node ${JSON.stringify(serverEntry)}`
+        : `node ${JSON.stringify(serverEntry)}`,
       url: `http://127.0.0.1:${port}/`,
       env: {
         HANDYHUB_ENV: 'ci',
         PORT: String(port),
         HOST: '127.0.0.1',
-        ...(process.env['TEST_DATABASE_URL'] ? { TEST_DATABASE_URL: process.env['TEST_DATABASE_URL'] } : {}),
+        ...(databaseUrl ? { DATABASE_URL: databaseUrl, TEST_EMAIL_DESTINATIONS: 'e2e-owner@example.test' } : {}),
       },
       reuseExistingServer: false,
       timeout: 30_000,
-      // SIGTERM (not the default SIGKILL) so server.mjs drops its fresh database before exiting.
-      gracefulShutdown: { signal: 'SIGTERM', timeout: 10_000 },
     },
     {
       command: `node ${JSON.stringify(viteBin)} preview --config gallery/vite.config.ts --port ${galleryPort}`,

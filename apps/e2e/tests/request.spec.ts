@@ -1,8 +1,10 @@
 // The request wizard shell in a real browser (TSK-0026; HH-INT-01, HH-INT-08, HH-INT-09, T01, T10, T69). The server
-// runs on a fresh database (server.mjs); every visitor and value is synthetic.
+// runs with the migrated E2E_DATABASE_URL database (the draft period comes from its configuration and requests are
+// saved there); every visitor and value is synthetic.
 import { AxeBuilder } from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 
+const databaseUrl = process.env['E2E_DATABASE_URL']
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const future = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10)
 
@@ -42,6 +44,7 @@ async function fillToReview(page: Page, phone = '(502) 555-0123') {
 
 test.describe('request wizard shell (TSK-0026)', () => {
   test.beforeEach(async ({ page }) => {
+    test.skip(!databaseUrl, 'needs E2E_DATABASE_URL (a fresh PostgreSQL 16 database)')
     await page.goto('/request')
     await page.evaluate(() => window.localStorage.clear())
   })

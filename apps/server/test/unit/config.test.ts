@@ -83,13 +83,48 @@ describe('environment schema (TSK-0003, OWN-DEC-73, RULE-SYNTHETIC-DATA)', () =>
     expect(loadConfig({ HANDYHUB_ENV: 'ci' })).toMatchObject({ port: 3000, host: '127.0.0.1', trustProxyHops: 0 })
     expect(Object.keys(ENV_VARS).sort()).toEqual([
       'ACCESS_GATE_USERS',
+      'BOOTSTRAP_OWNER_EMAIL',
+      'BOOTSTRAP_OWNER_NAME',
+      'CODE_HASH_KEY',
       'DATABASE_URL',
       'HANDYHUB_ENV',
       'HOST',
       'LOG_LEVEL',
       'PORT',
       'SITE_DIR',
+      'STAFF_APP_URL',
+      'STAFF_DIR',
       'TRUST_PROXY_HOPS',
     ])
+  })
+
+  it('[HH-STAFF-01][HH-SEC-02] staff link URL, first Owner and cookie security per environment (TSK-0014)', () => {
+    expect(loadConfig({ HANDYHUB_ENV: 'ci', PORT: '4310' })).toMatchObject({
+      staffAppUrl: 'http://127.0.0.1:4310/staff',
+      secureCookies: false,
+      bootstrapOwner: null,
+    })
+    const staging = loadConfig({
+      HANDYHUB_ENV: 'staging',
+      DATABASE_URL: DB,
+      ACCESS_GATE_USERS: GATE_USERS,
+      BOOTSTRAP_OWNER_EMAIL: 'Owner-Synthetic@Example.test',
+    })
+    expect(staging).toMatchObject({
+      staffAppUrl: undefined,
+      secureCookies: true,
+      bootstrapOwner: { email: 'owner-synthetic@example.test', displayName: null },
+    })
+    expect(() =>
+      loadConfig({
+        HANDYHUB_ENV: 'staging',
+        DATABASE_URL: DB,
+        ACCESS_GATE_USERS: GATE_USERS,
+        STAFF_APP_URL: 'http://x.example',
+      }),
+    ).toThrow(/https/)
+    expect(() => loadConfig({ HANDYHUB_ENV: 'ci', BOOTSTRAP_OWNER_EMAIL: 'not-an-email' })).toThrow(
+      /BOOTSTRAP_OWNER_EMAIL/,
+    )
   })
 })
