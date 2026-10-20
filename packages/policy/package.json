@@ -5,6 +5,7 @@
   "description": "The one place authorization decisions are made: role capabilities and record-scope checks (RULE-SERVER-AUTHZ).",
   "exports": {
     ".": {
+      "browser": "./browser.js",
       "@handyhub/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
