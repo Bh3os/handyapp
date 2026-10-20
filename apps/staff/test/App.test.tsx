@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { App, routeOf } from '../src/App'
+import { App, routeOf, runtimeBase } from '../src/App'
 
 afterEach(cleanup)
 
@@ -19,6 +19,21 @@ describe('staff text from the catalogs (TSK-0008, HH-LANG-02)', () => {
     render(<App locale="es" path="/staff/sign-in" base="/staff/" fetchImpl={vi.fn()} navigate={vi.fn()} />)
     expect(screen.getByRole('heading', { level: 1, name: 'Inicio de sesión del personal' })).toBeTruthy()
     expect(screen.getByText('HandyHub para el personal')).toBeTruthy()
+  })
+})
+
+describe('two origins (TSK-0017, HH-ARC-06)', () => {
+  it('[HH-ARC-06] the base is /staff/ under /staff on the single host and / on the staff host', () => {
+    expect(runtimeBase('/staff/sign-in', '/staff/')).toBe('/staff/')
+    expect(runtimeBase('/staff', '/staff/')).toBe('/staff/')
+    expect(runtimeBase('/sign-in', '/staff/')).toBe('/')
+    expect(runtimeBase('/staffing', '/staff/')).toBe('/')
+    expect(runtimeBase('/sign-in', '/')).toBe('/')
+    expect(routeOf('/invite/abc', runtimeBase('/invite/abc', '/staff/'))).toEqual({
+      page: 'set-password',
+      purpose: 'invite',
+      token: 'abc',
+    })
   })
 })
 
@@ -46,7 +61,7 @@ describe('staff sign-in screens (TSK-0014, HH-STAFF-01)', () => {
     await waitFor(() =>
       expect(screen.getByRole('alert').textContent).toContain('The email or password is not correct.'),
     )
-    expect(fetchImpl.mock.calls[0]?.[0]).toBe('/api/v1/auth/sign-in')
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe('/api/v1/staff/auth/sign-in')
 
     fireEvent.click(screen.getByRole('button', { name: 'Forgot password?' }))
     fireEvent.change(screen.getByLabelText(/Email/), { target: { value: 'someone@example.test' } })
@@ -93,7 +108,7 @@ describe('optional MFA and CSRF in the staff app (TSK-0015, HH-STAFF-01, HH-SEC-
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     await waitFor(() => expect(navigate).toHaveBeenCalledWith('/staff/'))
     const [url, init] = fetchImpl.mock.calls[1] as [string, RequestInit]
-    expect(url).toBe('/api/v1/auth/mfa/verify')
+    expect(url).toBe('/api/v1/staff/auth/mfa/verify')
     expect(JSON.parse(String(init.body))).toEqual({ code: '123456' })
   })
 })

@@ -73,18 +73,27 @@ function fieldText(t: ReturnType<typeof useT>, error: ApiErrorBody | null, field
   return f ? t(FIELD_KEYS[f.code] ?? 'error.field.invalid') : undefined
 }
 
+/**
+ * The app's base at run time (TSK-0017): the build's base (/staff/) on the single staging host, where the app lives
+ * under /staff; '/' on staff.handyhub247.com, where it is the whole host (the server serves the same files at both).
+ */
+export function runtimeBase(pathname: string, buildBase = '/'): string {
+  const bare = buildBase.replace(/\/$/, '')
+  return bare && (pathname === bare || pathname.startsWith(`${bare}/`)) ? `${bare}/` : '/'
+}
+
 export interface AppProps {
   locale?: StaffLocale
   /** The current path; defaults to the browser location. */
   path?: string
-  /** The app's base path; defaults to the build's base (/staff/). */
+  /** The app's base path; defaults to runtimeBase() of the browser location. */
   base?: string
   fetchImpl?: Fetch
   navigate?: (to: string) => void
 }
 
 export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navigate }: AppProps) {
-  const appBase = base ?? (import.meta.env.BASE_URL || '/')
+  const appBase = base ?? runtimeBase(window.location.pathname, import.meta.env.BASE_URL || '/')
   const doFetch: Fetch = fetchImpl ?? ((...a) => fetch(...a))
   const [current, setCurrent] = useState(() => path ?? `${window.location.pathname}${window.location.search}`)
   const href = (to: string) => `${appBase.replace(/\/$/, '')}${to}`
@@ -121,7 +130,7 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
   useEffect(() => {
     if (!needsSession || session) return
     let live = true
-    void call<Session>(doFetch, '/auth/session').then((r) => {
+    void call<Session>(doFetch, '/staff/auth/session').then((r) => {
       if (!live) return
       if (r.ok) setSession(r.data)
       else {
@@ -136,7 +145,7 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
 
   async function signOut() {
     setSigningOut(true)
-    await call(doFetch, '/auth/sign-out', { method: 'POST' })
+    await call(doFetch, '/staff/auth/sign-out', { method: 'POST' })
     setSigningOut(false)
     setSession(null)
     go('/sign-in')
@@ -144,7 +153,7 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
 
   /** Saves the staff locale on the person's staff identity (HH-OPS-04); the screen re-renders in place. */
   async function changeLocale(next: 'en' | 'es'): Promise<boolean> {
-    const r = await call<Session>(doFetch, '/auth/session/locale', { method: 'PUT', body: { locale: next } })
+    const r = await call<Session>(doFetch, '/staff/auth/session/locale', { method: 'PUT', body: { locale: next } })
     if (!r.ok) return false
     setSession(r.data)
     return true
@@ -226,7 +235,10 @@ function SignIn({ t, fetchImpl, onSignedIn }: { t: T; fetchImpl: Fetch; onSigned
     setPending(true)
     setError(null)
     if (mode === 'forgot') {
-      const r = await call(fetchImpl, '/auth/password/forgot', { method: 'POST', body: { email: form.get('email') } })
+      const r = await call(fetchImpl, '/staff/auth/password/forgot', {
+        method: 'POST',
+        body: { email: form.get('email') },
+      })
       setPending(false)
       if (r.ok) setMode('sent')
       else setError(r.error)
@@ -234,7 +246,7 @@ function SignIn({ t, fetchImpl, onSignedIn }: { t: T; fetchImpl: Fetch; onSigned
     }
     if (mode === 'mfa') {
       const value = form.get('code')
-      const r = await call<Session>(fetchImpl, '/auth/mfa/verify', {
+      const r = await call<Session>(fetchImpl, '/staff/auth/mfa/verify', {
         method: 'POST',
         body: useRecovery ? { recoveryCode: value } : { code: value },
       })
@@ -243,7 +255,7 @@ function SignIn({ t, fetchImpl, onSignedIn }: { t: T; fetchImpl: Fetch; onSigned
       else setError(r.error)
       return
     }
-    const r = await call<Session | { mfaRequired: true }>(fetchImpl, '/auth/sign-in', {
+    const r = await call<Session | { mfaRequired: true }>(fetchImpl, '/staff/auth/sign-in', {
       method: 'POST',
       body: { email: form.get('email'), password: form.get('password') },
     })
@@ -347,7 +359,7 @@ function SetPassword({
     const password = new FormData(e.currentTarget).get('password')
     setPending(true)
     setError(null)
-    const r = await call(fetchImpl, '/auth/password/set', { method: 'POST', body: { token, password } })
+    const r = await call(fetchImpl, '/staff/auth/password/set', { method: 'POST', body: { token, password } })
     setPending(false)
     if (r.ok) setDone(true)
     else setError(r.error)
@@ -419,7 +431,7 @@ function Account({
   const [pending, setPending] = useState(false)
   async function signOutEverywhere() {
     setPending(true)
-    await call(fetchImpl, '/auth/sessions/revoke-all', { method: 'POST' })
+    await call(fetchImpl, '/staff/auth/sessions/revoke-all', { method: 'POST' })
     setPending(false)
     onSignedOut()
   }
@@ -458,9 +470,13 @@ function Security({
   async function act(kind: 'enroll' | 'disable') {
     setError(null)
     setAfter(kind)
-    const r = await call<{ secret: string }>(fetchImpl, kind === 'enroll' ? '/auth/mfa/enroll' : '/auth/mfa/disable', {
-      method: 'POST',
-    })
+    const r = await call<{ secret: string }>(
+      fetchImpl,
+      kind === 'enroll' ? '/staff/auth/mfa/enroll' : '/staff/auth/mfa/disable',
+      {
+        method: 'POST',
+      },
+    )
     if (r.ok && kind === 'enroll') {
       setSecret((r.data as { secret: string }).secret)
       setStep('secret')
@@ -477,7 +493,7 @@ function Security({
 
   async function reauth(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    const r = await call<Session>(fetchImpl, '/auth/reauth', {
+    const r = await call<Session>(fetchImpl, '/staff/auth/reauth', {
       method: 'POST',
       body: { password: new FormData(e.currentTarget).get('password') },
     })
@@ -489,7 +505,7 @@ function Security({
 
   async function confirm(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    const r = await call<{ recoveryCodes: string[]; session: Session }>(fetchImpl, '/auth/mfa/confirm', {
+    const r = await call<{ recoveryCodes: string[]; session: Session }>(fetchImpl, '/staff/auth/mfa/confirm', {
       method: 'POST',
       body: { code: new FormData(e.currentTarget).get('code') },
     })

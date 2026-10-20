@@ -23,6 +23,8 @@ export interface BootOptions {
   defaultSiteDir?: string
   /** Directory of the built staff app used when STAFF_DIR is not set. */
   defaultStaffDir?: string
+  /** Directory of the built customer portal used when PORTAL_DIR is not set. */
+  defaultPortalDir?: string
   logger?: boolean
   /** Start the job worker when a database is configured. Default true. */
   worker?: boolean
@@ -34,6 +36,7 @@ export async function boot(env: Readonly<Record<string, string | undefined>>, op
   const codeKey = readCodeKey(env)
   const siteDir = config.siteDir ?? options.defaultSiteDir
   const staffDir = config.staffDir ?? options.defaultStaffDir
+  const portalDir = config.portalDir ?? options.defaultPortalDir
   // One pool for the API, the webhooks and the worker. The API caller comes from the staff or the customer session
   // cookie (TSK-0014, TSK-0016; buildApp's default resolver).
   const db = config.databaseUrl ? createDb(config.databaseUrl, { applicationName: 'handyapp-server' }) : undefined
@@ -44,6 +47,7 @@ export async function boot(env: Readonly<Record<string, string | undefined>>, op
       ...config,
       ...(siteDir === undefined ? {} : { siteDir }),
       ...(staffDir === undefined ? {} : { staffDir }),
+      ...(portalDir === undefined ? {} : { portalDir }),
     },
     logger: options.logger ?? false,
     ...(db ? { api: { db, storage } } : { api: { storage } }),

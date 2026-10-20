@@ -59,7 +59,7 @@ const authOf = (res: { headers: Record<string, unknown>; json: () => { csrfToken
 })
 
 async function signIn(email: string, password: string) {
-  return post('/auth/sign-in', { email, password })
+  return post('/staff/auth/sign-in', { email, password })
 }
 
 describe('first Owner bootstrap and invite link (TSK-0014, HH-STAFF-01)', () => {
@@ -87,14 +87,14 @@ describe('first Owner bootstrap and invite link (TSK-0014, HH-STAFF-01)', () => 
 
   it('[HH-STAFF-01][HH-SEC-02] a weak password is refused and keeps the link; the link then works once', async () => {
     const token = lastLink(OWNER, 'invite')
-    const weak = await post('/auth/password/set', { token, password: 'short one' })
+    const weak = await post('/staff/auth/password/set', { token, password: 'short one' })
     expect(weak.statusCode).toBe(400)
     expect(weak.json().error.fieldErrors[0]).toMatchObject({ field: 'body.password', code: 'minLength' })
-    const common = await post('/auth/password/set', { token, password: 'passwordpassword' })
+    const common = await post('/staff/auth/password/set', { token, password: 'passwordpassword' })
     expect(common.json().error.fieldErrors[0]).toMatchObject({ code: 'passwordCommon' })
-    const ok = await post('/auth/password/set', { token, password: pw(1) })
+    const ok = await post('/staff/auth/password/set', { token, password: pw(1) })
     expect(ok.statusCode).toBe(200)
-    const again = await post('/auth/password/set', { token, password: pw(2) })
+    const again = await post('/staff/auth/password/set', { token, password: pw(2) })
     expect(again.statusCode).toBe(410)
     expect(again.json().error.code).toBe('LINK_INVALID')
     const hash = await t.db.selectFrom('identity.auth_identities').select('password_hash').executeTakeFirstOrThrow()
@@ -136,14 +136,18 @@ describe('sign-in (TSK-0014, HH-STAFF-01, HH-SEC-02)', () => {
     expect(first.body).not.toContain('argon2')
     const second = await signIn(OWNER, pw(1))
     expect(cookieOf(second)).not.toBe(cookieOf(first))
-    const me = await app.inject({ url: '/api/v1/auth/session', headers: { cookie: cookieOf(second) } })
+    const me = await app.inject({ url: '/api/v1/staff/auth/session', headers: { cookie: cookieOf(second) } })
     expect(me.json()).toMatchObject({ email: OWNER, displayName: 'Synthetic Owner' })
   })
 
   it('[HH-SEC-02] a cross-site write is refused (CSRF)', async () => {
-    const res = await post('/auth/sign-in', { email: OWNER, password: pw(1) }, { 'sec-fetch-site': 'cross-site' })
+    const res = await post('/staff/auth/sign-in', { email: OWNER, password: pw(1) }, { 'sec-fetch-site': 'cross-site' })
     expect(res.statusCode).toBe(403)
-    const origin = await post('/auth/sign-in', { email: OWNER, password: pw(1) }, { origin: 'https://evil.example' })
+    const origin = await post(
+      '/staff/auth/sign-in',
+      { email: OWNER, password: pw(1) },
+      { origin: 'https://evil.example' },
+    )
     expect(origin.statusCode).toBe(403)
   })
 })
@@ -163,9 +167,9 @@ describe('invites by the Owner (TSK-0014, HH-STAFF-01, T26)', () => {
     await worker.runOnce()
     const mail = sent().find((m) => m.to === WORKER)
     expect(mail?.subject).toBe('Su cuenta del personal de HandyHub')
-    expect((await post('/auth/password/set', { token: lastLink(WORKER, 'invite'), password: pw(3) })).statusCode).toBe(
-      200,
-    )
+    expect(
+      (await post('/staff/auth/password/set', { token: lastLink(WORKER, 'invite'), password: pw(3) })).statusCode,
+    ).toBe(200)
     const signedIn = await signIn(WORKER, pw(3))
     expect(signedIn.json()).toMatchObject({ roles: ['worker'], locale: 'es', mfaRecommended: false })
     const duplicate = await post(
@@ -206,11 +210,13 @@ describe('invites by the Owner (TSK-0014, HH-STAFF-01, T26)', () => {
       { ...owner, 'idempotency-key': 'synthetic-invite-0005' },
     )
     expect(stale.json().error.code).toBe('FRESH_AUTH_REQUIRED')
-    expect((await post('/auth/reauth', { password: pw(9) }, owner)).statusCode).toBe(401)
-    const reauth = await post('/auth/reauth', { password: pw(1) }, owner)
+    expect((await post('/staff/auth/reauth', { password: pw(9) }, owner)).statusCode).toBe(401)
+    const reauth = await post('/staff/auth/reauth', { password: pw(1) }, owner)
     expect(reauth.statusCode).toBe(200)
     // Re-authentication rotates the session: the old cookie stops working (TSK-0015).
-    expect((await app.inject({ url: '/api/v1/auth/session', headers: { cookie: owner.cookie } })).statusCode).toBe(401)
+    expect(
+      (await app.inject({ url: '/api/v1/staff/auth/session', headers: { cookie: owner.cookie } })).statusCode,
+    ).toBe(401)
     owner = authOf(reauth)
     const fresh = await post(
       '/staff/invitations',
@@ -229,8 +235,8 @@ describe('invites by the Owner (TSK-0014, HH-STAFF-01, T26)', () => {
 describe('forgot password, reset, sign-out and expiry (TSK-0014, HH-STAFF-01, T22)', () => {
   it('[HH-STAFF-01] "Forgot password?" answers the same for a known and an unknown email', async () => {
     const before = sent().length
-    const known = await post('/auth/password/forgot', { email: OWNER.toUpperCase() })
-    const unknown = await post('/auth/password/forgot', { email: 'nobody-synthetic@example.test' })
+    const known = await post('/staff/auth/password/forgot', { email: OWNER.toUpperCase() })
+    const unknown = await post('/staff/auth/password/forgot', { email: 'nobody-synthetic@example.test' })
     expect([known.statusCode, unknown.statusCode]).toEqual([202, 202])
     expect(known.body).toBe(unknown.body)
     await worker.runOnce()
@@ -243,11 +249,11 @@ describe('forgot password, reset, sign-out and expiry (TSK-0014, HH-STAFF-01, T2
   it('[HH-STAFF-01][T22] a reset revokes every session; the person signs in again with the new password', async () => {
     const a = cookieOf(await signIn(OWNER, pw(1)))
     const b = cookieOf(await signIn(OWNER, pw(1)))
-    expect((await post('/auth/password/set', { token: lastLink(OWNER, 'reset'), password: pw(4) })).statusCode).toBe(
-      200,
-    )
+    expect(
+      (await post('/staff/auth/password/set', { token: lastLink(OWNER, 'reset'), password: pw(4) })).statusCode,
+    ).toBe(200)
     for (const cookie of [a, b]) {
-      const me = await app.inject({ url: '/api/v1/auth/session', headers: { cookie } })
+      const me = await app.inject({ url: '/api/v1/staff/auth/session', headers: { cookie } })
       expect(me.statusCode).toBe(401)
     }
     expect((await signIn(OWNER, pw(1))).statusCode).toBe(401)
@@ -257,10 +263,10 @@ describe('forgot password, reset, sign-out and expiry (TSK-0014, HH-STAFF-01, T2
   it('[T22] sign-out ends the session on the server and clears the cookie', async () => {
     const signedIn = await signIn(OWNER, pw(4))
     const cookie = cookieOf(signedIn)
-    const out = await post('/auth/sign-out', undefined, authOf(signedIn))
+    const out = await post('/staff/auth/sign-out', undefined, authOf(signedIn))
     expect(out.statusCode).toBe(204)
     expect(String(out.headers['set-cookie'])).toContain('Max-Age=0')
-    expect((await app.inject({ url: '/api/v1/auth/session', headers: { cookie } })).statusCode).toBe(401)
+    expect((await app.inject({ url: '/api/v1/staff/auth/session', headers: { cookie } })).statusCode).toBe(401)
   })
 
   it('[HH-SEC-02] a session idle for longer than the configured 30 minutes is refused', async () => {
@@ -268,7 +274,7 @@ describe('forgot password, reset, sign-out and expiry (TSK-0014, HH-STAFF-01, T2
     await sql`UPDATE identity.staff_sessions SET last_seen_at = now() - interval '31 minutes' WHERE revoked_at IS NULL`.execute(
       t.db,
     )
-    expect((await app.inject({ url: '/api/v1/auth/session', headers: { cookie } })).statusCode).toBe(401)
+    expect((await app.inject({ url: '/api/v1/staff/auth/session', headers: { cookie } })).statusCode).toBe(401)
   })
 
   it('[HH-SEC-02] repeated failed sign-ins for one account are rate limited', async () => {

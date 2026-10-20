@@ -38,7 +38,7 @@ afterAll(async () => {
 })
 
 const signIn = (email: string, password = pw(1)) =>
-  app.inject({ method: 'POST', url: '/api/v1/auth/sign-in', payload: { email, password } })
+  app.inject({ method: 'POST', url: '/api/v1/staff/auth/sign-in', payload: { email, password } })
 const cookieOf = (res: { headers: Record<string, unknown> }) =>
   String(res.headers['set-cookie']).split(';')[0] as string
 
@@ -52,7 +52,7 @@ describe('navigation by role (TSK-0040, HH-STAFF-06)', () => {
       homes[role] = nav.home
       const again = await app.inject({
         method: 'GET',
-        url: '/api/v1/auth/session',
+        url: '/api/v1/staff/auth/session',
         headers: { cookie: cookieOf(res) },
       })
       expect(again.json().navigation).toEqual(nav)
@@ -81,7 +81,7 @@ describe('staff locale stored per staff identity (TSK-0040, HH-OPS-04)', () => {
     const first = await signIn('office-shell@example.test')
     const auth = { cookie: cookieOf(first), 'x-csrf-token': first.json().csrfToken }
     const put = (locale: string, headers: Record<string, string> = auth) =>
-      app.inject({ method: 'PUT', url: '/api/v1/auth/session/locale', headers, payload: { locale } })
+      app.inject({ method: 'PUT', url: '/api/v1/staff/auth/session/locale', headers, payload: { locale } })
 
     expect((await put('fr')).statusCode).toBe(400)
     // Unsafe requests of a staff session need its CSRF token (TSK-0015).
@@ -91,7 +91,7 @@ describe('staff locale stored per staff identity (TSK-0040, HH-OPS-04)', () => {
     expect(changed.statusCode).toBe(200)
     expect(changed.json()).toMatchObject({ locale: 'es', email: 'office-shell@example.test' })
     expect(changed.json().navigation.home).toBe('queue')
-    const same = await app.inject({ method: 'GET', url: '/api/v1/auth/session', headers: { cookie: auth.cookie } })
+    const same = await app.inject({ method: 'GET', url: '/api/v1/staff/auth/session', headers: { cookie: auth.cookie } })
     expect(same.json().locale).toBe('es')
 
     // Another device: a new sign-in starts in the stored locale.
@@ -115,7 +115,7 @@ describe('staff locale stored per staff identity (TSK-0040, HH-OPS-04)', () => {
   })
 
   it('[HH-OPS-04] only the signed-in person changes their own locale; no session, no change', async () => {
-    const res = await app.inject({ method: 'PUT', url: '/api/v1/auth/session/locale', payload: { locale: 'es' } })
+    const res = await app.inject({ method: 'PUT', url: '/api/v1/staff/auth/session/locale', payload: { locale: 'es' } })
     expect(res.statusCode).toBe(401)
     const owner = await t.db
       .selectFrom('identity.staff_users')

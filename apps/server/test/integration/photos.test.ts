@@ -147,12 +147,12 @@ describe('draft upload capability (TSK-0031, HH-INT-05)', () => {
     ).id
     const asGuest = await app.inject({
       method: 'GET',
-      url: `/api/v1/requests/${requestId}/photos`,
+      url: `/api/v1/customer/requests/${requestId}/photos`,
       headers: { 'upload-capability': a.capability },
     })
     const missing = await app.inject({
       method: 'GET',
-      url: '/api/v1/requests/00000000-0000-4000-8000-000000000000/photos',
+      url: '/api/v1/customer/requests/00000000-0000-4000-8000-000000000000/photos',
     })
     expect([asGuest.statusCode, missing.statusCode]).toEqual([404, 404])
     expect(asGuest.json().error.code).toBe(missing.json().error.code)
@@ -273,7 +273,7 @@ describe('submission binds the draft photos; reads are authorized and short-live
     for (const who of ['staff', 'customer']) {
       const read = await app.inject({
         method: 'GET',
-        url: `/api/v1/requests/${request.id}/photos`,
+        url: `/api/v1/${who}/requests/${request.id}/photos`,
         headers: { 'x-test-actor': who },
       })
       expect(read.statusCode).toBe(200)
@@ -288,7 +288,7 @@ describe('submission binds the draft photos; reads are authorized and short-live
     customerProject = 'project-someone-else'
     const other = await app.inject({
       method: 'GET',
-      url: `/api/v1/requests/${request.id}/photos`,
+      url: `/api/v1/customer/requests/${request.id}/photos`,
       headers: { 'x-test-actor': 'customer' },
     })
     expect(other.statusCode).toBe(404)
