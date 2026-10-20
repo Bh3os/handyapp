@@ -82,6 +82,7 @@ export async function buildApp({
   if (ownDb && db) app.addHook('onClose', async () => db.destroy())
   await registerApi(app, {
     db,
+    trustProxyHops: config.trustProxyHops,
     modules: api?.modules ?? MODULES,
     ...(api?.resolveActor ? { resolveActor: api.resolveActor } : {}),
   })
