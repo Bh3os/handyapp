@@ -3,13 +3,7 @@
 
 /** The payment method codes of the payment.methods configuration (FACT-PAYMENT-METHODS). */
 export type PaymentMethodCode =
-  | 'square_payment_link'
-  | 'square_tap_to_pay'
-  | 'cash'
-  | 'check'
-  | 'zelle'
-  | 'cash_app'
-  | 'chime'
+  'square_payment_link' | 'square_tap_to_pay' | 'cash' | 'check' | 'zelle' | 'cash_app' | 'chime'
 
 /** One listed payment method; both Square codes are listed once, as cards taken with Square (OWN-DEC-89). */
 export type PaymentItem = 'card' | 'cash' | 'check' | 'zelle' | 'cashApp' | 'chime'
@@ -41,7 +35,8 @@ export type SiteFacts = {
 }
 
 /** One public contact detail: a configured value, or a labelled placeholder that is never a link (OWN-DEC-47). */
-export type ContactDetail = { readonly kind: 'value'; readonly value: string; readonly href: string } | { readonly kind: 'placeholder' }
+export type ContactDetail =
+  { readonly kind: 'value'; readonly value: string; readonly href: string } | { readonly kind: 'placeholder' }
 
 export function contactDetails(contact: SiteFacts['contact']): { phone: ContactDetail; email: ContactDetail } {
   const phone = contact.configured && contact.phone ? contact.phone.trim() : ''

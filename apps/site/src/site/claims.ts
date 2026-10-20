@@ -40,7 +40,8 @@ export const CLAIMS: readonly Claim[] = [
   { key: 'home.why.completion.text', text: 'Quality review, walkthrough when available, and documented follow-up.' },
   { key: 'home.why.access.label', text: 'Easy project access:' },
   { key: 'home.why.access.text', text: 'Estimates, updates, photos, and invoices through one secure link.' },
-].map((c) => ({ ...c, source: OWNER_2026_10_12, decision: 'OWN-DEC-86' }))
+]
+  .map((c) => ({ ...c, source: OWNER_2026_10_12, decision: 'OWN-DEC-86' }))
   // The card wording names Square, with no surcharge (OWN-DEC-89, HH-CUS-07).
   .concat([
     {
@@ -78,7 +79,8 @@ export function copyProblems(text: string, claims: readonly Claim[] = CLAIMS): C
   const problems: CopyProblem[] = []
   for (const rule of BLOCKED) {
     const m = rule.pattern.exec(rest)
-    if (m) problems.push({ text: text.length > 160 ? `${text.slice(0, 157)}...` : text, match: m[0], reason: rule.reason })
+    if (m)
+      problems.push({ text: text.length > 160 ? `${text.slice(0, 157)}...` : text, match: m[0], reason: rule.reason })
   }
   return problems
 }

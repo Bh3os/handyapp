@@ -1,21 +1,47 @@
 ---
-// TSK-0001 placeholder. The public site shell and homepage are built in TSK-0020 from the approved content only.
-// The design system's tokens and typefaces apply from TSK-0018 (HH-BASE-01).
-import '@handyhub/ui/styles.css'
+// Homepage (TSK-0020; HH-CUS-06, OWN-DEC-86): the hero with the owner's three trust facts and the request action,
+// then "Why HandyHub" with the owner's subtitle and six items, in exactly the approved wording (site/claims.ts). No
+// prices, completion times, 24/7 wording, guarantees, credentials or reviews (OWN-DEC-89, HH-BASE-04).
+import { customerTranslator } from '@handyhub/i18n'
+import SiteLayout from '../layouts/SiteLayout.astro'
+
+const t = customerTranslator()
+const trust = [t.t('home.trust.estimates'), t.t('home.trust.pricing'), t.t('home.trust.visits')]
+const why = [
+  [t.t('home.why.clearPricing.label'), t.t('home.why.clearPricing.text')],
+  [t.t('home.why.respectTime.label'), t.t('home.why.respectTime.text')],
+  [t.t('home.why.preparedTeam.label'), t.t('home.why.preparedTeam.text')],
+  [t.t('home.why.approval.label'), t.t('home.why.approval.text')],
+  [t.t('home.why.completion.label'), t.t('home.why.completion.text')],
+  [t.t('home.why.access.label'), t.t('home.why.access.text')],
+]
 ---
 
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="robots" content="noindex, nofollow" />
-    <title>HandyHub</title>
-  </head>
-  <body>
-    <main>
-      <h1 class="hh-h1">HandyHub</h1>
-      <p>This website is being rebuilt.</p>
-    </main>
-  </body>
-</html>
+<SiteLayout title={t.t('home.title')}>
+  <section class="hh-home-hero" aria-labelledby="home-title">
+    <div class="hh-site__wrap">
+      <h1 class="hh-display hh-home-hero__title" id="home-title">{t.t('home.title')}</h1>
+      <ul class="hh-home-hero__facts" data-testid="trust-facts">
+        {trust.map((fact) => <li>{fact}</li>)}
+      </ul>
+      <p class="hh-home-hero__action">
+        <a class="hh-button" href="/request">{t.t('site.cta.requestFree')}</a>
+      </p>
+    </div>
+  </section>
+  <section class="hh-home-why" aria-labelledby="home-why">
+    <div class="hh-site__wrap">
+      <h2 class="hh-h2" id="home-why">{t.t('home.why.heading')}</h2>
+      <h3 class="hh-home-why__subtitle">{t.t('home.why.subtitle')}</h3>
+      <ul class="hh-home-why__list" data-testid="why-items">
+        {
+          why.map(([label, text]) => (
+            <li>
+              <strong>{label}</strong> {text}
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+</SiteLayout>

@@ -170,5 +170,6 @@
   "home.why.completion.label": "Careful completion:",
   "home.why.completion.text": "Quality review, walkthrough when available, and documented follow-up.",
   "home.why.access.label": "Easy project access:",
-  "home.why.access.text": "Estimates, updates, photos, and invoices through one secure link."
+  "home.why.access.text": "Estimates, updates, photos, and invoices through one secure link.",
+  "site.footer.notConfigured": "Not configured yet"
 }
