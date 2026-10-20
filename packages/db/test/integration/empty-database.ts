@@ -20,7 +20,12 @@ export function emptyDatabaseSuite(fileLabel: string) {
         SELECT n.nspname || '.' || c.relname AS name FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
         WHERE c.relkind IN ('r', 'p') AND n.nspname NOT IN ('pg_catalog', 'information_schema')
           AND n.nspname NOT LIKE 'pg\\_%' ORDER BY 1`.execute(t.db)
-      expect(rows.map((r) => r.name)).toEqual(['platform.schema_migration'])
+      // Later migrations add tables (TSK-0019 on); a fresh database holds rows only in the migration table.
+      expect(rows.map((r) => r.name)).toContain('platform.schema_migration')
+      for (const { name } of rows.filter((r) => r.name !== 'platform.schema_migration')) {
+        const count = await sql<{ n: string }>`SELECT count(*) AS n FROM ${sql.table(name)}`.execute(t.db)
+        expect(count.rows[0]?.n, name).toBe('0')
+      }
       const applied = await t.db.selectFrom('platform.schema_migration').select('file').orderBy('version').execute()
       expect(applied.map((r) => r.file)).toEqual((await listMigrations()).map((m) => m.file))
       expect(t.name).toMatch(/^hh_test_[0-9a-f]{16}$/)

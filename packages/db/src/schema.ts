@@ -4,6 +4,42 @@ import type { ColumnType, Generated } from 'kysely'
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>
 
+export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
+/** json and jsonb: parsed on select; written as JSON text (JSON.stringify) so arrays are not sent as SQL arrays. */
+export type Json = ColumnType<JsonValue, string, string>
+
+export interface CatalogServiceVersionsTable {
+  service_id: string
+  version: number
+  name: string
+  aliases: Generated<string[]>
+  staff_label_en: string
+  staff_label_es: string
+  content: Json
+  intake: Json
+  estimate_route: string
+  sop_id: string
+  home_age_limits: boolean
+  source: string | null
+  content_hash: string
+  created_at: Generated<Timestamp>
+  approved_at: Timestamp | null
+  approved_by: string | null
+}
+
+export interface CatalogServicesTable {
+  id: string
+  code: string
+  category: string
+  slug: string
+  public_status: Generated<string>
+  scheduling_mode: Generated<string>
+  in_launch_set: Generated<boolean>
+  current_version: number
+  published_version: number | null
+  created_at: Generated<Timestamp>
+}
+
 export interface PlatformSchemaMigrationTable {
   version: string
   file: string
@@ -13,5 +49,7 @@ export interface PlatformSchemaMigrationTable {
 }
 
 export interface Database {
+  'catalog.service_versions': CatalogServiceVersionsTable
+  'catalog.services': CatalogServicesTable
   'platform.schema_migration': PlatformSchemaMigrationTable
 }

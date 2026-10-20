@@ -4,7 +4,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { CATALOGS, checkCatalogs, labelFamilyKeys, PARITY_PAIRS, scanSource } from '../src/index.js'
+import { CATALOGS, checkCatalogs, LABEL_FAMILIES, labelFamilyKeys, PARITY_PAIRS, scanSource } from '../src/index.js'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 const SOURCE = /\.(ts|tsx|astro|js|mjs)$/
@@ -57,6 +57,22 @@ describe('repository catalog check (TSK-0008, HH-LANG-02, RULE-LANGUAGES)', () =
     ]
 
     expect(checkCatalogs({ catalogs: CATALOGS, parity: PARITY_PAIRS, required, literals })).toEqual([])
+  })
+
+  it('[HH-SVC-01] service codes and staff labels match the generated service registry seed', () => {
+    const seed = JSON.parse(readFileSync(join(ROOT, 'packages', 'db', 'seed', 'services.json'), 'utf8')) as {
+      services: { code: string; category: string; staffLabel: { en: string; es: string } }[]
+    }
+    expect(seed.services.map((s) => s.code)).toEqual([...LABEL_FAMILIES.service])
+    for (const s of seed.services) {
+      expect(CATALOGS['staff.en'][`enum.service.${s.code}` as keyof (typeof CATALOGS)['staff.en']]).toBe(
+        s.staffLabel.en,
+      )
+      expect(CATALOGS['staff.es'][`enum.service.${s.code}` as keyof (typeof CATALOGS)['staff.es']]).toBe(
+        s.staffLabel.es,
+      )
+      expect(LABEL_FAMILIES.serviceCategory).toContain(s.category)
+    }
   })
 
   it('[RULE-LANGUAGES][T04] there is no Spanish customer catalog', () => {
