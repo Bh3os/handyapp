@@ -7,6 +7,7 @@ import type { Action, Actor, Allow, Resource } from '@handyhub/policy'
 import type { FastifyRequest } from 'fastify'
 import type { AuditEventInput } from '../platform/audit.js'
 import type { PageRequest } from './pagination.js'
+import { surfaceOf } from '../hosts.js'
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 export type ActorKind = 'staff' | 'customer' | 'guest'
@@ -144,6 +145,7 @@ export function routeProblems(route: RouteDef): string[] {
   const p: string[] = []
   const id = `${route.method} ${route.path}`
   if (!route.path.startsWith('/')) p.push(`${id}: path must start with /`)
+  else if (!surfaceOf(route.path)) p.push(`${id}: path starts with its surface: /public/, /customer/ or /staff/`)
   if (!/^[a-z][A-Za-z0-9]*$/.test(route.operationId)) p.push(`${id}: operationId must be lowerCamelCase`)
   if (!route.summary) p.push(`${id}: summary is required`)
   if (!route.description) p.push(`${id}: description is required`)

@@ -454,7 +454,7 @@ const PROJECT_MODULE: ApiModule = {
   routes: [
     {
       method: 'GET',
-      path: '/synthetic/projects/:projectId/payments',
+      path: '/customer/synthetic/projects/:projectId/payments',
       operationId: 'getSyntheticProjectPayments',
       summary: 'Synthetic customer route (tests only)',
       description: 'Customer only; record scope: the verified project of the customer session.',
@@ -505,7 +505,7 @@ describe('customer routes on the API contract (TSK-0016, RULE-SERVER-AUTHZ, T19)
       const get = (project: string, cookie?: string) =>
         app.inject({
           method: 'GET',
-          url: `/api/v1/synthetic/projects/${project}/payments`,
+          url: `/api/v1/customer/synthetic/projects/${project}/payments`,
           headers: cookie ? { cookie } : {},
         })
       const cookie = `__Host-hh_customer=${s.token}`

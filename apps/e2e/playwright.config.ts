@@ -15,6 +15,13 @@ const servicesEntry = fileURLToPath(new URL('./fixtures/services.mjs', import.me
 // migrations first, then staff sign-in (TSK-0014) and every database-backed flow. Without it, those specs skip.
 const databaseUrl = process.env['E2E_DATABASE_URL']
 const galleryPort = Number(process.env['E2E_GALLERY_PORT'] ?? 4311)
+// Two origins (TSK-0017): a second server with PUBLIC_ORIGIN and STAFF_ORIGIN on *.localhost names, which Chromium
+// maps to this machine (host-resolver-rules below), so host-only cookies and host routing are exercised for real.
+const splitPort = Number(process.env['E2E_SPLIT_PORT'] ?? 4312)
+const splitEnv = {
+  PUBLIC_ORIGIN: `http://public.localhost:${splitPort}`,
+  STAFF_ORIGIN: `http://staff.localhost:${splitPort}`,
+}
 const uiDir = fileURLToPath(new URL('../../packages/ui', import.meta.url))
 const viteBin = fileURLToPath(new URL('../../packages/ui/node_modules/vite/bin/vite.js', import.meta.url))
 
@@ -54,6 +61,25 @@ export default defineConfig({
       timeout: 30_000,
     },
     {
+      command: databaseUrl
+        ? `node ${JSON.stringify(migrateEntry)} && node ${JSON.stringify(serverEntry)}`
+        : `node ${JSON.stringify(serverEntry)}`,
+      // Any host answers the health check; every other path needs one of the two configured hosts.
+      url: `http://127.0.0.1:${splitPort}/healthz`,
+      env: {
+        HANDYHUB_ENV: 'ci',
+        PORT: String(splitPort),
+        HOST: '127.0.0.1',
+        // The first server runs the jobs: the fake object storage of ci lives in each process's memory, so a photo
+        // uploaded there can be processed only there.
+        JOB_WORKER: 'off',
+        ...splitEnv,
+        ...(databaseUrl ? { DATABASE_URL: databaseUrl, TEST_EMAIL_DESTINATIONS: 'e2e-owner@example.test' } : {}),
+      },
+      reuseExistingServer: false,
+      timeout: 30_000,
+    },
+    {
       command: `node ${JSON.stringify(viteBin)} preview --config gallery/vite.config.ts --port ${galleryPort}`,
       cwd: uiDir,
       url: `http://127.0.0.1:${galleryPort}/`,
@@ -64,7 +90,13 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'], ...(executablePath ? { launchOptions: { executablePath } } : {}) },
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          ...(executablePath ? { executablePath } : {}),
+          args: ['--host-resolver-rules=MAP public.localhost 127.0.0.1, MAP staff.localhost 127.0.0.1'],
+        },
+      },
     },
   ],
 })

@@ -11,14 +11,13 @@ import {
   MAX_SERVICES,
   questionPlan,
   PROPERTY_TYPES,
-  REQUEST_FORM_SCHEMA,
   semanticProblems,
   TIME_WINDOWS,
   type ServiceQuestion,
   type SubmitBody,
 } from '@handyhub/domain/request-form'
 import type { CustomerKey } from '@handyhub/i18n'
-import { Ajv } from 'ajv'
+import validateRequestForm from './validator.generated.js'
 
 export { CONTACT_CHANNELS, ESTIMATE_PREFERENCES, MAX_SERVICES, PROPERTY_TYPES, questionPlan, TIME_WINDOWS }
 export type { ServiceQuestion }
@@ -168,11 +167,11 @@ export type Problem = { field: string; code: string }
 
 type AjvIssue = { instancePath: string; keyword: string; params: Record<string, unknown> }
 
-let compiled: ReturnType<Ajv['compile']> | undefined
+// The schema is precompiled (scripts/request-validator.mjs): compiling it here would need eval, which the CSP refuses.
+const compiled = validateRequestForm as ((body: unknown) => boolean) & { errors?: AjvIssue[] | null }
 function schemaCheck(body: unknown): Problem[] {
-  compiled ??= new Ajv({ allErrors: true, strict: false }).compile(REQUEST_FORM_SCHEMA)
   if (compiled(body)) return []
-  return ((compiled.errors ?? []) as AjvIssue[]).map((e) => {
+  return (compiled.errors ?? []).map((e) => {
     const path = e.instancePath.replace(/^\//, '').replace(/\//g, '.')
     const extra =
       e.keyword === 'required'

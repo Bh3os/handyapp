@@ -51,7 +51,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
     {
       ...base,
       method: 'POST',
-      path: '/auth/sign-in',
+      path: '/staff/auth/sign-in',
       operationId: 'staffSignIn',
       summary: 'Staff sign-in with email and password',
       description:
@@ -109,7 +109,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
     {
       ...base,
       method: 'POST',
-      path: '/auth/sign-out',
+      path: '/staff/auth/sign-out',
       operationId: 'staffSignOut',
       summary: 'Sign out',
       description:
@@ -132,7 +132,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
     {
       ...base,
       method: 'GET',
-      path: '/auth/session',
+      path: '/staff/auth/session',
       operationId: 'staffSession',
       summary: 'The signed-in staff member',
       description: 'The current session: name, email, locale, roles and the MFA recommendation. Never a hash.',
@@ -151,7 +151,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
     {
       ...base,
       method: 'POST',
-      path: '/auth/reauth',
+      path: '/staff/auth/reauth',
       operationId: 'staffReauthenticate',
       summary: 'Enter the password again for a sensitive action',
       description:
@@ -205,7 +205,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
     {
       ...base,
       method: 'POST',
-      path: '/auth/password/forgot',
+      path: '/staff/auth/password/forgot',
       operationId: 'staffForgotPassword',
       summary: 'Forgot password: email a reset link',
       description:
@@ -245,7 +245,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
     {
       ...base,
       method: 'POST',
-      path: '/auth/password/set',
+      path: '/staff/auth/password/set',
       operationId: 'staffSetPassword',
       summary: 'Set a password with an invite or reset link',
       description:

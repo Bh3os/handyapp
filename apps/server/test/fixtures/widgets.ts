@@ -54,7 +54,7 @@ type WidgetRow = { id: number; name: string; version: number; internal_note: str
 const routes: RouteDef[] = [
   {
     method: 'POST',
-    path: '/widgets',
+    path: '/staff/widgets',
     operationId: 'createWidget',
     summary: 'Create a widget',
     description: 'Synthetic write: one row and one audit event per idempotency key.',
@@ -89,7 +89,7 @@ const routes: RouteDef[] = [
   },
   {
     method: 'PATCH',
-    path: '/widgets/:id',
+    path: '/staff/widgets/:id',
     operationId: 'renameWidget',
     summary: 'Rename a widget',
     description: 'Synthetic write with an expected version (If-Match).',
@@ -134,7 +134,7 @@ const routes: RouteDef[] = [
   },
   {
     method: 'GET',
-    path: '/widgets',
+    path: '/staff/widgets',
     operationId: 'listWidgets',
     summary: 'List widgets',
     description: 'Synthetic paginated read, ordered by id.',
@@ -160,7 +160,7 @@ const routes: RouteDef[] = [
   },
   {
     method: 'GET',
-    path: '/widgets/:id',
+    path: '/staff/widgets/:id',
     operationId: 'getWidget',
     summary: 'Read a widget',
     description: 'Synthetic read; the internal note is never declared, so it never leaves the server.',

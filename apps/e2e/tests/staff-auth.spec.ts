@@ -75,7 +75,7 @@ test.describe('staff sign-in, invites and password reset (TSK-0014, HH-STAFF-01,
     await signIn(page, OWNER, pw(1))
     await expect(page.getByRole('heading', { level: 1, name: 'Signed in as E2E Owner' })).toBeVisible()
     // Unsafe requests of a staff session carry its CSRF token (TSK-0015).
-    const csrf = (await (await page.request.get('/api/v1/auth/session')).json()).csrfToken as string
+    const csrf = (await (await page.request.get('/api/v1/staff/auth/session')).json()).csrfToken as string
     const res = await page.request.post('/api/v1/staff/invitations', {
       data: { email: WORKER, displayName: 'E2E Worker', role: 'worker', reason: 'End-to-end test' },
       headers: { 'idempotency-key': 'e2e-invite-worker-0001', 'x-csrf-token': csrf },

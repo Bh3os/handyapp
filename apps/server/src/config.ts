@@ -22,7 +22,12 @@ export const ENV_VARS = {
   HOST: 'Interface to listen on. Default 127.0.0.1; 0.0.0.0 in the container.',
   SITE_DIR: 'Directory of the built public site. Default apps/site/dist.',
   STAFF_DIR:
-    'Directory of the built staff app, served under /staff until host routing exists. Default apps/staff/dist.',
+    'Directory of the built staff app: the root of the staff host, or /staff on a single host. Default apps/staff/dist.',
+  PORTAL_DIR:
+    'Directory of the built customer portal, served under /portal on the public host. Default apps/portal/dist.',
+  PUBLIC_ORIGIN:
+    'Origin of the public site and customer portal, for example https://handyhub247.com. Set together with STAFF_ORIGIN to serve two hosts; both unset: one host serves everything (the staff app under /staff).',
+  STAFF_ORIGIN: 'Origin of the staff app, for example https://staff.handyhub247.com. Set together with PUBLIC_ORIGIN.',
   STAFF_APP_URL:
     'Base URL of the staff app for links in staff emails, for example https://staff.handyhub247.com. Default in local and ci: http://<HOST>:<PORT>/staff; unset elsewhere: invite and reset emails are NOT CONFIGURED.',
   BOOTSTRAP_OWNER_EMAIL:
@@ -32,6 +37,8 @@ export const ENV_VARS = {
     'Key that seals staff authenticator (TOTP) secrets, at least 32 random characters. Unset: optional MFA is NOT CONFIGURED (enrolment refused; nothing else changes). Secret.',
   TRUST_PROXY_HOPS: 'Proxies in front of the service that append to X-Forwarded-For. Default 0.',
   LOG_LEVEL: 'fatal, error, warn, info, debug, trace or silent. Default info.',
+  JOB_WORKER:
+    'on or off. Default on: with a database, this process also runs the job worker. off: it serves requests only and leaves the jobs to another process on the same database.',
   CODE_HASH_KEY:
     'Key for one-time codes and client-address digests, at least 32 characters (TSK-0016). Unset in staging or production: codes NOT CONFIGURED; local and ci use a random key per process. Secret.',
 } as const
@@ -81,6 +88,19 @@ export type AccessGateSettings = { enabled: false } | { enabled: true; realm: st
 export const LOG_LEVELS = ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'] as const
 export type LogLevel = (typeof LOG_LEVELS)[number]
 
+export type HostConfig =
+  | { mode: 'single' }
+  | { mode: 'split'; publicOrigin: string; staffOrigin: string; publicHost: string; staffHost: string }
+
+function originOf(name: 'PUBLIC_ORIGIN' | 'STAFF_ORIGIN', value: string, httpsOnly: boolean): URL {
+  if (!URL.canParse(value)) throw new ConfigError(`${name} must be an origin such as https://example.com`)
+  const url = new URL(value)
+  if (!/^https?:$/.test(url.protocol) || url.pathname !== '/' || url.search || url.hash || url.username)
+    throw new ConfigError(`${name} must be an origin (scheme, host and optional port only)`)
+  if (httpsOnly && url.protocol !== 'https:') throw new ConfigError(`${name} must use https in staging and production`)
+  return url
+}
+
 export interface Config {
   env: EnvironmentName
   databaseUrl: string | undefined
@@ -88,8 +108,14 @@ export interface Config {
   host: string
   siteDir: string | undefined
   staffDir: string | undefined
+  portalDir: string | undefined
   /** Base URL of the staff app for emailed links; undefined while not configured. */
   staffAppUrl: string | undefined
+  /**
+   * Host routing (TSK-0017, OWN-DEC-133): 'split' serves the public site and portal on PUBLIC_ORIGIN and the staff app
+   * on STAFF_ORIGIN; 'single' (both unset: local, ci and the single Render URL) serves every surface on one host.
+   */
+  hosts: HostConfig
   bootstrapOwner: { email: string; displayName: string | null } | null
   /** Secure, `__Host-` session cookies: staging and production. */
   secureCookies: boolean
@@ -97,6 +123,8 @@ export interface Config {
   mfaKey: Secret | null
   trustProxyHops: number
   logLevel: LogLevel
+  /** Runs the in-process job worker when a database is configured (JOB_WORKER, default on). */
+  jobWorker: boolean
   accessGate: AccessGateSettings
   /** Outside production every response carries X-Robots-Tag: noindex and robots.txt disallows everything. */
   noindex: boolean
@@ -212,6 +240,23 @@ export function loadConfig(source: Readonly<Record<string, string | undefined>>)
   if (ownerEmail !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerEmail))
     throw new ConfigError('BOOTSTRAP_OWNER_EMAIL must be an email address')
   const local = env === 'local' || env === 'ci'
+  const publicOriginRaw = get('PUBLIC_ORIGIN')
+  const staffOriginRaw = get('STAFF_ORIGIN')
+  if ((publicOriginRaw === undefined) !== (staffOriginRaw === undefined))
+    throw new ConfigError('PUBLIC_ORIGIN and STAFF_ORIGIN are set together, or both left unset')
+  let hosts: HostConfig = { mode: 'single' }
+  if (publicOriginRaw !== undefined && staffOriginRaw !== undefined) {
+    const pub = originOf('PUBLIC_ORIGIN', publicOriginRaw, !local)
+    const staffO = originOf('STAFF_ORIGIN', staffOriginRaw, !local)
+    if (pub.host === staffO.host) throw new ConfigError('PUBLIC_ORIGIN and STAFF_ORIGIN must be different hosts')
+    hosts = {
+      mode: 'split',
+      publicOrigin: pub.origin,
+      staffOrigin: staffO.origin,
+      publicHost: pub.host,
+      staffHost: staffO.host,
+    }
+  }
   const mfaKeyRaw = get('MFA_ENCRYPTION_KEY')
   if (mfaKeyRaw !== undefined && mfaKeyRaw.length < 32)
     throw new ConfigError('MFA_ENCRYPTION_KEY must be at least 32 characters')
@@ -222,12 +267,17 @@ export function loadConfig(source: Readonly<Record<string, string | undefined>>)
     host,
     siteDir: get('SITE_DIR'),
     staffDir: get('STAFF_DIR'),
-    staffAppUrl: staffAppUrl ?? (local && port !== 0 ? `http://${host}:${port}/staff` : undefined),
+    portalDir: get('PORTAL_DIR'),
+    staffAppUrl:
+      staffAppUrl ??
+      (hosts.mode === 'split' ? hosts.staffOrigin : local && port !== 0 ? `http://${host}:${port}/staff` : undefined),
+    hosts,
     bootstrapOwner: ownerEmail ? { email: ownerEmail, displayName: get('BOOTSTRAP_OWNER_NAME')?.trim() || null } : null,
     secureCookies: !local,
     mfaKey: mfaKeyRaw === undefined ? null : new Secret(mfaKeyRaw),
     trustProxyHops: integer('TRUST_PROXY_HOPS', get('TRUST_PROXY_HOPS'), 0, 0, 5),
     logLevel: logLevelRaw === undefined ? 'info' : oneOf('LOG_LEVEL', logLevelRaw, LOG_LEVELS),
+    jobWorker: oneOf('JOB_WORKER', get('JOB_WORKER') ?? 'on', ['on', 'off'] as const) === 'on',
     accessGate,
     noindex: env !== 'production',
   }
