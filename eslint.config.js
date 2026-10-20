@@ -4,6 +4,12 @@ import js from '@eslint/js'
 import globals from 'globals'
 import tseslint from 'typescript-eslint'
 
+const MODULE_BOUNDARY = {
+  group: ['**/modules/*/internal/**', '**/modules/*/repository*', '@handyhub/*/src/**'],
+  message: 'Import another module or package only through its public index.',
+}
+const SERVER_ONLY = '@handyhub/policy is server-only: frontends call the server API (TSK-0006, HH-ARC-05).'
+
 export default tseslint.config(
   {
     ignores: [
@@ -26,15 +32,18 @@ export default tseslint.config(
     rules: {
       'no-console': 'error',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      'no-restricted-imports': ['error', { patterns: [MODULE_BOUNDARY] }],
+    },
+  },
+  {
+    // Server-only packages never reach a frontend bundle (TSK-0006; HH-ARC-05): the policy package decides on the server.
+    files: ['apps/portal/**', 'apps/staff/**', 'apps/site/**', 'packages/ui/**'],
+    rules: {
       'no-restricted-imports': [
         'error',
         {
-          patterns: [
-            {
-              group: ['**/modules/*/internal/**', '**/modules/*/repository*', '@handyhub/*/src/**'],
-              message: 'Import another module or package only through its public index.',
-            },
-          ],
+          paths: [{ name: '@handyhub/policy', message: SERVER_ONLY }],
+          patterns: [MODULE_BOUNDARY, { group: ['@handyhub/policy/**'], message: SERVER_ONLY }],
         },
       ],
     },
