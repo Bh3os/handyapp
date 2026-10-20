@@ -1,0 +1,32 @@
+/* Self-hosted typefaces (OWN-DEC-55), copied from the frozen Bh3os/handyhub-app (apps/web/public/fonts). Newsreader
+   (SIL Open Font License, fonts/OFL-newsreader.txt; @fontsource-variable/newsreader 5.3.0, latin, optical sizes 6-72,
+   weights 200-800) and Source Sans 3 (OFL, fonts/OFL-source-sans-3.txt; @fontsource-variable/source-sans-3 5.3.1,
+   latin, weights 200-900). No third-party request; swap keeps text visible and the size-adjusted fallbacks keep the
+   layout from moving at the swap. No italic face is shipped: headlines are never italic. */
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('../fonts/newsreader-latin-opsz-normal.woff2') format('woff2-variations');
+}
+
+@font-face {
+  font-family: 'Source Sans 3';
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url('../fonts/source-sans-3-latin-wght-normal.woff2') format('woff2-variations');
+}
+
+@font-face {
+  font-family: 'Newsreader Fallback';
+  src: local('Georgia'), local('Times New Roman');
+  size-adjust: 94%;
+}
+
+@font-face {
+  font-family: 'Source Sans 3 Fallback';
+  src: local('Arial'), local('Helvetica');
+  size-adjust: 93%;
+}

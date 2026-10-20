@@ -1,0 +1,115 @@
+/* Base elements on the tokens (TSK-0018). Generic element rules use :where() so any class wins over them. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--hh-canvas);
+  color: var(--hh-text);
+  font-family: var(--hh-font-body);
+  font-size: var(--hh-text-body);
+  line-height: var(--hh-leading-body);
+  /* A long word breaks rather than pushing the page sideways at 320 px or with 200% text (WCAG 1.4.4, 1.4.10). */
+  overflow-wrap: anywhere;
+}
+
+:where(h1, h2, h3, h4) {
+  margin: 0 0 var(--hh-space-3);
+  color: var(--hh-text);
+}
+
+/* Prominent headlines in Newsreader, regular weight, never italic and never below 24 px (OWN-DEC-55). */
+:where(.hh-display, .hh-h1, .hh-h2) {
+  font-family: var(--hh-font-display);
+  font-style: normal;
+  font-weight: 400;
+  line-height: var(--hh-leading-display);
+  letter-spacing: -0.005em;
+  text-wrap: balance;
+}
+
+.hh-display {
+  font-size: var(--hh-text-display);
+  line-height: 1.05;
+}
+
+.hh-h1 {
+  font-size: var(--hh-text-h1);
+}
+
+.hh-h2 {
+  font-size: var(--hh-text-h2);
+}
+
+/* Section and card titles read fast: Source Sans 600. */
+:where(h3, h4, .hh-h3) {
+  font-family: var(--hh-font-body);
+  font-size: var(--hh-text-h3);
+  font-weight: 600;
+  line-height: var(--hh-leading-tight);
+}
+
+.hh-lead {
+  color: var(--hh-muted);
+  font-size: var(--hh-text-lead);
+  line-height: 1.5;
+}
+
+.hh-small {
+  font-size: var(--hh-text-small);
+  line-height: 1.5;
+}
+
+.hh-muted {
+  color: var(--hh-muted);
+}
+
+:where(a) {
+  color: var(--hh-link);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.16em;
+}
+
+:where(a:hover) {
+  text-decoration-color: var(--hh-accent-text);
+  text-decoration-thickness: 2px;
+}
+
+:focus-visible {
+  outline: 3px solid var(--hh-focus);
+  outline-offset: 2px;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+:where(table, .hh-tabular) {
+  font-variant-numeric: tabular-nums;
+}
+
+.hh-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes hh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,4 +1,4 @@
--- 0002 service registry (TSK-0019; HH-SVC-01, HH-SVC-02, OWN-DEC-33, OWN-DEC-84). One registry of the 26 services,
+-- 0004 service registry (TSK-0019; HH-SVC-01, HH-SVC-02, OWN-DEC-33, OWN-DEC-84). One registry of the 26 services,
 -- read by both websites, the request router and dispatch.
 -- - catalog.services: the stable identity (ID and code never change, never reused), category, slug, the public status
 --   and the scheduling mode. Public status (draft, shown on staging, owner-approved for production) is kept apart from

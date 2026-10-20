@@ -143,6 +143,14 @@ const ARRAY_ELEMENT: Record<string, string> = {
   timestamp: 'Date',
 }
 
+// Select, insert and update types of each helper, matching HELPERS.
+const HELPER_PARTS: Record<string, { select: string; insert: string; update: string }> = {
+  Int8: { select: 'string', insert: 'bigint | number | string', update: 'bigint | number | string' },
+  Numeric: { select: 'string', insert: 'number | string', update: 'number | string' },
+  Timestamp: { select: 'Date', insert: 'Date | string', update: 'Date | string' },
+  Json: { select: 'JsonValue', insert: 'string', update: 'string' },
+}
+
 const HELPERS: Record<string, string> = {
   Int8: 'export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>',
   Numeric: 'export type Numeric = ColumnType<string, number | string, number | string>',
@@ -199,17 +207,24 @@ export function renderSchema(catalog: Catalog): string {
       else t = 'unknown'
     } else t = scalar(c.type)
     const isView = c.kind === 'v' || c.kind === 'm'
-    if (!c.notNull || isView) t = `${t} | null`
-    if (isView) return t
+    const nullable = !c.notNull || isView
+    const orNull = (x: string) => (nullable ? `${x} | null` : x)
+    // Kysely's Generated and GeneratedAlways do not unwrap a ColumnType, so helper types are spelled out here.
+    const split = HELPER_PARTS[t]
+    if (isView) return orNull(split ? split.select : t)
     if (c.identity === 'a' || c.generated === 's') {
       kysely.add('GeneratedAlways')
-      return `GeneratedAlways<${t}>`
+      return `GeneratedAlways<${orNull(split ? split.select : t)}>`
     }
     if (c.identity === 'd' || c.hasDefault) {
+      if (split) {
+        kysely.add('ColumnType')
+        return `ColumnType<${orNull(split.select)}, ${orNull(split.insert)} | undefined, ${orNull(split.update)}>`
+      }
       kysely.add('Generated')
-      return `Generated<${t}>`
+      return `Generated<${orNull(t)}>`
     }
-    return t
+    return orNull(t)
   }
 
   const tables = new Map<string, { name: string; key: string; lines: string[] }>()

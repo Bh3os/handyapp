@@ -17,14 +17,16 @@ export function emptyDatabaseSuite(fileLabel: string) {
   describe(`fresh database per test file, ${fileLabel} (TSK-0004, HH-ARC-01)`, () => {
     it("starts fully migrated with no rows outside the migration table and no other file's writes", async () => {
       const { rows } = await sql<{ name: string }>`
-        SELECT n.nspname || '.' || c.relname AS name FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+        SELECT quote_ident(n.nspname) || '.' || quote_ident(c.relname) AS name
+        FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
         WHERE c.relkind IN ('r', 'p') AND n.nspname NOT IN ('pg_catalog', 'information_schema')
           AND n.nspname NOT LIKE 'pg\\_%' ORDER BY 1`.execute(t.db)
-      // Later migrations add tables (TSK-0019 on); a fresh database holds rows only in the migration table.
-      expect(rows.map((r) => r.name)).toContain('platform.schema_migration')
-      for (const { name } of rows.filter((r) => r.name !== 'platform.schema_migration')) {
-        const count = await sql<{ n: string }>`SELECT count(*) AS n FROM ${sql.table(name)}`.execute(t.db)
-        expect(count.rows[0]?.n, name).toBe('0')
+      const names = rows.map((r) => r.name)
+      expect(names).toContain('platform.schema_migration')
+      expect(names).not.toContain('public.scratch')
+      for (const name of names.filter((n) => n !== 'platform.schema_migration')) {
+        const count = await sql<{ n: number }>`SELECT count(*)::int AS n FROM ${sql.raw(name)}`.execute(t.db)
+        expect(count.rows[0]?.n, name).toBe(0)
       }
       const applied = await t.db.selectFrom('platform.schema_migration').select('file').orderBy('version').execute()
       expect(applied.map((r) => r.file)).toEqual((await listMigrations()).map((m) => m.file))
