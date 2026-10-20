@@ -22,6 +22,7 @@ import { scheduleJob } from '../../platform/jobs.js'
 import type { EmailSender, SmsSender } from '../../providers/index.js'
 import { nextContactTime } from './contact-hours.js'
 import { messageType, type Channel } from './message-types.js'
+import { sendPermission } from './consent.js'
 import { automaticPolicy } from './policy.js'
 import { contentLocale, currentTemplate, renderTemplate } from './templates.js'
 
@@ -107,6 +108,18 @@ async function send(
   const sender = channel === 'email' ? providers.email : providers.sms
   if (!sender) {
     await update({ state: 'failed', error_code: 'channel_not_configured', template_version: template.version })
+    return
+  }
+  // Send-time recheck of channel permission and consent (HH-COM-05, TSK-0048): a STOP, a missing SMS opt-in or a
+  // missing marketing permission suppresses the message instead of sending it.
+  const permission = await sendPermission(tx, {
+    channel,
+    destination: row.destination,
+    audience: row.audience as 'customer' | 'staff',
+    messageKey: row.message_key,
+  })
+  if (!permission.allowed) {
+    await update({ state: 'suppressed', error_code: permission.reason, template_version: template.version })
     return
   }
   let rendered: { subject: string | null; body: string }
@@ -319,8 +332,28 @@ export function releaseTime(config: Config, messageKey: string, now: Date): Date
   return nextContactTime(now, hours.value, zone.value.zone)
 }
 
+/**
+ * Send-time recheck of the record a staff-released message is about (HH-COM-05, TSK-0048). Each feature registers
+ * the check of its record type (estimate, visit, invoice, project with an active case...):
+ * - 'current': send;
+ * - 'stale': the record changed (approved, declined, expired, cancelled, rescheduled, paid, replied, ...): nothing is
+ *   sent and the delivery is cancelled;
+ * - { hold }: send later (for example a review or satisfaction request while a case is active): the delivery goes
+ *   back to a draft marked held, for staff to release again once the reason has cleared.
+ * A record type without a registered check is sent as released.
+ */
+export type RecordCheckResult = 'current' | 'stale' | { hold: string }
+export type RecordCheck = (
+  tx: Tx,
+  input: { recordType: string; recordId: string; messageKey: string; subjectKey: string },
+) => Promise<RecordCheckResult>
+export type RecordChecks = Readonly<Record<string, RecordCheck>>
+
 /** The automation that sends released drafts (scheduled per release). */
-export function releaseAutomation(providers: NotificationProviders): Automation {
+export function releaseAutomation(
+  providers: NotificationProviders,
+  options: { recordChecks?: RecordChecks } = {},
+): Automation {
   return {
     name: 'notify.release',
     trigger: { kind: 'schedule', description: 'one job per released draft, at its release time' },
@@ -341,6 +374,38 @@ export function releaseAutomation(providers: NotificationProviders): Automation 
         .forUpdate()
         .executeTakeFirst()
       if (!row || row.state !== 'queued') return 'cancelled'
+      const check = row.record_type ? options.recordChecks?.[row.record_type] : undefined
+      const verdict: RecordCheckResult =
+        check && row.record_id
+          ? await check(ctx.tx, {
+              recordType: row.record_type as string,
+              recordId: row.record_id,
+              messageKey: row.message_key,
+              subjectKey: row.subject_key,
+            })
+          : 'current'
+      if (verdict === 'stale') {
+        await ctx.tx
+          .updateTable('platform.message_deliveries')
+          .set({ state: 'cancelled', error_code: 'record_changed', updated_at: sql<Date>`now()` })
+          .where('id', '=', row.id)
+          .execute()
+        return 'cancelled'
+      }
+      if (verdict !== 'current') {
+        await ctx.tx
+          .updateTable('platform.message_deliveries')
+          .set({
+            state: 'draft',
+            released_by: null,
+            queued_at: null,
+            error_code: `held_${verdict.hold}`.slice(0, 120),
+            updated_at: sql<Date>`now()`,
+          })
+          .where('id', '=', row.id)
+          .execute()
+        return 'cancelled'
+      }
       await send(ctx.tx, row, (row.variables ?? {}) as Record<string, string>, providers)
       return 'done'
     },

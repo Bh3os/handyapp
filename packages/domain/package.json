@@ -8,6 +8,11 @@
       "@handyhub/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./request-form": {
+      "@handyhub/source": "./src/request-form.ts",
+      "types": "./dist/request-form.d.ts",
+      "default": "./dist/request-form.js"
     }
   },
   "scripts": {

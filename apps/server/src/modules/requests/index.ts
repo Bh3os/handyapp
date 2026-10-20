@@ -1,8 +1,9 @@
 // Requests module (TSK-0025; HH-INT-10, HH-INT-11, HH-ID-01, HH-INT-21). The public submission route.
 import { readIdempotencyKey } from '../../api/idempotency.js'
 import type { ApiModule, RouteDef } from '../../api/route.js'
+import { loadConfig } from '../../platform/config/index.js'
 import { currentContext } from '../../platform/request-context.js'
-import { SUBMIT_BODY, SUBMIT_RESPONSE, type SubmitBody } from './schema.js'
+import { MAX_SERVICES, SUBMIT_BODY, SUBMIT_RESPONSE, type SubmitBody } from './schema.js'
 import { submitRequest } from './submit.js'
 
 /** PROPOSED (old repo, 32 D-32-08): 5 submissions per client network per hour; no owner value exists. */
@@ -50,4 +51,52 @@ const submit: RouteDef = {
   },
 }
 
-export const REQUESTS_MODULE: ApiModule = { name: 'requests', routes: [submit] }
+/** The request form's settings, from configuration (TSK-0026): how long the browser keeps an unfinished draft. */
+const formSettings: RouteDef = {
+  method: 'GET',
+  path: '/public/request-form',
+  operationId: 'getRequestFormSettings',
+  summary: 'Request form settings',
+  description:
+    'Public read of the configured request-draft period (session.timings.requestDraftDays, FACT-SESSION-TIMINGS), ' +
+    'the business time zone and the service limit. draftDays is null while the value is NOT CONFIGURED; the wizard then keeps no draft.',
+  actors: ['guest', 'customer'],
+  permission: 'request.submit',
+  kind: 'read',
+  idempotency: 'none',
+  expectedVersion: 'none',
+  rateLimit: 'none',
+  audit: 'none',
+  pagination: false,
+  test: 'test/integration/requests.test.ts',
+  schema: {
+    response: {
+      200: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['draftDays', 'maxServices', 'timeZone'],
+        properties: {
+          draftDays: { type: ['integer', 'null'] },
+          maxServices: { type: 'integer' },
+          timeZone: { type: ['string', 'null'] },
+        },
+      },
+    },
+  },
+  handler: async (ctx) => {
+    const config = await loadConfig(ctx.db)
+    const timings = config.get('session.timings')
+    const zone = config.get('business.timezone')
+    return {
+      body: {
+        draftDays: timings.state === 'CONFIGURED' ? timings.value.requestDraftDays : null,
+        maxServices: MAX_SERVICES,
+        // The preferred date is tomorrow or later in the property's local time (OWN-DEC-92).
+        timeZone: zone.state === 'CONFIGURED' ? zone.value.zone : null,
+      },
+      headers: { 'cache-control': 'no-cache' },
+    }
+  },
+}
+
+export const REQUESTS_MODULE: ApiModule = { name: 'requests', routes: [submit, formSettings] }
