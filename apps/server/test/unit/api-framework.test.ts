@@ -32,17 +32,25 @@ describe('route contract (TSK-0010, HH-API-01, HH-ARC-02)', () => {
       schema: { body: { type: 'object', properties: {} }, response: { 201: { type: 'object' } } },
     }
     expect(routeProblems(bad)).toEqual([
-      'POST /widgets: the covering test file is required',
-      'POST /widgets: write routes record an audit action',
-      'POST /widgets body: input objects need additionalProperties: false',
-      'POST /widgets response 201: response objects must list their properties',
+      'POST /staff/widgets: the covering test file is required',
+      'POST /staff/widgets: write routes record an audit action',
+      'POST /staff/widgets body: input objects need additionalProperties: false',
+      'POST /staff/widgets response 201: response objects must list their properties',
     ])
     expect(routeProblems({ ...route('listWidgets'), schema: { response: { 200: { type: 'string' } } } })).toContain(
-      'GET /widgets: paginated responses have items and nextCursor',
+      'GET /staff/widgets: paginated responses have items and nextCursor',
     )
     expect(routeProblems({ ...route('listWidgets'), kind: 'write' })).toContain(
-      'GET /widgets: GET routes are reads and every other method is a write',
+      'GET /staff/widgets: GET routes are reads and every other method is a write',
     )
+  })
+
+  it('[HH-ARC-06] every route path starts with its surface (TSK-0017)', () => {
+    expect(routeProblems({ ...route('listWidgets'), path: '/widgets' })).toContain(
+      'GET /widgets: path starts with its surface: /public/, /customer/ or /staff/',
+    )
+    for (const path of ['/public/x', '/customer/x', '/staff/x'])
+      expect(routeProblems({ ...route('listWidgets'), path })).toEqual([])
   })
 
   it('[HH-API-01][RULE-SERVER-AUTHZ] registration fails on an incomplete contract', async () => {
@@ -57,7 +65,7 @@ describe('route contract (TSK-0010, HH-API-01, HH-ARC-02)', () => {
 
   it('[HH-API-01] each operation carries actor, permission, idempotency, rate limit, audit and test', () => {
     const doc = buildOpenApi([WIDGETS]) as { paths: Record<string, Record<string, Record<string, unknown>>> }
-    const create = doc.paths['/api/v1/widgets']?.['post'] as Record<string, unknown>
+    const create = doc.paths['/api/v1/staff/widgets']?.['post'] as Record<string, unknown>
     expect(create['x-handyhub']).toMatchObject({
       actors: ['staff'],
       permission: 'customer.edit',
@@ -69,10 +77,13 @@ describe('route contract (TSK-0010, HH-API-01, HH-ARC-02)', () => {
     })
     const names = (create['parameters'] as { name: string }[]).map((p) => p.name)
     expect(names).toContain('Idempotency-Key')
-    const rename = doc.paths['/api/v1/widgets/{id}']?.['patch'] as { parameters: { name: string }[]; responses: object }
+    const rename = doc.paths['/api/v1/staff/widgets/{id}']?.['patch'] as {
+      parameters: { name: string }[]
+      responses: object
+    }
     expect(rename.parameters.map((p) => p.name)).toEqual(['id', 'If-Match'])
     expect(Object.keys(rename.responses)).toEqual(expect.arrayContaining(['200', '409', '428']))
-    const list = doc.paths['/api/v1/widgets']?.['get'] as { parameters: { name: string }[] }
+    const list = doc.paths['/api/v1/staff/widgets']?.['get'] as { parameters: { name: string }[] }
     expect(list.parameters.map((p) => p.name)).toEqual(['limit', 'cursor'])
   })
 })
@@ -99,7 +110,7 @@ describe('safe error envelope (TSK-0010, HH-API-03)', () => {
     const a = await app()
     const res = await a.inject({
       method: 'POST',
-      url: '/api/v1/widgets',
+      url: '/api/v1/staff/widgets',
       headers: { 'x-test-actor': 'owner', 'x-test-locale': 'es', 'idempotency-key': 'synthetic-key-0001' },
       payload: { name: 'x'.repeat(41), extra: ['injected'] },
     })
@@ -123,9 +134,9 @@ describe('safe error envelope (TSK-0010, HH-API-03)', () => {
       'content-type': 'application/json',
       'idempotency-key': 'synthetic-key-0002',
     }
-    const bad = await a.inject({ method: 'POST', url: '/api/v1/widgets', headers, payload: '{"name":' })
+    const bad = await a.inject({ method: 'POST', url: '/api/v1/staff/widgets', headers, payload: '{"name":' })
     expect(bad.json().error.code).toBe('VALIDATION_FAILED')
-    const missing = await a.inject({ method: 'POST', url: '/api/v1/widgets', headers, payload: {} })
+    const missing = await a.inject({ method: 'POST', url: '/api/v1/staff/widgets', headers, payload: {} })
     expect(missing.json().error.fieldErrors[0]).toMatchObject({ field: 'body.name', code: 'required' })
     await a.close()
   })
@@ -142,7 +153,7 @@ describe('safe error envelope (TSK-0010, HH-API-03)', () => {
       ],
     }
     const a = await app([throwing])
-    const res = await a.inject({ url: '/api/v1/widgets/1', headers: { 'x-test-actor': 'owner' } })
+    const res = await a.inject({ url: '/api/v1/staff/widgets/1', headers: { 'x-test-actor': 'owner' } })
     expect(res.statusCode).toBe(500)
     expect(res.body).not.toMatch(/SELECT|password|stack/i)
     expect(res.json().error).toMatchObject({ code: 'INTERNAL', retryable: true })
@@ -151,7 +162,7 @@ describe('safe error envelope (TSK-0010, HH-API-03)', () => {
 
   it('[HH-API-03] without a database the API answers UNAVAILABLE', async () => {
     const a = await app([WIDGETS], null)
-    const res = await a.inject({ url: '/api/v1/widgets/1', headers: { 'x-test-actor': 'owner' } })
+    const res = await a.inject({ url: '/api/v1/staff/widgets/1', headers: { 'x-test-actor': 'owner' } })
     expect(res.statusCode).toBe(503)
     expect(res.json().error.code).toBe('UNAVAILABLE')
     await a.close()
@@ -161,7 +172,7 @@ describe('safe error envelope (TSK-0010, HH-API-03)', () => {
 describe('authorization at the enforcement point (TSK-0010, RULE-SERVER-AUTHZ)', () => {
   it('[RULE-SERVER-AUTHZ][T19][T26] guests are unauthenticated, customers see not-found, an unpermitted role is forbidden', async () => {
     const a = await app()
-    const as = (who: string) => a.inject({ url: '/api/v1/widgets', headers: { 'x-test-actor': who } })
+    const as = (who: string) => a.inject({ url: '/api/v1/staff/widgets', headers: { 'x-test-actor': who } })
     expect((await as('guest')).json().error.code).toBe('UNAUTHENTICATED')
     expect((await as('customer')).json().error.code).toBe('NOT_FOUND')
     const worker = await as('worker')

@@ -33,7 +33,7 @@ const post = (url: string, payload: unknown, headers: Record<string, string> = {
   app.inject({ method: 'POST', url: `/api/v1${url}`, payload: payload as object, headers }) as Promise<Res>
 const get = (url: string, headers: Record<string, string> = {}) =>
   app.inject({ url: `/api/v1${url}`, headers }) as Promise<Res>
-const signIn = (email: string, password: string) => post('/auth/sign-in', { email, password })
+const signIn = (email: string, password: string) => post('/staff/auth/sign-in', { email, password })
 
 beforeAll(async () => {
   t = await createTestDatabase()
@@ -68,24 +68,24 @@ describe('CSRF token (TSK-0015, HH-SEC-02)', () => {
     const res = await signIn(OWNER, pw(1))
     const auth = authOf(res)
     expect(auth['x-csrf-token']).toMatch(/^[A-Za-z0-9_-]{43}$/)
-    const missing = await post('/auth/sign-out', undefined, { cookie: auth.cookie })
+    const missing = await post('/staff/auth/sign-out', undefined, { cookie: auth.cookie })
     expect(missing.statusCode).toBe(403)
     expect(missing.json().error.code).toBe('CSRF_TOKEN_INVALID')
-    const wrong = await post('/auth/sign-out', undefined, { ...auth, 'x-csrf-token': 'x'.repeat(43) })
+    const wrong = await post('/staff/auth/sign-out', undefined, { ...auth, 'x-csrf-token': 'x'.repeat(43) })
     expect(wrong.json().error.code).toBe('CSRF_TOKEN_INVALID')
-    expect((await get('/auth/session', { cookie: auth.cookie })).json().csrfToken).toBe(auth['x-csrf-token'])
-    expect((await post('/auth/sign-out', undefined, auth)).statusCode).toBe(204)
+    expect((await get('/staff/auth/session', { cookie: auth.cookie })).json().csrfToken).toBe(auth['x-csrf-token'])
+    expect((await post('/staff/auth/sign-out', undefined, auth)).statusCode).toBe(204)
   })
 
   it('[HH-SEC-02] re-authentication rotates the session and its CSRF token', async () => {
     const first = authOf(await signIn(OWNER, pw(1)))
-    const rotated = await post('/auth/reauth', { password: pw(1) }, first)
+    const rotated = await post('/staff/auth/reauth', { password: pw(1) }, first)
     expect(rotated.statusCode).toBe(200)
     const next = authOf(rotated)
     expect(next.cookie).not.toBe(first.cookie)
     expect(next['x-csrf-token']).not.toBe(first['x-csrf-token'])
-    expect((await get('/auth/session', { cookie: first.cookie })).statusCode).toBe(401)
-    expect((await get('/auth/session', { cookie: next.cookie })).statusCode).toBe(200)
+    expect((await get('/staff/auth/session', { cookie: first.cookie })).statusCode).toBe(401)
+    expect((await get('/staff/auth/session', { cookie: next.cookie })).statusCode).toBe(200)
   })
 })
 
@@ -95,19 +95,19 @@ describe('session lifecycle (TSK-0015, HH-SEC-02, HH-STAFF-02, T22, T27)', () =>
     await sql`UPDATE identity.staff_sessions SET last_seen_at = now() - interval '29 minutes' WHERE revoked_at IS NULL AND staff_user_id = ${workerId}`.execute(
       t.db,
     )
-    expect((await get('/auth/session', { cookie: auth.cookie })).statusCode).toBe(200)
+    expect((await get('/staff/auth/session', { cookie: auth.cookie })).statusCode).toBe(200)
     await sql`UPDATE identity.staff_sessions SET last_seen_at = now() - interval '31 minutes' WHERE revoked_at IS NULL AND staff_user_id = ${workerId}`.execute(
       t.db,
     )
-    expect((await get('/auth/session', { cookie: auth.cookie })).statusCode).toBe(401)
+    expect((await get('/staff/auth/session', { cookie: auth.cookie })).statusCode).toBe(401)
   })
 
   it('[T22] "Sign out everywhere" ends every session of the user', async () => {
     const a = authOf(await signIn(WORKER, pw(2)))
     const b = authOf(await signIn(WORKER, pw(2)))
-    const res = await post('/auth/sessions/revoke-all', undefined, a)
+    const res = await post('/staff/auth/sessions/revoke-all', undefined, a)
     expect(res.statusCode).toBe(204)
-    for (const s of [a, b]) expect((await get('/auth/session', { cookie: s.cookie })).statusCode).toBe(401)
+    for (const s of [a, b]) expect((await get('/staff/auth/session', { cookie: s.cookie })).statusCode).toBe(401)
   })
 
   it('[HH-STAFF-02][T27] the Owner revokes every session of a staff member at once; a Worker cannot', async () => {
@@ -117,7 +117,7 @@ describe('session lifecycle (TSK-0015, HH-SEC-02, HH-STAFF-02, T22, T27)', () =>
     expect(byWorker.statusCode).toBe(403)
     const byOwner = await post(`/staff/${workerId}/sessions/revoke`, undefined, owner)
     expect(byOwner.json()).toEqual({ sessionsRevoked: 1 })
-    expect((await get('/auth/session', { cookie: worker.cookie })).statusCode).toBe(401)
+    expect((await get('/staff/auth/session', { cookie: worker.cookie })).statusCode).toBe(401)
     const audit = await t.db
       .selectFrom('platform.audit_events')
       .select(['action', 'target_id'])
@@ -137,28 +137,28 @@ describe('optional TOTP MFA with recovery codes (TSK-0015, HH-STAFF-01, HH-STAFF
     await sql`UPDATE identity.staff_sessions SET authenticated_at = now() - interval '6 minutes' WHERE revoked_at IS NULL`.execute(
       t.db,
     )
-    const stale = await post('/auth/mfa/enroll', undefined, owner)
+    const stale = await post('/staff/auth/mfa/enroll', undefined, owner)
     expect(stale.json().error.code).toBe('FRESH_AUTH_REQUIRED')
-    owner = authOf(await post('/auth/reauth', { password: pw(1) }, owner))
+    owner = authOf(await post('/staff/auth/reauth', { password: pw(1) }, owner))
   })
 
   it('[HH-STAFF-01] enrols an authenticator with a confirming code and shows recovery codes once', async () => {
     const other = authOf(await signIn(OWNER, pw(1)))
-    const started = await post('/auth/mfa/enroll', undefined, owner)
+    const started = await post('/staff/auth/mfa/enroll', undefined, owner)
     expect(started.statusCode).toBe(200)
     secret = started.json().secret
     expect(started.json().otpauthUri).toMatch(/^otpauth:\/\/totp\/HandyHub:/)
     const sealed = await t.db.selectFrom('identity.staff_mfa').select('secret_sealed').executeTakeFirstOrThrow()
     expect(sealed.secret_sealed).not.toContain(secret)
-    expect((await post('/auth/mfa/confirm', { code: '000000' }, owner)).statusCode).toBe(401)
-    const confirmed = await post('/auth/mfa/confirm', { code: currentCode(secret) }, owner)
+    expect((await post('/staff/auth/mfa/confirm', { code: '000000' }, owner)).statusCode).toBe(401)
+    const confirmed = await post('/staff/auth/mfa/confirm', { code: currentCode(secret) }, owner)
     expect(confirmed.statusCode).toBe(200)
     recovery = confirmed.json().recoveryCodes
     expect(recovery).toHaveLength(10)
     expect(confirmed.json().session).toMatchObject({ mfaEnrolled: true, mfaRecommended: false })
     // Enabling MFA ends the user's other sessions.
-    expect((await get('/auth/session', { cookie: other.cookie })).statusCode).toBe(401)
-    const status = await get('/auth/mfa', { cookie: cookieOf(confirmed) })
+    expect((await get('/staff/auth/session', { cookie: other.cookie })).statusCode).toBe(401)
+    const status = await get('/staff/auth/mfa', { cookie: cookieOf(confirmed) })
     expect(status.json()).toEqual({ enrolled: true, pending: false, recoveryCodesLeft: 10, available: true })
   })
 
@@ -167,34 +167,38 @@ describe('optional TOTP MFA with recovery codes (TSK-0015, HH-STAFF-01, HH-STAFF
     expect(res.statusCode).toBe(202)
     expect(res.json()).toEqual({ mfaRequired: true })
     const pending = cookieOf(res)
-    expect((await get('/auth/session', { cookie: pending })).statusCode).toBe(401)
-    expect((await post('/auth/mfa/verify', { code: '000000' }, { cookie: pending })).statusCode).toBe(401)
+    expect((await get('/staff/auth/session', { cookie: pending })).statusCode).toBe(401)
+    expect((await post('/staff/auth/mfa/verify', { code: '000000' }, { cookie: pending })).statusCode).toBe(401)
     const verified = await post(
-      '/auth/mfa/verify',
+      '/staff/auth/mfa/verify',
       { code: currentCode(secret, Date.now() + 30_000) },
       { cookie: pending },
     )
     expect(verified.statusCode).toBe(200)
     expect(cookieOf(verified)).not.toBe(pending)
-    expect((await get('/auth/session', { cookie: cookieOf(verified) })).json()).toMatchObject({
+    expect((await get('/staff/auth/session', { cookie: cookieOf(verified) })).json()).toMatchObject({
       email: OWNER,
       mfaEnrolled: true,
     })
-    expect((await get('/auth/session', { cookie: pending })).statusCode).toBe(401)
+    expect((await get('/staff/auth/session', { cookie: pending })).statusCode).toBe(401)
   })
 
   it('[HH-STAFF-01] a recovery code works once', async () => {
     const first = cookieOf(await signIn(OWNER, pw(1)))
-    expect((await post('/auth/mfa/verify', { recoveryCode: recovery[0] }, { cookie: first })).statusCode).toBe(200)
+    expect((await post('/staff/auth/mfa/verify', { recoveryCode: recovery[0] }, { cookie: first })).statusCode).toBe(
+      200,
+    )
     const second = cookieOf(await signIn(OWNER, pw(1)))
-    expect((await post('/auth/mfa/verify', { recoveryCode: recovery[0] }, { cookie: second })).statusCode).toBe(401)
-    const done = await post('/auth/mfa/verify', { recoveryCode: recovery[1] }, { cookie: second })
+    expect((await post('/staff/auth/mfa/verify', { recoveryCode: recovery[0] }, { cookie: second })).statusCode).toBe(
+      401,
+    )
+    const done = await post('/staff/auth/mfa/verify', { recoveryCode: recovery[1] }, { cookie: second })
     expect(done.statusCode).toBe(200)
     owner = authOf(done)
   })
 
   it('[HH-STAFF-01] removing the authenticator needs fresh authentication; then the password signs in again', async () => {
-    expect((await post('/auth/mfa/disable', undefined, owner)).statusCode).toBe(204)
+    expect((await post('/staff/auth/mfa/disable', undefined, owner)).statusCode).toBe(204)
     const res = await signIn(OWNER, pw(1))
     expect(res.statusCode).toBe(200)
     expect(res.json()).toMatchObject({ mfaEnrolled: false, mfaRecommended: true })
@@ -205,12 +209,12 @@ describe('optional TOTP MFA with recovery codes (TSK-0015, HH-STAFF-01, HH-STAFF
     try {
       const signedIn = await plain.inject({
         method: 'POST',
-        url: '/api/v1/auth/sign-in',
+        url: '/api/v1/staff/auth/sign-in',
         payload: { email: WORKER, password: pw(2) },
       })
       expect(signedIn.statusCode).toBe(200)
       const auth = authOf(signedIn as unknown as Res)
-      const res = await plain.inject({ method: 'POST', url: '/api/v1/auth/mfa/enroll', headers: auth })
+      const res = await plain.inject({ method: 'POST', url: '/api/v1/staff/auth/mfa/enroll', headers: auth })
       expect(res.statusCode).toBe(503)
       expect(res.json().error.code).toBe('NOT_CONFIGURED')
     } finally {

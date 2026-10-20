@@ -245,16 +245,17 @@ export function photosModule(deps: { storage: ObjectStorage | null }): ApiModule
     },
   }
 
+  // One read on two surfaces (TSK-0017): staff on the staff host, the verified customer of the project on the public
+  // host. Each surface reads only its own session.
   const requestPhotos: RouteDef = {
     method: 'GET',
-    path: '/requests/:requestId/photos',
+    path: '/staff/requests/:requestId/photos',
     operationId: 'listRequestPhotos',
     summary: 'Photos of a request',
     description:
-      'Staff (request.view), or the verified customer of the request’s project. Every photo with its state; ready ' +
-      'photos carry a signed URL valid for minutes. Quarantined and rejected photos are never served.',
-    // Guests reach the policy too, so a guest (or a draft capability) gets the same NOT_FOUND as a missing record (T15).
-    actors: ['staff', 'customer', 'guest'],
+      'Staff (request.view). Every photo with its state; ready photos carry a signed URL valid for minutes. ' +
+      'Quarantined and rejected photos are never served.',
+    actors: ['staff'],
     permission: 'request.view',
     kind: 'read',
     idempotency: 'none',
@@ -320,5 +321,17 @@ export function photosModule(deps: { storage: ObjectStorage | null }): ApiModule
     },
   }
 
-  return { name: 'photos', routes: [createDraft, upload, list, remove, requestPhotos] }
+  const customerRequestPhotos: RouteDef = {
+    ...requestPhotos,
+    path: '/customer/requests/:requestId/photos',
+    operationId: 'listCustomerRequestPhotos',
+    summary: 'Photos of a customer’s request',
+    description:
+      'The verified customer of the request’s project. Every photo with its state; ready photos carry a signed URL ' +
+      'valid for minutes. Quarantined and rejected photos are never served.',
+    // Guests reach the policy too, so a guest (or a draft capability) gets the same NOT_FOUND as a missing record (T15).
+    actors: ['customer', 'guest'],
+  }
+
+  return { name: 'photos', routes: [createDraft, upload, list, remove, requestPhotos, customerRequestPhotos] }
 }

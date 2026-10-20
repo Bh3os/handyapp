@@ -92,9 +92,12 @@ describe('environment schema (TSK-0003, OWN-DEC-73, RULE-SYNTHETIC-DATA)', () =>
       'LOG_LEVEL',
       'MFA_ENCRYPTION_KEY',
       'PORT',
+      'PORTAL_DIR',
+      'PUBLIC_ORIGIN',
       'SITE_DIR',
       'STAFF_APP_URL',
       'STAFF_DIR',
+      'STAFF_ORIGIN',
       'TRUST_PROXY_HOPS',
     ])
   })

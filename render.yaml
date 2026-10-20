@@ -34,7 +34,15 @@ services:
       # Key for one-time codes (at least 32 random characters); set by the owner in Render (TSK-0016).
       - key: CODE_HASH_KEY
         sync: false
-      # Base URL of the staff app for invite and reset links (https; until host routing: https://<service>/staff).
+      # Two origins (TSK-0017, OWN-DEC-133; docs/architecture.md): set both once the custom domains answer, e.g.
+      # https://handyhub247.com and https://staff.handyhub247.com. Both unset: the single Render URL serves everything,
+      # with the staff app under /staff.
+      - key: PUBLIC_ORIGIN
+        sync: false
+      - key: STAFF_ORIGIN
+        sync: false
+      # Base URL of the staff app for invite and reset links (https). Optional once STAFF_ORIGIN is set (the default);
+      # on the single Render URL: https://<service>/staff.
       - key: STAFF_APP_URL
         sync: false
       # The first Owner's email: while no Owner exists, one invite is emailed at start (TSK-0014, HH-STAFF-01).

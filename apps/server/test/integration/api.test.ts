@@ -26,7 +26,7 @@ const count = async (table: string) =>
   Number((await sql<{ n: string }>`SELECT count(*) AS n FROM ${sql.raw(table)}`.execute(t.db)).rows[0]?.n)
 
 const create = (key: string, payload: Record<string, unknown>) =>
-  app.inject({ method: 'POST', url: '/api/v1/widgets', headers: { ...owner, 'idempotency-key': key }, payload })
+  app.inject({ method: 'POST', url: '/api/v1/staff/widgets', headers: { ...owner, 'idempotency-key': key }, payload })
 
 describe('idempotency keys (TSK-0010, HH-API-04)', () => {
   it('[HH-API-04][T11] a replayed key returns the stored response and writes nothing new', async () => {
@@ -52,7 +52,7 @@ describe('idempotency keys (TSK-0010, HH-API-04)', () => {
   it('[HH-API-04] a missing key is refused; keys are scoped by actor and operation', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/api/v1/widgets',
+      url: '/api/v1/staff/widgets',
       headers: owner,
       payload: { name: 'No key' },
     })
@@ -87,7 +87,7 @@ describe('idempotency keys (TSK-0010, HH-API-04)', () => {
 describe('expected versions (TSK-0010, HH-API-04)', () => {
   it('[HH-API-04] a stale version is a 409 with the current values and changes nothing', async () => {
     const created = (await create('synthetic-key-version', { name: 'Delta' })).json() as { id: number }
-    const url = `/api/v1/widgets/${created.id}`
+    const url = `/api/v1/staff/widgets/${created.id}`
     const ok = await app.inject({
       method: 'PATCH',
       url,
@@ -118,10 +118,13 @@ describe('pagination, stripping and caching (TSK-0010, HH-API-05, HH-API-01)', (
   it('[HH-API-05] the page size is capped and the cursor walks every row once', async () => {
     await sql`INSERT INTO public.api_widgets (name) SELECT 'Bulk ' || g FROM generate_series(1, 120) g`.execute(t.db)
     const total = await count('public.api_widgets')
-    const first = await app.inject({ url: '/api/v1/widgets?limit=500', headers: owner })
+    const first = await app.inject({ url: '/api/v1/staff/widgets?limit=500', headers: owner })
     const body = first.json() as { items: { id: number }[]; nextCursor: string }
     expect(body.items).toHaveLength(100)
-    const second = await app.inject({ url: `/api/v1/widgets?limit=500&cursor=${body.nextCursor}`, headers: owner })
+    const second = await app.inject({
+      url: `/api/v1/staff/widgets?limit=500&cursor=${body.nextCursor}`,
+      headers: owner,
+    })
     const rest = second.json() as { items: { id: number }[]; nextCursor: string | null }
     expect(rest.items).toHaveLength(total - 100)
     expect(rest.nextCursor).toBeNull()
@@ -130,15 +133,15 @@ describe('pagination, stripping and caching (TSK-0010, HH-API-05, HH-API-01)', (
   })
 
   it('[HH-API-01][HH-ARC-04] unknown response fields are stripped', async () => {
-    const res = await app.inject({ url: '/api/v1/widgets/1', headers: owner })
+    const res = await app.inject({ url: '/api/v1/staff/widgets/1', headers: owner })
     expect(res.statusCode).toBe(200)
     expect(Object.keys(res.json()).sort()).toEqual(['id', 'name', 'version'])
     expect(res.body).not.toContain('internal')
   })
 
   it('[RULE-SERVER-AUTHZ][T19] a missing record and a record outside a customer scope answer the same not-found', async () => {
-    const missing = await app.inject({ url: '/api/v1/widgets/999999', headers: owner })
-    const outside = await app.inject({ url: '/api/v1/widgets/1', headers: { 'x-test-actor': 'customer' } })
+    const missing = await app.inject({ url: '/api/v1/staff/widgets/999999', headers: owner })
+    const outside = await app.inject({ url: '/api/v1/staff/widgets/1', headers: { 'x-test-actor': 'customer' } })
     for (const res of [missing, outside]) {
       expect(res.statusCode).toBe(404)
       expect(res.json().error).toMatchObject({

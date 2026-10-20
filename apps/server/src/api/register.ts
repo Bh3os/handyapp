@@ -8,12 +8,17 @@
 //   committing together with the write;
 // - answers every error in the one safe envelope, in the audience's language, and sets Cache-Control: private,
 //   no-store unless a route says otherwise.
+// Every route belongs to one surface by its first path segment: /public, /customer or /staff (TSK-0017). A surface
+// answers only on its own host (the staff API on the staff host; the public and customer APIs on the public host) and
+// reads only its own session: the staff surface staff sessions, the public and customer surfaces customer sessions.
 import { timingSafeEqual } from 'node:crypto'
 import type { Db, Tx } from '@handyhub/db'
 import { withTx } from '@handyhub/db'
 import type { StaffLocale } from '@handyhub/i18n'
 import { decide, type Actor, type Allow } from '@handyhub/policy'
 import type { FastifyError, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
+import type { HostConfig } from '../config.js'
+import { hostSide, surfaceAllowed, surfaceOf } from '../hosts.js'
 import { audit, type AuditActor } from '../platform/audit.js'
 import { currentContext } from '../platform/request-context.js'
 import { ApiError, type ErrorEnvelope, type FieldError } from './errors.js'
@@ -43,8 +48,11 @@ export interface ApiOptions {
   /** The business database; without one every API route answers UNAVAILABLE. */
   db: Db | undefined
   modules: readonly ApiModule[]
-  /** Resolves the caller; the session layer (TSK-0014) supplies it. Default: every caller is a guest. */
-  resolveActor?: ResolveActor
+  /** Resolves the caller: one resolver for every surface (tests), or one per side so a staff session is never read on
+   *  the public and customer surfaces and a customer session never on the staff surface. Default: every caller a guest. */
+  resolveActor?: ResolveActor | SurfaceResolvers
+  /** The two origins (TSK-0017); default one host for every surface. */
+  hosts?: HostConfig
   /** Proxies in front of the service that append to X-Forwarded-For (rate limits key on the client network). */
   trustProxyHops?: number
   /** Rate limiter; tests pass their own. Default: PostgreSQL counters on `db`. */
@@ -52,6 +60,12 @@ export interface ApiOptions {
 }
 
 const GUEST: RequestActor = { actor: { kind: 'guest' } }
+
+/** The session readers per side: `staff` for /staff routes, `public` for /public and /customer routes. */
+export interface SurfaceResolvers {
+  staff: ResolveActor
+  public: ResolveActor
+}
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -280,15 +294,21 @@ export async function registerApi(app: FastifyInstance, options: ApiOptions): Pr
   for (const id of new Set(ids))
     if (ids.filter((i) => i === id).length > 1) problems.push(`duplicate operationId ${id}`)
   if (problems.length) throw new RouteContractError(problems.join('\n'))
-  const resolveActor = options.resolveActor ?? (async () => GUEST)
+  const given = options.resolveActor ?? (async () => GUEST)
+  const resolvers: SurfaceResolvers = typeof given === 'function' ? { staff: given, public: given } : given
+  const hosts: HostConfig = options.hosts ?? { mode: 'single' }
   const limiter =
     options.rateLimiter ?? (options.db ? new RateLimiter(options.db, options.trustProxyHops ?? 0) : undefined)
 
   await app.register(
     async (api) => {
       api.addHook('onRequest', async (req) => {
+        // The wrong host, an unknown host or no surface: the same 404 as a missing route, before any session is read.
+        const surface = surfaceOf(req.url.slice(API_PREFIX.length))
+        const side = req.hostSide ?? hostSide(hosts, req.headers.host)
+        if (!surface || !surfaceAllowed(surface, side)) throw new ApiError('NOT_FOUND')
         csrfGuard(req)
-        const resolved = await resolveActor(req)
+        const resolved = await (surface === 'staff' ? resolvers.staff : resolvers.public)(req)
         req.apiActor = resolved
         req.apiAudience = audienceOf(resolved.actor, resolved.locale)
         // CSRF token (TSK-0015): an unsafe request authenticated by a cookie session carries the session's token.
@@ -325,6 +345,11 @@ export async function registerApi(app: FastifyInstance, options: ApiOptions): Pr
       ]
       if (binaryTypes.length)
         api.addContentTypeParser(binaryTypes, { parseAs: 'buffer' }, (_req, body, done) => done(null, body))
+
+      // Anything else below /api/v1, in any method (a CORS preflight too): the same 404 envelope, never a page.
+      api.all('/*', async () => {
+        throw new ApiError('NOT_FOUND')
+      })
 
       for (const mod of options.modules) {
         for (const route of mod.routes) {
