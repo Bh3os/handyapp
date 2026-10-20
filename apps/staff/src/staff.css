@@ -25,3 +25,162 @@
   display: grid;
   gap: var(--hh-space-4);
 }
+
+/* Staff app shell (TSK-0040): banner, navigation and main landmarks; the menu is a sidebar on wide screens and a
+   wrapping row on phones, so the page never scrolls sideways. Keyboard focus is always visible (HH-BASE-01). */
+.staff-shell__skip {
+  position: absolute;
+  left: var(--hh-space-2);
+  top: -10rem;
+  padding: var(--hh-space-2) var(--hh-space-3);
+  background: var(--hh-surface);
+  color: var(--hh-link);
+  border: var(--hh-hairline);
+  border-radius: var(--hh-radius-sm);
+  z-index: 10;
+}
+
+.staff-shell__skip:focus {
+  top: var(--hh-space-2);
+}
+
+.staff-shell__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hh-space-3) var(--hh-space-6);
+  padding: var(--hh-space-3) var(--hh-gutter);
+  border-bottom: var(--hh-hairline);
+  background: var(--hh-surface);
+}
+
+.staff-shell__brand {
+  font-weight: 600;
+  color: var(--hh-text);
+  text-decoration: none;
+}
+
+.staff-shell__search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--hh-space-2);
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+
+.staff-shell__search .hh-field {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.staff-shell__user {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hh-space-3);
+  margin-left: auto;
+}
+
+.staff-shell__name {
+  margin: 0;
+}
+
+.staff-shell__language {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hh-space-2);
+}
+
+.staff-shell__language select {
+  min-height: var(--hh-target);
+  font: inherit;
+  color: var(--hh-text);
+  background: var(--hh-surface);
+  border: 1px solid var(--hh-line-strong);
+  border-radius: var(--hh-radius-sm);
+  padding: 0 var(--hh-space-2);
+}
+
+.staff-shell__nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hh-space-1) var(--hh-space-2);
+  margin: 0;
+  padding: var(--hh-space-2) var(--hh-gutter);
+  list-style: none;
+  border-bottom: var(--hh-hairline);
+}
+
+.staff-shell__nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--hh-target);
+  padding: 0 var(--hh-space-3);
+  border-radius: var(--hh-radius-sm);
+  color: var(--hh-link);
+}
+
+.staff-shell__nav a[aria-current='page'] {
+  background: var(--hh-tint);
+  color: var(--hh-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.staff-shell__main {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: var(--hh-space-8) var(--hh-gutter);
+  display: grid;
+  gap: var(--hh-space-4);
+}
+
+.staff-shell__main:focus {
+  outline: none;
+}
+
+@media (min-width: 64rem) {
+  .staff-shell {
+    display: grid;
+    grid-template-columns: 15rem minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    min-height: 100vh;
+  }
+
+  .staff-shell__bar {
+    grid-column: 1 / -1;
+  }
+
+  .staff-shell__nav ul {
+    flex-direction: column;
+    border-bottom: 0;
+    border-right: var(--hh-hairline);
+    min-height: 100%;
+    padding: var(--hh-space-4) var(--hh-space-3);
+  }
+}
+
+.staff-screen {
+  display: grid;
+  gap: var(--hh-space-4);
+}
+
+.staff-conflict__table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--hh-space-3);
+}
+
+.staff-conflict__table th,
+.staff-conflict__table td {
+  text-align: left;
+  padding: var(--hh-space-2);
+  border-bottom: var(--hh-hairline);
+  overflow-wrap: anywhere;
+}
+
+.staff-conflict__table tr[data-differs] td {
+  font-weight: 600;
+}

@@ -2202,7 +2202,8 @@
                         "roles",
                         "mfaEnrolled",
                         "mfaRecommended",
-                        "csrfToken"
+                        "csrfToken",
+                        "navigation"
                       ],
                       "properties": {
                         "staffUserId": {
@@ -2244,6 +2245,70 @@
                         },
                         "csrfToken": {
                           "type": "string"
+                        },
+                        "navigation": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "home",
+                            "items",
+                            "search"
+                          ],
+                          "properties": {
+                            "home": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "queue",
+                                "my-day",
+                                "requests",
+                                "customers",
+                                "estimates",
+                                "schedule",
+                                "inbox",
+                                "payments",
+                                "cases",
+                                "staff",
+                                "audit",
+                                "dashboard",
+                                "settings",
+                                null
+                              ]
+                            },
+                            "items": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "queue",
+                                  "my-day",
+                                  "requests",
+                                  "customers",
+                                  "estimates",
+                                  "schedule",
+                                  "inbox",
+                                  "payments",
+                                  "cases",
+                                  "staff",
+                                  "audit",
+                                  "dashboard",
+                                  "settings"
+                                ]
+                              }
+                            },
+                            "search": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "requests",
+                                  "customers"
+                                ]
+                              }
+                            }
+                          }
                         }
                       }
                     }
@@ -2757,7 +2822,8 @@
                     "roles",
                     "mfaEnrolled",
                     "mfaRecommended",
-                    "csrfToken"
+                    "csrfToken",
+                    "navigation"
                   ],
                   "properties": {
                     "staffUserId": {
@@ -2799,6 +2865,70 @@
                     },
                     "csrfToken": {
                       "type": "string"
+                    },
+                    "navigation": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "home",
+                        "items",
+                        "search"
+                      ],
+                      "properties": {
+                        "home": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "queue",
+                            "my-day",
+                            "requests",
+                            "customers",
+                            "estimates",
+                            "schedule",
+                            "inbox",
+                            "payments",
+                            "cases",
+                            "staff",
+                            "audit",
+                            "dashboard",
+                            "settings",
+                            null
+                          ]
+                        },
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "queue",
+                              "my-day",
+                              "requests",
+                              "customers",
+                              "estimates",
+                              "schedule",
+                              "inbox",
+                              "payments",
+                              "cases",
+                              "staff",
+                              "audit",
+                              "dashboard",
+                              "settings"
+                            ]
+                          }
+                        },
+                        "search": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "requests",
+                              "customers"
+                            ]
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -3379,7 +3509,8 @@
                     "roles",
                     "mfaEnrolled",
                     "mfaRecommended",
-                    "csrfToken"
+                    "csrfToken",
+                    "navigation"
                   ],
                   "properties": {
                     "staffUserId": {
@@ -3421,6 +3552,70 @@
                     },
                     "csrfToken": {
                       "type": "string"
+                    },
+                    "navigation": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "home",
+                        "items",
+                        "search"
+                      ],
+                      "properties": {
+                        "home": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "queue",
+                            "my-day",
+                            "requests",
+                            "customers",
+                            "estimates",
+                            "schedule",
+                            "inbox",
+                            "payments",
+                            "cases",
+                            "staff",
+                            "audit",
+                            "dashboard",
+                            "settings",
+                            null
+                          ]
+                        },
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "queue",
+                              "my-day",
+                              "requests",
+                              "customers",
+                              "estimates",
+                              "schedule",
+                              "inbox",
+                              "payments",
+                              "cases",
+                              "staff",
+                              "audit",
+                              "dashboard",
+                              "settings"
+                            ]
+                          }
+                        },
+                        "search": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "requests",
+                              "customers"
+                            ]
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -3586,7 +3781,8 @@
                     "roles",
                     "mfaEnrolled",
                     "mfaRecommended",
-                    "csrfToken"
+                    "csrfToken",
+                    "navigation"
                   ],
                   "properties": {
                     "staffUserId": {
@@ -3628,6 +3824,70 @@
                     },
                     "csrfToken": {
                       "type": "string"
+                    },
+                    "navigation": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "home",
+                        "items",
+                        "search"
+                      ],
+                      "properties": {
+                        "home": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "queue",
+                            "my-day",
+                            "requests",
+                            "customers",
+                            "estimates",
+                            "schedule",
+                            "inbox",
+                            "payments",
+                            "cases",
+                            "staff",
+                            "audit",
+                            "dashboard",
+                            "settings",
+                            null
+                          ]
+                        },
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "queue",
+                              "my-day",
+                              "requests",
+                              "customers",
+                              "estimates",
+                              "schedule",
+                              "inbox",
+                              "payments",
+                              "cases",
+                              "staff",
+                              "audit",
+                              "dashboard",
+                              "settings"
+                            ]
+                          }
+                        },
+                        "search": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "requests",
+                              "customers"
+                            ]
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -3730,6 +3990,296 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/staff-auth.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/auth/session/locale": {
+      "put": {
+        "operationId": "staffSetLocale",
+        "summary": "Choose the staff language (English or Spanish)",
+        "description": "Stores the signed-in staff member's own locale on their staff identity, so it follows them across devices and sessions (HH-OPS-04, ENT-StaffUser: each user edits only their own locale). It changes staff screens and staff notifications only, never customer messages or documents (HH-LANG-03).",
+        "tags": [
+          "identity"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "locale"
+                ],
+                "properties": {
+                  "locale": {
+                    "type": "string",
+                    "enum": [
+                      "en",
+                      "es"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "staffUserId",
+                    "displayName",
+                    "email",
+                    "locale",
+                    "roles",
+                    "mfaEnrolled",
+                    "mfaRecommended",
+                    "csrfToken",
+                    "navigation"
+                  ],
+                  "properties": {
+                    "staffUserId": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "locale": {
+                      "type": "string",
+                      "enum": [
+                        "en",
+                        "es"
+                      ]
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "owner",
+                          "office",
+                          "estimator",
+                          "worker"
+                        ]
+                      }
+                    },
+                    "mfaEnrolled": {
+                      "type": "boolean"
+                    },
+                    "mfaRecommended": {
+                      "type": "boolean"
+                    },
+                    "csrfToken": {
+                      "type": "string"
+                    },
+                    "navigation": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "home",
+                        "items",
+                        "search"
+                      ],
+                      "properties": {
+                        "home": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "queue",
+                            "my-day",
+                            "requests",
+                            "customers",
+                            "estimates",
+                            "schedule",
+                            "inbox",
+                            "payments",
+                            "cases",
+                            "staff",
+                            "audit",
+                            "dashboard",
+                            "settings",
+                            null
+                          ]
+                        },
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "queue",
+                              "my-day",
+                              "requests",
+                              "customers",
+                              "estimates",
+                              "schedule",
+                              "inbox",
+                              "payments",
+                              "cases",
+                              "staff",
+                              "audit",
+                              "dashboard",
+                              "settings"
+                            ]
+                          }
+                        },
+                        "search": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "requests",
+                              "customers"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "staff.locale_change",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-shell.test.ts"
         }
       }
     },
@@ -3934,7 +4484,8 @@
                     "roles",
                     "mfaEnrolled",
                     "mfaRecommended",
-                    "csrfToken"
+                    "csrfToken",
+                    "navigation"
                   ],
                   "properties": {
                     "staffUserId": {
@@ -3976,6 +4527,70 @@
                     },
                     "csrfToken": {
                       "type": "string"
+                    },
+                    "navigation": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "home",
+                        "items",
+                        "search"
+                      ],
+                      "properties": {
+                        "home": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "queue",
+                            "my-day",
+                            "requests",
+                            "customers",
+                            "estimates",
+                            "schedule",
+                            "inbox",
+                            "payments",
+                            "cases",
+                            "staff",
+                            "audit",
+                            "dashboard",
+                            "settings",
+                            null
+                          ]
+                        },
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "queue",
+                              "my-day",
+                              "requests",
+                              "customers",
+                              "estimates",
+                              "schedule",
+                              "inbox",
+                              "payments",
+                              "cases",
+                              "staff",
+                              "audit",
+                              "dashboard",
+                              "settings"
+                            ]
+                          }
+                        },
+                        "search": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "requests",
+                              "customers"
+                            ]
+                          }
+                        }
+                      }
                     }
                   }
                 }
