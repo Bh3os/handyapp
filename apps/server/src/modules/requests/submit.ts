@@ -12,7 +12,14 @@ import { PROJECT_MACHINE, REQUEST_MACHINE } from '@handyhub/domain'
 import { ApiError } from '../../api/errors.js'
 import { loadConfig, requireConfigured } from '../../platform/config/index.js'
 import { outbox } from '../../platform/outbox.js'
-import { localDate, normalizeUsPhone, semanticProblems, type SubmitBody } from '@handyhub/domain/request-form'
+import { bindDraftPhotos, type PhotoSummary } from '../photos/photos.js'
+import {
+  localDate,
+  normalizeUsPhone,
+  semanticProblems,
+  serviceQuestions,
+  type SubmitBody,
+} from '@handyhub/domain/request-form'
 
 export { localDate, normalizeUsPhone, semanticProblems }
 
@@ -43,14 +50,25 @@ export async function submitRequest(
   tx: Tx,
   body: SubmitBody,
   opts: { idempotencyKey: string; requestId: string; now?: Date },
-): Promise<Submitted & { serviceCodes: string[]; spamSuspected: boolean }> {
+): Promise<Submitted & { serviceCodes: string[]; spamSuspected: boolean; photos: PhotoSummary }> {
   const now = opts.now ?? new Date()
   const config = await loadConfig(tx)
   const zone = requireConfigured(config.get('business.timezone')).value.zone
   const term = requireConfigured(config.get('payment.term_default'))
   const services = new Map((await registryServices(tx)).map((s) => [s.id, s]))
 
-  const problems = semanticProblems(body, { today: localDate(now, zone), knownServices: new Set(services.keys()) })
+  // Each service's questions come from its registry intake inputs; an answer to anything else is refused.
+  const questions = new Map(
+    [...services.values()].map((s) => [
+      s.id,
+      serviceQuestions(s.intake as { guideInputs: string[] }).map((q) => q.key),
+    ]),
+  )
+  const problems = semanticProblems(body, {
+    today: localDate(now, zone),
+    knownServices: new Set(services.keys()),
+    questions,
+  })
   if (problems.length) throw new ApiError('VALIDATION_FAILED', { fieldErrors: problems })
 
   const signals = spamSignals(body, now.getTime())
@@ -62,6 +80,8 @@ export async function submitRequest(
   const original: Partial<SubmitBody> = { ...body }
   delete original.website
   delete original.startedAt
+  // The photo capability is a secret; the photos themselves are bound below (TSK-0031).
+  delete original.photoDraft
 
   const c = body.contact
   const customer = await tx
@@ -175,6 +195,9 @@ export async function submitRequest(
       )
       .execute()
 
+  // The draft's photos, bound by the server to this request and project; a bad token binds nothing (TSK-0031).
+  const photos = await bindDraftPhotos(tx, { token: body.photoDraft, requestId: request.id, projectId: project.id })
+
   // One event per request (unique key): the staff intake item, the receipt and the access instructions consume it,
   // so a retry never sends a second receipt (HH-INT-20). Identifiers only, no personal data.
   await outbox.add(tx, {
@@ -191,5 +214,6 @@ export async function submitRequest(
     submittedAt: request.submitted_at,
     serviceCodes: body.services.map((s) => services.get(s.serviceId)?.code ?? s.serviceId),
     spamSuspected,
+    photos,
   }
 }

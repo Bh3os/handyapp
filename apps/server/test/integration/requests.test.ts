@@ -32,9 +32,14 @@ function body(over: Record<string, unknown> = {}) {
     notSure: false,
     description: 'Synthetic project description.',
     answers: [
-      { serviceId: 'SVC-DW-01', question: 'hole_size', kind: 'number', number: 6, unit: 'in', approximate: true },
-      { serviceId: 'SVC-PT-01', question: 'ceiling_height', kind: 'unknown' },
-      { question: 'pets', kind: 'text', text: 'One synthetic cat' },
+      {
+        serviceId: 'SVC-DW-01',
+        question: 'damage_size_count_cause',
+        kind: 'text',
+        text: 'About six inches, synthetic',
+      },
+      { serviceId: 'SVC-PT-01', question: 'colors', kind: 'unknown' },
+      { serviceId: 'SVC-PT-01', question: 'occupancy', kind: 'text', text: 'One synthetic cat' },
     ],
     property: { street: '100 Synthetic Way', city: 'Testville', state: 'ky', zip: '40000', propertyType: 'house' },
     timing: { preferredDate: future, flexible: false, needHelpToday: false, windows: ['mornings', 'weekends'] },
@@ -130,9 +135,9 @@ describe('submission creates one request and its records (TSK-0025, HH-INT-10, H
       .orderBy('question_key')
       .execute()
     expect(answers.map((a) => [a.question_key, a.value_kind, a.value_number, a.unit, a.approximate])).toEqual([
-      ['ceiling_height', 'unknown', null, null, false],
-      ['hole_size', 'number', '6', 'in', true],
-      ['pets', 'text', null, null, false],
+      ['colors', 'unknown', null, null, false],
+      ['damage_size_count_cause', 'text', null, null, false],
+      ['occupancy', 'text', null, null, false],
     ])
     const events = await t.db
       .selectFrom('platform.outbox_events')
@@ -230,7 +235,11 @@ describe('validation keeps every field and reports each problem (TSK-0025, HH-IN
           phone: '555 1234',
           preferredChannel: 'email',
         },
-        answers: [{ serviceId: 'SVC-HI-01', question: 'size', kind: 'number' }],
+        answers: [
+          { serviceId: 'SVC-HI-01', question: 'size', kind: 'number' },
+          { serviceId: 'SVC-DW-01', question: 'ceiling_height', kind: 'unknown' },
+          { serviceId: 'SVC-DW-01', question: 'moisture', kind: 'number', number: 3, unit: 'in' },
+        ],
       }),
       'synthetic-key-invalid-0001',
       nextIp(),
@@ -248,6 +257,9 @@ describe('validation keeps every field and reports each problem (TSK-0025, HH-IN
         'body.contact.phone',
         'body.answers.0.serviceId',
         'body.answers.0.number',
+        // TSK-0027: only the service's own questions, and no number until a question has a unit.
+        'body.answers.1.question',
+        'body.answers.2.kind',
       ]),
     )
     expect(res.json().error.message).toMatch(/[A-Za-z]/)
@@ -317,11 +329,49 @@ describe('rate limits and quiet spam controls (TSK-0025, HH-INT-11)', () => {
   })
 })
 
+describe('services and their questions for the form (TSK-0027, HH-INT-15, HH-SVC-03)', () => {
+  it('[HH-SVC-03][OWN-DEC-84] lists only services the public site may show, with the registry questions and no credential question', async () => {
+    const none = await app.inject({ method: 'GET', url: '/api/v1/public/services' })
+    expect(none.json()).toEqual({ services: [] })
+    await sql`UPDATE catalog.services SET public_status = 'staging' WHERE id IN ('SVC-DW-01', 'SVC-HI-05')`.execute(
+      t.db,
+    )
+    try {
+      const res = await app.inject({ method: 'GET', url: '/api/v1/public/services' })
+      const services = res.json().services as {
+        id: string
+        name: string
+        questions: { key: string; label: string }[]
+      }[]
+      expect(services.map((s) => s.id)).toEqual(['SVC-DW-01', 'SVC-HI-05'])
+      expect(services[0]?.questions).toEqual([
+        { key: 'damage_size_count_cause', label: 'Damage size/count/cause' },
+        { key: 'moisture', label: 'moisture' },
+        { key: 'texture', label: 'texture' },
+        { key: 'painting_inclusion', label: 'painting inclusion' },
+      ])
+      const hi05 = services[1]?.questions.map((q) => q.label) ?? []
+      expect(hi05).not.toContain('no credentials in form')
+      expect(hi05.join(' ')).not.toMatch(/code|password|credential/i)
+    } finally {
+      await sql`UPDATE catalog.services SET public_status = 'draft' WHERE id IN ('SVC-DW-01', 'SVC-HI-05')`.execute(
+        t.db,
+      )
+    }
+  })
+})
+
 describe('request form settings (TSK-0026, HH-INT-08)', () => {
   it('[HH-INT-08] serves the configured draft period from FACT-SESSION-TIMINGS', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/public/request-form' })
     expect(res.statusCode).toBe(200)
-    expect(res.json()).toEqual({ draftDays: 7, maxServices: 5, timeZone: 'America/Kentucky/Louisville' })
+    expect(res.json()).toEqual({
+      draftDays: 7,
+      maxServices: 5,
+      timeZone: 'America/Kentucky/Louisville',
+      // TSK-0031: the configured photo limits (FACT-UPLOAD-LIMITS).
+      photos: { maxFileBytes: 15 * 1024 * 1024, maxPhotos: 10, types: ['image/jpeg', 'image/png', 'image/webp'] },
+    })
   })
 })
 

@@ -97,6 +97,12 @@ export interface RouteDef {
     /** Explicit response schemas per success status: undeclared fields are stripped (HH-ARC-04). */
     response: Record<number, JsonSchema>
   }
+  /**
+   * A write route that takes raw bytes (for example a photo) instead of JSON: the accepted content types and the
+   * transport ceiling in bytes. Any other content type answers UNSUPPORTED_MEDIA_TYPE; the business limits (size,
+   * count) are checked by the handler from configuration.
+   */
+  binaryBody?: { contentTypes: readonly string[]; maxBytes: number }
   /** The record facts the policy needs; null answers NOT_FOUND. Default: no facts. */
   resource?: (ctx: Pick<ApiContext, 'req' | 'actor' | 'db'>) => Promise<Resource | null>
   handler: (ctx: ApiContext) => Promise<ApiResult>
@@ -160,6 +166,13 @@ export function routeProblems(route: RouteDef): string[] {
       { properties?: Record<string, unknown> } | undefined
     if (!ok?.properties?.['items'] || !ok.properties['nextCursor'])
       p.push(`${id}: paginated responses have items and nextCursor`)
+  }
+  if (route.binaryBody) {
+    if (route.kind !== 'write') p.push(`${id}: only write routes take a binary body`)
+    if (route.schema.body) p.push(`${id}: a binary body has no JSON body schema`)
+    if (route.binaryBody.contentTypes.length === 0 || route.binaryBody.maxBytes < 1)
+      p.push(`${id}: a binary body names its content types and a positive size ceiling`)
+    if (route.idempotency === 'required') p.push(`${id}: binary uploads deduplicate by content, not by idempotency key`)
   }
   for (const part of ['params', 'querystring', 'body'] as const)
     checkObjects(route.schema[part], `${id} ${part}`, 'input', p)

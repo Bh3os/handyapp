@@ -3,6 +3,8 @@
 import type { ApiModule } from '../api/route.js'
 import type { Secret } from '../providers/types.js'
 import { identityModule } from './identity/index.js'
+import type { ObjectStorage } from '../providers/index.js'
+import { photosModule } from './photos/index.js'
 import { REQUESTS_MODULE } from './requests/index.js'
 
 export type ModuleDeps = {
@@ -10,10 +12,16 @@ export type ModuleDeps = {
   secureCookies: boolean
   /** Seals staff TOTP secrets (optional MFA, TSK-0015); null while MFA_ENCRYPTION_KEY is unset. */
   mfaKey: Secret | null
+  /** The private object storage for photos (R2, or the fake in local and ci); null while NOT CONFIGURED. */
+  storage?: ObjectStorage | null
 }
 
 export function apiModules(deps: ModuleDeps): ApiModule[] {
-  return [identityModule({ cookies: { secure: deps.secureCookies }, mfaKey: deps.mfaKey }), REQUESTS_MODULE]
+  return [
+    identityModule({ cookies: { secure: deps.secureCookies }, mfaKey: deps.mfaKey }),
+    REQUESTS_MODULE,
+    photosModule({ storage: deps.storage ?? null }),
+  ]
 }
 
 /** The modules as the contract (openapi.json) describes them; cookie flags and keys do not change the contract. */
