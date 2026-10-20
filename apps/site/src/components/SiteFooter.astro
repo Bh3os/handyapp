@@ -1,0 +1,114 @@
+---
+// Site footer (TSK-0020; HH-CUS-05, HH-CUS-07, FACT-PUBLIC-CONTACT, FACT-PAYMENT-METHODS, FACT-NO-SURCHARGE).
+// The labels are built in; which payment methods apply and the public contact come from configuration at run time
+// (GET /api/v1/public/site). The contact is not provided today (OWN-DEC-131): each detail shows a labelled
+// placeholder and is never a link (OWN-DEC-47). Cards are named as taken with Square; no surcharge text exists.
+import { customerTranslator } from '@handyhub/i18n'
+import { PAYMENT_ITEMS } from '../site/facts'
+
+const t = customerTranslator()
+const methodLabel = {
+  card: t.t('payment.method.card'),
+  cash: t.t('payment.method.cash'),
+  check: t.t('payment.method.check'),
+  zelle: t.t('payment.method.zelle'),
+  cashApp: t.t('payment.method.cashApp'),
+  chime: t.t('payment.method.chime'),
+}
+const loading = t.t('site.footer.loading')
+const unavailable = t.t('error.UNAVAILABLE')
+const notConfigured = t.t('site.footer.notConfigured')
+const placeholder = t.t('site.footer.contactPlaceholder')
+---
+
+<footer
+  class="hh-site-footer"
+  data-site-facts
+  data-unavailable={unavailable}
+  data-not-configured={notConfigured}
+  data-placeholder={placeholder}
+>
+  <div class="hh-site__wrap hh-site-footer__grid">
+    <div>
+      <p class="hh-site-footer__brand">HandyHub</p>
+      <p class="hh-small">{t.t('home.trust.visits')}</p>
+    </div>
+    <section aria-labelledby="site-footer-contact">
+      <h2 class="hh-site-footer__heading" id="site-footer-contact">{t.t('site.footer.contactHeading')}</h2>
+      <dl class="hh-site-footer__contact">
+        <div>
+          <dt>{t.t('site.footer.phone')}</dt>
+          <dd data-contact="phone">{loading}</dd>
+        </div>
+        <div>
+          <dt>{t.t('site.footer.email')}</dt>
+          <dd data-contact="email">{loading}</dd>
+        </div>
+      </dl>
+    </section>
+    <section aria-labelledby="site-footer-payment">
+      <h2 class="hh-site-footer__heading" id="site-footer-payment">{t.t('site.footer.paymentHeading')}</h2>
+      <p class="hh-small" data-payment-status role="status">{loading}</p>
+      <ul class="hh-site-footer__methods" data-payment-list hidden>
+        {PAYMENT_ITEMS.map((item) => <li data-payment-item={item} hidden>{methodLabel[item]}</li>)}
+      </ul>
+    </section>
+  </div>
+</footer>
+
+<script>
+  import { contactDetails, paymentItems, parseSiteFacts, type ContactDetail, type SiteFacts } from '../site/facts'
+
+  const root = document.querySelector<HTMLElement>('[data-site-facts]')
+
+  function badge(text: string): HTMLElement {
+    const span = document.createElement('span')
+    span.className = 'hh-badge'
+    span.textContent = text
+    return span
+  }
+
+  function showContact(el: HTMLElement, detail: ContactDetail, placeholder: string) {
+    if (detail.kind === 'placeholder') {
+      el.replaceChildren(badge(placeholder))
+      return
+    }
+    const a = document.createElement('a')
+    a.href = detail.href
+    a.textContent = detail.value
+    el.replaceChildren(a)
+  }
+
+  function render(facts: SiteFacts | null) {
+    if (!root) return
+    const status = root.querySelector<HTMLElement>('[data-payment-status]')
+    const list = root.querySelector<HTMLElement>('[data-payment-list]')
+    const phone = root.querySelector<HTMLElement>('[data-contact="phone"]')
+    const email = root.querySelector<HTMLElement>('[data-contact="email"]')
+    const unavailable = root.dataset['unavailable'] ?? ''
+    if (!facts) {
+      // Unknown is not safe: nothing is guessed while the facts cannot be read.
+      for (const el of [status, phone, email]) if (el) el.textContent = unavailable
+      return
+    }
+    const details = contactDetails(facts.contact)
+    if (phone) showContact(phone, details.phone, root.dataset['placeholder'] ?? '')
+    if (email) showContact(email, details.email, root.dataset['placeholder'] ?? '')
+    if (!status || !list) return
+    if (facts.paymentMethods === null) {
+      status.replaceChildren(badge(root.dataset['notConfigured'] ?? ''))
+      return
+    }
+    const shown = new Set<string>(paymentItems(facts.paymentMethods))
+    for (const li of list.querySelectorAll<HTMLElement>('[data-payment-item]'))
+      li.hidden = !shown.has(li.dataset['paymentItem'] ?? '')
+    list.hidden = shown.size === 0
+    if (shown.size === 0) status.replaceChildren(badge(root.dataset['notConfigured'] ?? ''))
+    else status.hidden = true
+  }
+
+  fetch('/api/v1/public/site', { headers: { accept: 'application/json' }, credentials: 'same-origin' })
+    .then((res) => (res.ok ? res.json() : null))
+    .then((body: unknown) => render(parseSiteFacts(body)))
+    .catch(() => render(null))
+</script>

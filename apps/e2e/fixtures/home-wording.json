@@ -1,0 +1,20 @@
+{
+  "source": "OWN-DEC-86 (owner, 2026-10-12) and OWN-DEC-89; typed out independently of the site catalog",
+  "title": "HandyHub",
+  "trustFacts": [
+    "Free estimates—online or at your property.",
+    "Every project individually priced to match its scope.",
+    "Visits every day, 8 AM–10 PM, by appointment."
+  ],
+  "whyHeading": "Why HandyHub",
+  "whySubtitle": "Professional care, from estimate to completion.",
+  "whyItems": [
+    "Clear pricing: Written scope and price for your approval.",
+    "Respect for your time: Confirmed date, arrival window, and updates.",
+    "Prepared team: Tools, materials, and instructions planned for your job.",
+    "Your approval matters: No added work or price changes without your agreement.",
+    "Careful completion: Quality review, walkthrough when available, and documented follow-up.",
+    "Easy project access: Estimates, updates, photos, and invoices through one secure link."
+  ],
+  "paymentMethods": ["Credit or debit cards (Square)", "Cash", "Check", "Zelle", "Cash App", "Chime"]
+}
