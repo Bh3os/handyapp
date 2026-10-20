@@ -1,0 +1,200 @@
+/* HandyHub design tokens (TSK-0018, HH-BASE-01). The premium home-services identity of FACT-BRAND-IDENTITY and
+   OWN-DEC-54/OWN-DEC-55, reproduced from the frozen Bh3os/handyhub-app (design specification 1.1 sections 2 and 6,
+   apps/site/src/styles/site.css and apps/web/src/styles.css). Shared by the public site, the customer portal and the
+   staff app; nothing here is a new identity.
+
+   Deep navy for action, warm ivory for the page, champagne gold only as hairlines, small marks and the focus ring on
+   navy (2.4:1 on ivory, so never text on light surfaces), charcoal text, stone tints. Square shoulders, no gradients.
+   Light and dark themes meet WCAG 2.2 AA; test/tokens.test.ts checks every text and control pair below.
+
+   The dark theme follows the system setting. `data-theme="light"` or `data-theme="dark"` on the root pins one (used by
+   the component gallery); the two dark blocks below must stay identical (the token test compares them). */
+
+:root {
+  color-scheme: light;
+
+  /* Brand palette (FACT-BRAND-IDENTITY, OWN-DEC-54). */
+  --hh-navy: #1a2b49;
+  --hh-navy-deep: #111d33;
+  --hh-ivory: #f7f5f0;
+  --hh-gold: #c79a55;
+  --hh-charcoal: #303942;
+  --hh-stone: #e7e2d9;
+  /* Supporting values of the design specification 2.1. */
+  --hh-white: #ffffff;
+  --hh-stone-deep: #cfc8bb;
+  --hh-slate: #5b6670;
+  --hh-gold-deep: #8c6a2f;
+  --hh-link-navy: #24467a;
+
+  /* Surfaces and text. Contrast on ivory: charcoal 10.8:1, slate 5.4:1, link 8.6:1, gold-deep 4.6:1. */
+  --hh-canvas: var(--hh-ivory);
+  --hh-surface: var(--hh-white);
+  --hh-surface-2: #f5f3ef;
+  --hh-tint: var(--hh-stone);
+  --hh-line: var(--hh-stone-deep);
+  --hh-line-strong: var(--hh-slate);
+  --hh-text: var(--hh-charcoal);
+  --hh-muted: var(--hh-slate);
+  --hh-link: var(--hh-link-navy);
+  --hh-accent: var(--hh-gold);
+  --hh-accent-text: var(--hh-gold-deep);
+  --hh-focus: var(--hh-gold-deep);
+  --hh-overlay: rgba(17, 29, 51, 0.55);
+
+  /* Actions: navy with ivory text (13:1); hover navy deep. */
+  --hh-action: var(--hh-navy);
+  --hh-action-hover: var(--hh-navy-deep);
+  --hh-on-action: var(--hh-ivory);
+
+  /* Status. The word is always written out; colour and marker shape only repeat it. */
+  --hh-success: #2e6b3a;
+  --hh-success-tint: #e6f1e7;
+  --hh-success-text: #24552e;
+  --hh-danger: #b3261e;
+  --hh-danger-tint: #fbeceb;
+  --hh-danger-text: #8f1d14;
+  --hh-warning: var(--hh-gold-deep);
+  --hh-warning-tint: #f6efe2;
+  --hh-warning-text: #4a3a1c;
+  --hh-info: var(--hh-link-navy);
+  --hh-info-tint: #e9edf4;
+  --hh-info-text: var(--hh-link-navy);
+  --hh-neutral-tint: #ece7dc;
+  --hh-neutral-text: var(--hh-charcoal);
+
+  /* Typefaces (OWN-DEC-55): Newsreader for prominent headlines only, never below 24 px and never italic; Source Sans 3
+     for everything else, including the staff app. Both self-hosted (fonts.css). */
+  --hh-font-display: 'Newsreader', 'Newsreader Fallback', Georgia, 'Times New Roman', serif;
+  --hh-font-body: 'Source Sans 3', 'Source Sans 3 Fallback', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --hh-font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+
+  /* Type scale (design specification 2.2), phone to desktop. Display sizes stay at or above 1.5rem (24 px). */
+  --hh-text-display: clamp(2.5rem, 1.9rem + 2.5vw, 3.5rem);
+  --hh-text-h1: clamp(2.125rem, 1.75rem + 1.6vw, 2.75rem);
+  --hh-text-h2: clamp(1.625rem, 1.45rem + 0.75vw, 2rem);
+  --hh-text-h3: clamp(1.125rem, 1.08rem + 0.2vw, 1.25rem);
+  --hh-text-lead: clamp(1.125rem, 1.08rem + 0.2vw, 1.25rem);
+  --hh-text-body: clamp(1rem, 0.98rem + 0.1vw, 1.0625rem);
+  --hh-text-small: 0.9375rem;
+  --hh-text-label: 0.875rem;
+  --hh-leading-display: 1.1;
+  --hh-leading-tight: 1.3;
+  --hh-leading-body: 1.6;
+
+  /* Space (design specification 2.3): 4, 8, 12, 16, 24, 32, 48, 64, 96 and 128 px. */
+  --hh-space-1: 0.25rem;
+  --hh-space-2: 0.5rem;
+  --hh-space-3: 0.75rem;
+  --hh-space-4: 1rem;
+  --hh-space-6: 1.5rem;
+  --hh-space-8: 2rem;
+  --hh-space-12: 3rem;
+  --hh-space-16: 4rem;
+  --hh-space-24: 6rem;
+  --hh-space-32: 8rem;
+  --hh-gutter: clamp(1rem, 4vw, 2.5rem);
+  --hh-wrap: 75rem;
+  --hh-measure: 42rem;
+
+  /* Shape, depth and size. Square-shouldered: nothing is pill-shaped. */
+  --hh-radius-sm: 2px;
+  --hh-radius-md: 4px;
+  --hh-hairline: 1px solid var(--hh-line);
+  --hh-hairline-gold: 1px solid var(--hh-gold);
+  --hh-elevation-plate: 0 1px 0 var(--hh-line), 0 24px 40px -32px rgba(26, 43, 73, 0.45);
+  --hh-elevation-menu: 0 12px 32px -16px rgba(26, 43, 73, 0.5);
+  --hh-target: 44px;
+  --hh-target-dense: 24px;
+  --hh-control-height: 48px;
+
+  /* Motion (design specification 2.4): one orchestrated moment per page load, nothing on scroll. */
+  --hh-duration-fast: 150ms;
+  --hh-duration-base: 300ms;
+  --hh-duration-enter: 450ms;
+  --hh-easing: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* Dark theme (design specification 2.6): same roles, redefined. Contrast on navy deep: ivory 15.5:1, muted 9.4:1,
+   gold light 8.5:1; navy on gold 5.5:1. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --hh-canvas: var(--hh-navy-deep);
+    --hh-surface: var(--hh-navy);
+    --hh-surface-2: #16243f;
+    --hh-tint: #22365a;
+    --hh-line: rgba(247, 245, 240, 0.16);
+    --hh-line-strong: #b9c2d0;
+    --hh-text: var(--hh-ivory);
+    --hh-muted: #b9c2d0;
+    --hh-link: #e3c48e;
+    --hh-accent: var(--hh-gold);
+    --hh-accent-text: #e3c48e;
+    --hh-focus: var(--hh-gold);
+    --hh-overlay: rgba(5, 10, 20, 0.7);
+    --hh-action: var(--hh-gold);
+    --hh-action-hover: #d9ac66;
+    --hh-on-action: var(--hh-navy);
+    --hh-success: #9fd3a6;
+    --hh-success-tint: #12291a;
+    --hh-success-text: #9fe3b1;
+    --hh-danger: #ff9b91;
+    --hh-danger-tint: #3a1715;
+    --hh-danger-text: #ffb4ab;
+    --hh-warning: #e3c48e;
+    --hh-warning-tint: #2a2415;
+    --hh-warning-text: #f1e2bd;
+    --hh-info: #e3c48e;
+    --hh-info-tint: #2a3752;
+    --hh-info-text: #e3c48e;
+    --hh-neutral-tint: #232b36;
+    --hh-neutral-text: #cbd5e1;
+    --hh-elevation-plate: 0 1px 0 var(--hh-line), 0 24px 40px -32px rgba(0, 0, 0, 0.8);
+    --hh-elevation-menu: 0 12px 32px -16px rgba(0, 0, 0, 0.8);
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --hh-canvas: var(--hh-navy-deep);
+  --hh-surface: var(--hh-navy);
+  --hh-surface-2: #16243f;
+  --hh-tint: #22365a;
+  --hh-line: rgba(247, 245, 240, 0.16);
+  --hh-line-strong: #b9c2d0;
+  --hh-text: var(--hh-ivory);
+  --hh-muted: #b9c2d0;
+  --hh-link: #e3c48e;
+  --hh-accent: var(--hh-gold);
+  --hh-accent-text: #e3c48e;
+  --hh-focus: var(--hh-gold);
+  --hh-overlay: rgba(5, 10, 20, 0.7);
+  --hh-action: var(--hh-gold);
+  --hh-action-hover: #d9ac66;
+  --hh-on-action: var(--hh-navy);
+  --hh-success: #9fd3a6;
+  --hh-success-tint: #12291a;
+  --hh-success-text: #9fe3b1;
+  --hh-danger: #ff9b91;
+  --hh-danger-tint: #3a1715;
+  --hh-danger-text: #ffb4ab;
+  --hh-warning: #e3c48e;
+  --hh-warning-tint: #2a2415;
+  --hh-warning-text: #f1e2bd;
+  --hh-info: #e3c48e;
+  --hh-info-tint: #2a3752;
+  --hh-info-text: #e3c48e;
+  --hh-neutral-tint: #232b36;
+  --hh-neutral-text: #cbd5e1;
+  --hh-elevation-plate: 0 1px 0 var(--hh-line), 0 24px 40px -32px rgba(0, 0, 0, 0.8);
+  --hh-elevation-menu: 0 12px 32px -16px rgba(0, 0, 0, 0.8);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --hh-duration-fast: 0ms;
+    --hh-duration-base: 0ms;
+    --hh-duration-enter: 0ms;
+  }
+}
