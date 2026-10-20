@@ -6,6 +6,7 @@ import { identityModule } from './identity/index.js'
 import type { ObjectStorage } from '../providers/index.js'
 import { photosModule } from './photos/index.js'
 import { REQUESTS_MODULE } from './requests/index.js'
+import { SITE_MODULE } from './site/index.js'
 
 export type ModuleDeps = {
   /** Secure, `__Host-` session cookies (staging and production); plain cookies over http in local and ci. */
@@ -21,6 +22,7 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     identityModule({ cookies: { secure: deps.secureCookies }, mfaKey: deps.mfaKey }),
     REQUESTS_MODULE,
     photosModule({ storage: deps.storage ?? null }),
+    SITE_MODULE,
   ]
 }
 
