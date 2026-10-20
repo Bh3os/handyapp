@@ -11,6 +11,7 @@ import {
   DraftError,
   MESSAGE_TYPES,
   notificationAutomation,
+  recordConsent,
   releaseAutomation,
   releaseDraft,
   releaseTemplateVersion,
@@ -139,6 +140,18 @@ describe('automatic messages: one automation plus one job per event (TSK-0047, H
         values: { projectLink: 'https://handyhub247.example/p/synthetic' },
       }),
     })
+    // TSK-0048: a text needs the customer's SMS opt-in (HH-INT-22); this customer gave it on the request form.
+    await withTx(t.db, (tx) =>
+      recordConsent(tx, {
+        purpose: 'transactional_sms',
+        channel: 'sms',
+        destination: '+15025550101',
+        granted: true,
+        source: 'request_form',
+        disclosureVersion: 'synthetic-disclosure-1',
+        recordedBy: 'customer:contact-synthetic-1',
+      }),
+    )
     await event('question.published', 'q-1')
     await event('question.published', 'q-1')
     const worker = createWorker({ db: t.db, registry: createAutomationRegistry([automation]) })

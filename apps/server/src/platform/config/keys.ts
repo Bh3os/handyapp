@@ -125,6 +125,8 @@ export const CONFIG_KEYS = {
     staffAccount: listOf(messageCode),
     staffNotifications: listOf(messageCode),
   }),
+  // TSK-0048: the reply to an inbound HELP (HH-COM-12). Not worded in the graph: NOT CONFIGURED until the owner sets it.
+  'sms.help_reply': shape({ text }),
   // RULE-AI-WAVE2: only `false` is a valid value; the database refuses anything else as well.
   'ai.module': shape({ enabled: exactly(false) }),
 } as const satisfies Record<string, Parser<unknown>>
