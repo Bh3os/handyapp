@@ -52,6 +52,11 @@ const post = (url: string, payload: unknown, headers: Record<string, string> = {
   app.inject({ method: 'POST', url: `/api/v1${url}`, payload: payload as object, headers })
 const cookieOf = (res: { headers: Record<string, unknown> }) =>
   String(res.headers['set-cookie']).split(';')[0] as string
+/** Cookie and CSRF token of a session response (TSK-0015: unsafe requests carry X-CSRF-Token). */
+const authOf = (res: { headers: Record<string, unknown>; json: () => { csrfToken: string } }) => ({
+  cookie: cookieOf(res),
+  'x-csrf-token': res.json().csrfToken,
+})
 
 async function signIn(email: string, password: string) {
   return post('/auth/sign-in', { email, password })
@@ -144,14 +149,14 @@ describe('sign-in (TSK-0014, HH-STAFF-01, HH-SEC-02)', () => {
 })
 
 describe('invites by the Owner (TSK-0014, HH-STAFF-01, T26)', () => {
-  let ownerCookie: string
+  let owner: { cookie: string; 'x-csrf-token': string }
 
   it('[HH-STAFF-01] the Owner invites a Worker, who sets a password and signs in', async () => {
-    ownerCookie = cookieOf(await signIn(OWNER, pw(1)))
+    owner = authOf(await signIn(OWNER, pw(1)))
     const invite = await post(
       '/staff/invitations',
       { email: WORKER, displayName: 'Synthetic Worker', role: 'worker', locale: 'es', reason: 'New field worker' },
-      { cookie: ownerCookie, 'idempotency-key': 'synthetic-invite-0001' },
+      { ...owner, 'idempotency-key': 'synthetic-invite-0001' },
     )
     expect(invite.statusCode).toBe(201)
     expect(invite.json()).toMatchObject({ status: 'invited' })
@@ -166,17 +171,17 @@ describe('invites by the Owner (TSK-0014, HH-STAFF-01, T26)', () => {
     const duplicate = await post(
       '/staff/invitations',
       { email: WORKER, displayName: 'Again', role: 'worker', reason: 'Duplicate' },
-      { cookie: ownerCookie, 'idempotency-key': 'synthetic-invite-0002' },
+      { ...owner, 'idempotency-key': 'synthetic-invite-0002' },
     )
     expect(duplicate.json().error.code).toBe('CONFLICT')
   })
 
   it('[T26][RULE-SERVER-AUTHZ] a Worker cannot invite; a guest is unauthenticated', async () => {
-    const workerCookie = cookieOf(await signIn(WORKER, pw(3)))
+    const workerAuth = authOf(await signIn(WORKER, pw(3)))
     const asWorker = await post(
       '/staff/invitations',
       { email: 'x-synthetic@example.test', displayName: 'X', role: 'owner', reason: 'Not allowed' },
-      { cookie: workerCookie, 'idempotency-key': 'synthetic-invite-0003' },
+      { ...workerAuth, 'idempotency-key': 'synthetic-invite-0003' },
     )
     expect(asWorker.statusCode).toBe(403)
     expect(asWorker.json().error.message).toBe('No tiene permiso para hacer esto.')
@@ -198,11 +203,15 @@ describe('invites by the Owner (TSK-0014, HH-STAFF-01, T26)', () => {
         role: 'office',
         reason: 'Office help',
       },
-      { cookie: ownerCookie, 'idempotency-key': 'synthetic-invite-0005' },
+      { ...owner, 'idempotency-key': 'synthetic-invite-0005' },
     )
     expect(stale.json().error.code).toBe('FRESH_AUTH_REQUIRED')
-    expect((await post('/auth/reauth', { password: pw(9) }, { cookie: ownerCookie })).statusCode).toBe(401)
-    expect((await post('/auth/reauth', { password: pw(1) }, { cookie: ownerCookie })).statusCode).toBe(204)
+    expect((await post('/auth/reauth', { password: pw(9) }, owner)).statusCode).toBe(401)
+    const reauth = await post('/auth/reauth', { password: pw(1) }, owner)
+    expect(reauth.statusCode).toBe(200)
+    // Re-authentication rotates the session: the old cookie stops working (TSK-0015).
+    expect((await app.inject({ url: '/api/v1/auth/session', headers: { cookie: owner.cookie } })).statusCode).toBe(401)
+    owner = authOf(reauth)
     const fresh = await post(
       '/staff/invitations',
       {
@@ -211,7 +220,7 @@ describe('invites by the Owner (TSK-0014, HH-STAFF-01, T26)', () => {
         role: 'office',
         reason: 'Office help',
       },
-      { cookie: ownerCookie, 'idempotency-key': 'synthetic-invite-0006' },
+      { ...owner, 'idempotency-key': 'synthetic-invite-0006' },
     )
     expect(fresh.statusCode).toBe(201)
   })
@@ -246,8 +255,9 @@ describe('forgot password, reset, sign-out and expiry (TSK-0014, HH-STAFF-01, T2
   })
 
   it('[T22] sign-out ends the session on the server and clears the cookie', async () => {
-    const cookie = cookieOf(await signIn(OWNER, pw(4)))
-    const out = await post('/auth/sign-out', undefined, { cookie })
+    const signedIn = await signIn(OWNER, pw(4))
+    const cookie = cookieOf(signedIn)
+    const out = await post('/auth/sign-out', undefined, authOf(signedIn))
     expect(out.statusCode).toBe(204)
     expect(String(out.headers['set-cookie'])).toContain('Max-Age=0')
     expect((await app.inject({ url: '/api/v1/auth/session', headers: { cookie } })).statusCode).toBe(401)

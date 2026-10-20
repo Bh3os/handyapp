@@ -161,6 +161,23 @@ export interface IdentityStaffLinksTable {
   invalidated_at: Timestamp | null
 }
 
+export interface IdentityStaffMfaTable {
+  staff_user_id: string
+  kind: Generated<string>
+  secret_sealed: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  confirmed_at: Timestamp | null
+  last_used_step: Int8 | null
+}
+
+export interface IdentityStaffRecoveryCodesTable {
+  id: Generated<string>
+  staff_user_id: string
+  code_hash: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  used_at: Timestamp | null
+}
+
 export interface IdentityStaffSessionsTable {
   id: Generated<string>
   staff_user_id: string
@@ -170,6 +187,7 @@ export interface IdentityStaffSessionsTable {
   authenticated_at: ColumnType<Date, Date | string | undefined, Date | string>
   revoked_at: Timestamp | null
   revoke_reason: string | null
+  state: Generated<string>
 }
 
 export interface IdentityStaffUsersTable {
@@ -470,6 +488,8 @@ export interface Database {
   'identity.rate_limits': IdentityRateLimitsTable
   'identity.role_grants': IdentityRoleGrantsTable
   'identity.staff_links': IdentityStaffLinksTable
+  'identity.staff_mfa': IdentityStaffMfaTable
+  'identity.staff_recovery_codes': IdentityStaffRecoveryCodesTable
   'identity.staff_sessions': IdentityStaffSessionsTable
   'identity.staff_users': IdentityStaffUsersTable
   'identity.verification_attempts': IdentityVerificationAttemptsTable

@@ -2,6 +2,7 @@
 // variable names only; the owner sets every value in Render. An invalid or missing required value refuses to start,
 // and every error names the variable, never its value.
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
+import { Secret } from './providers/types.js'
 
 export const ENVIRONMENTS = ['local', 'ci', 'staging', 'production'] as const
 export type EnvironmentName = (typeof ENVIRONMENTS)[number]
@@ -27,6 +28,8 @@ export const ENV_VARS = {
   BOOTSTRAP_OWNER_EMAIL:
     'Email of the first Owner. While no Owner exists, the server creates that invited account at start and emails one invite link; no password is ever set from the environment.',
   BOOTSTRAP_OWNER_NAME: 'Optional display name of the first Owner.',
+  MFA_ENCRYPTION_KEY:
+    'Key that seals staff authenticator (TOTP) secrets, at least 32 random characters. Unset: optional MFA is NOT CONFIGURED (enrolment refused; nothing else changes). Secret.',
   TRUST_PROXY_HOPS: 'Proxies in front of the service that append to X-Forwarded-For. Default 0.',
   LOG_LEVEL: 'fatal, error, warn, info, debug, trace or silent. Default info.',
   CODE_HASH_KEY:
@@ -90,6 +93,8 @@ export interface Config {
   bootstrapOwner: { email: string; displayName: string | null } | null
   /** Secure, `__Host-` session cookies: staging and production. */
   secureCookies: boolean
+  /** Seals TOTP secrets (optional MFA); null while not configured. Printing it shows '[REDACTED]'. */
+  mfaKey: Secret | null
   trustProxyHops: number
   logLevel: LogLevel
   accessGate: AccessGateSettings
@@ -207,6 +212,9 @@ export function loadConfig(source: Readonly<Record<string, string | undefined>>)
   if (ownerEmail !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerEmail))
     throw new ConfigError('BOOTSTRAP_OWNER_EMAIL must be an email address')
   const local = env === 'local' || env === 'ci'
+  const mfaKeyRaw = get('MFA_ENCRYPTION_KEY')
+  if (mfaKeyRaw !== undefined && mfaKeyRaw.length < 32)
+    throw new ConfigError('MFA_ENCRYPTION_KEY must be at least 32 characters')
   return {
     env,
     databaseUrl,
@@ -217,6 +225,7 @@ export function loadConfig(source: Readonly<Record<string, string | undefined>>)
     staffAppUrl: staffAppUrl ?? (local && port !== 0 ? `http://${host}:${port}/staff` : undefined),
     bootstrapOwner: ownerEmail ? { email: ownerEmail, displayName: get('BOOTSTRAP_OWNER_NAME')?.trim() || null } : null,
     secureCookies: !local,
+    mfaKey: mfaKeyRaw === undefined ? null : new Secret(mfaKeyRaw),
     trustProxyHops: integer('TRUST_PROXY_HOPS', get('TRUST_PROXY_HOPS'), 0, 0, 5),
     logLevel: logLevelRaw === undefined ? 'info' : oneOf('LOG_LEVEL', logLevelRaw, LOG_LEVELS),
     accessGate,

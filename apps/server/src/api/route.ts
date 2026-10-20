@@ -13,7 +13,14 @@ export type ActorKind = 'staff' | 'customer' | 'guest'
 export type JsonSchema = Record<string, unknown>
 
 /** The caller as the session layer resolved it (sessions arrive with TSK-0014; until then every caller is a guest). */
-export type RequestActor = { actor: Actor; locale?: StaffLocale }
+export type RequestActor = {
+  actor: Actor
+  locale?: StaffLocale
+  /** Cookie sessions: the CSRF token every unsafe request must carry in X-CSRF-Token (TSK-0015). */
+  csrfToken?: string
+  /** When the caller last entered a password or second factor (fresh authentication). */
+  authenticatedAt?: Date
+}
 export type ResolveActor = (req: FastifyRequest) => Promise<RequestActor>
 
 /**
@@ -33,6 +40,8 @@ export interface ApiContext {
   db: Db
   /** Write routes: the business transaction; the idempotency record and audit events commit with it. */
   tx: Tx | undefined
+  /** When the caller last entered a password or second factor; undefined for callers without a staff session. */
+  authenticatedAt: Date | undefined
   /** Paginated routes: the capped page size and the decoded cursor. */
   page: PageRequest | undefined
   /** The If-Match version; throws PRECONDITION_REQUIRED when absent (routes with expectedVersion: 'required'). */
@@ -72,6 +81,8 @@ export interface RouteDef {
   idempotency: 'required' | 'none'
   expectedVersion: 'required' | 'none'
   rateLimit: RateLimit
+  /** Owner-only and other sensitive actions: a password or second factor entered within this many minutes. */
+  freshAuthMinutes?: number
   /** The audit action recorded on success, or 'none' for reads. */
   audit: string | 'none'
   pagination: boolean

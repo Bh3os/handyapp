@@ -10,6 +10,7 @@ export const ERROR_CODES = {
   INVALID_CREDENTIALS: { status: 401, retryable: false },
   FORBIDDEN: { status: 403, retryable: false },
   FRESH_AUTH_REQUIRED: { status: 403, retryable: false },
+  CSRF_TOKEN_INVALID: { status: 403, retryable: false },
   LINK_INVALID: { status: 410, retryable: false },
   NOT_FOUND: { status: 404, retryable: false },
   METHOD_NOT_ALLOWED: { status: 405, retryable: false },
@@ -21,6 +22,7 @@ export const ERROR_CODES = {
   PRECONDITION_REQUIRED: { status: 428, retryable: false },
   RATE_LIMITED: { status: 429, retryable: true },
   INTERNAL: { status: 500, retryable: true },
+  NOT_CONFIGURED: { status: 503, retryable: false },
   UNAVAILABLE: { status: 503, retryable: true },
 } as const satisfies Record<string, { status: number; retryable: boolean }>
 
