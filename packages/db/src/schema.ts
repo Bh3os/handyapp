@@ -4,14 +4,33 @@ import type { ColumnType, Generated } from 'kysely'
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>
 
+export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
+/** json and jsonb: parsed on select; written as JSON text (JSON.stringify) so arrays are not sent as SQL arrays. */
+export type Json = ColumnType<JsonValue, string, string>
+
+export interface PlatformPolicyVersionTable {
+  key: string
+  version: number
+  state: string
+  value: Json | null
+  proposed: Generated<boolean>
+  status: Generated<string>
+  source_ids: string[]
+  effective_from: ColumnType<Date, Date | string | undefined, Date | string>
+  changed_by: string
+  change_reason: string | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface PlatformSchemaMigrationTable {
   version: string
   file: string
   checksum: string
-  applied_at: Generated<Timestamp>
+  applied_at: ColumnType<Date, Date | string | undefined, Date | string>
   applied_by: string
 }
 
 export interface Database {
+  'platform.policy_version': PlatformPolicyVersionTable
   'platform.schema_migration': PlatformSchemaMigrationTable
 }

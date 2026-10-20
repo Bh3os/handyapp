@@ -154,6 +154,14 @@ const HELPERS: Record<string, string> = {
   ].join('\n'),
 }
 
+/** Select, insert and update types of each ColumnType helper, for columns with defaults or generated values. */
+const HELPER_PARTS: Record<string, readonly [string, string, string]> = {
+  Int8: ['string', 'bigint | number | string', 'bigint | number | string'],
+  Numeric: ['string', 'number | string', 'number | string'],
+  Timestamp: ['Date', 'Date | string', 'Date | string'],
+  Json: ['JsonValue', 'string', 'string'],
+}
+
 function pascal(s: string): string {
   return s
     .split(/[^A-Za-z0-9]+/)
@@ -198,14 +206,23 @@ export function renderSchema(catalog: Catalog): string {
       else if (enumNames.has(el)) t = 'string'
       else t = 'unknown'
     } else t = scalar(c.type)
+    // Kysely's Generated<T> and GeneratedAlways<T> do not unwrap a ColumnType, so a helper alias (Timestamp, Int8,
+    // Numeric, Json) is spelled out with its select, insert and update types instead (TSK-0007).
+    const parts = c.elementType === null ? HELPER_PARTS[t] : undefined
     const isView = c.kind === 'v' || c.kind === 'm'
-    if (!c.notNull || isView) t = `${t} | null`
+    const nullable = !c.notNull || isView
+    const n = nullable ? ' | null' : ''
+    if (nullable) t = `${t} | null`
     if (isView) return t
     if (c.identity === 'a' || c.generated === 's') {
       kysely.add('GeneratedAlways')
-      return `GeneratedAlways<${t}>`
+      return `GeneratedAlways<${parts ? `${parts[0]}${n}` : t}>`
     }
     if (c.identity === 'd' || c.hasDefault) {
+      if (parts) {
+        kysely.add('ColumnType')
+        return `ColumnType<${parts[0]}${n}, ${parts[1]}${n} | undefined, ${parts[2]}${n}>`
+      }
       kysely.add('Generated')
       return `Generated<${t}>`
     }
