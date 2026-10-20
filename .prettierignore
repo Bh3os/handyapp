@@ -14,3 +14,4 @@ playwright-report
 test-results
 packages/db/src/schema.ts
 packages/db/seed
+apps/server/openapi.json
