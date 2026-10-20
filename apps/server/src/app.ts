@@ -12,6 +12,7 @@ import type { ApiModule, ResolveActor } from './api/route.js'
 import { databaseReadiness, type ReadinessCheck } from './health.js'
 import { apiModules } from './modules/index.js'
 import { staffSessionResolver } from './modules/identity/actor.js'
+import { customerSessionResolver } from './modules/identity/customer-sessions.js'
 import { createLogger, type Logger } from './platform/logger.js'
 import { registerRequestContext, requestIdFrom } from './platform/request-context.js'
 
@@ -82,8 +83,10 @@ export async function buildApp({
   const db =
     api?.db ?? (config.databaseUrl ? createDb(config.databaseUrl, { applicationName: 'handyapp-api' }) : undefined)
   if (ownDb && db) app.addHook('onClose', async () => db.destroy())
+  // The caller: a customer session (TSK-0016), otherwise a staff session (TSK-0014), otherwise a guest.
   const resolveActor =
-    api?.resolveActor ?? (db ? staffSessionResolver(db, { secure: config.secureCookies }) : undefined)
+    api?.resolveActor ??
+    (db ? customerSessionResolver(db, staffSessionResolver(db, { secure: config.secureCookies })) : undefined)
   await registerApi(app, {
     db,
     modules: api?.modules ?? apiModules({ secureCookies: config.secureCookies }),

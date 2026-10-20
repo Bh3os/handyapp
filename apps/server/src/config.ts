@@ -29,6 +29,8 @@ export const ENV_VARS = {
   BOOTSTRAP_OWNER_NAME: 'Optional display name of the first Owner.',
   TRUST_PROXY_HOPS: 'Proxies in front of the service that append to X-Forwarded-For. Default 0.',
   LOG_LEVEL: 'fatal, error, warn, info, debug, trace or silent. Default info.',
+  CODE_HASH_KEY:
+    'Key for one-time codes and client-address digests, at least 32 characters (TSK-0016). Unset in staging or production: codes NOT CONFIGURED; local and ci use a random key per process. Secret.',
 } as const
 export type EnvVarName = keyof typeof ENV_VARS
 

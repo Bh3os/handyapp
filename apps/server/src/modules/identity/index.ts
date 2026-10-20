@@ -1,3 +1,5 @@
+// Identity module (HH-ARC-02): the staff sign-in API (TSK-0014; HH-STAFF-01, HH-SEC-02, OWN-DEC-114) and, re-exported
+// below, customer one-time codes and customer sessions (TSK-0016), which the features that use them call.
 // Staff sign-in API (TSK-0014; HH-STAFF-01, HH-SEC-02, OWN-DEC-114). Every write goes through the route contract with
 // audit. Errors are generic: a wrong password, an unknown email and an account that cannot sign in all answer
 // INVALID_CREDENTIALS, and "Forgot password?" always answers the same, so no response reveals whether an email exists.
@@ -10,10 +12,10 @@ import { consumeLink, issueLink } from './links.js'
 import { checkPassword, hashPassword, needsRehash, PASSWORD_MIN_LENGTH, verifyPassword } from './passwords.js'
 import { check, hit, networkOf, RATE_RULES } from './rate-limit.js'
 import {
-  clearedSessionCookie,
+  clearedSessionCookie as clearedStaffCookie,
   createSession,
   revokeSession,
-  sessionCookie,
+  sessionCookie as staffSessionCookie,
   type CookieOptions,
   type LiveSession,
 } from './sessions.js'
@@ -140,7 +142,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
             locale: locale === 'es' ? 'es' : 'en',
             roles,
           }),
-          headers: { 'set-cookie': sessionCookie(session.token, deps.cookies) },
+          headers: { 'set-cookie': staffSessionCookie(session.token, deps.cookies) },
         }
       },
     },
@@ -164,7 +166,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
         if (!session || !tx) throw new ApiError('UNAUTHENTICATED')
         await revokeSession(tx, session.sessionId, 'sign_out')
         await audit({ target: { type: 'staff_user', id: session.staffUserId } })
-        return { status: 204, body: null, headers: { 'set-cookie': clearedSessionCookie(deps.cookies) } }
+        return { status: 204, body: null, headers: { 'set-cookie': clearedStaffCookie(deps.cookies) } }
       },
     },
     {
@@ -400,3 +402,45 @@ export function identityModule(deps: IdentityDeps): ApiModule {
 }
 
 export { PASSWORD_MIN_LENGTH }
+
+// Customer one-time codes and customer sessions (TSK-0016).
+export {
+  CODE_ISSUED_EVENT,
+  CODE_PURPOSES,
+  issueCode,
+  maskForCustomer,
+  normaliseDestination,
+  verifyCode,
+  type CodeChannel,
+  type CodePurpose,
+  type IssueInput,
+  type IssueResult,
+  type VerifyInput,
+  type VerifyResult,
+} from './codes.js'
+export {
+  CODE_MESSAGE_BODY,
+  CODE_MESSAGE_KEY,
+  CODE_TEMPLATES,
+  codeDeliveryAutomation,
+  CodeDeliveryError,
+  type CodeDeliveryDeps,
+} from './delivery.js'
+export { MIN_CODE_KEY_LENGTH, readCodeKey, type CodeKeySettings } from './keys.js'
+export {
+  clearedSessionCookie,
+  CUSTOMER_COOKIE,
+  customerActor,
+  customerSessionResolver,
+  readSessionToken,
+  refreshVerification,
+  resolveCustomerSession,
+  revokeCustomerSession,
+  sessionCookie,
+  SessionConfigError,
+  setSessionCookie,
+  startCustomerSession,
+  type CustomerSession,
+  type StartedSession,
+  type StartSessionInput,
+} from './customer-sessions.js'

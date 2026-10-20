@@ -51,6 +51,22 @@ export interface IdentityAuthIdentitiesTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface IdentityCustomerSessionsTable {
+  id: string
+  token_hash: string
+  contact_ref: string
+  via: string
+  project_ids: Generated<string[]>
+  verified_at: Timestamp
+  fresh_until: Timestamp
+  idle_minutes: number
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  last_seen_at: ColumnType<Date, Date | string | undefined, Date | string>
+  expires_at: Timestamp
+  revoked_at: Timestamp | null
+  revoke_reason: string | null
+}
+
 export interface IdentityRateLimitsTable {
   bucket: string
   key_hash: string
@@ -105,6 +121,32 @@ export interface IdentityStaffUsersTable {
   disabled_at: Timestamp | null
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   version: Generated<number>
+}
+
+export interface IdentityVerificationAttemptsTable {
+  id: ColumnType<string, bigint | number | string | undefined, bigint | number | string>
+  code_id: string | null
+  client_key: string | null
+  succeeded: boolean
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface IdentityVerificationCodesTable {
+  id: string
+  purpose: string
+  channel: string
+  destination: string
+  subject_ref: string
+  nonce: string
+  code_digest: string
+  client_key: string | null
+  attempts: Generated<number>
+  max_attempts: number
+  expires_at: Timestamp
+  consumed_at: Timestamp | null
+  superseded_at: Timestamp | null
+  request_id: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
 export interface PlatformAuditEventsTable {
@@ -271,11 +313,14 @@ export interface Database {
   'catalog.service_versions': CatalogServiceVersionsTable
   'catalog.services': CatalogServicesTable
   'identity.auth_identities': IdentityAuthIdentitiesTable
+  'identity.customer_sessions': IdentityCustomerSessionsTable
   'identity.rate_limits': IdentityRateLimitsTable
   'identity.role_grants': IdentityRoleGrantsTable
   'identity.staff_links': IdentityStaffLinksTable
   'identity.staff_sessions': IdentityStaffSessionsTable
   'identity.staff_users': IdentityStaffUsersTable
+  'identity.verification_attempts': IdentityVerificationAttemptsTable
+  'identity.verification_codes': IdentityVerificationCodesTable
   'platform.audit_events': PlatformAuditEventsTable
   'platform.idempotency_keys': PlatformIdempotencyKeysTable
   'platform.jobs': PlatformJobsTable

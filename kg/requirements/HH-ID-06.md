@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: identity
 links:
-  decided_by: ["[[OWN-DEC-96]]", "[[OWN-DEC-103]]", "[[OWN-DEC-70]]", "[[OWN-DEC-141]]"]
+  decided_by: ["[[OWN-DEC-96]]", "[[OWN-DEC-103]]", "[[OWN-DEC-70]]", "[[OWN-DEC-141]]", "[[OWN-DEC-150]]"]
   depends_on: ["[[HH-ID-04]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[ENT-ProjectAccessGrant]]", "[[FACT-RETENTION-SCHEDULE]]", "[[FACT-SESSION-TIMINGS]]"]
