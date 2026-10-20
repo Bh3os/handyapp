@@ -24,12 +24,24 @@ export function emptyDatabaseSuite(fileLabel: string) {
       const names = rows.map((r) => r.name)
       expect(names).toContain('platform.schema_migration')
       expect(names).not.toContain('public.scratch')
-      // platform.policy_version holds only the configuration the migrations seed (TSK-0007, TSK-0016).
-      const seeded = await sql<{ by: string }>`SELECT DISTINCT changed_by AS by FROM platform.policy_version`.execute(
-        t.db,
-      )
-      for (const r of seeded.rows) expect(r.by).toMatch(/^migration:\d{4}$/)
-      for (const name of names.filter((n) => n !== 'platform.schema_migration' && n !== 'platform.policy_version')) {
+      // Tables that hold only what their migrations seed: configuration (0005, 0008) and the owner-worded templates
+      // (0008). Every row there must come from a migration; every other table is empty.
+      const seeded = await sql<{ by: string }>`
+        SELECT changed_by AS by FROM platform.policy_version
+        UNION SELECT released_by FROM platform.message_template_versions`.execute(t.db)
+      expect(seeded.rows.every((r) => r.by.startsWith('migration:'))).toBe(true)
+      const orphanTemplates = await sql<{ n: number }>`
+        SELECT count(*)::int AS n FROM platform.message_templates m WHERE NOT EXISTS (
+          SELECT 1 FROM platform.message_template_versions v
+          WHERE v.message_key = m.message_key AND v.channel = m.channel)`.execute(t.db)
+      expect(orphanTemplates.rows[0]?.n).toBe(0)
+      const seededTables = [
+        'platform.schema_migration',
+        'platform.policy_version',
+        'platform.message_templates',
+        'platform.message_template_versions',
+      ]
+      for (const name of names.filter((n) => !seededTables.includes(n))) {
         const count = await sql<{ n: number }>`SELECT count(*)::int AS n FROM ${sql.raw(name)}`.execute(t.db)
         expect(count.rows[0]?.n, name).toBe(0)
       }
