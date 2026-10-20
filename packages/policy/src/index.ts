@@ -19,3 +19,5 @@ export type {
 } from './scope.js'
 export { actionsFor, decide } from './decide.js'
 export type { Allow, Decision, DecisionContext, Deny, DenyReason } from './decide.js'
+export { NAV_IDS, NAV_ITEMS, navigationFor, SEARCH_SCOPES } from './navigation.js'
+export type { NavId, SearchScope, StaffNavigation } from './navigation.js'
