@@ -281,6 +281,22 @@ export interface PlatformAuditEventsTable {
   request_id: string
 }
 
+export interface PlatformConsentRecordsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  purpose: string
+  channel: string
+  destination: string
+  subject_kind: string | null
+  subject_id: string | null
+  granted: boolean
+  disclosure_version: string | null
+  source: string
+  evidence: ColumnType<JsonValue, string | undefined, string>
+  recorded_by: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface PlatformIdempotencyKeysTable {
   actor_key: string
   operation: string
@@ -344,6 +360,18 @@ export interface PlatformMessageDeliveriesTable {
   queued_at: Timestamp | null
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+  status_at: Timestamp | null
+}
+
+export interface PlatformMessageDeliveryEventsTable {
+  id: ColumnType<string, bigint | number | string | undefined, bigint | number | string>
+  delivery_id: string
+  receipt_id: string
+  provider_type: string
+  from_state: string
+  to_state: string
+  occurred_at: Timestamp | null
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
 export interface PlatformMessageTemplateVersionsTable {
@@ -450,9 +478,11 @@ export interface Database {
   'intake.request_services': IntakeRequestServicesTable
   'intake.requests': IntakeRequestsTable
   'platform.audit_events': PlatformAuditEventsTable
+  'platform.consent_records': PlatformConsentRecordsTable
   'platform.idempotency_keys': PlatformIdempotencyKeysTable
   'platform.jobs': PlatformJobsTable
   'platform.message_deliveries': PlatformMessageDeliveriesTable
+  'platform.message_delivery_events': PlatformMessageDeliveryEventsTable
   'platform.message_template_versions': PlatformMessageTemplateVersionsTable
   'platform.message_templates': PlatformMessageTemplatesTable
   'platform.outbox_events': PlatformOutboxEventsTable

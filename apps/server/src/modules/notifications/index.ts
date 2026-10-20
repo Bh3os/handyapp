@@ -14,8 +14,33 @@ export {
   type NotificationAutomationOptions,
   type NotificationProviders,
   type Recipient,
+  type RecordCheck,
+  type RecordCheckResult,
+  type RecordChecks,
   type Resolved,
 } from './deliveries.js'
+export {
+  CONSENT_PURPOSES,
+  ConsentError,
+  consentDestination,
+  currentConsent,
+  MARKETING_MESSAGES,
+  recordConsent,
+  sendPermission,
+  type ConsentInput,
+  type ConsentPurpose,
+  type ConsentSource,
+  type ConsentState,
+  type PermissionResult,
+} from './consent.js'
+export {
+  deliveryStatusAutomation,
+  keywordOf,
+  nextState,
+  PROPOSED_HELP_REPLY,
+  SMS_KEYWORDS,
+  type SmsKeyword,
+} from './status.js'
 export { MESSAGE_TYPES, messageType, type Audience, type Channel, type MessageType } from './message-types.js'
 export {
   assertAutomatic,
