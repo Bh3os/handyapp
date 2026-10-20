@@ -42,6 +42,71 @@ export interface CatalogServicesTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface IdentityAuthIdentitiesTable {
+  id: Generated<string>
+  staff_user_id: string
+  kind: Generated<string>
+  password_hash: string | null
+  password_set_at: Timestamp | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface IdentityRateLimitsTable {
+  bucket: string
+  key_hash: string
+  window_start: Timestamp
+  hits: number
+}
+
+export interface IdentityRoleGrantsTable {
+  id: Generated<string>
+  staff_user_id: string
+  kind: string
+  name: string
+  issued_by: string
+  reason: string | null
+  effective_from: ColumnType<Date, Date | string | undefined, Date | string>
+  ended_at: Timestamp | null
+  ended_by: string | null
+}
+
+export interface IdentityStaffLinksTable {
+  id: Generated<string>
+  staff_user_id: string
+  purpose: string
+  token_hash: string | null
+  issued_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  expires_at: Timestamp
+  delivered_at: Timestamp | null
+  consumed_at: Timestamp | null
+  invalidated_at: Timestamp | null
+}
+
+export interface IdentityStaffSessionsTable {
+  id: Generated<string>
+  staff_user_id: string
+  token_hash: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  last_seen_at: ColumnType<Date, Date | string | undefined, Date | string>
+  authenticated_at: ColumnType<Date, Date | string | undefined, Date | string>
+  revoked_at: Timestamp | null
+  revoke_reason: string | null
+}
+
+export interface IdentityStaffUsersTable {
+  id: Generated<string>
+  display_name: string | null
+  email: string
+  locale: Generated<string>
+  status: Generated<string>
+  invited_at: ColumnType<Date, Date | string | undefined, Date | string>
+  activated_at: Timestamp | null
+  disabled_at: Timestamp | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
+}
+
 export interface PlatformAuditEventsTable {
   id: Generated<string>
   seq: GeneratedAlways<string>
@@ -155,6 +220,12 @@ export interface PlatformWebhookReceiptsTable {
 export interface Database {
   'catalog.service_versions': CatalogServiceVersionsTable
   'catalog.services': CatalogServicesTable
+  'identity.auth_identities': IdentityAuthIdentitiesTable
+  'identity.rate_limits': IdentityRateLimitsTable
+  'identity.role_grants': IdentityRoleGrantsTable
+  'identity.staff_links': IdentityStaffLinksTable
+  'identity.staff_sessions': IdentityStaffSessionsTable
+  'identity.staff_users': IdentityStaffUsersTable
   'platform.audit_events': PlatformAuditEventsTable
   'platform.idempotency_keys': PlatformIdempotencyKeysTable
   'platform.jobs': PlatformJobsTable

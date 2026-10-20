@@ -43,6 +43,7 @@ function errorStatuses(route: RouteDef): number[] {
   if (!route.actors.includes('guest')) codes.add('UNAUTHENTICATED')
   if (route.kind === 'write') codes.add('CONFLICT').add('PAYLOAD_TOO_LARGE').add('UNSUPPORTED_MEDIA_TYPE')
   if (route.idempotency === 'required') codes.add('IDEMPOTENCY_KEY_REQUIRED').add('IDEMPOTENCY_CONFLICT')
+  if (route.permission === 'authentication') codes.add('INVALID_CREDENTIALS').add('LINK_INVALID')
   if (route.expectedVersion === 'required') codes.add('PRECONDITION_REQUIRED').add('STALE_VERSION')
   return [...new Set([...codes].map((c) => ERROR_CODES[c].status))].sort((a, b) => a - b)
 }

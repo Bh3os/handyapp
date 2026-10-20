@@ -1,0 +1,27 @@
+/* Staff app layout (TSK-0014): fast, clear screens in the shared identity (OWN-DEC-54); components from @handyhub/ui. */
+.staff-app__bar {
+  padding: var(--hh-space-3) var(--hh-gutter);
+  border-bottom: var(--hh-hairline);
+  background: var(--hh-surface);
+}
+
+.staff-app__brand {
+  margin: 0;
+  font-weight: 600;
+}
+
+.staff-app__main {
+  max-width: 32rem;
+  margin: 0 auto;
+  padding: var(--hh-space-8) var(--hh-gutter);
+}
+
+.staff-auth {
+  display: grid;
+  gap: var(--hh-space-4);
+}
+
+.staff-auth__form {
+  display: grid;
+  gap: var(--hh-space-4);
+}
