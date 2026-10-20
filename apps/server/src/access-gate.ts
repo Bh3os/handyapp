@@ -4,8 +4,9 @@
 // anything else runs. It only decides who may reach the environment; staff and customer sign-in stay separate and
 // active inside (OWN-DEC-73).
 //
-// - Public without the gate: only the minimal liveness check `/healthz` (no database call, no private data). The
-//   exemption follows the matched route, never the raw URL, so a look-alike path cannot slip through.
+// - Public without the gate: only the minimal liveness check `/healthz` (no database call, no private data) and the
+//   signature-verified provider webhooks. The exemption follows the matched route, never the raw URL, so a look-alike
+//   path cannot slip through.
 // - A request without credentials gets 401 with the challenge and is not counted. Wrong or malformed credentials count
 //   against the client network (an IPv4 address, an IPv6 /64): after 30 failures in 15 minutes (PROPOSED, from the old
 //   repo) the network is refused with 429 for the rest of the window, even with valid credentials.
@@ -19,6 +20,10 @@ import type { AccessGateSettings } from './config.js'
 /** Routes that stay reachable without the gate, by matched route pattern and method. */
 export const GATE_EXEMPT_ROUTES: ReadonlyArray<{ url: string; methods: readonly string[] }> = [
   { url: '/healthz', methods: ['GET', 'HEAD'] },
+  // Provider webhooks (TSK-0013): Bird and Resend cannot present gate credentials; each delivery is authenticated by
+  // its Standard Webhooks signature and timestamp instead, and an unsigned one is refused (providers/webhooks.ts).
+  { url: '/webhooks/bird', methods: ['POST'] },
+  { url: '/webhooks/resend', methods: ['POST'] },
 ]
 
 export const GATE_FAILURE_LIMIT = { max: 30, windowMs: 15 * 60 * 1000 } as const
