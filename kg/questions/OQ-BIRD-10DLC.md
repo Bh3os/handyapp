@@ -12,4 +12,5 @@ source: "OWN-DEC-129; coordinator request 2026-10-20"
 
 - **Who answers:** the owner supplies the business details (legal name, EIN, address, contact, sample messages); Claude prepares the campaign description from [[FACT-AUTOMATIC-MESSAGES]] and [[FACT-REMINDER-CADENCES]].
 - **Depends on:** the registered legal name ([[OQ-LEGAL-ENTITY-NAME]]) and a business address ([[OQ-MAILING-ADDRESS]]), which are open.
+- **Known ([[OWN-DEC-147]]):** registration uses the legal entity ODD JOBS & MORE LLC (Kentucky) with the brand HandyHub ([[FACT-LEGAL-ENTITY]]); filing is an owner action; the website requirements are [[HH-COM-12]].
 - **Until answered:** production texting stays off; staging texts go only to approved test destinations.

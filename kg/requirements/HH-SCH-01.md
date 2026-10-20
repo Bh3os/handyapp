@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: scheduling
 links:
-  decided_by: ["[[OWN-DEC-99]]", "[[OWN-DEC-105]]", "[[OWN-DEC-56]]"]
+  decided_by: ["[[OWN-DEC-99]]", "[[OWN-DEC-105]]", "[[OWN-DEC-56]]", "[[OWN-DEC-144]]"]
   uses: ["[[ENT-Visit]]", "[[ENT-SchedulingTask]]", "[[ENT-Reservation]]", "[[ENT-Project]]", "[[ENT-Job]]"]
   tested_by: ["[[T37]]", "[[T09]]"]
   part_of: ["[[S05]]", "[[C07]]", "[[C04]]"]
@@ -24,4 +24,4 @@ A visit ([[ENT-Visit]]) has:
 
 An estimate visit belongs to the existing project. It creates no job and implies no price approval. One job may have several visits (multi-day work, drying waits, return work).
 
-Visit states: `tentative → confirmed → en_route → arrived → completed`; `tentative → expired`; a confirmed visit may become `canceled` or `no_access`. A reschedule adds history and a new committed version; it never erases the old one.
+Visit states: `tentative → confirmed → en_route → arrived → completed`; `tentative → expired` (an offered visit holds capacity for 24 hours, [[HH-SCH-11]]); a confirmed visit may become `canceled` or `no_access`. A reschedule adds history and a new committed version; it never erases the old one.

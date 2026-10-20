@@ -6,7 +6,7 @@ status: active
 area: field
 links:
   part_of: ["[[SVC-CL-06]]", "[[S07]]"]
-  decided_by: ["[[OWN-DEC-108]]", "[[OWN-DEC-109]]", "[[OWN-DEC-17]]"]
+  decided_by: ["[[OWN-DEC-108]]", "[[OWN-DEC-109]]", "[[OWN-DEC-17]]", "[[OWN-DEC-149]]"]
   constrained_by: ["[[RULE-SAFETY-GATES]]", "[[RULE-HUMAN-REVIEW]]", "[[RULE-NO-INVENTED-FACTS]]", "[[FACT-SVC-STOP-WORK-RULE]]"]
   uses: ["[[FACT-INVENTORY-CL-06]]", "[[FACT-SVC-PHOTO-MINIMUM]]", "[[FACT-SVC-ESCALATION-PATH]]", "[[FACT-SVC-INCIDENT-REPORTING]]"]
 source: "vault Standard Of Operations/sop Hotel-Style Housekeeping Checklist.md; OWN-DEC-108"
@@ -46,6 +46,7 @@ Dispatch and Start Job conditions, pending review:
   - Evidence: note
 - Every chemical product (scent mists, polishes, leather conditioner, cleaners, diffuser refills) is approved with a reviewed SDS; a product without one is not carried to the job (source: 29 section 8.3 interim rule, PROPOSED).
 - Lone work: one housekeeper works alone in a private residence (the Elite tier names a "Dedicated personal housekeeper on property"); no check-in and escalation protocol exists yet: TBD — requires review by safety-liability-manager and a qualified person; owner to approve. (source: pricing Elite "Inclusions" line; 04 CL-06 "stop-work conditions")
+  > Governed now by [[OWN-DEC-149]]: no interval check-ins for lone work; the worker records only Arrived and Finished.
 - PPE selected and available; tools and products loaded and checked (source: spec START-004, START-005; APXA-001).
 - Permit, license and qualification flags: CL-06 touches none of the eight licensed boundaries; consumer subscription terms, insurance for property in HandyHub's care, background checks, mail and package handling and taxability are open questions for the attorney, insurance broker, privacy owner and CPA. This is not a finding that nothing applies; an unknown determination blocks the affected line (source: 04 section 6.3 row CL-06; spec HND-005, START-010).
 - Start only when Ready or an authorized exception is documented; critical holds cannot be overridden (source: APXA-003; 31 section 8.3).

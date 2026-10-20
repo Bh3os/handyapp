@@ -6,7 +6,7 @@ status: active
 area: field
 links:
   part_of: ["[[SVC-CL-01]]", "[[S07]]"]
-  decided_by: ["[[OWN-DEC-108]]", "[[OWN-DEC-109]]", "[[OWN-DEC-17]]"]
+  decided_by: ["[[OWN-DEC-108]]", "[[OWN-DEC-109]]", "[[OWN-DEC-17]]", "[[OWN-DEC-149]]"]
   constrained_by: ["[[RULE-SAFETY-GATES]]", "[[RULE-HUMAN-REVIEW]]", "[[RULE-NO-INVENTED-FACTS]]", "[[FACT-SVC-STOP-WORK-RULE]]"]
   uses: ["[[FACT-INVENTORY-CL-01]]", "[[FACT-SVC-PHOTO-MINIMUM]]", "[[FACT-SVC-ESCALATION-PATH]]", "[[FACT-SVC-INCIDENT-REPORTING]]"]
 source: "vault Standard Of Operations/sop Routine Cleaning Checklist.md; OWN-DEC-108"
@@ -259,6 +259,7 @@ General path: [[FACT-SVC-INCIDENT-REPORTING]].
 - C-CL01-V01 (owner): add a reviewed disinfecting step with an approved product, or narrow the main-plan copy?
 - Q-31-11 (owner; qualified safety professional): emergency kit contents, SDS register owner, chemical storage and transport.
 - Q-31-05 (owner): emergency and escalation contacts, escalation order and after-hours coverage, including a check-in for a cleaner working alone (02 G-065).
+  > Governed now by [[OWN-DEC-149]]: no interval check-ins for lone work; the worker records only Arrived and Finished.
 - Q-31-15 (owner): which checks ("no damage", "rooms secured as found") need a supervisor rather than the worker's self-check while there are two employees?
 - Q-31-02 (owner): who is the qualified bilingual reviewer for the Spanish safety text?
 - Q-29-10 (local authority; safety reviewer): disposal of mop water, chemical residues, sharps and biohazards in each service municipality.

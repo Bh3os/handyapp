@@ -6,8 +6,8 @@ status: active
 priority: P1
 area: scheduling
 links:
-  decided_by: ["[[OWN-DEC-78]]", "[[OWN-DEC-113]]"]
-  uses: ["[[ENT-Visit]]", "[[ENT-Customer]]", "[[ENT-Property]]", "[[ENT-Message]]", "[[FACT-REMINDER-CADENCES]]"]
+  decided_by: ["[[OWN-DEC-78]]", "[[OWN-DEC-113]]", "[[OWN-DEC-148]]"]
+  uses: ["[[ENT-Visit]]", "[[ENT-Customer]]", "[[ENT-Property]]", "[[ENT-Message]]", "[[FACT-REMINDER-CADENCES]]", "[[FACT-CANCELLATION-RULES]]"]
   tested_by: ["[[T67]]"]
   part_of: ["[[C11]]"]
 source: "guide 14.3 HH-SCH-10; OWN-DEC-78, OWN-DEC-113"
@@ -17,6 +17,6 @@ source: "guide 14.3 HH-SCH-10; OWN-DEC-78, OWN-DEC-113"
 **Built now (P0):**
 - Staff record a customer-agreed next-service date or interval on the customer or property, only when the customer agreed to one.
 - A repeat-service reminder draft is prepared on that schedule; staff release it.
-- The customer can change or stop the reminders from the project workspace.
+- The customer can change or stop the recurring schedule and its reminders from the project workspace. A change applies to visits more than 24 hours away; a visit within 24 hours follows the cancellation rules ([[FACT-CANCELLATION-RULES]], [[OWN-DEC-148]]). The same 24-hour rule applies to the P1 series.
 - "Request This Service Again" follows [[HH-ID-12]] and creates a new request linked to the customer and property.
 - Channel permissions, marketing consent and opt-outs are checked before any send.

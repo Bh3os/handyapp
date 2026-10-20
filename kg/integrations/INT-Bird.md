@@ -5,7 +5,7 @@ title: Bird - SMS and business phone number
 status: active
 area: messaging
 links:
-  decided_by: ["[[OWN-DEC-129]]", "[[OWN-DEC-120]]"]
+  decided_by: ["[[OWN-DEC-129]]", "[[OWN-DEC-120]]", "[[OWN-DEC-147]]"]
   constrained_by: ["[[RULE-SYNTHETIC-DATA]]"]
 source: "OWN-DEC-129; Bird docs"
 ---
@@ -24,7 +24,7 @@ Bird is used for texts and for the business phone number.
   - Verify against the raw body, before parsing it.
   - Reject a delivery whose timestamp is more than 5 minutes old.
   - De-duplicate on `webhook-id`: Bird's retries reuse it.
-- STOP and HELP keywords update the contact's channel permissions.
+- STOP, HELP and START keywords are honoured and update the consent record immediately ([[HH-COM-12]], [[OWN-DEC-147]]).
 
 **Phone number**
 - The business number is bought and configured in Bird, then used as the public phone number ([[FACT-PUBLIC-CONTACT]]).
@@ -32,4 +32,4 @@ Bird is used for texts and for the business phone number.
 **Configuration and limits**
 - Credentials (the API key and the webhook signing secret) are set by the owner in Render as environment variables.
 - Staging sends only to approved test numbers.
-- US texting from a 10-digit long code needs A2P 10DLC brand and campaign registration before production use ([[OQ-BIRD-10DLC]]).
+- US texting from a 10-digit long code needs A2P 10DLC brand and campaign registration before production use. It is filed by the owner under the legal entity ODD JOBS & MORE LLC with the brand HandyHub ([[FACT-LEGAL-ENTITY]], [[OQ-BIRD-10DLC]]); the website side is [[HH-COM-12]].

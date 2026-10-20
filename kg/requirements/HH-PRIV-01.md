@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: privacy
 links:
-  decided_by: ["[[OWN-DEC-70]]", "[[OWN-DEC-123]]", "[[OWN-DEC-142]]"]
+  decided_by: ["[[OWN-DEC-70]]", "[[OWN-DEC-123]]", "[[OWN-DEC-142]]", "[[OWN-DEC-143]]"]
   depends_on: ["[[HH-DATA-09]]"]
   constrained_by: ["[[RULE-HUMAN-REVIEW]]", "[[RULE-NO-INVENTED-FACTS]]", "[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[FACT-RETENTION-SCHEDULE]]", "[[ENT-RetentionReview]]", "[[ENT-AuditEvent]]", "[[INT-Render]]", "[[INT-R2]]", "[[INT-Bird]]", "[[INT-Resend]]", "[[INT-Square]]"]
@@ -26,7 +26,7 @@ Purpose and access classes (guide 25.2):
 | Access secret | Site entry | Assigned staff with need during the visit | Protected field; expiry; never in messages, broad exports or caches |
 | Estimate and approval | Scope and commercial commitment evidence | The authorized customer; estimating, operations and finance as needed | Exact version; retention and hold policy |
 | Payment reference | Receipt and reconciliation | The authorized customer; finance; limited collection role | Minimal references; no card data |
-| Incident | Response, follow-up, evidence | Restricted authorized roles | Minimal sensitive personal detail; legal or incident holds |
+| Incident | Response, follow-up, evidence | The Owner and the reporting worker; Office sees only the case status ([[OWN-DEC-143]]) | Minimal sensitive personal detail; legal or incident holds |
 | Worker timestamps | Operations and the accountant's export | Owner | Employment and privacy policy; no customer visibility |
 | Analytics | Reliability and task success | Authorized aggregate reporting | No free-form inputs, access secrets, photos or private IDs |
 | Logs and audit | Reliability, integrity, accountability | Authorized technical and administrative scope | Redaction, controlled access, retention, tamper protection |

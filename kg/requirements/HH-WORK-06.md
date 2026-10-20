@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: field
 links:
-  decided_by: ["[[OWN-DEC-69]]"]
+  decided_by: ["[[OWN-DEC-69]]", "[[OWN-DEC-149]]"]
   constrained_by: ["[[RULE-HUMAN-REVIEW]]"]
   uses: ["[[ENT-TimeStamp]]", "[[ENT-AuditEvent]]", "[[ROLE-OWNER]]"]
   tested_by: ["[[T47]]"]
@@ -19,3 +19,4 @@ source: "guide 16.2 HH-WORK-06; OWN-DEC-69"
 - A missing timestamp is flagged, never invented.
 - Records export for the accountant (CSV). No payroll, overtime, deductions or paystubs are calculated (payroll stays a human-review area).
 - "Arrived" never starts work or bypasses the Start Work gate.
+- Lone work: there are no interval check-ins; a worker alone records only Arrived and Finished ([[OWN-DEC-149]]). Stop Work and Report Hazard stay available at any time ([[HH-WORK-09]]).

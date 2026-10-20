@@ -6,7 +6,7 @@ status: active
 area: safety
 links:
   constrained_by: ["[[RULE-SAFETY-GATES]]"]
-  decided_by: ["[[OWN-DEC-80]]"]
+  decided_by: ["[[OWN-DEC-80]]", "[[OWN-DEC-149]]"]
   related: ["[[FACT-SVC-STOP-WORK-RULE]]", "[[FACT-SVC-INCIDENT-REPORTING]]"]
 source: "vault Standard Of Operations/sop-picture-hanging.md section 19 (same text in all 26 SOPs); owner-answers-verbatim.md 2026-10-05T18:03:06Z and 18:17:56Z"
 ---
@@ -24,5 +24,5 @@ The escalation steps as written in section 19 of all 26 vault SOPs (PROPOSED wor
 Owner answers of 2026-10-05 that fill parts of this path:
 - "If a worker reports a hazard, injury or stop-work and cannot reach you, who is the backup? (Work stays stopped; 911 always first for emergencies.)" = "My field worker".
 - "How should urgent field alerts (hazard, injury, stop-work) and system alerts reach you?" = "Text + app alert (Recommended)".
-- "When someone works alone (attic, vacant house, solo cleaning, a sub alone), do they check in at set times?" = "Yes (Recommended)". The check-in interval is not stated.
+- Lone work: no interval check-ins; a worker alone records only Arrived and Finished ([[OWN-DEC-149]]).
 - "After a non-critical stop clearly ends (storm passed, dog secured), who decides to resume?" = "Lead worker on site". Critical holds clear only with a recorded qualified assessment ([[RULE-SAFETY-GATES]]).

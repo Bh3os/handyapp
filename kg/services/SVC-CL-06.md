@@ -5,7 +5,7 @@ title: "Hotel-Style Housekeeping"
 status: active
 area: business
 links:
-  decided_by: ["[[OWN-DEC-04]]", "[[OWN-DEC-33]]", "[[OWN-DEC-84]]", "[[OWN-DEC-51]]", "[[OWN-DEC-102]]", "[[OWN-DEC-108]]"]
+  decided_by: ["[[OWN-DEC-04]]", "[[OWN-DEC-33]]", "[[OWN-DEC-84]]", "[[OWN-DEC-51]]", "[[OWN-DEC-102]]", "[[OWN-DEC-108]]", "[[OWN-DEC-149]]"]
   uses: ["[[SOP-CL-06]]", "[[FACT-INVENTORY-CL-06]]", "[[FACT-PRICING-PER-JOB]]", "[[FACT-SVC-EXCLUDED-SCOPE]]", "[[FACT-SVC-RECURRING-SERVICE]]", "[[FACT-SVC-LEFT-ITEMS]]", "[[FACT-SVC-LARGE-CLEANING-JOBS]]"]
   constrained_by: ["[[RULE-HUMAN-REVIEW]]", "[[RULE-SAFETY-GATES]]", "[[RULE-NO-INVENTED-FACTS]]", "[[FACT-SVC-EXCLUDED-SCOPE]]", "[[FACT-SVC-SUSPECTED-HAZMAT]]", "[[FACT-SVC-ACCESS-EQUIPMENT]]"]
   part_of: ["[[C01]]", "[[C02]]"]
@@ -139,6 +139,8 @@ Draft service risk class (PROPOSED, 04 section 6.2): routine with approved contr
 | Lone work in a private residence | pricing Elite "Dedicated personal housekeeper on property"; 04 CL-06 "stop-work conditions" (GAP) | Check-in and escalation protocol TBD (section 3) | A threatening situation; no check-in possible | Qualified safety professional; owner |
 | Occupants, children and pets during work | X-11 | Customer preparation (section 5); keep them away from wet floors, chemicals, steam and cords | Anyone enters the immediate work area during a hazardous step | Qualified safety professional |
 | Keys, alarm and access codes | 04 CL-06 "prerequisites"; spec COM-002; 27 AUTH-009 | Secured fields only; key custody log; secure closeout (section 12) | A lost key; a code exposed; the residence cannot be secured | Privacy owner; owner |
+
+- Governed now by [[OWN-DEC-149]]: no interval check-ins for lone work; the worker records only Arrived and Finished. Stop Work stays available at any time.
 
 ## Warranty or callback
 

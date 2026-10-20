@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: estimates
 links:
-  decided_by: ["[[OWN-DEC-102]]", "[[OWN-DEC-32]]", "[[OWN-DEC-83]]", "[[OWN-DEC-104]]", "[[OWN-DEC-110]]", "[[OWN-DEC-126]]", "[[OWN-DEC-127]]", "[[OWN-DEC-66]]", "[[OWN-DEC-135]]", "[[OWN-DEC-140]]"]
+  decided_by: ["[[OWN-DEC-102]]", "[[OWN-DEC-32]]", "[[OWN-DEC-83]]", "[[OWN-DEC-104]]", "[[OWN-DEC-110]]", "[[OWN-DEC-126]]", "[[OWN-DEC-127]]", "[[OWN-DEC-66]]", "[[OWN-DEC-135]]", "[[OWN-DEC-140]]", "[[OWN-DEC-145]]"]
   constrained_by: ["[[RULE-MONEY-CENTS]]", "[[RULE-NO-INVENTED-FACTS]]", "[[FACT-NO-MINIMUM]]", "[[FACT-TAX-NO-LINE]]", "[[FACT-NO-SURCHARGE]]"]
   uses: ["[[ENT-Estimate]]", "[[ENT-EstimateVersion]]", "[[FACT-ESTIMATE-VALIDITY]]", "[[FACT-DEPOSIT-RULE]]", "[[FACT-PAYMENT-DUE]]", "[[FACT-BUSINESS-NAME]]", "[[FACT-BUSINESS-ADDRESS]]", "[[FACT-PRICING-DISCOUNTS]]", "[[FACT-PRICING-SAME-DAY-CHARGE]]", "[[FACT-PRICING-PER-JOB]]", "[[FACT-WARRANTY]]"]
   tested_by: ["[[T31]]", "[[T58]]"]
