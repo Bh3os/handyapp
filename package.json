@@ -19,7 +19,8 @@
     "trace": "node tools/trace.mjs",
     "db:migrate": "pnpm --filter @handyhub/db run db:migrate",
     "db:seed": "pnpm --filter @handyhub/db run db:seed",
-    "db:types": "pnpm --filter @handyhub/db run db:types"
+    "db:types": "pnpm --filter @handyhub/db run db:types",
+    "openapi": "pnpm --filter @handyhub/server openapi"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",

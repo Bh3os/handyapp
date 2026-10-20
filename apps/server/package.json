@@ -9,7 +9,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run test/unit",
     "test:int": "vitest run test/integration --no-file-parallelism",
-    "start": "node dist/main.js"
+    "start": "node dist/main.js",
+    "openapi": "pnpm --filter '@handyhub/server...' run build && node dist/cli/openapi.js"
   },
   "dependencies": {
     "@fastify/static": "^10.1.5",
