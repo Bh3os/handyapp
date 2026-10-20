@@ -1,7 +1,10 @@
 kg/_index.json
 node_modules/
 dist/
-coverage/
+# Test coverage reports (not source folders named coverage, such as the ZIP coverage modules).
+/coverage/
+/apps/*/coverage/
+/packages/*/coverage/
 .astro/
 reports/
 playwright-report/

@@ -2,6 +2,9 @@
 // TSK-0001 placeholder. The public site shell and homepage are built in TSK-0020 from the approved content only.
 // The design system's tokens and typefaces apply from TSK-0018 (HH-BASE-01).
 import '@handyhub/ui/styles.css'
+import '../coverage/coverage.css'
+import CoverageChecker from '../coverage/CoverageChecker.tsx'
+// The ZIP check (TSK-0022, HH-CUS-03) is an island on the homepage; the shell around it comes with TSK-0020.
 ---
 
 <!doctype html>
@@ -16,6 +19,7 @@ import '@handyhub/ui/styles.css'
     <main>
       <h1 class="hh-h1">HandyHub</h1>
       <p>This website is being rebuilt.</p>
+      <CoverageChecker client:load />
     </main>
   </body>
 </html>

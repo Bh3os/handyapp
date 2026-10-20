@@ -4,6 +4,7 @@
 // by @playwright/test instead. Traces are kept on failure; test data is synthetic only.
 import { fileURLToPath } from 'node:url'
 import { defineConfig, devices } from '@playwright/test'
+import { GATE_USERS } from './gate.js'
 
 const executablePath = process.env['E2E_CHROMIUM_EXECUTABLE']
 const port = Number(process.env['E2E_PORT'] ?? 4310)
@@ -18,6 +19,8 @@ const galleryPort = Number(process.env['E2E_GALLERY_PORT'] ?? 4311)
 // Two origins (TSK-0017): a second server with PUBLIC_ORIGIN and STAFF_ORIGIN on *.localhost names, which Chromium
 // maps to this machine (host-resolver-rules below), so host-only cookies and host routing are exercised for real.
 const splitPort = Number(process.env['E2E_SPLIT_PORT'] ?? 4312)
+// The staging access gate in front of a third server (TSK-0022, OWN-DEC-73): the ZIP check must work behind it.
+const gatedPort = Number(process.env['E2E_GATED_PORT'] ?? 4313)
 const splitEnv = {
   PUBLIC_ORIGIN: `http://public.localhost:${splitPort}`,
   STAFF_ORIGIN: `http://staff.localhost:${splitPort}`,
@@ -71,6 +74,21 @@ export default defineConfig({
         PORT: String(splitPort),
         HOST: '127.0.0.1',
         ...splitEnv,
+        ...(databaseUrl ? { DATABASE_URL: databaseUrl, TEST_EMAIL_DESTINATIONS: 'e2e-owner@example.test' } : {}),
+      },
+      reuseExistingServer: false,
+      timeout: 30_000,
+    },
+    {
+      command: databaseUrl
+        ? `node ${JSON.stringify(migrateEntry)} && node ${JSON.stringify(serverEntry)}`
+        : `node ${JSON.stringify(serverEntry)}`,
+      url: `http://127.0.0.1:${gatedPort}/healthz`,
+      env: {
+        HANDYHUB_ENV: 'ci',
+        PORT: String(gatedPort),
+        HOST: '127.0.0.1',
+        ACCESS_GATE_USERS: GATE_USERS,
         ...(databaseUrl ? { DATABASE_URL: databaseUrl, TEST_EMAIL_DESTINATIONS: 'e2e-owner@example.test' } : {}),
       },
       reuseExistingServer: false,

@@ -5,7 +5,9 @@ docs
 CLAUDE.md
 tools/kg.mjs
 dist
-coverage
+/coverage
+/apps/*/coverage
+/packages/*/coverage
 node_modules
 pnpm-lock.yaml
 reports

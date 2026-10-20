@@ -138,6 +138,16 @@ export const CONFIG_KEYS = {
   }),
   // TSK-0048: the reply to an inbound HELP (HH-COM-12). Not worded in the graph: NOT CONFIGURED until the owner sets it.
   'sms.help_reply': shape({ text }),
+  // TSK-0022 (OWN-DEC-37, FACT-SERVICE-AREA): the service area as whole counties; the ZIP rules derived from it live
+  // in platform.coverage_rule_sets, used once the owner confirms them (OQ-SERVICE-AREA-ZIPS).
+  'coverage.area': shape({
+    counties: listOf(
+      shape({
+        state: (v, p) => (typeof v === 'string' && /^[A-Z]{2}$/.test(v) ? v : fail(p, 'expected a state code')),
+        county: text,
+      }),
+    ),
+  }),
   // RULE-AI-WAVE2: only `false` is a valid value; the database refuses anything else as well.
   'ai.module': shape({ enabled: exactly(false) }),
 } as const satisfies Record<string, Parser<unknown>>
