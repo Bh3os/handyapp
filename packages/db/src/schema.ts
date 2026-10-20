@@ -211,6 +211,22 @@ export interface IdentityVerificationCodesTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface IntakePhotosTable {
+  id: string
+  capability_id: string
+  request_id: string | null
+  project_id: string | null
+  object_key: string
+  content_type: string
+  byte_size: number
+  sha256: string
+  state: Generated<string>
+  rejection_reason: string | null
+  uploaded_at: ColumnType<Date, Date | string | undefined, Date | string>
+  processed_at: Timestamp | null
+  removed_at: Timestamp | null
+}
+
 export interface IntakeRequestAnswersTable {
   request_id: string
   service_id: string | null
@@ -260,6 +276,17 @@ export interface IntakeRequestsTable {
   spam_signals: Generated<string[]>
   original_submission: Json
   responsible_staff_id: string | null
+}
+
+export interface IntakeUploadCapabilitiesTable {
+  id: string
+  token_hash: string
+  scope: string
+  request_id: string | null
+  state: Generated<string>
+  expires_at: Timestamp
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  consumed_at: Timestamp | null
 }
 
 export interface PlatformAuditEventsTable {
@@ -474,9 +501,11 @@ export interface Database {
   'identity.staff_users': IdentityStaffUsersTable
   'identity.verification_attempts': IdentityVerificationAttemptsTable
   'identity.verification_codes': IdentityVerificationCodesTable
+  'intake.photos': IntakePhotosTable
   'intake.request_answers': IntakeRequestAnswersTable
   'intake.request_services': IntakeRequestServicesTable
   'intake.requests': IntakeRequestsTable
+  'intake.upload_capabilities': IntakeUploadCapabilitiesTable
   'platform.audit_events': PlatformAuditEventsTable
   'platform.consent_records': PlatformConsentRecordsTable
   'platform.idempotency_keys': PlatformIdempotencyKeysTable

@@ -3,6 +3,7 @@ import { readIdempotencyKey } from '../../api/idempotency.js'
 import type { ApiModule, RouteDef } from '../../api/route.js'
 import { loadConfig } from '../../platform/config/index.js'
 import { currentContext } from '../../platform/request-context.js'
+import { photoLimits } from '../photos/photos.js'
 import { MAX_SERVICES, SUBMIT_BODY, SUBMIT_RESPONSE, type SubmitBody } from './schema.js'
 import { submitRequest } from './submit.js'
 
@@ -46,7 +47,12 @@ const submit: RouteDef = {
     })
     return {
       status: 201,
-      body: { status: 'received', reference: out.reference, submittedAt: out.submittedAt.toISOString() },
+      body: {
+        status: 'received',
+        reference: out.reference,
+        submittedAt: out.submittedAt.toISOString(),
+        ...(body.photoDraft ? { photos: out.photos } : {}),
+      },
     }
   },
 }
@@ -59,7 +65,7 @@ const formSettings: RouteDef = {
   summary: 'Request form settings',
   description:
     'Public read of the configured request-draft period (session.timings.requestDraftDays, FACT-SESSION-TIMINGS), ' +
-    'the business time zone and the service limit. draftDays is null while the value is NOT CONFIGURED; the wizard then keeps no draft.',
+    'the business time zone, the service limit and the photo limits (uploads.limits). draftDays is null while the value is NOT CONFIGURED; the wizard then keeps no draft.',
   actors: ['guest', 'customer'],
   permission: 'request.submit',
   kind: 'read',
@@ -74,11 +80,22 @@ const formSettings: RouteDef = {
       200: {
         type: 'object',
         additionalProperties: false,
-        required: ['draftDays', 'maxServices', 'timeZone'],
+        required: ['draftDays', 'maxServices', 'timeZone', 'photos'],
         properties: {
           draftDays: { type: ['integer', 'null'] },
           maxServices: { type: 'integer' },
           timeZone: { type: ['string', 'null'] },
+          // The configured photo limits (uploads.limits, TSK-0031); null while NOT CONFIGURED (no photo uploads then).
+          photos: {
+            type: ['object', 'null'],
+            additionalProperties: false,
+            required: ['maxFileBytes', 'maxPhotos', 'types'],
+            properties: {
+              maxFileBytes: { type: 'integer' },
+              maxPhotos: { type: 'integer' },
+              types: { type: 'array', items: { type: 'string' } },
+            },
+          },
         },
       },
     },
@@ -93,6 +110,7 @@ const formSettings: RouteDef = {
         maxServices: MAX_SERVICES,
         // The preferred date is tomorrow or later in the property's local time (OWN-DEC-92).
         timeZone: zone.state === 'CONFIGURED' ? zone.value.zone : null,
+        photos: photoLimits(config),
       },
       headers: { 'cache-control': 'no-cache' },
     }

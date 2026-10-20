@@ -2,14 +2,18 @@
 // declaration here; an incomplete one stops the server at boot.
 import { staffLinkEmailAutomation, type LinkEmailDeps } from './modules/identity/link-email.js'
 import { deliveryStatusAutomation } from './modules/notifications/index.js'
+import { photoProcessAutomation } from './modules/photos/index.js'
 import type { Automation } from './platform/automation.js'
+import type { Providers } from './providers/index.js'
 
-export type AutomationDeps = LinkEmailDeps
+export type AutomationDeps = LinkEmailDeps & { providers: Pick<Providers, 'email' | 'storage'> }
 
 export function buildAutomations(deps: AutomationDeps): Automation[] {
   return [
     staffLinkEmailAutomation(deps),
     // TSK-0048: provider statuses and SMS keywords from the stored webhook receipts.
     deliveryStatusAutomation(),
+    // TSK-0031: quarantined request photos are checked again before they may be served.
+    photoProcessAutomation(deps.providers.storage),
   ]
 }

@@ -73,6 +73,16 @@ export function buildOpenApi(modules: readonly ApiModule[]): Record<string, unkn
       ...(route.schema.body
         ? { requestBody: { required: true, content: { 'application/json': { schema: route.schema.body } } } }
         : {}),
+      ...(route.binaryBody
+        ? {
+            requestBody: {
+              required: true,
+              content: Object.fromEntries(
+                route.binaryBody.contentTypes.map((t) => [t, { schema: { type: 'string', format: 'binary' } }]),
+              ),
+            },
+          }
+        : {}),
       responses,
       'x-handyhub': {
         actors: route.actors,

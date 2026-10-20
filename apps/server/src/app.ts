@@ -11,6 +11,7 @@ import { registerApi } from './api/register.js'
 import type { ApiModule, ResolveActor } from './api/route.js'
 import { databaseReadiness, type ReadinessCheck } from './health.js'
 import { apiModules } from './modules/index.js'
+import type { ObjectStorage } from './providers/index.js'
 import { staffSessionResolver } from './modules/identity/actor.js'
 import { customerSessionResolver } from './modules/identity/customer-sessions.js'
 import { createLogger, type Logger } from './platform/logger.js'
@@ -26,7 +27,7 @@ export interface AppOptions {
   logger?: Logger | boolean
   /** The API (TSK-0010): database, modules and caller resolution. Defaults: a pool from config.databaseUrl, MODULES,
    *  and every caller a guest until staff and customer sessions exist (TSK-0014). */
-  api?: { db?: Db; modules?: readonly ApiModule[]; resolveActor?: ResolveActor }
+  api?: { db?: Db; modules?: readonly ApiModule[]; resolveActor?: ResolveActor; storage?: ObjectStorage | null }
 }
 
 /** JSON-schema validation: unknown fields are refused rather than silently dropped, and every problem is reported. */
@@ -90,7 +91,7 @@ export async function buildApp({
   await registerApi(app, {
     db,
     trustProxyHops: config.trustProxyHops,
-    modules: api?.modules ?? apiModules({ secureCookies: config.secureCookies }),
+    modules: api?.modules ?? apiModules({ secureCookies: config.secureCookies, storage: api?.storage ?? null }),
     ...(resolveActor ? { resolveActor } : {}),
   })
 

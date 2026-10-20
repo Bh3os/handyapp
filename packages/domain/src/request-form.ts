@@ -102,6 +102,9 @@ export const REQUEST_FORM_SCHEMA = {
     // Quiet spam controls (HH-INT-11): a field people never see, and when the form was opened (ms since epoch).
     website: { type: 'string', maxLength: 500 },
     startedAt: { type: 'integer', minimum: 0 },
+    // The photo upload capability of the draft (TSK-0031): the server binds that draft's photos to the new request.
+    // A secret: never stored with the original submission.
+    photoDraft: { type: 'string', pattern: '^[A-Za-z0-9_-]{43}$' },
   },
 } as const
 
@@ -113,6 +116,17 @@ export const REQUEST_RECEIPT_SCHEMA = {
     status: { type: 'string', enum: ['received'] },
     reference: { type: 'string' },
     submittedAt: { type: 'string', format: 'date-time' },
+    // The draft's photos as bound to the request (TSK-0031, HH-INT-07): received, still processing, and failed.
+    photos: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['received', 'processing', 'failed'],
+      properties: {
+        received: { type: 'integer' },
+        processing: { type: 'integer' },
+        failed: { type: 'integer' },
+      },
+    },
   },
 } as const
 
@@ -154,6 +168,7 @@ export type SubmitBody = {
   marketingOptIn: boolean
   website?: string
   startedAt?: number
+  photoDraft?: string
 }
 
 /** A field problem: `field` is the body path (`body.contact.phone`), `code` the JSON-schema keyword. */

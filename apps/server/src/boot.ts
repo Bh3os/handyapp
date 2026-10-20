@@ -37,6 +37,8 @@ export async function boot(env: Readonly<Record<string, string | undefined>>, op
   // One pool for the API, the webhooks and the worker. The API caller comes from the staff or the customer session
   // cookie (TSK-0014, TSK-0016; buildApp's default resolver).
   const db = config.databaseUrl ? createDb(config.databaseUrl, { applicationName: 'handyapp-server' }) : undefined
+  // Object storage needs no logger; the senders below get the app's (their destination guard logs suppressions).
+  const storage = createProviders(providers).storage
   const app: FastifyInstance = await buildApp({
     config: {
       ...config,
@@ -44,11 +46,11 @@ export async function boot(env: Readonly<Record<string, string | undefined>>, op
       ...(staffDir === undefined ? {} : { staffDir }),
     },
     logger: options.logger ?? false,
-    ...(db ? { api: { db } } : {}),
+    ...(db ? { api: { db, storage } } : { api: { storage } }),
   })
   const sent = createProviders(providers, { logger: app.log as unknown as Logger })
   const registry = createAutomationRegistry([
-    ...buildAutomations({ providers: sent, staffAppUrl: config.staffAppUrl }),
+    ...buildAutomations({ providers: { ...sent, storage }, staffAppUrl: config.staffAppUrl }),
     codeDeliveryAutomation({ providers: sent, codeKey }),
   ])
   if (db) {
