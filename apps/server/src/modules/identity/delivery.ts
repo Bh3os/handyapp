@@ -1,22 +1,16 @@
 // Delivery of one-time codes (TSK-0016; FACT-AUTOMATIC-MESSAGES #2, OWN-DEC-65, OWN-DEC-96, INT-Resend, INT-Bird,
 // HH-COM-05, RULE-LANGUAGES). The code is the automatic message `contact.verification_code` of the notifications
 // module (TSK-0047): it is sent only while that message is on the configured automatic list, with the current English
-// template, through the Resend or Bird adapter and the test-destination guard, and recorded in
+// template (the owner's wording, OWN-DEC-150, seeded by migration 0010), through the Resend or Bird adapter and the test-destination guard, and recorded in
 // platform.message_deliveries (metadata only, never the text).
 // This file supplies the values at send time:
 // - it rechecks the code and resolves to 'stale' (nothing sent) once it is used, superseded or expired;
 // - it derives the code from the code key and the row's nonce, so a retried job renders the same code and reaches the
 //   provider under the same delivery key; the code is never stored, logged or carried in the outbox;
 // - the lifetime shown is the code's own, taken from configuration when it was issued.
-import type { Tx } from '@handyhub/db'
 import type { Automation } from '../../platform/automation.js'
 import { loadConfig } from '../../platform/config/index.js'
-import {
-  notificationAutomation,
-  releaseTemplateVersion,
-  type NotificationProviders,
-  type TemplateDraft,
-} from '../notifications/index.js'
+import { notificationAutomation, type NotificationProviders, type TemplateDraft } from '../notifications/index.js'
 import type { CodeChannel } from './codes.js'
 import { deriveCode, type CodeKeySettings } from './keys.js'
 
@@ -27,18 +21,21 @@ export class CodeDeliveryError extends Error {
 export const CODE_MESSAGE_KEY = 'contact.verification_code'
 
 /**
- * PROPOSED wording of the code message (English only). The owner has not worded it, so it is not seeded (only
- * owner-worded templates are, T74): the owner releases it, or a changed version, with releaseProposedCodeTemplates or
- * the template release flow. Until then contact.verification_code is NOT CONFIGURED and deliveries fail visibly with
- * template_not_configured. The lifetime is a value from configuration, never part of the text.
+ * The owner's wording of the code message (OWN-DEC-150, 2026-10-20, "Approve as written"), English only, the same
+ * body for email and text. Migration 0010 seeds exactly these as version 1 of contact.verification_code (source
+ * OWN-DEC-150); a test keeps the seed and these constants equal. The lifetime is a value from configuration, never
+ * part of the text; later wording changes are new versions through the template release flow.
  */
-export const PROPOSED_CODE_TEMPLATES: readonly TemplateDraft[] = [
+export const CODE_MESSAGE_BODY =
+  'Your HandyHub verification code is {verificationCode}. It expires in {codeLifetimeMinutes} minutes. If you did not ask for this code, you can ignore this message.'
+
+export const CODE_TEMPLATES: readonly TemplateDraft[] = [
   {
     messageKey: CODE_MESSAGE_KEY,
     channel: 'email',
     locale: 'en',
     subject: 'Your HandyHub verification code',
-    body: 'Your HandyHub verification code is {verificationCode}. It expires in {codeLifetimeMinutes} minutes. If you did not ask for this code, you can ignore this message.',
+    body: CODE_MESSAGE_BODY,
     translationReview: 'source',
   },
   {
@@ -46,16 +43,10 @@ export const PROPOSED_CODE_TEMPLATES: readonly TemplateDraft[] = [
     channel: 'sms',
     locale: 'en',
     subject: null,
-    body: 'HandyHub code: {verificationCode}. It expires in {codeLifetimeMinutes} minutes. Do not share it.',
+    body: CODE_MESSAGE_BODY,
     translationReview: 'source',
   },
 ]
-
-/** Releases the PROPOSED code templates as new versions (an owner action; callers authorize it first). */
-export async function releaseProposedCodeTemplates(tx: Tx, releasedBy: string): Promise<void> {
-  for (const draft of PROPOSED_CODE_TEMPLATES)
-    await releaseTemplateVersion(tx, { ...draft, sourceIds: ['OWN-DEC-96', 'OWN-DEC-65'], releasedBy })
-}
 
 export type CodeDeliveryDeps = { providers: NotificationProviders; codeKey: CodeKeySettings }
 

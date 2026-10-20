@@ -1,11 +1,10 @@
 -- 0010 Customer one-time codes and customer sessions (TSK-0016; HH-INT-13, HH-ID-06, HH-SEC-02, HH-ARC-06,
--- OWN-DEC-96, OWN-DEC-141, FACT-SESSION-TIMINGS).
+-- OWN-DEC-96, OWN-DEC-141, OWN-DEC-150, FACT-SESSION-TIMINGS).
 -- - verification_codes: one row per issued code. The code itself is never stored: the row keeps a random nonce, from
 --   which the delivery job derives the code with the server's code key, and a keyed digest the verifier compares in
 --   constant time. Expiry and the attempt limit are copied from configuration when the code is issued. Delivery is
 --   the automatic message contact.verification_code (TSK-0047): its state is in platform.message_deliveries. Its
---   templates are not seeded here: only owner-worded templates are (T74); until a version is released the message
---   is NOT CONFIGURED and no code is sent.
+--   templates are seeded at the end of this file in the owner's wording (OWN-DEC-150).
 -- - verification_attempts: every verification attempt with its keyed client-address digest, for the per-address limit.
 --   No code and no raw address is stored.
 -- - customer_sessions: server-side customer sessions; the cookie holds a random token, the row only its SHA-256.
@@ -78,3 +77,18 @@ INSERT INTO platform.policy_version (key, version, state, value, proposed, sourc
   ('verification.limits', 1, 'configured',
    '{"codeDigits": 6, "maxAttemptsPerCode": 5, "resendCooldownSeconds": 30, "maxCodesPerDestinationPerHour": 5, "maxCodesPerClientPerHour": 20, "maxFailedAttemptsPerClientPerHour": 30, "freshVerificationMinutes": 15}',
    true, ARRAY['HH-ID-06', 'HH-INT-11', 'HH-ID-07', 'OWN-DEC-96'], 'migration:0010');
+
+-- The code message contact.verification_code in the owner's wording (OWN-DEC-150, approved 2026-10-20 "Approve as
+-- written"), English only, for email and text. The code and its lifetime are filled in at send time; the lifetime is
+-- the decided session.timings value, never part of the text. Later wording changes are new released versions.
+INSERT INTO platform.message_templates (message_key, channel, audience) VALUES
+  ('contact.verification_code', 'email', 'customer'),
+  ('contact.verification_code', 'sms', 'customer');
+INSERT INTO platform.message_template_versions
+  (message_key, channel, audience, locale, version, subject, body, translation_review, source_ids, released_by) VALUES
+  ('contact.verification_code', 'email', 'customer', 'en', 1, 'Your HandyHub verification code',
+   'Your HandyHub verification code is {verificationCode}. It expires in {codeLifetimeMinutes} minutes. If you did not ask for this code, you can ignore this message.',
+   'source', ARRAY['OWN-DEC-150'], 'migration:0010'),
+  ('contact.verification_code', 'sms', 'customer', 'en', 1, NULL,
+   'Your HandyHub verification code is {verificationCode}. It expires in {codeLifetimeMinutes} minutes. If you did not ask for this code, you can ignore this message.',
+   'source', ARRAY['OWN-DEC-150'], 'migration:0010');

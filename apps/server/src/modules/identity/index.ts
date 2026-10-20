@@ -16,11 +16,11 @@ export {
   type VerifyResult,
 } from './codes.js'
 export {
+  CODE_MESSAGE_BODY,
   CODE_MESSAGE_KEY,
+  CODE_TEMPLATES,
   codeDeliveryAutomation,
   CodeDeliveryError,
-  PROPOSED_CODE_TEMPLATES,
-  releaseProposedCodeTemplates,
   type CodeDeliveryDeps,
 } from './delivery.js'
 export { MIN_CODE_KEY_LENGTH, readCodeKey, type CodeKeySettings } from './keys.js'

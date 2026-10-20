@@ -1,5 +1,5 @@
 // Customer one-time codes and customer sessions against PostgreSQL 16 (TSK-0016; HH-INT-13, HH-ID-06, HH-ID-07,
-// HH-ID-09, HH-INT-11, HH-SEC-02, HH-ARC-06, OWN-DEC-96, OWN-DEC-141, FACT-SESSION-TIMINGS, T18, T19). All
+// HH-ID-09, HH-INT-11, HH-SEC-02, HH-ARC-06, OWN-DEC-96, OWN-DEC-141, OWN-DEC-150, FACT-SESSION-TIMINGS, T18, T19). All
 // destinations are synthetic (example.test, 555-01xx) and the providers are the in-memory fakes.
 import { Writable } from 'node:stream'
 import { withTx } from '@handyhub/db'
@@ -10,11 +10,12 @@ import { buildApp } from '../../src/app.js'
 import type { ApiModule } from '../../src/api/route.js'
 import {
   clearedSessionCookie,
+  CODE_MESSAGE_KEY,
+  CODE_TEMPLATES,
   codeDeliveryAutomation,
   customerSessionResolver,
   issueCode,
   readCodeKey,
-  releaseProposedCodeTemplates,
   resolveCustomerSession,
   revokeCustomerSession,
   sessionCookie,
@@ -55,8 +56,6 @@ const worker = () =>
 
 beforeAll(async () => {
   t = await createTestDatabase()
-  // The owner's release of the PROPOSED wording (not seeded: only owner-worded templates are, T74).
-  await withTx(t.db, (tx) => releaseProposedCodeTemplates(tx, 'staff-synthetic-owner'))
 })
 afterAll(async () => {
   await t?.drop()
@@ -144,7 +143,7 @@ describe('issuing and delivering codes (TSK-0016, HH-INT-13, OWN-DEC-96)', () =>
     expect(r).toMatchObject({ status: 'issued', maskedDestination: '***0142' })
     const code = await deliveredCode('+15025550142')
     expect(providers.fakes.sms?.sent.at(-1)?.text).toBe(
-      `HandyHub code: ${code}. It expires in 10 minutes. Do not share it.`,
+      `Your HandyHub verification code is ${code}. It expires in 10 minutes. If you did not ask for this code, you can ignore this message.`,
     )
     expect(await verify({ destination: '+15025550142', code })).toMatchObject({ ok: true, channel: 'sms' })
   })
@@ -196,36 +195,52 @@ describe('issuing and delivering codes (TSK-0016, HH-INT-13, OWN-DEC-96)', () =>
   })
 })
 
-describe('code message templates (TSK-0016, TSK-0047, T74)', () => {
-  it('without a released template the message is NOT CONFIGURED: nothing is sent and the delivery fails visibly', async () => {
-    const fresh = await createTestDatabase()
-    try {
-      const r = await withTx(fresh.db, (tx) =>
-        issueCode(tx, KEY, {
-          purpose: 'contact_verification',
-          channel: 'email',
-          destination: 'nobody-yet@example.test',
-          subjectRef: 'contact:synthetic-2',
-          requestId: 'req-synthetic',
-        }),
-      )
-      const w = createWorker({
-        db: fresh.db,
-        registry: createAutomationRegistry([codeDeliveryAutomation({ providers, codeKey: KEY })]),
-      })
-      await w.runOnce()
-      await w.runOnce()
-      if (r.status !== 'issued') throw new Error('not issued')
-      const rows = await fresh.db
-        .selectFrom('platform.message_deliveries')
-        .select(['state', 'error_code'])
-        .where('record_id', '=', r.codeId)
-        .execute()
-      expect(rows).toEqual([{ state: 'failed', error_code: 'template_not_configured' }])
-      expect(providers.fakes.email?.sent.some((m) => m.to === 'nobody-yet@example.test')).toBe(false)
-    } finally {
-      await fresh.drop()
-    }
+describe('code message templates (TSK-0016, TSK-0047, OWN-DEC-150, T74)', () => {
+  it("[OWN-DEC-150] the code message is seeded in the owner's wording for email and text, sourced to OWN-DEC-150", async () => {
+    const rows = await t.db
+      .selectFrom('platform.message_template_versions')
+      .select(['channel', 'locale', 'version', 'subject', 'body', 'source_ids', 'released_by', 'translation_review'])
+      .where('message_key', '=', CODE_MESSAGE_KEY)
+      .orderBy('channel')
+      .execute()
+    const body =
+      'Your HandyHub verification code is {verificationCode}. It expires in {codeLifetimeMinutes} minutes. If you did not ask for this code, you can ignore this message.'
+    expect(rows).toEqual([
+      {
+        channel: 'email',
+        locale: 'en',
+        version: 1,
+        subject: 'Your HandyHub verification code',
+        body,
+        source_ids: ['OWN-DEC-150'],
+        released_by: 'migration:0010',
+        translation_review: 'source',
+      },
+      {
+        channel: 'sms',
+        locale: 'en',
+        version: 1,
+        subject: null,
+        body,
+        source_ids: ['OWN-DEC-150'],
+        released_by: 'migration:0010',
+        translation_review: 'source',
+      },
+    ])
+    expect(rows.map((r) => ({ channel: r.channel, subject: r.subject, body: r.body }))).toEqual(
+      CODE_TEMPLATES.map((d) => ({ channel: d.channel, subject: d.subject, body: d.body })),
+    )
+  })
+
+  it('[OWN-DEC-150] a delivered code uses the released wording with the configured lifetime', async () => {
+    const to = email()
+    await issue({ destination: to })
+    const code = await deliveredCode(to)
+    const mail = providers.fakes.email?.sent.find((m) => m.to === to)
+    expect(mail?.subject).toBe('Your HandyHub verification code')
+    expect(mail?.text).toBe(
+      `Your HandyHub verification code is ${code}. It expires in 10 minutes. If you did not ask for this code, you can ignore this message.`,
+    )
   })
 })
 
