@@ -16,7 +16,10 @@ describe('MFA secrets and codes (TSK-0015, HH-STAFF-01)', () => {
     expect(sealed).not.toContain('JBSWY3DPEHPK3PXP')
     expect(unseal(key, sealed)).toBe('JBSWY3DPEHPK3PXP')
     const parts = sealed.split('.')
-    const tampered = [parts[0], parts[1], parts[2], `${parts[3]?.slice(0, -2)}AA`].join('.')
+    // Change the first character of the last part: it always carries six full bits, so the bytes really change
+    // (replacing the tail with a fixed value was a no-op whenever the tail already had that value).
+    const last = parts[3] ?? ''
+    const tampered = [parts[0], parts[1], parts[2], `${last[0] === 'A' ? 'B' : 'A'}${last.slice(1)}`].join('.')
     expect(() => unseal(key, tampered)).toThrow()
     expect(() => unseal(new Secret('another-synthetic-key-of-enough-length'), sealed)).toThrow()
   })
