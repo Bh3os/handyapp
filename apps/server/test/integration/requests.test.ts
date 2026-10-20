@@ -365,7 +365,13 @@ describe('request form settings (TSK-0026, HH-INT-08)', () => {
   it('[HH-INT-08] serves the configured draft period from FACT-SESSION-TIMINGS', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/public/request-form' })
     expect(res.statusCode).toBe(200)
-    expect(res.json()).toEqual({ draftDays: 7, maxServices: 5, timeZone: 'America/Kentucky/Louisville' })
+    expect(res.json()).toEqual({
+      draftDays: 7,
+      maxServices: 5,
+      timeZone: 'America/Kentucky/Louisville',
+      // TSK-0031: the configured photo limits (FACT-UPLOAD-LIMITS).
+      photos: { maxFileBytes: 15 * 1024 * 1024, maxPhotos: 10, types: ['image/jpeg', 'image/png', 'image/webp'] },
+    })
   })
 })
 
