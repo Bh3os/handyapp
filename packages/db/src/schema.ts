@@ -104,6 +104,113 @@ export interface CrmPropertiesTable {
   version: Generated<number>
 }
 
+export interface IdentityAuthIdentitiesTable {
+  id: Generated<string>
+  staff_user_id: string
+  kind: Generated<string>
+  password_hash: string | null
+  password_set_at: Timestamp | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface IdentityCustomerSessionsTable {
+  id: string
+  token_hash: string
+  contact_ref: string
+  via: string
+  project_ids: Generated<string[]>
+  verified_at: Timestamp
+  fresh_until: Timestamp
+  idle_minutes: number
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  last_seen_at: ColumnType<Date, Date | string | undefined, Date | string>
+  expires_at: Timestamp
+  revoked_at: Timestamp | null
+  revoke_reason: string | null
+}
+
+export interface IdentityRateLimitsTable {
+  bucket: string
+  key_hash: string
+  window_start: Timestamp
+  hits: number
+}
+
+export interface IdentityRoleGrantsTable {
+  id: Generated<string>
+  staff_user_id: string
+  kind: string
+  name: string
+  issued_by: string
+  reason: string | null
+  effective_from: ColumnType<Date, Date | string | undefined, Date | string>
+  ended_at: Timestamp | null
+  ended_by: string | null
+}
+
+export interface IdentityStaffLinksTable {
+  id: Generated<string>
+  staff_user_id: string
+  purpose: string
+  token_hash: string | null
+  issued_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  expires_at: Timestamp
+  delivered_at: Timestamp | null
+  consumed_at: Timestamp | null
+  invalidated_at: Timestamp | null
+}
+
+export interface IdentityStaffSessionsTable {
+  id: Generated<string>
+  staff_user_id: string
+  token_hash: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  last_seen_at: ColumnType<Date, Date | string | undefined, Date | string>
+  authenticated_at: ColumnType<Date, Date | string | undefined, Date | string>
+  revoked_at: Timestamp | null
+  revoke_reason: string | null
+}
+
+export interface IdentityStaffUsersTable {
+  id: Generated<string>
+  display_name: string | null
+  email: string
+  locale: Generated<string>
+  status: Generated<string>
+  invited_at: ColumnType<Date, Date | string | undefined, Date | string>
+  activated_at: Timestamp | null
+  disabled_at: Timestamp | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
+}
+
+export interface IdentityVerificationAttemptsTable {
+  id: ColumnType<string, bigint | number | string | undefined, bigint | number | string>
+  code_id: string | null
+  client_key: string | null
+  succeeded: boolean
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface IdentityVerificationCodesTable {
+  id: string
+  purpose: string
+  channel: string
+  destination: string
+  subject_ref: string
+  nonce: string
+  code_digest: string
+  client_key: string | null
+  attempts: Generated<number>
+  max_attempts: number
+  expires_at: Timestamp
+  consumed_at: Timestamp | null
+  superseded_at: Timestamp | null
+  request_id: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface IntakeRequestAnswersTable {
   request_id: string
   service_id: string | null
@@ -330,6 +437,15 @@ export interface Database {
   'crm.customers': CrmCustomersTable
   'crm.projects': CrmProjectsTable
   'crm.properties': CrmPropertiesTable
+  'identity.auth_identities': IdentityAuthIdentitiesTable
+  'identity.customer_sessions': IdentityCustomerSessionsTable
+  'identity.rate_limits': IdentityRateLimitsTable
+  'identity.role_grants': IdentityRoleGrantsTable
+  'identity.staff_links': IdentityStaffLinksTable
+  'identity.staff_sessions': IdentityStaffSessionsTable
+  'identity.staff_users': IdentityStaffUsersTable
+  'identity.verification_attempts': IdentityVerificationAttemptsTable
+  'identity.verification_codes': IdentityVerificationCodesTable
   'intake.request_answers': IntakeRequestAnswersTable
   'intake.request_services': IntakeRequestServicesTable
   'intake.requests': IntakeRequestsTable

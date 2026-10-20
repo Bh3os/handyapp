@@ -1,6 +1,7 @@
 // Fastify application factory (TSK-0001, TSK-0003, TSK-0010, TSK-0011). Order: the request-ID context, the staging
 // access gate (first route hook, in front of every route), noindex headers outside production, the health checks,
 // robots.txt, the API modules under /api/v1, then the built public site. Host routing for the portal and the staff app arrives in TSK-0017.
+import { existsSync } from 'node:fs'
 import fastifyStatic from '@fastify/static'
 import Fastify, { type FastifyBaseLogger, type FastifyInstance } from 'fastify'
 import { accessGateHook, FailureLimiter } from './access-gate.js'
@@ -9,7 +10,9 @@ import { createDb, type Db } from '@handyhub/db'
 import { registerApi } from './api/register.js'
 import type { ApiModule, ResolveActor } from './api/route.js'
 import { databaseReadiness, type ReadinessCheck } from './health.js'
-import { MODULES } from './modules/index.js'
+import { apiModules } from './modules/index.js'
+import { staffSessionResolver } from './modules/identity/actor.js'
+import { customerSessionResolver } from './modules/identity/customer-sessions.js'
 import { createLogger, type Logger } from './platform/logger.js'
 import { registerRequestContext, requestIdFrom } from './platform/request-context.js'
 
@@ -80,12 +83,32 @@ export async function buildApp({
   const db =
     api?.db ?? (config.databaseUrl ? createDb(config.databaseUrl, { applicationName: 'handyapp-api' }) : undefined)
   if (ownDb && db) app.addHook('onClose', async () => db.destroy())
+  // The caller: a customer session (TSK-0016), otherwise a staff session (TSK-0014), otherwise a guest.
+  const resolveActor =
+    api?.resolveActor ??
+    (db ? customerSessionResolver(db, staffSessionResolver(db, { secure: config.secureCookies })) : undefined)
   await registerApi(app, {
     db,
     trustProxyHops: config.trustProxyHops,
-    modules: api?.modules ?? MODULES,
-    ...(api?.resolveActor ? { resolveActor: api.resolveActor } : {}),
+    modules: api?.modules ?? apiModules({ secureCookies: config.secureCookies }),
+    ...(resolveActor ? { resolveActor } : {}),
   })
+
+  // The staff app under /staff until host routing exists (ARCH-STACK; TSK-0017): files when they exist, otherwise
+  // the app's index.html so its own routes (/staff/sign-in, /staff/invite/:token, /staff/reset/:token) load.
+  if (config.staffDir && existsSync(config.staffDir)) {
+    const staffDir = config.staffDir
+    app.get('/staff', async (_req, reply) => reply.redirect('/staff/'))
+    await app.register(
+      async (staff) => {
+        await staff.register(fastifyStatic, { root: staffDir, wildcard: true, index: ['index.html'] })
+        staff.setNotFoundHandler(async (_req, reply) =>
+          reply.header('cache-control', 'no-store').type('text/html; charset=utf-8').sendFile('index.html'),
+        )
+      },
+      { prefix: '/staff' },
+    )
+  }
 
   if (config.siteDir) {
     await app.register(fastifyStatic, { root: config.siteDir, extensions: ['html'] })
