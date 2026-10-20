@@ -160,8 +160,12 @@ test.describe('ZIP coverage checker (TSK-0022, HH-CUS-03, T07)', () => {
 
   test('[OWN-DEC-73][HH-CUS-03] the check works behind the staging access gate', async ({ browser }) => {
     const base = `http://127.0.0.1:${gatedPort}`
+    // Without credentials the gate answers 401. Asked over HTTP, not by navigation: how a browser surfaces an
+    // unanswered Basic challenge (a 401 page or a navigation error) differs between Chromium builds.
     const anonymous = await browser.newContext()
-    expect((await (await anonymous.newPage()).goto(`${base}/`))?.status()).toBe(401)
+    const refused = await anonymous.request.get(`${base}/`)
+    expect(refused.status()).toBe(401)
+    expect(refused.headers()['www-authenticate']).toMatch(/^Basic /)
     await anonymous.close()
     const context = await browser.newContext({ httpCredentials: { username: GATE_USER, password: GATE_PASSWORD } })
     const page = await context.newPage()
