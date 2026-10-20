@@ -35,9 +35,9 @@ Client selects the checked luxury housekeeping package defined in `pricing-hotel
 
 #### 3. Billing & Subscription Continuity
 * **Upfront Billing:** Subscriptions are billed and captured **100% upfront on the 1st calendar day of each month**.
-  - Governed now by: deposit: [[FACT-DEPOSIT-RULE]] ([[OWN-DEC-104]]); no forfeiture, refund or late-fee terms are invented; price: set per job on the estimate, [[FACT-PRICING-PER-JOB]]; payment timing and methods: [[FACT-PAYMENT-DUE]], [[FACT-PAYMENT-METHODS]].
+  - Governed now by: deposit: [[FACT-DEPOSIT-RULE]] ([[OWN-DEC-104]]); refunds follow [[FACT-CANCELLATION-RULES]] ([[OWN-DEC-134]]); no forfeiture or late-fee terms are invented; price: set per job on the estimate, [[FACT-PRICING-PER-JOB]]; payment timing and methods: [[FACT-PAYMENT-DUE]], [[FACT-PAYMENT-METHODS]].
 * **Skip & Cancellation Policy:** Subscription visits are fixed. If a Client requests to skip a scheduled visit day, no partial monetary credit is issued. Client may request a makeup hour block within 7 business days, subject to crew availability.
-  - Governed now by: cancellation and rescheduling: customer requests confirmed by staff, no cancellation fee configured ([[OWN-DEC-107]]).
+  - Governed now by: cancellation and rescheduling: customer requests confirmed by staff ([[OWN-DEC-107]]), with the fees and refunds of [[FACT-CANCELLATION-RULES]] ([[OWN-DEC-134]]).
 * **Termination:** Either party may terminate this subscription by providing fourteen (14) days written notice before the next monthly billing cycle.
   - Governed now by: payment timing and methods: [[FACT-PAYMENT-DUE]], [[FACT-PAYMENT-METHODS]].
 

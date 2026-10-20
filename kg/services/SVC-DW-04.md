@@ -150,3 +150,4 @@ Severity ratings and final controls: TBD — requires review by safety-liability
 ## Warranty or callback
 
 - warranty or callback policy (registry 04, label **GAP** + **OPEN QUESTION**): No warranty or callback policy and none is proposed here; agreement bills punch hours caused by GC heat failure as a paid change order (§2 L12); the 2-hour punch response is not a warranty. HUMAN REVIEW: attorney. Return visits classified per CX-007 and QA-010 (source: agreement L12; SOP L28; spec CX-007, QA-010)
+- Governed now by: the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]), counted from the reviewed completion date; a claim opens a case with return-visit punch items ([[HH-QA-07]]). No warranty exclusions are defined; any come only from attorney review ([[OQ-ATTORNEY-TERMS]]).

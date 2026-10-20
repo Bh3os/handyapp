@@ -23,7 +23,7 @@ This Service Agreement is entered into by and between **[Your Drywall Company Na
 * **Exclusions:** Structural load-bearing stud replacement, framing remediation for foundational shifting, and final aesthetic color-matching paint coats are excluded unless explicitly itemized as a paid add-on.
   - Governed now by: payment timing and methods: [[FACT-PAYMENT-DUE]], [[FACT-PAYMENT-METHODS]].
 * **Texture Disclaimer:** Company will execute expert texture matching (e.g., Orange Peel, Knockdown). Client acknowledges that due to natural aging, fading, and paint accumulation on older existing walls, a 100% molecular texture blend cannot be legally guaranteed, though seamless flat feathering will be achieved.
-  - Governed now by: payment timing and methods: [[FACT-PAYMENT-DUE]], [[FACT-PAYMENT-METHODS]]; no warranty or guarantee is part of the approved terms ([[OWN-DEC-127]]).
+  - Governed now by: payment timing and methods: [[FACT-PAYMENT-DUE]], [[FACT-PAYMENT-METHODS]]; warranty: only the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]); no other warranty or guarantee is part of the approved terms ([[OWN-DEC-127]]).
 
 #### 2. Financial Terms & Minimums
 * **Agreed Flat Fee:** The fixed total for the defined repair area is **\$[Amount]**.
@@ -36,7 +36,7 @@ This Service Agreement is entered into by and between **[Your Drywall Company Na
 #### 3. Structural Access & Safety
 * **Work Workspace:** Client agrees to clear all furniture, fragile decorations, and hanging art pieces at least 5 feet away from the target wall or ceiling zone before the technician arrives.
 * **Lockout Policy:** If the technician arrives at the scheduled hour block and cannot gain entry, a flat **\$50 Lockout/Dry-Run Fee** will apply to cover labor hours and bridge toll expenses across the I-65 corridors.
-  - Governed now by: price: set per job on the estimate, [[FACT-PRICING-PER-JOB]]; cancellation and rescheduling: customer requests confirmed by staff, no cancellation fee configured ([[OWN-DEC-107]]).
+  - Governed now by: price: set per job on the estimate, [[FACT-PRICING-PER-JOB]]; cancellation and rescheduling: customer requests confirmed by staff ([[OWN-DEC-107]]), with the fees and refunds of [[FACT-CANCELLATION-RULES]] ([[OWN-DEC-134]]).
 
 **Client Signature:** _______________________  **Date:** _______________
 **Company Representative Signature:** ______________________  **Date:** _______________

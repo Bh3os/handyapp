@@ -21,7 +21,7 @@ This Agreement governs the professional barbecue detailing and carbon-stripping 
 #### 1. Scope of Service & Chemical Usage
 * **Inclusions:** Full system tear-down, chemical bath soaking, cookbox scraping, and exterior stainless steel buffing as outlined in `sop-grill-cleaning.md`.
 * **Eco-Chemical Consent:** Client approves the use of industrial-strength carbon-stripping agents and degreasers on cooking surfaces. The Company warrants that all chemicals used are completely non-toxic and food-surface safe post-rinsing.
-  - Governed now by: no warranty or guarantee is part of the approved terms ([[OWN-DEC-127]]).
+  - Governed now by: warranty: only the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]); no other warranty or guarantee is part of the approved terms ([[OWN-DEC-127]]).
 * **Pre-existing Defects:** Deep cleaning strips away built-up grease layers that may have been masking pre-existing structural issues (such as rusted-through burner tubes, cracked flavorizer bars, or decayed heat shields). The Company is not liable for structural component failures discovered during deep grease extraction.
   - Governed now by: liability, insurance and waiver wording: attorney and insurance-broker review ([[OQ-ATTORNEY-TERMS]]); no insurance or liability statement is made from this draft ([[RULE-NO-INVENTED-FACTS]]).
 

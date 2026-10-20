@@ -25,7 +25,7 @@ This Service Agreement is entered into by and between **[Your Cleaning Company N
 #### 2. Schedule & Access
 * **Frequency:** Services will be performed on a **[Weekly / Bi-Weekly / Monthly]** basis.
 * **Access:** Client will provide entry via **[Key / Lockbox Code / In-Person Entry]**. If the team arrives and is locked out, a **\$50 Lockout Fee** will apply automatically.
-  - Governed now by: price: set per job on the estimate, [[FACT-PRICING-PER-JOB]]; cancellation and rescheduling: customer requests confirmed by staff, no cancellation fee configured ([[OWN-DEC-107]]).
+  - Governed now by: price: set per job on the estimate, [[FACT-PRICING-PER-JOB]]; cancellation and rescheduling: customer requests confirmed by staff ([[OWN-DEC-107]]), with the fees and refunds of [[FACT-CANCELLATION-RULES]] ([[OWN-DEC-134]]).
 
 #### 3. Financial Terms & Billing
 * **Base Rate:** The agreed fee per visit is **\$[Amount]**.
@@ -33,7 +33,7 @@ This Service Agreement is entered into by and between **[Your Cleaning Company N
 * **Payment Authorization:** Payment is due immediately upon completion of each cleaning cycle. The Company is authorized to bill the Client’s card on file within 24 hours of service completion.
   - Governed now by: payment timing and methods: [[FACT-PAYMENT-DUE]], [[FACT-PAYMENT-METHODS]]; no saved-card or automatic charging ([[OWN-DEC-112]]).
 * **Cancellation Policy:** Client must provide at least **24 hours' notice** to reschedule or cancel a visit. Failure to do so will result in a flat **\$50 Late Cancellation Fee**.
-  - Governed now by: price: set per job on the estimate, [[FACT-PRICING-PER-JOB]]; cancellation and rescheduling: customer requests confirmed by staff, no cancellation fee configured ([[OWN-DEC-107]]).
+  - Governed now by: price: set per job on the estimate, [[FACT-PRICING-PER-JOB]]; cancellation and rescheduling: customer requests confirmed by staff ([[OWN-DEC-107]]), with the fees and refunds of [[FACT-CANCELLATION-RULES]] ([[OWN-DEC-134]]).
 
 #### 4. Liability & Damage Policy
 * **Breakage:** The Company is fully insured. Any accidental breakage or damage must be reported to the Company within 24 hours. Company liability is capped at a maximum of \$[Amount] per single item or limited to direct repair costs.

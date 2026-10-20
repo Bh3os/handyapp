@@ -20,7 +20,7 @@ This Agreement governs the relationship between **[Your Company Name]** ("Compan
 
 #### 1. Inclusions & Weight Tolerances
 * **Structural Guarantee:** The Company warrants that all TV brackets will be fastened using structural lag bolts anchored directly into the center of load-bearing wood studs or verified commercial toggle anchors, completely meeting safety weight parameters.
-  - Governed now by: no warranty or guarantee is part of the approved terms ([[OWN-DEC-127]]).
+  - Governed now by: warranty: only the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]); no other warranty or guarantee is part of the approved terms ([[OWN-DEC-127]]).
 * **Component Clause:** Standard packaging includes mounting the screen bracket. Running low-voltage wires behind the drywall is excluded unless itemized below as a paid add-on.
   - Governed now by: payment timing and methods: [[FACT-PAYMENT-DUE]], [[FACT-PAYMENT-METHODS]].
 

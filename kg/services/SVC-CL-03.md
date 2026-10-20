@@ -137,3 +137,4 @@ HandyHub never performs licensed or unsafe scope: [[FACT-SVC-EXCLUDED-SCOPE]]; s
 ## Warranty or callback
 
 - warranty or callback policy (registry 04, label **GAP** + **OPEN QUESTION**): None (GAP). The agreement disclaims the security-deposit outcome ("does not guarantee the return of a security deposit"). OPEN QUESTION: any re-clean window after a landlord inspection (owner + attorney; none invented); returns linked and classified per CX-007 and QA-010 (source: agreement §2 L12; spec CX-007, QA-010)
+- Governed now by: the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]), counted from the reviewed completion date; a claim opens a case with return-visit punch items ([[HH-QA-07]]). No warranty exclusions are defined; any come only from attorney review ([[OQ-ATTORNEY-TERMS]]).

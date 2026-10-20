@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: security
 links:
-  decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-63]]", "[[OWN-DEC-73]]", "[[OWN-DEC-123]]"]
+  decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-63]]", "[[OWN-DEC-73]]", "[[OWN-DEC-123]]", "[[OWN-DEC-133]]"]
   depends_on: ["[[HH-ARC-06]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[ENT-StaffUser]]", "[[INT-Resend]]"]
@@ -16,7 +16,7 @@ source: "guide 25.1; OWN-DEC-114 (supersedes required MFA, OWN-DEC-27)"
 ---
 General:
 - TLS everywhere; maintained authentication and cryptography libraries, never home-made primitives.
-- Session cookies are Secure, HttpOnly, host-only, with a suitable SameSite policy (Lax or Strict), and CSRF protection that fits the chosen credential design.
+- Session cookies are Secure, HttpOnly, host-only, with a suitable SameSite policy (Lax or Strict), and CSRF protection that fits the chosen credential design. The customer origin and the staff origin (`staff.handyhub247.com`) each have their own cookies; customer and staff sessions never share one ([[OWN-DEC-133]]).
 - Sessions expire after a configured inactivity period, rotate on sign-in (new session ID, no fixation), and can be revoked server-side. Sign Out is always available.
 - Least privilege for every role; applicable OWASP ASVS requirements pinned by version (5.0.0 proposed). This is a target, not a claim of certification.
 

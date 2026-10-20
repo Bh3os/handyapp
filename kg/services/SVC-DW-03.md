@@ -140,3 +140,4 @@ Seeded from the spec card and the verified findings; every control is pending qu
 ## Warranty or callback
 
 - warranty or callback policy (registry 04, label **GAP** + **OPEN QUESTION**): No warranty or callback policy and none is proposed here; plan promises "perfectly level ceilings" and "eliminating joint shifting or structural settling cracks" while the agreement hedges that walls "blend gradually to simulate visual flatness" (C-DW03-09; HUMAN REVIEW: attorney). Return visits classified per CX-007 and QA-010 (source: plan L40, L45; agreement L8; spec CX-007, QA-010)
+- Governed now by: the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]), counted from the reviewed completion date; a claim opens a case with return-visit punch items ([[HH-QA-07]]). No warranty exclusions are defined; any come only from attorney review ([[OQ-ATTORNEY-TERMS]]).

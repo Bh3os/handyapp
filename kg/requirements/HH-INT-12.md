@@ -6,10 +6,10 @@ status: active
 priority: P0
 area: intake
 links:
-  decided_by: ["[[OWN-DEC-94]]", "[[OWN-DEC-35]]", "[[OWN-DEC-97]]"]
+  decided_by: ["[[OWN-DEC-94]]", "[[OWN-DEC-35]]", "[[OWN-DEC-97]]", "[[OWN-DEC-131]]"]
   depends_on: ["[[HH-INT-10]]", "[[HH-INT-13]]", "[[HH-INT-21]]"]
   constrained_by: ["[[RULE-NO-INVENTED-FACTS]]", "[[RULE-LANGUAGES]]", "[[RULE-SERVER-AUTHZ]]"]
-  uses: ["[[ENT-Request]]", "[[ENT-Project]]", "[[FACT-HOURS]]", "[[FACT-RESPONSE-TARGET]]"]
+  uses: ["[[ENT-Request]]", "[[ENT-Project]]", "[[FACT-HOURS]]", "[[FACT-RESPONSE-TARGET]]", "[[FACT-PUBLIC-CONTACT]]"]
   tested_by: ["[[T01]]", "[[T12]]", "[[T13]]", "[[T16]]"]
   part_of: ["[[C03]]"]
 source: "guide 7.3 HH-INT-12; OWN-DEC-94"
@@ -25,5 +25,6 @@ The receipt appears only after the request is committed. It shows:
 
 Rules:
 - The hours and response target in the wording come from [[FACT-HOURS]] and [[FACT-RESPONSE-TARGET]] in configurable copy, not scattered literals.
+- Any business phone or email shown is a labelled placeholder from [[FACT-PUBLIC-CONTACT]].
 - The receipt never shows existing customer history, account status or earlier projects before verification.
 - Timing preferences are clearly not an appointment. Staff see the new request even if the receipt email fails ([[HH-INT-20]]).

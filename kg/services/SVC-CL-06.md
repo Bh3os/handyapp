@@ -143,3 +143,4 @@ Draft service risk class (PROPOSED, 04 section 6.2): routine with approved contr
 ## Warranty or callback
 
 - warranty or callback policy (registry 04, label **GAP** + **OPEN QUESTION**): None (GAP). Makeup visits cover client-requested skips only, not quality complaints; company-missed visits are not addressed. OPEN QUESTION: any re-service policy needs owner approval and attorney review; returns classified per CX-007 and QA-010 (source: pricing L30; agreement §3 L18; spec CX-007, QA-010)
+- Governed now by: the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]), counted from the reviewed completion date; a claim opens a case with return-visit punch items ([[HH-QA-07]]). No warranty exclusions are defined; any come only from attorney review ([[OQ-ATTORNEY-TERMS]]).

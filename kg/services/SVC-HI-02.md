@@ -134,3 +134,4 @@ HandyHub never performs licensed or unsafe scope: [[FACT-SVC-EXCLUDED-SCOPE]]; s
 ## Warranty or callback
 
 - warranty or callback policy (registry 04, label **FACT** + **OPEN QUESTION**): No workmanship warranty or callback policy. The agreement contains an express chemical warranty ("completely non-toxic and food-surface safe post-rinsing") with no product list or SDS (C-HI02-01). OPEN QUESTION: owner + KY/IN attorney decide the warranty position; care notes (QA-008) only from manufacturer data; return visits classified per CX-007/QA-010; nothing invented (source: agreement §1 L8; spec QA-008, QA-010, CX-007)
+- Governed now by: the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]), counted from the reviewed completion date; a claim opens a case with return-visit punch items ([[HH-QA-07]]). No warranty exclusions are defined; any come only from attorney review ([[OQ-ATTORNEY-TERMS]]).

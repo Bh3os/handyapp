@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: staff
 links:
-  decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-123]]", "[[OWN-DEC-73]]"]
+  decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-123]]", "[[OWN-DEC-73]]", "[[OWN-DEC-133]]"]
   depends_on: ["[[HH-SEC-02]]", "[[HH-INT-11]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]", "[[RULE-SYNTHETIC-DATA]]"]
   uses: ["[[ENT-StaffUser]]", "[[ENT-RoleGrant]]", "[[ENT-AuditEvent]]", "[[INT-Resend]]", "[[INT-Render]]"]
@@ -17,7 +17,7 @@ source: "guide 10.1 HH-STAFF-01; OWN-DEC-114 (supersedes OWN-DEC-27: ZITADEL and
 Accounts:
 - Every staff member has an individual account; there are no shared passwords. A staff account is distinct from any customer account and is never created through customer registration.
 - Only the owner creates or invites staff and assigns roles: **Owner, Office/Dispatcher, Estimator, Worker** (mapped onto the role matrix, [[ROLE-MATRIX]]). There is no public staff registration route.
-- An invited employee sets their own password through the invite link and signs in directly on the staff website, with no external identity-provider redirect.
+- An invited employee sets their own password through the invite link and signs in directly on the staff app at `staff.handyhub247.com` ([[FACT-DOMAIN]]), with no external identity-provider redirect.
 
 Passwords and sign-in:
 - A maintained authentication library is used. Passwords are hashed with argon2id or an equivalent maintained algorithm; the password policy is length-based per NIST 800-63B (an optional breached-password check runs offline only). The owner can never view a password, and no API returns a hash.

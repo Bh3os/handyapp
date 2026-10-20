@@ -146,3 +146,4 @@ Draft service risk class (PROPOSED, 04 section 6.2): elevated for slips, chemica
 ## Warranty or callback
 
 - warranty or callback policy (registry 04, label **GAP** + **OPEN QUESTION**): No warranty or callback policy and none is proposed here; agreement says weather and drying delays exist "to guarantee product lifespan" - unsupported (HUMAN REVIEW: attorney); no re-coat interval. Care note partial (SOP L27); return visits classified per CX-007 and QA-010 (source: agreement L8; SOP L27; spec QA-008, CX-007, QA-010)
+- Governed now by: the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]), counted from the reviewed completion date; a claim opens a case with return-visit punch items ([[HH-QA-07]]). No warranty exclusions are defined; any come only from attorney review ([[OQ-ATTORNEY-TERMS]]).

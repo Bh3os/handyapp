@@ -6,12 +6,13 @@ status: active
 priority: P0
 area: security
 links:
+  decided_by: ["[[OWN-DEC-133]]"]
   depends_on: ["[[HH-ARC-06]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]"]
   related: ["[[ARCH-STACK]]"]
 source: "guide 3.2"
 ---
-Applies only if the architecture in [[ARCH-STACK]] uses an API on a different origin from its frontend. With same-origin gateways ([[HH-ARC-06]]) nothing here is built, and the architecture record says so.
+Applies only if the architecture in [[ARCH-STACK]] uses an API on a different origin from its frontend. The two domains of [[OWN-DEC-133]] each reach the backend through a same-origin gateway ([[HH-ARC-06]]), so no cross-origin API is built; [[ARCH-STACK]] records this.
 
 If a cross-origin API is used:
 - use one maintained authentication protocol with exact allowlisted origins and explicit credential rules;

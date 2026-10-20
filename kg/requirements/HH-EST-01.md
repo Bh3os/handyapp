@@ -6,9 +6,9 @@ status: active
 priority: P0
 area: estimates
 links:
-  decided_by: ["[[OWN-DEC-102]]", "[[OWN-DEC-32]]", "[[OWN-DEC-83]]", "[[OWN-DEC-104]]", "[[OWN-DEC-110]]", "[[OWN-DEC-126]]", "[[OWN-DEC-127]]", "[[OWN-DEC-66]]"]
+  decided_by: ["[[OWN-DEC-102]]", "[[OWN-DEC-32]]", "[[OWN-DEC-83]]", "[[OWN-DEC-104]]", "[[OWN-DEC-110]]", "[[OWN-DEC-126]]", "[[OWN-DEC-127]]", "[[OWN-DEC-66]]", "[[OWN-DEC-135]]"]
   constrained_by: ["[[RULE-MONEY-CENTS]]", "[[RULE-NO-INVENTED-FACTS]]", "[[FACT-NO-MINIMUM]]", "[[FACT-TAX-NO-LINE]]", "[[FACT-NO-SURCHARGE]]"]
-  uses: ["[[ENT-Estimate]]", "[[ENT-EstimateVersion]]", "[[FACT-ESTIMATE-VALIDITY]]", "[[FACT-DEPOSIT-RULE]]", "[[FACT-PAYMENT-DUE]]", "[[FACT-BUSINESS-NAME]]", "[[FACT-BUSINESS-ADDRESS]]", "[[FACT-PRICING-DISCOUNTS]]", "[[FACT-PRICING-SAME-DAY-CHARGE]]", "[[FACT-PRICING-PER-JOB]]"]
+  uses: ["[[ENT-Estimate]]", "[[ENT-EstimateVersion]]", "[[FACT-ESTIMATE-VALIDITY]]", "[[FACT-DEPOSIT-RULE]]", "[[FACT-PAYMENT-DUE]]", "[[FACT-BUSINESS-NAME]]", "[[FACT-BUSINESS-ADDRESS]]", "[[FACT-PRICING-DISCOUNTS]]", "[[FACT-PRICING-SAME-DAY-CHARGE]]", "[[FACT-PRICING-PER-JOB]]", "[[FACT-WARRANTY]]"]
   tested_by: ["[[T31]]", "[[T58]]"]
   part_of: ["[[S04]]", "[[C05]]"]
 source: "guide 13.1 HH-EST-01; OWN-DEC-32, 66, 83, 102, 104, 110, 126, 127"
@@ -26,6 +26,6 @@ Every estimate version holds:
 - the deposit due when the deposit rule applies ([[HH-FIN-02]]), computed on the total including selected options;
 - the payment term shown before approval: "Payment due on receipt" for new projects, or the term already agreed with an existing customer, stored per project and never overwritten ([[FACT-PAYMENT-DUE]]);
 - the issuer name ([[FACT-BUSINESS-NAME]]); the mailing-address line is omitted while [[FACT-BUSINESS-ADDRESS]] is missing, and a customer's address is never used in its place;
-- the estimate terms version shown with it ([[HH-EST-13]]).
+- the estimate terms version shown with it ([[HH-EST-13]]), and the 90-day workmanship warranty ([[FACT-WARRANTY]]) in the reviewed wording of the next terms version.
 
 The customer view shows each line, the options, exclusions, total, valid-until date and any deposit; internal fields never appear there ([[HH-EST-03]]). On staging every estimate document carries the mark "TEST — not a real invoice or estimate".

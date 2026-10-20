@@ -118,3 +118,4 @@ Draft entries from the spec card and the register, pending review by the qualifi
 ## Warranty or callback
 
 - warranty or callback policy (registry 04, label **GAP** + **OPEN QUESTION**): None in any file; callbacks for seasonal joint or caulk movement have no policy. No warranty may be added without an owner-approved policy; returns classified under QA-010/CX-007 (source: spec QA-010, CX-007; service files silent)
+- Governed now by: the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]), counted from the reviewed completion date; a claim opens a case with return-visit punch items ([[HH-QA-07]]). No warranty exclusions are defined; any come only from attorney review ([[OQ-ATTORNEY-TERMS]]).

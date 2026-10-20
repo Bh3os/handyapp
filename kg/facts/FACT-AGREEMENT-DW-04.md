@@ -22,7 +22,7 @@ This Master Subcontract Agreement is executed by and between **[Your Drywall Com
 * **Scope Metrics:** Subcontractor will deliver a standardized Level 4 paint-ready finish across **[Insert Total Sq. Ft.]** at an agreed unit rate of **\$[Insert Rate] / sq. ft.**, totaling a contract value of **\$[Amount]**.
   - Governed now by: price: set per job on the estimate, [[FACT-PRICING-PER-JOB]].
 * **Pre-requisite Trades Sign-off:** The Contractor warrants that all MEP (Mechanical, Electrical, Plumbing) rough-in inspections are fully passed and signed off by municipal building inspectors before the Subcontractor hangs a single sheet. Any board removal forced by late mechanical changes will be billed at an emergency rate of **\$75 / hour per worker plus materials**.
-  - Governed now by: price: set per job on the estimate, [[FACT-PRICING-PER-JOB]]; no warranty or guarantee is part of the approved terms ([[OWN-DEC-127]]).
+  - Governed now by: price: set per job on the estimate, [[FACT-PRICING-PER-JOB]]; warranty: only the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]); no other warranty or guarantee is part of the approved terms ([[OWN-DEC-127]]).
 
 #### 2. Site Climate & Winterization Terms
 * **Drying Temperature Clause:** Contractor must maintain an enclosed structure with active, safe heating units keeping the internal building temperature **above 50°F (10°C) continuously** for 48 hours before joint compound application and throughout the sanding phase (crucial for Kentuckiana winter builds).
@@ -39,7 +39,7 @@ This Master Subcontract Agreement is executed by and between **[Your Drywall Com
 * Invoices will be submitted upon completion of individual unit blocks.
   - Governed now by: payment timing and methods: [[FACT-PAYMENT-DUE]], [[FACT-PAYMENT-METHODS]].
 * Payments are strictly bound to **[Net 15 / Net 30]** schedules from invoice presentation. Late draws accumulate 1.5% monthly interest.
-  - Governed now by: deposit: [[FACT-DEPOSIT-RULE]] ([[OWN-DEC-104]]); no forfeiture, refund or late-fee terms are invented; payment timing and methods: [[FACT-PAYMENT-DUE]], [[FACT-PAYMENT-METHODS]].
+  - Governed now by: deposit: [[FACT-DEPOSIT-RULE]] ([[OWN-DEC-104]]); refunds follow [[FACT-CANCELLATION-RULES]] ([[OWN-DEC-134]]); no forfeiture or late-fee terms are invented; payment timing and methods: [[FACT-PAYMENT-DUE]], [[FACT-PAYMENT-METHODS]].
 
 **Contractor Authorized Representative:** _______________________  **Date:** _______________
 **Subcontractor Authorized Representative:** ____________________  **Date:** _______________

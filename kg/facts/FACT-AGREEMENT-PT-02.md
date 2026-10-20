@@ -24,7 +24,7 @@ This Agreement governs the exterior wood restoration, brightening, and staining 
 * **The Midwest Weather Clause:** Exterior wood staining requires specific environmental parameters (temperatures above 50°F and a minimum of 24–48 hours of zero rainfall). Client understands that the scheduled project window is subject to immediate adjustments based on Kentuckiana weather forecasts.
   - Governed now by: minimums: none, [[FACT-NO-MINIMUM]] ([[OWN-DEC-102]]).
 * **Moisture Limit Guarantee:** The Company will not apply oil-based stains if wood moisture levels exceed 15% following power washing. Delays forced by slow wood drying times are implemented to guarantee product lifespan and will not void this contract.
-  - Governed now by: no warranty or guarantee is part of the approved terms ([[OWN-DEC-127]]).
+  - Governed now by: warranty: only the 90-day workmanship warranty of [[FACT-WARRANTY]] ([[OWN-DEC-135]]); no other warranty or guarantee is part of the approved terms ([[OWN-DEC-127]]).
 
 #### 2. Scope Limitations & Wood Conditions
 * **Landscape/Plant Disclaimer:** The Company utilizes eco-friendly neutralizing agents and will pre-saturate adjacent landscapes with water. However, the Company is not legally liable for minor temporary leaf-browning or plant stress caused by chemical run-offs.

@@ -6,15 +6,16 @@ status: active
 priority: P0
 area: security
 links:
-  decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-63]]", "[[OWN-DEC-73]]"]
+  decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-63]]", "[[OWN-DEC-73]]", "[[OWN-DEC-133]]"]
   depends_on: ["[[HH-ARC-05]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]"]
+  uses: ["[[FACT-DOMAIN]]"]
   tested_by: ["[[T22]]", "[[T27]]", "[[T68]]"]
   part_of: ["[[S00]]", "[[C03]]"]
-source: "guide 3.2; OWN-DEC-114, OWN-DEC-63, OWN-DEC-73"
+source: "guide 3.2; OWN-DEC-114, OWN-DEC-63, OWN-DEC-73, OWN-DEC-133"
 ---
-- With separate origins, each frontend talks to the shared backend through its own same-origin gateway.
-- Sessions use host-only cookies (for example the `__Host-` prefix). There are three separate session contexts:
+- The customer site and portal (`handyhub247.com`) and the staff app (`staff.handyhub247.com`) are separate origins ([[OWN-DEC-133]]); each talks to the shared backend through its own same-origin gateway.
+- Each origin sets its own host-only session cookies (for example the `__Host-` prefix); customer and staff sessions never share a cookie. There are three separate session contexts:
   - staff session: email-and-password sign-in on the staff website ([[OWN-DEC-114]]);
   - customer session: account sign-in with a one-time code ([[OWN-DEC-63]]) or a verified, project-scoped guest session ([[OWN-DEC-97]]);
   - the staging access gate, which sits in front of everything on staging and is separate from both ([[OWN-DEC-73]]).
@@ -30,8 +31,8 @@ Routes (adjust to keep working routes):
 | Verification landing | `/access/...` | Minimal page; private data only after verification |
 | Guest project | `/project/{reference}` | Verified, project-scoped session |
 | Customer account | `/account`, `/account/projects` | Verified customer account |
-| Staff sign-in | `/sign-in` on the staff origin, or `/staff/sign-in` | Invited staff only |
-| Staff operations | Staff origin modules, or `/staff/...` | Active, role- and record-scoped staff session |
+| Staff sign-in | `/sign-in` on `staff.handyhub247.com` (`/staff/sign-in` on the staging host until the domain is set up) | Invited staff only |
+| Staff operations | Modules on `staff.handyhub247.com` | Active, role- and record-scoped staff session |
 | Shared operations API | `/api/v1/...` through the gateway | Permission per endpoint |
 
 A reference in a URL is an identifier, never an access grant. Readable URLs never contain addresses, access codes, customer names or long-lived bearer credentials; a one-time link token is removed from the URL after exchange ([[HH-SEC-04]]).
