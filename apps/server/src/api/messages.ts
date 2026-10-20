@@ -8,7 +8,10 @@ const ERROR_KEYS: Record<ErrorCode, CustomerKey & StaffKey> = {
   VALIDATION_FAILED: 'error.VALIDATION_FAILED',
   IDEMPOTENCY_KEY_REQUIRED: 'error.IDEMPOTENCY_KEY_REQUIRED',
   UNAUTHENTICATED: 'error.UNAUTHENTICATED',
+  INVALID_CREDENTIALS: 'error.INVALID_CREDENTIALS',
   FORBIDDEN: 'error.FORBIDDEN',
+  FRESH_AUTH_REQUIRED: 'error.FRESH_AUTH_REQUIRED',
+  LINK_INVALID: 'error.LINK_INVALID',
   NOT_FOUND: 'error.NOT_FOUND',
   METHOD_NOT_ALLOWED: 'error.METHOD_NOT_ALLOWED',
   STALE_VERSION: 'error.STALE_VERSION',
@@ -31,6 +34,7 @@ const FIELD_KEYS = {
   tooShort: 'error.field.tooShort',
   choice: 'error.field.choice',
   unknown: 'error.field.unknown',
+  passwordCommon: 'error.field.passwordCommon',
   invalid: 'error.field.invalid',
 } as const satisfies Record<string, CustomerKey & StaffKey>
 export type FieldErrorKind = keyof typeof FIELD_KEYS
@@ -73,6 +77,8 @@ export function fieldKind(keyword: string): FieldErrorKind {
       return 'choice'
     case 'additionalProperties':
       return 'unknown'
+    case 'passwordCommon':
+      return 'passwordCommon'
     default:
       return 'invalid'
   }
