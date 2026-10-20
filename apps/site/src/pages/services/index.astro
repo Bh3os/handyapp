@@ -1,0 +1,58 @@
+---
+// Service catalog (TSK-0021; HH-CUS-01, OWN-DEC-33, OWN-DEC-90): the registry services grouped in the four categories
+// with the owner's category texts, each linking to its page, and "Not sure what service I need", always visible. The
+// build carries every service hidden; the list of services the site may show is read at run time (site/listing.ts),
+// so a draft is never listed. English only (RULE-LANGUAGES).
+import { customerTranslator } from '@handyhub/i18n'
+import SiteLayout from '../../layouts/SiteLayout.astro'
+import { CATEGORIES, CATEGORY_LABEL, CATEGORY_TEXT, NOT_SURE_HREF, servicePath, siteServices } from '../../site/services'
+
+const t = customerTranslator()
+const services = siteServices()
+---
+
+<SiteLayout title={`${t.t('services.title')} | HandyHub`}>
+  <section class="hh-services" aria-labelledby="services-title">
+    <div class="hh-site__wrap">
+      <h1 class="hh-display hh-services__title" id="services-title">{t.t('services.title')}</h1>
+      <p class="hh-lead hh-services__intro">{t.t('services.intro')}</p>
+      <div class="hh-services__grid" data-service-listing data-unavailable={t.t('error.UNAVAILABLE')}>
+        <p class="hh-small" data-listing-status role="status">{t.t('site.footer.loading')}</p>
+        {
+          CATEGORIES.map((c) => (
+            <section class="hh-card hh-card--plate hh-services__category" aria-labelledby={`category-${c}`} data-listing-group>
+              <h2 class="hh-h2 hh-services__category-title" id={`category-${c}`}>
+                {t.t(CATEGORY_LABEL[c])}
+              </h2>
+              <p class="hh-muted hh-services__category-text">{t.t(CATEGORY_TEXT[c])}</p>
+              <ul class="hh-services__list" data-listing-list hidden>
+                {services
+                  .filter((s) => s.category === c)
+                  .map((s) => (
+                    <li data-service-id={s.id} hidden>
+                      <a href={servicePath(s)}>{s.name}</a>
+                    </li>
+                  ))}
+              </ul>
+              <p class="hh-small hh-muted" data-listing-empty hidden>
+                {t.t('services.empty')}
+              </p>
+            </section>
+          ))
+        }
+      </div>
+      <section class="hh-services__not-sure" aria-labelledby="services-not-sure" data-testid="not-sure">
+        <h2 class="hh-h2" id="services-not-sure">{t.t('request.services.notSure')}</h2>
+        <p>{t.t('services.notSure.text')}</p>
+        <p class="hh-services__action">
+          <a class="hh-button hh-button--secondary" href={NOT_SURE_HREF}>{t.t('services.notSure.action')}</a>
+        </p>
+      </section>
+    </div>
+  </section>
+</SiteLayout>
+
+<script>
+  import { loadListing } from '../../site/listing'
+  loadListing()
+</script>

@@ -7,7 +7,7 @@ import fastifyStatic from '@fastify/static'
 import Fastify, { type FastifyBaseLogger, type FastifyInstance, type FastifyReply } from 'fastify'
 import { accessGateHook, FailureLimiter } from './access-gate.js'
 import type { Config } from './config.js'
-import { createDb, type Db } from '@handyhub/db'
+import { createDb, isPublicServiceSlug, type Db } from '@handyhub/db'
 import { registerApi, type SurfaceResolvers } from './api/register.js'
 import type { ApiModule, ResolveActor } from './api/route.js'
 import { databaseReadiness, type ReadinessCheck } from './health.js'
@@ -166,9 +166,33 @@ export async function buildApp({
       return spa(reply, portal, url.slice('/portal'.length))
     }
     if (!site) return reply.callNotFound()
+    // Service pages (TSK-0021; HH-CUS-02, OWN-DEC-84): the build holds a page for every registry service, and only a
+    // service the site may show is served; a draft, or one not approved for production, is a 404. Unknown is not safe:
+    // without a database no service page is served.
+    const servicePage = /^\/services\/([^/]+)/.exec(url)
+    if (servicePage) {
+      const slug = (servicePage[1] ?? '').replace(/\.html$/, '')
+      if (!db) return reply.callNotFound()
+      let shown: boolean
+      try {
+        shown = await isPublicServiceSlug(db, config.env, slug)
+      } catch {
+        return reply
+          .status(503)
+          .header('cache-control', 'no-store')
+          .type('text/plain; charset=utf-8')
+          .send('Unavailable')
+      }
+      if (!shown) return reply.callNotFound()
+      // Publication can change at any time; the page is checked again on every visit.
+      reply.header('cache-control', 'no-cache')
+    }
     const file =
       fileIn(site, url) ?? fileIn(site, `${url}.html`) ?? fileIn(site, `${url.replace(/\/$/, '')}/index.html`)
-    return file ? reply.sendFile(path.relative(site, file), site) : reply.callNotFound()
+    if (!file) return reply.callNotFound()
+    return servicePage
+      ? reply.sendFile(path.relative(site, file), site, { cacheControl: false })
+      : reply.sendFile(path.relative(site, file), site)
   })
   return app
 }

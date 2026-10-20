@@ -50,6 +50,15 @@ export const CLAIMS: readonly Claim[] = [
       source: OWNER_2026_10_12,
       decision: 'OWN-DEC-89',
     },
+    // Every service page names the licensed-trade, structural and hazardous-material limits (TSK-0021; OWN-DEC-51,
+    // FACT-SVC-EXCLUDED-SCOPE): "licensed" here describes work HandyHub does not do, never a credential. The facts are
+    // the owner's; this wording stays PROPOSED pending attorney and safety review (OQ-ATTORNEY-TERMS, OQ-SAFETY-REVIEW).
+    {
+      key: 'service.limits.excluded',
+      text: "We don't do licensed trade work (gas, line-voltage electrical, plumbing or HVAC), structural work, or asbestos, lead or mold work.",
+      source: 'owner, 2026-10-06',
+      decision: 'OWN-DEC-51',
+    },
   ])
 
 /** Claim words and phrases that stay off customer text unless the claim is registered above. */

@@ -39,6 +39,7 @@ export { SEEDERS } from './seeders.js'
 export {
   canAutoSchedule,
   contentHash,
+  isPublicServiceSlug,
   loadServiceSeed,
   PUBLIC_STATUSES,
   publicServices,
