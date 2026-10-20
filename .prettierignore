@@ -13,3 +13,4 @@ reports
 playwright-report
 test-results
 packages/db/src/schema.ts
+packages/db/seed
