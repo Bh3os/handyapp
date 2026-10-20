@@ -1,6 +1,8 @@
 // Requests module (TSK-0025; HH-INT-10, HH-INT-11, HH-ID-01, HH-INT-21). The public submission route.
 import { readIdempotencyKey } from '../../api/idempotency.js'
 import type { ApiModule, RouteDef } from '../../api/route.js'
+import { publicServices, type RegistryEnvironment } from '@handyhub/db'
+import { serviceQuestions } from '@handyhub/domain/request-form'
 import { loadConfig } from '../../platform/config/index.js'
 import { currentContext } from '../../platform/request-context.js'
 import { MAX_SERVICES, SUBMIT_BODY, SUBMIT_RESPONSE, type SubmitBody } from './schema.js'
@@ -99,4 +101,82 @@ const formSettings: RouteDef = {
   },
 }
 
-export const REQUESTS_MODULE: ApiModule = { name: 'requests', routes: [submit, formSettings] }
+/** The services the public request form offers, with their questions (TSK-0027; HH-INT-15, HH-SVC-03, OWN-DEC-84). */
+const publicServiceList: RouteDef = {
+  method: 'GET',
+  path: '/public/services',
+  operationId: 'listRequestServices',
+  summary: 'Services and their questions for the request form',
+  description:
+    'Public read of the registry services the public site may show (production: approved and published; other ' +
+    'environments: staging or published), each with its registry name, category and the questions from its ' +
+    'intake inputs. Draft services are never listed.',
+  actors: ['guest', 'customer'],
+  permission: 'request.submit',
+  kind: 'read',
+  idempotency: 'none',
+  expectedVersion: 'none',
+  rateLimit: 'none',
+  audit: 'none',
+  pagination: false,
+  test: 'test/integration/requests.test.ts',
+  schema: {
+    response: {
+      200: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['services'],
+        properties: {
+          services: {
+            type: 'array',
+            items: {
+              type: 'object',
+              additionalProperties: false,
+              required: ['id', 'category', 'name', 'questions'],
+              properties: {
+                id: { type: 'string' },
+                category: { type: 'string' },
+                name: { type: 'string' },
+                questions: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    additionalProperties: false,
+                    required: ['key', 'label'],
+                    properties: { key: { type: 'string' }, label: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  handler: async (ctx) => {
+    const environment = (process.env['HANDYHUB_ENV'] ?? 'local') as RegistryEnvironment
+    const listed = await publicServices(ctx.db, environment)
+    const intakes = listed.length
+      ? await ctx.db
+          .selectFrom('catalog.service_versions')
+          .select(['service_id', 'version', 'intake'])
+          .where((eb) => eb.or(listed.map((s) => eb.and([eb('service_id', '=', s.id), eb('version', '=', s.version)]))))
+          .execute()
+      : []
+    return {
+      body: {
+        services: listed.map((s) => ({
+          id: s.id,
+          category: s.category,
+          name: s.name,
+          questions: serviceQuestions(
+            (intakes.find((i) => i.service_id === s.id)?.intake ?? { guideInputs: [] }) as { guideInputs: string[] },
+          ),
+        })),
+      },
+      headers: { 'cache-control': 'no-cache' },
+    }
+  },
+}
+
+export const REQUESTS_MODULE: ApiModule = { name: 'requests', routes: [submit, formSettings, publicServiceList] }

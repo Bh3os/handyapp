@@ -84,3 +84,47 @@
   margin: 0;
   overflow-wrap: anywhere;
 }
+/* Services step (TSK-0027): four equal category cards that stack on phones; full-width checkbox rows. */
+.hh-request__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: var(--hh-space-3);
+}
+.hh-request__card {
+  display: grid;
+  gap: var(--hh-space-1);
+  min-height: var(--hh-target);
+  padding: var(--hh-space-4);
+  border: 1px solid var(--hh-line-strong);
+  border-radius: var(--hh-radius-md);
+  background: var(--hh-surface);
+  color: var(--hh-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.hh-request__card[aria-pressed='true'] {
+  border: 2px solid var(--hh-action);
+  box-shadow: inset 4px 0 0 var(--hh-action);
+}
+.hh-request__card:focus-visible {
+  outline: 3px solid var(--hh-focus);
+  outline-offset: 2px;
+}
+.hh-request__card-title {
+  font-weight: 700;
+}
+.hh-request__selected ul {
+  display: grid;
+  gap: var(--hh-space-1);
+  margin: 0;
+  padding-left: var(--hh-space-6);
+}
+.hh-request__questions {
+  display: grid;
+  gap: var(--hh-space-4);
+}
+.hh-request__question {
+  display: grid;
+  gap: var(--hh-space-1);
+}

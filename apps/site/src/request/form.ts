@@ -9,22 +9,40 @@ import {
   ESTIMATE_PREFERENCES,
   localDate,
   MAX_SERVICES,
+  questionPlan,
   PROPERTY_TYPES,
   REQUEST_FORM_SCHEMA,
   semanticProblems,
   TIME_WINDOWS,
+  type ServiceQuestion,
   type SubmitBody,
 } from '@handyhub/domain/request-form'
 import type { CustomerKey } from '@handyhub/i18n'
 import { Ajv } from 'ajv'
 
-export { CONTACT_CHANNELS, ESTIMATE_PREFERENCES, MAX_SERVICES, PROPERTY_TYPES, TIME_WINDOWS }
+export { CONTACT_CHANNELS, ESTIMATE_PREFERENCES, MAX_SERVICES, PROPERTY_TYPES, questionPlan, TIME_WINDOWS }
+export type { ServiceQuestion }
+
+/** A service as the form offers it: registry name, category and its questions (GET /api/v1/public/services). */
+export type FormService = { id: string; name: string; category: string; questions: ServiceQuestion[] }
+
+/** An answer as typed: the customer's words, or "I don't know" (stored as unknown, never zero). */
+export type AnswerInput = { text: string; unknown: boolean }
+
+/** The key of an answer: the service ID for a service's own question, empty for a shared one. */
+export function answerKey(serviceId: string | undefined, question: string): string {
+  return `${serviceId ?? ''}/${question}`
+}
 
 export const STEPS = ['services', 'job', 'property', 'contact', 'review'] as const
 export type StepId = (typeof STEPS)[number]
 
 export type FormValues = {
   services: string[]
+  /** Optional notes per selected service (HH-SVC-03). */
+  notes: Record<string, string>
+  /** Answers by answerKey(). */
+  answers: Record<string, AnswerInput>
   notSure: boolean
   otherServicesText: string
   description: string
@@ -47,6 +65,8 @@ export type FormValues = {
 
 export const EMPTY_VALUES: FormValues = {
   services: [],
+  notes: {},
+  answers: {},
   notSure: false,
   otherServicesText: '',
   description: '',
@@ -84,11 +104,33 @@ export type FormMeta = { formVersion: string; privacyNoticeVersion: string; star
 
 const optional = (s: string) => (s.trim() === '' ? undefined : s)
 
-export function toBody(v: FormValues, meta: FormMeta): SubmitBody {
+/** The answers the plan asks for: typed text, or unknown; a question left empty is simply not answered. */
+export function answersFor(v: FormValues, services: readonly FormService[]): NonNullable<SubmitBody['answers']> {
+  const selected = v.services.flatMap((id) => services.filter((s) => s.id === id))
+  const plan = questionPlan(selected)
+  const out: NonNullable<SubmitBody['answers']> = []
+  const add = (serviceId: string | undefined, q: ServiceQuestion) => {
+    const a = v.answers[answerKey(serviceId, q.key)]
+    if (!a) return
+    const base = { ...(serviceId ? { serviceId } : {}), question: q.key }
+    if (a.unknown) out.push({ ...base, kind: 'unknown' })
+    else if (a.text.trim()) out.push({ ...base, kind: 'text', text: a.text })
+  }
+  for (const q of plan.shared) add(undefined, q)
+  for (const group of plan.perService) for (const q of group.questions) add(group.serviceId, q)
+  return out
+}
+
+export function toBody(v: FormValues, meta: FormMeta, services: readonly FormService[] = []): SubmitBody {
+  const answers = answersFor(v, services)
   const body: SubmitBody = {
     formVersion: meta.formVersion,
     privacyNoticeVersion: meta.privacyNoticeVersion,
-    services: v.services.map((serviceId) => ({ serviceId })),
+    services: v.services.map((serviceId) => ({
+      serviceId,
+      ...(optional(v.notes[serviceId] ?? '') ? { notes: v.notes[serviceId] } : {}),
+    })),
+    ...(answers.length ? { answers } : {}),
     notSure: v.notSure,
     property: {
       street: v.street,
@@ -146,16 +188,18 @@ function schemaCheck(body: unknown): Problem[] {
 export function validate(
   v: FormValues,
   meta: FormMeta,
-  opts: { now: Date; zone: string; knownServices: ReadonlySet<string> },
+  opts: { now: Date; zone: string; services: readonly FormService[] },
 ): Problem[] {
-  const body = toBody(v, meta)
+  const body = toBody(v, meta, opts.services)
   const problems = schemaCheck(body)
   // An empty value is "required", not "too short", "wrong format" or "choose one of the options".
   for (const p of problems)
     if (['enum', 'minLength', 'pattern'].includes(p.code) && valueAt(body, p.field) === '') p.code = 'required'
   if (problems.length === 0) {
     const today = localDate(opts.now, opts.zone)
-    for (const p of semanticProblems(body, { today, knownServices: opts.knownServices }))
+    const knownServices = new Set(opts.services.map((x) => x.id))
+    const questions = new Map(opts.services.map((x) => [x.id, x.questions.map((q) => q.key)]))
+    for (const p of semanticProblems(body, { today, knownServices, questions }))
       problems.push({ field: p.field.replace(/^body\./, ''), code: p.code })
   }
   const seen = new Set<string>()

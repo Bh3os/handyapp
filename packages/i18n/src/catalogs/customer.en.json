@@ -102,5 +102,16 @@
   "request.receipt.title": "Your request is in.",
   "request.receipt.thanks": "Thank you for choosing HandyHub.",
   "request.receipt.reference": "Request reference: {reference}",
-  "request.receipt.separate": "Your request is received. Pricing and your appointment will be confirmed separately."
+  "request.receipt.separate": "Your request is received. Pricing and your appointment will be confirmed separately.",
+  "request.services.choose": "Choose a category",
+  "request.categoryText.home_improvement": "Repairs and installations",
+  "request.categoryText.drywall": "Wall repairs and drywall projects",
+  "request.categoryText.painting": "Painting and surface finishes",
+  "request.categoryText.cleaning": "Home and property cleaning",
+  "request.services.remove": "Remove",
+  "request.services.removeNamed": "Remove {name}",
+  "request.services.limit": "You can choose up to {max} services. Describe any other work in the field below.",
+  "request.questions.unknown": "I don't know",
+  "request.questions.shared": "For your selected services",
+  "request.questions.notes": "Notes for {service}"
 }
