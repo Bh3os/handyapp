@@ -128,3 +128,49 @@
   display: grid;
   gap: var(--hh-space-1);
 }
+
+/* Request photos (TSK-0031): a wrapping list of previews, each with its own state and controls. */
+.hh-request__photos {
+  display: grid;
+  gap: var(--hh-space-3);
+}
+.hh-request__warning {
+  margin: 0;
+  padding: var(--hh-space-3) var(--hh-space-4);
+  border-left: 3px solid var(--hh-warning);
+  background: var(--hh-warning-tint);
+  color: var(--hh-warning-text);
+}
+.hh-request__file {
+  justify-self: start;
+  cursor: pointer;
+}
+.hh-request__file:focus-within {
+  outline: 3px solid var(--hh-focus);
+  outline-offset: 2px;
+}
+.hh-request__photo-list {
+  display: grid;
+  gap: var(--hh-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hh-request__photo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hh-space-3);
+  align-items: flex-start;
+}
+.hh-request__photo img {
+  width: 6rem;
+  height: 6rem;
+  object-fit: cover;
+  border-radius: var(--hh-radius-md);
+  background: var(--hh-neutral-tint);
+}
+.hh-request__photo-info {
+  display: grid;
+  gap: var(--hh-space-2);
+  min-width: 0;
+}

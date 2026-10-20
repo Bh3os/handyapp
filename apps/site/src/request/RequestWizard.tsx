@@ -8,6 +8,7 @@ import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { Button, Dialog, Field, StateView } from '@handyhub/ui'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { DraftStore } from './draft.js'
+import { PhotoUploader, usePhotos, type PhotoLimits } from './photos.js'
 import {
   CONTACT_CHANNELS,
   EMPTY_VALUES,
@@ -115,7 +116,8 @@ function fieldOf(path: string): string {
 }
 
 type Phase = 'loading' | 'draftFound' | 'choose' | 'dismissed' | 'form' | 'sent'
-type Settings = { draftDays: number | null; timeZone: string | null }
+type Settings = { draftDays: number | null; timeZone: string | null; photos: PhotoLimits | null }
+type PhotoSummary = { received: number; processing: number; failed: number }
 type Banner = { kind: 'error'; message: string } | { kind: 'success'; message: string } | null
 
 function browserStorage(): Storage | null {
@@ -144,7 +146,9 @@ export default function RequestWizard() {
   const [step, setStep] = useState<StepId>('services')
   const [problems, setProblems] = useState<Problem[]>([])
   const [banner, setBanner] = useState<Banner>(null)
-  const [settings, setSettings] = useState<Settings>({ draftDays: null, timeZone: null })
+  const [settings, setSettings] = useState<Settings>({ draftDays: null, timeZone: null, photos: null })
+  const [receiptPhotos, setReceiptPhotos] = useState<PhotoSummary | null>(null)
+  const photos = usePhotos(settings.photos)
   const [sending, setSending] = useState(false)
   const [reference, setReference] = useState<string | null>(null)
   const [website, setWebsite] = useState('')
@@ -168,7 +172,7 @@ export default function RequestWizard() {
         .then(async (r) => (r.ok ? ((await r.json()) as T) : fallback))
         .catch(() => fallback)
     void Promise.all([
-      json<Settings>('/api/v1/public/request-form', { draftDays: null, timeZone: null }),
+      json<Settings>('/api/v1/public/request-form', { draftDays: null, timeZone: null, photos: null }),
       json<{ services: FormService[] }>('/api/v1/public/services', { services: [] }),
     ]).then(([s, offered]) => {
       if (!live) return
@@ -242,7 +246,12 @@ export default function RequestWizard() {
   const send = async () => {
     const all = validate(values, meta, opts)
     if (all.length) return show(all, stepOf(all[0]?.field ?? '') as StepId)
-    const body = toBody(values, meta, services)
+    // The server binds the draft's stored photos to the request; failed photos were never stored (TSK-0031).
+    const stored = photos.items.some((i) => i.id)
+    const body = {
+      ...toBody(values, meta, services),
+      ...(stored && photos.capability ? { photoDraft: photos.capability } : {}),
+    }
     const text = JSON.stringify(body)
     const bodyHash = await hash(text)
     // The same key for a retry of the same content, so a double tap or a retry creates one request (HH-INT-10).
@@ -258,11 +267,15 @@ export default function RequestWizard() {
       })
       const data = (await res.json().catch(() => null)) as {
         reference?: string
+        photos?: PhotoSummary
         error?: { code: string; message: string; fieldErrors: { field: string; code: string }[] }
       } | null
       if (res.status === 201 && data?.reference) {
         store?.clear()
         setReference(data.reference)
+        // Photos that failed here were never stored; the receipt counts them with any the server refused.
+        const failedHere = photos.items.filter((i) => i.state === 'failed').length
+        setReceiptPhotos(data.photos ? { ...data.photos, failed: data.photos.failed + failedHere } : null)
         setPhase('sent')
         focusHeading.current = true
         return
@@ -290,6 +303,7 @@ export default function RequestWizard() {
         </h2>
         <p>{t('request.receipt.thanks')}</p>
         <p className="hh-lead">{t('request.receipt.reference', { reference: reference ?? '' })}</p>
+        {receiptPhotos ? <p>{t('request.receipt.photos', receiptPhotos)}</p> : null}
         <p>{t('request.receipt.separate')}</p>
         <a className="hh-button hh-button--secondary" href="/">
           {t('request.home')}
@@ -447,6 +461,8 @@ export default function RequestWizard() {
     )
   }
   const plan = questionPlan(values.services.flatMap((id) => services.filter((x) => x.id === id)))
+  const savedPhotos = photos.items.filter((i) => i.state === 'complete' || i.state === 'processing').length
+  const failedPhotos = photos.items.filter((i) => i.state === 'failed').length
   const body: Record<StepId, ReactNode> = {
     services: (
       <>
@@ -536,6 +552,7 @@ export default function RequestWizard() {
             />
           </section>
         ))}
+        <PhotoUploader photos={photos} limits={settings.photos} />
       </>
     ),
     property: (
@@ -618,12 +635,17 @@ export default function RequestWizard() {
     ),
     review: (
       <>
+        {failedPhotos ? (
+          <p className="hh-request__warning" role="status">
+            {t('request.photos.failedNotice', { count: failedPhotos })}
+          </p>
+        ) : null}
         {(['services', 'job', 'property', 'contact'] as const).map((s) => (
           <section key={s} className="hh-card hh-request__review" aria-labelledby={`hh-review-${s}`}>
             <h3 id={`hh-review-${s}`} className="hh-h3">
               {t(STEP_LABEL[s])}
             </h3>
-            <dl>{reviewLines(s, values, services)}</dl>
+            <dl>{reviewLines(s, values, services, savedPhotos)}</dl>
             <Button variant="quiet" onClick={() => goTo(s)} aria-describedby={`hh-review-${s}`}>
               {t('request.edit')}
             </Button>
@@ -726,7 +748,7 @@ export default function RequestWizard() {
   )
 }
 
-function reviewLines(step: StepId, v: FormValues, services: FormService[]): ReactNode {
+function reviewLines(step: StepId, v: FormValues, services: FormService[], savedPhotos: number): ReactNode {
   const line = (label: CustomerKey, value: string) =>
     value ? (
       <div key={label}>
@@ -762,6 +784,7 @@ function reviewLines(step: StepId, v: FormValues, services: FormService[]): Reac
             </div>
           ) : null
         }),
+        savedPhotos ? line('request.photos.title', t('request.photos.saved', { count: savedPhotos })) : null,
       ]
     }
     case 'property':

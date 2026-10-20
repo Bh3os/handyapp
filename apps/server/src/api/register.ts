@@ -319,9 +319,17 @@ export async function registerApi(app: FastifyInstance, options: ApiOptions): Pr
         reply.status(404).send(envelope(new ApiError('NOT_FOUND'), req.apiAudience ?? { kind: 'customer' }, req.id)),
       )
 
+      // Raw-byte bodies of binary routes (photos): kept as a Buffer for the handler; the route sets its own ceiling.
+      const binaryTypes = [
+        ...new Set(options.modules.flatMap((m) => m.routes.flatMap((r) => r.binaryBody?.contentTypes ?? []))),
+      ]
+      if (binaryTypes.length)
+        api.addContentTypeParser(binaryTypes, { parseAs: 'buffer' }, (_req, body, done) => done(null, body))
+
       for (const mod of options.modules) {
         for (const route of mod.routes) {
           api.route({
+            ...(route.binaryBody ? { bodyLimit: route.binaryBody.maxBytes } : {}),
             method: route.method,
             url: route.path,
             schema: {
