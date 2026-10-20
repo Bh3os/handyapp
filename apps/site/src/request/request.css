@@ -1,0 +1,86 @@
+/* Request wizard layout (TSK-0026). Design-system tokens only; works at 320 px and 200% text (HH-A11Y-02). */
+.hh-request-page {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: var(--hh-space-8) var(--hh-gutter);
+}
+.hh-request {
+  display: grid;
+  gap: var(--hh-space-6);
+}
+.hh-request__progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hh-space-2) var(--hh-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--hh-muted);
+  font-size: var(--hh-text-small);
+}
+.hh-request__progress li[aria-current='step'] {
+  color: var(--hh-text);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+.hh-request__group {
+  display: grid;
+  gap: var(--hh-space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.hh-request__group[aria-invalid='true'] {
+  padding-left: var(--hh-space-3);
+  border-left: 3px solid var(--hh-danger);
+}
+.hh-request__option {
+  display: flex;
+  align-items: center;
+  gap: var(--hh-space-3);
+  min-height: var(--hh-target);
+}
+.hh-request__option input {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: none;
+  accent-color: var(--hh-action);
+}
+.hh-request__category {
+  display: grid;
+  gap: var(--hh-space-1);
+}
+.hh-request__actions,
+.hh-request__choice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hh-space-3);
+}
+.hh-request__summary {
+  padding: var(--hh-space-4);
+  border: 2px solid var(--hh-danger);
+  border-radius: var(--hh-radius-md);
+  background: var(--hh-danger-tint);
+}
+.hh-request__summary:focus {
+  outline: 3px solid var(--hh-focus);
+  outline-offset: 2px;
+}
+.hh-request__summary a {
+  color: var(--hh-danger-text);
+}
+.hh-request__review dl {
+  display: grid;
+  gap: var(--hh-space-2);
+  margin: 0 0 var(--hh-space-3);
+}
+.hh-request__review dt {
+  font-weight: 600;
+}
+.hh-request__review dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}

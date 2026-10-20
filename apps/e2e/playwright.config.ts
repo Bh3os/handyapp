@@ -7,7 +7,8 @@ import { defineConfig, devices } from '@playwright/test'
 
 const executablePath = process.env['E2E_CHROMIUM_EXECUTABLE']
 const port = Number(process.env['E2E_PORT'] ?? 4310)
-const serverEntry = fileURLToPath(new URL('../server/dist/main.js', import.meta.url))
+// The built server, on a fresh database when TEST_DATABASE_URL is set (server.mjs).
+const serverEntry = fileURLToPath(new URL('./server.mjs', import.meta.url))
 const galleryPort = Number(process.env['E2E_GALLERY_PORT'] ?? 4311)
 const uiDir = fileURLToPath(new URL('../../packages/ui', import.meta.url))
 const viteBin = fileURLToPath(new URL('../../packages/ui/node_modules/vite/bin/vite.js', import.meta.url))
@@ -36,9 +37,16 @@ export default defineConfig({
     {
       command: `node ${JSON.stringify(serverEntry)}`,
       url: `http://127.0.0.1:${port}/`,
-      env: { HANDYHUB_ENV: 'ci', PORT: String(port), HOST: '127.0.0.1' },
+      env: {
+        HANDYHUB_ENV: 'ci',
+        PORT: String(port),
+        HOST: '127.0.0.1',
+        ...(process.env['TEST_DATABASE_URL'] ? { TEST_DATABASE_URL: process.env['TEST_DATABASE_URL'] } : {}),
+      },
       reuseExistingServer: false,
       timeout: 30_000,
+      // SIGTERM (not the default SIGKILL) so server.mjs drops its fresh database before exiting.
+      gracefulShutdown: { signal: 'SIGTERM', timeout: 10_000 },
     },
     {
       command: `node ${JSON.stringify(viteBin)} preview --config gallery/vite.config.ts --port ${galleryPort}`,

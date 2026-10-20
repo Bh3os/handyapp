@@ -1,0 +1,31 @@
+---
+// The estimate request form (TSK-0026; HH-INT-01, HH-INT-08, HH-INT-09, C02). A React island; it needs the browser
+// (the draft lives in this browser only), so it renders on the client. The services offered are the registry's
+// services the public site may show (OWN-DEC-84: staging or published), with their registry names only.
+import '@handyhub/ui/styles.css'
+import '../request/request.css'
+import seed from '@handyhub/db/seed/services.json'
+import { customerTranslator } from '@handyhub/i18n'
+import RequestWizard from '../request/RequestWizard.tsx'
+
+const services = (seed as { services: { id: string; name: string; category: string; publicStatus: string }[] }).services
+  .filter((s) => s.publicStatus === 'staging' || s.publicStatus === 'published')
+  .map(({ id, name, category }) => ({ id, name, category }))
+const title = customerTranslator().t('request.title')
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title} | HandyHub</title>
+  </head>
+  <body>
+    <main class="hh-request-page">
+      <h1 class="hh-h1">{title}</h1>
+      <RequestWizard client:only="react" services={services} />
+    </main>
+  </body>
+</html>

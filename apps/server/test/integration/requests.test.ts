@@ -317,6 +317,14 @@ describe('rate limits and quiet spam controls (TSK-0025, HH-INT-11)', () => {
   })
 })
 
+describe('request form settings (TSK-0026, HH-INT-08)', () => {
+  it('[HH-INT-08] serves the configured draft period from FACT-SESSION-TIMINGS', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/v1/public/request-form' })
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toEqual({ draftDays: 7, maxServices: 5, timeZone: 'America/Kentucky/Louisville' })
+  })
+})
+
 describe('truthful outage state (TSK-0025, T71)', () => {
   it('[T71] answers a retryable UNAVAILABLE, never a false receipt, when the database is not there', async () => {
     const down = await buildApp({ config: testConfig() })
