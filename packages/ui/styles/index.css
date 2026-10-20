@@ -1,0 +1,6 @@
+/* @handyhub/ui stylesheet (TSK-0018): fonts, tokens, base elements and components, in that order. Astro pages and the
+   React apps import this one file: `import '@handyhub/ui/styles.css'`. */
+@import './fonts.css';
+@import './tokens.css';
+@import './base.css';
+@import './components.css';

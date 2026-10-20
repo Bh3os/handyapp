@@ -1,117 +1,95 @@
-// Configuration shapes and the typed accessor (TSK-0007; RULE-DECIDED-VALUES-ACTIVE, RULE-NO-INVENTED-FACTS,
-// RULE-AI-WAVE2, HH-FIN-01). The database side is covered by test/integration/config.test.ts.
+// Environment schema (TSK-0003; OWN-DEC-73, RULE-SYNTHETIC-DATA). Values are synthetic.
+import { inspect } from 'node:util'
 import { describe, expect, it } from 'vitest'
-import {
-  aiModule,
-  CONFIG_KEYS,
-  ConfigNotConfiguredError,
-  ConfigShapeError,
-  type Config,
-  type ConfigEntry,
-  type ConfigKey,
-  isConfigKey,
-  parseValue,
-  requireConfigured,
-} from '../../src/platform/config/index.js'
+import { ConfigError, ENV_VARS, loadConfig, parseAccessGateUsers, strongGatePassword } from '../../src/config.js'
+import { GATE_USERS, gatePassword } from '../fixtures/env.js'
 
-const fakeConfig = (entries: Partial<{ [K in ConfigKey]: ConfigEntry<K> }>): Config => ({
-  get: <K extends ConfigKey>(key: K) =>
-    (entries[key] as ConfigEntry<K> | undefined) ?? { state: 'NOT_CONFIGURED', key, version: null, sourceIds: [] },
-  entries: () => [],
-})
+const DB = ['postgres://synthetic', 'synthetic@127.0.0.1:5432/synthetic'].join(':')
 
-describe('configuration value shapes (TSK-0007, HH-FIN-01)', () => {
-  it('accepts the deposit rule in integer cents and basis points', () => {
-    expect(
-      parseValue('deposit.rule', {
-        comparison: 'greater_than',
-        thresholdCents: 100000,
-        percentBps: 2000,
-        base: 'final_total_after_discount',
-        rounding: 'half_up',
-      }),
-    ).toMatchObject({ thresholdCents: 100000, percentBps: 2000 })
+describe('environment schema (TSK-0003, OWN-DEC-73, RULE-SYNTHETIC-DATA)', () => {
+  it('[RULE-SYNTHETIC-DATA] HANDYHUB_ENV is required and must be a known environment', () => {
+    expect(() => loadConfig({})).toThrow(new ConfigError('HANDYHUB_ENV is required (local, ci, staging, production)'))
+    expect(() => loadConfig({ HANDYHUB_ENV: 'prod' })).toThrow(/HANDYHUB_ENV must be one of/)
   })
 
-  it('refuses floats, unknown fields, missing fields and wrong literals (RULE-MONEY-CENTS)', () => {
-    const ok = {
-      comparison: 'greater_than',
-      thresholdCents: 100000,
-      percentBps: 2000,
-      base: 'final_total_after_discount',
-      rounding: 'half_up',
+  it('[RULE-SYNTHETIC-DATA] DATABASE_URL is required in staging and production, optional in local and ci', () => {
+    expect(() => loadConfig({ HANDYHUB_ENV: 'production' })).toThrow('DATABASE_URL is required in production')
+    expect(() => loadConfig({ HANDYHUB_ENV: 'staging', ACCESS_GATE_USERS: GATE_USERS })).toThrow(
+      'DATABASE_URL is required in staging',
+    )
+    expect(loadConfig({ HANDYHUB_ENV: 'local' }).databaseUrl).toBeUndefined()
+    expect(() => loadConfig({ HANDYHUB_ENV: 'ci', DATABASE_URL: 'mysql://x' })).toThrow(/postgres/)
+  })
+
+  it('[OWN-DEC-73] ACCESS_GATE_USERS is required in staging and refused in production', () => {
+    expect(() => loadConfig({ HANDYHUB_ENV: 'staging', DATABASE_URL: DB })).toThrow(
+      /ACCESS_GATE_USERS is required in staging/,
+    )
+    expect(() => loadConfig({ HANDYHUB_ENV: 'production', DATABASE_URL: DB, ACCESS_GATE_USERS: GATE_USERS })).toThrow(
+      /refused in production/,
+    )
+    const staging = loadConfig({ HANDYHUB_ENV: 'staging', DATABASE_URL: DB, ACCESS_GATE_USERS: GATE_USERS })
+    expect(staging.accessGate.enabled).toBe(true)
+    expect(staging.noindex).toBe(true)
+    expect(loadConfig({ HANDYHUB_ENV: 'ci' }).accessGate.enabled).toBe(false)
+  })
+
+  it('[OWN-DEC-73] production serves without the gate and without the staging noindex', () => {
+    const prod = loadConfig({ HANDYHUB_ENV: 'production', DATABASE_URL: DB })
+    expect(prod.accessGate.enabled).toBe(false)
+    expect(prod.noindex).toBe(false)
+  })
+
+  it('[RULE-SYNTHETIC-DATA] errors name the variable and the entry, never a name or a password', () => {
+    const weak = 'aaaaaaaaaaaaaaaa'
+    const attempts = [
+      `owner:${weak}`,
+      `owner:${gatePassword(1)},owner:${gatePassword(2)}`,
+      `:${gatePassword(1)}`,
+      'nocolon',
+    ]
+    for (const raw of attempts) {
+      let message = ''
+      try {
+        parseAccessGateUsers(raw)
+      } catch (e) {
+        message = (e as Error).message
+      }
+      expect(message).toMatch(/^ACCESS_GATE_USERS/)
+      expect(message).not.toContain(weak)
+      expect(message).not.toContain(gatePassword(1))
+      expect(message).not.toContain('owner')
     }
-    expect(() => parseValue('deposit.rule', { ...ok, thresholdCents: 1000.5 })).toThrow(ConfigShapeError)
-    expect(() => parseValue('deposit.rule', { ...ok, extra: 1 })).toThrow(/unknown field/)
-    const { rounding: _r, ...missing } = ok
-    void _r
-    expect(() => parseValue('deposit.rule', missing)).toThrow(/missing/)
-    expect(() => parseValue('deposit.rule', { ...ok, comparison: 'at_least' })).toThrow(ConfigShapeError)
-    expect(() =>
-      parseValue('cancellation.rules', { rescheduleFree: true, noticeHours: 24, lateCancellationCents: '5000' }),
-    ).toThrow(ConfigShapeError)
   })
 
-  it('has no minimum-charge, surcharge or tax-rate key: no hidden setting can restore one (FACT-NO-MINIMUM, T02)', () => {
-    const keys = Object.keys(CONFIG_KEYS)
-    expect(keys.filter((k) => /minimum|surcharge|tax_rate|price_book/.test(k))).toEqual([])
-    expect(() => parseValue('payment.methods', { methods: ['cash'], surcharge: true })).toThrow(ConfigShapeError)
-    expect(() => parseValue('tax.mode', { mode: 'sales_tax' })).toThrow(ConfigShapeError)
-    expect(isConfigKey('pricing.minimum_charge')).toBe(false)
-  })
-})
-
-describe('typed accessor: callers must handle NOT_CONFIGURED (TSK-0007, RULE-NO-INVENTED-FACTS)', () => {
-  it('a NOT CONFIGURED entry has no value to read without checking its state', () => {
-    const entry = fakeConfig({}).get('business.mailing_address')
-    // @ts-expect-error the value exists only after narrowing on state === 'CONFIGURED'
-    expect(entry.value).toBeUndefined()
-    expect(entry).toEqual({ state: 'NOT_CONFIGURED', key: 'business.mailing_address', version: null, sourceIds: [] })
-    if (entry.state === 'CONFIGURED') expect(entry.value.lines.length).toBeGreaterThan(0)
+  it('[RULE-SYNTHETIC-DATA] a gate user never prints its password', () => {
+    const [user] = parseAccessGateUsers(GATE_USERS)
+    expect(JSON.stringify(user)).not.toContain(gatePassword(1))
+    expect(inspect(user)).not.toContain(gatePassword(1))
+    expect(user?.matches('owner', gatePassword(1))).toBe(true)
+    expect(user?.matches('owner', gatePassword(2))).toBe(false)
   })
 
-  it('requireConfigured gives the value, or a narrow NOT_CONFIGURED error naming the open source', () => {
-    const cfg = fakeConfig({
-      'business.mailing_address': {
-        state: 'NOT_CONFIGURED',
-        key: 'business.mailing_address',
-        version: 1,
-        sourceIds: ['FACT-BUSINESS-ADDRESS'],
-      },
-      'estimate.validity': {
-        state: 'CONFIGURED',
-        key: 'estimate.validity',
-        value: { days: 14, from: 'published' },
-        version: 1,
-        sourceIds: ['FACT-ESTIMATE-VALIDITY'],
-        proposed: false,
-        effectiveFrom: new Date('2026-10-20T00:00:00Z'),
-      },
-    })
-    expect(requireConfigured(cfg.get('estimate.validity')).value.days).toBe(14)
-    expect(() => requireConfigured(cfg.get('business.mailing_address'))).toThrow(ConfigNotConfiguredError)
-    expect(() => requireConfigured(cfg.get('business.mailing_address'))).toThrow(/FACT-BUSINESS-ADDRESS/)
-  })
-})
-
-describe('AI disabled is a tested state (TSK-0007, RULE-AI-WAVE2)', () => {
-  it('the AI module is disabled when configured off and when the key is missing', () => {
-    const off = fakeConfig({
-      'ai.module': {
-        state: 'CONFIGURED',
-        key: 'ai.module',
-        value: { enabled: false },
-        version: 1,
-        sourceIds: ['RULE-AI-WAVE2'],
-        proposed: false,
-        effectiveFrom: new Date(),
-      },
-    })
-    expect(aiModule(off)).toEqual({ state: 'AI_DISABLED', enabled: false })
-    expect(aiModule(fakeConfig({}))).toEqual({ state: 'AI_DISABLED', enabled: false })
+  it('applies the PROPOSED gate password strength rule', () => {
+    expect(strongGatePassword(gatePassword(3))).toBe(true)
+    expect(strongGatePassword('password12345678')).toBe(false)
+    expect(strongGatePassword('short-A1!')).toBe(false)
   })
 
-  it('no value can enable it', () => {
-    expect(() => parseValue('ai.module', { enabled: true })).toThrow(ConfigShapeError)
+  it('validates PORT, TRUST_PROXY_HOPS and LOG_LEVEL and documents every variable by name', () => {
+    expect(() => loadConfig({ HANDYHUB_ENV: 'ci', PORT: '70000' })).toThrow(/PORT must be a whole number/)
+    expect(() => loadConfig({ HANDYHUB_ENV: 'ci', TRUST_PROXY_HOPS: '9' })).toThrow(/TRUST_PROXY_HOPS/)
+    expect(() => loadConfig({ HANDYHUB_ENV: 'ci', LOG_LEVEL: 'loud' })).toThrow(/LOG_LEVEL/)
+    expect(loadConfig({ HANDYHUB_ENV: 'ci' })).toMatchObject({ port: 3000, host: '127.0.0.1', trustProxyHops: 0 })
+    expect(Object.keys(ENV_VARS).sort()).toEqual([
+      'ACCESS_GATE_USERS',
+      'DATABASE_URL',
+      'HANDYHUB_ENV',
+      'HOST',
+      'LOG_LEVEL',
+      'PORT',
+      'SITE_DIR',
+      'TRUST_PROXY_HOPS',
+    ])
   })
 })

@@ -1,12 +1,19 @@
-// Server entry point: node dist/main.js. PORT and HOST come from the environment; the full environment schema is
-// validated at boot from TSK-0003 on.
+// Server entry point: node dist/main.js. The environment schema (config.ts) is validated at boot; a bad configuration
+// prints the problem (never a value) and exits non-zero.
 import { fileURLToPath } from 'node:url'
-import { buildApp } from './app.js'
+import { boot } from './boot.js'
+import { ConfigError } from './config.js'
 
-const siteDir = process.env['SITE_DIR'] ?? fileURLToPath(new URL('../../site/dist', import.meta.url))
-const port = Number(process.env['PORT'] ?? 3000)
-const host = process.env['HOST'] ?? '127.0.0.1'
-
-const app = await buildApp({ siteDir })
-await app.listen({ port, host })
-process.stdout.write(`server listening on http://${host}:${port}\n`)
+try {
+  const { address, config } = await boot(process.env, {
+    defaultSiteDir: fileURLToPath(new URL('../../site/dist', import.meta.url)),
+    logger: true,
+  })
+  process.stdout.write(`server listening on ${address} (${config.env})\n`)
+} catch (error) {
+  if (error instanceof ConfigError) {
+    process.stderr.write(`configuration error: ${error.message}\n`)
+    process.exit(1)
+  }
+  throw error
+}
