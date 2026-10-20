@@ -10,6 +10,7 @@
     "dev": "astro dev"
   },
   "dependencies": {
+    "@handyhub/ui": "workspace:*",
     "astro": "^7.3.5"
   }
 }

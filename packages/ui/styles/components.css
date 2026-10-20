@@ -1,0 +1,530 @@
+/* Components (TSK-0018, HH-BASE-01; design specification 1.1 section 3). The React components in src/ render these
+   classes; Astro pages use the same classes on plain HTML. Status is always written out: colour, marker shape and
+   borders only repeat it. */
+
+/* ---- Button: primary (navy, one per view), secondary (ghost), quiet (underlined text) and danger ---- */
+.hh-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--hh-space-2);
+  min-height: var(--hh-control-height);
+  padding: 0.625rem 1.25rem;
+  border: 1px solid var(--hh-action);
+  border-radius: var(--hh-radius-sm);
+  background: var(--hh-action);
+  color: var(--hh-on-action);
+  font-family: var(--hh-font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color var(--hh-duration-fast) var(--hh-easing),
+    border-color var(--hh-duration-fast) var(--hh-easing),
+    color var(--hh-duration-fast) var(--hh-easing);
+}
+
+.hh-button:hover:not(:disabled, [aria-disabled='true']) {
+  border-color: var(--hh-action-hover);
+  background: var(--hh-action-hover);
+}
+
+.hh-button:active:not(:disabled, [aria-disabled='true']) {
+  box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.25);
+}
+
+.hh-button--secondary {
+  border-color: var(--hh-action);
+  background: transparent;
+  color: var(--hh-text);
+}
+
+.hh-button--secondary:hover:not(:disabled, [aria-disabled='true']) {
+  border-color: var(--hh-action);
+  background: var(--hh-tint);
+}
+
+.hh-button--quiet {
+  min-height: var(--hh-target);
+  padding-inline: var(--hh-space-1);
+  border-color: transparent;
+  background: transparent;
+  color: var(--hh-link);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.16em;
+}
+
+.hh-button--quiet:hover:not(:disabled, [aria-disabled='true']) {
+  border-color: transparent;
+  background: transparent;
+  text-decoration-color: var(--hh-accent-text);
+  text-decoration-thickness: 2px;
+}
+
+/* Danger removes, ends or stops something; the label says what. */
+.hh-button--danger {
+  border-color: var(--hh-danger);
+  background: var(--hh-surface);
+  color: var(--hh-danger-text);
+}
+
+.hh-button--danger:hover:not(:disabled, [aria-disabled='true']) {
+  border-color: var(--hh-danger);
+  background: var(--hh-danger-tint);
+}
+
+/* Inactive controls: only with the reason written beside them (design specification 3, Buttons). */
+.hh-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Pending keeps the label and shows a 16 px spinner after it; a second press does nothing. */
+.hh-button[aria-busy='true'] {
+  cursor: progress;
+}
+
+.hh-button[aria-busy='true']::after {
+  content: '';
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: hh-spin 0.7s linear infinite;
+}
+
+.hh-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hh-space-3);
+}
+
+.hh-button-reason {
+  margin: 0;
+  color: var(--hh-muted);
+  font-size: var(--hh-text-small);
+}
+
+/* ---- Field: label above, hint below, error below the hint; aria-invalid and the danger border repeat it ---- */
+.hh-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 36rem;
+}
+
+.hh-field__label {
+  color: var(--hh-text);
+  font-size: var(--hh-text-label);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: var(--hh-leading-tight);
+}
+
+.hh-field__required {
+  color: var(--hh-muted);
+  font-weight: 400;
+}
+
+.hh-field__control {
+  width: 100%;
+  min-height: var(--hh-control-height);
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--hh-line-strong);
+  border-radius: var(--hh-radius-sm);
+  background: var(--hh-surface);
+  color: var(--hh-text);
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+textarea.hh-field__control {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.hh-field__control:focus {
+  border-color: var(--hh-action);
+  box-shadow: inset 0 0 0 1px var(--hh-action);
+}
+
+.hh-field__control[aria-invalid='true'] {
+  border-color: var(--hh-danger);
+  box-shadow: inset 0 0 0 1px var(--hh-danger);
+}
+
+.hh-field__hint {
+  margin: 0;
+  color: var(--hh-muted);
+  font-size: var(--hh-text-small);
+}
+
+.hh-field__error {
+  display: flex;
+  gap: var(--hh-space-2);
+  margin: 0;
+  color: var(--hh-danger-text);
+  font-size: var(--hh-text-small);
+  font-weight: 600;
+}
+
+/* A square marker before the error text: shape, not colour alone. */
+.hh-field__error::before {
+  content: '';
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-top: 0.45em;
+  background: currentColor;
+}
+
+/* ---- Card and the plate (the identity's one signature: a gold hairline on its top edge) ---- */
+.hh-card {
+  padding: var(--hh-space-6);
+  border: var(--hh-hairline);
+  border-radius: var(--hh-radius-md);
+  background: var(--hh-surface);
+  color: var(--hh-text);
+}
+
+.hh-card > :first-child {
+  margin-top: 0;
+}
+
+.hh-card > :last-child {
+  margin-bottom: 0;
+}
+
+.hh-card__title {
+  margin: 0 0 var(--hh-space-3);
+}
+
+.hh-card--plate {
+  border: 0;
+  border-top: var(--hh-hairline-gold);
+  border-radius: var(--hh-radius-sm);
+  box-shadow: var(--hh-elevation-plate);
+}
+
+/* ---- Tabs (WAI-ARIA tabs pattern; arrow keys move between tabs) ---- */
+.hh-tabs__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hh-space-1);
+  border-bottom: var(--hh-hairline);
+}
+
+.hh-tabs__tab {
+  min-height: var(--hh-target);
+  margin-bottom: -1px;
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--hh-muted);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hh-tabs__tab:hover {
+  color: var(--hh-text);
+}
+
+/* The selected tab: text colour, weight and the bar together; never colour alone. */
+.hh-tabs__tab[aria-selected='true'] {
+  border-bottom-color: var(--hh-action);
+  color: var(--hh-text);
+}
+
+.hh-tabs__panel {
+  padding-block: var(--hh-space-4);
+}
+
+/* ---- Dialog (native modal dialog: focus is trapped and Escape closes it) ---- */
+.hh-dialog {
+  width: min(32rem, calc(100vw - 2 * var(--hh-gutter)));
+  max-height: calc(100vh - 2 * var(--hh-space-8));
+  padding: var(--hh-space-6);
+  border: 0;
+  border-top: var(--hh-hairline-gold);
+  border-radius: var(--hh-radius-sm);
+  background: var(--hh-surface);
+  box-shadow: var(--hh-elevation-menu);
+  color: var(--hh-text);
+}
+
+.hh-dialog::backdrop {
+  background: var(--hh-overlay);
+}
+
+.hh-dialog__title {
+  margin: 0 0 var(--hh-space-3);
+}
+
+.hh-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--hh-space-3);
+  margin-top: var(--hh-space-6);
+}
+
+/* ---- Toast: short confirmations and errors, announced politely or as an alert; never dismissed on a timer ---- */
+.hh-toast-region {
+  position: fixed;
+  right: var(--hh-gutter);
+  bottom: var(--hh-gutter);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: var(--hh-space-2);
+  width: min(24rem, calc(100vw - 2 * var(--hh-gutter)));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hh-toast-region--inline {
+  position: static;
+}
+
+.hh-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--hh-space-3);
+  padding: var(--hh-space-3) var(--hh-space-4);
+  border: var(--hh-hairline);
+  border-left: 4px solid var(--hh-info);
+  border-radius: var(--hh-radius-sm);
+  background: var(--hh-surface);
+  box-shadow: var(--hh-elevation-menu);
+  color: var(--hh-text);
+}
+
+.hh-toast--success {
+  border-left-color: var(--hh-success);
+}
+
+.hh-toast--error {
+  border-left-color: var(--hh-danger);
+}
+
+.hh-toast__message {
+  flex: 1;
+  margin: 0;
+}
+
+.hh-toast__dismiss {
+  min-width: var(--hh-target);
+  min-height: var(--hh-target);
+  margin: calc(-1 * var(--hh-space-2)) calc(-1 * var(--hh-space-2)) calc(-1 * var(--hh-space-2)) 0;
+  padding: 0 var(--hh-space-2);
+  border: 0;
+  background: transparent;
+  color: var(--hh-link);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ---- Status badge: a written status word with a marker whose shape differs by tone ---- */
+.hh-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--hh-radius-sm);
+  background: var(--hh-neutral-tint);
+  color: var(--hh-neutral-text);
+  font-size: var(--hh-text-label);
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.hh-badge::before {
+  content: '';
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+}
+
+.hh-badge--success {
+  background: var(--hh-success-tint);
+  color: var(--hh-success-text);
+}
+
+.hh-badge--success::before {
+  background: currentColor;
+}
+
+.hh-badge--danger {
+  background: var(--hh-danger-tint);
+  color: var(--hh-danger-text);
+}
+
+.hh-badge--danger::before {
+  border-radius: 0;
+  background: currentColor;
+}
+
+.hh-badge--warning {
+  background: var(--hh-warning-tint);
+  color: var(--hh-warning-text);
+}
+
+.hh-badge--warning::before {
+  border-radius: 0;
+  background: currentColor;
+  transform: rotate(45deg) scale(0.9);
+}
+
+.hh-badge--info {
+  background: var(--hh-info-tint);
+  color: var(--hh-info-text);
+}
+
+.hh-badge--info::before {
+  background: currentColor;
+  border-radius: 1px;
+  width: 0.25rem;
+}
+
+/* ---- State views: empty, loading, error, stale, offline, blocked and success (HH-BASE-01) ---- */
+.hh-state {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--hh-space-1) var(--hh-space-3);
+  padding: var(--hh-space-4) var(--hh-space-6) var(--hh-space-4) var(--hh-space-4);
+  border: var(--hh-hairline);
+  border-left: 4px solid var(--hh-line-strong);
+  border-radius: var(--hh-radius-sm);
+  background: var(--hh-surface);
+  color: var(--hh-text);
+}
+
+.hh-state__marker {
+  grid-row: 1 / span 3;
+  width: 0.75rem;
+  height: 0.75rem;
+  margin-top: 0.4em;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  color: var(--hh-muted);
+}
+
+.hh-state__title {
+  margin: 0;
+  font-size: var(--hh-text-h3);
+  font-weight: 600;
+  line-height: var(--hh-leading-tight);
+}
+
+.hh-state__body {
+  grid-column: 2;
+  margin: 0;
+  color: var(--hh-muted);
+}
+
+.hh-state__reasons {
+  grid-column: 2;
+  margin: var(--hh-space-1) 0 0;
+  padding-left: 1.25rem;
+}
+
+.hh-state__action {
+  grid-column: 2;
+  margin-top: var(--hh-space-3);
+}
+
+.hh-state--empty {
+  border-left-color: var(--hh-line);
+  background: var(--hh-surface-2);
+}
+
+.hh-state--loading .hh-state__marker {
+  border-right-color: transparent;
+  color: var(--hh-info);
+  animation: hh-spin 0.9s linear infinite;
+}
+
+.hh-state--error {
+  border-left-color: var(--hh-danger);
+  background: var(--hh-danger-tint);
+}
+
+.hh-state--error .hh-state__marker {
+  border-radius: 0;
+  background: currentColor;
+  color: var(--hh-danger-text);
+}
+
+.hh-state--error .hh-state__body,
+.hh-state--blocked .hh-state__body {
+  color: var(--hh-text);
+}
+
+.hh-state--stale {
+  border-left-color: var(--hh-warning);
+  background: var(--hh-warning-tint);
+}
+
+.hh-state--stale .hh-state__marker {
+  border-radius: 0;
+  color: var(--hh-warning-text);
+  transform: rotate(45deg) scale(0.85);
+}
+
+.hh-state--stale .hh-state__body,
+.hh-state--offline .hh-state__body {
+  color: var(--hh-text);
+}
+
+.hh-state--offline {
+  border-left-color: var(--hh-line-strong);
+  border-left-style: dashed;
+  background: var(--hh-neutral-tint);
+}
+
+.hh-state--offline .hh-state__marker {
+  border-style: dashed;
+  color: var(--hh-neutral-text);
+}
+
+.hh-state--blocked {
+  border-left-color: var(--hh-danger);
+  background: var(--hh-surface);
+}
+
+.hh-state--blocked .hh-state__marker {
+  border-radius: 0;
+  color: var(--hh-danger-text);
+}
+
+.hh-state--success {
+  border-left-color: var(--hh-success);
+  background: var(--hh-success-tint);
+}
+
+.hh-state--success .hh-state__marker {
+  background: currentColor;
+  color: var(--hh-success-text);
+}
+
+.hh-state--success .hh-state__body {
+  color: var(--hh-text);
+}
