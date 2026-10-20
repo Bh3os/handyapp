@@ -4,6 +4,7 @@ import type { ApiModule, RouteDef } from '../../api/route.js'
 import { publicServices, type RegistryEnvironment } from '@handyhub/db'
 import { serviceQuestions } from '@handyhub/domain/request-form'
 import { loadConfig } from '../../platform/config/index.js'
+import { formWindows } from './submit.js'
 import { currentContext } from '../../platform/request-context.js'
 import { photoLimits } from '../photos/photos.js'
 import { MAX_SERVICES, SUBMIT_BODY, SUBMIT_RESPONSE, type SubmitBody } from './schema.js'
@@ -67,7 +68,10 @@ const formSettings: RouteDef = {
   summary: 'Request form settings',
   description:
     'Public read of the configured request-draft period (session.timings.requestDraftDays, FACT-SESSION-TIMINGS), ' +
-    'the business time zone, the service limit and the photo limits (uploads.limits). draftDays is null while the value is NOT CONFIGURED; the wizard then keeps no draft.',
+    'the business time zone, the service limit and the photo limits (uploads.limits). draftDays is null while the value is NOT CONFIGURED; the wizard then keeps no draft. ' +
+    'TSK-0028: the visit hours (contact.hours, FACT-HOURS), the preferred windows offered with their configured hours ' +
+    '(request.window_hours; no hours while NOT CONFIGURED) and whether estimates are free (estimate.visit_fee, ' +
+    'FACT-VISIT-FEE). Preferences only: nothing here is availability, a slot or a price.',
   actors: ['guest', 'customer'],
   permission: 'request.submit',
   kind: 'read',
@@ -82,7 +86,7 @@ const formSettings: RouteDef = {
       200: {
         type: 'object',
         additionalProperties: false,
-        required: ['draftDays', 'maxServices', 'timeZone', 'photos'],
+        required: ['draftDays', 'maxServices', 'timeZone', 'photos', 'visitHours', 'windows', 'freeEstimates'],
         properties: {
           draftDays: { type: ['integer', 'null'] },
           maxServices: { type: 'integer' },
@@ -98,12 +102,30 @@ const formSettings: RouteDef = {
               types: { type: 'array', items: { type: 'string' } },
             },
           },
+          visitHours: {
+            type: ['object', 'null'],
+            additionalProperties: false,
+            required: ['open', 'close'],
+            properties: { open: { type: 'string' }, close: { type: 'string' } },
+          },
+          windows: {
+            type: 'array',
+            items: {
+              type: 'object',
+              additionalProperties: false,
+              required: ['code'],
+              properties: { code: { type: 'string' }, start: { type: 'string' }, end: { type: 'string' } },
+            },
+          },
+          freeEstimates: { type: 'boolean' },
         },
       },
     },
   },
   handler: async (ctx) => {
     const config = await loadConfig(ctx.db)
+    const hours = config.get('contact.hours')
+    const fee = config.get('estimate.visit_fee')
     const timings = config.get('session.timings')
     const zone = config.get('business.timezone')
     return {
@@ -113,6 +135,10 @@ const formSettings: RouteDef = {
         // The preferred date is tomorrow or later in the property's local time (OWN-DEC-92).
         timeZone: zone.state === 'CONFIGURED' ? zone.value.zone : null,
         photos: photoLimits(config),
+        visitHours: hours.state === 'CONFIGURED' ? { open: hours.value.open, close: hours.value.close } : null,
+        windows: formWindows(config),
+        // The free-estimate wording appears only while the configured policy says so (FACT-VISIT-FEE).
+        freeEstimates: fee.state === 'CONFIGURED' && fee.value.policy === 'free',
       },
       headers: { 'cache-control': 'no-cache' },
     }

@@ -148,6 +148,15 @@ export const CONFIG_KEYS = {
       }),
     ),
   }),
+  // TSK-0028 (HH-INT-02, OWN-DEC-92): the hours of the preferred windows, inside contact.hours. Not given by the owner:
+  // NOT CONFIGURED (OQ-WINDOW-HOURS), so the form shows the five windows without hours.
+  'request.window_hours': shape({
+    mornings: shape({ start: clock, end: clock }),
+    afternoons: shape({ start: clock, end: clock }),
+    evenings: shape({ start: clock, end: clock }),
+  }),
+  // TSK-0028 (FACT-VISIT-FEE, OWN-DEC-99): online and onsite estimates are free; no visit fee is shown or charged.
+  'estimate.visit_fee': shape({ policy: exactly('free') }),
   // RULE-AI-WAVE2: only `false` is a valid value; the database refuses anything else as well.
   'ai.module': shape({ enabled: exactly(false) }),
 } as const satisfies Record<string, Parser<unknown>>

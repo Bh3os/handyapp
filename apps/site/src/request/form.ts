@@ -7,20 +7,35 @@
 import {
   CONTACT_CHANNELS,
   ESTIMATE_PREFERENCES,
+  firstPreferredDate,
+  formatClock,
   localDate,
+  offeredWindows,
   MAX_SERVICES,
   questionPlan,
   PROPERTY_TYPES,
   semanticProblems,
   TIME_WINDOWS,
+  type OfferedWindow,
   type ServiceQuestion,
   type SubmitBody,
+  type VisitHours,
 } from '@handyhub/domain/request-form'
 import type { CustomerKey } from '@handyhub/i18n'
 import validateRequestForm from './validator.generated.js'
 
-export { CONTACT_CHANNELS, ESTIMATE_PREFERENCES, MAX_SERVICES, PROPERTY_TYPES, questionPlan, TIME_WINDOWS }
-export type { ServiceQuestion }
+export {
+  CONTACT_CHANNELS,
+  ESTIMATE_PREFERENCES,
+  firstPreferredDate,
+  formatClock,
+  MAX_SERVICES,
+  offeredWindows,
+  PROPERTY_TYPES,
+  questionPlan,
+  TIME_WINDOWS,
+}
+export type { OfferedWindow, ServiceQuestion, VisitHours }
 
 /** A service as the form offers it: registry name, category and its questions (GET /api/v1/public/services). */
 export type FormService = { id: string; name: string; category: string; questions: ServiceQuestion[] }
@@ -187,7 +202,7 @@ function schemaCheck(body: unknown): Problem[] {
 export function validate(
   v: FormValues,
   meta: FormMeta,
-  opts: { now: Date; zone: string; services: readonly FormService[] },
+  opts: { now: Date; zone: string; services: readonly FormService[]; windows?: readonly string[] },
 ): Problem[] {
   const body = toBody(v, meta, opts.services)
   const problems = schemaCheck(body)
@@ -198,7 +213,8 @@ export function validate(
     const today = localDate(opts.now, opts.zone)
     const knownServices = new Set(opts.services.map((x) => x.id))
     const questions = new Map(opts.services.map((x) => [x.id, x.questions.map((q) => q.key)]))
-    for (const p of semanticProblems(body, { today, knownServices, questions }))
+    const windows = opts.windows ? { windows: opts.windows } : {}
+    for (const p of semanticProblems(body, { today, knownServices, questions, ...windows }))
       problems.push({ field: p.field.replace(/^body\./, ''), code: p.code })
   }
   const seen = new Set<string>()
@@ -217,7 +233,7 @@ export function fromServer(fieldErrors: readonly { field: string; code: string }
   return fieldErrors.map((f) => ({ field: f.field.replace(/^body\./, ''), code: f.code }))
 }
 
-/** The customer catalog key of a problem's message (same kinds as the server's field messages). */
+/** The customer catalog key of a problem's message (same kinds as the server's field messages, plus weekendDate). */
 export function problemKey(code: string): CustomerKey {
   switch (code) {
     case 'required':
@@ -240,6 +256,9 @@ export function problemKey(code: string): CustomerKey {
       return 'error.field.choice'
     case 'additionalProperties':
       return 'error.field.unknown'
+    // Weekends with a weekday date (HH-INT-02): the message says how to make them agree.
+    case 'weekendDate':
+      return 'request.timing.weekendDate'
     default:
       return 'error.field.invalid'
   }
