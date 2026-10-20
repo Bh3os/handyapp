@@ -1,7 +1,7 @@
 ---
 id: HH-COM-09
 type: requirement
-title: Staff-released question and invoice reminders send only within the daily contact hours
+title: Staff-released reminders send only within the daily contact hours, except estimate reminders
 status: active
 priority: P0
 area: messaging
@@ -14,7 +14,7 @@ links:
   part_of: ["[[S06]]", "[[S01]]"]
 source: "OWN-DEC-101, OWN-DEC-112"
 ---
-- Released reminder drafts (unanswered questions, unpaid invoices) are sent only during the daily contact hours ([[FACT-HOURS]]) in the business time zone ([[FACT-TIMEZONE]]). The hours are an active, configurable policy value.
+- Released reminder drafts (unanswered questions, unpaid invoices, appointment reminders and the other staff-released reminders of [[FACT-REMINDER-CADENCES]]) are sent only during the daily contact hours ([[FACT-HOURS]]) in the business time zone ([[FACT-TIMEZONE]]). The hours are an active, configurable policy value.
 - A reminder released outside those hours is queued and sent when the hours begin, after the send-time recheck ([[HH-COM-05]]).
 - One-time codes and access links send immediately because they expire.
 - Unanswered-estimate reminders have no contact-hours restriction: a released estimate reminder sends at once, at any hour ([[OWN-DEC-132]], [[HH-EST-14]]).

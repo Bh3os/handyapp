@@ -12,6 +12,6 @@ Append-only record of an important action: sign-ins and failures, role changes, 
 
 **Fields:** actor and roles used; action; object type, ID and version; time (UTC with zone); reason; safe change summary; request correlation ID; step-up used; result.
 
-**Invariants:** no edit or delete through the app; corrections are new events; passwords, tokens, access codes and sensitive message contents are redacted; kept 7 years ([[FACT-RETENTION-SCHEDULE]]), then owner-reviewed deletion; records under a hold are kept until it ends.
+**Invariants:** append-only; immutability, redaction and the 7-year retention per [[HH-SEC-06]].
 
-**Who may change:** written by the server; the Owner reads all, Office reads their own actions.
+**Who may change:** written by the server only; read access per [[HH-SEC-06]].

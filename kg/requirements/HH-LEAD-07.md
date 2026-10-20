@@ -15,9 +15,8 @@ links:
 source: "OWN-DEC-99"
 ---
 - Staff choose **"Estimate online"** when the information is sufficient, or **"Site visit needed"** with a short customer-facing explanation. The customer's preference ([[HH-INT-03]]) is shown and considered; staff confirm the approach.
-- For a site visit, staff offer 2–3 available windows that account for staff capacity and travel, using the single window and reservation mechanism shared with work visits. The customer selects one in the workspace, or requests another time without restarting the request.
-- Offered windows are held for 24 hours ([[HH-SCH-11]], [[OWN-DEC-144]]). Availability is rechecked when a window is selected. The appointment is confirmed only after the slot is reserved; otherwise the customer is offered alternatives. Two customers racing for one slot produce one confirmation and one conflict.
+- For a site visit, staff offer 2–3 windows through the one window-offer, hold and reservation mechanism shared with work visits ([[HH-SCH-11]]: capacity and travel, 24-hour holds, recheck on selection, alternatives, races). The customer selects one in the workspace, or requests another time without restarting the request.
 - The confirmation creates an appointment of type **"Estimate visit"** linked to the existing project: no work job and no implied price approval. The required-deposit gate never applies to estimate visits.
 - The project shows the confirmed date, arrival window, property address, visit purpose and preparation instructions.
 - Online and onsite estimates are free ([[FACT-VISIT-FEE]]); no visit fee is displayed or charged unless the owner explicitly changes that policy, and any future fee is disclosed before booking.
-- Publishing visit options and confirming the appointment each send a brief automatic notice ([[HH-COM-06]]). Retries never duplicate sends; delivery failures show to staff.
+- Publishing visit options and confirming the appointment send the automatic notices of [[HH-SCH-11]].

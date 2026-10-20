@@ -29,7 +29,7 @@ Audited automatically (each module emits its events):
 Each entry records actor, action, affected record, time, versions, reason, request correlation ID and a safe change summary (diff).
 
 Rules ([[OWN-DEC-123]]):
-- Entries cannot be edited or deleted through the app; a correction is a new entry. Tamper protection keeps the log append-only.
+- Entries cannot be edited or deleted through the app or the API; a correction is a new entry. Tamper protection keeps the log append-only.
 - Passwords, tokens, access codes, raw secrets and sensitive message contents never appear in audit diffs or logs; they are redacted, and a test checks it.
 - The Owner sees the full audit log. Office staff see their own audit actions, plus the operational timeline of records their role may access. Estimators and Workers see no audit-log screen; they see only the record timelines their role allows (PROPOSED default from least privilege; the owner has not stated it).
 - Audit records are kept 7 years ([[FACT-RETENTION-SCHEDULE]], [[OWN-DEC-142]]), then go to the owner's deletion-review queue; records under a case or legal hold are kept until the hold ends. They are never deleted automatically.

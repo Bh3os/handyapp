@@ -16,4 +16,5 @@ source: "OWN-DEC-107, OWN-DEC-78"
 ---
 - For each confirmed estimate or work visit, a reminder draft is prepared at the appointment-reminder interval in [[FACT-REMINDER-CADENCES]] (24 hours before). It contains the confirmed date and arrival window, the address and the approved preparation steps.
 - If the appointment is confirmed less than that interval ahead, the draft is prepared immediately.
-- Staff release the reminder. Before sending, the current appointment is rechecked; outdated, canceled and duplicate reminders are suppressed ([[HH-COM-05]]).
+- Staff release the reminder; it sends within the contact hours ([[HH-COM-09]]). Before sending, the current appointment is rechecked; outdated, canceled and duplicate reminders are suppressed ([[HH-COM-05]]).
+- Visit-day updates after the reminder are the worker taps ([[HH-SCH-08]]) and the on-the-way notice ([[HH-PORT-07]]).

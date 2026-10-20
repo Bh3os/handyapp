@@ -7,7 +7,7 @@ priority: P0
 area: portal
 links:
   decided_by: ["[[OWN-DEC-107]]", "[[OWN-DEC-104]]", "[[OWN-DEC-76]]", "[[OWN-DEC-134]]"]
-  depends_on: ["[[HH-SCH-07]]", "[[HH-STAFF-06]]"]
+  depends_on: ["[[HH-SCH-07]]", "[[HH-OPS-01]]"]
   constrained_by: ["[[RULE-NO-INVENTED-FACTS]]", "[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[ENT-Visit]]", "[[ENT-AuditEvent]]", "[[FACT-CANCELLATION-RULES]]"]
   tested_by: ["[[T25]]", "[[T42]]"]
