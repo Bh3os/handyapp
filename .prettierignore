@@ -12,3 +12,4 @@ reports
 .astro
 playwright-report
 test-results
+packages/db/src/schema.ts

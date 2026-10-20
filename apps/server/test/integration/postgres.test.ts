@@ -1,5 +1,6 @@
 // Integration tests run against a real PostgreSQL 16 (CI: the postgres:16 service; locally: TEST_DATABASE_URL).
-// A missing TEST_DATABASE_URL fails the run instead of skipping it. The per-test fresh database harness is TSK-0004.
+// A missing TEST_DATABASE_URL fails the run instead of skipping it. A fresh database per test file comes from
+// createTestDatabase() in @handyhub/db/testing (TSK-0004).
 import pg from 'pg'
 import { describe, expect, it } from 'vitest'
 

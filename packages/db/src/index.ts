@@ -1,3 +1,38 @@
-// @handyhub/db: PostgreSQL 16 access through Kysely, numbered SQL migrations and the test database harness.
-// Skeleton from TSK-0001; the package itself is built in TSK-0004.
+// @handyhub/db: PostgreSQL 16 access through Kysely, numbered SQL migrations and synthetic seeds (TSK-0004, HH-ARC-01).
+// The integration-test harness is the separate entry point `@handyhub/db/testing`.
 export const PACKAGE_NAME = '@handyhub/db'
+
+export { createDb, createPool, typeParsers, type Database, type Db, type PoolOptions, type Tx } from './client.js'
+export { withTx, type TxOptions } from './tx.js'
+export {
+  checksum,
+  listMigrations,
+  migrate,
+  MigrationError,
+  MIGRATIONS_DIR,
+  pendingMigrations,
+  planMigrations,
+  type Migration,
+  type MigrateOptions,
+  type MigrationResult,
+} from './migrate.js'
+export {
+  assertTestEmail,
+  assertTestPhone,
+  createRng,
+  DEFAULT_SEED,
+  isTestEmail,
+  isTestPhone,
+  runSeeders,
+  SEED_ENVIRONMENTS,
+  SeedRefusedError,
+  seedEnvironment,
+  TEST_EMAIL_DOMAINS,
+  TEST_PHONE_AREA_CODES,
+  type Rng,
+  type SeedContext,
+  type Seeder,
+  type SeedEnvironment,
+  type SeedOptions,
+} from './seed.js'
+export { SEEDERS } from './seeders.js'
