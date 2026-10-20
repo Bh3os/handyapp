@@ -91,7 +91,11 @@ describe('staff locale stored per staff identity (TSK-0040, HH-OPS-04)', () => {
     expect(changed.statusCode).toBe(200)
     expect(changed.json()).toMatchObject({ locale: 'es', email: 'office-shell@example.test' })
     expect(changed.json().navigation.home).toBe('queue')
-    const same = await app.inject({ method: 'GET', url: '/api/v1/staff/auth/session', headers: { cookie: auth.cookie } })
+    const same = await app.inject({
+      method: 'GET',
+      url: '/api/v1/staff/auth/session',
+      headers: { cookie: auth.cookie },
+    })
     expect(same.json().locale).toBe('es')
 
     // Another device: a new sign-in starts in the stored locale.

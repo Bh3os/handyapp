@@ -45,11 +45,7 @@ export type StaffNavigation = { home: NavId | null; items: NavId[]; search: Sear
 
 const TOP_LEVEL = new Set<Rule['scope']>(['any', 'own_staff'])
 
-function opens(
-  gate: readonly Action[],
-  roles: readonly StaffRole[],
-  capabilities: readonly Capability[],
-): boolean {
+function opens(gate: readonly Action[], roles: readonly StaffRole[], capabilities: readonly Capability[]): boolean {
   return gate.some((action) => {
     const row = rowFor(action)
     if (!row || row.denyReason) return false

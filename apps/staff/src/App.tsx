@@ -161,8 +161,7 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
 
   if (needsSession && session) {
     const nav = session.navigation
-    const shown =
-      route.page === 'screen' ? route.id : route.page === 'home' ? (nav?.home ?? 'home') : route.page
+    const shown = route.page === 'screen' ? route.id : route.page === 'home' ? (nav?.home ?? 'home') : route.page
     return (
       <div className="staff-app" lang={locale}>
         <Shell

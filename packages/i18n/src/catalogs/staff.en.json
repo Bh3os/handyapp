@@ -113,7 +113,6 @@
   "security.reauthSubmit": "Confirm password",
   "shell.skip": "Skip to main content",
   "shell.navLabel": "Main",
-  "shell.menu": "Menu",
   "shell.notBuilt": "This screen is not available yet.",
   "shell.notBuiltBody": "It will be added in a later release.",
   "shell.notAllowed": "This screen is not part of your role.",
