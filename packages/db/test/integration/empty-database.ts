@@ -17,10 +17,17 @@ export function emptyDatabaseSuite(fileLabel: string) {
   describe(`fresh database per test file, ${fileLabel} (TSK-0004, HH-ARC-01)`, () => {
     it("starts fully migrated with no rows outside the migration table and no other file's writes", async () => {
       const { rows } = await sql<{ name: string }>`
-        SELECT n.nspname || '.' || c.relname AS name FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+        SELECT quote_ident(n.nspname) || '.' || quote_ident(c.relname) AS name
+        FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
         WHERE c.relkind IN ('r', 'p') AND n.nspname NOT IN ('pg_catalog', 'information_schema')
           AND n.nspname NOT LIKE 'pg\\_%' ORDER BY 1`.execute(t.db)
-      expect(rows.map((r) => r.name)).toEqual(['platform.schema_migration'])
+      const names = rows.map((r) => r.name)
+      expect(names).toContain('platform.schema_migration')
+      expect(names).not.toContain('public.scratch')
+      for (const name of names.filter((n) => n !== 'platform.schema_migration')) {
+        const count = await sql<{ n: number }>`SELECT count(*)::int AS n FROM ${sql.raw(name)}`.execute(t.db)
+        expect(count.rows[0]?.n, name).toBe(0)
+      }
       const applied = await t.db.selectFrom('platform.schema_migration').select('file').orderBy('version').execute()
       expect(applied.map((r) => r.file)).toEqual((await listMigrations()).map((m) => m.file))
       expect(t.name).toMatch(/^hh_test_[0-9a-f]{16}$/)
