@@ -322,6 +322,26 @@ describe('job worker (TSK-0012, HH-ARC-09, HH-AUTO-01)', () => {
     expect(stats.oldestQueuedSeconds).toBeNull()
   })
 
+  it('leaves an event that no declared automation consumes pending instead of marking it dispatched', async () => {
+    await withTx(t.db, (tx) =>
+      outbox.add(tx, {
+        type: 'estimate.published',
+        aggregate: { type: 'estimate', id: 'e-none' },
+        idempotencyKey: 'estimate.published:e-none',
+        requestId: rid(),
+      }),
+    )
+    await createWorker({ db: t.db, registry: createAutomationRegistry([automation('receipt_only.send')]) }).runOnce()
+    await createWorker({ db: t.db, registry: createAutomationRegistry([]) }).runOnce()
+    const event = await t.db
+      .selectFrom('platform.outbox_events')
+      .selectAll()
+      .where('aggregate_id', '=', 'e-none')
+      .executeTakeFirstOrThrow()
+    expect(event).toMatchObject({ state: 'pending', dispatched_at: null })
+    expect((await queueStats(t.db)).pendingEvents).toBe(1)
+  })
+
   it('reports queue age and pending events, and leaves unknown automations queued (HH-NFR-02)', async () => {
     await submit('r-stats')
     const stats = await queueStats(t.db)

@@ -123,6 +123,23 @@ export interface PlatformSchemaMigrationTable {
   applied_by: string
 }
 
+export interface PlatformWebhookReceiptsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  provider: string
+  delivery_id: string
+  event_type: string
+  provider_message_id: string | null
+  event_occurred_at: Timestamp | null
+  signature_verified: boolean
+  payload: Json
+  payload_sha256: string
+  state: Generated<string>
+  linked_message_id: string | null
+  received_at: ColumnType<Date, Date | string | undefined, Date | string>
+  processed_at: Timestamp | null
+}
+
 export interface Database {
   'catalog.service_versions': CatalogServiceVersionsTable
   'catalog.services': CatalogServicesTable
@@ -131,4 +148,5 @@ export interface Database {
   'platform.outbox_events': PlatformOutboxEventsTable
   'platform.policy_version': PlatformPolicyVersionTable
   'platform.schema_migration': PlatformSchemaMigrationTable
+  'platform.webhook_receipts': PlatformWebhookReceiptsTable
 }
