@@ -11,15 +11,25 @@
     }
   ],
   "paths": {
-    "/api/v1/auth/mfa": {
+    "/api/v1/customer/requests/{requestId}/photos": {
       "get": {
-        "operationId": "staffMfaStatus",
-        "summary": "MFA status of the signed-in staff member",
-        "description": "Whether an authenticator is enrolled and how many recovery codes are left. Never a secret.",
+        "operationId": "listCustomerRequestPhotos",
+        "summary": "Photos of a customer’s request",
+        "description": "The verified customer of the request’s project. Every photo with its state; ready photos carry a signed URL valid for minutes. Quarantined and rejected photos are never served.",
         "tags": [
-          "identity"
+          "photos"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f-]{36}$"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
@@ -29,230 +39,52 @@
                   "type": "object",
                   "additionalProperties": false,
                   "required": [
-                    "enrolled",
-                    "pending",
-                    "recoveryCodesLeft",
-                    "available"
+                    "photos"
                   ],
                   "properties": {
-                    "enrolled": {
-                      "type": "boolean"
-                    },
-                    "pending": {
-                      "type": "boolean"
-                    },
-                    "recoveryCodesLeft": {
-                      "type": "integer"
-                    },
-                    "available": {
-                      "type": "boolean"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "x-handyhub": {
-          "actors": [
-            "staff"
-          ],
-          "permission": "authentication",
-          "kind": "read",
-          "idempotency": "none",
-          "expectedVersion": "none",
-          "rateLimit": "none",
-          "freshAuthMinutes": null,
-          "csrf": "not_required",
-          "audit": "none",
-          "pagination": false,
-          "cache": "private, no-store",
-          "test": "test/integration/staff-security.test.ts"
-        }
-      }
-    },
-    "/api/v1/auth/mfa/confirm": {
-      "post": {
-        "operationId": "staffMfaConfirm",
-        "summary": "Confirm the authenticator and get recovery codes",
-        "description": "Checks a code from the new authenticator, enables MFA, ends the user's other sessions, rotates this one and returns 10 single-use recovery codes once.",
-        "tags": [
-          "identity"
-        ],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "code"
-                ],
-                "properties": {
-                  "code": {
-                    "type": "string",
-                    "minLength": 6,
-                    "maxLength": 6
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "recoveryCodes",
-                    "session"
-                  ],
-                  "properties": {
-                    "recoveryCodes": {
+                    "photos": {
                       "type": "array",
                       "items": {
-                        "type": "string"
-                      }
-                    },
-                    "session": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "staffUserId",
-                        "displayName",
-                        "email",
-                        "locale",
-                        "roles",
-                        "mfaEnrolled",
-                        "mfaRecommended",
-                        "csrfToken"
-                      ],
-                      "properties": {
-                        "staffUserId": {
-                          "type": "string"
-                        },
-                        "displayName": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "email": {
-                          "type": "string"
-                        },
-                        "locale": {
-                          "type": "string",
-                          "enum": [
-                            "en",
-                            "es"
-                          ]
-                        },
-                        "roles": {
-                          "type": "array",
-                          "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "state",
+                          "contentType",
+                          "byteSize",
+                          "rejectionReason",
+                          "url"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "state": {
                             "type": "string",
                             "enum": [
-                              "owner",
-                              "office",
-                              "estimator",
-                              "worker"
+                              "quarantined",
+                              "ready",
+                              "rejected"
+                            ]
+                          },
+                          "contentType": {
+                            "type": "string"
+                          },
+                          "byteSize": {
+                            "type": "integer"
+                          },
+                          "rejectionReason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "url": {
+                            "type": [
+                              "string",
+                              "null"
                             ]
                           }
-                        },
-                        "mfaEnrolled": {
-                          "type": "boolean"
-                        },
-                        "mfaRecommended": {
-                          "type": "boolean"
-                        },
-                        "csrfToken": {
-                          "type": "string"
                         }
                       }
                     }
@@ -271,67 +103,7 @@
               }
             }
           },
-          "401": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
           "404": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "415": {
             "description": "Error",
             "content": {
               "application/json": {
@@ -374,1361 +146,10 @@
         },
         "x-handyhub": {
           "actors": [
-            "staff"
+            "customer",
+            "guest"
           ],
-          "permission": "authentication",
-          "kind": "write",
-          "idempotency": "none",
-          "expectedVersion": "none",
-          "rateLimit": {
-            "bucket": "staff_sign_in_account",
-            "limit": 10,
-            "windowSeconds": 900,
-            "enforcedBy": "handler"
-          },
-          "freshAuthMinutes": null,
-          "csrf": "required_with_staff_session",
-          "audit": "staff.mfa_enable",
-          "pagination": false,
-          "cache": "private, no-store",
-          "test": "test/integration/staff-security.test.ts"
-        }
-      }
-    },
-    "/api/v1/auth/mfa/disable": {
-      "post": {
-        "operationId": "staffMfaDisable",
-        "summary": "Remove the authenticator",
-        "description": "Needs fresh authentication. Removes the authenticator and the recovery codes and ends the user's other sessions.",
-        "tags": [
-          "identity"
-        ],
-        "parameters": [],
-        "responses": {
-          "204": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "null"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "415": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "x-handyhub": {
-          "actors": [
-            "staff"
-          ],
-          "permission": "authentication",
-          "kind": "write",
-          "idempotency": "none",
-          "expectedVersion": "none",
-          "rateLimit": "none",
-          "freshAuthMinutes": 5,
-          "csrf": "required_with_staff_session",
-          "audit": "staff.mfa_disable",
-          "pagination": false,
-          "cache": "private, no-store",
-          "test": "test/integration/staff-security.test.ts"
-        }
-      }
-    },
-    "/api/v1/auth/mfa/enroll": {
-      "post": {
-        "operationId": "staffMfaEnroll",
-        "summary": "Start enrolling an authenticator app",
-        "description": "Needs fresh authentication. Returns the TOTP secret and otpauth URI once, for the authenticator app; enrolment completes only with a confirming code.",
-        "tags": [
-          "identity"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "secret",
-                    "otpauthUri"
-                  ],
-                  "properties": {
-                    "secret": {
-                      "type": "string"
-                    },
-                    "otpauthUri": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "415": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "x-handyhub": {
-          "actors": [
-            "staff"
-          ],
-          "permission": "authentication",
-          "kind": "write",
-          "idempotency": "none",
-          "expectedVersion": "none",
-          "rateLimit": "none",
-          "freshAuthMinutes": 5,
-          "csrf": "required_with_staff_session",
-          "audit": "staff.mfa_enroll_start",
-          "pagination": false,
-          "cache": "private, no-store",
-          "test": "test/integration/staff-security.test.ts"
-        }
-      }
-    },
-    "/api/v1/auth/mfa/verify": {
-      "post": {
-        "operationId": "staffMfaVerify",
-        "summary": "Complete sign-in with the authenticator or a recovery code",
-        "description": "For a session waiting for its second factor: a valid TOTP code or an unused recovery code completes it with a new session token. Rate limited; failures are audited.",
-        "tags": [
-          "identity"
-        ],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "code": {
-                    "type": "string",
-                    "minLength": 6,
-                    "maxLength": 6
-                  },
-                  "recoveryCode": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 40
-                  }
-                },
-                "anyOf": [
-                  {
-                    "required": [
-                      "code"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "recoveryCode"
-                    ]
-                  }
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "staffUserId",
-                    "displayName",
-                    "email",
-                    "locale",
-                    "roles",
-                    "mfaEnrolled",
-                    "mfaRecommended",
-                    "csrfToken"
-                  ],
-                  "properties": {
-                    "staffUserId": {
-                      "type": "string"
-                    },
-                    "displayName": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
-                    },
-                    "email": {
-                      "type": "string"
-                    },
-                    "locale": {
-                      "type": "string",
-                      "enum": [
-                        "en",
-                        "es"
-                      ]
-                    },
-                    "roles": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "enum": [
-                          "owner",
-                          "office",
-                          "estimator",
-                          "worker"
-                        ]
-                      }
-                    },
-                    "mfaEnrolled": {
-                      "type": "boolean"
-                    },
-                    "mfaRecommended": {
-                      "type": "boolean"
-                    },
-                    "csrfToken": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "415": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "x-handyhub": {
-          "actors": [
-            "guest",
-            "staff",
-            "customer"
-          ],
-          "permission": "authentication",
-          "kind": "write",
-          "idempotency": "none",
-          "expectedVersion": "none",
-          "rateLimit": {
-            "bucket": "staff_sign_in_account",
-            "limit": 10,
-            "windowSeconds": 900,
-            "enforcedBy": "handler"
-          },
-          "freshAuthMinutes": null,
-          "csrf": "required_with_staff_session",
-          "audit": "staff.mfa_verify",
-          "pagination": false,
-          "cache": "private, no-store",
-          "test": "test/integration/staff-security.test.ts"
-        }
-      }
-    },
-    "/api/v1/auth/password/forgot": {
-      "post": {
-        "operationId": "staffForgotPassword",
-        "summary": "Forgot password: email a reset link",
-        "description": "Always answers 202 the same way. When the email belongs to an account that is not disabled, a single-use reset link (valid per session.timings) is emailed through the outbox. Rate limited per email and per network.",
-        "tags": [
-          "identity"
-        ],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "email"
-                ],
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "minLength": 3,
-                    "maxLength": 254
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "202": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "accepted"
-                  ],
-                  "properties": {
-                    "accepted": {
-                      "type": "boolean"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "415": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "x-handyhub": {
-          "actors": [
-            "guest",
-            "staff",
-            "customer"
-          ],
-          "permission": "authentication",
-          "kind": "write",
-          "idempotency": "none",
-          "expectedVersion": "none",
-          "rateLimit": {
-            "bucket": "staff_reset_account",
-            "limit": 5,
-            "windowSeconds": 3600,
-            "enforcedBy": "handler"
-          },
-          "freshAuthMinutes": null,
-          "csrf": "required_with_staff_session",
-          "audit": "staff.password_reset_request",
-          "pagination": false,
-          "cache": "private, no-store",
-          "test": "test/integration/staff-auth.test.ts"
-        }
-      }
-    },
-    "/api/v1/auth/password/set": {
-      "post": {
-        "operationId": "staffSetPassword",
-        "summary": "Set a password with an invite or reset link",
-        "description": "Consumes the single-use link, checks the length-based policy, stores the argon2id hash, activates an invited account and revokes every session: the person then signs in again.",
-        "tags": [
-          "identity"
-        ],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "token",
-                  "password"
-                ],
-                "properties": {
-                  "token": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 100
-                  },
-                  "password": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 1024
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "passwordSet"
-                  ],
-                  "properties": {
-                    "passwordSet": {
-                      "type": "boolean"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "415": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "x-handyhub": {
-          "actors": [
-            "guest",
-            "staff",
-            "customer"
-          ],
-          "permission": "authentication",
-          "kind": "write",
-          "idempotency": "none",
-          "expectedVersion": "none",
-          "rateLimit": {
-            "bucket": "staff_link_network",
-            "limit": 20,
-            "windowSeconds": 900,
-            "enforcedBy": "handler"
-          },
-          "freshAuthMinutes": null,
-          "csrf": "required_with_staff_session",
-          "audit": "staff.password_set",
-          "pagination": false,
-          "cache": "private, no-store",
-          "test": "test/integration/staff-auth.test.ts"
-        }
-      }
-    },
-    "/api/v1/auth/reauth": {
-      "post": {
-        "operationId": "staffReauthenticate",
-        "summary": "Enter the password again for a sensitive action",
-        "description": "Fresh authentication (HH-STAFF-03): a correct password, or the authenticator code when MFA is enrolled, rotates the session (new token and CSRF token) and marks it freshly authenticated. Rate limited; failures are audited.",
-        "tags": [
-          "identity"
-        ],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "password": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 1024
-                  },
-                  "code": {
-                    "type": "string",
-                    "minLength": 6,
-                    "maxLength": 6
-                  }
-                },
-                "anyOf": [
-                  {
-                    "required": [
-                      "password"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "code"
-                    ]
-                  }
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "staffUserId",
-                    "displayName",
-                    "email",
-                    "locale",
-                    "roles",
-                    "mfaEnrolled",
-                    "mfaRecommended",
-                    "csrfToken"
-                  ],
-                  "properties": {
-                    "staffUserId": {
-                      "type": "string"
-                    },
-                    "displayName": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
-                    },
-                    "email": {
-                      "type": "string"
-                    },
-                    "locale": {
-                      "type": "string",
-                      "enum": [
-                        "en",
-                        "es"
-                      ]
-                    },
-                    "roles": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "enum": [
-                          "owner",
-                          "office",
-                          "estimator",
-                          "worker"
-                        ]
-                      }
-                    },
-                    "mfaEnrolled": {
-                      "type": "boolean"
-                    },
-                    "mfaRecommended": {
-                      "type": "boolean"
-                    },
-                    "csrfToken": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "415": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "x-handyhub": {
-          "actors": [
-            "staff"
-          ],
-          "permission": "authentication",
-          "kind": "write",
-          "idempotency": "none",
-          "expectedVersion": "none",
-          "rateLimit": {
-            "bucket": "staff_sign_in_account",
-            "limit": 10,
-            "windowSeconds": 900,
-            "enforcedBy": "handler"
-          },
-          "freshAuthMinutes": null,
-          "csrf": "required_with_staff_session",
-          "audit": "staff.reauth",
-          "pagination": false,
-          "cache": "private, no-store",
-          "test": "test/integration/staff-auth.test.ts"
-        }
-      }
-    },
-    "/api/v1/auth/session": {
-      "get": {
-        "operationId": "staffSession",
-        "summary": "The signed-in staff member",
-        "description": "The current session: name, email, locale, roles and the MFA recommendation. Never a hash.",
-        "tags": [
-          "identity"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "staffUserId",
-                    "displayName",
-                    "email",
-                    "locale",
-                    "roles",
-                    "mfaEnrolled",
-                    "mfaRecommended",
-                    "csrfToken"
-                  ],
-                  "properties": {
-                    "staffUserId": {
-                      "type": "string"
-                    },
-                    "displayName": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
-                    },
-                    "email": {
-                      "type": "string"
-                    },
-                    "locale": {
-                      "type": "string",
-                      "enum": [
-                        "en",
-                        "es"
-                      ]
-                    },
-                    "roles": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "enum": [
-                          "owner",
-                          "office",
-                          "estimator",
-                          "worker"
-                        ]
-                      }
-                    },
-                    "mfaEnrolled": {
-                      "type": "boolean"
-                    },
-                    "mfaRecommended": {
-                      "type": "boolean"
-                    },
-                    "csrfToken": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "x-handyhub": {
-          "actors": [
-            "staff"
-          ],
-          "permission": "authentication",
+          "permission": "request.view",
           "kind": "read",
           "idempotency": "none",
           "expectedVersion": "none",
@@ -1738,563 +159,7 @@
           "audit": "none",
           "pagination": false,
           "cache": "private, no-store",
-          "test": "test/integration/staff-auth.test.ts"
-        }
-      }
-    },
-    "/api/v1/auth/sessions/revoke-all": {
-      "post": {
-        "operationId": "staffSignOutEverywhere",
-        "summary": "Sign out everywhere",
-        "description": "Revokes every session of the signed-in staff member, this one included, and clears the cookie.",
-        "tags": [
-          "identity"
-        ],
-        "parameters": [],
-        "responses": {
-          "204": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "null"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "415": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "x-handyhub": {
-          "actors": [
-            "staff"
-          ],
-          "permission": "authentication",
-          "kind": "write",
-          "idempotency": "none",
-          "expectedVersion": "none",
-          "rateLimit": "none",
-          "freshAuthMinutes": null,
-          "csrf": "required_with_staff_session",
-          "audit": "staff.sessions_revoke_all",
-          "pagination": false,
-          "cache": "private, no-store",
-          "test": "test/integration/staff-security.test.ts"
-        }
-      }
-    },
-    "/api/v1/auth/sign-in": {
-      "post": {
-        "operationId": "staffSignIn",
-        "summary": "Staff sign-in with email and password",
-        "description": "Verifies the password (argon2id, equal timing for unknown emails), starts a new session (new ID) and sets the host-only session cookie. Rate limited per account and per network. Sign-in and failed sign-in are audited.",
-        "tags": [
-          "identity"
-        ],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "email",
-                  "password"
-                ],
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "minLength": 3,
-                    "maxLength": 254
-                  },
-                  "password": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 1024
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "staffUserId",
-                    "displayName",
-                    "email",
-                    "locale",
-                    "roles",
-                    "mfaEnrolled",
-                    "mfaRecommended",
-                    "csrfToken"
-                  ],
-                  "properties": {
-                    "staffUserId": {
-                      "type": "string"
-                    },
-                    "displayName": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
-                    },
-                    "email": {
-                      "type": "string"
-                    },
-                    "locale": {
-                      "type": "string",
-                      "enum": [
-                        "en",
-                        "es"
-                      ]
-                    },
-                    "roles": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "enum": [
-                          "owner",
-                          "office",
-                          "estimator",
-                          "worker"
-                        ]
-                      }
-                    },
-                    "mfaEnrolled": {
-                      "type": "boolean"
-                    },
-                    "mfaRecommended": {
-                      "type": "boolean"
-                    },
-                    "csrfToken": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "202": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "mfaRequired"
-                  ],
-                  "properties": {
-                    "mfaRequired": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "415": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "x-handyhub": {
-          "actors": [
-            "guest",
-            "staff",
-            "customer"
-          ],
-          "permission": "authentication",
-          "kind": "write",
-          "idempotency": "none",
-          "expectedVersion": "none",
-          "rateLimit": {
-            "bucket": "staff_sign_in_account",
-            "limit": 10,
-            "windowSeconds": 900,
-            "enforcedBy": "handler"
-          },
-          "freshAuthMinutes": null,
-          "csrf": "required_with_staff_session",
-          "audit": "staff.sign_in",
-          "pagination": false,
-          "cache": "private, no-store",
-          "test": "test/integration/staff-auth.test.ts"
-        }
-      }
-    },
-    "/api/v1/auth/sign-out": {
-      "post": {
-        "operationId": "staffSignOut",
-        "summary": "Sign out",
-        "description": "Revokes the current session on the server and clears the cookie. Always available to a signed-in user.",
-        "tags": [
-          "identity"
-        ],
-        "parameters": [],
-        "responses": {
-          "204": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "null"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "415": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "x-handyhub": {
-          "actors": [
-            "staff"
-          ],
-          "permission": "authentication",
-          "kind": "write",
-          "idempotency": "none",
-          "expectedVersion": "none",
-          "rateLimit": "none",
-          "freshAuthMinutes": null,
-          "csrf": "required_with_staff_session",
-          "audit": "staff.sign_out",
-          "pagination": false,
-          "cache": "private, no-store",
-          "test": "test/integration/staff-auth.test.ts"
+          "test": "test/integration/photos.test.ts"
         }
       }
     },
@@ -3667,308 +1532,6 @@
         }
       }
     },
-    "/api/v1/public/site": {
-      "get": {
-        "operationId": "getPublicSiteFacts",
-        "summary": "Public site facts",
-        "description": "Public read of the configured facts the public site shows: the brand (business.name, FACT-BRAND-IDENTITY), the public phone and email (business.public_contact, FACT-PUBLIC-CONTACT) and the accepted payment method codes (payment.methods, FACT-PAYMENT-METHODS). A value that is NOT CONFIGURED is null, never a default.",
-        "tags": [
-          "site"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "brand",
-                    "contact",
-                    "paymentMethods"
-                  ],
-                  "properties": {
-                    "brand": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
-                    },
-                    "contact": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "configured",
-                        "phone",
-                        "email"
-                      ],
-                      "properties": {
-                        "configured": {
-                          "type": "boolean"
-                        },
-                        "phone": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "email": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        }
-                      }
-                    },
-                    "paymentMethods": {
-                      "type": [
-                        "array",
-                        "null"
-                      ],
-                      "items": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "x-handyhub": {
-          "actors": [
-            "guest",
-            "customer"
-          ],
-          "permission": "request.submit",
-          "kind": "read",
-          "idempotency": "none",
-          "expectedVersion": "none",
-          "rateLimit": "none",
-          "freshAuthMinutes": null,
-          "csrf": "not_required",
-          "audit": "none",
-          "pagination": false,
-          "cache": "private, no-store",
-          "test": "test/integration/site.test.ts"
-        }
-      }
-    },
-    "/api/v1/requests/{requestId}/photos": {
-      "get": {
-        "operationId": "listRequestPhotos",
-        "summary": "Photos of a request",
-        "description": "Staff (request.view), or the verified customer of the request’s project. Every photo with its state; ready photos carry a signed URL valid for minutes. Quarantined and rejected photos are never served.",
-        "tags": [
-          "photos"
-        ],
-        "parameters": [
-          {
-            "name": "requestId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "pattern": "^[0-9a-f-]{36}$"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "photos"
-                  ],
-                  "properties": {
-                    "photos": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "id",
-                          "state",
-                          "contentType",
-                          "byteSize",
-                          "rejectionReason",
-                          "url"
-                        ],
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "state": {
-                            "type": "string",
-                            "enum": [
-                              "quarantined",
-                              "ready",
-                              "rejected"
-                            ]
-                          },
-                          "contentType": {
-                            "type": "string"
-                          },
-                          "byteSize": {
-                            "type": "integer"
-                          },
-                          "rejectionReason": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "url": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "x-handyhub": {
-          "actors": [
-            "staff",
-            "customer",
-            "guest"
-          ],
-          "permission": "request.view",
-          "kind": "read",
-          "idempotency": "none",
-          "expectedVersion": "none",
-          "rateLimit": "none",
-          "freshAuthMinutes": null,
-          "csrf": "not_required",
-          "audit": "none",
-          "pagination": false,
-          "cache": "private, no-store",
-          "test": "test/integration/photos.test.ts"
-        }
-      }
-    },
     "/api/v1/staff/{id}/sessions/revoke": {
       "post": {
         "operationId": "revokeStaffSessions",
@@ -4124,6 +1687,2293 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/staff-security.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/auth/mfa": {
+      "get": {
+        "operationId": "staffMfaStatus",
+        "summary": "MFA status of the signed-in staff member",
+        "description": "Whether an authenticator is enrolled and how many recovery codes are left. Never a secret.",
+        "tags": [
+          "identity"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "enrolled",
+                    "pending",
+                    "recoveryCodesLeft",
+                    "available"
+                  ],
+                  "properties": {
+                    "enrolled": {
+                      "type": "boolean"
+                    },
+                    "pending": {
+                      "type": "boolean"
+                    },
+                    "recoveryCodesLeft": {
+                      "type": "integer"
+                    },
+                    "available": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "authentication",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-security.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/auth/mfa/confirm": {
+      "post": {
+        "operationId": "staffMfaConfirm",
+        "summary": "Confirm the authenticator and get recovery codes",
+        "description": "Checks a code from the new authenticator, enables MFA, ends the user's other sessions, rotates this one and returns 10 single-use recovery codes once.",
+        "tags": [
+          "identity"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "code"
+                ],
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "minLength": 6,
+                    "maxLength": 6
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "recoveryCodes",
+                    "session"
+                  ],
+                  "properties": {
+                    "recoveryCodes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "session": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "staffUserId",
+                        "displayName",
+                        "email",
+                        "locale",
+                        "roles",
+                        "mfaEnrolled",
+                        "mfaRecommended",
+                        "csrfToken"
+                      ],
+                      "properties": {
+                        "staffUserId": {
+                          "type": "string"
+                        },
+                        "displayName": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "locale": {
+                          "type": "string",
+                          "enum": [
+                            "en",
+                            "es"
+                          ]
+                        },
+                        "roles": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "owner",
+                              "office",
+                              "estimator",
+                              "worker"
+                            ]
+                          }
+                        },
+                        "mfaEnrolled": {
+                          "type": "boolean"
+                        },
+                        "mfaRecommended": {
+                          "type": "boolean"
+                        },
+                        "csrfToken": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "staff_sign_in_account",
+            "limit": 10,
+            "windowSeconds": 900,
+            "enforcedBy": "handler"
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "staff.mfa_enable",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-security.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/auth/mfa/disable": {
+      "post": {
+        "operationId": "staffMfaDisable",
+        "summary": "Remove the authenticator",
+        "description": "Needs fresh authentication. Removes the authenticator and the recovery codes and ends the user's other sessions.",
+        "tags": [
+          "identity"
+        ],
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": 5,
+          "csrf": "required_with_staff_session",
+          "audit": "staff.mfa_disable",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-security.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/auth/mfa/enroll": {
+      "post": {
+        "operationId": "staffMfaEnroll",
+        "summary": "Start enrolling an authenticator app",
+        "description": "Needs fresh authentication. Returns the TOTP secret and otpauth URI once, for the authenticator app; enrolment completes only with a confirming code.",
+        "tags": [
+          "identity"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "secret",
+                    "otpauthUri"
+                  ],
+                  "properties": {
+                    "secret": {
+                      "type": "string"
+                    },
+                    "otpauthUri": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": 5,
+          "csrf": "required_with_staff_session",
+          "audit": "staff.mfa_enroll_start",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-security.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/auth/mfa/verify": {
+      "post": {
+        "operationId": "staffMfaVerify",
+        "summary": "Complete sign-in with the authenticator or a recovery code",
+        "description": "For a session waiting for its second factor: a valid TOTP code or an unused recovery code completes it with a new session token. Rate limited; failures are audited.",
+        "tags": [
+          "identity"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "minLength": 6,
+                    "maxLength": 6
+                  },
+                  "recoveryCode": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  }
+                },
+                "anyOf": [
+                  {
+                    "required": [
+                      "code"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "recoveryCode"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "staffUserId",
+                    "displayName",
+                    "email",
+                    "locale",
+                    "roles",
+                    "mfaEnrolled",
+                    "mfaRecommended",
+                    "csrfToken"
+                  ],
+                  "properties": {
+                    "staffUserId": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "locale": {
+                      "type": "string",
+                      "enum": [
+                        "en",
+                        "es"
+                      ]
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "owner",
+                          "office",
+                          "estimator",
+                          "worker"
+                        ]
+                      }
+                    },
+                    "mfaEnrolled": {
+                      "type": "boolean"
+                    },
+                    "mfaRecommended": {
+                      "type": "boolean"
+                    },
+                    "csrfToken": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "guest",
+            "staff",
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "staff_sign_in_account",
+            "limit": 10,
+            "windowSeconds": 900,
+            "enforcedBy": "handler"
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "staff.mfa_verify",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-security.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/auth/password/forgot": {
+      "post": {
+        "operationId": "staffForgotPassword",
+        "summary": "Forgot password: email a reset link",
+        "description": "Always answers 202 the same way. When the email belongs to an account that is not disabled, a single-use reset link (valid per session.timings) is emailed through the outbox. Rate limited per email and per network.",
+        "tags": [
+          "identity"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "email"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 254
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "accepted"
+                  ],
+                  "properties": {
+                    "accepted": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "guest",
+            "staff",
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "staff_reset_account",
+            "limit": 5,
+            "windowSeconds": 3600,
+            "enforcedBy": "handler"
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "staff.password_reset_request",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-auth.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/auth/password/set": {
+      "post": {
+        "operationId": "staffSetPassword",
+        "summary": "Set a password with an invite or reset link",
+        "description": "Consumes the single-use link, checks the length-based policy, stores the argon2id hash, activates an invited account and revokes every session: the person then signs in again.",
+        "tags": [
+          "identity"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "token",
+                  "password"
+                ],
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "passwordSet"
+                  ],
+                  "properties": {
+                    "passwordSet": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "guest",
+            "staff",
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "staff_link_network",
+            "limit": 20,
+            "windowSeconds": 900,
+            "enforcedBy": "handler"
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "staff.password_set",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-auth.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/auth/reauth": {
+      "post": {
+        "operationId": "staffReauthenticate",
+        "summary": "Enter the password again for a sensitive action",
+        "description": "Fresh authentication (HH-STAFF-03): a correct password, or the authenticator code when MFA is enrolled, rotates the session (new token and CSRF token) and marks it freshly authenticated. Rate limited; failures are audited.",
+        "tags": [
+          "identity"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "password": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  "code": {
+                    "type": "string",
+                    "minLength": 6,
+                    "maxLength": 6
+                  }
+                },
+                "anyOf": [
+                  {
+                    "required": [
+                      "password"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "code"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "staffUserId",
+                    "displayName",
+                    "email",
+                    "locale",
+                    "roles",
+                    "mfaEnrolled",
+                    "mfaRecommended",
+                    "csrfToken"
+                  ],
+                  "properties": {
+                    "staffUserId": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "locale": {
+                      "type": "string",
+                      "enum": [
+                        "en",
+                        "es"
+                      ]
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "owner",
+                          "office",
+                          "estimator",
+                          "worker"
+                        ]
+                      }
+                    },
+                    "mfaEnrolled": {
+                      "type": "boolean"
+                    },
+                    "mfaRecommended": {
+                      "type": "boolean"
+                    },
+                    "csrfToken": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "staff_sign_in_account",
+            "limit": 10,
+            "windowSeconds": 900,
+            "enforcedBy": "handler"
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "staff.reauth",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-auth.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/auth/session": {
+      "get": {
+        "operationId": "staffSession",
+        "summary": "The signed-in staff member",
+        "description": "The current session: name, email, locale, roles and the MFA recommendation. Never a hash.",
+        "tags": [
+          "identity"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "staffUserId",
+                    "displayName",
+                    "email",
+                    "locale",
+                    "roles",
+                    "mfaEnrolled",
+                    "mfaRecommended",
+                    "csrfToken"
+                  ],
+                  "properties": {
+                    "staffUserId": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "locale": {
+                      "type": "string",
+                      "enum": [
+                        "en",
+                        "es"
+                      ]
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "owner",
+                          "office",
+                          "estimator",
+                          "worker"
+                        ]
+                      }
+                    },
+                    "mfaEnrolled": {
+                      "type": "boolean"
+                    },
+                    "mfaRecommended": {
+                      "type": "boolean"
+                    },
+                    "csrfToken": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "authentication",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-auth.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/auth/sessions/revoke-all": {
+      "post": {
+        "operationId": "staffSignOutEverywhere",
+        "summary": "Sign out everywhere",
+        "description": "Revokes every session of the signed-in staff member, this one included, and clears the cookie.",
+        "tags": [
+          "identity"
+        ],
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "staff.sessions_revoke_all",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-security.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/auth/sign-in": {
+      "post": {
+        "operationId": "staffSignIn",
+        "summary": "Staff sign-in with email and password",
+        "description": "Verifies the password (argon2id, equal timing for unknown emails), starts a new session (new ID) and sets the host-only session cookie. Rate limited per account and per network. Sign-in and failed sign-in are audited.",
+        "tags": [
+          "identity"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "email",
+                  "password"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 254
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "staffUserId",
+                    "displayName",
+                    "email",
+                    "locale",
+                    "roles",
+                    "mfaEnrolled",
+                    "mfaRecommended",
+                    "csrfToken"
+                  ],
+                  "properties": {
+                    "staffUserId": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "locale": {
+                      "type": "string",
+                      "enum": [
+                        "en",
+                        "es"
+                      ]
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "owner",
+                          "office",
+                          "estimator",
+                          "worker"
+                        ]
+                      }
+                    },
+                    "mfaEnrolled": {
+                      "type": "boolean"
+                    },
+                    "mfaRecommended": {
+                      "type": "boolean"
+                    },
+                    "csrfToken": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "mfaRequired"
+                  ],
+                  "properties": {
+                    "mfaRequired": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "guest",
+            "staff",
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "staff_sign_in_account",
+            "limit": 10,
+            "windowSeconds": 900,
+            "enforcedBy": "handler"
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "staff.sign_in",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-auth.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/auth/sign-out": {
+      "post": {
+        "operationId": "staffSignOut",
+        "summary": "Sign out",
+        "description": "Revokes the current session on the server and clears the cookie. Always available to a signed-in user.",
+        "tags": [
+          "identity"
+        ],
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "staff.sign_out",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-auth.test.ts"
         }
       }
     },
@@ -4339,6 +4189,177 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/staff-auth.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/requests/{requestId}/photos": {
+      "get": {
+        "operationId": "listRequestPhotos",
+        "summary": "Photos of a request",
+        "description": "Staff (request.view). Every photo with its state; ready photos carry a signed URL valid for minutes. Quarantined and rejected photos are never served.",
+        "tags": [
+          "photos"
+        ],
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f-]{36}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "photos"
+                  ],
+                  "properties": {
+                    "photos": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "state",
+                          "contentType",
+                          "byteSize",
+                          "rejectionReason",
+                          "url"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "quarantined",
+                              "ready",
+                              "rejected"
+                            ]
+                          },
+                          "contentType": {
+                            "type": "string"
+                          },
+                          "byteSize": {
+                            "type": "integer"
+                          },
+                          "rejectionReason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "url": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "request.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/photos.test.ts"
         }
       }
     }

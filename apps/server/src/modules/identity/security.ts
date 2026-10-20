@@ -40,7 +40,7 @@ export function securityRoutes(deps: IdentityDeps, shared: { test: string; sessi
     {
       ...base,
       method: 'GET',
-      path: '/auth/mfa',
+      path: '/staff/auth/mfa',
       operationId: 'staffMfaStatus',
       summary: 'MFA status of the signed-in staff member',
       description: 'Whether an authenticator is enrolled and how many recovery codes are left. Never a secret.',
@@ -73,7 +73,7 @@ export function securityRoutes(deps: IdentityDeps, shared: { test: string; sessi
     {
       ...base,
       method: 'POST',
-      path: '/auth/mfa/enroll',
+      path: '/staff/auth/mfa/enroll',
       operationId: 'staffMfaEnroll',
       summary: 'Start enrolling an authenticator app',
       description:
@@ -108,7 +108,7 @@ export function securityRoutes(deps: IdentityDeps, shared: { test: string; sessi
     {
       ...base,
       method: 'POST',
-      path: '/auth/mfa/confirm',
+      path: '/staff/auth/mfa/confirm',
       operationId: 'staffMfaConfirm',
       summary: 'Confirm the authenticator and get recovery codes',
       description: `Checks a code from the new authenticator, enables MFA, ends the user's other sessions, rotates this one and returns ${RECOVERY_CODE_COUNT} single-use recovery codes once.`,
@@ -162,7 +162,7 @@ export function securityRoutes(deps: IdentityDeps, shared: { test: string; sessi
     {
       ...base,
       method: 'POST',
-      path: '/auth/mfa/verify',
+      path: '/staff/auth/mfa/verify',
       operationId: 'staffMfaVerify',
       summary: 'Complete sign-in with the authenticator or a recovery code',
       description:
@@ -220,7 +220,7 @@ export function securityRoutes(deps: IdentityDeps, shared: { test: string; sessi
     {
       ...base,
       method: 'POST',
-      path: '/auth/mfa/disable',
+      path: '/staff/auth/mfa/disable',
       operationId: 'staffMfaDisable',
       summary: 'Remove the authenticator',
       description:
@@ -245,7 +245,7 @@ export function securityRoutes(deps: IdentityDeps, shared: { test: string; sessi
     {
       ...base,
       method: 'POST',
-      path: '/auth/sessions/revoke-all',
+      path: '/staff/auth/sessions/revoke-all',
       operationId: 'staffSignOutEverywhere',
       summary: 'Sign out everywhere',
       description: 'Revokes every session of the signed-in staff member, this one included, and clears the cookie.',

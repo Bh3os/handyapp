@@ -1,4 +1,5 @@
-// HandyHub staff build (React + Vite). Served by the server under /staff/ until host routing exists (TSK-0017).
+// HandyHub staff build (React + Vite). Built for /staff/; the server serves the same files under /staff on the single
+// staging host and at the root of the staff host (TSK-0017), where /staff/assets/* still resolves.
 import react from '@vitejs/plugin-react'
 import { defaultClientConditions, defineConfig } from 'vite'
 

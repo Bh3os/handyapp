@@ -7,7 +7,8 @@
     "build": "astro build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "dev": "astro dev"
+    "dev": "astro dev",
+    "validator": "node scripts/request-validator.mjs"
   },
   "dependencies": {
     "@astrojs/react": "7.0.1",

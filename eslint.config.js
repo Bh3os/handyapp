@@ -21,6 +21,7 @@ export default tseslint.config(
       '**/test-results/**',
       'reports/**',
       'kg/**',
+      'apps/site/src/request/validator.generated.ts',
       'sources/**',
       'tools/kg.mjs',
     ],
