@@ -1,0 +1,11 @@
+{
+  "app.title": "HandyHub para el personal",
+  "enum.jobState.pending_preparation": "Preparación pendiente",
+  "enum.jobState.ready": "Listo",
+  "enum.jobState.in_progress": "En curso",
+  "enum.jobState.paused": "En pausa",
+  "enum.jobState.ready_for_qa": "En espera de revisión de calidad",
+  "enum.jobState.operationally_complete": "Operativamente completo",
+  "enum.jobState.closed": "Cerrado",
+  "enum.jobState.reopened": "Reabierto"
+}
