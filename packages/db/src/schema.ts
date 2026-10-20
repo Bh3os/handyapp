@@ -80,9 +80,6 @@ export interface IdentityVerificationCodesTable {
   expires_at: Timestamp
   consumed_at: Timestamp | null
   superseded_at: Timestamp | null
-  delivery_state: Generated<string>
-  provider_message_id: string | null
-  delivery_error: string | null
   request_id: string
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }

@@ -14,6 +14,7 @@ import {
   customerSessionResolver,
   issueCode,
   readCodeKey,
+  releaseProposedCodeTemplates,
   resolveCustomerSession,
   revokeCustomerSession,
   sessionCookie,
@@ -54,6 +55,8 @@ const worker = () =>
 
 beforeAll(async () => {
   t = await createTestDatabase()
+  // The owner's release of the PROPOSED wording (not seeded: only owner-worded templates are, T74).
+  await withTx(t.db, (tx) => releaseProposedCodeTemplates(tx, 'staff-synthetic-owner'))
 })
 afterAll(async () => {
   await t?.drop()
@@ -95,6 +98,14 @@ async function deliveredCode(destination: string): Promise<string> {
   return m[1] as string
 }
 const NEUTRAL = { ok: false, reason: 'INVALID_CODE' }
+/** The delivery rows of a code (platform.message_deliveries, TSK-0047). */
+const deliveries = (codeId: string) =>
+  t.db
+    .selectFrom('platform.message_deliveries')
+    .select(['state', 'error_code', 'message_key', 'channel', 'template_version'])
+    .where('record_type', '=', 'verification_code')
+    .where('record_id', '=', codeId)
+    .execute()
 
 describe('issuing and delivering codes (TSK-0016, HH-INT-13, OWN-DEC-96)', () => {
   it('issues a code with the configured 10-minute lifetime and delivers it by e-mail in English', async () => {
@@ -115,7 +126,16 @@ describe('issuing and delivering codes (TSK-0016, HH-INT-13, OWN-DEC-96)', () =>
       .selectAll()
       .where('id', '=', r.codeId)
       .executeTakeFirstOrThrow()
-    expect(row).toMatchObject({ delivery_state: 'sent', max_attempts: 5, destination: to })
+    expect(row).toMatchObject({ max_attempts: 5, destination: to })
+    expect(await deliveries(r.codeId)).toEqual([
+      {
+        state: 'queued',
+        error_code: null,
+        message_key: 'contact.verification_code',
+        channel: 'email',
+        template_version: 1,
+      },
+    ])
     expect(await verify({ destination: to, code })).toMatchObject({ ok: true, codeId: r.codeId, channel: 'email' })
   })
 
@@ -140,6 +160,7 @@ describe('issuing and delivering codes (TSK-0016, HH-INT-13, OWN-DEC-96)', () =>
     if (r.status === 'issued') {
       const rows = await t.db.selectFrom('platform.jobs').select('state').where('target_id', '=', r.codeId).execute()
       expect(rows).toEqual([{ state: 'succeeded' }])
+      expect(await deliveries(r.codeId)).toHaveLength(1)
     }
   })
 
@@ -149,12 +170,9 @@ describe('issuing and delivering codes (TSK-0016, HH-INT-13, OWN-DEC-96)', () =>
     await issue({ destination: to })
     await drain()
     if (first.status !== 'issued') throw new Error('not issued')
-    const row = await t.db
-      .selectFrom('identity.verification_codes')
-      .select('delivery_state')
-      .where('id', '=', first.codeId)
-      .executeTakeFirstOrThrow()
-    expect(row.delivery_state).toBe('cancelled')
+    expect(await deliveries(first.codeId)).toEqual([])
+    const jobs = await t.db.selectFrom('platform.jobs').select('state').where('target_id', '=', first.codeId).execute()
+    expect(jobs).toEqual([{ state: 'cancelled' }])
     expect(providers.fakes.email?.sent.filter((m) => m.to === to)).toHaveLength(1)
   })
 
@@ -174,12 +192,40 @@ describe('issuing and delivering codes (TSK-0016, HH-INT-13, OWN-DEC-96)', () =>
     const r = await issue({ destination: 'someone@real-domain-example.com' })
     await drain()
     if (r.status !== 'issued') throw new Error('not issued')
-    const row = await t.db
-      .selectFrom('identity.verification_codes')
-      .select(['delivery_state', 'delivery_error'])
-      .where('id', '=', r.codeId)
-      .executeTakeFirstOrThrow()
-    expect(row).toEqual({ delivery_state: 'suppressed', delivery_error: 'not_on_test_allowlist' })
+    expect(await deliveries(r.codeId)).toMatchObject([{ state: 'suppressed', error_code: 'not_on_test_allowlist' }])
+  })
+})
+
+describe('code message templates (TSK-0016, TSK-0047, T74)', () => {
+  it('without a released template the message is NOT CONFIGURED: nothing is sent and the delivery fails visibly', async () => {
+    const fresh = await createTestDatabase()
+    try {
+      const r = await withTx(fresh.db, (tx) =>
+        issueCode(tx, KEY, {
+          purpose: 'contact_verification',
+          channel: 'email',
+          destination: 'nobody-yet@example.test',
+          subjectRef: 'contact:synthetic-2',
+          requestId: 'req-synthetic',
+        }),
+      )
+      const w = createWorker({
+        db: fresh.db,
+        registry: createAutomationRegistry([codeDeliveryAutomation({ providers, codeKey: KEY })]),
+      })
+      await w.runOnce()
+      await w.runOnce()
+      if (r.status !== 'issued') throw new Error('not issued')
+      const rows = await fresh.db
+        .selectFrom('platform.message_deliveries')
+        .select(['state', 'error_code'])
+        .where('record_id', '=', r.codeId)
+        .execute()
+      expect(rows).toEqual([{ state: 'failed', error_code: 'template_not_configured' }])
+      expect(providers.fakes.email?.sent.some((m) => m.to === 'nobody-yet@example.test')).toBe(false)
+    } finally {
+      await fresh.drop()
+    }
   })
 })
 
@@ -258,6 +304,8 @@ describe('codes never appear in logs, the outbox or the database (TSK-0016, RULE
     const to = email()
     lines.length = 0
     await issue({ destination: to, clientIp: '192.0.2.10' })
+    // A suppressed send in the same run makes the guard write a log line (masked destination only).
+    await issue({ destination: `blocked-${seq}@real-domain-example.com` })
     const code = await deliveredCode(to)
     await verify({ destination: to, code: '999999' })
     await verify({ destination: to, code })

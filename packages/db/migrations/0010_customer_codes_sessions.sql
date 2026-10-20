@@ -2,7 +2,10 @@
 -- OWN-DEC-96, OWN-DEC-141, FACT-SESSION-TIMINGS).
 -- - verification_codes: one row per issued code. The code itself is never stored: the row keeps a random nonce, from
 --   which the delivery job derives the code with the server's code key, and a keyed digest the verifier compares in
---   constant time. Expiry and the attempt limit are copied from configuration when the code is issued.
+--   constant time. Expiry and the attempt limit are copied from configuration when the code is issued. Delivery is
+--   the automatic message contact.verification_code (TSK-0047): its state is in platform.message_deliveries. Its
+--   templates are not seeded here: only owner-worded templates are (T74); until a version is released the message
+--   is NOT CONFIGURED and no code is sent.
 -- - verification_attempts: every verification attempt with its keyed client-address digest, for the per-address limit.
 --   No code and no raw address is stored.
 -- - customer_sessions: server-side customer sessions; the cookie holds a random token, the row only its SHA-256.
@@ -25,10 +28,6 @@ CREATE TABLE identity.verification_codes (
   expires_at       timestamptz NOT NULL,
   consumed_at      timestamptz,
   superseded_at    timestamptz,
-  delivery_state   text NOT NULL DEFAULT 'pending'
-                     CHECK (delivery_state IN ('pending', 'sent', 'suppressed', 'failed', 'cancelled')),
-  provider_message_id text,
-  delivery_error   text,
   request_id       text NOT NULL CHECK (char_length(request_id) BETWEEN 1 AND 100),
   created_at       timestamptz NOT NULL DEFAULT now(),
   CHECK (expires_at > created_at),

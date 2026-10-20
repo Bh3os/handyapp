@@ -5,7 +5,7 @@
 //   configuration; either NOT CONFIGURED, or the code key missing, refuses with `not_configured`;
 // - refuses a resend within the cooldown and more codes per destination or per client address per hour than allowed;
 // - supersedes the earlier codes for the same purpose, destination and subject, stores the nonce and digest, and
-//   writes the `verification_code.issued` outbox event (an automatic message, FACT-AUTOMATIC-MESSAGES #2). The code
+//   writes the `contact.verification_code_requested` outbox event (an automatic message, FACT-AUTOMATIC-MESSAGES #2). The code
 //   is derived again by the delivery job; it is never stored, logged or put in the outbox.
 //
 // verifyCode, inside the caller's transaction (the attempt counts are committed even when the code is wrong):
@@ -23,7 +23,8 @@ import { clientKey, codeDigest, deriveCode, digestsEqual, newNonce, type CodeKey
 export const CODE_PURPOSES = ['contact_verification', 'project_access', 'account_sign_in'] as const
 export type CodePurpose = (typeof CODE_PURPOSES)[number]
 export type CodeChannel = 'email' | 'sms'
-export const CODE_ISSUED_EVENT = 'verification_code.issued'
+/** The trigger of the automatic message contact.verification_code (TSK-0047 message types). */
+export const CODE_ISSUED_EVENT = 'contact.verification_code_requested'
 
 export type IssueInput = {
   purpose: CodePurpose

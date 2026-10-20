@@ -1,8 +1,7 @@
 // One-time code derivation, destinations and the session cookie (TSK-0016; HH-INT-13, HH-SEC-02, HH-ARC-06,
-// RULE-LANGUAGES). Database behaviour is in test/integration/customer-codes.test.ts.
+// RULE-LANGUAGES). Templates and database behaviour is in test/integration/customer-codes.test.ts.
 import { describe, expect, it } from 'vitest'
 import {
-  codeMessage,
   CUSTOMER_COOKIE,
   maskForCustomer,
   normaliseDestination,
@@ -38,23 +37,13 @@ describe('code derivation (TSK-0016, HH-INT-13)', () => {
   })
 })
 
-describe('destinations and customer text (TSK-0016, HH-INT-13, RULE-LANGUAGES)', () => {
+describe('destinations (TSK-0016, HH-INT-13)', () => {
   it('normalises e-mail and E.164 numbers and masks them for the receipt page', () => {
     expect(normaliseDestination('email', ' Jo@Example.TEST ')).toBe('jo@example.test')
     expect(normaliseDestination('sms', '+1 502-555-0100')).toBe('+15025550100')
     expect(normaliseDestination('sms', '502 555 0100')).toBeNull()
     expect(maskForCustomer('email', 'jo@example.test')).toBe('j***@example.test')
     expect(maskForCustomer('sms', '+15025550100')).toBe('***0100')
-  })
-
-  it('the code messages are English and carry no link or private detail', () => {
-    expect(codeMessage('email', '123456', 10)).toEqual({
-      subject: 'Your HandyHub verification code',
-      text: 'Your HandyHub verification code is 123456. It expires in 10 minutes. If you did not ask for this code, you can ignore this message.',
-    })
-    expect(codeMessage('sms', '123456', 10).text).toBe(
-      'HandyHub code: 123456. It expires in 10 minutes. Do not share it.',
-    )
   })
 })
 

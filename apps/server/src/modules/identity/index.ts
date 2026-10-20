@@ -15,7 +15,14 @@ export {
   type VerifyInput,
   type VerifyResult,
 } from './codes.js'
-export { codeDeliveryAutomation, codeMessage, CodeDeliveryError, type CodeDeliveryDeps } from './delivery.js'
+export {
+  CODE_MESSAGE_KEY,
+  codeDeliveryAutomation,
+  CodeDeliveryError,
+  PROPOSED_CODE_TEMPLATES,
+  releaseProposedCodeTemplates,
+  type CodeDeliveryDeps,
+} from './delivery.js'
 export { MIN_CODE_KEY_LENGTH, readCodeKey, type CodeKeySettings } from './keys.js'
 export {
   clearedSessionCookie,
