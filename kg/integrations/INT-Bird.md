@@ -18,7 +18,12 @@ Bird is used for texts and for the business phone number.
 
 **Inbound SMS**
 - Bird delivers inbound texts by webhook into the unified inbox ([[OWN-DEC-120]]).
-- Every webhook signature is verified. Replays are rejected using a timestamp tolerance and de-duplication on the provider message ID.
+- Webhook verification follows Standard Webhooks (Bird docs, guides/webhooks):
+  - Headers: `webhook-id`, `webhook-timestamp` and `webhook-signature`. The signature header holds `v1,<base64 HMAC-SHA256>`, and may hold several signatures separated by spaces.
+  - The signature is an HMAC-SHA256 over `{webhook-id}.{webhook-timestamp}.{raw body}`. The key is the endpoint secret with the `whsec_` prefix removed, then base64-decoded.
+  - Verify against the raw body, before parsing it.
+  - Reject a delivery whose timestamp is more than 5 minutes old.
+  - De-duplicate on `webhook-id`: Bird's retries reuse it.
 - STOP and HELP keywords update the contact's channel permissions.
 
 **Phone number**
