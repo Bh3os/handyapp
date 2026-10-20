@@ -1,6 +1,11 @@
 // Staff app API client (TSK-0014). Same-origin JSON calls to /api/v1; the session cookie travels on its own
 // (HttpOnly, never readable here). Errors come back in the one envelope (HH-API-03).
-export type ApiErrorBody = { code: string; fieldErrors: { field: string; code: string }[] }
+export type ApiErrorBody = {
+  code: string
+  fieldErrors: { field: string; code: string }[]
+  /** STALE_VERSION only: the current version and values (HH-API-04), for the conflict banner. */
+  current?: { version: number; values?: Record<string, unknown> }
+}
 export type ApiResponse<T> = { ok: true; status: number; data: T } | { ok: false; status: number; error: ApiErrorBody }
 
 export type Fetch = typeof fetch

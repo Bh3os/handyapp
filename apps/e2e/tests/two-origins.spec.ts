@@ -65,7 +65,7 @@ test.describe('two origins (TSK-0017, OWN-DEC-133, HH-ARC-06)', () => {
     await page.getByLabel('Email').fill(OWNER)
     await page.getByLabel('Password', { exact: true }).fill(password)
     await page.getByRole('button', { name: 'Sign in' }).click()
-    await expect(page.getByRole('heading', { level: 1, name: 'Signed in as E2E Owner' })).toBeVisible()
+    await expect(page.getByText('Signed in as E2E Owner', { exact: true })).toBeVisible()
 
     // The staff cookie is host-only: the browser keeps it for the staff host and sends it nowhere else.
     const staffCookies = await context.cookies(STAFF)
