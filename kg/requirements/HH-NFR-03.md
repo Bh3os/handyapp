@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: platform
 links:
-  decided_by: ["[[OWN-DEC-111]]", "[[OWN-DEC-119]]", "[[OWN-DEC-121]]", "[[OWN-DEC-133]]"]
+  decided_by: ["[[OWN-DEC-111]]", "[[OWN-DEC-119]]", "[[OWN-DEC-121]]", "[[OWN-DEC-133]]", "[[OWN-DEC-136]]"]
   constrained_by: ["[[RULE-SAFETY-GATES]]"]
   uses: ["[[INT-Bird]]", "[[INT-Resend]]", "[[INT-R2]]", "[[INT-Render]]"]
   tested_by: ["[[T71]]", "[[T61]]", "[[T13]]", "[[T12]]"]
@@ -37,7 +37,7 @@ Runbook responses (guide 29.4):
 | Restore needed | Isolated restore, integrity checks, deletion and suppression replay, provider reconciliation, controlled resume |
 
 Release and rollback (guide 29.2, 29.3):
-- Before a feature is exposed: implementation evidence, test results, business policy readiness, provider and environment configuration, accessible failure states and a recovery owner.
+- Before a feature is exposed: implementation evidence, test results, business policy readiness, provider and environment configuration, accessible failure states and a recovery owner. Before real customer data: the recorded AI security review with every finding fixed ([[HH-SEC-01]], [[OWN-DEC-136]]).
 - Each release records the deployed commit, schema version, feature flags, migration and backfill progress, affected providers and templates, smoke checks and rollback constraints.
 - A rollback keeps newly accepted and paid records: never drop new finance tables or restore an older backup over live transactions as a routine rollback. Prefer disabling a broken action while keeping read access; pause dangerous automation and reconcile external transactions before retries; where a schema rollback is unsafe, correct forward.
 - Production exposes no debug tools, sample credentials, fake reviews, test staff or private seed records; domain, certificate and cookie settings are verified for the real origins, `handyhub247.com` and `staff.handyhub247.com` ([[FACT-DOMAIN]]).

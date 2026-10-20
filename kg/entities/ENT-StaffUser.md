@@ -5,15 +5,16 @@ title: "Staff user (staff membership)"
 status: active
 area: staff
 links:
-  decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-123]]", "[[OWN-DEC-05]]"]
+  decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-123]]", "[[OWN-DEC-05]]", "[[OWN-DEC-141]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]"]
+  uses: ["[[FACT-SESSION-TIMINGS]]"]
 source: "guide 22.1 StaffMembership; OWN-DEC-114, OWN-DEC-123; vault 05 section 5.1"
 ---
 A named staff member's account and field profile. One person may hold several role grants ([[ENT-RoleGrant]]).
 
 **Fields:** stable ID; name and first name shown to customers; login email; password hash (argon2id or equivalent; never returned by any API, never visible to the Owner); optional MFA factor (TOTP); staff locale (en, es); working language for safety content; working days and hours and approved time off (feed capacity); status; invited, activated and disabled times; sessions with inactivity expiry.
 
-**States:** `invited → active → disabled`; `disabled → active` only by the Owner with a fresh sign-in. Password states: not set, set, reset pending (single-use, short-lived link).
+**States:** `invited → active → disabled`; `disabled → active` only by the Owner with a fresh sign-in. Password states: not set, set, reset pending (single-use link valid 24 hours, [[FACT-SESSION-TIMINGS]]).
 
 **Invariants:**
 - No public registration; accounts exist only by Owner invitation. Existing IDs, roles, assignments and audit records survive the sign-in migration.

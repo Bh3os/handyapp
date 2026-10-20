@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: security
 links:
-  decided_by: ["[[OWN-DEC-123]]", "[[OWN-DEC-114]]", "[[OWN-DEC-117]]", "[[OWN-DEC-118]]", "[[OWN-DEC-70]]"]
+  decided_by: ["[[OWN-DEC-123]]", "[[OWN-DEC-114]]", "[[OWN-DEC-117]]", "[[OWN-DEC-118]]", "[[OWN-DEC-70]]", "[[OWN-DEC-142]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[ENT-AuditEvent]]", "[[FACT-RETENTION-SCHEDULE]]"]
   tested_by: ["[[T28]]", "[[T64]]", "[[T74]]"]
@@ -32,4 +32,4 @@ Rules ([[OWN-DEC-123]]):
 - Entries cannot be edited or deleted through the app; a correction is a new entry. Tamper protection keeps the log append-only.
 - Passwords, tokens, access codes, raw secrets and sensitive message contents never appear in audit diffs or logs; they are redacted, and a test checks it.
 - The Owner sees the full audit log. Office staff see their own audit actions, plus the operational timeline of records their role may access. Estimators and Workers see no audit-log screen; they see only the record timelines their role allows (PROPOSED default from least privilege; the owner has not stated it).
-- Audit records follow the retention schedule through the reviewed deletion queue ([[FACT-RETENTION-SCHEDULE]]); they are not kept forever and never deleted automatically.
+- Audit records are kept 7 years ([[FACT-RETENTION-SCHEDULE]], [[OWN-DEC-142]]), then go to the owner's deletion-review queue; records under a case or legal hold are kept until the hold ends. They are never deleted automatically.

@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: staff
 links:
-  decided_by: ["[[OWN-DEC-123]]", "[[OWN-DEC-70]]"]
+  decided_by: ["[[OWN-DEC-123]]", "[[OWN-DEC-70]]", "[[OWN-DEC-142]]"]
   depends_on: ["[[HH-SEC-06]]", "[[HH-PRIV-01]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[ENT-AuditEvent]]", "[[FACT-RETENTION-SCHEDULE]]"]

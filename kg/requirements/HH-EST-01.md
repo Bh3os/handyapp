@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: estimates
 links:
-  decided_by: ["[[OWN-DEC-102]]", "[[OWN-DEC-32]]", "[[OWN-DEC-83]]", "[[OWN-DEC-104]]", "[[OWN-DEC-110]]", "[[OWN-DEC-126]]", "[[OWN-DEC-127]]", "[[OWN-DEC-66]]", "[[OWN-DEC-135]]"]
+  decided_by: ["[[OWN-DEC-102]]", "[[OWN-DEC-32]]", "[[OWN-DEC-83]]", "[[OWN-DEC-104]]", "[[OWN-DEC-110]]", "[[OWN-DEC-126]]", "[[OWN-DEC-127]]", "[[OWN-DEC-66]]", "[[OWN-DEC-135]]", "[[OWN-DEC-140]]"]
   constrained_by: ["[[RULE-MONEY-CENTS]]", "[[RULE-NO-INVENTED-FACTS]]", "[[FACT-NO-MINIMUM]]", "[[FACT-TAX-NO-LINE]]", "[[FACT-NO-SURCHARGE]]"]
   uses: ["[[ENT-Estimate]]", "[[ENT-EstimateVersion]]", "[[FACT-ESTIMATE-VALIDITY]]", "[[FACT-DEPOSIT-RULE]]", "[[FACT-PAYMENT-DUE]]", "[[FACT-BUSINESS-NAME]]", "[[FACT-BUSINESS-ADDRESS]]", "[[FACT-PRICING-DISCOUNTS]]", "[[FACT-PRICING-SAME-DAY-CHARGE]]", "[[FACT-PRICING-PER-JOB]]", "[[FACT-WARRANTY]]"]
   tested_by: ["[[T31]]", "[[T58]]"]
@@ -22,7 +22,7 @@ Every estimate version holds:
 - labor and material assumptions, options (base scope, alternates, optional add-ons), exclusions, customer responsibilities, dependencies and schedule assumptions;
 - price lines in integer cents, each rounded once half-up to the cent; the total is the sum of the displayed lines, in USD;
 - no tax line and no tax charge ([[FACT-TAX-NO-LINE]]), no minimum charge or top-up ([[FACT-NO-MINIMUM]]), no card surcharge ([[FACT-NO-SURCHARGE]]);
-- a discount line only as defined in [[FACT-PRICING-DISCOUNTS]]; a same-day service charge only when the customer asked for same-day service, typed on that estimate per [[FACT-PRICING-SAME-DAY-CHARGE]]; no other fee is invented;
+- every line greater than $0.00; a discount only as a separate totals row before the total, never a line ([[FACT-PRICING-DISCOUNTS]], [[OWN-DEC-145]]); no same-day service charge ([[FACT-PRICING-SAME-DAY-CHARGE]]); no other fee is invented;
 - the deposit due when the deposit rule applies ([[HH-FIN-02]]), computed on the total including selected options;
 - the payment term shown before approval: "Payment due on receipt" for new projects, or the term already agreed with an existing customer, stored per project and never overwritten ([[FACT-PAYMENT-DUE]]);
 - the issuer name ([[FACT-BUSINESS-NAME]]); the mailing-address line is omitted while [[FACT-BUSINESS-ADDRESS]] is missing, and a customer's address is never used in its place;

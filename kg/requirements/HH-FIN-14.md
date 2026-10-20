@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: payments
 links:
-  decided_by: ["[[OWN-DEC-67]]", "[[OWN-DEC-118]]", "[[OWN-DEC-112]]", "[[OWN-DEC-114]]", "[[OWN-DEC-134]]"]
+  decided_by: ["[[OWN-DEC-67]]", "[[OWN-DEC-118]]", "[[OWN-DEC-112]]", "[[OWN-DEC-114]]", "[[OWN-DEC-134]]", "[[OWN-DEC-138]]"]
   constrained_by: ["[[RULE-HUMAN-REVIEW]]"]
   uses: ["[[ENT-Refund]]", "[[ENT-Payment]]", "[[ENT-Invoice]]", "[[ENT-AuditEvent]]", "[[ROLE-OWNER]]", "[[FACT-CANCELLATION-RULES]]"]
   tested_by: ["[[T63]]", "[[T64]]"]

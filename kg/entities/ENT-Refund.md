@@ -5,7 +5,7 @@ title: "Refund, credit and write-off"
 status: active
 area: payments
 links:
-  decided_by: ["[[OWN-DEC-67]]", "[[OWN-DEC-118]]", "[[OWN-DEC-134]]"]
+  decided_by: ["[[OWN-DEC-67]]", "[[OWN-DEC-118]]", "[[OWN-DEC-134]]", "[[OWN-DEC-138]]"]
   constrained_by: ["[[RULE-HUMAN-REVIEW]]"]
   uses: ["[[FACT-CANCELLATION-RULES]]"]
 source: "guide 22.1 Credit/Refund; 23 (Refund)"

@@ -5,7 +5,7 @@ title: "Permission matrix: every action by role"
 status: active
 area: security
 links:
-  decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-118]]", "[[OWN-DEC-123]]", "[[OWN-DEC-67]]", "[[OWN-DEC-68]]", "[[OWN-DEC-69]]", "[[OWN-DEC-70]]", "[[OWN-DEC-71]]", "[[OWN-DEC-76]]", "[[OWN-DEC-77]]", "[[OWN-DEC-38]]", "[[OWN-DEC-64]]", "[[OWN-DEC-81]]", "[[OWN-DEC-100]]", "[[OWN-DEC-111]]", "[[OWN-DEC-115]]", "[[OWN-DEC-117]]", "[[OWN-DEC-119]]", "[[OWN-DEC-121]]", "[[OWN-DEC-124]]", "[[OWN-DEC-125]]", "[[OWN-DEC-134]]"]
+  decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-118]]", "[[OWN-DEC-123]]", "[[OWN-DEC-67]]", "[[OWN-DEC-68]]", "[[OWN-DEC-69]]", "[[OWN-DEC-70]]", "[[OWN-DEC-71]]", "[[OWN-DEC-76]]", "[[OWN-DEC-77]]", "[[OWN-DEC-38]]", "[[OWN-DEC-64]]", "[[OWN-DEC-81]]", "[[OWN-DEC-100]]", "[[OWN-DEC-111]]", "[[OWN-DEC-115]]", "[[OWN-DEC-117]]", "[[OWN-DEC-119]]", "[[OWN-DEC-121]]", "[[OWN-DEC-124]]", "[[OWN-DEC-125]]", "[[OWN-DEC-134]]", "[[OWN-DEC-137]]", "[[OWN-DEC-138]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]", "[[RULE-SAFETY-GATES]]", "[[RULE-AI-WAVE2]]"]
   uses: ["[[ROLE-OWNER]]", "[[ROLE-OFFICE]]", "[[ROLE-ESTIMATOR]]", "[[ROLE-WORKER]]", "[[ROLE-CUSTOMER]]", "[[ROLE-GUEST]]", "[[ENT-RoleGrant]]", "[[ENT-AuditEvent]]"]
   tested_by: ["[[T26]]", "[[T64]]", "[[T19]]", "[[T68]]", "[[T28]]"]
@@ -14,7 +14,7 @@ source: "guide 10.2 access matrix; vault 27 sections 4-6, 9; OWN-DEC-114 role li
 ---
 These are server rules, enforced by one policy point on every read, write, search, download, export, background task and offline sync, never only in menus. One person may hold several roles; capabilities stay explicit. The AI module is disabled and holds no permissions.
 
-**Role mapping (PROPOSED, from guide 10.2 to the OWN-DEC-114 roles):** Owner/admin → Owner. Dispatcher and Customer service → Office. Estimator → Estimator. Worker → Worker. Supervisor → no role; supervision and quality review belong to the Owner (OWN-DEC-64). Bookkeeper and the guide's "limited finance role" → their routine finance tasks (recording, clearing, reconciling payments) map to Office and Owner; finance decisions stay Owner-only; the Worker gets only on-site collection recording with the collect capability.
+**Role mapping (PROPOSED, from guide 10.2 to the OWN-DEC-114 roles):** Owner/admin → Owner. Dispatcher and Customer service → Office. Estimator → Estimator. Worker → Worker. Supervisor → no role; supervision and quality review belong to the Owner (OWN-DEC-64). Bookkeeper and the guide's "limited finance role" → Office issues invoices, enters Square payment links and records payments ([[OWN-DEC-138]]); only the Owner marks a check cleared; routine reconciliation matching maps to Office and Owner (P); finance decisions stay Owner-only; the Worker gets only on-site collection recording with the collect capability.
 
 **Legend:** Y allowed · A assigned jobs only, inside the access window · V own verified project only · F fresh sign-in (password re-entry or TOTP) plus a written reason · P PROPOSED cell (not owner-decided) · — refused. Every allowed sensitive action is audited.
 
@@ -66,9 +66,9 @@ These are server rules, enforced by one policy point on every read, write, searc
 | Request an administrative Start Work exception | — | — | — | A | — | — |
 | Approve an administrative exception | Y | — | — | — | — | — |
 | Override the gate or a critical hold | — | — | — | — | — | — |
-| Release a safety hold (with evidence; never one they raised) | Y | — | — | — | — | — |
+| Release a critical safety hold (with evidence; never one they raised) | Y | — | — | — | — | — |
 | Set the job-level Hold with a note | Y | Y (P) | Y (P) | — | — | — |
-| Clear the job-level Hold with a note | Y (P) | — | — | — | — | — |
+| Set Ready on any job-level Hold / Ready note, with a note (including one they set) | Y | — | — | — | — | — |
 | Checklist steps, photos, notes, walkthrough record, issue reports | A | — | — | A | — | — |
 | Correct Arrived/Finished timestamps | Y | — | — | — | — | — |
 | Quality review, punch items, self-review | Y | — | — | Correct assigned punch items | — | — |
@@ -77,13 +77,15 @@ These are server rules, enforced by one policy point on every read, write, searc
 ### Finance
 | Action | Owner | Office | Estimator | Worker | Customer | Guest |
 | --- | --- | --- | --- | --- | --- | --- |
-| Issue an invoice (after the Owner's quality review) | Y | Y (P) | — | — | — | — |
-| Enter the Square payment link | Y | Y (P) | — | — | — | — |
+| Issue an invoice (after the Owner's quality review) | Y | Y | — | — | — | — |
+| Enter the Square payment link | Y | Y | — | — | — | — |
 | Record a verified payment | Y | Y | — | A, own on-site collection, with the collect capability (P mapping) | — | — |
-| Mark a check cleared or returned; reconcile | Y | Y (P) | — | — | — | — |
+| Mark a check cleared | Y | — | — | — | — | — |
+| Mark a check returned; reconcile | Y | Y (P) | — | — | — | — |
 | (any of the above for a payment they collected themselves) | — (P) | — (P) | — | — | — | — |
 | Waive a required deposit | F | — | — | — | — | — |
 | Refund, credit, write-off, void, payment correction | F | Request only (P) | — | — | — | — |
+| Apply a cancellation outcome: deposit refund or the $50.00 late-cancellation amount ([[FACT-CANCELLATION-RULES]]) | F | Request only (P) | — | — | — | — |
 | Release payment reminders | Y | Y | — | — | — | — |
 | Decide "Overdue—owner decision" | Y | — | — | — | — | — |
 | Business details and payment instructions | Y | — | — | — | — | — |

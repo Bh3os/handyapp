@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: privacy
 links:
-  decided_by: ["[[OWN-DEC-70]]", "[[OWN-DEC-123]]"]
+  decided_by: ["[[OWN-DEC-70]]", "[[OWN-DEC-123]]", "[[OWN-DEC-142]]"]
   depends_on: ["[[HH-DATA-09]]"]
   constrained_by: ["[[RULE-HUMAN-REVIEW]]", "[[RULE-NO-INVENTED-FACTS]]", "[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[FACT-RETENTION-SCHEDULE]]", "[[ENT-RetentionReview]]", "[[ENT-AuditEvent]]", "[[INT-Render]]", "[[INT-R2]]", "[[INT-Bird]]", "[[INT-Resend]]", "[[INT-Square]]"]
@@ -32,7 +32,7 @@ Purpose and access classes (guide 25.2):
 | Logs and audit | Reliability, integrity, accountability | Authorized technical and administrative scope | Redaction, controlled access, retention, tamper protection |
 
 Retention:
-- Periods per category come from [[FACT-RETENTION-SCHEDULE]] (configurable defaults the Owner may extend; longer legal, tax, insurance or contractual requirements override them). The schedule also applies to audit records; nothing is kept forever by default.
+- Periods per category come from [[FACT-RETENTION-SCHEDULE]] (configurable defaults the Owner may extend; longer legal, tax, insurance or contractual requirements override them). Audit records are kept 7 years ([[OWN-DEC-142]]); nothing is kept forever by default.
 - Expired records enter the Owner's deletion-review queue ([[ENT-RetentionReview]]); nothing is deleted automatically.
 - Before deletion the system checks for unresolved complaints, warranties, disputes, claims, investigations, unfiled tax returns, and legal or insurance holds; a hold blocks deletion of the record and its related evidence.
 - There is no separate one-year contact-removal rule for lost requests.
