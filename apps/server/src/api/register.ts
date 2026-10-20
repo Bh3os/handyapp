@@ -21,6 +21,7 @@ import { requireFreshAuth } from './fresh-auth.js'
 import { actorKey, claim, readIdempotencyKey, requestHash, store, type IdempotencyScope } from './idempotency.js'
 import { errorMessage, fieldKind, fieldMessage, type Audience } from './messages.js'
 import { PAGE_QUERY_PROPERTIES, pageRequest } from './pagination.js'
+import { RateLimiter } from './rate-limit.js'
 import {
   AUTHENTICATION,
   routeProblems,
@@ -44,6 +45,10 @@ export interface ApiOptions {
   modules: readonly ApiModule[]
   /** Resolves the caller; the session layer (TSK-0014) supplies it. Default: every caller is a guest. */
   resolveActor?: ResolveActor
+  /** Proxies in front of the service that append to X-Forwarded-For (rate limits key on the client network). */
+  trustProxyHops?: number
+  /** Rate limiter; tests pass their own. Default: PostgreSQL counters on `db`. */
+  rateLimiter?: RateLimiter
 }
 
 const GUEST: RequestActor = { actor: { kind: 'guest' } }
@@ -163,11 +168,26 @@ function refuseKind(kind: ActorKind | 'ai'): ApiError {
   return new ApiError('FORBIDDEN')
 }
 
-async function runRoute(route: RouteDef, db: Db, req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
+async function runRoute(
+  route: RouteDef,
+  db: Db,
+  limiter: RateLimiter,
+  req: FastifyRequest,
+  reply: FastifyReply,
+): Promise<FastifyReply> {
   const { actor, authenticatedAt } = req.apiActor ?? GUEST
 
   const kind = actorKind(actor)
   if (kind === 'ai' || !route.actors.includes(kind)) throw refuseKind(kind)
+
+  // Counted before anything runs, in its own statement, so a refused or failed call still counts (HH-INT-11).
+  if (route.rateLimit !== 'none' && route.rateLimit.enforcedBy !== 'handler') {
+    const decision = await limiter.consume(route.rateLimit, limiter.callerKey(req, actor))
+    if (!decision.allowed) {
+      req.log.warn({ bucket: route.rateLimit.bucket }, 'RATE_LIMITED')
+      throw new ApiError('RATE_LIMITED', { headers: { 'retry-after': String(decision.retryAfterSeconds) } })
+    }
+  }
 
   const resource = route.resource ? await route.resource({ req, actor, db }) : {}
   if (resource === null) throw new ApiError('NOT_FOUND')
@@ -261,6 +281,8 @@ export async function registerApi(app: FastifyInstance, options: ApiOptions): Pr
     if (ids.filter((i) => i === id).length > 1) problems.push(`duplicate operationId ${id}`)
   if (problems.length) throw new RouteContractError(problems.join('\n'))
   const resolveActor = options.resolveActor ?? (async () => GUEST)
+  const limiter =
+    options.rateLimiter ?? (options.db ? new RateLimiter(options.db, options.trustProxyHops ?? 0) : undefined)
 
   await app.register(
     async (api) => {
@@ -309,8 +331,8 @@ export async function registerApi(app: FastifyInstance, options: ApiOptions): Pr
               response: route.schema.response,
             },
             handler: async (req, reply) => {
-              if (!options.db) throw new ApiError('UNAVAILABLE')
-              return runRoute(route, options.db, req, reply)
+              if (!options.db || !limiter) throw new ApiError('UNAVAILABLE')
+              return runRoute(route, options.db, limiter, req, reply)
             },
           })
         }

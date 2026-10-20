@@ -1,3 +1,5 @@
+// Identity module (HH-ARC-02): the staff sign-in API (TSK-0014; HH-STAFF-01, HH-SEC-02, OWN-DEC-114) and, re-exported
+// below, customer one-time codes and customer sessions (TSK-0016), which the features that use them call.
 // Staff sign-in API (TSK-0014; HH-STAFF-01, HH-SEC-02, OWN-DEC-114). Every write goes through the route contract with
 // audit. Errors are generic: a wrong password, an unknown email and an account that cannot sign in all answer
 // INVALID_CREDENTIALS, and "Forgot password?" always answers the same, so no response reveals whether an email exists.
@@ -13,11 +15,11 @@ import { mfaState, useTotp } from './mfa.js'
 import { securityRoutes } from './security.js'
 import { freshView, mfaPendingView, sessionView, viewOf } from './views.js'
 import {
-  clearedSessionCookie,
+  clearedSessionCookie as clearedStaffCookie,
   createSession,
   rotateSession,
   revokeSession,
-  sessionCookie,
+  sessionCookie as staffSessionCookie,
   type CookieOptions,
 } from './sessions.js'
 import { normalizeEmail } from './tokens.js'
@@ -58,7 +60,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
       permission: AUTHENTICATION,
       kind: 'write',
       idempotency: 'none',
-      rateLimit: RATE_RULES.signInAccount,
+      rateLimit: { ...RATE_RULES.signInAccount, enforcedBy: 'handler' },
       audit: 'staff.sign_in',
       schema: {
         body: {
@@ -99,7 +101,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
         const enrolled = (await mfaState(trx, account.id)).enrolled
         const session = await createSession(trx, account.id, enrolled ? 'mfa_pending' : 'complete')
         await audit({ target: { type: 'staff_user', id: account.id }, summary: { mfa: enrolled ? 'pending' : 'none' } })
-        const cookie = { 'set-cookie': sessionCookie(session.token, deps.cookies) }
+        const cookie = { 'set-cookie': staffSessionCookie(session.token, deps.cookies) }
         if (enrolled) return { status: 202, body: { mfaRequired: true }, headers: cookie }
         return { body: await freshView(trx, account.id, session.token), headers: cookie }
       },
@@ -124,7 +126,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
         if (!session || !tx) throw new ApiError('UNAUTHENTICATED')
         await revokeSession(tx, session.sessionId, 'sign_out')
         await audit({ target: { type: 'staff_user', id: session.staffUserId } })
-        return { status: 204, body: null, headers: { 'set-cookie': clearedSessionCookie(deps.cookies) } }
+        return { status: 204, body: null, headers: { 'set-cookie': clearedStaffCookie(deps.cookies) } }
       },
     },
     {
@@ -158,7 +160,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
       permission: AUTHENTICATION,
       kind: 'write',
       idempotency: 'none',
-      rateLimit: RATE_RULES.signInAccount,
+      rateLimit: { ...RATE_RULES.signInAccount, enforcedBy: 'handler' },
       audit: 'staff.reauth',
       schema: {
         body: {
@@ -196,7 +198,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
         })
         return {
           body: await freshView(tx, session.staffUserId, rotated.token),
-          headers: { 'set-cookie': sessionCookie(rotated.token, deps.cookies) },
+          headers: { 'set-cookie': staffSessionCookie(rotated.token, deps.cookies) },
         }
       },
     },
@@ -212,7 +214,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
       permission: AUTHENTICATION,
       kind: 'write',
       idempotency: 'none',
-      rateLimit: RATE_RULES.resetAccount,
+      rateLimit: { ...RATE_RULES.resetAccount, enforcedBy: 'handler' },
       audit: 'staff.password_reset_request',
       schema: {
         body: { type: 'object', additionalProperties: false, required: ['email'], properties: { email: emailField } },
@@ -252,7 +254,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
       permission: AUTHENTICATION,
       kind: 'write',
       idempotency: 'none',
-      rateLimit: RATE_RULES.linkNetwork,
+      rateLimit: { ...RATE_RULES.linkNetwork, enforcedBy: 'handler' },
       audit: 'staff.password_set',
       schema: {
         body: {
@@ -369,3 +371,45 @@ export function identityModule(deps: IdentityDeps): ApiModule {
 }
 
 export { PASSWORD_MIN_LENGTH }
+
+// Customer one-time codes and customer sessions (TSK-0016).
+export {
+  CODE_ISSUED_EVENT,
+  CODE_PURPOSES,
+  issueCode,
+  maskForCustomer,
+  normaliseDestination,
+  verifyCode,
+  type CodeChannel,
+  type CodePurpose,
+  type IssueInput,
+  type IssueResult,
+  type VerifyInput,
+  type VerifyResult,
+} from './codes.js'
+export {
+  CODE_MESSAGE_BODY,
+  CODE_MESSAGE_KEY,
+  CODE_TEMPLATES,
+  codeDeliveryAutomation,
+  CodeDeliveryError,
+  type CodeDeliveryDeps,
+} from './delivery.js'
+export { MIN_CODE_KEY_LENGTH, readCodeKey, type CodeKeySettings } from './keys.js'
+export {
+  clearedSessionCookie,
+  CUSTOMER_COOKIE,
+  customerActor,
+  customerSessionResolver,
+  readSessionToken,
+  refreshVerification,
+  resolveCustomerSession,
+  revokeCustomerSession,
+  sessionCookie,
+  SessionConfigError,
+  setSessionCookie,
+  startCustomerSession,
+  type CustomerSession,
+  type StartedSession,
+  type StartSessionInput,
+} from './customer-sessions.js'

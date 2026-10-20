@@ -116,7 +116,7 @@ export function securityRoutes(deps: IdentityDeps, shared: { test: string; sessi
       permission: AUTHENTICATION,
       kind: 'write',
       idempotency: 'none',
-      rateLimit: RATE_RULES.signInAccount,
+      rateLimit: { ...RATE_RULES.signInAccount, enforcedBy: 'handler' },
       audit: 'staff.mfa_enable',
       schema: {
         body: {
@@ -171,7 +171,7 @@ export function securityRoutes(deps: IdentityDeps, shared: { test: string; sessi
       permission: AUTHENTICATION,
       kind: 'write',
       idempotency: 'none',
-      rateLimit: RATE_RULES.signInAccount,
+      rateLimit: { ...RATE_RULES.signInAccount, enforcedBy: 'handler' },
       audit: 'staff.mfa_verify',
       schema: {
         body: {
