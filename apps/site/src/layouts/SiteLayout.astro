@@ -1,0 +1,38 @@
+---
+// Public site shell (TSK-0020; HH-CUS-05, HH-BASE-01, HH-A11Y-02): skip link, header with the request action, main
+// landmark and the footer with the configured facts. English only (RULE-LANGUAGES); every string comes from the
+// customer catalog. The pages stay noindex while the site is rebuilt; the server adds its own headers (TSK-0017).
+import '@handyhub/ui/styles.css'
+import '../site/site.css'
+import { customerTranslator } from '@handyhub/i18n'
+import SiteFooter from '../components/SiteFooter.astro'
+
+interface Props {
+  title: string
+}
+const { title } = Astro.props
+const t = customerTranslator()
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title}</title>
+  </head>
+  <body class="hh-site">
+    <a class="hh-site__skip" href="#main">{t.t('site.skipToContent')}</a>
+    <header class="hh-site-header">
+      <div class="hh-site__wrap hh-site-header__inner">
+        <a class="hh-site-header__brand" href="/" aria-label={t.t('site.homeLink')}>HandyHub</a>
+        <a class="hh-button hh-site-header__cta" href="/request">{t.t('site.cta.request')}</a>
+      </div>
+    </header>
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+    <SiteFooter />
+  </body>
+</html>
