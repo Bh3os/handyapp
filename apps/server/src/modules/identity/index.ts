@@ -150,6 +150,47 @@ export function identityModule(deps: IdentityDeps): ApiModule {
     },
     {
       ...base,
+      test: 'test/integration/staff-shell.test.ts',
+      method: 'PUT',
+      path: '/auth/session/locale',
+      operationId: 'staffSetLocale',
+      summary: 'Choose the staff language (English or Spanish)',
+      description:
+        "Stores the signed-in staff member's own locale on their staff identity, so it follows them across devices and sessions (HH-OPS-04, ENT-StaffUser: each user edits only their own locale). It changes staff screens and staff notifications only, never customer messages or documents (HH-LANG-03).",
+      actors: ['staff'],
+      permission: AUTHENTICATION,
+      kind: 'write',
+      idempotency: 'none',
+      rateLimit: 'none',
+      audit: 'staff.locale_change',
+      schema: {
+        body: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['locale'],
+          properties: { locale: { type: 'string', enum: ['en', 'es'] } },
+        },
+        response: { 200: sessionView },
+      },
+      handler: async ({ req, tx, audit }) => {
+        const session = req.staffSession
+        if (!session || !tx) throw new ApiError('UNAUTHENTICATED')
+        const { locale } = req.body as { locale: 'en' | 'es' }
+        if (locale !== session.locale)
+          await tx
+            .updateTable('identity.staff_users')
+            .set((eb) => ({ locale, version: eb('version', '+', 1) }))
+            .where('id', '=', session.staffUserId)
+            .execute()
+        await audit({
+          target: { type: 'staff_user', id: session.staffUserId },
+          summary: { from: session.locale, to: locale },
+        })
+        return { body: viewOf({ ...session, locale }) }
+      },
+    },
+    {
+      ...base,
       method: 'POST',
       path: '/auth/reauth',
       operationId: 'staffReauthenticate',

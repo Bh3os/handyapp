@@ -1,10 +1,12 @@
 // Staff app (TSK-0014; HH-STAFF-01, OWN-DEC-114): sign-in, "Forgot password?", setting a password from an invite or
-// reset link, and the signed-in shell with Sign out. Text comes from the staff catalogs (HH-LANG-02); the signed-in
-// staff member's locale replaces the default once the session is known. Role navigation arrives with TSK-0040.
+// reset link, and the signed-in shell (TSK-0040: role navigation, EN/ES switch, offline indicator, search box) with
+// Sign out. Text comes from the staff catalogs (HH-LANG-02); the signed-in staff member's stored locale replaces the
+// default once the session is known, and switching it keeps every open form as it is (HH-OPS-04).
 import { staffTranslator, type StaffKey, type StaffLocale } from '@handyhub/i18n'
 import { Button, Card, Field, StateView } from '@handyhub/ui'
 import { useEffect, useState, type FormEvent } from 'react'
 import { call, setCsrfToken, type ApiErrorBody, type Fetch } from './api'
+import { SearchScreen, Screen, Shell, type Navigation } from './Shell'
 
 type Session = {
   staffUserId: string
@@ -15,22 +17,36 @@ type Session = {
   mfaEnrolled: boolean
   mfaRecommended: boolean
   csrfToken: string
+  /** The menu for these roles, decided on the server from the permission matrix (TSK-0040). */
+  navigation?: Navigation
 }
 
 /** PROPOSED password minimum (apps/server/src/modules/identity/passwords.ts PASSWORD_MIN_LENGTH). */
 const PASSWORD_MIN = 15
 
 export type Route =
-  { page: 'home' } | { page: 'sign-in' } | { page: 'set-password'; purpose: 'invite' | 'reset'; token: string }
+  | { page: 'home' }
+  | { page: 'sign-in' }
+  | { page: 'set-password'; purpose: 'invite' | 'reset'; token: string }
+  | { page: 'account' }
+  | { page: 'search'; query: string }
+  | { page: 'screen'; id: string }
 
-/** The page for a path below the app's base (/staff/ when served by the server). */
+/** The page for a path (with its query) below the app's base (/staff/ when served by the server). */
 export function routeOf(path: string, base = '/'): Route {
-  const rest = path.startsWith(base) ? path.slice(base.length - 1) : path
+  const [pathname = '', search = ''] = path.split('?', 2)
+  const rest = pathname.startsWith(base) ? pathname.slice(base.length - 1) : pathname
   const m = /^\/(invite|reset)\/([A-Za-z0-9_-]{1,100})\/?$/.exec(rest)
   if (m) return { page: 'set-password', purpose: m[1] as 'invite' | 'reset', token: m[2] as string }
   if (/^\/sign-in\/?$/.test(rest)) return { page: 'sign-in' }
+  if (/^\/account\/?$/.test(rest)) return { page: 'account' }
+  if (/^\/search\/?$/.test(rest)) return { page: 'search', query: new URLSearchParams(search).get('q') ?? '' }
+  const screen = /^\/([a-z-]{1,40})\/?$/.exec(rest)
+  if (screen) return { page: 'screen', id: screen[1] as string }
   return { page: 'home' }
 }
+
+const signedInPage = (route: Route) => route.page !== 'sign-in' && route.page !== 'set-password'
 
 const FIELD_KEYS: Record<string, StaffKey> = {
   required: 'error.field.required',
@@ -70,15 +86,18 @@ export interface AppProps {
 export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navigate }: AppProps) {
   const appBase = base ?? (import.meta.env.BASE_URL || '/')
   const doFetch: Fetch = fetchImpl ?? ((...a) => fetch(...a))
-  const [current, setCurrent] = useState(() => path ?? window.location.pathname)
+  const [current, setCurrent] = useState(() => path ?? `${window.location.pathname}${window.location.search}`)
+  const href = (to: string) => `${appBase.replace(/\/$/, '')}${to}`
   const go = (to: string) => {
-    const target = `${appBase.replace(/\/$/, '')}${to}`
+    const target = href(to)
     if (navigate) navigate(target)
     else window.history.pushState(null, '', target)
     setCurrent(target)
   }
   const route = routeOf(current, appBase)
-  const [session, setSessionState] = useState<Session | null | undefined>(route.page === 'home' ? undefined : null)
+  const needsSession = signedInPage(route)
+  const [session, setSessionState] = useState<Session | null | undefined>(needsSession ? undefined : null)
+  const [signingOut, setSigningOut] = useState(false)
   // Every session response carries the session's CSRF token for unsafe requests (TSK-0015).
   const setSession = (s: Session | null | undefined) => {
     setCsrfToken(s?.csrfToken ?? null)
@@ -88,7 +107,19 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
   const t = useT(locale)
 
   useEffect(() => {
-    if (route.page !== 'home') return
+    document.documentElement.lang = locale
+  }, [locale])
+
+  // The browser's back and forward buttons move between screens too.
+  useEffect(() => {
+    if (path !== undefined) return
+    const pop = () => setCurrent(`${window.location.pathname}${window.location.search}`)
+    window.addEventListener('popstate', pop)
+    return () => window.removeEventListener('popstate', pop)
+  }, [path])
+
+  useEffect(() => {
+    if (!needsSession || session) return
     let live = true
     void call<Session>(doFetch, '/auth/session').then((r) => {
       if (!live) return
@@ -101,7 +132,61 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
     return () => {
       live = false
     }
-  }, [route.page])
+  }, [needsSession])
+
+  async function signOut() {
+    setSigningOut(true)
+    await call(doFetch, '/auth/sign-out', { method: 'POST' })
+    setSigningOut(false)
+    setSession(null)
+    go('/sign-in')
+  }
+
+  /** Saves the staff locale on the person's staff identity (HH-OPS-04); the screen re-renders in place. */
+  async function changeLocale(next: 'en' | 'es'): Promise<boolean> {
+    const r = await call<Session>(doFetch, '/auth/session/locale', { method: 'PUT', body: { locale: next } })
+    if (!r.ok) return false
+    setSession(r.data)
+    return true
+  }
+
+  if (needsSession && session) {
+    const nav = session.navigation
+    const shown =
+      route.page === 'screen' ? route.id : route.page === 'home' ? (nav?.home ?? 'home') : route.page
+    return (
+      <div className="staff-app" lang={locale}>
+        <Shell
+          t={t}
+          name={session.displayName ?? session.email}
+          locale={locale}
+          navigation={nav}
+          current={shown}
+          go={go}
+          href={href}
+          onLocale={changeLocale}
+          onSignOut={() => void signOut()}
+          signingOut={signingOut}
+        >
+          {route.page === 'account' ? (
+            <Account
+              t={t}
+              fetchImpl={doFetch}
+              session={session}
+              onSession={setSession}
+              onSignedOut={() => (setSession(null), go('/sign-in'))}
+            />
+          ) : route.page === 'search' ? (
+            <SearchScreen t={t} query={route.query} />
+          ) : route.page === 'home' && !nav?.home ? (
+            <StateView kind="blocked" title={t('shell.noNavigation')} />
+          ) : (
+            <Screen t={t} id={shown} allowed={(nav?.items ?? []).includes(shown)} />
+          )}
+        </Shell>
+      </div>
+    )
+  }
 
   return (
     <div className="staff-app" lang={locale}>
@@ -118,14 +203,6 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
             purpose={route.purpose}
             token={route.token}
             onDone={() => go('/sign-in')}
-          />
-        ) : session ? (
-          <Home
-            t={t}
-            fetchImpl={doFetch}
-            session={session}
-            onSession={setSession}
-            onSignedOut={() => (setSession(null), go('/sign-in'))}
           />
         ) : (
           <StateView kind="loading" title={t('common.loading')} />
@@ -325,7 +402,8 @@ function SetPassword({
   )
 }
 
-function Home({
+/** The person's own account: who is signed in, Sign out everywhere and optional MFA (TSK-0014, TSK-0015). */
+function Account({
   t,
   fetchImpl,
   session,
@@ -339,20 +417,18 @@ function Home({
   onSignedOut: () => void
 }) {
   const [pending, setPending] = useState(false)
-  async function signOut(everywhere: boolean) {
+  async function signOutEverywhere() {
     setPending(true)
-    await call(fetchImpl, everywhere ? '/auth/sessions/revoke-all' : '/auth/sign-out', { method: 'POST' })
+    await call(fetchImpl, '/auth/sessions/revoke-all', { method: 'POST' })
     setPending(false)
     onSignedOut()
   }
   return (
     <section className="staff-auth">
-      <h1 className="hh-h3">{t('home.signedInAs', { name: session.displayName ?? session.email })}</h1>
+      <h1 className="hh-h3">{t('nav.account')}</h1>
+      <p>{t('home.signedInAs', { name: session.displayName ?? session.email })}</p>
       <div className="hh-button-row">
-        <Button variant="secondary" pending={pending} onClick={() => void signOut(false)}>
-          {t('home.signOut')}
-        </Button>
-        <Button variant="quiet" onClick={() => void signOut(true)}>
+        <Button variant="secondary" pending={pending} onClick={() => void signOutEverywhere()}>
           {t('security.signOutEverywhere')}
         </Button>
       </div>
