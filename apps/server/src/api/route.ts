@@ -21,7 +21,8 @@ export type RateLimit = { bucket: string; limit: number; windowSeconds: number }
 export interface ApiContext {
   req: FastifyRequest
   actor: Actor
-  decision: Allow
+  /** The policy's allow; null on authentication routes, which authenticate the caller themselves. */
+  decision: Allow | null
   /** Reads outside a transaction. */
   db: Db
   /** Write routes: the business transaction; the idempotency record and audit events commit with it. */
@@ -32,7 +33,18 @@ export interface ApiContext {
   expectedVersion(): number
   /** Records an audit event in the route's transaction; the actor and default action come from the route. */
   audit(event: Omit<AuditEventInput, 'actor' | 'action'> & { action?: string }): Promise<void>
+  /**
+   * Records an audit event in its own transaction, so it is kept even when the route then fails (for example a
+   * failed sign-in, which must be audited although nothing else is written).
+   */
+  auditAlways(event: Omit<AuditEventInput, 'actor' | 'action'> & { action?: string }): Promise<void>
 }
+
+/**
+ * Authentication routes (sign-in, sign-out, password links) establish who the caller is, so the policy cannot decide
+ * them by role; they authenticate the caller themselves and are listed as such in the contract.
+ */
+export const AUTHENTICATION = 'authentication' as const
 
 export type ApiResult = { status?: number; body: unknown; version?: number; headers?: Record<string, string> }
 
@@ -44,8 +56,11 @@ export interface RouteDef {
   summary: string
   /** Who may call it at all; the policy decides the rest. */
   actors: readonly ActorKind[]
-  /** The ROLE-MATRIX action the policy decides on (deny by default). */
-  permission: Action
+  /**
+   * The ROLE-MATRIX action the policy decides on (deny by default), or AUTHENTICATION for sign-in routes. An action
+   * whose rule needs a written reason reads it from the body's `reason` field.
+   */
+  permission: Action | typeof AUTHENTICATION
   /** Read routes run without a transaction; write routes inside one. */
   kind: 'read' | 'write'
   idempotency: 'required' | 'none'

@@ -68,6 +68,19 @@ jobs:
   e2e:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    # A fresh PostgreSQL 16 for the database-backed flows (staff sign-in, TSK-0014); synthetic data only.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: handyhub
+          POSTGRES_PASSWORD: handyhub
+          POSTGRES_DB: e2e
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U handyhub" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      E2E_DATABASE_URL: postgres://handyhub:handyhub@localhost:5432/e2e
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
