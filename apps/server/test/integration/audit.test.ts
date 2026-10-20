@@ -9,6 +9,7 @@ import { audit, AuditError } from '../../src/platform/audit.js'
 import { createLogger } from '../../src/platform/logger.js'
 import { REDACTED } from '../../src/platform/redact.js'
 import { runWithContext } from '../../src/platform/request-context.js'
+import { testConfig } from '../fixtures/env.js'
 
 // Secret-looking values are built at runtime so the secret scanner never sees a literal (RULE-SYNTHETIC-DATA).
 const secret = (label: string) => ['synthetic', label, 'secret', '5d1e'].join('-')
@@ -185,7 +186,7 @@ describe('secrets stay out of audit rows and logs (TSK-0011, T74, HH-SEC-06)', (
         cb()
       },
     })
-    const app = await buildApp({ logger: createLogger({ level: 'info' }, stream) })
+    const app = await buildApp({ config: testConfig(), logger: createLogger({ level: 'info' }, stream) })
     app.post('/probe', async (req) => {
       const body = req.body as Record<string, unknown>
       req.log.info({ body }, 'probe received')
