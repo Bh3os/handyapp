@@ -12,7 +12,7 @@ links:
   uses: ["[[ENT-StaffUser]]", "[[INT-Resend]]", "[[FACT-SESSION-TIMINGS]]"]
   tested_by: ["[[T22]]", "[[T27]]", "[[T64]]"]
   part_of: ["[[S00]]", "[[S09]]"]
-source: "guide 25.1; OWN-DEC-114 (supersedes required MFA, OWN-DEC-27)"
+source: "guide 25.1; OWN-DEC-114, OWN-DEC-133, OWN-DEC-141"
 ---
 General:
 - TLS everywhere; maintained authentication and cryptography libraries, never home-made primitives.
@@ -20,7 +20,7 @@ General:
 - Sessions expire per [[FACT-SESSION-TIMINGS]] (staff after 30 minutes idle; customers after 30 minutes idle or 8 hours in total), rotate on sign-in (new session ID, no fixation), and can be revoked server-side. Sign Out is always available.
 - Least privilege for every role; applicable OWASP ASVS requirements pinned by version (5.0.0 proposed). This is a target, not a claim of certification.
 
-Staff sign-in ([[OWN-DEC-114]]; replaces ZITADEL and required MFA):
+Staff sign-in ([[OWN-DEC-114]]):
 - Email and password on the staff website, no redirect. Accounts exist only by owner invitation with a role (Owner, Office/Dispatcher, Estimator, Worker); there is no public staff registration.
 - Employees set their own password through the invite link. Passwords are hashed with a maintained memory-hard algorithm (argon2id or equivalent); a length-based policy following NIST SP 800-63B; any breached-password check runs offline only. Nobody, including the owner, can view a password, and no API returns a hash.
 - Login and reset are rate limited, use constant-time comparison and generic error messages that never reveal whether an email exists.

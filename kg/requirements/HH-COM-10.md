@@ -12,7 +12,7 @@ links:
   uses: ["[[INT-Bird]]", "[[INT-Resend]]", "[[INT-Render]]", "[[ENT-Message]]", "[[ENT-ConsentPreference]]"]
   tested_by: ["[[T74]]", "[[T71]]"]
   part_of: ["[[S06]]"]
-source: "OWN-DEC-120 (Telnyx replaced by Bird per OWN-DEC-129)"
+source: "OWN-DEC-120, OWN-DEC-129"
 ---
 - The unified inbox needs real inbound integrations; outbound sending alone is not a working inbox.
   - Texts: the Bird inbound SMS webhook for the business number, with the provider's signature verification.

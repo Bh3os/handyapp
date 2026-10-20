@@ -12,7 +12,7 @@ links:
   uses: ["[[ENT-Question]]", "[[ENT-Request]]", "[[ENT-Message]]", "[[FACT-REMINDER-CADENCES]]", "[[FACT-REOPEN-PERIOD]]", "[[FACT-HOURS]]"]
   tested_by: ["[[T65]]"]
   part_of: ["[[C04]]", "[[S01]]", "[[S02]]"]
-source: "OWN-DEC-101 (replaces the 3-day/7-day cadence of OWN-DEC-78 for unanswered questions only)"
+source: "OWN-DEC-101"
 ---
 - For an unanswered published question, a first reminder draft and a final reminder draft are prepared at the unanswered-question intervals in [[FACT-REMINDER-CADENCES]], both measured from the original notice's **successful** send. A failed notice never starts the clock and never counts as customer non-response.
 - Staff release each reminder draft; the drafts appear prominently in the action queue. Released reminders send only within the contact hours ([[HH-COM-09]]).

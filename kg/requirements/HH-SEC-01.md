@@ -22,7 +22,7 @@ A written threat model covers at least:
 - inbound webhooks from Bird and Resend (forged, replayed or oversized calls, [[OWN-DEC-120]]);
 - offline worker devices (lost phone, cached packet, [[OWN-DEC-121]]);
 - exports;
-- staff password sign-in without mandatory MFA ([[OWN-DEC-114]]).
+- staff password sign-in with optional MFA ([[OWN-DEC-114]]).
 
 Each material threat maps to a server control, a negative test, monitoring ([[HH-SEC-07]]) and its accepted residual risk.
 

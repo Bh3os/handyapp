@@ -12,7 +12,7 @@ links:
   uses: ["[[ENT-StaffUser]]", "[[ENT-RoleGrant]]", "[[ENT-AuditEvent]]", "[[INT-Resend]]", "[[INT-Render]]", "[[FACT-SESSION-TIMINGS]]"]
   tested_by: ["[[T26]]", "[[T74]]"]
   part_of: ["[[S00]]", "[[S09]]"]
-source: "guide 10.1 HH-STAFF-01; OWN-DEC-114 (supersedes OWN-DEC-27: ZITADEL and required MFA), OWN-DEC-123"
+source: "guide 10.1 HH-STAFF-01; OWN-DEC-114, OWN-DEC-123, OWN-DEC-141"
 ---
 Accounts:
 - Every staff member has an individual account; there are no shared passwords. A staff account is distinct from any customer account and is never created through customer registration.
