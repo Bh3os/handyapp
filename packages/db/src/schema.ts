@@ -4,6 +4,8 @@ import type { ColumnType, Generated, GeneratedAlways } from 'kysely'
 
 export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>
 
+export type Numeric = ColumnType<string, number | string, number | string>
+
 export type Timestamp = ColumnType<Date, Date | string, Date | string>
 
 export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
@@ -40,6 +42,66 @@ export interface CatalogServicesTable {
   current_version: number
   published_version: number | null
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CrmContactsTable {
+  id: Generated<string>
+  customer_id: string
+  full_name: string
+  email: string
+  email_normalized: GeneratedAlways<string | null>
+  phone_e164: string
+  email_verification: Generated<string>
+  phone_verification: Generated<string>
+  preferred_channel: string
+  is_primary: Generated<boolean>
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
+}
+
+export interface CrmCustomerPropertiesTable {
+  customer_id: string
+  property_id: string
+  relationship: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CrmCustomersTable {
+  id: Generated<string>
+  display_name: string
+  language: Generated<string>
+  status: Generated<string>
+  merged_into_id: string | null
+  provenance: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
+}
+
+export interface CrmProjectsTable {
+  id: Generated<string>
+  reference: string
+  customer_id: string
+  property_id: string
+  state: string
+  state_version: Generated<number>
+  payment_term: string
+  payment_term_version: number
+  responsible_staff_id: string | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CrmPropertiesTable {
+  id: Generated<string>
+  street: string
+  unit: string | null
+  city: string
+  state: string
+  zip: string
+  property_type: string
+  time_zone: string
+  coverage_result: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
 }
 
 export interface IdentityAuthIdentitiesTable {
@@ -147,6 +209,57 @@ export interface IdentityVerificationCodesTable {
   superseded_at: Timestamp | null
   request_id: string
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface IntakeRequestAnswersTable {
+  request_id: string
+  service_id: string | null
+  question_key: string
+  value_kind: string
+  value_number: Numeric | null
+  value_text: string | null
+  unit: string | null
+  approximate: Generated<boolean>
+}
+
+export interface IntakeRequestServicesTable {
+  request_id: string
+  position: number
+  service_id: string
+  service_version: number
+  notes: string | null
+}
+
+export interface IntakeRequestsTable {
+  id: Generated<string>
+  reference: string
+  project_id: string
+  customer_id: string
+  contact_id: string
+  property_id: string
+  state: string
+  state_version: Generated<number>
+  source: string
+  idempotency_key: string
+  submitted_at: ColumnType<Date, Date | string | undefined, Date | string>
+  privacy_notice_version: string
+  form_version: string
+  not_sure: boolean
+  description: string | null
+  other_services_text: string | null
+  preferred_date: string | null
+  flexible: boolean
+  need_help_today: boolean
+  time_windows: string[]
+  estimate_preference: string
+  preferred_channel: string
+  sms_opt_in: boolean
+  marketing_opt_in: boolean
+  coverage_result: string
+  spam_suspected: boolean
+  spam_signals: Generated<string[]>
+  original_submission: Json
+  responsible_staff_id: string | null
 }
 
 export interface PlatformAuditEventsTable {
@@ -284,6 +397,13 @@ export interface PlatformPolicyVersionTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface PlatformRateCountersTable {
+  bucket: string
+  key_hash: string
+  window_start: Timestamp
+  hits: number
+}
+
 export interface PlatformSchemaMigrationTable {
   version: string
   file: string
@@ -312,6 +432,11 @@ export interface PlatformWebhookReceiptsTable {
 export interface Database {
   'catalog.service_versions': CatalogServiceVersionsTable
   'catalog.services': CatalogServicesTable
+  'crm.contacts': CrmContactsTable
+  'crm.customer_properties': CrmCustomerPropertiesTable
+  'crm.customers': CrmCustomersTable
+  'crm.projects': CrmProjectsTable
+  'crm.properties': CrmPropertiesTable
   'identity.auth_identities': IdentityAuthIdentitiesTable
   'identity.customer_sessions': IdentityCustomerSessionsTable
   'identity.rate_limits': IdentityRateLimitsTable
@@ -321,6 +446,9 @@ export interface Database {
   'identity.staff_users': IdentityStaffUsersTable
   'identity.verification_attempts': IdentityVerificationAttemptsTable
   'identity.verification_codes': IdentityVerificationCodesTable
+  'intake.request_answers': IntakeRequestAnswersTable
+  'intake.request_services': IntakeRequestServicesTable
+  'intake.requests': IntakeRequestsTable
   'platform.audit_events': PlatformAuditEventsTable
   'platform.idempotency_keys': PlatformIdempotencyKeysTable
   'platform.jobs': PlatformJobsTable
@@ -329,6 +457,7 @@ export interface Database {
   'platform.message_templates': PlatformMessageTemplatesTable
   'platform.outbox_events': PlatformOutboxEventsTable
   'platform.policy_version': PlatformPolicyVersionTable
+  'platform.rate_counters': PlatformRateCountersTable
   'platform.schema_migration': PlatformSchemaMigrationTable
   'platform.webhook_receipts': PlatformWebhookReceiptsTable
 }

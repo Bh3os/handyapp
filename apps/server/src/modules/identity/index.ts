@@ -79,7 +79,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
       permission: AUTHENTICATION,
       kind: 'write',
       idempotency: 'none',
-      rateLimit: RATE_RULES.signInAccount,
+      rateLimit: { ...RATE_RULES.signInAccount, enforcedBy: 'handler' },
       audit: 'staff.sign_in',
       schema: {
         body: {
@@ -200,7 +200,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
       permission: AUTHENTICATION,
       kind: 'write',
       idempotency: 'none',
-      rateLimit: RATE_RULES.signInAccount,
+      rateLimit: { ...RATE_RULES.signInAccount, enforcedBy: 'handler' },
       audit: 'staff.reauth',
       schema: {
         body: {
@@ -246,7 +246,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
       permission: AUTHENTICATION,
       kind: 'write',
       idempotency: 'none',
-      rateLimit: RATE_RULES.resetAccount,
+      rateLimit: { ...RATE_RULES.resetAccount, enforcedBy: 'handler' },
       audit: 'staff.password_reset_request',
       schema: {
         body: { type: 'object', additionalProperties: false, required: ['email'], properties: { email: emailField } },
@@ -286,7 +286,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
       permission: AUTHENTICATION,
       kind: 'write',
       idempotency: 'none',
-      rateLimit: RATE_RULES.linkNetwork,
+      rateLimit: { ...RATE_RULES.linkNetwork, enforcedBy: 'handler' },
       audit: 'staff.password_set',
       schema: {
         body: {

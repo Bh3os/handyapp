@@ -89,6 +89,7 @@ export async function buildApp({
     (db ? customerSessionResolver(db, staffSessionResolver(db, { secure: config.secureCookies })) : undefined)
   await registerApi(app, {
     db,
+    trustProxyHops: config.trustProxyHops,
     modules: api?.modules ?? apiModules({ secureCookies: config.secureCookies }),
     ...(resolveActor ? { resolveActor } : {}),
   })
