@@ -44,7 +44,8 @@ const TYPES: readonly MessageType[] = [
     audience: 'customer',
     channels: both,
     triggerEvents: ['contact.verification_code_requested'],
-    variables: { verificationCode: 'credential' },
+    // codeLifetimeMinutes: the configured code lifetime as text (TSK-0016), so the template never hard-codes it.
+    variables: { verificationCode: 'credential', codeLifetimeMinutes: 'text' },
     sourceIds: ['OWN-DEC-65', 'OWN-DEC-96'],
   },
   {

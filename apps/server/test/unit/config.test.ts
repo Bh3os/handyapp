@@ -85,6 +85,7 @@ describe('environment schema (TSK-0003, OWN-DEC-73, RULE-SYNTHETIC-DATA)', () =>
       'ACCESS_GATE_USERS',
       'BOOTSTRAP_OWNER_EMAIL',
       'BOOTSTRAP_OWNER_NAME',
+      'CODE_HASH_KEY',
       'DATABASE_URL',
       'HANDYHUB_ENV',
       'HOST',

@@ -16,7 +16,13 @@ export type JsonSchema = Record<string, unknown>
 export type RequestActor = { actor: Actor; locale?: StaffLocale }
 export type ResolveActor = (req: FastifyRequest) => Promise<RequestActor>
 
-export type RateLimit = { bucket: string; limit: number; windowSeconds: number } | 'none'
+/**
+ * A route's rate limit. The framework counts every call before the handler runs, unless `enforcedBy` is 'handler':
+ * the route's handler then applies the limit itself (staff sign-in, reset and link routes count failures or per
+ * account and network, TSK-0014), and the declaration documents it in the contract.
+ */
+export type RateLimit =
+  { bucket: string; limit: number; windowSeconds: number; enforcedBy?: 'framework' | 'handler' } | 'none'
 
 export interface ApiContext {
   req: FastifyRequest

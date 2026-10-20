@@ -83,7 +83,7 @@ describe('the automatic-message list is configuration (TSK-0047, HH-COM-06, RULE
   it('seeds only owner-worded templates, English, free of access secrets and amounts (T74)', async () => {
     const rows = await t.db.selectFrom('platform.message_template_versions').selectAll().execute()
     expect(new Set(rows.map((r) => r.message_key))).toEqual(
-      new Set(['question.notice', 'estimate.ready', 'invoice.ready']),
+      new Set(['question.notice', 'estimate.ready', 'invoice.ready', 'contact.verification_code']),
     )
     for (const r of rows) {
       expect(r.locale).toBe('en')

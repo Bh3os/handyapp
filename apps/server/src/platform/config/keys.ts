@@ -118,6 +118,17 @@ export const CONFIG_KEYS = {
   'business.name': shape({ documentName: text, brand: text }),
   'business.mailing_address': shape({ lines: listOf(text) }),
   'business.public_contact': shape({ phone: text, email: text }),
+  // TSK-0016: attempt, resend and per-client limits for one-time codes (PROPOSED values, HH-ID-06, HH-INT-11) and the
+  // fresh-verification window (HH-ID-07). The code lifetime is session.timings.oneTimeCodeMinutes.
+  'verification.limits': shape({
+    codeDigits: int(6, 10),
+    maxAttemptsPerCode: int(1, 20),
+    resendCooldownSeconds: int(0, 3600),
+    maxCodesPerDestinationPerHour: int(1, 100),
+    maxCodesPerClientPerHour: int(1, 1000),
+    maxFailedAttemptsPerClientPerHour: int(1, 10_000),
+    freshVerificationMinutes: int(1, 24 * 60),
+  }),
   // FACT-AUTOMATIC-MESSAGES (TSK-0047): the one list of messages that send without staff release. Codes are message
   // types of modules/notifications, which refuses an unknown code when it reads the list.
   'messages.automatic': shape({

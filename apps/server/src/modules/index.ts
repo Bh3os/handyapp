@@ -2,6 +2,7 @@
 // src/modules/<name>/index.ts exporting an ApiModule, and lists it here; its routes then appear in openapi.json.
 import type { ApiModule } from '../api/route.js'
 import { identityModule } from './identity/index.js'
+import { REQUESTS_MODULE } from './requests/index.js'
 
 export type ModuleDeps = {
   /** Secure, `__Host-` session cookies (staging and production); plain cookies over http in local and ci. */
@@ -9,7 +10,7 @@ export type ModuleDeps = {
 }
 
 export function apiModules(deps: ModuleDeps): ApiModule[] {
-  return [identityModule({ cookies: { secure: deps.secureCookies } })]
+  return [identityModule({ cookies: { secure: deps.secureCookies } }), REQUESTS_MODULE]
 }
 
 /** The modules as the contract (openapi.json) describes them; cookie flags do not change the contract. */
