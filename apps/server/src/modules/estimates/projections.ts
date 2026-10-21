@@ -9,9 +9,14 @@
 //   removed, not hidden, for every other role.
 // - Amounts are read from bigint columns as integer cents (parseCents); no amount is recomputed for display, so the
 //   customer sees exactly the stored, server-computed lines and totals. There is no tax line and no minimum line.
+// - Written and uploaded versions (HH-EST-11, TSK-0054) give the same projection: it is built from the same
+//   customer-facing columns, and the authoring method is not one of its fields. The customer PDF is rendered from the
+//   same allow-listed content (customerVersionContent), so it cannot show an internal value either. An uploaded
+//   version's customer document is a separate read (customerEstimateDocument): the private original never is.
 import type { Db, Tx } from '@handyhub/db'
 import { type Cents, internalMargin, parseCents, quantityFromMinor, quantityToString } from '@handyhub/money'
 import { type CustomerActor, decide, hasProjectAccess, type StaffActor } from '@handyhub/policy'
+import type { ObjectStorage } from '../../providers/index.js'
 import { CUSTOMER_STATES, isUuid } from './model.js'
 
 type Reader = Db | Tx
@@ -97,11 +102,13 @@ async function versionRow(db: Reader, versionId: string) {
       'v.payment_term',
       'v.published_at',
       'v.valid_until',
+      'v.terms_version',
       'e.number',
     ])
     .where('v.id', '=', versionId)
     .executeTakeFirst()
 }
+type VersionRow = NonNullable<Awaited<ReturnType<typeof versionRow>>>
 
 async function lineRows(db: Reader, versionId: string) {
   return db
@@ -128,26 +135,37 @@ async function lineRows(db: Reader, versionId: string) {
 
 const qtyText = (v: string | null) => (v === null ? null : quantityToString(quantityFromMinor(Number(v))))
 
-/**
- * The customer view of one version, or null when it is not theirs to see (not found, no project access, a draft or a
- * version in review). Reads customer-facing columns only.
- */
-export async function customerEstimateVersion(
-  db: Reader,
-  actor: CustomerActor,
-  versionId: string,
-  now = new Date(),
-): Promise<CustomerEstimateVersion | null> {
-  if (!isUuid(versionId)) return null
-  const v = await versionRow(db, versionId)
-  if (!v) return null
-  if (!hasProjectAccess(actor, { projectId: v.project_id }, now)) return null
-  if (!(CUSTOMER_STATES as readonly string[]).includes(v.state)) return null
+/** The customer-facing content of a version in any state: what the customer projection and the customer PDF show. */
+export type CustomerVersionContent = {
+  estimateNumber: string
+  version: number
+  state: string
+  currency: 'USD'
+  lines: CustomerEstimateLine[]
+  assumptions: string[]
+  exclusions: string[]
+  customerResponsibilities: string[]
+  dependencies: string[]
+  scheduleAssumptions: string[]
+  /** Null while a line is incomplete (a draft); a version past review always has its totals. */
+  totals: {
+    subtotalCents: Cents
+    discount: { category: string; percentBps: number; amountCents: Cents } | null
+    totalCents: Cents
+    deposit: { state: 'required'; amountCents: Cents } | { state: 'not_required' } | { state: 'not_configured' }
+  } | null
+  paymentTerm: string
+  publishedAt: string | null
+  validUntil: string | null
+  /** The estimate terms version the version carries (set when publishing, HH-EST-13), or null. */
+  termsVersion: string | null
+}
+
+function contentOf(v: VersionRow, lines: Awaited<ReturnType<typeof lineRows>>): CustomerVersionContent {
   const subtotal = cents(v.subtotal_cents)
   const total = cents(v.total_cents)
-  if (subtotal === null || total === null || v.published_at === null) return null
-  const lines = await lineRows(db, versionId)
   const discount = cents(v.discount_cents)
+  const deposit = cents(v.deposit_cents)
   return {
     estimateNumber: v.number,
     version: v.version,
@@ -168,19 +186,122 @@ export async function customerEstimateVersion(
     customerResponsibilities: v.customer_responsibilities,
     dependencies: v.dependencies,
     scheduleAssumptions: v.schedule_assumptions,
-    subtotalCents: subtotal,
-    discount:
-      v.discount_category !== null && v.discount_percent_bps !== null && discount !== null
-        ? { category: v.discount_category, percentBps: v.discount_percent_bps, amountCents: discount }
-        : null,
-    totalCents: total,
-    deposit:
-      v.deposit_state === 'required' && v.deposit_cents !== null
-        ? { required: true, amountCents: cents(v.deposit_cents) as Cents }
-        : { required: false },
+    totals:
+      subtotal === null || total === null
+        ? null
+        : {
+            subtotalCents: subtotal,
+            discount:
+              v.discount_category !== null && v.discount_percent_bps !== null && discount !== null
+                ? { category: v.discount_category, percentBps: v.discount_percent_bps, amountCents: discount }
+                : null,
+            totalCents: total,
+            deposit:
+              v.deposit_state === 'required' && deposit !== null
+                ? { state: 'required', amountCents: deposit }
+                : v.deposit_state === 'not_required'
+                  ? { state: 'not_required' }
+                  : { state: 'not_configured' },
+          },
     paymentTerm: v.payment_term,
-    publishedAt: v.published_at.toISOString(),
+    publishedAt: v.published_at ? v.published_at.toISOString() : null,
     validUntil: v.valid_until ? v.valid_until.toISOString() : null,
+    termsVersion: v.terms_version,
+  }
+}
+
+/**
+ * The customer-facing content of a version in any state, for staff previews and the customer PDF; null when the
+ * version does not exist. The caller authorizes the read. Reads customer-facing columns only.
+ */
+export async function customerVersionContent(db: Reader, versionId: string): Promise<CustomerVersionContent | null> {
+  if (!isUuid(versionId)) return null
+  const v = await versionRow(db, versionId)
+  return v ? contentOf(v, await lineRows(db, versionId)) : null
+}
+
+/** The version row when a customer may see it: their project, and a version that reached them. */
+async function customerRow(db: Reader, actor: CustomerActor, versionId: string, now: Date) {
+  if (!isUuid(versionId)) return null
+  const v = await versionRow(db, versionId)
+  if (!v) return null
+  if (!hasProjectAccess(actor, { projectId: v.project_id }, now)) return null
+  if (!(CUSTOMER_STATES as readonly string[]).includes(v.state)) return null
+  return v
+}
+
+/**
+ * The customer view of one version, or null when it is not theirs to see (not found, no project access, a draft or a
+ * version in review). Reads customer-facing columns only.
+ */
+export async function customerEstimateVersion(
+  db: Reader,
+  actor: CustomerActor,
+  versionId: string,
+  now = new Date(),
+): Promise<CustomerEstimateVersion | null> {
+  const v = await customerRow(db, actor, versionId, now)
+  if (!v) return null
+  const c = contentOf(v, await lineRows(db, versionId))
+  if (!c.totals || c.publishedAt === null) return null
+  return {
+    estimateNumber: c.estimateNumber,
+    version: c.version,
+    state: c.state,
+    currency: 'USD',
+    lines: c.lines,
+    assumptions: c.assumptions,
+    exclusions: c.exclusions,
+    customerResponsibilities: c.customerResponsibilities,
+    dependencies: c.dependencies,
+    scheduleAssumptions: c.scheduleAssumptions,
+    subtotalCents: c.totals.subtotalCents,
+    discount: c.totals.discount,
+    totalCents: c.totals.totalCents,
+    deposit:
+      c.totals.deposit.state === 'required'
+        ? { required: true, amountCents: c.totals.deposit.amountCents }
+        : { required: false },
+    paymentTerm: c.paymentTerm,
+    publishedAt: c.publishedAt,
+    validUntil: c.validUntil,
+  }
+}
+
+/** Signed URLs for estimate documents: PROPOSED 5 minutes, like photos (no owner value). */
+export const DOCUMENT_URL_SECONDS = 300
+
+/**
+ * The document a customer views for an uploaded version (HH-EST-11): the customer PDF the agree-confirmation was given
+ * for, with a short-lived signed URL. Null for anything else: a written version, a version that did not reach the
+ * customer, another project, and always the private original (a Word original in particular is never served).
+ */
+export async function customerEstimateDocument(
+  db: Reader,
+  actor: CustomerActor,
+  versionId: string,
+  storage: ObjectStorage | null,
+  now = new Date(),
+): Promise<{ contentType: 'application/pdf'; byteSize: number; sha256: string; url: string } | null> {
+  const v = await customerRow(db, actor, versionId, now)
+  if (!v || !storage) return null
+  const row = await db
+    .selectFrom('estimating.estimate_versions as v')
+    .innerJoin('estimating.estimate_documents as d', 'd.id', 'v.agreement_document_id')
+    .select(['d.object_key', 'd.byte_size', 'd.sha256'])
+    .where('v.id', '=', versionId)
+    .where('v.authoring_method', '=', 'uploaded')
+    .where('d.version_id', '=', versionId)
+    .where('d.role', '=', 'customer_pdf')
+    .where('d.visibility', '=', 'customer')
+    .where('d.state', '=', 'ready')
+    .executeTakeFirst()
+  if (!row) return null
+  return {
+    contentType: 'application/pdf',
+    byteSize: row.byte_size,
+    sha256: row.sha256,
+    url: await storage.signedGetUrl(row.object_key, { expiresInSeconds: DOCUMENT_URL_SECONDS }),
   }
 }
 

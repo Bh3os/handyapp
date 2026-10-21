@@ -487,3 +487,32 @@
   padding-top: var(--hh-space-2);
   border-top: var(--hh-hairline);
 }
+
+/* Upload an Estimate (TSK-0054): the file pickers, the agree-confirmation and the document hashes. */
+.staff-estimate__upload {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hh-space-2) var(--hh-space-3);
+  align-items: center;
+  margin-block: var(--hh-space-2);
+}
+
+.staff-estimate__upload label {
+  font-weight: 600;
+}
+
+.staff-estimate__agree {
+  display: flex;
+  gap: var(--hh-space-2);
+  align-items: flex-start;
+}
+
+.staff-estimate__agree input {
+  margin-top: 0.25rem;
+  flex: none;
+}
+
+.staff-estimate__hash {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}

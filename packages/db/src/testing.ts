@@ -103,7 +103,17 @@ export async function createTestDatabase(options: { migrated?: boolean } = {}): 
     db,
     drop: async () => {
       await db.destroy()
-      await withAdmin((c) => c.query(`DROP DATABASE IF EXISTS ${ident(name)} WITH (FORCE)`))
+      // pg's pool.end() resolves before its connections have closed. Dropping WITH (FORCE) at once would terminate a
+      // connection that is still closing, and its pool would then report an unhandled error (a race that shows under
+      // load). Wait for this file's connections to leave; only a connection still open after that is forced out.
+      await withAdmin(async (c) => {
+        try {
+          await retryInUse(() => c.query(`DROP DATABASE IF EXISTS ${ident(name)}`))
+        } catch (err) {
+          if ((err as { code?: string }).code !== '55006') throw err
+          await c.query(`DROP DATABASE IF EXISTS ${ident(name)} WITH (FORCE)`)
+        }
+      })
     },
   }
 }
