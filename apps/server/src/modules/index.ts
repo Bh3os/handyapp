@@ -26,6 +26,7 @@ import { sopsModule } from './sops/index.js'
 import { staffModule } from './staff/index.js'
 import { systemModule, type SystemDeps } from './system/index.js'
 import { verificationModule } from './verification/index.js'
+import { retentionModule } from './retention/index.js'
 import { visitsModule } from './visits/index.js'
 import type { CodeKeySettings } from './identity/index.js'
 
@@ -104,6 +105,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     staffModule(),
     // TSK-0098: the audit-log screen (Owner every entry, Office their own actions; retention shown, never deleted).
     auditModule(),
+    // TSK-0099: the retention schedule and the Owner's deletion-review queue (read-only; nothing deleted automatically).
+    retentionModule(),
   ]
 }
 

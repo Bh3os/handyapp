@@ -1226,6 +1226,26 @@ export interface PlatformWebhookReceiptsTable {
   processed_at: Timestamp | null
 }
 
+export interface PrivacyRetentionReviewsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  category: string
+  record_type: string
+  record_id: string
+  record_ref: string
+  project_id: string | null
+  policy_key: string
+  policy_version: number
+  period_years: number
+  retention_started_at: Timestamp
+  period_ends_at: Timestamp
+  hold_checks: Json
+  holds_found: boolean
+  opened_by: string
+  opened_at: ColumnType<Date, Date | string | undefined, Date | string>
+  request_id: string
+}
+
 export interface WorkEquipmentTable {
   id: Generated<string>
   name: string
@@ -1558,6 +1578,7 @@ export interface Database {
   'platform.rate_counters': PlatformRateCountersTable
   'platform.schema_migration': PlatformSchemaMigrationTable
   'platform.webhook_receipts': PlatformWebhookReceiptsTable
+  'privacy.retention_reviews': PrivacyRetentionReviewsTable
   'work.equipment': WorkEquipmentTable
   'work.holds': WorkHoldsTable
   'work.job_scope_snapshots': WorkJobScopeSnapshotsTable

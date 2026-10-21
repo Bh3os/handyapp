@@ -10,6 +10,7 @@ import { buildAutomations } from './automations.js'
 import { loadConfig, publicSiteUrl } from './config.js'
 import { ensureBootstrapOwner } from './modules/identity/accounts.js'
 import { codeDeliveryAutomation, readCodeKey } from './modules/identity/index.js'
+import { ensureRetentionScan } from './modules/retention/index.js'
 import { createAutomationRegistry } from './platform/automation.js'
 import { variableStates } from './modules/system/index.js'
 import { createWorker } from './platform/jobs.js'
@@ -82,8 +83,18 @@ export async function boot(env: Readonly<Record<string, string | undefined>>, op
       app.log.info({ outcome }, 'first owner bootstrap')
     }
     const worker = createWorker({ db, registry, logger: app.log as unknown as Logger })
-    if (options.worker !== false && config.jobWorker) worker.start()
+    let scheduled: Promise<unknown> = Promise.resolve()
+    if (options.worker !== false && config.jobWorker) {
+      // TSK-0099: today's retention scan, unless it is already scheduled (each run schedules the next one). Best
+      // effort: an unreachable or not yet migrated database never stops the server; the next start schedules it.
+      const requestId = `boot:${randomUUID()}`
+      scheduled = runWithContext({ requestId }, () => withTx(db, (tx) => ensureRetentionScan(tx, requestId))).catch(
+        (err: unknown) => app.log.warn({ err }, 'retention scan not scheduled'),
+      )
+      worker.start()
+    }
     app.addHook('onClose', async () => {
+      await scheduled
       await worker.stop()
       await db.destroy()
     })

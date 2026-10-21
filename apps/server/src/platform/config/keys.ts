@@ -71,6 +71,16 @@ const legalDocument = shape({
   contentSha256: matching(/^[0-9a-f]{64}$/, 'a SHA-256 hex digest'),
 })
 
+/** One retention category's period (TSK-0099): what starts it, and the owner's deletion review after it. */
+const retentionPeriod = <const A extends string>(after: A, decidedYears: number) =>
+  shape({
+    years: int(decidedYears, 100),
+    after: exactly(after),
+    afterPeriod: exactly('owner_deletion_review'),
+    automaticDeletion: exactly(false),
+    holdsKeepRecords: exactly(true),
+  })
+
 /** Every configuration key with the parser of its value. Adding a key needs a migration that seeds it. */
 export const CONFIG_KEYS = {
   'deposit.rule': shape({
@@ -206,6 +216,18 @@ export const CONFIG_KEYS = {
     automaticDeletion: exactly(false),
     holdsKeepRecords: exactly(true),
   }),
+  // TSK-0099 (FACT-RETENTION-SCHEDULE, OWN-DEC-70): the schedule's periods per category, each naming what starts it.
+  // After the period a record goes to the owner's deletion-review queue: automatic deletion is not a value these
+  // shapes accept, holds always keep records, and a period may be extended but not set below the decided one
+  // (PROPOSED: shortening is a new owner decision). The periods await CPA and attorney confirmation
+  // (OQ-RETENTION-REVIEW).
+  'retention.requests_not_converted': retentionPeriod('request_closed', 2),
+  'retention.unaccepted_estimates': retentionPeriod('estimate_expired_or_closed', 2),
+  'retention.customer_profiles': retentionPeriod('last_completed_service', 7),
+  'retention.accepted_agreements': retentionPeriod('final_job_closeout', 10),
+  'retention.financial_records': retentionPeriod('tax_return_filed_or_tax_paid', 7),
+  'retention.job_records': retentionPeriod('job_closeout', 7),
+  'retention.safety_records': retentionPeriod('closure', 10),
   // TSK-0063 (OWN-DEC-144; OWN-DEC-99, OWN-DEC-105): offered appointment windows hold their workers and equipment for
   // holdHours from the offer; staff offer minWindows to maxWindows windows at a time. Decided values, seeded active by
   // migration 0053.

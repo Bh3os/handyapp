@@ -13066,6 +13066,7 @@
                                 "cases",
                                 "staff",
                                 "audit",
+                                "retention",
                                 "dashboard",
                                 "health",
                                 "settings",
@@ -13088,6 +13089,7 @@
                                   "cases",
                                   "staff",
                                   "audit",
+                                  "retention",
                                   "dashboard",
                                   "health",
                                   "settings"
@@ -13688,6 +13690,7 @@
                             "cases",
                             "staff",
                             "audit",
+                            "retention",
                             "dashboard",
                             "health",
                             "settings",
@@ -13710,6 +13713,7 @@
                               "cases",
                               "staff",
                               "audit",
+                              "retention",
                               "dashboard",
                               "health",
                               "settings"
@@ -14377,6 +14381,7 @@
                             "cases",
                             "staff",
                             "audit",
+                            "retention",
                             "dashboard",
                             "health",
                             "settings",
@@ -14399,6 +14404,7 @@
                               "cases",
                               "staff",
                               "audit",
+                              "retention",
                               "dashboard",
                               "health",
                               "settings"
@@ -14651,6 +14657,7 @@
                             "cases",
                             "staff",
                             "audit",
+                            "retention",
                             "dashboard",
                             "health",
                             "settings",
@@ -14673,6 +14680,7 @@
                               "cases",
                               "staff",
                               "audit",
+                              "retention",
                               "dashboard",
                               "health",
                               "settings"
@@ -14913,6 +14921,7 @@
                             "cases",
                             "staff",
                             "audit",
+                            "retention",
                             "dashboard",
                             "health",
                             "settings",
@@ -14935,6 +14944,7 @@
                               "cases",
                               "staff",
                               "audit",
+                              "retention",
                               "dashboard",
                               "health",
                               "settings"
@@ -15358,6 +15368,7 @@
                             "cases",
                             "staff",
                             "audit",
+                            "retention",
                             "dashboard",
                             "health",
                             "settings",
@@ -15380,6 +15391,7 @@
                               "cases",
                               "staff",
                               "audit",
+                              "retention",
                               "dashboard",
                               "health",
                               "settings"
@@ -22040,6 +22052,13 @@
                                   "legal.sms_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
+                                  "retention.requests_not_converted",
+                                  "retention.unaccepted_estimates",
+                                  "retention.customer_profiles",
+                                  "retention.accepted_agreements",
+                                  "retention.financial_records",
+                                  "retention.job_records",
+                                  "retention.safety_records",
                                   "scheduling.window_offers",
                                   "ai.module"
                                 ]
@@ -23585,6 +23604,13 @@
                                   "legal.sms_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
+                                  "retention.requests_not_converted",
+                                  "retention.unaccepted_estimates",
+                                  "retention.customer_profiles",
+                                  "retention.accepted_agreements",
+                                  "retention.financial_records",
+                                  "retention.job_records",
+                                  "retention.safety_records",
                                   "scheduling.window_offers",
                                   "ai.module"
                                 ]
@@ -25408,6 +25434,13 @@
                                   "legal.sms_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
+                                  "retention.requests_not_converted",
+                                  "retention.unaccepted_estimates",
+                                  "retention.customer_profiles",
+                                  "retention.accepted_agreements",
+                                  "retention.financial_records",
+                                  "retention.job_records",
+                                  "retention.safety_records",
                                   "scheduling.window_offers",
                                   "ai.module"
                                 ]
@@ -26807,6 +26840,13 @@
                                   "legal.sms_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
+                                  "retention.requests_not_converted",
+                                  "retention.unaccepted_estimates",
+                                  "retention.customer_profiles",
+                                  "retention.accepted_agreements",
+                                  "retention.financial_records",
+                                  "retention.job_records",
+                                  "retention.safety_records",
                                   "scheduling.window_offers",
                                   "ai.module"
                                 ]
@@ -28381,6 +28421,13 @@
                                   "legal.sms_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
+                                  "retention.requests_not_converted",
+                                  "retention.unaccepted_estimates",
+                                  "retention.customer_profiles",
+                                  "retention.accepted_agreements",
+                                  "retention.financial_records",
+                                  "retention.job_records",
+                                  "retention.safety_records",
                                   "scheduling.window_offers",
                                   "ai.module"
                                 ]
@@ -29780,6 +29827,13 @@
                                   "legal.sms_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
+                                  "retention.requests_not_converted",
+                                  "retention.unaccepted_estimates",
+                                  "retention.customer_profiles",
+                                  "retention.accepted_agreements",
+                                  "retention.financial_records",
+                                  "retention.job_records",
+                                  "retention.safety_records",
                                   "scheduling.window_offers",
                                   "ai.module"
                                 ]
@@ -31545,6 +31599,13 @@
                                   "legal.sms_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
+                                  "retention.requests_not_converted",
+                                  "retention.unaccepted_estimates",
+                                  "retention.customer_profiles",
+                                  "retention.accepted_agreements",
+                                  "retention.financial_records",
+                                  "retention.job_records",
+                                  "retention.safety_records",
                                   "scheduling.window_offers",
                                   "ai.module"
                                 ]
@@ -33132,6 +33193,13 @@
                                   "legal.sms_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
+                                  "retention.requests_not_converted",
+                                  "retention.unaccepted_estimates",
+                                  "retention.customer_profiles",
+                                  "retention.accepted_agreements",
+                                  "retention.financial_records",
+                                  "retention.job_records",
+                                  "retention.safety_records",
                                   "scheduling.window_offers",
                                   "ai.module"
                                 ]
@@ -34710,6 +34778,13 @@
                                   "legal.sms_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
+                                  "retention.requests_not_converted",
+                                  "retention.unaccepted_estimates",
+                                  "retention.customer_profiles",
+                                  "retention.accepted_agreements",
+                                  "retention.financial_records",
+                                  "retention.job_records",
+                                  "retention.safety_records",
                                   "scheduling.window_offers",
                                   "ai.module"
                                 ]
@@ -36293,6 +36368,13 @@
                                   "legal.sms_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
+                                  "retention.requests_not_converted",
+                                  "retention.unaccepted_estimates",
+                                  "retention.customer_profiles",
+                                  "retention.accepted_agreements",
+                                  "retention.financial_records",
+                                  "retention.job_records",
+                                  "retention.safety_records",
                                   "scheduling.window_offers",
                                   "ai.module"
                                 ]
@@ -38212,6 +38294,13 @@
                                   "legal.sms_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
+                                  "retention.requests_not_converted",
+                                  "retention.unaccepted_estimates",
+                                  "retention.customer_profiles",
+                                  "retention.accepted_agreements",
+                                  "retention.financial_records",
+                                  "retention.job_records",
+                                  "retention.safety_records",
                                   "scheduling.window_offers",
                                   "ai.module"
                                 ]
@@ -39790,6 +39879,13 @@
                                   "legal.sms_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
+                                  "retention.requests_not_converted",
+                                  "retention.unaccepted_estimates",
+                                  "retention.customer_profiles",
+                                  "retention.accepted_agreements",
+                                  "retention.financial_records",
+                                  "retention.job_records",
+                                  "retention.safety_records",
                                   "scheduling.window_offers",
                                   "ai.module"
                                 ]
@@ -41572,6 +41668,13 @@
                                   "legal.sms_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
+                                  "retention.requests_not_converted",
+                                  "retention.unaccepted_estimates",
+                                  "retention.customer_profiles",
+                                  "retention.accepted_agreements",
+                                  "retention.financial_records",
+                                  "retention.job_records",
+                                  "retention.safety_records",
                                   "scheduling.window_offers",
                                   "ai.module"
                                 ]
@@ -67019,6 +67122,551 @@
         }
       }
     },
+    "/api/v1/staff/retention": {
+      "get": {
+        "operationId": "getRetentionOverview",
+        "summary": "The retention schedule and the deletion-review queue",
+        "description": "Owner only (ROLE-MATRIX retention.view). The retention schedule per category as configured (retention.*: the period, what starts it, the configuration version and its sources; OWN-DEC-70, OWN-DEC-142), whether the daily job can find the category’s records yet (scanned, start not recorded, no period), the last and next run, and how many entries wait for the Owner’s review. Nothing is deleted automatically; the periods await CPA and attorney confirmation (OQ-RETENTION-REVIEW).",
+        "tags": [
+          "retention"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "automaticDeletion",
+                    "awaitingConfirmation",
+                    "timeZone",
+                    "categories",
+                    "lastScanAt",
+                    "nextScanAt",
+                    "entries"
+                  ],
+                  "properties": {
+                    "automaticDeletion": {
+                      "type": "boolean",
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "awaitingConfirmation": {
+                      "type": "boolean"
+                    },
+                    "timeZone": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "categories": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "configKey",
+                          "scan",
+                          "state",
+                          "years",
+                          "after",
+                          "version",
+                          "sourceIds",
+                          "entries"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "enum": [
+                              "requests_not_converted",
+                              "unaccepted_estimates",
+                              "customer_profiles",
+                              "accepted_agreements",
+                              "financial_records",
+                              "job_records",
+                              "safety_records",
+                              "audit_log",
+                              "access_codes",
+                              "sessions_and_links",
+                              "regulated_employee_records",
+                              "not_scheduled"
+                            ]
+                          },
+                          "configKey": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "scan": {
+                            "type": "string",
+                            "enum": [
+                              "scanned",
+                              "start_not_recorded",
+                              "no_period"
+                            ]
+                          },
+                          "state": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "CONFIGURED",
+                              "NOT_CONFIGURED",
+                              null
+                            ]
+                          },
+                          "years": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "after": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "version": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "sourceIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "entries": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "lastScanAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "nextScanAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "entries": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "retention.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/retention.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/retention-reviews": {
+      "get": {
+        "operationId": "listRetentionReviews",
+        "summary": "Deletion-review entries",
+        "description": "Owner only (ROLE-MATRIX retention.view). The records whose retention period ended, in the order the job opened them, optionally of one category: the record reference (never its personal content), when its period started and ended, the configuration version applied, and the hold checks (open holds on its project; complaints, warranties, disputes, claims, investigations, unfiled tax returns, legal and insurance holds are not recorded by the software yet and are listed as such). Read-only: the record is unchanged until the Owner decides.",
+        "tags": [
+          "retention"
+        ],
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "requests_not_converted",
+                "unaccepted_estimates",
+                "customer_profiles",
+                "accepted_agreements",
+                "financial_records",
+                "job_records",
+                "safety_records",
+                "audit_log"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "items",
+                    "nextCursor"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "seq",
+                          "category",
+                          "record",
+                          "retentionStartedAt",
+                          "periodEndsAt",
+                          "years",
+                          "policy",
+                          "holdChecks",
+                          "holdsFound",
+                          "openedAt",
+                          "openedBy"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "seq": {
+                            "type": "string"
+                          },
+                          "category": {
+                            "type": "string",
+                            "enum": [
+                              "requests_not_converted",
+                              "unaccepted_estimates",
+                              "customer_profiles",
+                              "accepted_agreements",
+                              "financial_records",
+                              "job_records",
+                              "safety_records",
+                              "audit_log"
+                            ]
+                          },
+                          "record": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "type",
+                              "id",
+                              "reference",
+                              "projectId"
+                            ],
+                            "properties": {
+                              "type": {
+                                "type": "string"
+                              },
+                              "id": {
+                                "type": "string"
+                              },
+                              "reference": {
+                                "type": "string"
+                              },
+                              "projectId": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "retentionStartedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "periodEndsAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "years": {
+                            "type": "integer"
+                          },
+                          "policy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "key",
+                              "version"
+                            ],
+                            "properties": {
+                              "key": {
+                                "type": "string"
+                              },
+                              "version": {
+                                "type": "integer"
+                              }
+                            }
+                          },
+                          "holdChecks": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "check",
+                                "result"
+                              ],
+                              "properties": {
+                                "check": {
+                                  "type": "string",
+                                  "enum": [
+                                    "open_holds",
+                                    "complaints",
+                                    "warranties",
+                                    "disputes",
+                                    "claims",
+                                    "investigations",
+                                    "unfiled_tax_returns",
+                                    "legal_holds",
+                                    "insurance_holds"
+                                  ]
+                                },
+                                "result": {
+                                  "type": "string",
+                                  "enum": [
+                                    "found",
+                                    "none_found",
+                                    "not_applicable",
+                                    "not_recorded"
+                                  ]
+                                },
+                                "count": {
+                                  "type": "integer"
+                                }
+                              }
+                            }
+                          },
+                          "holdsFound": {
+                            "type": "boolean"
+                          },
+                          "openedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "openedBy": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "retention.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": true,
+          "cache": "private, no-store",
+          "test": "test/integration/retention.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/settings/estimate-publishing": {
       "get": {
         "operationId": "getEstimatePublishing",
@@ -67695,6 +68343,13 @@
                               "legal.sms_disclosure",
                               "legal.estimate_terms",
                               "retention.audit_log",
+                              "retention.requests_not_converted",
+                              "retention.unaccepted_estimates",
+                              "retention.customer_profiles",
+                              "retention.accepted_agreements",
+                              "retention.financial_records",
+                              "retention.job_records",
+                              "retention.safety_records",
                               "scheduling.window_offers",
                               "ai.module"
                             ]

@@ -22,6 +22,7 @@ export const NAV_LABELS = {
   cases: 'nav.cases',
   staff: 'nav.staff',
   audit: 'nav.audit',
+  retention: 'nav.retention',
   dashboard: 'nav.dashboard',
   health: 'nav.health',
   settings: 'nav.settings',
