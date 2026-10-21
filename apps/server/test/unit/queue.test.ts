@@ -53,8 +53,18 @@ describe('queue item types (TSK-0041, HH-OPS-01)', () => {
     // Estimators also see pending estimates (estimate_to_write, TSK-0053), the customer's responses to published
     // estimates (estimate_response, TSK-0056) and estimate reminder drafts to send (estimate_reminder, TSK-0060).
     expect(visibleTypes(staff('estimator'), 'queue')).toEqual({
-      all: ['new_request', 'review_hold', 'safety_hold', 'estimate_to_write', 'estimate_response', 'estimate_reminder'],
-      own: ['delivery_failed'],
+      // TSK-0044: duplicate suggestions, by the Estimator's PROPOSED customer.view_duplicates cell.
+      all: [
+        'new_request',
+        'review_hold',
+        'safety_hold',
+        'estimate_to_write',
+        'estimate_response',
+        'estimate_reminder',
+        'candidate_match',
+      ],
+      // TSK-0049: customer replies on the Estimator's own threads; never the private Needs Linking list.
+      own: ['delivery_failed', 'customer_replied'],
     })
     // Roles add up: a worker who is also office sees what office sees.
     expect(visibleTypes(staff('worker', 'office'), 'queue')).toEqual(visibleTypes(staff('office'), 'queue'))

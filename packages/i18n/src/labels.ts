@@ -76,6 +76,9 @@ export const LABEL_FAMILIES = {
     'estimate_to_write',
     'estimate_response',
     'estimate_reminder',
+    'candidate_match',
+    'inbox_needs_linking',
+    'customer_replied',
     'deposit_waiver',
     'start_work_exception',
     'refund_request',
@@ -115,6 +118,9 @@ export const LABEL_FAMILIES = {
     'estimate_update_requested',
     'estimate_reminder_first',
     'estimate_reminder_final',
+    'possible_duplicate',
+    'message_needs_linking',
+    'customer_replied',
   ],
   /** The one action button of a queue item (HH-OPS-02); it opens the record's screen. */
   queueAction: [
@@ -127,6 +133,9 @@ export const LABEL_FAMILIES = {
     'write_estimate',
     'review_estimate',
     'release_reminder',
+    'review_match',
+    'link_message',
+    'open_conversation',
   ],
   /**
    * System health (TSK-0101; HH-NFR-02): the checks, their states, metrics and notes, as the server's health report
@@ -263,6 +272,82 @@ export const LABEL_FAMILIES = {
   propertyType: ['house', 'apartment_condo', 'townhouse', 'rental_short_term'],
   timeWindow: ['mornings', 'afternoons', 'evenings', 'weekends', 'any_time'],
   photoState: ['quarantined', 'ready', 'rejected'],
+  /** Customer records (TSK-0044; ENT-Customer, HH-CRM-01). */
+  customerStatus: ['active', 'inactive', 'merged'],
+  customerProvenance: ['request_submission', 'staff_entry'],
+  /** Visibility classes of notes and attachments (HH-STAFF-05; @handyhub/domain VISIBILITY_CLASSES). */
+  visibilityClass: ['internal_operational', 'restricted_incident', 'restricted_financial', 'customer_shared'],
+  /** What two customers share in a duplicate suggestion (HH-ID-02; @handyhub/domain MATCH_REASONS). */
+  matchReason: ['email', 'phone', 'address', 'name'],
+  candidateStatus: ['open', 'dismissed', 'merged'],
+  /** A merge or relink (crm.record_links, TSK-0046): in effect, reversed by the Owner, or replaced by a later relink. */
+  recordLinkState: ['current', 'reversed', 'replaced'],
+  /** Consent records (ENT-ConsentPreference; apps/server/src/modules/notifications/consent.ts). */
+  consentPurpose: ['service_communication', 'transactional_sms', 'marketing'],
+  consentChannel: ['email', 'sms'],
+  consentSource: ['request_form', 'portal', 'sms_keyword', 'provider_suppression', 'staff_recorded'],
+  consentState: ['granted', 'withdrawn', 'none'],
+  /** Fields a staff edit of a customer or contact changes (crm.record_changes). */
+  recordField: ['displayName', 'fullName', 'email', 'phone', 'preferredChannel'],
+  /** Property records (TSK-0045; @handyhub/domain PROPERTY_DETAILS, DETAIL_SOURCES, ACCESS_SECRET_KINDS). */
+  propertyDetail: [
+    'address',
+    'property_type',
+    'site_contact',
+    'access_windows',
+    'access_notes',
+    'parking_loading',
+    'occupants_pets',
+    'restricted_areas',
+    'utilities',
+    'customer_preparation',
+    'site_flags',
+  ],
+  detailSource: ['request_form', 'customer_call', 'customer_message', 'site_visit', 'office_record'],
+  accessSecretKind: ['gate', 'lockbox', 'alarm', 'door', 'key_location', 'other'],
+  /** What a crm.property_changes entry records. */
+  propertyChange: ['changed', 'cleared', 'confirmed'],
+  /** Message delivery states (HH-COM-02; platform.message_deliveries). */
+  deliveryState: ['draft', 'queued', 'sent', 'delivered', 'failed', 'suppressed', 'cancelled'],
+  /** The unified inbox (TSK-0049; apps/server/src/modules/inbox, comms.messages). */
+  messageChannel: ['email', 'sms', 'internal'],
+  linkState: ['matched', 'needs_linking', 'linked'],
+  matchRule: ['reply_token', 'thread_reference', 'verified_email', 'verified_phone', 'latest_conversation', 'staff'],
+  needsLinkingReason: [
+    'no_match',
+    'shared_contact',
+    'several_projects',
+    'no_open_project',
+    'sender_not_on_project',
+    'conflicting_references',
+    'returned_by_staff',
+  ],
+  bodyState: ['received', 'html_converted', 'not_retrieved', 'retrieval_failed', 'empty'],
+  smsKeyword: ['stop', 'start', 'help'],
+  inboundState: ['configured', 'fake', 'not_configured', 'unknown'],
+  /** Entries of a customer's activity history (apps/server/src/modules/customers/record.ts). */
+  customerTimeline: [
+    'request_submitted',
+    'request_assigned',
+    'request_decision',
+    'request_note',
+    'customer_note',
+    'customer_changed',
+    'contact_changed',
+    'consent_granted',
+    'consent_withdrawn',
+    'message',
+    'candidate_detected',
+    'candidate_reasons_added',
+    'candidate_reopened',
+    'candidate_dismissed',
+    'customer_merged',
+    'request_relinked',
+    'link_reversed',
+    'candidate_merged',
+    'candidate_merge_reversed',
+  ],
+  timelineActor: ['staff', 'customer', 'system'],
   /** Why the server refused a request action (the problem codes of @handyhub/domain and the requests module). */
   requestRefusal: [
     'INVALID_TRANSITION',
@@ -366,6 +451,8 @@ export const LABEL_FAMILIES = {
    * apps/server/src/modules/estimates/responses.ts).
    */
   estimateResponseKind: ['changes_requested', 'declined', 'update_requested'],
+  /** Scheduling task states (TSK-0057, ENT-SchedulingTask; migration 0044): open -> planning -> fulfilled / canceled. */
+  schedulingTaskState: ['open', 'planning', 'fulfilled', 'canceled'],
   /** How an estimate version was authored (HH-EST-11): written in the staff app, or an uploaded document. */
   authoringMethod: ['written', 'uploaded'],
   /** Estimate document states (TSK-0054; migration 0030, apps/server/src/modules/estimates/documents.ts). */

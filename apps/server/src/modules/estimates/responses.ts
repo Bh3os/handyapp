@@ -309,6 +309,9 @@ export function estimateResponseNoticeAutomations(deps: ResponseNoticeDeps): Aut
           record: { type: 'estimate_version', id: r.version_id },
           recipients,
           values: base ? { appLink: `${base}/estimates/${r.version_id}` } : {},
+          // TSK-0049: the delivery records its project. A staff notice is not a customer email, so it never carries
+          // the project's reply token (deliveries.ts) and stays out of the customer conversation.
+          projectId: r.project_id,
         }
       },
     }),

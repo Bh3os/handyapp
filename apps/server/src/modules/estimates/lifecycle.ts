@@ -756,6 +756,9 @@ export async function lifecycleView(
       at: r.at.toISOString(),
       message: r.message,
     })),
+    // TSK-0057 (HH-EST-06, HH-EST-08): the customer's approval of a version of this estimate, the job and the
+    // scheduling task it created.
+    customerApproval: await estimateApproval(db, v.estimate_id),
     actions: {
       publish: can('publish') && open && allowed(actor, 'estimate.publish', v.project_id, config),
       requestReview: can('request_review') && allowed(actor, 'estimate.draft', v.project_id),
@@ -786,6 +789,41 @@ export async function lifecycleView(
       validUntil: r.valid_until?.toISOString() ?? null,
       totalCents: r.total_cents === null ? null : Number(r.total_cents),
     })),
+  }
+}
+
+/** The approval of an estimate (at most one version is ever accepted), as the staff lifecycle panel shows it. */
+async function estimateApproval(db: Reader, estimateId: string) {
+  const a = await db
+    .selectFrom('estimating.approvals as a')
+    .innerJoin('work.jobs as j', 'j.approval_id', 'a.id')
+    .innerJoin('work.scheduling_tasks as s', 's.job_id', 'j.id')
+    .select([
+      'a.version',
+      'a.created_at',
+      'a.full_name',
+      'a.selected_options',
+      'a.total_cents',
+      'a.deposit_cents',
+      'a.terms_document_id',
+      'a.test_mark',
+      'j.operational_state',
+      's.state as task_state',
+    ])
+    .where('a.estimate_id', '=', estimateId)
+    .executeTakeFirst()
+  if (!a) return null
+  return {
+    version: a.version,
+    at: a.created_at.toISOString(),
+    fullName: a.full_name,
+    options: [...a.selected_options].sort((x, y) => x - y),
+    totalCents: Number(a.total_cents),
+    depositCents: a.deposit_cents === null ? null : Number(a.deposit_cents),
+    termsVersion: a.terms_document_id,
+    testMark: a.test_mark,
+    jobState: a.operational_state,
+    schedulingTaskState: a.task_state,
   }
 }
 

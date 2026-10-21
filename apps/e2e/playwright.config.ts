@@ -4,8 +4,9 @@
 // by @playwright/test instead. Traces are kept on failure; test data is synthetic only.
 import { fileURLToPath } from 'node:url'
 import { defineConfig, devices } from '@playwright/test'
-import { E2E_CODE_KEY } from './codes.js'
+import { E2E_ACCESS_CODE_KEY, E2E_CODE_KEY } from './codes.js'
 import { GATE_USERS } from './gate.js'
+import { E2E_BIRD_WEBHOOK_SECRET, E2E_INBOUND_EMAIL_ADDRESS, E2E_RESEND_WEBHOOK_SECRET } from './inbound.js'
 
 const executablePath = process.env['E2E_CHROMIUM_EXECUTABLE']
 const port = Number(process.env['E2E_PORT'] ?? 4310)
@@ -67,7 +68,15 @@ export default defineConfig({
         // One synthetic code key for every server (TSK-0033), so the receipt specs can read a sent code back from
         // the database; without it each process would use its own random key.
         CODE_HASH_KEY: E2E_CODE_KEY,
+        // The access-code store of the property record (TSK-0045); the other servers leave it NOT CONFIGURED.
+        ACCESS_CODE_ENCRYPTION_KEY: E2E_ACCESS_CODE_KEY,
         ...(databaseUrl ? { DATABASE_URL: databaseUrl, TEST_EMAIL_DESTINATIONS: 'e2e-owner@example.test' } : {}),
+        // TSK-0049: synthetic webhook signing secrets and receiving address, so the inbox spec can post signed
+        // inbound email and texts to this server (the one that runs the jobs). The other servers keep inbound NOT
+        // CONFIGURED.
+        BIRD_WEBHOOK_SECRET: E2E_BIRD_WEBHOOK_SECRET,
+        RESEND_WEBHOOK_SECRET: E2E_RESEND_WEBHOOK_SECRET,
+        INBOUND_EMAIL_ADDRESS: E2E_INBOUND_EMAIL_ADDRESS,
       },
       reuseExistingServer: false,
       timeout: 30_000,

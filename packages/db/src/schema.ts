@@ -44,6 +44,122 @@ export interface CatalogServicesTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface CommsConversationsTable {
+  id: Generated<string>
+  project_id: string
+  customer_id: string
+  audience: string
+  state: Generated<string>
+  last_message_at: Timestamp | null
+  last_inbound_at: Timestamp | null
+  handled_at: Timestamp | null
+  handled_by: string | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CommsMessageLinksTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  message_id: string
+  from_state: string | null
+  to_state: string
+  from_project_id: string | null
+  to_project_id: string | null
+  rule: string
+  reason: string | null
+  staff_id: string | null
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CommsMessagesTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  direction: string
+  channel: string
+  webhook_receipt_id: string | null
+  provider: string | null
+  provider_message_id: string | null
+  from_address: string | null
+  to_addresses: Generated<string[]>
+  subject: string | null
+  body_text: string | null
+  body_state: string
+  body_truncated: Generated<boolean>
+  email_message_id: string | null
+  in_reply_to: Generated<string[]>
+  attachments: ColumnType<JsonValue, string | undefined, string>
+  keyword: string | null
+  received_at: ColumnType<Date, Date | string | undefined, Date | string>
+  author_staff_id: string | null
+  link_state: string
+  match_rule: string | null
+  needs_linking_reason: string | null
+  project_id: string | null
+  customer_id: string | null
+  conversation_id: string | null
+  contact_id: string | null
+  suggested_project_id: string | null
+  link_version: Generated<number>
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CommsProjectReplyTokensTable {
+  project_id: string
+  token: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CrmAccessCodeRevealsTable {
+  id: Generated<string>
+  secret_id: string
+  property_id: string
+  staff_id: string
+  roles: string[]
+  request_id: string
+  revealed_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CrmAccessInstructionSecretsTable {
+  id: string
+  property_id: string
+  kind: string
+  label: string | null
+  sealed_value: string | null
+  source: string
+  confirmed_at: ColumnType<Date, Date | string | undefined, Date | string>
+  confirmed_by: string
+  created_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  removed_at: Timestamp | null
+  removed_by: string | null
+  removal_reason: string | null
+  version: Generated<number>
+}
+
+export interface CrmCandidateMatchEventsTable {
+  id: Generated<string>
+  match_id: string
+  event: string
+  reasons: string[]
+  reason: string | null
+  staff_id: string | null
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CrmCandidateMatchesTable {
+  id: Generated<string>
+  customer_id: string
+  candidate_customer_id: string
+  pair_low: GeneratedAlways<string | null>
+  pair_high: GeneratedAlways<string | null>
+  reasons: string[]
+  status: Generated<string>
+  detected_by: string
+  detected_at: ColumnType<Date, Date | string | undefined, Date | string>
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
+}
+
 export interface CrmContactsTable {
   id: Generated<string>
   customer_id: string
@@ -59,6 +175,15 @@ export interface CrmContactsTable {
   version: Generated<number>
   email_verified_value: string | null
   phone_verified_value: string | null
+}
+
+export interface CrmCustomerNotesTable {
+  id: Generated<string>
+  customer_id: string
+  author_staff_id: string
+  visibility: Generated<string>
+  body: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
 export interface CrmCustomerPropertiesTable {
@@ -105,6 +230,126 @@ export interface CrmPropertiesTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   version: Generated<number>
   coverage_rule_set: number | null
+  address_version: Generated<number>
+}
+
+export interface CrmPropertyAddressesTable {
+  property_id: string
+  address_version: number
+  street: string
+  unit: string | null
+  city: string
+  state: string
+  zip: string
+  source: string
+  reason: string | null
+  recorded_by: string | null
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CrmPropertyChangesTable {
+  id: Generated<string>
+  property_id: string
+  detail: string
+  action: string
+  previous: Json
+  current: Json
+  source: string
+  reason: string
+  changed_by: string
+  changed_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CrmPropertyDetailsTable {
+  property_id: string
+  detail: string
+  value: string | null
+  source: string
+  confirmed_at: Timestamp
+  confirmed_by: string | null
+  version: Generated<number>
+}
+
+export interface CrmRecordChangesTable {
+  id: Generated<string>
+  customer_id: string
+  record_type: string
+  record_id: string
+  fields: string[]
+  previous: Json
+  current: Json
+  reason: string
+  changed_by: string
+  changed_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CrmRecordLinksTable {
+  id: Generated<string>
+  seq: ColumnType<string, bigint | number | string | undefined, bigint | number | string>
+  kind: string
+  source_customer_id: string
+  target_customer_id: string
+  source_status: string | null
+  request_id: string | null
+  project_id: string | null
+  candidate_match_id: string | null
+  reason: string
+  preview: Json
+  correction: boolean
+  access_recheck: Json
+  performed_by: string
+  performed_at: ColumnType<Date, Date | string | undefined, Date | string>
+  reversed_at: Timestamp | null
+  reversed_by: string | null
+  reverse_reason: string | null
+  reversal_recheck: Json | null
+}
+
+export interface EstimatingApprovalSelectionsTable {
+  version_id: string
+  contact_ref: string
+  options: Generated<number[]>
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface EstimatingApprovalsTable {
+  id: Generated<string>
+  project_id: string
+  estimate_id: string
+  version_id: string
+  version: number
+  content_sha256: string
+  authoring_method: string
+  document_sha256: string | null
+  selected_options: Generated<number[]>
+  subtotal_cents: Int8
+  discount_cents: Int8
+  total_cents: Int8
+  deposit_state: string
+  deposit_cents: Int8 | null
+  deposit_rule_version: number
+  discount_rule_version: number | null
+  terms_document_id: string
+  terms_sha256: string
+  terms_policy_version: number
+  payment_term: string
+  payment_term_version: number
+  payment_term_text: string
+  privacy_notice_id: string | null
+  terms_accepted: boolean
+  full_name: string
+  contact_ref: string
+  access_via: string
+  grant_id: string | null
+  account_id: string | null
+  customer_session_id: string
+  verified_at: Timestamp
+  method: string
+  test_mark: boolean
+  client_address: string | null
+  user_agent: string | null
+  idempotency_key: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
 export interface EstimatingCustomerResponsesTable {
@@ -739,6 +984,7 @@ export interface PlatformMessageDeliveriesTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   updated_at: ColumnType<Date, Date | string | undefined, Date | string>
   status_at: Timestamp | null
+  project_id: string | null
   cancelled_by: string | null
   cancelled_at: Timestamp | null
 }
@@ -863,6 +1109,45 @@ export interface WorkHoldsTable {
   version: Generated<number>
 }
 
+export interface WorkJobScopeSnapshotsTable {
+  id: Generated<string>
+  job_id: string
+  version: number
+  source: string
+  approval_id: string | null
+  estimate_version_id: string | null
+  lines: Json
+  texts: Json
+  exclusions: string[]
+  selected_options: number[]
+  subtotal_cents: Int8
+  discount_cents: Int8
+  total_cents: Int8
+  terms_document_id: string
+  terms_sha256: string
+  content_sha256: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface WorkJobsTable {
+  id: Generated<string>
+  project_id: string
+  approval_id: string
+  operational_state: Generated<string>
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
+}
+
+export interface WorkSchedulingTasksTable {
+  id: Generated<string>
+  job_id: string
+  project_id: string
+  purpose: Generated<string>
+  state: Generated<string>
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
+}
+
 export interface WorkWorkPackagesTable {
   id: Generated<string>
   project_id: string
@@ -880,11 +1165,27 @@ export interface WorkWorkPackagesTable {
 export interface Database {
   'catalog.service_versions': CatalogServiceVersionsTable
   'catalog.services': CatalogServicesTable
+  'comms.conversations': CommsConversationsTable
+  'comms.message_links': CommsMessageLinksTable
+  'comms.messages': CommsMessagesTable
+  'comms.project_reply_tokens': CommsProjectReplyTokensTable
+  'crm.access_code_reveals': CrmAccessCodeRevealsTable
+  'crm.access_instruction_secrets': CrmAccessInstructionSecretsTable
+  'crm.candidate_match_events': CrmCandidateMatchEventsTable
+  'crm.candidate_matches': CrmCandidateMatchesTable
   'crm.contacts': CrmContactsTable
+  'crm.customer_notes': CrmCustomerNotesTable
   'crm.customer_properties': CrmCustomerPropertiesTable
   'crm.customers': CrmCustomersTable
   'crm.projects': CrmProjectsTable
   'crm.properties': CrmPropertiesTable
+  'crm.property_addresses': CrmPropertyAddressesTable
+  'crm.property_changes': CrmPropertyChangesTable
+  'crm.property_details': CrmPropertyDetailsTable
+  'crm.record_changes': CrmRecordChangesTable
+  'crm.record_links': CrmRecordLinksTable
+  'estimating.approval_selections': EstimatingApprovalSelectionsTable
+  'estimating.approvals': EstimatingApprovalsTable
   'estimating.customer_responses': EstimatingCustomerResponsesTable
   'estimating.estimate_documents': EstimatingEstimateDocumentsTable
   'estimating.estimate_line_costs': EstimatingEstimateLineCostsTable
@@ -937,5 +1238,8 @@ export interface Database {
   'platform.schema_migration': PlatformSchemaMigrationTable
   'platform.webhook_receipts': PlatformWebhookReceiptsTable
   'work.holds': WorkHoldsTable
+  'work.job_scope_snapshots': WorkJobScopeSnapshotsTable
+  'work.jobs': WorkJobsTable
+  'work.scheduling_tasks': WorkSchedulingTasksTable
   'work.work_packages': WorkWorkPackagesTable
 }

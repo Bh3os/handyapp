@@ -40,6 +40,14 @@ const overview = {
   refreshSeconds: 0,
 }
 
+const DIGEST = 'c'.repeat(64)
+const BASE_SELECTION = {
+  options: [],
+  subtotalCents: 127_500,
+  reductionCents: 0,
+  totalCents: 127_500,
+  deposit: { state: 'required', amountCents: 25_500 },
+}
 const estimate = (over: Record<string, unknown> = {}) => ({
   reference: REF,
   number: NUMBER,
@@ -50,6 +58,7 @@ const estimate = (over: Record<string, unknown> = {}) => ({
   validUntil: '2026-11-05T04:59:59.999Z',
   lines: [
     {
+      position: 1,
       kind: 'base',
       serviceCode: 'DW-01',
       description: 'Synthetic: patch the hole',
@@ -59,6 +68,7 @@ const estimate = (over: Record<string, unknown> = {}) => ({
       amountCents: 2500,
     },
     {
+      position: 2,
       kind: 'add_on',
       serviceCode: 'PT-01',
       description: 'Synthetic optional trim',
@@ -80,7 +90,14 @@ const estimate = (over: Record<string, unknown> = {}) => ({
   paymentTerm: 'due_on_receipt',
   document: null,
   terms: { documentId: 'estimate-terms-1', state: 'not_in_effect' },
-  approval: { available: false, reasons: ['terms_not_in_effect', 'approval_not_available'], current: null },
+  approval: {
+    available: false,
+    reasons: ['terms_not_in_effect'],
+    current: null,
+    contentDigest: DIGEST,
+    selection: BASE_SELECTION,
+    approved: null,
+  },
   actions: { requestChanges: true, decline: true, requestUpdate: false },
   freshVerification: true,
   responses: [],
@@ -117,6 +134,12 @@ function api(opts: { detail?: () => unknown; post?: (c: Call) => Response } = {}
         ],
       })
     if (url.includes('/versions/')) return json(200, detail())
+    if (url.endsWith('/customer/session/verification'))
+      return json(200, {
+        fresh: false,
+        freshUntil: NOW,
+        channels: [{ channel: 'email', destination: 's***@example.test' }],
+      })
     return json(404, { error: { code: 'NOT_FOUND' } })
   }
   return { fetchImpl, calls, setDetail: (d: () => unknown) => (detail = d) }
@@ -234,7 +257,17 @@ describe('portal routes and parsers (TSK-0056)', () => {
 
   it('[HH-PORT-06] an answer that is not the declared view is a failure, never shown as data', () => {
     expect(parseEstimate(estimate())).not.toBeNull()
-    expect(parseEstimate(estimate({ approval: { available: true, reasons: [], current: null } }))).toBeNull()
+    // TSK-0057: approval offered with a reason against it, or without the content digest, is not the declared view.
+    const approval = (estimate() as { approval: Record<string, unknown> }).approval
+    expect(parseEstimate(estimate({ approval: { ...approval, available: true } }))).toBeNull()
+    expect(
+      parseEstimate(estimate({ approval: { ...approval, available: true, reasons: [], contentDigest: 'x' } })),
+    ).toBeNull()
+    expect(parseEstimate(estimate({ approval: { ...approval, available: true, reasons: [] } }))).not.toBeNull()
+    expect(
+      parseEstimate(estimate({ approval: { ...approval, selection: { ...BASE_SELECTION, totalCents: 1.5 } } })),
+    ).toBeNull()
+    expect(parseEstimate(estimate({ lines: [{ ...(estimate().lines[0] as object), position: 0 }] }))).toBeNull()
     expect(parseEstimate(estimate({ totalCents: 12.5 }))).toBeNull()
     expect(parseEstimate(estimate({ status: 'accepted' }))).toBeNull()
     expect(parseEstimate(estimate({ terms: { documentId: null, state: 'binding' } }))).toBeNull()
@@ -281,11 +314,10 @@ describe('the customer estimate view (TSK-0056, HH-EST-06, HH-EST-09)', () => {
     expect(
       within(terms).getByRole('link', { name: 'Open the estimate terms on their own page' }).getAttribute('href'),
     ).toBe('/portal/terms/estimate-terms-1')
-    // No approval control at all; every reason is written out, and silence never approves.
+    // Terms not in effect: no approval control at all; every reason is written out, and silence never approves.
     expect(screen.queryByRole('button', { name: /approve/i })).toBeNull()
     expect(screen.getByText("This estimate can't be approved here yet.")).toBeTruthy()
     expect(screen.getByText("The wording of the estimate terms is waiting for the owner's approval.")).toBeTruthy()
-    expect(screen.getByText("Online approval isn't available here yet.")).toBeTruthy()
     expect(screen.getByText('Not answering never approves an estimate.')).toBeTruthy()
   })
 
@@ -295,7 +327,10 @@ describe('the customer estimate view (TSK-0056, HH-EST-06, HH-EST-09)', () => {
         detail: () =>
           estimate({
             terms: { documentId: 'test-estimate-terms-1', state: 'not_configured' },
-            approval: { available: false, reasons: ['terms_not_configured', 'approval_not_available'], current: null },
+            approval: {
+              ...(estimate() as { approval: object }).approval,
+              reasons: ['terms_not_configured'],
+            },
           }),
       }).fetchImpl,
     )
@@ -359,7 +394,7 @@ describe('the customer estimate view (TSK-0056, HH-EST-06, HH-EST-09)', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Decline' }))
     fireEvent.change(screen.getByLabelText('Reason (optional)'), { target: { value: 'Synthetic reason' } })
     fireEvent.click(screen.getByRole('button', { name: 'Decline this estimate' }))
-    expect(await screen.findByText(/confirm it's you again: open the secure link/)).toBeTruthy()
+    expect(await screen.findByText(/confirm it's you again with a new code, then try again/)).toBeTruthy()
     expect((screen.getByLabelText('Reason (optional)') as HTMLTextAreaElement).value).toBe('Synthetic reason')
     expect(screen.queryByText(/You declined this estimate/)).toBeNull()
     expect(JSON.parse(String(posts[0]?.init?.body))).toEqual({ reason: 'Synthetic reason' })
@@ -373,9 +408,9 @@ describe('the customer estimate view (TSK-0056, HH-EST-06, HH-EST-09)', () => {
             status: 'expired',
             actions: { requestChanges: false, decline: false, requestUpdate: true },
             approval: {
-              available: false,
-              reasons: ['terms_not_in_effect', 'expired', 'approval_not_available'],
-              current: null,
+              ...(estimate() as { approval: object }).approval,
+              reasons: ['terms_not_in_effect', 'expired'],
+              selection: null,
             },
           }),
       }).fetchImpl,
@@ -385,5 +420,206 @@ describe('the customer estimate view (TSK-0056, HH-EST-06, HH-EST-09)', () => {
     expect(screen.getByRole('button', { name: 'Request an Updated Estimate' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Request Changes' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Decline' })).toBeNull()
+  })
+})
+
+describe('Approve Estimate (TSK-0057, HH-EST-06, HH-EST-07, HH-ID-07, OWN-DEC-103)', () => {
+  const available = (over: Record<string, unknown> = {}) =>
+    estimate({
+      terms: { documentId: 'estimate-terms-1', state: 'in_effect' },
+      approval: {
+        available: true,
+        reasons: [],
+        current: null,
+        contentDigest: DIGEST,
+        selection: BASE_SELECTION,
+        approved: null,
+      },
+      ...over,
+    })
+  const WITH_ADD_ON = {
+    options: [2],
+    subtotalCents: 133_497,
+    reductionCents: 0,
+    totalCents: 133_497,
+    deposit: { state: 'required', amountCents: 26_699 },
+  }
+
+  it('[T33][HH-EST-06] options update the server total; the box starts unchecked; the name and the box are required; one key per attempt', async () => {
+    const posts: Call[] = []
+    let fail = true
+    const a = api({
+      detail: () => available(),
+      post: (c) => {
+        posts.push(c)
+        if (c.url.endsWith('/selection'))
+          return json(200, { reference: REF, number: NUMBER, version: 1, selection: WITH_ADD_ON })
+        // The first approval attempt is lost on the network; the retry carries the same key.
+        if (fail) {
+          fail = false
+          throw new TypeError('network down')
+        }
+        a.setDetail(() =>
+          available({
+            status: 'approved',
+            approval: {
+              available: false,
+              reasons: [],
+              current: null,
+              contentDigest: DIGEST,
+              selection: null,
+              approved: { ...WITH_ADD_ON, at: NOW },
+            },
+            actions: { requestChanges: false, decline: false, requestUpdate: false },
+          }),
+        )
+        return json(201, {
+          reference: REF,
+          number: NUMBER,
+          version: 1,
+          status: 'approved',
+          approved: { ...WITH_ADD_ON, at: NOW },
+          nextStep: 'scheduling_next',
+        })
+      },
+    })
+    open(a.fetchImpl)
+    const section = await screen.findByTestId('estimate-approval')
+    const box = within(section).getByRole('checkbox', { name: 'I have read and accept the estimate terms' })
+    expect((box as HTMLInputElement).checked).toBe(false)
+    expect(within(section).getByText('Approving does not book an appointment or pay a deposit.')).toBeTruthy()
+    const approve = within(section).getByRole('button', { name: 'Approve Estimate' })
+    // Nothing is sent before the box is ticked and the name typed.
+    fireEvent.click(approve)
+    expect(posts).toHaveLength(0)
+
+    // Selecting the add-on: the total and deposit come from the server.
+    fireEvent.click(within(section).getByRole('checkbox', { name: 'Synthetic optional trim ($59.97)' }))
+    const totals = await within(section).findByTestId('approval-totals')
+    await waitFor(() => expect(within(totals).getAllByText('$1,334.97').length).toBeGreaterThan(0))
+    expect(within(totals).getByText('$266.99')).toBeTruthy()
+    expect(posts[0]?.url).toBe(`/api/v1/customer/projects/${REF}/estimates/${NUMBER}/versions/1/selection`)
+    expect(JSON.parse(String(posts[0]?.init?.body))).toEqual({ options: [2] })
+
+    fireEvent.click(box)
+    fireEvent.change(within(section).getByLabelText('Your full name'), { target: { value: ' Synthetic Customer ' } })
+    const button = () => within(section).getByRole('button', { name: 'Approve Estimate' })
+    fireEvent.click(button())
+    expect(await within(section).findByText("Your approval couldn't be sent. Please try again.")).toBeTruthy()
+    fireEvent.click(button())
+    expect(await screen.findByText('Estimate approved—scheduling is next.')).toBeTruthy()
+    const approvals = posts.filter((p) => p.url.endsWith('/approve'))
+    expect(approvals).toHaveLength(2)
+    const keys = approvals.map((p) => (p.init?.headers as Record<string, string>)['idempotency-key'])
+    expect(keys[0]).toMatch(/^portal-[0-9a-f]{32}$/)
+    expect(keys[1]).toBe(keys[0])
+    expect(JSON.parse(String(approvals[1]?.init?.body))).toEqual({
+      contentDigest: DIGEST,
+      options: [2],
+      totalCents: 133_497,
+      depositCents: 26_699,
+      termsDocumentId: ESTIMATE_TERMS.documentId,
+      termsSha256: ESTIMATE_TERMS.contentSha256,
+      acceptTerms: true,
+      fullName: 'Synthetic Customer',
+    })
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Approve Estimate' })).toBeNull())
+  })
+
+  it('[HH-ID-07][HH-ID-06] a stale verification: a new code right here, and the options and name stay as they were', async () => {
+    const posts: Call[] = []
+    const a = api({
+      detail: () =>
+        available({ freshVerification: false, approval: { ...available().approval, selection: WITH_ADD_ON } }),
+      post: (c) => {
+        posts.push(c)
+        if (c.url.endsWith('/verification/codes'))
+          return json(202, { sent: { channel: 'email', destination: 's***@example.test', expiresAt: NOW } })
+        if (c.url.endsWith('/customer/session/verification')) {
+          const code = (JSON.parse(String(c.init?.body)) as { code: string }).code
+          if (code !== '123456')
+            return json(400, {
+              error: {
+                code: 'VALIDATION_FAILED',
+                message: '',
+                fieldErrors: [{ field: 'body.code', code: 'invalid_code', message: '' }],
+                requestId: 'r',
+                retryable: false,
+              },
+            })
+          a.setDetail(() => available({ approval: { ...available().approval, selection: WITH_ADD_ON } }))
+          return json(200, {
+            fresh: true,
+            freshUntil: NOW,
+            channels: [{ channel: 'email', destination: 's***@example.test' }],
+          })
+        }
+        return json(403, {
+          error: {
+            code: 'FORBIDDEN',
+            message: '',
+            fieldErrors: [{ field: 'verification', code: 'FRESH_VERIFICATION_REQUIRED', message: '' }],
+            requestId: 'r',
+            retryable: false,
+          },
+        })
+      },
+    })
+    open(a.fetchImpl)
+    const verify = await screen.findByTestId('estimate-reverify')
+    // The options kept on the server are already selected.
+    const section = screen.getByTestId('estimate-approval')
+    const option = within(section).getByRole('checkbox', {
+      name: 'Synthetic optional trim ($59.97)',
+    }) as HTMLInputElement
+    expect(option.checked).toBe(true)
+    fireEvent.click(within(section).getByRole('checkbox', { name: 'I have read and accept the estimate terms' }))
+    fireEvent.change(within(section).getByLabelText('Your full name'), { target: { value: 'Synthetic Customer' } })
+    fireEvent.click(within(section).getByRole('button', { name: 'Approve Estimate' }))
+    expect(await within(section).findByText(/confirm it's you again with a new code, then try again/)).toBeTruthy()
+
+    fireEvent.click(await within(verify).findByRole('button', { name: 'Email a code to s***@example.test' }))
+    expect(await within(verify).findByText('We sent a code to s***@example.test.')).toBeTruthy()
+    fireEvent.change(within(verify).getByLabelText('Code'), { target: { value: '000000' } })
+    fireEvent.click(within(verify).getByRole('button', { name: 'Confirm' }))
+    expect(await within(verify).findByText("That code didn't work. Check it, or ask for a new one.")).toBeTruthy()
+    fireEvent.change(within(verify).getByLabelText('Code'), { target: { value: '123456' } })
+    fireEvent.click(within(verify).getByRole('button', { name: 'Confirm' }))
+    await waitFor(() => expect(screen.queryByTestId('estimate-reverify')).toBeNull())
+    // What the customer chose and typed is still there.
+    expect(
+      (within(section).getByRole('checkbox', { name: 'Synthetic optional trim ($59.97)' }) as HTMLInputElement).checked,
+    ).toBe(true)
+    expect((within(section).getByLabelText('Your full name') as HTMLInputElement).value).toBe('Synthetic Customer')
+    expect(
+      (within(section).getByRole('checkbox', { name: 'I have read and accept the estimate terms' }) as HTMLInputElement)
+        .checked,
+    ).toBe(true)
+    expect(posts.filter((p) => p.url.endsWith('/approve'))).toHaveLength(1)
+  })
+
+  it('[RULE-NO-INVENTED-FACTS] the server refusing NOT CONFIGURED is shown as such, never as approved', async () => {
+    const a = api({
+      detail: () => available(),
+      post: () =>
+        json(503, {
+          error: {
+            code: 'NOT_CONFIGURED',
+            message: '',
+            fieldErrors: [{ field: 'terms', code: 'TERMS_NOT_IN_EFFECT', message: '' }],
+            requestId: 'r',
+            retryable: false,
+          },
+        }),
+    })
+    open(a.fetchImpl)
+    const section = await screen.findByTestId('estimate-approval')
+    fireEvent.click(within(section).getByRole('checkbox', { name: 'I have read and accept the estimate terms' }))
+    fireEvent.change(within(section).getByLabelText('Your full name'), { target: { value: 'Synthetic Customer' } })
+    fireEvent.click(within(section).getByRole('button', { name: 'Approve Estimate' }))
+    expect(
+      await within(section).findByText("This estimate can't be approved yet: the estimate terms are not in effect."),
+    ).toBeTruthy()
+    expect(screen.queryByText('Estimate approved—scheduling is next.')).toBeNull()
   })
 })

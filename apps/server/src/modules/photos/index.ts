@@ -255,7 +255,8 @@ export function photosModule(deps: { storage: ObjectStorage | null }): ApiModule
     summary: 'Photos of a request',
     description:
       'Staff (request.view). Every photo with its state; ready photos carry a signed URL valid for minutes. ' +
-      'Quarantined and rejected photos are never served.',
+      'Quarantined and rejected photos are never served. TSK-0044 (HH-STAFF-05): a restricted photo is listed only ' +
+      'for a role that reads its class (restricted incident: the Owner; restricted financial: the Owner).',
     actors: ['staff'],
     permission: 'request.view',
     kind: 'read',
@@ -301,7 +302,7 @@ export function photosModule(deps: { storage: ObjectStorage | null }): ApiModule
     },
     handler: async (ctx) => {
       const { requestId } = ctx.req.params as { requestId: string }
-      const rows = await scopedRequestPhotos(ctx.db, ctx.scope, requestId, 'staff')
+      const rows = await scopedRequestPhotos(ctx.db, ctx.scope, requestId, 'staff', ctx.actor)
       if (!rows) throw new ApiError('NOT_FOUND')
       const photos = []
       for (const r of rows)

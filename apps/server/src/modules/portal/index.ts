@@ -5,7 +5,9 @@
 //   GET /customer/projects/:reference/<tab>     the Messages, Documents, Photos, Appointments and Payments tabs
 //                                                (TSK-0039; HH-PORT-09): each tab's truthful state today
 //   GET/POST /customer/projects/:reference/estimates/:number/versions/:version[/...]  the customer estimate view,
-//                                                Request Changes, Decline, Request an Updated Estimate (TSK-0056)
+//                                                Request Changes, Decline, Request an Updated Estimate (TSK-0056),
+//                                                the selected options and Approve Estimate (TSK-0057)
+//   GET/POST /customer/session/verification[/codes]   fresh verification inside the session (TSK-0057, HH-ID-07)
 // The Overview is authorized by the policy (ROLE-MATRIX "View intake queue and original requests": Customer "V (own)")
 // and scoped by the session (TSK-0037): another project, an unknown or a malformed reference is the same NOT_FOUND.
 // The list names no record, so like GET /customer/access/session it starts from the session itself; each project
@@ -17,6 +19,7 @@ import { dataScope } from '@handyhub/policy'
 import { ApiError } from '../../api/errors.js'
 import { AUTHENTICATION, type ApiModule, type RouteDef } from '../../api/route.js'
 import { projectIdOf } from '../access/projects.js'
+import type { CodeKeySettings } from '../identity/index.js'
 import {
   PROJECT_APPOINTMENTS,
   PROJECT_DOCUMENTS,
@@ -29,6 +32,7 @@ import {
 } from '../records/index.js'
 import { projectOverview, projectSummaries, refreshSeconds } from './overview.js'
 import { portalEstimateRoutes, type PortalEstimateDeps } from './estimates.js'
+import { sessionVerificationRoutes, type SessionVerificationDeps } from './verification.js'
 import { projectTab, type WorkspaceTab } from './tabs.js'
 
 export { projectOverview, projectSummaries, refreshSeconds } from './overview.js'
@@ -48,9 +52,17 @@ const read = {
   test: TEST,
 } as const
 
-export { ESTIMATE_RESPONSE_RATE_LIMIT, type PortalEstimateDeps } from './estimates.js'
+export {
+  ESTIMATE_APPROVAL_RATE_LIMIT,
+  ESTIMATE_RESPONSE_RATE_LIMIT,
+  ESTIMATE_SELECTION_RATE_LIMIT,
+  type PortalEstimateDeps,
+} from './estimates.js'
+export { reverifyTargets, type SessionVerificationDeps } from './verification.js'
 
-export function portalModule(deps: PortalEstimateDeps = {}): ApiModule {
+const NO_CODE_KEY: CodeKeySettings = { state: 'not_configured', missing: ['CODE_HASH_KEY'] }
+
+export function portalModule(deps: PortalEstimateDeps & Partial<SessionVerificationDeps> = {}): ApiModule {
   const list: RouteDef = {
     ...read,
     path: '/customer/projects',
@@ -167,5 +179,9 @@ export function portalModule(deps: PortalEstimateDeps = {}): ApiModule {
     },
   }))
 
-  return { name: 'portal', routes: [list, overview, ...tabs, ...portalEstimateRoutes(deps)] }
+  const verification = sessionVerificationRoutes({
+    codeKey: deps.codeKey ?? NO_CODE_KEY,
+    trustProxyHops: deps.trustProxyHops ?? 0,
+  })
+  return { name: 'portal', routes: [list, overview, ...tabs, ...portalEstimateRoutes(deps), ...verification] }
 }
