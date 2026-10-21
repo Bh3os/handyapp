@@ -94,7 +94,10 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     // TSK-0058: each approval's receipt PDF, issued once, and the automatic approval receipt message
     // (FACT-AUTOMATIC-MESSAGES #9; wording NOT CONFIGURED: each delivery records template_not_configured).
     approvalReceiptDocumentAutomation(deps.providers.storage),
-    approvalReceiptNoticeAutomation({ providers: { email: deps.providers.email, sms: deps.providers.sms } }),
+    // TSK-0049: its email replies to the project's reply address.
+    approvalReceiptNoticeAutomation({
+      providers: { email: deps.providers.email, sms: deps.providers.sms, replyAddress: deps.replyAddress ?? null },
+    }),
     // TSK-0041: action queue items from the modules' committed events.
     ...queueAutomations(),
     // TSK-0059: an approval whose job needs a deposit opens its deposit_due item (deposits to collect, S01).

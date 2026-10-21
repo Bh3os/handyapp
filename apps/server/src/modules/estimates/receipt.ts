@@ -494,6 +494,8 @@ export function approvalReceiptNoticeAutomation(deps: { providers: NotificationP
         // The secure project link is not supplied: no truthful link exists for this message yet (see the header).
         values: {},
         failureItem: { reference: a.reference, projectId: a.project_id, assignedStaffId: a.responsible_staff_id },
+        // TSK-0049: the delivery belongs to the project (its reply address and conversation).
+        projectId: a.project_id,
       }
     },
   })

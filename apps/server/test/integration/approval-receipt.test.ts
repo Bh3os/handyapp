@@ -372,7 +372,16 @@ const receipts = (approvalId: string) =>
 const deliveries = (approvalId: string) =>
   t.db
     .selectFrom('platform.message_deliveries')
-    .select(['channel', 'state', 'error_code', 'provider_message_id', 'subject_key', 'audience', 'locale'])
+    .select([
+      'channel',
+      'state',
+      'error_code',
+      'provider_message_id',
+      'subject_key',
+      'audience',
+      'locale',
+      'project_id',
+    ])
     .where('message_key', '=', 'approval.receipt')
     .where('record_type', '=', 'estimate_approval')
     .where('record_id', '=', approvalId)
@@ -476,6 +485,8 @@ describe('[HH-EST-12][T33][FACT-AUTOMATIC-MESSAGES] the approval receipt: one PD
         subject_key: `estimate_approval:${approval.id}`,
         audience: 'customer',
         locale: 'en',
+        // TSK-0049: the delivery records its project (its reply address and conversation).
+        project_id: e.projectId,
       },
       {
         channel: 'sms',
@@ -485,6 +496,7 @@ describe('[HH-EST-12][T33][FACT-AUTOMATIC-MESSAGES] the approval receipt: one PD
         subject_key: `estimate_approval:${approval.id}`,
         audience: 'customer',
         locale: 'en',
+        project_id: e.projectId,
       },
     ])
     expect(fakes.fakeEmail.calls.length).toBe(emailsBefore)
