@@ -14,11 +14,13 @@
 //   created. Nothing here confirms an appointment or marks a deposit paid.
 // - TSK-0058 (HH-EST-12): the approval receipt PDF (issued, or being prepared) and what happened to each automatic
 //   receipt message: while its wording is NOT CONFIGURED each delivery reads "Not sent" with the reason, never sent.
+// - TSK-0059: the job's deposit panel (JobDeposit.tsx) under the approval, for the roles that may see payments.
 import type { StaffKey } from '@handyhub/i18n'
 import { cents, formatUsd } from '@handyhub/money'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useEffect, useId, useRef, useState, type MouseEvent } from 'react'
 import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
+import { JobDeposit } from './JobDeposit'
 import { codeLabel } from './Requests'
 
 type T = (key: StaffKey, values?: Record<string, string | number | Date>) => string
@@ -47,6 +49,8 @@ export type Lifecycle = {
     depositCents: number | null
     termsVersion: string
     testMark: boolean
+    /** TSK-0059: the job its deposit panel reads. */
+    jobId?: string
     jobState: string
     schedulingTaskState: string
     /** TSK-0058: the approval receipt PDF and each automatic receipt message's delivery. */
@@ -553,6 +557,9 @@ export function EstimateLifecycle<V extends VersionLike>({
               </>
             ) : null}
           </dl>
+          {lc.customerApproval.jobId ? (
+            <JobDeposit t={t} fetchImpl={fetchImpl} jobId={lc.customerApproval.jobId} />
+          ) : null}
         </div>
       ) : (
         <p>{t('estimate.approval.none')}</p>

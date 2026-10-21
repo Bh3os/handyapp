@@ -2,9 +2,11 @@
 // HH-ARC-04, HH-ARC-10, HH-PORT-01, T23, T24, RULE-SERVER-AUTHZ).
 // - Every read goes through the caller's scope (TSK-0037): a project outside it is null, answered NOT_FOUND.
 // - The status is the customer projection of the records (@handyhub/domain customerStatus): the request and project
-//   states, and the staff decisions published to the customer. The records later tasks build (estimate, visit, job,
-//   hold, invoice) are not read yet, so no estimate, appointment, hold or balance is ever claimed. TSK-0058: the
-//   approval is read (approved, and a required deposit still due), so the step after approval is the owner's wording.
+//   states, and the staff decisions published to the customer. The records later tasks build (visit, hold, invoice)
+//   are not read yet, so no appointment, hold or balance is ever claimed. TSK-0058: the approval is read (approved,
+//   and a required deposit still due), so the step after approval is the owner's wording. TSK-0059: the job's deposit
+//   is read (the amount due, verified and pending money, the staff-pasted Square link) for the payment summary and
+//   the next step.
 // - The timeline lists only what the customer may see: the request they sent, "More information needed", "Site
 //   visit needed" with its customer explanation (OWN-DEC-99), and the Not a Fit decision in the owner's wording
 //   (OWN-DEC-100). Internal notes, qualification, assignment, the Owner routing and every staff name stay on the
@@ -21,6 +23,7 @@ import {
 import type { DataScope } from '@handyhub/policy'
 import { loadConfig } from '../../platform/config/index.js'
 import { approvalFacts } from '../estimates/receipt.js'
+import { customerDeposit, type CustomerDeposit } from '../finance/index.js'
 import { findProject } from '../records/repository.js'
 import { replyWindow } from '../questions/model.js'
 import { notAFitCustomerMessage } from '../requests/staff-record.js'
@@ -47,8 +50,11 @@ export type ProjectOverview = {
   submittedAt: Date
   status: CustomerStatus & { since: Date; text: string | null }
   timeline: TimelineEntry[]
-  /** Payment summary, shown beside the status and never merged into it: no estimate, deposit or invoice exists yet. */
-  payment: { state: 'none' }
+  /**
+   * Payment summary, shown beside the status and never merged into it. TSK-0059: the job's deposit while it is due
+   * (or once verified money covers it); no invoice exists yet.
+   */
+  payment: CustomerDeposit
   /** The confirmed appointment: none until visits exist (TSK-0061). */
   appointment: null
   refreshedAt: Date
@@ -118,12 +124,15 @@ async function overviewFor(db: Reader, project: { id: string; reference: string 
       .executeTakeFirst()
     reopenByReply = w.window === 'reopen' && open !== undefined
   }
+  const payment = await customerDeposit(db, project.id)
   const facts: PortalFacts = {
     requestState: r.state as RequestState,
     projectState: p.state as ProjectState,
     ...(reopenByReply ? { reopenByReply } : {}),
     // TSK-0058 (HH-EST-12, OWN-DEC-105): an approval and whether its required deposit is still due name the next step.
     ...(await approvalFacts(db, project.id)),
+    // TSK-0059 (OWN-DEC-105): an approved project waits on the customer's deposit while it is due.
+    depositDue: payment.state === 'deposit_due',
   }
   const status = customerStatus(facts)
   // The entry that put the project where it is now dates the status and carries its customer text.
@@ -137,7 +146,7 @@ async function overviewFor(db: Reader, project: { id: string; reference: string 
     status: { ...status, since: (current ?? latest).at, text: current?.text ?? null },
     // Newest first: the latest update leads.
     timeline: entries.reverse(),
-    payment: { state: 'none' as const },
+    payment,
     appointment: null,
     refreshedAt: now,
   }

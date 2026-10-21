@@ -81,6 +81,7 @@ export const LABEL_FAMILIES = {
     'customer_replied',
     'question_replied',
     'question_reminder',
+    'deposit_due',
     'deposit_waiver',
     'start_work_exception',
     'refund_request',
@@ -107,6 +108,8 @@ export const LABEL_FAMILIES = {
     'injury_reported',
     'dispute_reported',
     'deposit_waiver_requested',
+    'deposit_due',
+    'deposit_check_pending',
     'start_work_exception_requested',
     'refund_requested',
     'cancellation_outcome_requested',
@@ -143,6 +146,7 @@ export const LABEL_FAMILIES = {
     'review_match',
     'link_message',
     'open_conversation',
+    'review_deposit',
   ],
   /**
    * System health (TSK-0101; HH-NFR-02): the checks, their states, metrics and notes, as the server's health report
@@ -209,6 +213,7 @@ export const LABEL_FAMILIES = {
     'payment.term_default',
     'payment.methods',
     'payment.instructions',
+    'payment.square_link_hosts',
     'cancellation.rules',
     'contact.hours',
     'business.timezone',
@@ -567,6 +572,35 @@ export const LABEL_FAMILIES = {
     'channel_not_configured',
     'template_values_missing',
     'record_changed',
+  ],
+  /** Deposit requirement states (ENT-DepositRequirement; TSK-0059). */
+  depositState: ['not_required', 'required', 'partly_satisfied', 'satisfied', 'applied', 'waived'],
+  /** Accepted payment methods (FACT-PAYMENT-METHODS; config payment.methods). */
+  paymentMethod: ['square_payment_link', 'square_tap_to_pay', 'cash', 'check', 'zelle', 'cash_app', 'chime'],
+  /** Payment states (ENT-Payment): cash and digital recorded -> reconciled; checks received -> deposited -> cleared. */
+  paymentState: ['recorded', 'reconciled', 'received', 'deposited', 'cleared', 'returned', 'voided'],
+  /** Why a deposit action was refused (TSK-0059), by the field code the server answers. */
+  depositRefusal: [
+    'DEPOSIT_NOT_REQUIRED',
+    'DEPOSIT_SATISFIED',
+    'DEPOSIT_WAIVED',
+    'DEPOSIT_APPLIED',
+    'DEPOSIT_COVERED',
+    'DUPLICATE_PAYMENT',
+    'NOT_A_LINK',
+    'NOT_HTTPS',
+    'NOT_A_SQUARE_LINK',
+    'TOO_LONG',
+    'NOT_ACCEPTED',
+    'INVALID',
+    'IN_FUTURE',
+    'required',
+    'NOT_ACTIVE_STAFF',
+    'NOT_A_CHECK',
+    'CHECK_CLEARED',
+    'CHECK_RETURNED',
+    'CHECK_VOIDED',
+    'NOT_CONFIGURED',
   ],
 } as const satisfies Record<string, readonly string[]>
 

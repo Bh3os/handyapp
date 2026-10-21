@@ -100,10 +100,25 @@ export type ProjectOverview = {
   status: Status & { text: string | null }
   timeline: TimelineEntry[]
   appointment: null
-  payment: { state: 'none' }
+  payment: Payment
   refreshedAt: string
   refreshSeconds: number
 }
+
+/**
+ * The Overview's payment summary (TSK-0059): the deposit while it is due (amount, verified and pending money, the
+ * Square link HandyHub entered) or once it is received; nothing to pay otherwise.
+ */
+export type Payment =
+  | { state: 'none' }
+  | {
+      state: 'deposit_due'
+      amountCents: number
+      verifiedCents: number
+      pendingCents: number
+      payByCardUrl: string | null
+    }
+  | { state: 'deposit_received'; amountCents: number }
 
 export type Failure = 'expired' | 'unavailable' | 'failed'
 export type Result<T> = { ok: true; data: T } | { ok: false; failure: Failure }
@@ -151,6 +166,21 @@ function entry(v: unknown): TimelineEntry | null {
   return { kind: v['kind'], at: v['at'], text }
 }
 
+/** Only an https link is ever offered as Pay by Card. */
+const isHttps = (v: unknown): v is string => isStr(v) && /^https:\/\//.test(v)
+
+function paymentOf(v: unknown): Payment | null {
+  if (!isObj(v)) return null
+  if (v['state'] === 'none') return { state: 'none' }
+  if (v['state'] === 'deposit_received')
+    return isCents(v['amountCents']) ? { state: v['state'], amountCents: v['amountCents'] } : null
+  if (v['state'] !== 'deposit_due') return null
+  const { amountCents, verifiedCents, pendingCents, payByCardUrl } = v
+  if (!isCents(amountCents) || !isCents(verifiedCents) || !isCents(pendingCents)) return null
+  if (payByCardUrl !== null && !isHttps(payByCardUrl)) return null
+  return { state: 'deposit_due', amountCents, verifiedCents, pendingCents, payByCardUrl }
+}
+
 export function parseOverview(v: unknown): ProjectOverview | null {
   if (!isObj(v)) return null
   const head = summary(v)
@@ -159,15 +189,15 @@ export function parseOverview(v: unknown): ProjectOverview | null {
   if (!Array.isArray(v['timeline']) || v['appointment'] !== null) return null
   const timeline = v['timeline'].map(entry)
   if (timeline.some((e) => e === null)) return null
-  const payment = v['payment']
-  if (!isObj(payment) || payment['state'] !== 'none') return null
+  const payment = paymentOf(v['payment'])
+  if (!payment) return null
   if (!isDate(v['refreshedAt']) || !isSeconds(v['refreshSeconds'])) return null
   return {
     ...head,
     status: { ...head.status, text: s },
     timeline: timeline as TimelineEntry[],
     appointment: null,
-    payment: { state: 'none' },
+    payment,
     refreshedAt: v['refreshedAt'],
     refreshSeconds: v['refreshSeconds'],
   }

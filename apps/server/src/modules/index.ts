@@ -9,6 +9,7 @@ import type { EnvironmentName } from '../config.js'
 import { estimatesModule } from './estimates/index.js'
 import { CUSTOMERS_MODULE } from './customers/index.js'
 import { inboxModule } from './inbox/index.js'
+import { FINANCE_MODULE } from './finance/index.js'
 import { NOTIFICATIONS_MODULE } from './notifications/index.js'
 import { photosModule } from './photos/index.js'
 import { propertiesModule } from './properties/index.js'
@@ -62,6 +63,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     QUEUE_MODULE,
     // TSK-0053: Write an Estimate and the staff builder; TSK-0054: Upload an Estimate and the customer PDF.
     estimatesModule({ storage: deps.storage ?? null, testMark: deps.environment !== 'production' }),
+    // TSK-0059: the deposit requirement, recorded deposit payments, the Owner's waiver (the gate is called by visits).
+    FINANCE_MODULE,
     NOTIFICATIONS_MODULE,
     systemModule(deps.system ?? {}),
     // TSK-0033: the receipt's contact verification and its account-offer answer.

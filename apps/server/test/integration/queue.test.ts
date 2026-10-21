@@ -130,6 +130,8 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       // TSK-0051: replies to staff questions and question reminders to release.
       'question_replied',
       'question_reminder',
+      // TSK-0059: deposits to collect (payment.record: the Owner and Office).
+      'deposit_due',
     ])
     expect(office.items.map((i) => i.type)).not.toContain('deposit_waiver')
     expect(office.items.map((i) => i.id)).not.toContain(ownerOnly)

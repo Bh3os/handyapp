@@ -256,6 +256,30 @@ const TIMELINE_ENTRY = object({
 type TimelineRecord = { kind: string; at: Date; text: string | null }
 const entry = (e: TimelineRecord) => ({ kind: e.kind, at: e.at.toISOString(), text: e.text })
 
+/** The Overview's payment summary (TSK-0059): the deposit due or received; nothing else exists yet. */
+type CustomerPayment =
+  | { state: 'none' }
+  | {
+      state: 'deposit_due'
+      amountCents: number
+      verifiedCents: number
+      pendingCents: number
+      payByCardUrl: string | null
+    }
+  | { state: 'deposit_received'; amountCents: number }
+const customerPayment = (p: CustomerPayment) =>
+  p.state === 'deposit_due'
+    ? {
+        state: p.state,
+        amountCents: p.amountCents,
+        verifiedCents: p.verifiedCents,
+        pendingCents: p.pendingCents,
+        payByCardUrl: p.payByCardUrl,
+      }
+    : p.state === 'deposit_received'
+      ? { state: p.state, amountCents: p.amountCents }
+      : { state: 'none' as const }
+
 /** The project Overview (TSK-0038): status, one next action, the filtered timeline, appointment and payment summary. */
 export const PROJECT_OVERVIEW = customerView(
   'project.overview',
@@ -269,8 +293,21 @@ export const PROJECT_OVERVIEW = customerView(
     timeline: { type: 'array', items: TIMELINE_ENTRY },
     // Nothing is confirmed until visits exist (TSK-0061); the slot is explicit so "none" is never a guess.
     appointment: { type: 'null' },
-    // Shown beside the status, never merged into it (HH-PORT-03): no estimate, deposit or invoice exists yet.
-    payment: object({ state: enumOf(['none']) }),
+    // Shown beside the status, never merged into it (HH-PORT-03). TSK-0059: the deposit while it is due (amount, any
+    // verified or pending money, the staff-pasted Square link) or once verified money covers it; otherwise nothing.
+    payment: {
+      anyOf: [
+        object({ state: enumOf(['none']) }),
+        object({
+          state: enumOf(['deposit_due']),
+          amountCents: { type: 'integer' },
+          verifiedCents: { type: 'integer' },
+          pendingCents: { type: 'integer' },
+          payByCardUrl: { type: ['string', 'null'] },
+        }),
+        object({ state: enumOf(['deposit_received']), amountCents: { type: 'integer' } }),
+      ],
+    },
     refreshedAt: DATE,
     refreshSeconds: { type: 'integer', minimum: 0 },
   },
@@ -282,7 +319,7 @@ export const PROJECT_OVERVIEW = customerView(
     status: StatusRecord & { text: string | null }
     timeline: TimelineRecord[]
     appointment: null
-    payment: { state: 'none' }
+    payment: CustomerPayment
     refreshedAt: Date
     refreshSeconds: number
   }) => ({
@@ -293,7 +330,7 @@ export const PROJECT_OVERVIEW = customerView(
     status: { ...status(o.status), text: o.status.text },
     timeline: o.timeline.map(entry),
     appointment: null,
-    payment: { state: o.payment.state },
+    payment: customerPayment(o.payment),
     refreshedAt: o.refreshedAt.toISOString(),
     refreshSeconds: o.refreshSeconds,
   }),

@@ -96,6 +96,11 @@ export const CONFIG_KEYS = {
     surcharge: exactly(false),
   }),
   'payment.instructions': shape({ placeholder: bool, zelle: text, cashApp: text, chime: text, checkPayee: text }),
+  // TSK-0059 (INT-Square): the hosts a staff-pasted Square payment link may use (https only; the host itself or a
+  // subdomain of it). The graph says "on a Square domain" without naming them: the list is PROPOSED (proposed = true).
+  'payment.square_link_hosts': shape({
+    hosts: listOf(matching(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/, 'a host name')),
+  }),
   'cancellation.rules': shape({ rescheduleFree: bool, noticeHours: hours, lateCancellationCents: int() }),
   'contact.hours': shape({ days: exactly('every_day'), open: clock, close: clock }),
   'business.timezone': shape({ zone: text }),

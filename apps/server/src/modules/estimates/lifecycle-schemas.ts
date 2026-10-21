@@ -99,6 +99,7 @@ export const LIFECYCLE = {
             'depositCents',
             'termsVersion',
             'testMark',
+            'jobId',
             'jobState',
             'schedulingTaskState',
             'receipt',
@@ -113,6 +114,7 @@ export const LIFECYCLE = {
             depositCents: { type: ['integer', 'null'] },
             termsVersion: { type: 'string' },
             testMark: { type: 'boolean' },
+            jobId: { type: 'string' },
             jobState: { type: 'string' },
             schedulingTaskState: { type: 'string' },
             // TSK-0058 (HH-EST-12): the approval receipt PDF (issued once, or being prepared) and each automatic

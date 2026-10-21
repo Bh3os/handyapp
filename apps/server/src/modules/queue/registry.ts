@@ -31,6 +31,7 @@ export const QUEUE_ACTIONS = [
   'review_match',
   'link_message',
   'open_conversation',
+  'review_deposit',
 ] as const
 export type QueueAction = (typeof QUEUE_ACTIONS)[number]
 
@@ -233,6 +234,20 @@ export const QUEUE_ITEM_TYPES = [
     reasons: ['question_reminder_first', 'question_reminder_final', 'no_response_close_available'],
     action: 'release_reminder',
     screen: 'requests',
+  },
+  // Deposits to collect and checks to verify (S01, HH-FIN-02, HH-FIN-12; TSK-0059): one item per job while its required
+  // deposit is still due, opened from the approval's committed event and kept in line in the same transaction as every
+  // deposit payment, check clearing and waiver; resolved once verified money covers it or the Owner waives it. Seen by
+  // the roles that record payments (the Owner, Office); the link opens the job's deposit. Band and view are PROPOSED.
+  {
+    id: 'deposit_due',
+    section: 'queue',
+    subject: 'job',
+    band: 'other',
+    view: 'payment.record',
+    reasons: ['deposit_due', 'deposit_check_pending'],
+    action: 'review_deposit',
+    screen: 'payments',
   },
   // Owner Decisions (HH-OPS-01 "Owner, additionally"): each decision is owner-only in the matrix.
   {

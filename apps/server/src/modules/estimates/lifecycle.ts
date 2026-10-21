@@ -808,6 +808,7 @@ async function estimateApproval(db: Reader, estimateId: string) {
       'a.deposit_cents',
       'a.terms_document_id',
       'a.test_mark',
+      'j.id as job_id',
       'j.operational_state',
       's.state as task_state',
     ])
@@ -837,6 +838,8 @@ async function estimateApproval(db: Reader, estimateId: string) {
     depositCents: a.deposit_cents === null ? null : Number(a.deposit_cents),
     termsVersion: a.terms_document_id,
     testMark: a.test_mark,
+    // TSK-0059: the job, so the staff panel can show its deposit (GET /staff/jobs/:jobId/deposit).
+    jobId: a.job_id,
     jobState: a.operational_state,
     schedulingTaskState: a.task_state,
     receipt: receipt

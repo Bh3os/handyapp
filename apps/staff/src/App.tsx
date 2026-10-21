@@ -11,6 +11,7 @@ import { EstimateBuilder, EstimatesScreen } from './Estimates'
 import { CustomerRecord, CustomersScreen } from './Customers'
 import { InboxRecord, InboxScreen } from './Inbox'
 import { PropertyRecord } from './Property'
+import { JobDepositPage } from './JobDeposit'
 import { QueueHome } from './Queue'
 import { MergeReview, RelinkRequest } from './RecordLinks'
 import { RequestRecord } from './Record'
@@ -293,6 +294,8 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
               go={go}
               href={href}
             />
+          ) : route.page === 'record' && route.screen === 'payments' && allowed ? (
+            <JobDepositPage key={route.id} t={t} fetchImpl={doFetch} jobId={route.id} />
           ) : route.page === 'record' && route.screen === 'requests' && allowed ? (
             <RequestRecord key={route.id} t={t} locale={locale} fetchImpl={doFetch} id={route.id} go={go} href={href} />
           ) : (

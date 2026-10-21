@@ -11,6 +11,7 @@ import {
   estimateReminderRecordCheck,
   estimateResponseNoticeAutomations,
 } from './modules/estimates/index.js'
+import { depositQueueAutomation } from './modules/finance/index.js'
 import { deliveryStatusAutomation, releaseAutomation } from './modules/notifications/index.js'
 import { photoProcessAutomation } from './modules/photos/index.js'
 import { queueAutomations } from './modules/queue/index.js'
@@ -87,6 +88,8 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     approvalReceiptNoticeAutomation({ providers: { email: deps.providers.email, sms: deps.providers.sms } }),
     // TSK-0041: action queue items from the modules' committed events.
     ...queueAutomations(),
+    // TSK-0059: an approval whose job needs a deposit opens its deposit_due item (deposits to collect, S01).
+    depositQueueAutomation(),
     // TSK-0032: the automatic receipt email, once per saved request (HH-INT-20); email only.
     receiptEmailAutomation({
       providers: { email: deps.providers.email, sms: null, replyAddress: deps.replyAddress ?? null },

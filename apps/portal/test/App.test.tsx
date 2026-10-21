@@ -199,6 +199,90 @@ describe('the Overview (TSK-0038, HH-PORT-02, HH-PORT-03, T23)', () => {
   })
 })
 
+describe('the deposit in the payment summary (TSK-0059, HH-FIN-02, OWN-DEC-104, OWN-DEC-105, INT-Square)', () => {
+  const approved = {
+    situation: 'approved',
+    step: 'deposit_due',
+    waitingOn: 'customer',
+    nextAction: 'pay_deposit',
+  } as const
+  const SQUARE = ['https://square.link/u', 'synthetic0059'].join('/')
+
+  it('[HH-FIN-02] a deposit due: the owner wording with the amount, any pending check, and Pay by Card opening Square', async () => {
+    const { fetchImpl } = scripted(() =>
+      json(
+        200,
+        overview(
+          {
+            payment: {
+              state: 'deposit_due',
+              amountCents: 25_500,
+              verifiedCents: 0,
+              pendingCents: 10_000,
+              payByCardUrl: SQUARE,
+            },
+          },
+          approved,
+        ),
+      ),
+    )
+    project(fetchImpl)
+    const next = await screen.findByTestId('next-action')
+    expect(within(next).getByText('Estimate approved—pay your deposit to proceed with scheduling.')).toBeTruthy()
+    expect(within(next).getByRole('link', { name: 'Pay your deposit' }).getAttribute('href')).toBe('#portal-payment')
+    const payments = screen.getByRole('region', { name: 'Payments' })
+    expect(
+      within(payments).getByText(
+        'Deposit due: $255.00. Please pay your deposit so we can confirm your work appointment. Payment does not guarantee a particular date.',
+      ),
+    ).toBeTruthy()
+    expect(within(payments).getByText('Pending: $100.00. A check counts once it has cleared.')).toBeTruthy()
+    const pay = within(payments).getByRole('link', { name: 'Pay by Card' })
+    expect(pay.getAttribute('href')).toBe(SQUARE)
+    expect(pay.getAttribute('rel')).toBe('noopener noreferrer')
+  })
+
+  it('without a link there is no Pay by Card; a deposit received shows its amount; anything else is refused', async () => {
+    const { fetchImpl } = scripted(() =>
+      json(
+        200,
+        overview(
+          {
+            payment: {
+              state: 'deposit_due',
+              amountCents: 20_000,
+              verifiedCents: 5_000,
+              pendingCents: 0,
+              payByCardUrl: null,
+            },
+          },
+          approved,
+        ),
+      ),
+    )
+    project(fetchImpl)
+    const payments = await screen.findByRole('region', { name: 'Payments' })
+    expect(within(payments).getByText('Received so far: $50.00.')).toBeTruthy()
+    expect(within(payments).queryByRole('link')).toBeNull()
+    cleanup()
+    const received = scripted(() =>
+      json(
+        200,
+        overview(
+          { payment: { state: 'deposit_received', amountCents: 20_000 } },
+          { situation: 'approved', step: 'choose_work_appointment', waitingOn: 'handyhub', nextAction: 'none' },
+        ),
+      ),
+    )
+    project(received.fetchImpl)
+    expect(await screen.findByText('Deposit received: $200.00.')).toBeTruthy()
+    const due = { state: 'deposit_due', amountCents: 1, verifiedCents: 0, pendingCents: 0 }
+    expect(parseOverview({ ...overview(), payment: { ...due, payByCardUrl: 'http://square.link/u/x' } })).toBeNull()
+    expect(parseOverview({ ...overview(), payment: { ...due, payByCardUrl: 'javascript:alert(1)' } })).toBeNull()
+    expect(parseOverview({ ...overview(), payment: { ...due, amountCents: 1.5, payByCardUrl: null } })).toBeNull()
+  })
+})
+
 describe('refresh, polling and truthful failure states (TSK-0038, HH-ARC-10, HH-PORT-06, T71)', () => {
   it('[HH-ARC-10][T23] polling picks up a changed record: the next action changes in place', async () => {
     const { fetchImpl, urls } = scripted(
