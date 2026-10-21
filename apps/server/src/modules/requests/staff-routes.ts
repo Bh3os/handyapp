@@ -20,20 +20,28 @@
 //     Owner for cancellation and financial review (an Owner Decisions item) and nothing closes. Otherwise the request
 //     and project close, the history stays, and decision.not_a_fit_published is recorded for the automatic notice
 //     (FACT-AUTOMATIC-MESSAGES row 7), which sends only once its template is released.
-// Every action resolves the request's new-request queue item once the request has left "received".
+// None of these stops the first-response clock (TSK-0043, OWN-DEC-116): the new-request queue item stays, due at the
+// internal target, until a meaningful response is sent or a completed customer conversation is recorded here.
+// TSK-0043: risk flags needing attention name the potential hazards found, each of which opens a review hold; a
+// blocking review hold refuses both estimating routes (holds.ts).
 import { apply, ACTION_EVENTS, NOT_A_FIT_EVENTS, type NotAFitCategory, type RequestState } from '@handyhub/domain'
 import type { Tx } from '@handyhub/db'
-import { heldScopes, type StaffActor } from '@handyhub/policy'
+import { heldScopes, type DataScope, type StaffActor } from '@handyhub/policy'
 import { sql } from 'kysely'
 import { ApiError } from '../../api/errors.js'
-import { pageSchema, toPage } from '../../api/pagination.js'
+import { instantIdCursor, pageSchema, toPage } from '../../api/pagination.js'
 import type { ApiContext, RouteDef } from '../../api/route.js'
+import { projectInScope } from '../../platform/data-scope.js'
 import { outbox } from '../../platform/outbox.js'
 import { currentContext } from '../../platform/request-context.js'
-import { openQueueItem, syncNewRequestItem } from '../queue/index.js'
+import { syncDeliveryFailureOwner } from '../notifications/index.js'
+import { openQueueItem, syncEstimateItem, syncNewRequestItem } from '../queue/index.js'
 import { DEFAULT_OBLIGATION_CHECKS, obligationFacts, type ObligationCheck } from './obligations.js'
 import { latestQualification, staffRequestView } from './staff-record.js'
-import { unqualifiedChecks, type Qualification } from '@handyhub/domain'
+import { HAZARD_CATEGORIES, qualificationProblems, unqualifiedChecks, type Qualification } from '@handyhub/domain'
+import { CLOCK_SCHEMA, responseClockView } from './clock-view.js'
+import { blockingReviewHolds, holdRoutes, openFlaggedHolds, syncReviewHoldItem } from './holds.js'
+import { recordResponseEvent, responseReport } from './response-clock.js'
 import {
   ACTION_RESULT,
   DETAIL,
@@ -82,11 +90,13 @@ type Locked = {
 }
 
 /** The request and its project, locked for this transaction (request first, then project: one order everywhere). */
-async function lockRequest(tx: Tx, requestId: string): Promise<Locked> {
+/** Locks a request inside the caller's scope (TSK-0037): outside it, or unknown, NOT_FOUND and nothing changes. */
+async function lockRequest(tx: Tx, scope: DataScope, requestId: string): Promise<Locked> {
   const r = await tx
     .selectFrom('intake.requests')
     .select(['id', 'reference', 'state', 'state_version', 'project_id', 'responsible_staff_id'])
     .where('id', '=', requestId)
+    .where(projectInScope('project_id', scope))
     .forUpdate()
     .executeTakeFirst()
   if (!r) throw new ApiError('NOT_FOUND')
@@ -122,9 +132,11 @@ function refused(result: { code: string; problems: readonly { code: string }[] }
   const field = (code: string) =>
     code === 'REASON_REQUIRED' || code === 'REASON_CATEGORY_REQUIRED'
       ? 'body'
-      : code === 'QUALIFICATION_INCOMPLETE'
+      : code === 'QUALIFICATION_INCOMPLETE' || code.startsWith('HAZARD')
         ? 'qualification'
-        : 'state'
+        : code === 'REVIEW_HOLD_OPEN'
+          ? 'holds'
+          : 'state'
   const problems = result.problems.length ? result.problems : [{ code: result.code }]
   return new ApiError('CONFLICT', {
     fieldErrors: problems.map((p) => ({ field: field(p.code), code: p.code, message: '' })),
@@ -306,11 +318,13 @@ async function moveRequest(
 ) {
   const tx = ctx.tx as Tx
   const actor = staffActor(ctx)
-  const current = await lockRequest(tx, requestIdOf(ctx))
+  const current = await lockRequest(tx, ctx.scope, requestIdOf(ctx))
   if (current.projectState !== 'open') throw refused({ code: 'PROJECT_NOT_OPEN', problems: [] })
   const qualification = await latestQualification(tx, current.id)
   const moved = transitionRequest(current, ctx.expectedVersion(), input.event, {
     missingChecks: unqualifiedChecks((qualification?.checks ?? null) as Qualification | null),
+    // Read under the request's lock: holds are opened and released under it too.
+    blockingReviewHolds: await blockingReviewHolds(tx, current.id),
     ...(input.customerExplanation !== undefined ? { customerExplanation: input.customerExplanation } : {}),
   })
   await saveRequestState(tx, current.id, moved.state, moved.version)
@@ -326,6 +340,11 @@ async function moveRequest(
     internalNote: optionalNote(input.internalNote),
   })
   await syncNewRequestItem(tx, current.id)
+  // The review-hold item shows the request's status too; it follows the action in the same transaction.
+  await syncReviewHoldItem(tx, current.id)
+  // The pending-estimate item opens with Prepare Online Estimate and is resolved when the request leaves "ready for
+  // estimate" (Ask a Question, Arrange Estimate Visit), in the same transaction (HH-OPS-01).
+  await syncEstimateItem(tx, current.id)
   await outbox.add(tx, {
     type: input.outboxType,
     aggregate: { type: 'request', id: current.id, version: moved.version },
@@ -404,6 +423,8 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
           's.display_name',
           sql<string>`r.submitted_at::text`.as('submitted_key'),
         ])
+        // Scoped list (TSK-0037, HH-STAFF-04): only the projects the caller's request.view scope reaches.
+        .where(projectInScope('r.project_id', ctx.scope))
       if (q.state === 'open') query = query.where('r.state', 'in', OPEN_STATES)
       else if (q.state === 'closed') query = query.where('r.state', 'not in', OPEN_STATES)
       else if (q.state !== undefined) query = query.where('r.state', '=', q.state)
@@ -411,13 +432,9 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
       else if (q.responsible === 'unassigned') query = query.where('r.responsible_staff_id', 'is', null)
       else if (q.responsible !== undefined)
         query = query.where('r.responsible_staff_id', '=', q.responsible.toLowerCase())
-      const after = page.after
-      if (after !== undefined) {
-        const [at, id] = after
-        if (after.length !== 2 || typeof at !== 'string' || typeof id !== 'string' || !/^[0-9a-f-]{36}$/.test(id))
-          throw new ApiError('VALIDATION_FAILED', {
-            fieldErrors: [{ field: 'querystring.cursor', code: 'invalid', message: '' }],
-          })
+      if (page.after !== undefined) {
+        // Both parts checked strictly: a crafted cursor is a 400, never a failed cast (a 500).
+        const [at, id] = instantIdCursor(page.after)
         query = query.where(sql<boolean>`(r.submitted_at, r.id) < (${at}::timestamptz, ${id}::uuid)`)
       }
       const rows = await query
@@ -524,7 +541,7 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
     resource: projectOf,
     schema: { params: REQUEST_PARAMS, response: { 200: DETAIL } },
     handler: async (ctx) => {
-      const view = await staffRequestView(ctx.db, requestIdOf(ctx), ctx.actor)
+      const view = await staffRequestView(ctx.db, ctx.scope, requestIdOf(ctx), ctx.actor)
       if (!view) throw new ApiError('NOT_FOUND')
       return { body: view, version: view.version }
     },
@@ -564,7 +581,7 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
       const actor = staffActor(ctx)
       const { staffUserId } = ctx.req.body as { staffUserId: string }
       const target = staffUserId.toLowerCase()
-      const current = await lockRequest(tx, requestIdOf(ctx))
+      const current = await lockRequest(tx, ctx.scope, requestIdOf(ctx))
       if (ctx.expectedVersion() !== current.version) throw stale(current)
       if (!(await eligibleStaff(tx)).some((s) => s.id === target))
         throw new ApiError('VALIDATION_FAILED', {
@@ -601,7 +618,12 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
           assigned_by: actor.userId,
         })
         .execute()
+      // The request's items name the responsible person; none keeps the previous one.
       await syncNewRequestItem(tx, current.id)
+      await syncReviewHoldItem(tx, current.id)
+      await syncEstimateItem(tx, current.id)
+      // The request's open delivery issues (a failed receipt) follow its new owner (TSK-0032, HH-OPS-02).
+      await syncDeliveryFailureOwner(tx, { recordType: 'request', recordId: current.id, assignedStaffId: target })
       await ctx.audit({
         target: { type: 'request', id: current.id, version },
         summary: { from: current.responsibleStaffId, to: target },
@@ -628,7 +650,9 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
       'Staff with request.qualify (PROPOSED: the request-handling row). One outcome per check of HH-LEAD-02 ' +
       '(coverage, service fit, missing essential facts, urgency, site-visit need, staff and equipment, risk ' +
       'flags) with an optional note; each save is a new revision, and If-Match is the current revision (0 before ' +
-      'the first). Classification is by staff; AI stays off. Never changes the request state or stops the clock.',
+      'the first). Classification is by staff; AI stays off. Never changes the request state or stops the clock. ' +
+      'TSK-0043: risk flags needing attention name the potential hazards found (at least one, with a note); each ' +
+      'newly named hazard opens a review hold in the same transaction. A later revision never clears a hold.',
     actors: ['staff'],
     permission: 'request.qualify',
     kind: 'write',
@@ -646,15 +670,19 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
         200: {
           type: 'object',
           additionalProperties: false,
-          required: ['revision', 'missingChecks'],
-          properties: { revision: { type: 'integer' }, missingChecks: { type: 'array', items: { type: 'string' } } },
+          required: ['revision', 'missingChecks', 'holdsOpened'],
+          properties: {
+            revision: { type: 'integer' },
+            missingChecks: { type: 'array', items: { type: 'string' } },
+            holdsOpened: { type: 'array', items: { type: 'string' } },
+          },
         },
       },
     },
     handler: async (ctx) => {
       const tx = ctx.tx as Tx
       const actor = staffActor(ctx)
-      const current = await lockRequest(tx, requestIdOf(ctx))
+      const current = await lockRequest(tx, ctx.scope, requestIdOf(ctx))
       const latest = await latestQualification(tx, current.id)
       const revision = latest?.revision ?? 0
       if (ctx.expectedVersion() !== revision)
@@ -663,8 +691,19 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
         })
       const { checks } = ctx.req.body as { checks: Qualification }
       const clean = Object.fromEntries(
-        Object.entries(checks).map(([k, v]) => [k, { outcome: v?.outcome, note: v?.note?.trim() || null }]),
-      )
+        Object.entries(checks).map(([k, v]) => [
+          k,
+          {
+            outcome: v?.outcome,
+            note: v?.note?.trim() || null,
+            ...(v?.hazards && v.hazards.length
+              ? { hazards: HAZARD_CATEGORIES.filter((c) => v.hazards?.includes(c)) }
+              : {}),
+          },
+        ]),
+      ) as Qualification
+      const problems = qualificationProblems(clean)
+      if (problems.length) throw refused({ code: 'GUARD_FAILED', problems })
       await tx
         .insertInto('intake.request_qualifications')
         .values({
@@ -674,15 +713,26 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
           recorded_by: actor.userId,
         })
         .execute()
-      const missing = unqualifiedChecks(clean as Qualification)
+      const missing = unqualifiedChecks(clean)
+      // The hazard flag (HH-LEAD-04): each newly named potential hazard becomes a review hold.
+      const holdsOpened = await openFlaggedHolds(tx, {
+        requestId: current.id,
+        projectId: current.projectId,
+        previous: (latest?.checks ?? null) as Qualification | null,
+        current: clean,
+        revision: revision + 1,
+        staffId: actor.userId,
+      })
       await ctx.audit({
         target: { type: 'request', id: current.id, version: current.version },
         summary: {
           revision: revision + 1,
-          outcomes: Object.fromEntries(Object.entries(clean).map(([k, v]) => [k, v.outcome ?? null])),
+          outcomes: Object.fromEntries(Object.entries(clean).map(([k, v]) => [k, v?.outcome ?? null])),
+          hazards: [...(clean.risk_flags?.hazards ?? [])],
+          holdsOpened,
         },
       })
-      return { body: { revision: revision + 1, missingChecks: missing }, version: revision + 1 }
+      return { body: { revision: revision + 1, missingChecks: missing, holdsOpened }, version: revision + 1 }
     },
   }
 
@@ -724,7 +774,7 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
     handler: async (ctx) => {
       const tx = ctx.tx as Tx
       const actor = staffActor(ctx)
-      const current = await lockRequest(tx, requestIdOf(ctx))
+      const current = await lockRequest(tx, ctx.scope, requestIdOf(ctx))
       const { body } = ctx.req.body as { body: string }
       const row = await tx
         .insertInto('intake.request_notes')
@@ -775,7 +825,8 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
     description:
       'Staff with request.choose_estimate_approach. "Estimate online": needs the qualification recorded; creates one ' +
       'work package per listed service of the one project and moves the request to "ready for estimate". The ' +
-      'estimate itself is written with TSK-0052/TSK-0053; no message is sent.',
+      'estimate itself is written with TSK-0052/TSK-0053; no message is sent. Refused while a review hold is open ' +
+      'or under review (REVIEW_HOLD_OPEN).',
     permission: 'request.choose_estimate_approach',
     audit: 'request.choose_estimate_approach',
     body: {
@@ -804,7 +855,8 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
       'Staff with request.choose_estimate_approach. "Site visit needed" with a short customer-facing explanation ' +
       '(OWN-DEC-99): needs the qualification recorded; creates one work package per listed service and moves the ' +
       'request to "needs site visit". Nothing is booked and no message is sent: the visit windows are offered with ' +
-      'TSK-0063 (request.site_visit_required is recorded for it).',
+      'TSK-0063 (request.site_visit_required is recorded for it). Refused while a review hold is open or under ' +
+      'review (REVIEW_HOLD_OPEN).',
     permission: 'request.choose_estimate_approach',
     audit: 'request.choose_estimate_approach',
     body: {
@@ -856,7 +908,7 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
       const tx = ctx.tx as Tx
       const actor = staffActor(ctx)
       const b = ctx.req.body as { category: NotAFitCategory; customerReason: string; internalNote?: string }
-      const current = await lockRequest(tx, requestIdOf(ctx))
+      const current = await lockRequest(tx, ctx.scope, requestIdOf(ctx))
       const expected = ctx.expectedVersion()
       if (expected !== current.version) throw stale(current)
       const customerText = b.customerReason.trim()
@@ -916,6 +968,8 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
           reference: current.reference,
           status: routed.to,
         })
+        // The project is no longer open: its pending-estimate item leaves the queue (HH-OPS-01).
+        await syncEstimateItem(tx, current.id)
         await ctx.audit({
           target: { type: 'request', id: current.id, version },
           summary: {
@@ -971,6 +1025,9 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
         internalNote,
       })
       await syncNewRequestItem(tx, current.id)
+      // A closed request keeps its holds as history; its review-hold and pending-estimate items leave the queue.
+      await syncReviewHoldItem(tx, current.id)
+      await syncEstimateItem(tx, current.id)
       // The automatic notice that points the customer to the project (FACT-AUTOMATIC-MESSAGES row 7).
       await outbox.add(tx, {
         type: 'decision.not_a_fit_published',
@@ -1003,7 +1060,196 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
     },
   })
 
-  return [list, assignees, detail, assign, qualify, note, askQuestion, onlineEstimate, estimateVisit, notAFit]
+  const conversation: RouteDef = {
+    method: 'POST',
+    path: '/staff/requests/:requestId/conversations',
+    operationId: 'recordRequestConversation',
+    summary: 'Record a completed customer conversation',
+    description:
+      'Staff with request.record_conversation (PROPOSED: the request-handling row). A completed conversation with ' +
+      'the customer (a logged phone call or a conversation in person) with its outcome, when it happened (default ' +
+      'now; never before the request or in the future). Staff only. It is a meaningful response: the first one ' +
+      'stops the first-response clock at the time it happened (OWN-DEC-116). Never edited or deleted.',
+    actors: ['staff'],
+    permission: 'request.record_conversation',
+    kind: 'write',
+    idempotency: 'required',
+    expectedVersion: 'none',
+    rateLimit: 'none',
+    audit: 'request.record_conversation',
+    pagination: false,
+    test: 'test/integration/response-holds.test.ts',
+    resource: projectOf,
+    schema: {
+      params: REQUEST_PARAMS,
+      body: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['channel', 'outcome'],
+        properties: {
+          channel: { type: 'string', enum: ['phone', 'in_person'] },
+          outcome: { type: 'string', minLength: 1, maxLength: 1000, pattern: '\\S' },
+          occurredAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      response: {
+        201: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['id', 'occurredAt', 'responseClock'],
+          properties: {
+            id: { type: 'string' },
+            occurredAt: { type: 'string', format: 'date-time' },
+            responseClock: { anyOf: [{ type: 'null' }, CLOCK_SCHEMA] },
+          },
+        },
+      },
+    },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const actor = staffActor(ctx)
+      const b = ctx.req.body as { channel: 'phone' | 'in_person'; outcome: string; occurredAt?: string }
+      const current = await lockRequest(tx, ctx.scope, requestIdOf(ctx))
+      const submitted = await tx
+        .selectFrom('intake.requests')
+        .select('submitted_at')
+        .where('id', '=', current.id)
+        .executeTakeFirstOrThrow()
+      const now = new Date()
+      const at = b.occurredAt ? new Date(b.occurredAt) : now
+      // Never before the request was received, never in the future (a minute of clock skew is allowed).
+      if (at.getTime() < submitted.submitted_at.getTime() || at.getTime() > now.getTime() + 60_000)
+        throw new ApiError('VALIDATION_FAILED', {
+          fieldErrors: [{ field: 'body.occurredAt', code: 'out_of_range', message: '' }],
+        })
+      const row = await tx
+        .insertInto('intake.request_conversations')
+        .values({
+          request_id: current.id,
+          project_id: current.projectId,
+          channel: b.channel,
+          outcome: b.outcome.trim(),
+          occurred_at: at,
+          recorded_by: actor.userId,
+        })
+        .returning(['id', 'occurred_at'])
+        .executeTakeFirstOrThrow()
+      const clock = await recordResponseEvent(tx, {
+        requestId: current.id,
+        kind: 'conversation_recorded',
+        ref: row.id,
+        occurredAt: row.occurred_at,
+      })
+      // The outcome text is never written to the audit log.
+      await ctx.audit({
+        target: { type: 'request_conversation', id: row.id },
+        summary: { requestId: current.id, channel: b.channel, clockStopped: clock?.stopped ?? false },
+      })
+      const after = await tx
+        .selectFrom('intake.response_clocks')
+        .selectAll()
+        .where('request_id', '=', current.id)
+        .executeTakeFirst()
+      return {
+        status: 201,
+        body: {
+          id: row.id,
+          occurredAt: row.occurred_at.toISOString(),
+          responseClock: after ? responseClockView(after, now) : null,
+        },
+      }
+    },
+  }
+
+  const report: RouteDef = {
+    method: 'GET',
+    path: '/staff/reports/first-response',
+    operationId: 'getFirstResponseReport',
+    summary: 'Customer response: time to first meaningful response',
+    description:
+      'The Owner (dashboard.view). For requests received in [from, to): how many were received, answered, awaiting ' +
+      'and within the internal one-hour target, the share within target (basis points of requests whose outcome is ' +
+      'known) and the average and median business minutes to the first meaningful response (OWN-DEC-125). Figures ' +
+      'with nothing to measure are null (unavailable), never zero; requests whose clock was NOT CONFIGURED are ' +
+      'counted apart. The Owner Dashboard (TSK-0096) reads it.',
+    actors: ['staff'],
+    permission: 'dashboard.view',
+    kind: 'read',
+    idempotency: 'none',
+    expectedVersion: 'none',
+    rateLimit: 'none',
+    audit: 'none',
+    pagination: false,
+    test: 'test/integration/response-holds.test.ts',
+    schema: {
+      querystring: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['from', 'to'],
+        properties: { from: { type: 'string', format: 'date-time' }, to: { type: 'string', format: 'date-time' } },
+      },
+      response: {
+        200: {
+          type: 'object',
+          additionalProperties: false,
+          required: [
+            'from',
+            'to',
+            'received',
+            'notConfigured',
+            'answered',
+            'awaiting',
+            'withinTarget',
+            'withinTargetShareBps',
+            'averageBusinessMinutes',
+            'medianBusinessMinutes',
+            'generatedAt',
+          ],
+          properties: {
+            from: { type: 'string', format: 'date-time' },
+            to: { type: 'string', format: 'date-time' },
+            received: { type: 'integer' },
+            notConfigured: { type: 'integer' },
+            answered: { type: 'integer' },
+            awaiting: { type: 'integer' },
+            withinTarget: { type: 'integer' },
+            withinTargetShareBps: { type: ['integer', 'null'] },
+            averageBusinessMinutes: { type: ['integer', 'null'] },
+            medianBusinessMinutes: { type: ['integer', 'null'] },
+            generatedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
+    },
+    handler: async (ctx) => {
+      const q = ctx.req.query as { from: string; to: string }
+      const from = new Date(q.from)
+      const to = new Date(q.to)
+      if (!(to.getTime() > from.getTime()))
+        throw new ApiError('VALIDATION_FAILED', {
+          fieldErrors: [{ field: 'querystring.to', code: 'out_of_range', message: '' }],
+        })
+      const now = new Date()
+      const figures = await responseReport(ctx.db, { from, to }, now)
+      return { body: { from: from.toISOString(), to: to.toISOString(), ...figures, generatedAt: now.toISOString() } }
+    },
+  }
+
+  return [
+    list,
+    assignees,
+    detail,
+    assign,
+    qualify,
+    note,
+    askQuestion,
+    onlineEstimate,
+    estimateVisit,
+    notAFit,
+    conversation,
+    report,
+    ...holdRoutes(),
+  ]
 }
 
 /** Active staff whose live roles hold the request-handling actions (PROPOSED: request.choose_estimate_approach). */

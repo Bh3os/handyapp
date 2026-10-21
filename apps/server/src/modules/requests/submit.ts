@@ -8,6 +8,10 @@
 // - Coverage never blocks a request: the server looks the ZIP up in the active rule set and stores the outcome with the
 //   rule set it came from; unknown while no rule set is active (OWN-DEC-88, TSK-0022). The browser's check is not trusted.
 // - Spam controls are quiet: signals flag the request for staff review; nothing is refused or discarded for them.
+// - One request per idempotency key, for as long as the request exists (TSK-0030; HH-INT-10, T11): the API's
+//   idempotency record expires (IDEMPOTENCY_RETENTION_HOURS) long before a browser draft does (FACT-SESSION-TIMINGS),
+//   so a key that already created a request is a conflict that names the request's reference, never a second request
+//   and never an internal error.
 import { randomBytes } from 'node:crypto'
 import { registryServices, type Tx } from '@handyhub/db'
 import { PROJECT_MACHINE, REQUEST_MACHINE } from '@handyhub/domain'
@@ -19,6 +23,7 @@ import { lookupCoverage, type CoverageResult } from '../coverage/coverage.js'
 import { isLegalVersion } from '../legal/index.js'
 import { recordConsent } from '../notifications/index.js'
 import { bindDraftPhotos, createCapability, PhotoError, type PhotoSummary } from '../photos/photos.js'
+import { startResponseClock } from './response-clock.js'
 import { createReceiptCapability } from '../verification/receipt-capability.js'
 import { issueGrant } from '../access/grants.js'
 import type { CodeKeySettings } from '../identity/index.js'
@@ -121,6 +126,33 @@ export async function recordFormConsents(
 
 export type Submitted = { requestId: string; projectId: string; reference: string; submittedAt: Date }
 
+/**
+ * The conflict for a key that already created a request (TSK-0030, HH-INT-10): it names that request's reference, so
+ * the browser whose answer was lost gets it back. The key is a random value only that browser holds, and the reference
+ * grants nothing (HH-INT-12).
+ */
+export async function existingRequestConflict(tx: Tx, idempotencyKey: string): Promise<ApiError | null> {
+  const row = await tx
+    .selectFrom('intake.requests')
+    .select('reference')
+    .where('idempotency_key', '=', idempotencyKey)
+    .executeTakeFirst()
+  return row ? new ApiError('IDEMPOTENCY_CONFLICT', { existing: { reference: row.reference } }) : null
+}
+
+/** The unique index on intake.requests.idempotency_key (migration 0011). */
+const REQUEST_KEY_CONSTRAINT = 'requests_idempotency_key_key'
+
+/**
+ * A unique violation on the request's idempotency key as the conflict it is (a safety net behind the lookup in
+ * submitRequest; the failed statement leaves the transaction unusable, so it names no reference), or null for any
+ * other error.
+ */
+export function requestKeyTaken(err: unknown): ApiError | null {
+  const e = err as { code?: unknown; constraint?: unknown } | null
+  return e?.code === '23505' && e.constraint === REQUEST_KEY_CONSTRAINT ? new ApiError('IDEMPOTENCY_CONFLICT') : null
+}
+
 export async function submitRequest(
   tx: Tx,
   body: SubmitBody,
@@ -141,6 +173,11 @@ export async function submitRequest(
   }
 > {
   const now = opts.now ?? new Date()
+  // Before anything is written: a key that already created a request (its idempotency record may have expired). The
+  // framework's advisory lock on the caller's key is held, so no other submission of this caller with this key runs
+  // meanwhile; the unique index below catches any other caller's.
+  const existing = await existingRequestConflict(tx, opts.idempotencyKey)
+  if (existing) throw existing
   const config = await loadConfig(tx)
   const zone = requireConfigured(config.get('business.timezone')).value.zone
   const term = requireConfigured(config.get('payment.term_default'))
@@ -267,6 +304,9 @@ export async function submitRequest(
     })
     .returning(['id', 'submitted_at'])
     .executeTakeFirstOrThrow()
+    .catch((err: unknown) => {
+      throw requestKeyTaken(err) ?? err
+    })
   if (body.services.length)
     await tx
       .insertInto('intake.request_services')
@@ -296,6 +336,14 @@ export async function submitRequest(
         })),
       )
       .execute()
+
+  // The first-response clock starts with the request (TSK-0043, HH-LEAD-05): an internal target, never shown to the
+  // customer, counted only within the configured daily hours.
+  await startResponseClock(
+    tx,
+    { requestId: request.id, projectId: project.id, receivedAt: request.submitted_at },
+    config,
+  )
 
   // The draft's photos, bound by the server to this request and project; a bad token binds nothing (TSK-0031).
   const photos = await bindDraftPhotos(tx, { token: body.photoDraft, requestId: request.id, projectId: project.id })

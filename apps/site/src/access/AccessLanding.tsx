@@ -73,6 +73,12 @@ export function ProjectGlanceView({ glance, level = 2 }: { glance: ProjectGlance
           {glance.notSure ? <li>{t('request.services.notSure')}</li> : null}
         </ul>
       </section>
+      {/* TSK-0038: the project's workspace in the portal (status, next action, timeline). */}
+      <p>
+        <a className="hh-button" href={`/portal/p/${encodeURIComponent(glance.reference)}`}>
+          {t('access.project.portal')}
+        </a>
+      </p>
     </section>
   )
 }

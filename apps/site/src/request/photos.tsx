@@ -189,12 +189,27 @@ export function usePhotos(limits: PhotoLimits | null) {
     return () => window.clearInterval(timer)
   }, [processing, capability])
 
-  return { items, capability, add, retry, remove }
+  /**
+   * The photo draft of a send resumed after a reload (TSK-0030, HH-INT-10): new photos join it, so the request carries
+   * the photos added before the reload too. A photo draft already started here is kept.
+   */
+  const adopt = useCallback((cap: string) => setCapability((current) => current ?? cap), [])
+
+  return { items, capability, add, retry, remove, adopt }
 }
 
 export type PhotosApi = ReturnType<typeof usePhotos>
 
-export function PhotoUploader({ photos, limits }: { photos: PhotosApi; limits: PhotoLimits | null }) {
+export function PhotoUploader({
+  photos,
+  limits,
+  earlier = false,
+}: {
+  photos: PhotosApi
+  limits: PhotoLimits | null
+  /** Photos of a send resumed after a reload, which this page cannot show (TSK-0030). */
+  earlier?: boolean
+}) {
   const values = problemValues(limits)
   return (
     <section className="hh-request__photos" aria-labelledby="hh-photos-title">
@@ -202,6 +217,7 @@ export function PhotoUploader({ photos, limits }: { photos: PhotosApi; limits: P
         {t('request.photos.title')}
       </h3>
       <p className="hh-request__warning">{t('request.photos.warning')}</p>
+      {earlier ? <p className="hh-muted">{t('request.photos.earlier')}</p> : null}
       {limits ? (
         <>
           <p className="hh-field__hint" id="hh-photos-limits">

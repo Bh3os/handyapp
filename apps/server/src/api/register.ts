@@ -15,7 +15,7 @@ import { timingSafeEqual } from 'node:crypto'
 import type { Db, Tx } from '@handyhub/db'
 import { withTx } from '@handyhub/db'
 import type { StaffLocale } from '@handyhub/i18n'
-import { decide, type Actor, type Allow } from '@handyhub/policy'
+import { dataScope, decide, type Actor, type Allow, type Resource } from '@handyhub/policy'
 import type { FastifyError, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import type { HostConfig } from '../config.js'
 import { hostSide, surfaceAllowed, surfaceOf } from '../hosts.js'
@@ -110,6 +110,7 @@ export function envelope(error: ApiError, audience: Audience, requestId: string)
       requestId,
       retryable: error.retryable,
       ...(error.options.current ? { current: error.options.current } : {}),
+      ...(error.options.existing ? { existing: error.options.existing } : {}),
     },
   }
 }
@@ -182,6 +183,28 @@ function refuseKind(kind: ActorKind | 'ai'): ApiError {
   return new ApiError('FORBIDDEN')
 }
 
+/**
+ * A customer or guest asked for an existing record outside their scope (an altered ID, T19): answered exactly like a
+ * missing record, and kept as a security event in the append-only audit log (its own transaction, so a read records
+ * it too). Only the operation and the record's type and ID are written: never a token, code or the request body.
+ */
+async function recordScopeDenial(db: Db, req: FastifyRequest, actor: Actor, route: RouteDef, resource: Resource) {
+  const projectId = resource.projectId
+  if (projectId === undefined) return
+  const requestId = currentContext()?.requestId ?? req.id
+  await withTx(db, (tx) =>
+    audit.record(tx, {
+      actor: auditActor(actor),
+      action: 'security.scope_denied',
+      target: { type: 'project', id: projectId },
+      result: 'denied',
+      reason: 'outside_scope',
+      summary: { operation: route.operationId, method: route.method },
+      requestId,
+    }),
+  )
+}
+
 async function runRoute(
   route: RouteDef,
   db: Db,
@@ -205,18 +228,24 @@ async function runRoute(
 
   const resource = route.resource ? await route.resource({ req, actor, db }) : {}
   if (resource === null) throw new ApiError('NOT_FOUND')
+  const now = new Date()
   let decision: Allow | null = null
   if (route.permission !== AUTHENTICATION) {
     const body = req.body as { reason?: unknown } | undefined
     const reason = typeof body?.reason === 'string' ? body.reason : undefined
+    const facts = route.decisionContext ? await route.decisionContext({ req, actor, db }) : {}
     const d = decide(actor, route.permission, resource, {
-      now: new Date(),
+      now,
       online: true,
+      ...facts,
       ...(reason ? { reason } : {}),
     })
     if (d.effect === 'deny') {
       req.log.warn({ action: d.action, reason: d.reason }, 'AUTHZ_DENIED')
-      if (actor.kind !== 'staff' || d.reason === 'NOT_FOUND') throw new ApiError('NOT_FOUND')
+      if (actor.kind !== 'staff' || d.reason === 'NOT_FOUND') {
+        if (actor.kind !== 'staff') await recordScopeDenial(db, req, actor, route, resource)
+        throw new ApiError('NOT_FOUND')
+      }
       if (d.reason === 'REASON_REQUIRED')
         throw new ApiError('VALIDATION_FAILED', {
           fieldErrors: [{ field: 'body.reason', code: 'required', message: '' }],
@@ -231,10 +260,12 @@ async function runRoute(
   const page = route.pagination ? pageRequest(req.query as { limit?: number; cursor?: string }) : undefined
   const requestId = currentContext()?.requestId ?? req.id
   let audited = 0
+  const scope = dataScope(actor, route.permission === AUTHENTICATION ? null : route.permission, now)
   const context = (tx: Tx | undefined): ApiContext => ({
     req,
     actor,
     decision,
+    scope,
     db,
     tx,
     authenticatedAt,
@@ -269,7 +300,7 @@ async function runRoute(
         : undefined
     result = await withTx(db, async (tx) => {
       if (scope) {
-        const stored = await claim(tx, scope)
+        const stored = await claim(tx, scope, route.idempotencyConflict)
         if (stored) return { status: stored.status, body: stored.body, replayed: true }
       }
       const out = await route.handler(context(tx))

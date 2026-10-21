@@ -146,6 +146,9 @@ export const CONFIG_KEYS = {
   'access.grants': shape({ linkHours: int(1, 24 * 366) }),
   // TSK-0035: how many new links one project may be sent per day on request (HH-ID-09, HH-INT-11; PROPOSED 3).
   'access.recovery': shape({ maxReissuesPerProjectPerDay: int(1, 100) }),
+  // TSK-0038 (HH-ARC-10, OWN-DEC-59): how often an open customer project view refreshes itself, in seconds. PROPOSED
+  // 30, inside the guide's "30-60 seconds by default"; no owner decision sets it.
+  'portal.refresh': shape({ pollSeconds: int(10, 3600) }),
   // FACT-AUTOMATIC-MESSAGES (TSK-0047): the one list of messages that send without staff release. Codes are message
   // types of modules/notifications, which refuses an unknown code when it reads the list.
   'messages.automatic': shape({
@@ -181,6 +184,9 @@ export const CONFIG_KEYS = {
   'legal.sms_terms': legalDocument,
   'legal.website_terms': legalDocument,
   'legal.sms_disclosure': legalDocument,
+  // TSK-0053 (HH-EST-13, OWN-DEC-127): the estimate terms each published version carries. NOT CONFIGURED (migration
+  // 0028) until terms v1.0 is recorded with TSK-0056; publish readiness names it while it is missing.
+  'legal.estimate_terms': legalDocument,
   // RULE-AI-WAVE2: only `false` is a valid value; the database refuses anything else as well.
   'ai.module': shape({ enabled: exactly(false) }),
 } as const satisfies Record<string, Parser<unknown>>

@@ -21,6 +21,9 @@ export const ACTIONS = [
   // in the handling row with the same cells.
   'request.qualify',
   'request.add_note',
+  // PROPOSED (TSK-0043): recording a completed customer conversation (a logged call with its outcome) is part of
+  // handling a request, in the same row.
+  'request.record_conversation',
   'request.reply',
   'customer.view',
   'customer.edit',
@@ -282,6 +285,7 @@ export const MATRIX: readonly MatrixRow[] = [
       'request.assign',
       'request.qualify',
       'request.add_note',
+      'request.record_conversation',
     ],
     { owner: Y(), office: Y(), estimator: Y('Y (P)', P) },
   ),

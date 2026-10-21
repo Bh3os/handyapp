@@ -132,6 +132,42 @@ test.describe('request wizard shell (TSK-0026)', () => {
     await axe(page)
   })
 
+  test('[HH-INT-09][T10] the error summary takes focus even when another update commits just before Next is pressed', async ({
+    page,
+  }) => {
+    // The ZIP coverage result is held, then released, and Next is pressed the moment that result is on the page: React
+    // runs that update's effects only when it starts the press's update, before the summary exists.
+    let release = () => {}
+    const held = new Promise<void>((resolve) => (release = resolve))
+    await page.route(
+      (url) => url.pathname === '/api/v1/public/coverage',
+      async (route) => {
+        await held
+        await route.continue()
+      },
+    )
+    await startAsGuest(page)
+    await page.getByLabel('Not sure what service I need').check()
+    await page.getByRole('button', { name: 'Next' }).click()
+    await page.getByLabel('Project description').fill('Synthetic description.')
+    await page.getByRole('button', { name: 'Next' }).click()
+    await page.getByLabel('ZIP').fill('40000')
+    await page.evaluate(() => {
+      const status = document.querySelector('.hh-request__coverage')
+      const next = document.querySelector<HTMLButtonElement>('form.hh-request button[type="submit"]')
+      if (!status || !next) throw new Error('the coverage status or the Next button is missing')
+      const observer = new MutationObserver(() => {
+        observer.disconnect()
+        next.click()
+      })
+      observer.observe(status, { childList: true, characterData: true, subtree: true })
+    })
+    release()
+    const summary = page.getByRole('alert').filter({ hasText: 'Check these fields' })
+    await expect(summary.getByRole('link', { name: /Street address: This field is required\./ })).toBeVisible()
+    await expect(summary).toBeFocused()
+  })
+
   test('[HH-INT-09][T10] a field the server rejects is shown beside that field and every input is kept', async ({
     page,
   }) => {

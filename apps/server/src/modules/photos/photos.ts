@@ -195,6 +195,8 @@ export async function uploadPhoto(
       content_type: declared,
       byte_size: input.bytes.length,
       sha256,
+      // A capability is held by the customer's own browser (draft or receipt): a customer upload (TSK-0037).
+      uploader_kind: 'customer',
     })
     .returning(VIEW)
     .executeTakeFirstOrThrow()
