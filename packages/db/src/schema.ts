@@ -107,6 +107,53 @@ export interface CrmPropertiesTable {
   coverage_rule_set: number | null
 }
 
+export interface EstimatingApprovalSelectionsTable {
+  version_id: string
+  contact_ref: string
+  options: Generated<number[]>
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface EstimatingApprovalsTable {
+  id: Generated<string>
+  project_id: string
+  estimate_id: string
+  version_id: string
+  version: number
+  content_sha256: string
+  authoring_method: string
+  document_sha256: string | null
+  selected_options: Generated<number[]>
+  subtotal_cents: Int8
+  discount_cents: Int8
+  total_cents: Int8
+  deposit_state: string
+  deposit_cents: Int8 | null
+  deposit_rule_version: number
+  discount_rule_version: number | null
+  terms_document_id: string
+  terms_sha256: string
+  terms_policy_version: number
+  payment_term: string
+  payment_term_version: number
+  payment_term_text: string
+  privacy_notice_id: string | null
+  terms_accepted: boolean
+  full_name: string
+  contact_ref: string
+  access_via: string
+  grant_id: string | null
+  account_id: string | null
+  customer_session_id: string
+  verified_at: Timestamp
+  method: string
+  test_mark: boolean
+  client_address: string | null
+  user_agent: string | null
+  idempotency_key: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface EstimatingCustomerResponsesTable {
   id: Generated<string>
   project_id: string
@@ -861,6 +908,45 @@ export interface WorkHoldsTable {
   version: Generated<number>
 }
 
+export interface WorkJobScopeSnapshotsTable {
+  id: Generated<string>
+  job_id: string
+  version: number
+  source: string
+  approval_id: string | null
+  estimate_version_id: string | null
+  lines: Json
+  texts: Json
+  exclusions: string[]
+  selected_options: number[]
+  subtotal_cents: Int8
+  discount_cents: Int8
+  total_cents: Int8
+  terms_document_id: string
+  terms_sha256: string
+  content_sha256: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface WorkJobsTable {
+  id: Generated<string>
+  project_id: string
+  approval_id: string
+  operational_state: Generated<string>
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
+}
+
+export interface WorkSchedulingTasksTable {
+  id: Generated<string>
+  job_id: string
+  project_id: string
+  purpose: Generated<string>
+  state: Generated<string>
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
+}
+
 export interface WorkWorkPackagesTable {
   id: Generated<string>
   project_id: string
@@ -883,6 +969,8 @@ export interface Database {
   'crm.customers': CrmCustomersTable
   'crm.projects': CrmProjectsTable
   'crm.properties': CrmPropertiesTable
+  'estimating.approval_selections': EstimatingApprovalSelectionsTable
+  'estimating.approvals': EstimatingApprovalsTable
   'estimating.customer_responses': EstimatingCustomerResponsesTable
   'estimating.estimate_documents': EstimatingEstimateDocumentsTable
   'estimating.estimate_line_costs': EstimatingEstimateLineCostsTable
@@ -935,5 +1023,8 @@ export interface Database {
   'platform.schema_migration': PlatformSchemaMigrationTable
   'platform.webhook_receipts': PlatformWebhookReceiptsTable
   'work.holds': WorkHoldsTable
+  'work.job_scope_snapshots': WorkJobScopeSnapshotsTable
+  'work.jobs': WorkJobsTable
+  'work.scheduling_tasks': WorkSchedulingTasksTable
   'work.work_packages': WorkWorkPackagesTable
 }

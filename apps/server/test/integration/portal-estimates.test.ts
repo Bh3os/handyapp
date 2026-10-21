@@ -386,10 +386,12 @@ describe('[HH-PORT-10][HH-EST-06][T24] the customer reads the exact published ve
       approval: unknown
     }>()
     expect(v.terms).toEqual({ documentId: 'estimate-terms-1', state: 'not_in_effect' })
-    expect(v.approval).toEqual({
+    // TSK-0057: approval exists now, and is refused while the terms are not in effect.
+    expect(v.approval).toMatchObject({
       available: false,
-      reasons: ['terms_not_in_effect', 'approval_not_available'],
+      reasons: ['terms_not_in_effect'],
       current: null,
+      approved: null,
     })
   })
 
@@ -400,7 +402,7 @@ describe('[HH-PORT-10][HH-EST-06][T24] the customer reads the exact published ve
       approval: { reasons: string[] }
     }>()
     expect(a.terms).toEqual({ documentId: 'test-estimate-terms-1', state: 'not_configured' })
-    expect(a.approval.reasons).toEqual(['terms_not_configured', 'approval_not_available'])
+    expect(a.approval.reasons).toEqual(['terms_not_configured'])
 
     // The v1.0 ID recorded with another content hash: its wording is never shown for it.
     const altered = await published({ ...V1_RECORDED, contentSha256: 'f'.repeat(64) })
@@ -590,9 +592,14 @@ describe('[HH-EST-09][T33] Request Changes and Decline keep history; silence nev
     ).rejects.toThrow(/decline is recorded with/)
   })
 
-  it('[T33] no response, retry or timeout accepts: there is no approval route, and an expired version only asks for an update', async () => {
-    // No route of this build approves an estimate (the approval transaction is TSK-0057).
-    expect(MODULES.flatMap((m) => m.routes).filter((r) => r.permission === 'estimate.approve')).toEqual([])
+  it('[T33] no response, retry or timeout accepts: only the explicit approval POST approves, and an expired version only asks for an update', async () => {
+    // TSK-0057: the one route that approves is the approval transaction's POST (estimate-approval.test.ts); none of
+    // the response routes holds estimate.approve.
+    expect(
+      MODULES.flatMap((m) => m.routes)
+        .filter((r) => r.permission === 'estimate.approve')
+        .map((r) => [r.method, r.operationId]),
+    ).toEqual([['POST', 'approveEstimate']])
     const e = await published()
     const cookie = await customerCookie(e)
     await customerPost(`${base(e)}/request-changes`, cookie, { message: 'Synthetic: any news?' })

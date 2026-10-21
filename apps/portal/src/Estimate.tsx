@@ -7,8 +7,14 @@
 // - The terms the version pinned, in full, in an expandable section and on a page of their own. Terms that are not
 //   approved for real customers carry the TEST banner and say they are not in effect; terms the server reports as NOT
 //   CONFIGURED show no wording at all.
-// - Approval is not offered here (TSK-0057): the section names every reason, and links the version to review instead.
-//   Not answering never approves anything, and the page says so.
+// - TSK-0057 (HH-EST-06, HH-EST-07, HH-ID-07, OWN-DEC-103): on the current version with terms in effect, the customer
+//   selects options (the server answers the total and any deposit for them and keeps the choice), reads the terms,
+//   ticks "I have read and accept the estimate terms" (unchecked by default), types their full name and presses
+//   "Approve Estimate". The page sends the digest of the content it shows, the options and the total and deposit it
+//   showed; one idempotency key per attempt, kept for its retries. A stale verification asks for a new code right
+//   here and keeps the options and the name. After approval: "Estimate approved—scheduling is next." Otherwise the
+//   section names every reason approval is not available, and links the version to review instead. Not answering
+//   never approves anything, and the page says so.
 // - Request Changes (a message) and Decline (an optional reason, after a confirmation) on the current version; Request
 //   an Updated Estimate on an expired one with no current version. Each needs a recent verification (the server
 //   decides; the page says how to get one). A failed or refused answer is never shown as sent, and what was typed is
@@ -18,11 +24,15 @@ import { estimateTermsDocument } from '@handyhub/domain/legal'
 import type { CustomerKey } from '@handyhub/i18n'
 import { cents, formatUsd } from '@handyhub/money'
 import { Button, Field, StateView, StatusBadge, type StatusTone } from '@handyhub/ui'
-import { useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import {
   idempotencyKey,
   portalApi,
+  type ApprovalFailure,
   type ApprovalReason,
+  type Channel,
+  type Selection,
+  type Verification,
   type EstimateDetail,
   type EstimateLine,
   type Fetch,
@@ -76,7 +86,15 @@ const APPROVAL_REASON: Record<ApprovalReason, CustomerKey> = {
   superseded: 'portal.estimate.approval.reason.superseded',
   expired: 'portal.estimate.approval.reason.expired',
   not_published: 'portal.estimate.approval.reason.not_published',
-  approval_not_available: 'portal.estimate.approval.reason.approval_not_available',
+}
+const APPROVAL_FAILURE: Record<ApprovalFailure, CustomerKey> = {
+  ...FAILURE,
+  invalid: 'portal.estimate.approve.failure.invalid',
+  not_applicable: 'portal.estimate.approve.failure.not_applicable',
+  failed: 'portal.estimate.approve.failure.failed',
+  not_configured: 'portal.estimate.approve.failure.not_configured',
+  total_changed: 'portal.estimate.approve.failure.total_changed',
+  access_revoked: 'portal.estimate.approve.failure.access_revoked',
 }
 const PAYMENT_TERM: Record<string, CustomerKey> = { due_on_receipt: 'estimatePdf.paymentTerm.due_on_receipt' }
 const usd = (c: number) => formatUsd(cents(c))
@@ -233,19 +251,271 @@ function Terms({ e }: { e: EstimateDetail }) {
   )
 }
 
-function Approval({ e, onOpen }: { e: EstimateDetail; onOpen: (path: string) => void }) {
+/** The totals of a selection, as the server computed them. */
+function SelectionTotals({ s, e }: { s: Selection; e: EstimateDetail }) {
+  const paymentTerm = e.paymentTerm
   return (
-    <section className="portal-section" aria-labelledby="portal-estimate-approval">
+    <dl className="portal-estimate__totals" data-testid="approval-totals">
+      <dt>{t('estimatePdf.subtotal')}</dt>
+      <dd>{usd(s.subtotalCents)}</dd>
+      {s.reductionCents > 0 && e.reduction ? (
+        <>
+          {/* The same row label as the estimate's own totals (worded by the server, OWN-DEC-145). */}
+          <dt>{e.reduction.label}</dt>
+          <dd>-{usd(s.reductionCents)}</dd>
+        </>
+      ) : null}
+      <dt>
+        <strong>{t('estimatePdf.total')}</strong>
+      </dt>
+      <dd>
+        <strong>{usd(s.totalCents)}</strong>
+      </dd>
+      {s.deposit.state === 'required' && s.deposit.amountCents !== null ? (
+        <>
+          <dt>{t('estimatePdf.deposit')}</dt>
+          <dd>{usd(s.deposit.amountCents)}</dd>
+        </>
+      ) : null}
+      <dt>{t('estimatePdf.paymentTerm')}</dt>
+      <dd>{PAYMENT_TERM[paymentTerm] ? t(PAYMENT_TERM[paymentTerm] as CustomerKey) : t('estimatePdf.notProvided')}</dd>
+    </dl>
+  )
+}
+
+/**
+ * A new code for this session, without leaving the estimate (HH-ID-07): the session's own contact, masked. What the
+ * customer chose and typed stays as it is.
+ */
+export function Reverify({ fetchImpl, onVerified }: { fetchImpl: Fetch; onVerified: () => Promise<void> }) {
+  const ids = useId()
+  const [v, setV] = useState<Verification | null | 'failed'>(null)
+  const [sent, setSent] = useState<{ channel: Channel; destination: string } | null>(null)
+  const [code, setCode] = useState('')
+  const [pending, setPending] = useState(false)
+  const [message, setMessage] = useState<CustomerKey | null>(null)
+  useEffect(() => {
+    let live = true
+    void portalApi.verification(fetchImpl).then((r) => live && setV(r.ok ? r.data : 'failed'))
+    return () => {
+      live = false
+    }
+  }, [fetchImpl])
+  async function send(channel: Channel) {
+    setPending(true)
+    setMessage(null)
+    const r = await portalApi.sendCode(fetchImpl, channel)
+    setPending(false)
+    if (!r.ok)
+      return setMessage(r.failure === 'not_configured' ? 'portal.verify.failure.not_configured' : FAILURE[r.failure])
+    setSent({ channel, destination: r.destination })
+    setCode('')
+  }
+  async function check() {
+    if (!sent) return
+    if (!code.trim()) return setMessage('portal.verify.failure.invalid')
+    setPending(true)
+    setMessage(null)
+    const r = await portalApi.verify(fetchImpl, sent.channel, code.trim())
+    setPending(false)
+    if (!r.ok) return setMessage(r.failure === 'invalid' ? 'portal.verify.failure.invalid' : FAILURE[r.failure])
+    setMessage('portal.verify.done')
+    await onVerified()
+  }
+  const channels = v && v !== 'failed' ? v.channels : []
+  return (
+    <section className="portal-section" aria-labelledby={`${ids}-verify`} data-testid="estimate-reverify">
+      <h3 id={`${ids}-verify`} className="hh-h3">
+        {t('portal.verify.title')}
+      </h3>
+      <p>{t('portal.verify.text')}</p>
+      {v === 'failed' ? <StateView kind="error" title={t('portal.verify.failure.unavailable')} /> : null}
+      {channels.length ? (
+        <div className="hh-button-row">
+          {channels.map((c) => (
+            <Button key={c.channel} variant="secondary" pending={pending && !sent} onClick={() => void send(c.channel)}>
+              {t(c.channel === 'email' ? 'portal.verify.email' : 'portal.verify.phone', { destination: c.destination })}
+            </Button>
+          ))}
+        </div>
+      ) : null}
+      {sent ? (
+        <div className="portal-estimate__form">
+          <p role="status">{t('portal.verify.sent', { destination: sent.destination })}</p>
+          <Field
+            label={t('portal.verify.code')}
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={10}
+            value={code}
+            onChange={(ev) => setCode(ev.target.value)}
+          />
+          <Button pending={pending} onClick={() => void check()}>
+            {t('portal.verify.submit')}
+          </Button>
+        </div>
+      ) : null}
+      {message ? <StateView kind={message === 'portal.verify.done' ? 'success' : 'error'} title={t(message)} /> : null}
+    </section>
+  )
+}
+
+/** Options, the server's totals, the terms box, the full name and Approve Estimate (TSK-0057). */
+function ApproveForm({ e, fetchImpl, onDone }: { e: EstimateDetail; fetchImpl: Fetch; onDone: () => Promise<void> }) {
+  const ids = useId()
+  const optionLines = e.lines.filter((l) => l.kind !== 'base')
+  const [options, setOptions] = useState<number[]>(e.approval.selection?.options ?? [])
+  const [totals, setTotals] = useState<Selection | null>(e.approval.selection)
+  const [accept, setAccept] = useState(false)
+  const [name, setName] = useState('')
+  const [pending, setPending] = useState(false)
+  const [failure, setFailure] = useState<ApprovalFailure | null>(null)
+  // One key per approval attempt: a double click or a retry of the same attempt can never approve twice.
+  const key = useRef<string | null>(null)
+  const doc = estimateTermsDocument(e.terms.documentId)
+  const ref = { reference: e.reference, number: e.number, version: e.version }
+
+  async function toggle(position: number, on: boolean) {
+    const next = on ? [...new Set([...options, position])].sort((a, b) => a - b) : options.filter((p) => p !== position)
+    setOptions(next)
+    setTotals(null)
+    setFailure(null)
+    key.current = null
+    const r = await portalApi.select(fetchImpl, ref, next)
+    if (r.ok) setTotals(r.selection)
+    else setFailure(r.failure)
+  }
+  async function submit() {
+    if (!doc || !totals) return
+    if (!accept || !name.trim()) return setFailure('invalid')
+    setPending(true)
+    setFailure(null)
+    key.current ??= idempotencyKey()
+    const r = await portalApi.approve(
+      fetchImpl,
+      ref,
+      {
+        contentDigest: e.approval.contentDigest,
+        options: totals.options,
+        totalCents: totals.totalCents,
+        depositCents: totals.deposit.amountCents,
+        termsDocumentId: doc.documentId,
+        termsSha256: doc.contentSha256,
+        acceptTerms: accept,
+        fullName: name.trim(),
+      },
+      key.current,
+    )
+    setPending(false)
+    if (!r.ok) {
+      // A definite refusal ends this attempt's key; a network failure keeps it for the retry.
+      if (r.failure !== 'failed') key.current = null
+      setFailure(r.failure)
+      if (r.failure === 'not_applicable' || r.failure === 'total_changed' || r.failure === 'fresh_verification')
+        await onDone()
+      return
+    }
+    key.current = null
+    await onDone()
+  }
+
+  const blocked = !totals
+    ? t('portal.estimate.approve.wait')
+    : !accept
+      ? t('portal.estimate.approve.needsBox')
+      : !name.trim()
+        ? t('portal.estimate.approve.needsName')
+        : undefined
+  return (
+    <div className="portal-estimate__form" role="group" aria-labelledby={`${ids}-approve`}>
+      <p id={`${ids}-approve`}>{t('portal.estimate.approve.intro')}</p>
+      {optionLines.length ? (
+        <fieldset className="portal-estimate__options">
+          <legend>{t('portal.estimate.approve.options')}</legend>
+          {optionLines.map((l) => (
+            <label key={l.position} className="portal-estimate__check">
+              <input
+                type="checkbox"
+                checked={options.includes(l.position)}
+                onChange={(ev) => void toggle(l.position, ev.currentTarget.checked)}
+              />
+              <span>
+                {t('portal.estimate.approve.option', {
+                  description: l.description ?? t('estimatePdf.notProvided'),
+                  amount: l.amountCents === null ? t('estimatePdf.notProvided') : usd(l.amountCents),
+                })}
+              </span>
+            </label>
+          ))}
+        </fieldset>
+      ) : null}
+      <h4 className="hh-h3">{t('portal.estimate.approve.yourTotal')}</h4>
+      {totals ? <SelectionTotals s={totals} e={e} /> : <p className="hh-muted">{t('portal.estimate.approve.wait')}</p>}
+      <p className="hh-muted">{t('portal.estimate.approve.notBooking')}</p>
+      <label className="portal-estimate__check">
+        <input type="checkbox" checked={accept} onChange={(ev) => setAccept(ev.currentTarget.checked)} />
+        <span>{t('portal.estimate.approve.accept')}</span>
+      </label>
+      <Field
+        label={t('portal.estimate.approve.fullName')}
+        hint={t('portal.estimate.approve.fullNameHint')}
+        autoComplete="name"
+        maxLength={200}
+        value={name}
+        onChange={(ev) => setName(ev.target.value)}
+      />
+      <div className="hh-button-row">
+        <Button pending={pending} {...(blocked ? { disabledReason: blocked } : {})} onClick={() => void submit()}>
+          {t('portal.estimate.approve.submit')}
+        </Button>
+      </div>
+      {failure ? <StateView kind="error" title={t(APPROVAL_FAILURE[failure])} /> : null}
+    </div>
+  )
+}
+
+function Approval({
+  e,
+  fetchImpl,
+  onOpen,
+  onDone,
+}: {
+  e: EstimateDetail
+  fetchImpl: Fetch
+  onOpen: (path: string) => void
+  onDone: () => Promise<void>
+}) {
+  const approved = e.approval.approved
+  return (
+    <section className="portal-section" aria-labelledby="portal-estimate-approval" data-testid="estimate-approval">
       <h3 id="portal-estimate-approval" className="hh-h3">
         {t('portal.estimate.approval.title')}
       </h3>
+      {approved ? (
+        <>
+          <StateView kind="success" title={t('portal.estimate.approve.done')}>
+            <p>{t('portal.estimate.approve.approvedOn', { date: day(approved.at) })}</p>
+          </StateView>
+          <SelectionTotals s={approved} e={e} />
+        </>
+      ) : e.approval.available ? (
+        <ApproveForm e={e} fetchImpl={fetchImpl} onDone={onDone} />
+      ) : e.status === 'approved' ? null : (
+        <ApprovalUnavailable e={e} onOpen={onOpen} />
+      )}
+      <p>{t('portal.estimate.approval.silence')}</p>
+    </section>
+  )
+}
+
+function ApprovalUnavailable({ e, onOpen }: { e: EstimateDetail; onOpen: (path: string) => void }) {
+  return (
+    <>
       <StateView
         kind="blocked"
         title={t('portal.estimate.approval.unavailable')}
         reasons={e.approval.reasons.map((r) => t(APPROVAL_REASON[r]))}
-      >
-        <p>{t('portal.estimate.approval.silence')}</p>
-      </StateView>
+      />
       {e.approval.current ? (
         <p>
           <a
@@ -261,7 +531,7 @@ function Approval({ e, onOpen }: { e: EstimateDetail; onOpen: (path: string) => 
           </a>
         </p>
       ) : null}
-    </section>
+    </>
   )
 }
 
@@ -497,7 +767,14 @@ export function EstimateView({
           <div className={live.stale ? 'portal-estimate__body portal-section--stale' : 'portal-estimate__body'}>
             <Content e={live.data} />
             <Terms e={live.data} />
-            <Approval e={live.data} onOpen={onNavigate} />
+            {!live.data.freshVerification &&
+            (live.data.approval.available ||
+              live.data.actions.requestChanges ||
+              live.data.actions.decline ||
+              live.data.actions.requestUpdate) ? (
+              <Reverify fetchImpl={fetchImpl} onVerified={refresh} />
+            ) : null}
+            <Approval e={live.data} fetchImpl={fetchImpl} onOpen={onNavigate} onDone={refresh} />
             <Respond e={live.data} fetchImpl={fetchImpl} onDone={refresh} />
             <History e={live.data} />
           </div>

@@ -31,6 +31,8 @@ export const ENTITIES = [
   'Case',
   // TSK-0056: the customer's estimate view and their responses to it.
   'EstimateVersion',
+  // TSK-0057: the customer's approval of one exact version.
+  'Approval',
 ] as const
 export type Entity = (typeof ENTITIES)[number]
 
@@ -453,6 +455,8 @@ export const ENROLLMENT_CHANNEL = customerView(
 // why approval is not available here and the version to review instead, the responses the customer may give now, and
 // their own earlier responses with their words. Never an internal cost, note, preparer, staff field or storage key.
 const LINE = object({
+  // TSK-0057: the line's position on the version, which names an option the customer selects.
+  position: { type: 'integer', minimum: 1 },
   kind: enumOf(['base', 'alternate', 'add_on']),
   serviceCode: NULLABLE_STRING,
   description: NULLABLE_STRING,
@@ -474,6 +478,32 @@ const response = (r: ResponseRecord) => ({
   at: r.at.toISOString(),
   message: r.message,
 })
+// TSK-0057: the totals of the customer's selected options as the server computes them, and what was approved.
+type SelectionRecord = {
+  options: number[]
+  subtotalCents: number
+  discountCents: number
+  totalCents: number
+  deposit: { state: string; amountCents: number | null }
+}
+const POSITIONS = { type: 'array', items: { type: 'integer', minimum: 1 } } as const
+const SELECTION_FIELDS = {
+  options: POSITIONS,
+  subtotalCents: CENTS,
+  // The discount totals row's amount, named like the estimate's own reduction row (OWN-DEC-145).
+  reductionCents: CENTS,
+  totalCents: CENTS,
+  deposit: object({ state: enumOf(['required', 'not_required']), amountCents: NULLABLE_CENTS }),
+} as const
+const SELECTION = object(SELECTION_FIELDS)
+const APPROVED = object({ ...SELECTION_FIELDS, at: DATE })
+const selection = (r: SelectionRecord) => ({
+  options: [...r.options],
+  subtotalCents: r.subtotalCents,
+  reductionCents: r.discountCents,
+  totalCents: r.totalCents,
+  deposit: { state: r.deposit.state, amountCents: r.deposit.amountCents },
+})
 type EstimateDetailRecord = {
   reference: string
   number: string
@@ -483,6 +513,7 @@ type EstimateDetailRecord = {
   publishedAt: Date
   validUntil: Date | null
   lines: {
+    position: number
     kind: string
     serviceCode: string | null
     description: string | null
@@ -503,7 +534,14 @@ type EstimateDetailRecord = {
   paymentTerm: string
   document: { url: string; byteSize: number } | null
   terms: { documentId: string | null; state: string }
-  approval: { available: false; reasons: string[]; current: { number: string; version: number } | null }
+  approval: {
+    available: boolean
+    reasons: string[]
+    current: { number: string; version: number } | null
+    contentDigest: string
+    selection: SelectionRecord | null
+    approved: (SelectionRecord & { at: Date }) | null
+  }
   actions: { requestChanges: boolean; decline: boolean; requestUpdate: boolean }
   freshVerification: boolean
   responses: ResponseRecord[]
@@ -536,20 +574,18 @@ export const CUSTOMER_ESTIMATE = customerView(
     paymentTerm: STRING,
     document: { oneOf: [{ type: 'null' }, object({ url: STRING, byteSize: { type: 'integer', minimum: 1 } })] },
     terms: object({ documentId: NULLABLE_STRING, state: enumOf(['not_configured', 'not_in_effect', 'in_effect']) }),
+    // TSK-0057: available on the current version while its terms are in effect; the digest an approval names; the
+    // selected options kept on the server with the server's totals; what was approved.
     approval: object({
-      available: { type: 'boolean', enum: [false] },
+      available: { type: 'boolean' },
       reasons: {
         type: 'array',
-        items: enumOf([
-          'terms_not_configured',
-          'terms_not_in_effect',
-          'superseded',
-          'expired',
-          'not_published',
-          'approval_not_available',
-        ]),
+        items: enumOf(['terms_not_configured', 'terms_not_in_effect', 'superseded', 'expired', 'not_published']),
       },
       current: { oneOf: [{ type: 'null' }, object({ number: STRING, version: { type: 'integer', minimum: 1 } })] },
+      contentDigest: STRING,
+      selection: { oneOf: [{ type: 'null' }, SELECTION] },
+      approved: { oneOf: [{ type: 'null' }, APPROVED] },
     }),
     actions: object({
       requestChanges: { type: 'boolean' },
@@ -572,6 +608,7 @@ export const CUSTOMER_ESTIMATE = customerView(
     publishedAt: v.publishedAt.toISOString(),
     validUntil: v.validUntil ? v.validUntil.toISOString() : null,
     lines: v.lines.map((l) => ({
+      position: l.position,
       kind: l.kind,
       serviceCode: l.serviceCode,
       description: l.description,
@@ -593,9 +630,14 @@ export const CUSTOMER_ESTIMATE = customerView(
     document: v.document ? { url: v.document.url, byteSize: v.document.byteSize } : null,
     terms: { documentId: v.terms.documentId, state: v.terms.state },
     approval: {
-      available: false,
+      available: v.approval.available,
       reasons: [...v.approval.reasons],
       current: v.approval.current ? { number: v.approval.current.number, version: v.approval.current.version } : null,
+      contentDigest: v.approval.contentDigest,
+      selection: v.approval.selection ? selection(v.approval.selection) : null,
+      approved: v.approval.approved
+        ? { ...selection(v.approval.approved), at: v.approval.approved.at.toISOString() }
+        : null,
     },
     actions: {
       requestChanges: v.actions.requestChanges,
@@ -632,6 +674,67 @@ export const CUSTOMER_ESTIMATE_RESPONSE = customerView(
   }),
 )
 
+/** The customer's selected options on the current version, with the server's totals for them (TSK-0057). */
+export const CUSTOMER_ESTIMATE_SELECTION = customerView(
+  'estimate_selection.customer',
+  'EstimateVersion',
+  { reference: STRING, number: STRING, version: { type: 'integer', minimum: 1 }, selection: SELECTION },
+  (r: { reference: string; number: string; version: number; selection: SelectionRecord }) => ({
+    reference: r.reference,
+    number: r.number,
+    version: r.version,
+    selection: selection(r.selection),
+  }),
+)
+
+/**
+ * The customer's approval of one exact version (TSK-0057; HH-EST-06, HH-EST-08): what was approved and the next step
+ * ("Estimate approved—scheduling is next."). Never an appointment, a reservation or a paid deposit; no internal ID.
+ */
+export const CUSTOMER_ESTIMATE_APPROVAL = customerView(
+  'estimate_approval.customer',
+  'Approval',
+  {
+    reference: STRING,
+    number: STRING,
+    version: { type: 'integer', minimum: 1 },
+    status: enumOf(['approved']),
+    approved: APPROVED,
+    nextStep: enumOf(['scheduling_next']),
+  },
+  (r: { reference: string; number: string; version: number; approved: SelectionRecord & { at: Date } }) => ({
+    reference: r.reference,
+    number: r.number,
+    version: r.version,
+    status: 'approved',
+    approved: { ...selection(r.approved), at: r.approved.at.toISOString() },
+    nextStep: 'scheduling_next',
+  }),
+)
+
+/**
+ * The session's own verification (TSK-0057, HH-ID-07): whether it is fresh enough for an approval, until when, and
+ * where a new code can go (masked). Nothing about any other contact, project or account.
+ */
+export const SESSION_VERIFICATION = customerView(
+  'session_verification.customer',
+  'Customer',
+  {
+    fresh: { type: 'boolean' },
+    freshUntil: DATE,
+    channels: { type: 'array', items: object({ channel: CHANNEL, destination: STRING }) },
+  },
+  (r: {
+    fresh: boolean
+    freshUntil: Date
+    channels: readonly { channel: 'email' | 'phone'; destination: string }[]
+  }) => ({
+    fresh: r.fresh,
+    freshUntil: r.freshUntil.toISOString(),
+    channels: r.channels.map((c) => ({ channel: c.channel, destination: c.destination })),
+  }),
+)
+
 /** Every customer view, by name. */
 export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
   [
@@ -652,5 +755,8 @@ export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
     ENROLLMENT_CHANNEL,
     CUSTOMER_ESTIMATE,
     CUSTOMER_ESTIMATE_RESPONSE,
+    CUSTOMER_ESTIMATE_SELECTION,
+    CUSTOMER_ESTIMATE_APPROVAL,
+    SESSION_VERIFICATION,
   ].map((v) => [v.name, v as CustomerView<never>]),
 )

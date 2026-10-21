@@ -362,6 +362,8 @@ export const LABEL_FAMILIES = {
    * apps/server/src/modules/estimates/responses.ts).
    */
   estimateResponseKind: ['changes_requested', 'declined', 'update_requested'],
+  /** Scheduling task states (TSK-0057, ENT-SchedulingTask; migration 0044): open -> planning -> fulfilled / canceled. */
+  schedulingTaskState: ['open', 'planning', 'fulfilled', 'canceled'],
   /** How an estimate version was authored (HH-EST-11): written in the staff app, or an uploaded document. */
   authoringMethod: ['written', 'uploaded'],
   /** Estimate document states (TSK-0054; migration 0030, apps/server/src/modules/estimates/documents.ts). */
