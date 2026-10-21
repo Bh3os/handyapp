@@ -4,7 +4,7 @@
 // (`assigned`, `customer_project`) are reached from the record itself, not from the top-level menu. Anything else is
 // absent (deny by default). Menus are a convenience: the server still decides every request (RULE-SERVER-AUTHZ).
 import type { Action, Rule } from './matrix.js'
-import { rowFor } from './matrix.js'
+import { heldScopes } from './listing.js'
 import type { Capability, StaffRole } from './roles.js'
 import { STAFF_ROLES } from './roles.js'
 
@@ -46,15 +46,7 @@ export type StaffNavigation = { home: NavId | null; items: NavId[]; search: Sear
 const TOP_LEVEL = new Set<Rule['scope']>(['any', 'own_staff'])
 
 function opens(gate: readonly Action[], roles: readonly StaffRole[], capabilities: readonly Capability[]): boolean {
-  return gate.some((action) => {
-    const row = rowFor(action)
-    if (!row || row.denyReason) return false
-    return roles.some((role) => {
-      const rule = row.cells[role].rules[action]
-      if (!rule || !TOP_LEVEL.has(rule.scope)) return false
-      return rule.capability === undefined || capabilities.includes(rule.capability)
-    })
-  })
+  return gate.some((action) => heldScopes(roles, capabilities, action).some((scope) => TOP_LEVEL.has(scope)))
 }
 
 /** The navigation of a staff member with these roles; unknown role names grant nothing. */

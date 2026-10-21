@@ -3,6 +3,7 @@
 import { staffLinkEmailAutomation, type LinkEmailDeps } from './modules/identity/link-email.js'
 import { deliveryStatusAutomation } from './modules/notifications/index.js'
 import { photoProcessAutomation } from './modules/photos/index.js'
+import { queueAutomations } from './modules/queue/index.js'
 import type { Automation } from './platform/automation.js'
 import type { Providers } from './providers/index.js'
 
@@ -15,5 +16,7 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     deliveryStatusAutomation(),
     // TSK-0031: quarantined request photos are checked again before they may be served.
     photoProcessAutomation(deps.providers.storage),
+    // TSK-0041: action queue items from the modules' committed events.
+    ...queueAutomations(),
   ]
 }
