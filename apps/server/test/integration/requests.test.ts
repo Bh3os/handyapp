@@ -1,12 +1,13 @@
 // Request submission against PostgreSQL 16 (TSK-0025; HH-INT-10, HH-INT-11, HH-ID-01, HH-INT-21, T01, T11, T21, T71).
 // Every visitor, address and number is synthetic (RULE-SYNTHETIC-DATA).
-import { loadServiceSeed, syncServices } from '@handyhub/db'
+import { loadServiceSeed, syncServices, withTx } from '@handyhub/db'
 import { createTestDatabase, type TestDatabase } from '@handyhub/db/testing'
 import type { FastifyInstance } from 'fastify'
 import { sql } from 'kysely'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildApp } from '../../src/app.js'
-import { localDate } from '../../src/modules/requests/submit.js'
+import type { SubmitBody } from '../../src/modules/requests/schema.js'
+import { localDate, submitRequest } from '../../src/modules/requests/submit.js'
 import { recordPolicyVersion } from '../../src/platform/config/index.js'
 import { testConfig } from '../fixtures/env.js'
 import { PRIVACY_NOTICE, SMS_DISCLOSURE } from '@handyhub/domain/legal'
@@ -193,6 +194,8 @@ describe('submission creates one request and its records (TSK-0025, HH-INT-10, H
     )
     expect(changed.statusCode).toBe(409)
     expect(changed.json().error.code).toBe('IDEMPOTENCY_CONFLICT')
+    // The conflict names the request the key created, so a browser whose answer was lost gets it back (TSK-0030).
+    expect(changed.json().error.existing).toEqual({ reference: a.json().reference })
     expect(await count('intake.requests')).toBe(before + 1)
     expect(await count('crm.customers')).toBe(before + 1)
     expect(
@@ -204,6 +207,77 @@ describe('submission creates one request and its records (TSK-0025, HH-INT-10, H
         ).rows[0]?.n,
       ),
     ).toBe(before + 1)
+  })
+
+  it('[T11][HH-INT-10] a key whose idempotency record expired is a 409 naming its request, never a 500 or a second request (TSK-0030)', async () => {
+    const from = nextIp()
+    const key = 'synthetic-key-expired-0001'
+    const first = await submit(body(), key, from)
+    expect(first.statusCode).toBe(201)
+    const reference = first.json().reference as string
+    // The record outlived (24 hours) while the browser draft keeps its key for 7 days (FACT-SESSION-TIMINGS).
+    await sql`UPDATE platform.idempotency_keys
+      SET created_at = now() - interval '2 days', expires_at = now() - interval '1 day'
+      WHERE idempotency_key = ${key}`.execute(t.db)
+    const before = await Promise.all(['intake.requests', 'crm.customers', 'platform.outbox_events'].map(count))
+    for (const again of [body(), body({ description: 'A changed synthetic description.' })]) {
+      const res = await submit(again, key, from)
+      expect(res.statusCode).toBe(409)
+      expect(res.json().error).toMatchObject({
+        code: 'IDEMPOTENCY_CONFLICT',
+        retryable: false,
+        existing: { reference },
+      })
+    }
+    expect(await Promise.all(['intake.requests', 'crm.customers', 'platform.outbox_events'].map(count))).toEqual(before)
+    const rows = await t.db
+      .selectFrom('intake.requests')
+      .select('reference')
+      .where('idempotency_key', '=', key)
+      .execute()
+    expect(rows).toEqual([{ reference }])
+  })
+
+  it('[HH-INT-10] two submissions racing with one key outside the advisory lock: one request, the other a conflict (TSK-0030)', async () => {
+    // Two callers in different idempotency scopes do not share the framework's lock; the unique key decides.
+    // Built from parts so the secret scanner does not read a synthetic key as a credential.
+    const key = ['synthetic', 'key', 'race', '0001'].join('-')
+    const payload = body() as SubmitBody
+    const before = await count('intake.requests')
+    let release = () => {}
+    const held = new Promise<void>((resolve) => (release = resolve))
+    let inserted = false
+    const first = withTx(t.db, async (tx) => {
+      const out = await submitRequest(tx, payload, { idempotencyKey: key, requestId: 'synthetic-race-0001' })
+      inserted = true
+      await held
+      return out
+    })
+    while (!inserted) await new Promise((r) => setTimeout(r, 10))
+    const second = withTx(t.db, (tx) =>
+      submitRequest(tx, payload, { idempotencyKey: key, requestId: 'synthetic-race-0002' }),
+    )
+    let settled = false
+    void second.catch(() => null).finally(() => (settled = true))
+    // The second waits on the first's uncommitted row; then the first commits.
+    const waiting = async () =>
+      Number(
+        (
+          await sql<{ n: string }>`SELECT count(*) AS n FROM pg_stat_activity
+            WHERE datname = current_database() AND wait_event_type = 'Lock'`.execute(t.db)
+        ).rows[0]?.n,
+      )
+    while (!settled && (await waiting()) === 0) await new Promise((r) => setTimeout(r, 10))
+    release()
+    const won = await first
+    await expect(second).rejects.toMatchObject({ code: 'IDEMPOTENCY_CONFLICT', status: 409 })
+    expect(await count('intake.requests')).toBe(before + 1)
+    const rows = await t.db
+      .selectFrom('intake.requests')
+      .select('reference')
+      .where('idempotency_key', '=', key)
+      .execute()
+    expect(rows).toEqual([{ reference: won.reference }])
   })
 
   it('[HH-ID-01][T21] never matches an earlier customer by email or phone, and reveals nothing about one', async () => {

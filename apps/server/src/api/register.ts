@@ -110,6 +110,7 @@ export function envelope(error: ApiError, audience: Audience, requestId: string)
       requestId,
       retryable: error.retryable,
       ...(error.options.current ? { current: error.options.current } : {}),
+      ...(error.options.existing ? { existing: error.options.existing } : {}),
     },
   }
 }
@@ -269,7 +270,7 @@ async function runRoute(
         : undefined
     result = await withTx(db, async (tx) => {
       if (scope) {
-        const stored = await claim(tx, scope)
+        const stored = await claim(tx, scope, route.idempotencyConflict)
         if (stored) return { status: stored.status, body: stored.body, replayed: true }
       }
       const out = await route.handler(context(tx))
