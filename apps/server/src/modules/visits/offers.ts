@@ -25,9 +25,12 @@
 //   template_not_configured and staff see the delivery issue; nothing reads as sent. The list names no notice for
 //   work-visit windows (OQ-WORK-WINDOW-OFFER-NOTICE): none is triggered for them.
 // - PROPOSED (no owner rule): staff withdraw an open offer with a reason; a work visit's windows pass the job's
-//   scheduling gates when offered and again when selected (the deposit gate of TSK-0064 plugs into WORK_VISIT_GATES);
+//   scheduling gates when offered and again when selected (WORK_VISIT_GATES, the deposit gate of TSK-0059 first);
 //   selecting at or after the hold time is refused as expired, the customer is told the times are no longer held and
 //   staff get a queue item to offer new ones.
+// - TSK-0059 (HH-SCH-06, HH-FIN-02, RULE-SAFETY-GATES): selecting a work-visit window confirms the visit, so the
+//   selection runs the deposit gate itself in its transaction, whatever gates the module was given, exactly as a staff
+//   confirmation does (visits.ts confirmVisit); an estimate visit never waits for a deposit.
 import type { Db, Tx } from '@handyhub/db'
 import {
   holdExpiresAt,
@@ -51,7 +54,8 @@ import { alternatives, capacitySettings, evaluate, type ReservationRequest } fro
 import { notificationAutomation, type Destination, type NotificationProviders } from '../notifications/index.js'
 import { openQueueItem, resolveQueueItem } from '../queue/items.js'
 import { findProject } from '../records/index.js'
-import { unmetGates, type WorkVisitGate } from './gates.js'
+import { confirmationDepositGate, depositGateProblem } from '../finance/deposit-gate.js'
+import { DEPOSIT_GATE, unmetGates, type WorkVisitGate } from './gates.js'
 import { factsOf, mayPlanWorkVisits, resolveEntry, storedWindow, type WindowEntry } from './visits.js'
 
 type Reader = Db | Tx
@@ -527,7 +531,8 @@ export type Selection = {
  * visit takes the window and is confirmed, and the confirmation notice's event is written. Refusals: NOT_FOUND,
  * VALIDATION_FAILED (POSITION_UNKNOWN), CONFLICT on `offer` (OFFER_EXPIRED, OFFER_WITHDRAWN, OFFER_SELECTED,
  * OFFER_OTHER_TIMES_REQUESTED) or on `body.position` (WINDOW_UNAVAILABLE: the window can no longer be kept;
- * SCHEDULING_NOT_READY: a work visit's scheduling gate is unmet). A refusal changes nothing. The customer sees no
+ * SCHEDULING_NOT_READY: a work visit's scheduling gate is unmet, with `deposit` DEPOSIT_REQUIRED or
+ * DEPOSIT_REQUIREMENT_MISSING when the job's deposit is what is missing). A refusal changes nothing. The customer sees no
  * staff detail: a conflict names no worker or item.
  */
 export async function selectWindow(
@@ -568,8 +573,27 @@ export async function selectWindow(
   const window = storedWindow(option)
   const unavailable = () => new ApiError('CONFLICT', { fieldErrors: [field('body.position', 'WINDOW_UNAVAILABLE')] })
   if (window.startsAt.getTime() <= now.getTime()) throw unavailable()
-  if (v.job_id !== null && (await unmetGates(tx, { jobId: v.job_id, projectId: v.project_id }, deps.gates)).length)
-    throw new ApiError('CONFLICT', { fieldErrors: [field('body.position', 'SCHEDULING_NOT_READY')] })
+  // TSK-0059 (HH-SCH-06, HH-FIN-02, RULE-SAFETY-GATES): the selection confirms the visit, so the deposit gate runs
+  // here itself, in this transaction, for every work visit, whatever gates the module was given; an estimate visit
+  // never waits for a deposit. The other registered gates follow (the deposit gate is not asked twice).
+  const deposit = depositGateProblem(
+    await confirmationDepositGate(
+      tx,
+      v.job_id !== null && isWorkVisitPurpose(v.purpose) ? { kind: 'work', jobId: v.job_id } : { kind: 'estimate' },
+    ),
+  )
+  const unmet =
+    v.job_id === null
+      ? []
+      : await unmetGates(
+          tx,
+          { jobId: v.job_id, projectId: v.project_id },
+          deps.gates.filter((g) => g !== DEPOSIT_GATE),
+        )
+  if (deposit || unmet.length)
+    throw new ApiError('CONFLICT', {
+      fieldErrors: [field('body.position', 'SCHEDULING_NOT_READY'), ...(deposit ? [deposit] : [])],
+    })
   // The window's holds are all still active (none ended early) and the team still passes every capacity rule.
   const holds = await tx
     .selectFrom('work.reservations')

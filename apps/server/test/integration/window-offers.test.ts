@@ -22,6 +22,7 @@ import { startCustomerSession } from '../../src/modules/identity/customer-sessio
 import { readCodeKey, type CodeKeySettings } from '../../src/modules/identity/index.js'
 import { hashPassword } from '../../src/modules/identity/passwords.js'
 import { apiModules } from '../../src/modules/index.js'
+import { portalModule } from '../../src/modules/portal/index.js'
 import {
   estimateVisitConfirmedAutomation,
   estimateVisitOptionsAutomation,
@@ -106,8 +107,13 @@ beforeAll(async () => {
   await syncServices(t.db, loadServiceSeed())
   const config = testConfig({ TRUST_PROXY_HOPS: '1' })
   app = await buildApp({ config, api: { db: wide, codeKey: KEY, storage: new FakeObjectStorage() } })
+  // The gated server's visits and portal modules are given only the test gate (no registered deposit gate).
   const modules = apiModules({ secureCookies: false, mfaKey: null, codeKey: KEY, trustProxyHops: 1 }).map((m) =>
-    m.name === 'visits' ? visitsModule({ workVisitGates: [TEST_GATE] }) : m,
+    m.name === 'visits'
+      ? visitsModule({ workVisitGates: [TEST_GATE] })
+      : m.name === 'portal'
+        ? portalModule({ codeKey: KEY, trustProxyHops: 1, testMark: true, workVisitGates: [TEST_GATE] })
+        : m,
   )
   gated = await buildApp({ config, api: { db: wide, modules } })
   const hash = await hashPassword(pw)
@@ -238,8 +244,11 @@ async function siteVisitProject(): Promise<Project> {
   }
 }
 
-/** Approves an estimate for the project through the real approval transaction, so its job and task exist. */
-async function approve(p: Project): Promise<string> {
+/**
+ * Approves an estimate for the project through the real approval transaction, so its job, task and deposit
+ * requirement exist. One synthetic patch at the given unit price (default $12.50: no deposit required).
+ */
+async function approve(p: Project, unitPriceCents = 1250): Promise<string> {
   await recordPolicyVersion(t.db, {
     key: 'legal.estimate_terms',
     value: {
@@ -272,7 +281,7 @@ async function approve(p: Project): Promise<string> {
           description: 'Patch the synthetic ceiling',
           quantity: '1',
           unit: 'patch',
-          unitPriceCents: 1250,
+          unitPriceCents,
         },
       ],
       texts: { exclusions: ['Synthetic: moving furniture'] },
@@ -1046,6 +1055,97 @@ describe('[HH-SCH-11][OWN-DEC-105][T37] work visits use the same mechanism after
     expect((await appointmentsTab(p)).appointments?.map((a) => [a.purpose, a.status])).toEqual([
       ['work_visit', 'confirmed'],
     ])
+  })
+})
+
+describe('[HH-SCH-06][HH-FIN-02][T36] selecting a work-visit window runs the deposit gate', () => {
+  it('[HH-SCH-06][HH-FIN-02][T36][RULE-SAFETY-GATES] refused while the deposit is due, on every server; allowed after a recorded payment; estimate visits never wait', async () => {
+    const p = await siteVisitProject()
+    // One synthetic patch at $1,500.00, so a deposit is required (FACT-DEPOSIT-RULE).
+    const jobId = await approve(p, 150_000)
+    // The default server refuses to plan or offer a work visit while its deposit is due.
+    const plan = {
+      purpose: 'service',
+      localDate: day(20),
+      windowStart: '09:00',
+      windowEnd: '10:00',
+      expectedDurationMinutes: 60,
+      travelBufferMinutes: 30,
+      preparationBufferMinutes: 0,
+      requiredWorkers: 1,
+      equipment: [],
+    }
+    const refusedPlan = await staffWrite('office', 'POST', `/api/v1/staff/projects/${p.projectId}/visits`, plan)
+    expect(refusedPlan.statusCode, refusedPlan.body).toBe(409)
+    expect(codes(refusedPlan.body)).toContainEqual(['job', 'DEPOSIT_REQUIRED'])
+    // Fixture: planned and offered on the gated server (only the test gate), as if offered before the deposit was
+    // required.
+    const planned = await gated.inject({
+      method: 'POST',
+      url: `/api/v1/staff/projects/${p.projectId}/visits`,
+      payload: plan,
+      headers: { cookie: gatedSession.cookie, 'x-csrf-token': gatedSession.csrf, 'idempotency-key': key('gated') },
+    })
+    expect(planned.statusCode, planned.body).toBe(201)
+    const v = planned.json<Visits>().visits.find((x) => x.purpose === 'service') as VisitView
+    const offeredRes = await offer('owner', v, threeWindows(day(20)), ['ben'], {}, gated)
+    expect(offeredRes.statusCode, offeredRes.body).toBe(201)
+    const o = (offeredRes.json<Visits>().visits.find((x) => x.id === v.id) as VisitView).offers[0] as OfferView
+    const selectOn = (server: FastifyInstance) =>
+      server.inject({
+        method: 'POST',
+        url: `/api/v1/customer/projects/${p.reference}/window-offers/1/select`,
+        payload: { position: 1 },
+        headers: {
+          cookie: p.cookie,
+          'idempotency-key': key('customer'),
+          'x-forwarded-for': `203.0.113.${(++ip % 200) + 1}`,
+        },
+      })
+    // The deposit is unpaid: the selection is refused on the default server and on the gated one alike (no module
+    // configuration skips the gate); nothing is selected, confirmed or booked, and the holds stay held.
+    for (const server of [app, gated]) {
+      const refused = await selectOn(server)
+      expect(refused.statusCode, refused.body).toBe(409)
+      expect(codes(refused.body)).toEqual([
+        ['body.position', 'SCHEDULING_NOT_READY'],
+        ['deposit', 'DEPOSIT_REQUIRED'],
+      ])
+    }
+    expect(await offerRow(o.id)).toMatchObject({ state: 'open', selected_position: null })
+    expect((await visitOf(p.projectId, v.id)).state).toBe('tentative')
+    expect((await reservationsOf(v.id)).map((r) => [r.kind, r.ended_reason])).toEqual(
+      o.windows.map(() => ['hold', null]),
+    )
+    expect(
+      await t.db
+        .selectFrom('platform.outbox_events')
+        .select('type')
+        .where('aggregate_id', '=', v.id)
+        .where('type', '=', 'appointment.reserved')
+        .execute(),
+    ).toEqual([])
+    // Verified money (20% of $1,500.00 in cash) opens it: the customer's selection confirms the work visit.
+    const paid = await staffWrite('office', 'POST', `/api/v1/staff/jobs/${jobId}/deposit/payments`, {
+      receivedOn: new Date().toISOString().slice(0, 10),
+      method: 'cash',
+      amountCents: 30_000,
+    })
+    expect(paid.statusCode, paid.body).toBe(201)
+    const ok = await selectOn(app)
+    expect(ok.statusCode, ok.body).toBe(200)
+    expect((await visitOf(p.projectId, v.id)).state).toBe('confirmed')
+    expect(
+      (await t.db.selectFrom('platform.outbox_events').select('type').where('aggregate_id', '=', v.id).execute()).map(
+        (e) => e.type,
+      ),
+    ).toEqual(['appointment.reserved'])
+    // An estimate visit never waits for a deposit: its selection confirms it with no job and no deposit.
+    const open = await siteVisitProject()
+    const estimate = await planVisit(open, { date: day(21) })
+    await offered(open, estimate, threeWindows(day(21)), ['cal'])
+    expect((await select(open, 1, 2)).statusCode).toBe(200)
+    expect((await visitOf(open.projectId, estimate.id)).state).toBe('confirmed')
   })
 })
 
