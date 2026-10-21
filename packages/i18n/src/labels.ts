@@ -498,6 +498,11 @@ export const LABEL_FAMILIES = {
   estimateResponseKind: ['changes_requested', 'declined', 'update_requested'],
   /** Scheduling task states (TSK-0057, ENT-SchedulingTask; migration 0044): open -> planning -> fulfilled / canceled. */
   schedulingTaskState: ['open', 'planning', 'fulfilled', 'canceled'],
+  /**
+   * TSK-0058: notification delivery channels (platform.message_deliveries); the delivery states and errors are the
+   * deliveryState and deliveryError families above.
+   */
+  deliveryChannel: ['email', 'sms'],
   /** How an estimate version was authored (HH-EST-11): written in the staff app, or an uploaded document. */
   authoringMethod: ['written', 'uploaded'],
   /** Estimate document states (TSK-0054; migration 0030, apps/server/src/modules/estimates/documents.ts). */

@@ -421,7 +421,8 @@ describe('[HH-EST-06][HH-EST-08][T33] approving the exact published version crea
         totalCents: 133_497,
         deposit: { state: 'required', amountCents: 26_699 },
       },
-      nextStep: 'scheduling_next',
+      // TSK-0058 (OWN-DEC-105): a required deposit that is not satisfied is the next step.
+      nextStep: 'deposit_due',
     })
     // T24: no internal ID, name or security detail reaches the answer.
     expect(JSON.stringify(answer)).not.toContain('Synthetic Approval Customer')
@@ -560,6 +561,9 @@ describe('[HH-EST-06][HH-EST-08][T33] approving the exact published version crea
       testMark: true,
       jobState: 'pending_preparation',
       schedulingTaskState: 'open',
+      // TSK-0058: no worker runs here, so the receipt is still being prepared and no message is recorded yet.
+      receipt: { state: 'preparing', issuedAt: null, byteSize: null },
+      receiptDeliveries: [],
     })
   })
 

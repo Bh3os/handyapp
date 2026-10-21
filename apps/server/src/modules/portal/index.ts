@@ -148,8 +148,9 @@ export function portalModule(deps: PortalEstimateDeps & Partial<SessionVerificat
       says:
         'The Documents tab (TSK-0056, HH-PORT-10). state "listed": the estimate versions the customer received, newest ' +
         'first, each with its number, version, status (current, approved, declined, expired, superseded, withdrawn), ' +
-        'dates and stored total in integer cents. state "none": no customer document exists yet (receipts, invoices ' +
-        'and care notes come with their own tasks).',
+        'dates and stored total in integer cents, and for an approved version its approval receipt PDF (TSK-0058: ' +
+        'preparing or issued). state "none": no customer document exists yet (invoices, receipts and care notes come ' +
+        'with their own tasks).',
     },
     {
       tab: 'photos',

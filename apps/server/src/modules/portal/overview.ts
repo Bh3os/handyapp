@@ -3,7 +3,8 @@
 // - Every read goes through the caller's scope (TSK-0037): a project outside it is null, answered NOT_FOUND.
 // - The status is the customer projection of the records (@handyhub/domain customerStatus): the request and project
 //   states, and the staff decisions published to the customer. The records later tasks build (estimate, visit, job,
-//   hold, invoice) are not read yet, so no estimate, appointment, hold or balance is ever claimed.
+//   hold, invoice) are not read yet, so no estimate, appointment, hold or balance is ever claimed. TSK-0058: the
+//   approval is read (approved, and a required deposit still due), so the step after approval is the owner's wording.
 // - The timeline lists only what the customer may see: the request they sent, "More information needed", "Site
 //   visit needed" with its customer explanation (OWN-DEC-99), and the Not a Fit decision in the owner's wording
 //   (OWN-DEC-100). Internal notes, qualification, assignment, the Owner routing and every staff name stay on the
@@ -19,6 +20,7 @@ import {
 } from '@handyhub/domain'
 import type { DataScope } from '@handyhub/policy'
 import { loadConfig } from '../../platform/config/index.js'
+import { approvalFacts } from '../estimates/receipt.js'
 import { findProject } from '../records/repository.js'
 import { replyWindow } from '../questions/model.js'
 import { notAFitCustomerMessage } from '../requests/staff-record.js'
@@ -120,6 +122,8 @@ async function overviewFor(db: Reader, project: { id: string; reference: string 
     requestState: r.state as RequestState,
     projectState: p.state as ProjectState,
     ...(reopenByReply ? { reopenByReply } : {}),
+    // TSK-0058 (HH-EST-12, OWN-DEC-105): an approval and whether its required deposit is still due name the next step.
+    ...(await approvalFacts(db, project.id)),
   }
   const status = customerStatus(facts)
   // The entry that put the project where it is now dates the status and carries its customer text.

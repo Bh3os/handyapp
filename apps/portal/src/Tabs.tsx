@@ -5,7 +5,8 @@
 //   customer's own email and texts on the project and HandyHub's replies, each with who wrote it, how, when and the
 //   text exactly as written (never translated); an empty conversation says what will appear. TSK-0051: the customer
 //   writes to HandyHub here too (text only). Documents (TSK-0056, HH-PORT-10): the estimate versions the customer
-//   received, each with its status, each opening the estimate view; nothing yet, with what will appear, while there is
+//   received, each with its status, each opening the estimate view, and for an approved version its approval receipt
+//   PDF (TSK-0058: ready in the estimate view, or being prepared); nothing yet, with what will appear, while there is
 //   none. Appointments, Payments: nothing exists yet. Photos: how many photos the project has by state, the same
 //   counts as the receipt, and that viewing them here is not available yet.
 // - A tab once opened stays mounted while another is shown, so anything typed in it survives a tab switch.
@@ -90,6 +91,11 @@ function Estimates({
                 {e.validUntil ? ` · ${t('portal.documents.estimate.validUntil', { date: day(e.validUntil) })}` : ''}
                 {` · ${t('portal.documents.estimate.total', { total: formatUsd(cents(e.totalCents)) })}`}
               </p>
+              {e.receipt ? (
+                <p className="hh-small" data-testid="documents-receipt">
+                  {t(e.receipt === 'issued' ? 'portal.documents.receipt.issued' : 'portal.documents.receipt.preparing')}
+                </p>
+              ) : null}
             </li>
           )
         })}

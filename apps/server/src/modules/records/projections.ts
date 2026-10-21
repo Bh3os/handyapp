@@ -388,6 +388,8 @@ const ESTIMATE_LIST_ITEM = object({
   publishedAt: DATE,
   validUntil: NULLABLE_DATE,
   totalCents: CENTS,
+  // TSK-0058 (HH-PORT-10): an approved version's approval receipt PDF, issued or being prepared; null otherwise.
+  receipt: { oneOf: [{ type: 'null' }, enumOf(['preparing', 'issued'])] },
 })
 type EstimateListRecord = {
   number: string
@@ -396,6 +398,7 @@ type EstimateListRecord = {
   publishedAt: Date
   validUntil: Date | null
   totalCents: number
+  receipt: 'preparing' | 'issued' | null
 }
 const listedView = customerView(
   'project.documents',
@@ -413,6 +416,7 @@ const listedView = customerView(
             publishedAt: e.publishedAt.toISOString(),
             validUntil: e.validUntil ? e.validUntil.toISOString() : null,
             totalCents: e.totalCents,
+            receipt: e.receipt,
           }))
         : undefined,
   }),
@@ -546,6 +550,20 @@ const SELECTION_FIELDS = {
 } as const
 const SELECTION = object(SELECTION_FIELDS)
 const APPROVED = object({ ...SELECTION_FIELDS, at: DATE })
+// TSK-0058 (HH-EST-12, OWN-DEC-105): the step after approval, and the approval receipt PDF (a short-lived signed link
+// once issued and while storage is configured).
+const NEXT_STEPS = ['deposit_due', 'choose_work_appointment'] as const
+type ReceiptRecord = { state: 'preparing' } | { state: 'issued'; issuedAt: Date; byteSize: number; url: string | null }
+const RECEIPT = object({
+  state: enumOf(['preparing', 'issued']),
+  issuedAt: NULLABLE_DATE,
+  byteSize: { type: ['integer', 'null'], minimum: 1 },
+  url: NULLABLE_STRING,
+})
+const receipt = (r: ReceiptRecord) =>
+  r.state === 'issued'
+    ? { state: r.state, issuedAt: r.issuedAt.toISOString(), byteSize: r.byteSize, url: r.url }
+    : { state: r.state, issuedAt: null, byteSize: null, url: null }
 const selection = (r: SelectionRecord) => ({
   options: [...r.options],
   subtotalCents: r.subtotalCents,
@@ -590,6 +608,8 @@ type EstimateDetailRecord = {
     contentDigest: string
     selection: SelectionRecord | null
     approved: (SelectionRecord & { at: Date }) | null
+    nextStep: (typeof NEXT_STEPS)[number] | null
+    receipt: ReceiptRecord | null
   }
   actions: { requestChanges: boolean; decline: boolean; requestUpdate: boolean }
   freshVerification: boolean
@@ -635,6 +655,8 @@ export const CUSTOMER_ESTIMATE = customerView(
       contentDigest: STRING,
       selection: { oneOf: [{ type: 'null' }, SELECTION] },
       approved: { oneOf: [{ type: 'null' }, APPROVED] },
+      nextStep: { oneOf: [{ type: 'null' }, enumOf(NEXT_STEPS)] },
+      receipt: { oneOf: [{ type: 'null' }, RECEIPT] },
     }),
     actions: object({
       requestChanges: { type: 'boolean' },
@@ -687,6 +709,8 @@ export const CUSTOMER_ESTIMATE = customerView(
       approved: v.approval.approved
         ? { ...selection(v.approval.approved), at: v.approval.approved.at.toISOString() }
         : null,
+      nextStep: v.approval.nextStep,
+      receipt: v.approval.receipt ? receipt(v.approval.receipt) : null,
     },
     actions: {
       requestChanges: v.actions.requestChanges,
@@ -738,7 +762,9 @@ export const CUSTOMER_ESTIMATE_SELECTION = customerView(
 
 /**
  * The customer's approval of one exact version (TSK-0057; HH-EST-06, HH-EST-08): what was approved and the next step
- * ("Estimate approved—scheduling is next."). Never an appointment, a reservation or a paid deposit; no internal ID.
+ * (TSK-0058, OWN-DEC-105: deposit_due "Estimate approved—pay your deposit to proceed with scheduling." or
+ * choose_work_appointment "Estimate approved—choose your work appointment."). Never an appointment, a reservation or a
+ * paid deposit; no internal ID.
  */
 export const CUSTOMER_ESTIMATE_APPROVAL = customerView(
   'estimate_approval.customer',
@@ -749,15 +775,21 @@ export const CUSTOMER_ESTIMATE_APPROVAL = customerView(
     version: { type: 'integer', minimum: 1 },
     status: enumOf(['approved']),
     approved: APPROVED,
-    nextStep: enumOf(['scheduling_next']),
+    nextStep: enumOf(NEXT_STEPS),
   },
-  (r: { reference: string; number: string; version: number; approved: SelectionRecord & { at: Date } }) => ({
+  (r: {
+    reference: string
+    number: string
+    version: number
+    approved: SelectionRecord & { at: Date }
+    nextStep: (typeof NEXT_STEPS)[number]
+  }) => ({
     reference: r.reference,
     number: r.number,
     version: r.version,
     status: 'approved',
     approved: { ...selection(r.approved), at: r.approved.at.toISOString() },
-    nextStep: 'scheduling_next',
+    nextStep: r.nextStep,
   }),
 )
 

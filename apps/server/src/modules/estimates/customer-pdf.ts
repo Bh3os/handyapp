@@ -238,7 +238,19 @@ export async function renderCustomerPdf(
   input: CustomerPdfInput,
   options: { compress?: boolean } = {},
 ): Promise<Buffer> {
-  const model = customerPdfModel(input)
+  return renderPdfModel(customerPdfModel(input), { author: input.issuerName, createdAt: input.createdAt }, options)
+}
+
+/**
+ * Lays out one PDF model (US Letter) with the customer PDF's furniture: the TEST mark on every page, the title, the
+ * blocks and the numbered footer. Deterministic: the metadata date is the stored one given, never the clock.
+ * TSK-0058: the approval receipt is laid out by the same function (receipt.ts).
+ */
+export async function renderPdfModel(
+  model: CustomerPdfModel,
+  meta: { readonly author: string | null; readonly createdAt: Date },
+  options: { compress?: boolean } = {},
+): Promise<Buffer> {
   const doc = new PDFDocument({
     size: 'LETTER',
     margin: PAGE.margin,
@@ -246,10 +258,10 @@ export async function renderCustomerPdf(
     compress: options.compress ?? true,
     info: {
       Title: pdfText(model.title),
-      Author: pdfText(input.issuerName ?? ''),
+      Author: pdfText(meta.author ?? ''),
       Creator: 'HandyApp',
       Producer: 'HandyApp',
-      CreationDate: input.createdAt,
+      CreationDate: meta.createdAt,
     },
   })
   const chunks: Buffer[] = []

@@ -8,7 +8,8 @@
 // customer's responses (customer.ts, responses.ts; the routes are the portal module's). TSK-0060 (HH-EST-14) adds the
 // unanswered-estimate reminder drafts, their stop rules and the staff release routes (reminders.ts, reminder-routes.ts).
 // TSK-0057 (HH-EST-06, HH-EST-07, HH-EST-08) adds the approval transaction (approval.ts; its routes are the portal
-// module's too).
+// module's too). TSK-0058 (HH-EST-12, HH-EST-10, HH-DATA-03) adds the approval receipt: its PDF, issued once per
+// approval, its automatic message and the next step after approval (receipt.ts).
 import type { ApiModule } from '../../api/route.js'
 import { estimateDocumentRoutes, type EstimateDocumentDeps } from './document-routes.js'
 import { lifecycleRoutes } from './lifecycle-routes.js'
@@ -41,6 +42,23 @@ export {
   type StaffEvent,
 } from './lifecycle.js'
 export { estimateReadyAutomation, ESTIMATE_READY_MESSAGE_KEY, type EstimateReadyDeps } from './notify.js'
+// TSK-0058: the approval receipt, its automatic message and the next step after approval.
+export {
+  APPROVAL_RECEIPT_MESSAGE_KEY,
+  APPROVAL_RECEIPT_RENDERER,
+  approvalFacts,
+  approvalNextStep,
+  approvalReceiptDocumentAutomation,
+  approvalReceiptInput,
+  approvalReceiptModel,
+  approvalReceiptNoticeAutomation,
+  issueApprovalReceipt,
+  receiptOfVersion,
+  renderApprovalReceipt,
+  type ApprovalNextStep,
+  type ApprovalReceiptInput,
+  type ReceiptView,
+} from './receipt.js'
 // TSK-0056: the customer estimate view and the customer's responses (Request Changes, Decline, Request an Update).
 export {
   customerEstimateDetail,

@@ -2,6 +2,8 @@
 // declaration here; an incomplete one stops the server at boot.
 import { staffLinkEmailAutomation, type LinkEmailDeps } from './modules/identity/link-email.js'
 import {
+  approvalReceiptDocumentAutomation,
+  approvalReceiptNoticeAutomation,
   estimateDocumentProcessAutomation,
   estimateExpiryAutomation,
   estimateReadyAutomation,
@@ -79,6 +81,10 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
           (await replyFailureItem(tx, row)) ?? (await questionReminderFailureItem(tx, row)),
       },
     ),
+    // TSK-0058: each approval's receipt PDF, issued once, and the automatic approval receipt message
+    // (FACT-AUTOMATIC-MESSAGES #9; wording NOT CONFIGURED: each delivery records template_not_configured).
+    approvalReceiptDocumentAutomation(deps.providers.storage),
+    approvalReceiptNoticeAutomation({ providers: { email: deps.providers.email, sms: deps.providers.sms } }),
     // TSK-0041: action queue items from the modules' committed events.
     ...queueAutomations(),
     // TSK-0032: the automatic receipt email, once per saved request (HH-INT-20); email only.
