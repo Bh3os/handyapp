@@ -73,7 +73,16 @@ export type NextAction = (typeof NEXT_ACTIONS)[number]
 export const WAITING = ['customer', 'handyhub', 'nobody'] as const
 export type Waiting = (typeof WAITING)[number]
 
-export const TIMELINE_KINDS = ['received', 'more_information', 'site_visit', 'not_a_fit', 'closed_no_response'] as const
+export const TIMELINE_KINDS = [
+  'received',
+  'more_information',
+  'site_visit',
+  'not_a_fit',
+  'closed_no_response',
+  // TSK-0070 (HH-PORT-07): only once a worker recorded them.
+  'on_the_way',
+  'arrived',
+] as const
 export type TimelineKind = (typeof TIMELINE_KINDS)[number]
 
 export type Status = {

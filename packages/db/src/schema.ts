@@ -1396,6 +1396,30 @@ export interface WorkTimeOffTable {
   withdrawn_by: string | null
 }
 
+export interface WorkTimeStampCorrectionsTable {
+  id: Generated<string>
+  visit_id: string
+  staff_user_id: string
+  kind: string
+  time_stamp_id: string | null
+  previous_at: Timestamp | null
+  corrected_at: Timestamp
+  reason: string
+  corrected_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface WorkTimeStampsTable {
+  id: Generated<string>
+  visit_id: string
+  project_id: string
+  job_id: string | null
+  staff_user_id: string
+  kind: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+  device_recorded_at: Timestamp | null
+}
+
 export interface WorkVisitChangeRequestsTable {
   id: Generated<string>
   visit_id: string
@@ -1439,6 +1463,15 @@ export interface WorkVisitChangesTable {
   refund_cents: Int8 | null
   invoice_cents: Int8 | null
   rules_version: number | null
+}
+
+export interface WorkVisitDeparturesTable {
+  id: Generated<string>
+  visit_id: string
+  staff_user_id: string
+  moved_visit: boolean
+  device_recorded_at: Timestamp | null
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
 export interface WorkVisitWindowsTable {
@@ -1669,8 +1702,11 @@ export interface Database {
   'work.reservations': WorkReservationsTable
   'work.scheduling_tasks': WorkSchedulingTasksTable
   'work.time_off': WorkTimeOffTable
+  'work.time_stamp_corrections': WorkTimeStampCorrectionsTable
+  'work.time_stamps': WorkTimeStampsTable
   'work.visit_change_requests': WorkVisitChangeRequestsTable
   'work.visit_changes': WorkVisitChangesTable
+  'work.visit_departures': WorkVisitDeparturesTable
   'work.visit_windows': WorkVisitWindowsTable
   'work.visits': WorkVisitsTable
   'work.window_offer_options': WorkWindowOfferOptionsTable

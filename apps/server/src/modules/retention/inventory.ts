@@ -619,11 +619,30 @@ export const TABLES = {
   },
   'work.scheduling_tasks': { holds: 'Scheduling tasks of a job', classes: ['scheduling'], categories: [J] },
   'work.time_off': { holds: 'Recorded staff time off', classes: ['staff_account'], categories: [NS] },
+  // TSK-0070 (HH-WORK-06, ENT-TimeStamp): Arrived and Finished per worker; the Owner's corrections keep the original.
+  'work.time_stamp_corrections': {
+    holds:
+      "The Owner's corrections of a worker's Arrived or Finished: the value set, the value replaced and the reason",
+    classes: ['scheduling', 'staff_account'],
+    categories: [J],
+  },
+  'work.time_stamps': {
+    holds:
+      "Each assigned worker's Arrived and Finished time per visit (server time; device time when sent); no pay data",
+    classes: ['scheduling', 'staff_account'],
+    categories: [J],
+  },
   'work.visit_change_requests': {
     holds:
       "Customers' reschedule and cancellation requests of a visit: the customer's reason and preferred times, outcome",
     classes: ['scheduling', 'request_details'],
     categories: [R, J],
+  },
+  // TSK-0070 (HH-SCH-08): each assigned worker's "On my way" tap; the tap that moved the visit is marked.
+  'work.visit_departures': {
+    holds: "Each assigned worker's On my way tap per visit, and whether it moved the visit on the way",
+    classes: ['scheduling'],
+    categories: [J],
   },
   'work.visit_changes': {
     holds:

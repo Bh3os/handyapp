@@ -11,6 +11,7 @@ import {
   estimateReminderRecordCheck,
   estimateResponseNoticeAutomations,
 } from './modules/estimates/index.js'
+import { onTheWayAutomation } from './modules/field/index.js'
 import { depositQueueAutomation } from './modules/finance/index.js'
 import { deliveryStatusAutomation, releaseAutomation } from './modules/notifications/index.js'
 import { photoProcessAutomation } from './modules/photos/index.js'
@@ -148,6 +149,9 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
       providers: { email: deps.providers.email, sms: null },
       staffAppUrl: deps.staffAppUrl,
     }),
+    // TSK-0070: an assigned worker's accepted On my way sends the automatic on-the-way notice once (#12, wording NOT
+    // CONFIGURED: each delivery records template_not_configured).
+    onTheWayAutomation({ providers: { email: deps.providers.email, sms: deps.providers.sms } }),
     // TSK-0051: the automatic question notice and staff reply notice, the reminder clock from the notice's successful
     // send, the reminder drafts and the "may close" queue item.
     ...questionAutomations({

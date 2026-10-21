@@ -75,6 +75,8 @@ export const TIMELINE_LABEL: Record<TimelineKind, CustomerKey> = {
   site_visit: 'portal.timeline.site_visit',
   not_a_fit: 'portal.timeline.not_a_fit',
   closed_no_response: 'portal.timeline.closed_no_response',
+  on_the_way: 'portal.timeline.on_the_way',
+  arrived: 'portal.timeline.arrived',
 }
 
 /** A moment in English, in the browser's time zone (named, so a time is never ambiguous). */

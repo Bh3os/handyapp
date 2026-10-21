@@ -905,3 +905,49 @@
     break-inside: avoid-page;
   }
 }
+
+/* TSK-0070: My Day (HH-OFF-09): one card per visit, the next action as a 48 px button on a phone. */
+.staff-myday__list {
+  display: grid;
+  gap: var(--hh-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.staff-myday__visit {
+  padding: var(--hh-space-4);
+  border: var(--hh-hairline);
+  border-radius: var(--hh-radius-sm);
+  background: var(--hh-surface);
+  overflow-wrap: anywhere;
+}
+.staff-myday__sub {
+  margin: var(--hh-space-3) 0 var(--hh-space-1);
+  font-size: 1rem;
+}
+.staff-myday__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hh-space-2);
+  margin-top: var(--hh-space-3);
+}
+.staff-myday__action.hh-button {
+  min-height: 48px;
+  min-width: 48px;
+  flex: 1 1 12rem;
+  font-size: 1.0625rem;
+}
+.staff-times {
+  overflow-x: auto;
+}
+.staff-times table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.staff-times th,
+.staff-times td {
+  padding: var(--hh-space-2);
+  border-bottom: var(--hh-hairline);
+  text-align: left;
+  vertical-align: top;
+}

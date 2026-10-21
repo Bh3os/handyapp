@@ -5853,7 +5853,9 @@
                               "more_information",
                               "site_visit",
                               "not_a_fit",
-                              "closed_no_response"
+                              "closed_no_response",
+                              "on_the_way",
+                              "arrived"
                             ]
                           },
                           "at": {
@@ -23186,6 +23188,7 @@
                                   "retention.job_records",
                                   "retention.safety_records",
                                   "scheduling.window_offers",
+                                  "visit.on_my_way",
                                   "ai.module"
                                 ]
                               },
@@ -24738,6 +24741,7 @@
                                   "retention.job_records",
                                   "retention.safety_records",
                                   "scheduling.window_offers",
+                                  "visit.on_my_way",
                                   "ai.module"
                                 ]
                               },
@@ -26568,6 +26572,7 @@
                                   "retention.job_records",
                                   "retention.safety_records",
                                   "scheduling.window_offers",
+                                  "visit.on_my_way",
                                   "ai.module"
                                 ]
                               },
@@ -27974,6 +27979,7 @@
                                   "retention.job_records",
                                   "retention.safety_records",
                                   "scheduling.window_offers",
+                                  "visit.on_my_way",
                                   "ai.module"
                                 ]
                               },
@@ -29555,6 +29561,7 @@
                                   "retention.job_records",
                                   "retention.safety_records",
                                   "scheduling.window_offers",
+                                  "visit.on_my_way",
                                   "ai.module"
                                 ]
                               },
@@ -30961,6 +30968,7 @@
                                   "retention.job_records",
                                   "retention.safety_records",
                                   "scheduling.window_offers",
+                                  "visit.on_my_way",
                                   "ai.module"
                                 ]
                               },
@@ -32733,6 +32741,7 @@
                                   "retention.job_records",
                                   "retention.safety_records",
                                   "scheduling.window_offers",
+                                  "visit.on_my_way",
                                   "ai.module"
                                 ]
                               },
@@ -34327,6 +34336,7 @@
                                   "retention.job_records",
                                   "retention.safety_records",
                                   "scheduling.window_offers",
+                                  "visit.on_my_way",
                                   "ai.module"
                                 ]
                               },
@@ -35912,6 +35922,7 @@
                                   "retention.job_records",
                                   "retention.safety_records",
                                   "scheduling.window_offers",
+                                  "visit.on_my_way",
                                   "ai.module"
                                 ]
                               },
@@ -37502,6 +37513,7 @@
                                   "retention.job_records",
                                   "retention.safety_records",
                                   "scheduling.window_offers",
+                                  "visit.on_my_way",
                                   "ai.module"
                                 ]
                               },
@@ -39428,6 +39440,7 @@
                                   "retention.job_records",
                                   "retention.safety_records",
                                   "scheduling.window_offers",
+                                  "visit.on_my_way",
                                   "ai.module"
                                 ]
                               },
@@ -41013,6 +41026,7 @@
                                   "retention.job_records",
                                   "retention.safety_records",
                                   "scheduling.window_offers",
+                                  "visit.on_my_way",
                                   "ai.module"
                                 ]
                               },
@@ -42802,6 +42816,7 @@
                                   "retention.job_records",
                                   "retention.safety_records",
                                   "scheduling.window_offers",
+                                  "visit.on_my_way",
                                   "ai.module"
                                 ]
                               },
@@ -55958,6 +55973,485 @@
         }
       }
     },
+    "/api/v1/staff/my/day": {
+      "get": {
+        "operationId": "getMyDay",
+        "summary": "The caller's My Day",
+        "description": "Staff with schedule.view_my_day: only the caller's own active reservations (a worker's own assignments; a tentative hold shows no address and no actions). Lists the visits of today in each visit's zone, and any visit still on the way or arrived, in arrival-window order: the window, the address and a plain directions link (confirmed and live only, OWN-DEC-40), the access notes (never a code), the preparation, the readiness blockers the records show (blocking holds, a deposit not yet covered, a work package without an SOP, a packet not viewed or changed since; this is not the Start Work check), the caller's own taps and the one next action. No ETA anywhere.",
+        "tags": [
+          "field"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "checkedAt",
+                    "onMyWay",
+                    "visits"
+                  ],
+                  "properties": {
+                    "checkedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "onMyWay": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state",
+                        "earliestMinutesBefore"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "configured",
+                            "not_configured"
+                          ]
+                        },
+                        "earliestMinutesBefore": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "visits": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "visitId",
+                          "number",
+                          "purpose",
+                          "state",
+                          "version",
+                          "projectReference",
+                          "jobId",
+                          "assignment",
+                          "role",
+                          "window",
+                          "team",
+                          "address",
+                          "directionsUrl",
+                          "accessNotes",
+                          "preparation",
+                          "readiness",
+                          "mine",
+                          "next",
+                          "onMyWayOpensAt",
+                          "actions"
+                        ],
+                        "properties": {
+                          "visitId": {
+                            "type": "string"
+                          },
+                          "number": {
+                            "type": "integer"
+                          },
+                          "purpose": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string"
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "projectReference": {
+                            "type": "string"
+                          },
+                          "jobId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "assignment": {
+                            "type": "string",
+                            "enum": [
+                              "confirmed",
+                              "hold"
+                            ]
+                          },
+                          "role": {
+                            "type": "string"
+                          },
+                          "window": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "localDate",
+                              "start",
+                              "end",
+                              "timeZone",
+                              "startsAt",
+                              "endsAt"
+                            ],
+                            "properties": {
+                              "localDate": {
+                                "type": "string"
+                              },
+                              "start": {
+                                "type": "string"
+                              },
+                              "end": {
+                                "type": "string"
+                              },
+                              "timeZone": {
+                                "type": "string"
+                              },
+                              "startsAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "endsAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          },
+                          "team": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "name",
+                                "role"
+                              ],
+                              "properties": {
+                                "name": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "role": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "address": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "additionalProperties": false,
+                            "required": [
+                              "street",
+                              "unit",
+                              "city",
+                              "state",
+                              "zip"
+                            ],
+                            "properties": {
+                              "street": {
+                                "type": "string"
+                              },
+                              "unit": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "city": {
+                                "type": "string"
+                              },
+                              "state": {
+                                "type": "string"
+                              },
+                              "zip": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "directionsUrl": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "accessNotes": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "detail",
+                                "value",
+                                "source",
+                                "confirmedAt"
+                              ],
+                              "properties": {
+                                "detail": {
+                                  "type": "string"
+                                },
+                                "value": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "source": {
+                                  "type": "string"
+                                },
+                                "confirmedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "preparation": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "customerPreparation",
+                              "instructions"
+                            ],
+                            "properties": {
+                              "customerPreparation": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "instructions": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "readiness": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "additionalProperties": false,
+                            "required": [
+                              "packetVersion",
+                              "lastViewedVersion",
+                              "changedSinceViewed",
+                              "criticalSinceViewed",
+                              "blockers"
+                            ],
+                            "properties": {
+                              "packetVersion": {
+                                "type": "integer"
+                              },
+                              "lastViewedVersion": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              },
+                              "changedSinceViewed": {
+                                "type": "boolean"
+                              },
+                              "criticalSinceViewed": {
+                                "type": "boolean"
+                              },
+                              "blockers": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "code",
+                                    "count"
+                                  ],
+                                  "properties": {
+                                    "code": {
+                                      "type": "string"
+                                    },
+                                    "count": {
+                                      "type": "integer"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "mine": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "departedAt",
+                              "arrivedAt",
+                              "finishedAt"
+                            ],
+                            "properties": {
+                              "departedAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              },
+                              "arrivedAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              },
+                              "finishedAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              }
+                            }
+                          },
+                          "next": {
+                            "type": "string",
+                            "enum": [
+                              "not_confirmed",
+                              "wait",
+                              "not_configured",
+                              "on_my_way",
+                              "arrived",
+                              "finished",
+                              "done"
+                            ]
+                          },
+                          "onMyWayOpensAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "actions": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "onMyWay",
+                              "arrived",
+                              "finished"
+                            ],
+                            "properties": {
+                              "onMyWay": {
+                                "type": "boolean"
+                              },
+                              "arrived": {
+                                "type": "boolean"
+                              },
+                              "finished": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "schedule.view_my_day",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/my-day.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/my/job-packets": {
       "get": {
         "operationId": "listMyJobPackets",
@@ -57291,6 +57785,7 @@
                     "job",
                     "schedulingTask",
                     "actions",
+                    "visitTimes",
                     "visits"
                   ],
                   "properties": {
@@ -57440,6 +57935,9 @@
                           "type": "boolean"
                         }
                       }
+                    },
+                    "visitTimes": {
+                      "type": "boolean"
                     },
                     "visits": {
                       "type": "array",
@@ -58942,6 +59440,7 @@
                     "job",
                     "schedulingTask",
                     "actions",
+                    "visitTimes",
                     "visits"
                   ],
                   "properties": {
@@ -59091,6 +59590,9 @@
                           "type": "boolean"
                         }
                       }
+                    },
+                    "visitTimes": {
+                      "type": "boolean"
                     },
                     "visits": {
                       "type": "array",
@@ -73766,6 +74268,7 @@
                               "retention.job_records",
                               "retention.safety_records",
                               "scheduling.window_offers",
+                              "visit.on_my_way",
                               "ai.module"
                             ]
                           },
@@ -74912,6 +75415,204 @@
         }
       }
     },
+    "/api/v1/staff/timestamps/exports": {
+      "post": {
+        "operationId": "exportVisitTimestamps",
+        "summary": "Arrived and Finished times for the accountant (CSV)",
+        "description": "Staff with export.accounting (the Owner, with a fresh sign-in and a reason). One row per worker of every visit that went on the way with a date (in its own zone) from `from` to `to` (at most 366 days, PROPOSED): the visit date and zone, project reference, visit number and purpose, the worker, Arrived and Finished (local and UTC, with recorded, corrected, pending or missing), the whole minutes between them when both exist, and whether a value was corrected. Times only: no pay, rate, overtime or deduction (payroll stays outside the software). The export is audited with its range, row count and reason; the CSV text is answered for the staff app to save as a file. PROPOSED limit: 30 per staff member per hour.",
+        "tags": [
+          "field"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "from",
+                  "to",
+                  "reason"
+                ],
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  },
+                  "to": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "filename",
+                    "contentType",
+                    "rows",
+                    "csv"
+                  ],
+                  "properties": {
+                    "filename": {
+                      "type": "string"
+                    },
+                    "contentType": {
+                      "type": "string",
+                      "enum": [
+                        "text/csv"
+                      ]
+                    },
+                    "rows": {
+                      "type": "integer"
+                    },
+                    "csv": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "export.accounting",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "timestamp-export",
+            "limit": 30,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "visit.export_timestamps",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/my-day.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/visit-change-requests/{requestId}/decline": {
       "post": {
         "operationId": "declineVisitChangeRequest",
@@ -74987,6 +75688,7 @@
                     "job",
                     "schedulingTask",
                     "actions",
+                    "visitTimes",
                     "visits"
                   ],
                   "properties": {
@@ -75136,6 +75838,9 @@
                           "type": "boolean"
                         }
                       }
+                    },
+                    "visitTimes": {
+                      "type": "boolean"
                     },
                     "visits": {
                       "type": "array",
@@ -76515,6 +77220,523 @@
         }
       }
     },
+    "/api/v1/staff/visits/{visitId}/arrived": {
+      "post": {
+        "operationId": "tapArrived",
+        "summary": "Record Arrived",
+        "description": "Arrived: the assigned worker's own timestamp (server time; one per worker). The first moves the visit to arrived. PROPOSED: refused before anyone tapped On my way (ON_MY_WAY_FIRST). Arrived never starts work and never passes the Start Work gate. Only a worker assigned to this visit (an active confirmed reservation, until the end of its service day; the Owner too when assigned); anyone else is refused. A canceled, expired, no-access or tentative visit refuses every tap (VISIT_NOT_ACTIVE). A repeated tap records nothing more (recorded: false). The device's clock may be sent as deviceRecordedAt; it is kept beside the server's time, never instead of it. Returns the visit as the caller's My Day shows it.",
+        "tags": [
+          "field"
+        ],
+        "parameters": [
+          {
+            "name": "visitId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "deviceRecordedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "recorded",
+                    "visit"
+                  ],
+                  "properties": {
+                    "recorded": {
+                      "type": "boolean"
+                    },
+                    "visit": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "visitId",
+                        "number",
+                        "purpose",
+                        "state",
+                        "version",
+                        "projectReference",
+                        "jobId",
+                        "assignment",
+                        "role",
+                        "window",
+                        "team",
+                        "address",
+                        "directionsUrl",
+                        "accessNotes",
+                        "preparation",
+                        "readiness",
+                        "mine",
+                        "next",
+                        "onMyWayOpensAt",
+                        "actions"
+                      ],
+                      "properties": {
+                        "visitId": {
+                          "type": "string"
+                        },
+                        "number": {
+                          "type": "integer"
+                        },
+                        "purpose": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "type": "string"
+                        },
+                        "version": {
+                          "type": "integer"
+                        },
+                        "projectReference": {
+                          "type": "string"
+                        },
+                        "jobId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "assignment": {
+                          "type": "string",
+                          "enum": [
+                            "confirmed",
+                            "hold"
+                          ]
+                        },
+                        "role": {
+                          "type": "string"
+                        },
+                        "window": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "localDate",
+                            "start",
+                            "end",
+                            "timeZone",
+                            "startsAt",
+                            "endsAt"
+                          ],
+                          "properties": {
+                            "localDate": {
+                              "type": "string"
+                            },
+                            "start": {
+                              "type": "string"
+                            },
+                            "end": {
+                              "type": "string"
+                            },
+                            "timeZone": {
+                              "type": "string"
+                            },
+                            "startsAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "endsAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        },
+                        "team": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "name",
+                              "role"
+                            ],
+                            "properties": {
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "role": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "address": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "additionalProperties": false,
+                          "required": [
+                            "street",
+                            "unit",
+                            "city",
+                            "state",
+                            "zip"
+                          ],
+                          "properties": {
+                            "street": {
+                              "type": "string"
+                            },
+                            "unit": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "city": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string"
+                            },
+                            "zip": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "directionsUrl": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "accessNotes": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "detail",
+                              "value",
+                              "source",
+                              "confirmedAt"
+                            ],
+                            "properties": {
+                              "detail": {
+                                "type": "string"
+                              },
+                              "value": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "source": {
+                                "type": "string"
+                              },
+                              "confirmedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        },
+                        "preparation": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "customerPreparation",
+                            "instructions"
+                          ],
+                          "properties": {
+                            "customerPreparation": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "instructions": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        },
+                        "readiness": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "additionalProperties": false,
+                          "required": [
+                            "packetVersion",
+                            "lastViewedVersion",
+                            "changedSinceViewed",
+                            "criticalSinceViewed",
+                            "blockers"
+                          ],
+                          "properties": {
+                            "packetVersion": {
+                              "type": "integer"
+                            },
+                            "lastViewedVersion": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "changedSinceViewed": {
+                              "type": "boolean"
+                            },
+                            "criticalSinceViewed": {
+                              "type": "boolean"
+                            },
+                            "blockers": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "code",
+                                  "count"
+                                ],
+                                "properties": {
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "count": {
+                                    "type": "integer"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "mine": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "departedAt",
+                            "arrivedAt",
+                            "finishedAt"
+                          ],
+                          "properties": {
+                            "departedAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            },
+                            "arrivedAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            },
+                            "finishedAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            }
+                          }
+                        },
+                        "next": {
+                          "type": "string",
+                          "enum": [
+                            "not_confirmed",
+                            "wait",
+                            "not_configured",
+                            "on_my_way",
+                            "arrived",
+                            "finished",
+                            "done"
+                          ]
+                        },
+                        "onMyWayOpensAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "actions": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "onMyWay",
+                            "arrived",
+                            "finished"
+                          ],
+                          "properties": {
+                            "onMyWay": {
+                              "type": "boolean"
+                            },
+                            "arrived": {
+                              "type": "boolean"
+                            },
+                            "finished": {
+                              "type": "boolean"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "visit.tap_arrived",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "visit.tap_arrived",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/my-day.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/visits/{visitId}/cancel": {
       "post": {
         "operationId": "cancelVisit",
@@ -76610,6 +77832,7 @@
                     "job",
                     "schedulingTask",
                     "actions",
+                    "visitTimes",
                     "visits"
                   ],
                   "properties": {
@@ -76759,6 +77982,9 @@
                           "type": "boolean"
                         }
                       }
+                    },
+                    "visitTimes": {
+                      "type": "boolean"
                     },
                     "visits": {
                       "type": "array",
@@ -78230,6 +79456,7 @@
                     "job",
                     "schedulingTask",
                     "actions",
+                    "visitTimes",
                     "visits"
                   ],
                   "properties": {
@@ -78379,6 +79606,9 @@
                           "type": "boolean"
                         }
                       }
+                    },
+                    "visitTimes": {
+                      "type": "boolean"
                     },
                     "visits": {
                       "type": "array",
@@ -79758,6 +80988,523 @@
         }
       }
     },
+    "/api/v1/staff/visits/{visitId}/finished": {
+      "post": {
+        "operationId": "tapFinished",
+        "summary": "Record Finished",
+        "description": "Finished: the assigned worker's own timestamp, after their own Arrived (ARRIVED_FIRST). PROPOSED: the visit is completed when every assigned worker has a Finished value. No pay, overtime or deduction is computed. Only a worker assigned to this visit (an active confirmed reservation, until the end of its service day; the Owner too when assigned); anyone else is refused. A canceled, expired, no-access or tentative visit refuses every tap (VISIT_NOT_ACTIVE). A repeated tap records nothing more (recorded: false). The device's clock may be sent as deviceRecordedAt; it is kept beside the server's time, never instead of it. Returns the visit as the caller's My Day shows it.",
+        "tags": [
+          "field"
+        ],
+        "parameters": [
+          {
+            "name": "visitId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "deviceRecordedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "recorded",
+                    "visit"
+                  ],
+                  "properties": {
+                    "recorded": {
+                      "type": "boolean"
+                    },
+                    "visit": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "visitId",
+                        "number",
+                        "purpose",
+                        "state",
+                        "version",
+                        "projectReference",
+                        "jobId",
+                        "assignment",
+                        "role",
+                        "window",
+                        "team",
+                        "address",
+                        "directionsUrl",
+                        "accessNotes",
+                        "preparation",
+                        "readiness",
+                        "mine",
+                        "next",
+                        "onMyWayOpensAt",
+                        "actions"
+                      ],
+                      "properties": {
+                        "visitId": {
+                          "type": "string"
+                        },
+                        "number": {
+                          "type": "integer"
+                        },
+                        "purpose": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "type": "string"
+                        },
+                        "version": {
+                          "type": "integer"
+                        },
+                        "projectReference": {
+                          "type": "string"
+                        },
+                        "jobId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "assignment": {
+                          "type": "string",
+                          "enum": [
+                            "confirmed",
+                            "hold"
+                          ]
+                        },
+                        "role": {
+                          "type": "string"
+                        },
+                        "window": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "localDate",
+                            "start",
+                            "end",
+                            "timeZone",
+                            "startsAt",
+                            "endsAt"
+                          ],
+                          "properties": {
+                            "localDate": {
+                              "type": "string"
+                            },
+                            "start": {
+                              "type": "string"
+                            },
+                            "end": {
+                              "type": "string"
+                            },
+                            "timeZone": {
+                              "type": "string"
+                            },
+                            "startsAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "endsAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        },
+                        "team": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "name",
+                              "role"
+                            ],
+                            "properties": {
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "role": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "address": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "additionalProperties": false,
+                          "required": [
+                            "street",
+                            "unit",
+                            "city",
+                            "state",
+                            "zip"
+                          ],
+                          "properties": {
+                            "street": {
+                              "type": "string"
+                            },
+                            "unit": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "city": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string"
+                            },
+                            "zip": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "directionsUrl": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "accessNotes": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "detail",
+                              "value",
+                              "source",
+                              "confirmedAt"
+                            ],
+                            "properties": {
+                              "detail": {
+                                "type": "string"
+                              },
+                              "value": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "source": {
+                                "type": "string"
+                              },
+                              "confirmedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        },
+                        "preparation": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "customerPreparation",
+                            "instructions"
+                          ],
+                          "properties": {
+                            "customerPreparation": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "instructions": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        },
+                        "readiness": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "additionalProperties": false,
+                          "required": [
+                            "packetVersion",
+                            "lastViewedVersion",
+                            "changedSinceViewed",
+                            "criticalSinceViewed",
+                            "blockers"
+                          ],
+                          "properties": {
+                            "packetVersion": {
+                              "type": "integer"
+                            },
+                            "lastViewedVersion": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "changedSinceViewed": {
+                              "type": "boolean"
+                            },
+                            "criticalSinceViewed": {
+                              "type": "boolean"
+                            },
+                            "blockers": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "code",
+                                  "count"
+                                ],
+                                "properties": {
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "count": {
+                                    "type": "integer"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "mine": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "departedAt",
+                            "arrivedAt",
+                            "finishedAt"
+                          ],
+                          "properties": {
+                            "departedAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            },
+                            "arrivedAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            },
+                            "finishedAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            }
+                          }
+                        },
+                        "next": {
+                          "type": "string",
+                          "enum": [
+                            "not_confirmed",
+                            "wait",
+                            "not_configured",
+                            "on_my_way",
+                            "arrived",
+                            "finished",
+                            "done"
+                          ]
+                        },
+                        "onMyWayOpensAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "actions": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "onMyWay",
+                            "arrived",
+                            "finished"
+                          ],
+                          "properties": {
+                            "onMyWay": {
+                              "type": "boolean"
+                            },
+                            "arrived": {
+                              "type": "boolean"
+                            },
+                            "finished": {
+                              "type": "boolean"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "visit.tap_finished",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "visit.tap_finished",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/my-day.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/visits/{visitId}/offers": {
       "post": {
         "operationId": "offerVisitWindows",
@@ -79901,6 +81648,7 @@
                     "job",
                     "schedulingTask",
                     "actions",
+                    "visitTimes",
                     "visits"
                   ],
                   "properties": {
@@ -80050,6 +81798,9 @@
                           "type": "boolean"
                         }
                       }
+                    },
+                    "visitTimes": {
+                      "type": "boolean"
                     },
                     "visits": {
                       "type": "array",
@@ -81429,6 +83180,523 @@
         }
       }
     },
+    "/api/v1/staff/visits/{visitId}/on-my-way": {
+      "post": {
+        "operationId": "tapOnMyWay",
+        "summary": "Record On my way",
+        "description": "On my way: tapped by the assigned worker when actually departing for this visit, from the configured minutes before the arrival window (visit.on_my_way: three hours, OWN-DEC-107; ON_MY_WAY_TOO_EARLY before it, NOT_CONFIGURED while unset). Time alone never records it. The first accepted tap moves the visit to en_route and writes the visit.on_my_way event: after commit the customer gets the automatic on-the-way notice once, with the assigned workers' first names and the confirmed arrival window, never an ETA or tracking (wording NOT CONFIGURED: the delivery is recorded as not configured, never as sent). A teammate's later tap records only their own departure. ALREADY_ARRIVED once the visit or the caller arrived. Only a worker assigned to this visit (an active confirmed reservation, until the end of its service day; the Owner too when assigned); anyone else is refused. A canceled, expired, no-access or tentative visit refuses every tap (VISIT_NOT_ACTIVE). A repeated tap records nothing more (recorded: false). The device's clock may be sent as deviceRecordedAt; it is kept beside the server's time, never instead of it. Returns the visit as the caller's My Day shows it.",
+        "tags": [
+          "field"
+        ],
+        "parameters": [
+          {
+            "name": "visitId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "deviceRecordedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "recorded",
+                    "visit"
+                  ],
+                  "properties": {
+                    "recorded": {
+                      "type": "boolean"
+                    },
+                    "visit": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "visitId",
+                        "number",
+                        "purpose",
+                        "state",
+                        "version",
+                        "projectReference",
+                        "jobId",
+                        "assignment",
+                        "role",
+                        "window",
+                        "team",
+                        "address",
+                        "directionsUrl",
+                        "accessNotes",
+                        "preparation",
+                        "readiness",
+                        "mine",
+                        "next",
+                        "onMyWayOpensAt",
+                        "actions"
+                      ],
+                      "properties": {
+                        "visitId": {
+                          "type": "string"
+                        },
+                        "number": {
+                          "type": "integer"
+                        },
+                        "purpose": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "type": "string"
+                        },
+                        "version": {
+                          "type": "integer"
+                        },
+                        "projectReference": {
+                          "type": "string"
+                        },
+                        "jobId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "assignment": {
+                          "type": "string",
+                          "enum": [
+                            "confirmed",
+                            "hold"
+                          ]
+                        },
+                        "role": {
+                          "type": "string"
+                        },
+                        "window": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "localDate",
+                            "start",
+                            "end",
+                            "timeZone",
+                            "startsAt",
+                            "endsAt"
+                          ],
+                          "properties": {
+                            "localDate": {
+                              "type": "string"
+                            },
+                            "start": {
+                              "type": "string"
+                            },
+                            "end": {
+                              "type": "string"
+                            },
+                            "timeZone": {
+                              "type": "string"
+                            },
+                            "startsAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "endsAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        },
+                        "team": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "name",
+                              "role"
+                            ],
+                            "properties": {
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "role": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "address": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "additionalProperties": false,
+                          "required": [
+                            "street",
+                            "unit",
+                            "city",
+                            "state",
+                            "zip"
+                          ],
+                          "properties": {
+                            "street": {
+                              "type": "string"
+                            },
+                            "unit": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "city": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string"
+                            },
+                            "zip": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "directionsUrl": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "accessNotes": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "detail",
+                              "value",
+                              "source",
+                              "confirmedAt"
+                            ],
+                            "properties": {
+                              "detail": {
+                                "type": "string"
+                              },
+                              "value": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "source": {
+                                "type": "string"
+                              },
+                              "confirmedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        },
+                        "preparation": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "customerPreparation",
+                            "instructions"
+                          ],
+                          "properties": {
+                            "customerPreparation": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "instructions": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        },
+                        "readiness": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "additionalProperties": false,
+                          "required": [
+                            "packetVersion",
+                            "lastViewedVersion",
+                            "changedSinceViewed",
+                            "criticalSinceViewed",
+                            "blockers"
+                          ],
+                          "properties": {
+                            "packetVersion": {
+                              "type": "integer"
+                            },
+                            "lastViewedVersion": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "changedSinceViewed": {
+                              "type": "boolean"
+                            },
+                            "criticalSinceViewed": {
+                              "type": "boolean"
+                            },
+                            "blockers": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "code",
+                                  "count"
+                                ],
+                                "properties": {
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "count": {
+                                    "type": "integer"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "mine": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "departedAt",
+                            "arrivedAt",
+                            "finishedAt"
+                          ],
+                          "properties": {
+                            "departedAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            },
+                            "arrivedAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            },
+                            "finishedAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            }
+                          }
+                        },
+                        "next": {
+                          "type": "string",
+                          "enum": [
+                            "not_confirmed",
+                            "wait",
+                            "not_configured",
+                            "on_my_way",
+                            "arrived",
+                            "finished",
+                            "done"
+                          ]
+                        },
+                        "onMyWayOpensAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "actions": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "onMyWay",
+                            "arrived",
+                            "finished"
+                          ],
+                          "properties": {
+                            "onMyWay": {
+                              "type": "boolean"
+                            },
+                            "arrived": {
+                              "type": "boolean"
+                            },
+                            "finished": {
+                              "type": "boolean"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "visit.tap_on_my_way",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "visit.tap_on_my_way",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/my-day.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/visits/{visitId}/reassign": {
       "post": {
         "operationId": "reassignVisit",
@@ -81522,6 +83790,7 @@
                     "job",
                     "schedulingTask",
                     "actions",
+                    "visitTimes",
                     "visits"
                   ],
                   "properties": {
@@ -81671,6 +83940,9 @@
                           "type": "boolean"
                         }
                       }
+                    },
+                    "visitTimes": {
+                      "type": "boolean"
                     },
                     "visits": {
                       "type": "array",
@@ -83050,6 +85322,934 @@
         }
       }
     },
+    "/api/v1/staff/visits/{visitId}/timestamps": {
+      "get": {
+        "operationId": "getVisitTimestamps",
+        "summary": "Each worker's Arrived and Finished on a visit",
+        "description": "Staff with visit.correct_timestamps (the Owner). Every worker assigned to the visit, and anyone who recorded a value there, with their On my way, Arrived and Finished: each recorded (server time, and the device time when sent), corrected (the value in force, the recorded value kept, and every correction with its reason, who and when), not due yet, or missing (flagged, never invented), and the whole minutes from Arrived to Finished only when both exist. No pay, overtime or deduction is computed.",
+        "tags": [
+          "field"
+        ],
+        "parameters": [
+          {
+            "name": "visitId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "visitId",
+                    "number",
+                    "purpose",
+                    "state",
+                    "version",
+                    "projectReference",
+                    "window",
+                    "dayEnded",
+                    "workers",
+                    "actions"
+                  ],
+                  "properties": {
+                    "visitId": {
+                      "type": "string"
+                    },
+                    "number": {
+                      "type": "integer"
+                    },
+                    "purpose": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "projectReference": {
+                      "type": "string"
+                    },
+                    "window": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "localDate",
+                        "start",
+                        "end",
+                        "timeZone",
+                        "startsAt",
+                        "endsAt"
+                      ],
+                      "properties": {
+                        "localDate": {
+                          "type": "string"
+                        },
+                        "start": {
+                          "type": "string"
+                        },
+                        "end": {
+                          "type": "string"
+                        },
+                        "timeZone": {
+                          "type": "string"
+                        },
+                        "startsAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "endsAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "dayEnded": {
+                      "type": "boolean"
+                    },
+                    "workers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "staffUserId",
+                          "name",
+                          "role",
+                          "assigned",
+                          "departedAt",
+                          "arrived",
+                          "finished",
+                          "durationMinutes",
+                          "flagged"
+                        ],
+                        "properties": {
+                          "staffUserId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "role": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "assigned": {
+                            "type": "boolean"
+                          },
+                          "departedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "arrived": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "status",
+                              "at",
+                              "recordedAt",
+                              "deviceRecordedAt",
+                              "corrections"
+                            ],
+                            "properties": {
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "recorded",
+                                  "corrected",
+                                  "pending",
+                                  "missing"
+                                ]
+                              },
+                              "at": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              },
+                              "recordedAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              },
+                              "deviceRecordedAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              },
+                              "corrections": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "correctedAt",
+                                    "previousAt",
+                                    "reason",
+                                    "correctedBy",
+                                    "createdAt"
+                                  ],
+                                  "properties": {
+                                    "correctedAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    },
+                                    "previousAt": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "format": "date-time"
+                                    },
+                                    "reason": {
+                                      "type": "string"
+                                    },
+                                    "correctedBy": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "createdAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "finished": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "status",
+                              "at",
+                              "recordedAt",
+                              "deviceRecordedAt",
+                              "corrections"
+                            ],
+                            "properties": {
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "recorded",
+                                  "corrected",
+                                  "pending",
+                                  "missing"
+                                ]
+                              },
+                              "at": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              },
+                              "recordedAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              },
+                              "deviceRecordedAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              },
+                              "corrections": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "correctedAt",
+                                    "previousAt",
+                                    "reason",
+                                    "correctedBy",
+                                    "createdAt"
+                                  ],
+                                  "properties": {
+                                    "correctedAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    },
+                                    "previousAt": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "format": "date-time"
+                                    },
+                                    "reason": {
+                                      "type": "string"
+                                    },
+                                    "correctedBy": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "createdAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "durationMinutes": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "flagged": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "correct",
+                        "export"
+                      ],
+                      "properties": {
+                        "correct": {
+                          "type": "boolean"
+                        },
+                        "export": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "visit.correct_timestamps",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/my-day.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/visits/{visitId}/timestamps/corrections": {
+      "post": {
+        "operationId": "correctVisitTimestamp",
+        "summary": "Correct a worker's Arrived or Finished",
+        "description": "Staff with visit.correct_timestamps (the Owner), on a visit that went on the way (VISIT_NOT_STARTED before). Sets one worker's Arrived or Finished (a forgotten or wrong value) with a required reason; the recorded tap and every earlier value stay kept. Refused in the future (IN_FUTURE), with Finished before Arrived (FINISHED_BEFORE_ARRIVED), unchanged (UNCHANGED), or for someone who is not a worker of the visit. PROPOSED: supplying the last missing Finished of an arrived visit completes it. Returns the visit's times.",
+        "tags": [
+          "field"
+        ],
+        "parameters": [
+          {
+            "name": "visitId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "staffUserId",
+                  "kind",
+                  "at",
+                  "reason"
+                ],
+                "properties": {
+                  "staffUserId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "arrived",
+                      "finished"
+                    ]
+                  },
+                  "at": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "visitId",
+                    "number",
+                    "purpose",
+                    "state",
+                    "version",
+                    "projectReference",
+                    "window",
+                    "dayEnded",
+                    "workers",
+                    "actions"
+                  ],
+                  "properties": {
+                    "visitId": {
+                      "type": "string"
+                    },
+                    "number": {
+                      "type": "integer"
+                    },
+                    "purpose": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "projectReference": {
+                      "type": "string"
+                    },
+                    "window": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "localDate",
+                        "start",
+                        "end",
+                        "timeZone",
+                        "startsAt",
+                        "endsAt"
+                      ],
+                      "properties": {
+                        "localDate": {
+                          "type": "string"
+                        },
+                        "start": {
+                          "type": "string"
+                        },
+                        "end": {
+                          "type": "string"
+                        },
+                        "timeZone": {
+                          "type": "string"
+                        },
+                        "startsAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "endsAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "dayEnded": {
+                      "type": "boolean"
+                    },
+                    "workers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "staffUserId",
+                          "name",
+                          "role",
+                          "assigned",
+                          "departedAt",
+                          "arrived",
+                          "finished",
+                          "durationMinutes",
+                          "flagged"
+                        ],
+                        "properties": {
+                          "staffUserId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "role": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "assigned": {
+                            "type": "boolean"
+                          },
+                          "departedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "arrived": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "status",
+                              "at",
+                              "recordedAt",
+                              "deviceRecordedAt",
+                              "corrections"
+                            ],
+                            "properties": {
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "recorded",
+                                  "corrected",
+                                  "pending",
+                                  "missing"
+                                ]
+                              },
+                              "at": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              },
+                              "recordedAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              },
+                              "deviceRecordedAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              },
+                              "corrections": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "correctedAt",
+                                    "previousAt",
+                                    "reason",
+                                    "correctedBy",
+                                    "createdAt"
+                                  ],
+                                  "properties": {
+                                    "correctedAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    },
+                                    "previousAt": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "format": "date-time"
+                                    },
+                                    "reason": {
+                                      "type": "string"
+                                    },
+                                    "correctedBy": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "createdAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "finished": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "status",
+                              "at",
+                              "recordedAt",
+                              "deviceRecordedAt",
+                              "corrections"
+                            ],
+                            "properties": {
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "recorded",
+                                  "corrected",
+                                  "pending",
+                                  "missing"
+                                ]
+                              },
+                              "at": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              },
+                              "recordedAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              },
+                              "deviceRecordedAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              },
+                              "corrections": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "correctedAt",
+                                    "previousAt",
+                                    "reason",
+                                    "correctedBy",
+                                    "createdAt"
+                                  ],
+                                  "properties": {
+                                    "correctedAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    },
+                                    "previousAt": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "format": "date-time"
+                                    },
+                                    "reason": {
+                                      "type": "string"
+                                    },
+                                    "correctedBy": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "createdAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "durationMinutes": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "flagged": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "correct",
+                        "export"
+                      ],
+                      "properties": {
+                        "correct": {
+                          "type": "boolean"
+                        },
+                        "export": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "visit.correct_timestamps",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "visit.correct_timestamp",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/my-day.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/visits/{visitId}/window": {
       "post": {
         "operationId": "changeVisitWindow",
@@ -83181,6 +86381,7 @@
                     "job",
                     "schedulingTask",
                     "actions",
+                    "visitTimes",
                     "visits"
                   ],
                   "properties": {
@@ -83330,6 +86531,9 @@
                           "type": "boolean"
                         }
                       }
+                    },
+                    "visitTimes": {
+                      "type": "boolean"
                     },
                     "visits": {
                       "type": "array",
@@ -84785,6 +87989,7 @@
                     "job",
                     "schedulingTask",
                     "actions",
+                    "visitTimes",
                     "visits"
                   ],
                   "properties": {
@@ -84934,6 +88139,9 @@
                           "type": "boolean"
                         }
                       }
+                    },
+                    "visitTimes": {
+                      "type": "boolean"
                     },
                     "visits": {
                       "type": "array",

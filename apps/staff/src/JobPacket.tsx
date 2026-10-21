@@ -794,7 +794,7 @@ type MyPacket = {
   }[]
 }
 
-/** The caller's own assigned jobs with their packets (shown on My Day until TSK-0070 builds the full screen). */
+/** The caller's own assigned jobs with their packets, below the visits of My Day (TSK-0070). */
 export function MyJobPackets({ t, fetchImpl, href }: { t: T; fetchImpl: Fetch; href: (to: string) => string }) {
   const ids = useId()
   const [packets, setPackets] = useState<MyPacket[] | null | undefined>(undefined)
@@ -805,14 +805,10 @@ export function MyJobPackets({ t, fetchImpl, href }: { t: T; fetchImpl: Fetch; h
     })()
   }, [fetchImpl])
   return (
-    <section className="staff-screen" aria-labelledby={`${ids}-title`} data-testid="my-job-packets">
-      <h1 id={`${ids}-title`} className="hh-h3">
-        {t('nav.my-day')}
-      </h1>
-      <StateView kind="empty" title={t('shell.notBuilt')}>
-        <p>{t('packet.mine.notBuiltBody')}</p>
-      </StateView>
-      <h2 className="staff-queue__heading">{t('packet.mine.title')}</h2>
+    <section className="staff-request__section" aria-labelledby={`${ids}-title`} data-testid="my-job-packets">
+      <h2 id={`${ids}-title`} className="staff-queue__heading">
+        {t('packet.mine.title')}
+      </h2>
       {packets === undefined ? (
         <StateView kind="loading" title={t('packet.loading')} />
       ) : packets === null ? (

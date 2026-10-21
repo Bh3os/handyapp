@@ -24,6 +24,14 @@ const api = (body: unknown, put?: () => Response) =>
   vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     if (init?.method === 'PUT' && put) return put()
     if (String(input).startsWith('/api/v1/staff/queue')) return json(200, EMPTY_QUEUE)
+    // TSK-0070: a worker's home is My Day, which reads the day and the job packets.
+    if (String(input).startsWith('/api/v1/staff/my/day'))
+      return json(200, {
+        checkedAt: '2026-11-05T12:00:00.000Z',
+        onMyWay: { state: 'configured', earliestMinutesBefore: 180 },
+        visits: [],
+      })
+    if (String(input).startsWith('/api/v1/staff/my/job-packets')) return json(200, { packets: [] })
     return json(200, body)
   })
 

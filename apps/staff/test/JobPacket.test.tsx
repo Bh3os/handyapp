@@ -351,6 +351,6 @@ describe('your job packets on My Day (TSK-0069)', () => {
     const link = await screen.findByRole('link', { name: 'Job packet: project HH-SYNTH-69' })
     expect(link.getAttribute('href')).toBe(`/staff/packets/${JOB}`)
     expect(screen.getByText('Critical change since you viewed it')).toBeTruthy()
-    expect(screen.getByRole('heading', { level: 1, name: 'My Day' })).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 2, name: 'Your job packets' })).toBeTruthy()
   })
 })

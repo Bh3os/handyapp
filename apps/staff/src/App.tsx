@@ -13,7 +13,8 @@ import { CustomerRecord, CustomersScreen } from './Customers'
 import { InboxRecord, InboxScreen } from './Inbox'
 import { PropertyRecord } from './Property'
 import { JobDepositPage } from './JobDeposit'
-import { JobPacketPage, MyJobPackets } from './JobPacket'
+import { JobPacketPage } from './JobPacket'
+import { MyDay } from './MyDay'
 import { QueueHome } from './Queue'
 import { MergeReview, RelinkRequest } from './RecordLinks'
 import { RequestRecord } from './Record'
@@ -23,6 +24,7 @@ import { ScheduleBoard } from './Schedule'
 import { SearchScreen, Screen, Shell, type Navigation } from './Shell'
 import { StaffScreen } from './StaffManagement'
 import { ConfigurationScreen, HealthScreen } from './System'
+import { VisitTimesPage } from './VisitTimes'
 
 type Session = {
   staffUserId: string
@@ -204,7 +206,10 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
               ? nav?.items.includes('my-day')
                 ? 'my-day'
                 : 'schedule'
-              : route.screen
+              : // TSK-0070: a visit's Arrived and Finished times sit below the schedule; the server decides who sees them.
+                route.screen === 'visit-times'
+                ? 'schedule'
+                : route.screen
           : route.page === 'home'
             ? (nav?.home ?? 'home')
             : route.page
@@ -264,8 +269,10 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
             <RetentionScreen t={t} locale={locale} fetchImpl={doFetch} />
           ) : route.page === 'record' && route.screen === 'packets' ? (
             <JobPacketPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} />
+          ) : route.page === 'record' && route.screen === 'visit-times' ? (
+            <VisitTimesPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} visitId={route.id} />
           ) : (route.page === 'screen' || route.page === 'home') && shown === 'my-day' && allowed ? (
-            <MyJobPackets t={t} fetchImpl={doFetch} href={href} />
+            <MyDay t={t} locale={locale} fetchImpl={doFetch} href={href} />
           ) : route.page === 'screen' && shown === 'schedule' && allowed ? (
             <ScheduleBoard t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
           ) : route.page === 'record' && route.screen === 'schedule' && allowed ? (

@@ -711,6 +711,8 @@
   "portal.timeline.site_visit": "Site visit needed",
   "portal.timeline.not_a_fit": "Decision on your request",
   "portal.timeline.closed_no_response": "Closed—no response",
+  "portal.timeline.on_the_way": "On the way",
+  "portal.timeline.arrived": "Arrived",
   "portal.projects.title": "Your projects",
   "portal.projects.loading": "Loading your projects…",
   "portal.projects.empty.title": "No projects yet",

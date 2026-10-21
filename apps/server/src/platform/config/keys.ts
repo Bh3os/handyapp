@@ -232,6 +232,9 @@ export const CONFIG_KEYS = {
   // holdHours from the offer; staff offer minWindows to maxWindows windows at a time. Decided values, seeded active by
   // migration 0053.
   'scheduling.window_offers': shape({ holdHours: int(1, 24 * 366), minWindows: int(1, 10), maxWindows: int(1, 10) }),
+  // TSK-0070 (OWN-DEC-107, HH-SCH-08): the assigned worker may tap "On my way" from this many minutes before the
+  // arrival window starts (three hours). A decided value, seeded active by migration 0062.
+  'visit.on_my_way': shape({ earliestMinutesBefore: int(1, 24 * 60) }),
   // RULE-AI-WAVE2: only `false` is a valid value; the database refuses anything else as well.
   'ai.module': shape({ enabled: exactly(false) }),
 } as const satisfies Record<string, Parser<unknown>>

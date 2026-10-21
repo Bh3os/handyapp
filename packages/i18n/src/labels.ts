@@ -260,6 +260,7 @@ export const LABEL_FAMILIES = {
     'retention.job_records',
     'retention.safety_records',
     'scheduling.window_offers',
+    'visit.on_my_way',
     'ai.module',
   ],
   /** Staff qualification of a request (TSK-0042; HH-LEAD-02). */
@@ -532,6 +533,8 @@ export const LABEL_FAMILIES = {
   visitPurpose: ['site_estimate', 'service', 'follow_up', 'return_work'],
   /** Visit states (ENT-Visit): tentative -> confirmed -> en_route -> arrived -> completed; expired, canceled, no_access. */
   visitState: ['tentative', 'confirmed', 'en_route', 'arrived', 'completed', 'expired', 'canceled', 'no_access'],
+  /** TSK-0070 (HH-WORK-06): how one Arrived or Finished value stands (@handyhub/domain STAMP_STATUSES). */
+  stampStatus: ['recorded', 'corrected', 'pending', 'missing'],
   /**
    * Why the server refused a visit window or plan (TSK-0061; apps/server/src/modules/visits/visits.ts and
    * @handyhub/domain/local-time WindowProblem), and the error codes shown when no field is named.
