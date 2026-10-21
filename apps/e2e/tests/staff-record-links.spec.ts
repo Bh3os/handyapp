@@ -145,7 +145,10 @@ test.describe('human-reviewed merges and relinks (TSK-0046, HH-CRM-04, HH-ID-02,
     const search = page.getByRole('search', { name: 'Search customers' })
     await search.getByRole('searchbox', { name: 'Search customers' }).fill(renterRef)
     await search.getByRole('button', { name: 'Search' }).click()
-    await page.getByRole('link', { name: 'Open customer' }).click()
+    // The search answers asynchronously: wait for the filtered list (one match) before opening it.
+    const openRenter = page.getByRole('link', { name: 'Open customer' })
+    await expect(openRenter).toHaveCount(1)
+    await openRenter.click()
     await expect(page.getByRole('heading', { level: 1, name: `Customer ${renter}` })).toBeVisible()
     await page.getByRole('link', { name: `Request ${renterRef}` }).click()
     await expect(page.getByRole('heading', { level: 1, name: `Request ${renterRef}` })).toBeVisible()
