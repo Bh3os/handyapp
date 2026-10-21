@@ -5,9 +5,11 @@ import {
   estimateDocumentProcessAutomation,
   estimateExpiryAutomation,
   estimateReadyAutomation,
+  estimateReminderAutomations,
+  estimateReminderRecordCheck,
   estimateResponseNoticeAutomations,
 } from './modules/estimates/index.js'
-import { deliveryStatusAutomation } from './modules/notifications/index.js'
+import { deliveryStatusAutomation, releaseAutomation } from './modules/notifications/index.js'
 import { photoProcessAutomation } from './modules/photos/index.js'
 import { queueAutomations } from './modules/queue/index.js'
 import { receiptEmailAutomation } from './modules/requests/receipt-email.js'
@@ -50,6 +52,13 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
       providers: { email: deps.providers.email, sms: null },
       staffAppUrl: deps.staffAppUrl,
     }),
+    // TSK-0060: unanswered-estimate reminder drafts at the configured cadence (staff-released, never automatic), and
+    // the send job of every released draft with its send-time record checks (HH-COM-05).
+    ...estimateReminderAutomations({ publicSiteUrl: deps.publicSiteUrl }),
+    releaseAutomation(
+      { email: deps.providers.email, sms: deps.providers.sms },
+      { recordChecks: { estimate_version: estimateReminderRecordCheck } },
+    ),
     // TSK-0041: action queue items from the modules' committed events.
     ...queueAutomations(),
     // TSK-0032: the automatic receipt email, once per saved request (HH-INT-20); email only.

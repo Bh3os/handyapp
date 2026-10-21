@@ -75,6 +75,7 @@ export const LABEL_FAMILIES = {
     'case_open',
     'estimate_to_write',
     'estimate_response',
+    'estimate_reminder',
     'candidate_match',
     'inbox_needs_linking',
     'customer_replied',
@@ -115,6 +116,8 @@ export const LABEL_FAMILIES = {
     'estimate_changes_requested',
     'estimate_declined',
     'estimate_update_requested',
+    'estimate_reminder_first',
+    'estimate_reminder_final',
     'possible_duplicate',
     'message_needs_linking',
     'customer_replied',
@@ -129,6 +132,7 @@ export const LABEL_FAMILIES = {
     'decide',
     'write_estimate',
     'review_estimate',
+    'release_reminder',
     'review_match',
     'link_message',
     'open_conversation',
@@ -476,6 +480,33 @@ export const LABEL_FAMILIES = {
   responseStop: ['response_sent', 'conversation_recorded'],
   /** Completed customer conversations staff record (TSK-0043, PROPOSED channels). */
   conversationChannel: ['phone', 'in_person'],
+  /** The two unanswered-estimate reminder drafts (TSK-0060; HH-EST-14, FACT-REMINDER-CADENCES). */
+  reminderStep: ['first', 'final'],
+  /** A reminder delivery's state (ENT-Message: draft, released and queued, then the delivery's outcome). */
+  reminderState: ['draft', 'queued', 'sent', 'delivered', 'failed', 'suppressed', 'cancelled'],
+  /**
+   * Why a reminder was stopped, dismissed, suppressed or not sent (TSK-0060; HH-EST-14 stop rules, HH-COM-05). The
+   * server's reminders module declares the stop reasons (apps/server/src/modules/estimates/reminders.ts).
+   */
+  reminderReason: [
+    'accepted',
+    'declined',
+    'expired',
+    'withdrawn',
+    'superseded',
+    'not_published',
+    'customer_responded',
+    'conversation_recorded',
+    'project_not_open',
+    'dismissed',
+    'replaced_by_final',
+    'sms_opted_out',
+    'sms_no_opt_in',
+    'template_not_configured',
+    'channel_not_configured',
+    'template_values_missing',
+    'record_changed',
+  ],
 } as const satisfies Record<string, readonly string[]>
 
 export type LabelFamily = keyof typeof LABEL_FAMILIES

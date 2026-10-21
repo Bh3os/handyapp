@@ -609,11 +609,13 @@ export function releaseTime(config: Config, messageKey: string, now: Date): Date
  * - 'current': send;
  * - 'stale': the record changed (approved, declined, expired, cancelled, rescheduled, paid, replied, ...): nothing is
  *   sent and the delivery is cancelled;
+ * - { stale: reason }: the same, with the reason the check names (TSK-0060: why an estimate reminder stopped), recorded
+ *   as the cancelled delivery's error code;
  * - { hold }: send later (for example a review or satisfaction request while a case is active): the delivery goes
  *   back to a draft marked held, for staff to release again once the reason has cleared.
  * A record type without a registered check is sent as released.
  */
-export type RecordCheckResult = 'current' | 'stale' | { hold: string }
+export type RecordCheckResult = 'current' | 'stale' | { stale: string } | { hold: string }
 export type RecordCheck = (
   tx: Tx,
   input: { recordType: string; recordId: string; messageKey: string; subjectKey: string },
@@ -656,16 +658,20 @@ export function releaseAutomation(
               subjectKey: row.subject_key,
             })
           : 'current'
-      if (verdict === 'stale') {
+      if (verdict === 'stale' || (typeof verdict === 'object' && 'stale' in verdict)) {
+        const errorCode = verdict === 'stale' ? 'record_changed' : verdict.stale.slice(0, 120)
         await ctx.tx
           .updateTable('platform.message_deliveries')
-          .set({ state: 'cancelled', error_code: 'record_changed', updated_at: sql<Date>`now()` })
+          .set({
+            state: 'cancelled',
+            error_code: errorCode,
+            cancelled_by: 'system',
+            cancelled_at: sql<Date>`now()`,
+            updated_at: sql<Date>`now()`,
+          })
           .where('id', '=', row.id)
           .execute()
-        await auditDelivery(ctx.tx, ctx.job, 'system.notifications', row, {
-          state: 'cancelled',
-          errorCode: 'record_changed',
-        })
+        await auditDelivery(ctx.tx, ctx.job, 'system.notifications', row, { state: 'cancelled', errorCode })
         return 'cancelled'
       }
       if (verdict !== 'current') {

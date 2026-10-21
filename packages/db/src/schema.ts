@@ -985,6 +985,8 @@ export interface PlatformMessageDeliveriesTable {
   updated_at: ColumnType<Date, Date | string | undefined, Date | string>
   status_at: Timestamp | null
   project_id: string | null
+  cancelled_by: string | null
+  cancelled_at: Timestamp | null
 }
 
 export interface PlatformMessageDeliveryEventsTable {

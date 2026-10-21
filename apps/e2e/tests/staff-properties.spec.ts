@@ -98,7 +98,10 @@ test.describe('property records and access codes (TSK-0045, HH-CRM-02, HH-CRM-03
     const search = page.getByRole('search', { name: 'Search customers' })
     await search.getByRole('searchbox', { name: 'Search customers' }).fill(email)
     await search.getByRole('button', { name: 'Search' }).click()
-    await page.getByRole('link', { name: 'Open customer' }).click()
+    // The search answers asynchronously: wait for the filtered list (one match) before opening it.
+    const openCustomer = page.getByRole('link', { name: 'Open customer' })
+    await expect(openCustomer).toHaveCount(1)
+    await openCustomer.click()
     await expect(page.getByRole('heading', { level: 1, name: 'Customer E2E Property Synthetic' })).toBeVisible()
     await page.getByRole('region', { name: 'Properties' }).getByRole('link', { name: 'Open property' }).click()
     await expect(page).toHaveURL(/\/staff\/properties\/[0-9a-f-]{36}$/)
