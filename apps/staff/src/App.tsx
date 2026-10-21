@@ -10,6 +10,7 @@ import { QueueHome } from './Queue'
 import { RequestRecord } from './Record'
 import { RequestsScreen } from './Requests'
 import { SearchScreen, Screen, Shell, type Navigation } from './Shell'
+import { ConfigurationScreen, HealthScreen } from './System'
 
 type Session = {
   staffUserId: string
@@ -212,6 +213,10 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
               href={href}
               staffUserId={session.staffUserId}
             />
+          ) : route.page === 'screen' && shown === 'health' && allowed ? (
+            <HealthScreen t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
+          ) : route.page === 'screen' && shown === 'settings' && allowed ? (
+            <ConfigurationScreen t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
           ) : shown === 'requests' && allowed && route.page === 'screen' ? (
             <RequestsScreen t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
           ) : route.page === 'record' && route.screen === 'requests' && allowed ? (

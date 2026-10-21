@@ -11,6 +11,7 @@ import { loadConfig } from './config.js'
 import { ensureBootstrapOwner } from './modules/identity/accounts.js'
 import { codeDeliveryAutomation, readCodeKey } from './modules/identity/index.js'
 import { createAutomationRegistry } from './platform/automation.js'
+import { variableStates } from './modules/system/index.js'
 import { createWorker } from './platform/jobs.js'
 import type { Logger } from './platform/logger.js'
 import { runWithContext } from './platform/request-context.js'
@@ -50,7 +51,8 @@ export async function boot(env: Readonly<Record<string, string | undefined>>, op
       ...(portalDir === undefined ? {} : { portalDir }),
     },
     logger: options.logger ?? false,
-    ...(db ? { api: { db, storage } } : { api: { storage } }),
+    // The health and configuration views report the provider modes and which variables are set, never a value.
+    api: { ...(db ? { db } : {}), storage, system: { providers, variables: variableStates(env) } },
   })
   const sent = createProviders(providers, { logger: app.log as unknown as Logger })
   const registry = createAutomationRegistry([

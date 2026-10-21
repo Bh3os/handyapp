@@ -14,6 +14,7 @@ import type { ApiModule, ResolveActor } from './api/route.js'
 import { databaseReadiness, type ReadinessCheck } from './health.js'
 import { ANY_HOST_PATHS, contentSecurityPolicy, fileIn, hostSide, inlineHashes, securityHeaders } from './hosts.js'
 import { apiModules } from './modules/index.js'
+import type { SystemDeps } from './modules/system/index.js'
 import { countyPagePaths, countyRoute, productionRobots, sitemapXml, staticSitePages } from './search.js'
 import type { ObjectStorage } from './providers/index.js'
 import { staffSessionResolver } from './modules/identity/actor.js'
@@ -36,6 +37,8 @@ export interface AppOptions {
     modules?: readonly ApiModule[]
     resolveActor?: ResolveActor | SurfaceResolvers
     storage?: ObjectStorage | null
+    /** The provider settings and variable names the system health and configuration views report (TSK-0101). */
+    system?: SystemDeps
   }
 }
 
@@ -121,7 +124,12 @@ export async function buildApp({
     trustProxyHops: config.trustProxyHops,
     modules:
       api?.modules ??
-      apiModules({ secureCookies: config.secureCookies, mfaKey: config.mfaKey, storage: api?.storage ?? null }),
+      apiModules({
+        secureCookies: config.secureCookies,
+        mfaKey: config.mfaKey,
+        storage: api?.storage ?? null,
+        ...(api?.system ? { system: api.system } : {}),
+      }),
     ...(resolveActor ? { resolveActor } : {}),
   })
 

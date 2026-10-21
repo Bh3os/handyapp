@@ -43,6 +43,7 @@ const NAV = {
       'staff',
       'audit',
       'dashboard',
+      'health',
       'settings',
     ],
     search: ['requests', 'customers'],
@@ -93,6 +94,7 @@ describe('navigation by role (TSK-0040, HH-STAFF-06)', () => {
       'Staff',
       'Audit log',
       'Owner Dashboard',
+      'System health',
       'Configuration',
       'My account',
     ])
