@@ -16,11 +16,12 @@ import { staffRequestRoutes } from './staff-routes.js'
 import { staffRequestSummary } from './staff-summary.js'
 import { responseFacts } from './receipt-email.js'
 import { submitRequest } from './submit.js'
+import type { CodeKeySettings } from '../identity/index.js'
 
 /** PROPOSED (old repo, 32 D-32-08): 5 submissions per client network per hour; no owner value exists. */
 export const SUBMIT_RATE_LIMIT = { bucket: 'public-request-submit', limit: 5, windowSeconds: 3600 } as const
 
-const submit: RouteDef = {
+const submitRoute = (codeKey: CodeKeySettings | undefined): RouteDef => ({
   method: 'POST',
   path: '/public/requests',
   operationId: 'submitRequest',
@@ -36,7 +37,9 @@ const submit: RouteDef = {
     'scoped to this request’s photos only (token returned once, never stored with the replayable response), so the ' +
     'receipt can show their states and retry a failed photo without a new request (HH-INT-07, HH-INT-12). ' +
     'TSK-0033: the Receipt-Capability response header carries the receipt page’s capability for this request’s own ' +
-    'contact verification and account-offer answer (returned once; a replayed response carries neither header).',
+    'contact verification and account-offer answer (returned once; a replayed response carries neither header). ' +
+    'TSK-0034: the same transaction issues the project’s single-project access grant (HH-ID-04; token stored only ' +
+    'as a hash), whose secure access link the automatic message project.access_link sends from request.submitted.',
   actors: ['guest', 'customer'],
   permission: 'request.submit',
   kind: 'write',
@@ -61,6 +64,7 @@ const submit: RouteDef = {
     const out = await submitRequest(ctx.tx, body, {
       idempotencyKey: readIdempotencyKey(ctx.req.headers['idempotency-key']),
       requestId: currentContext()?.requestId ?? ctx.req.id,
+      ...(codeKey ? { codeKey } : {}),
     })
     // The audit event carries the reference and codes only, never the visitor's personal data.
     await ctx.audit({
@@ -82,7 +86,7 @@ const submit: RouteDef = {
       },
     }
   },
-}
+})
 
 /** The request form's settings, from configuration (TSK-0026): how long the browser keeps an unfinished draft. */
 const formSettings: RouteDef = {
@@ -264,12 +268,20 @@ const publicServiceList: RouteDef = {
 export type RequestsDeps = {
   /** The obligation checks for Not a Fit (obligations.ts); tests pass their own. */
   obligationChecks?: readonly ObligationCheck[]
+  /** TSK-0034: the key behind project access links; unset: the submission issues no grant (NOT CONFIGURED). */
+  codeKey?: CodeKeySettings
 }
 
 export function requestsModule(deps: RequestsDeps = {}): ApiModule {
   return {
     name: 'requests',
-    routes: [submit, formSettings, publicServiceList, staffRequestSummary, ...staffRequestRoutes(deps)],
+    routes: [
+      submitRoute(deps.codeKey),
+      formSettings,
+      publicServiceList,
+      staffRequestSummary,
+      ...staffRequestRoutes(deps),
+    ],
   }
 }
 

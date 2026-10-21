@@ -199,6 +199,19 @@ async function setState(
     .execute()
 }
 
+/**
+ * TSK-0034: a code entered on the access landing proved the contact's exact current value; it is recorded as verified
+ * like a code entered on the receipt (HH-INT-13), for that channel only.
+ */
+export async function recordChannelVerified(
+  tx: Tx,
+  contactId: string,
+  channel: ContactChannel,
+  value: string,
+): Promise<void> {
+  await setState(tx, contactId, channel, 'verified', value)
+}
+
 /** Every other open code of the subject stops working (a newer code, or a finished verification, replaces them). */
 async function supersedeOthers(tx: Tx, subject: string, keep: string | null, now: Date): Promise<void> {
   let q = tx

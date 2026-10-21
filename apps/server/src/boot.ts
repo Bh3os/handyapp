@@ -7,7 +7,7 @@ import { createDb, withTx } from '@handyhub/db'
 import type { FastifyInstance } from 'fastify'
 import { buildApp } from './app.js'
 import { buildAutomations } from './automations.js'
-import { loadConfig } from './config.js'
+import { loadConfig, publicSiteUrl } from './config.js'
 import { ensureBootstrapOwner } from './modules/identity/accounts.js'
 import { codeDeliveryAutomation, readCodeKey } from './modules/identity/index.js'
 import { createAutomationRegistry } from './platform/automation.js'
@@ -57,7 +57,12 @@ export async function boot(env: Readonly<Record<string, string | undefined>>, op
   })
   const sent = createProviders(providers, { logger: app.log as unknown as Logger })
   const registry = createAutomationRegistry([
-    ...buildAutomations({ providers: { ...sent, storage }, staffAppUrl: config.staffAppUrl }),
+    ...buildAutomations({
+      providers: { ...sent, storage },
+      staffAppUrl: config.staffAppUrl,
+      codeKey,
+      publicSiteUrl: publicSiteUrl(config),
+    }),
     codeDeliveryAutomation({ providers: sent, codeKey }),
   ])
   if (db) {

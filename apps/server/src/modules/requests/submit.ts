@@ -25,6 +25,8 @@ import { recordConsent } from '../notifications/index.js'
 import { bindDraftPhotos, createCapability, PhotoError, type PhotoSummary } from '../photos/photos.js'
 import { startResponseClock } from './response-clock.js'
 import { createReceiptCapability } from '../verification/receipt-capability.js'
+import { issueGrant } from '../access/grants.js'
+import type { CodeKeySettings } from '../identity/index.js'
 import {
   localDate,
   normalizeUsPhone,
@@ -154,7 +156,13 @@ export function requestKeyTaken(err: unknown): ApiError | null {
 export async function submitRequest(
   tx: Tx,
   body: SubmitBody,
-  opts: { idempotencyKey: string; requestId: string; now?: Date },
+  opts: {
+    idempotencyKey: string
+    requestId: string
+    now?: Date
+    /** TSK-0034: the key behind project access links; unset or NOT CONFIGURED: no grant is issued. */
+    codeKey?: CodeKeySettings
+  },
 ): Promise<
   Submitted & {
     serviceCodes: string[]
@@ -357,6 +365,17 @@ export async function submitRequest(
   // TSK-0033 (HH-INT-13, OWN-DEC-96): the receipt page's capability for this request's own contact verification and
   // account-offer answer. None while session.timings is NOT CONFIGURED; the request is saved either way.
   const receipt = await createReceiptCapability(tx, request.id, now)
+
+  // TSK-0034 (HH-INT-21, HH-ID-04, OWN-DEC-97): the project's single-project guest link, in the same transaction; the
+  // access-link message sends it from request.submitted. None while the code key or access.grants is NOT CONFIGURED.
+  if (opts.codeKey)
+    await issueGrant(tx, opts.codeKey, {
+      projectId: project.id,
+      contactId: contact.id,
+      requestId: request.id,
+      reason: 'submission',
+      now,
+    })
 
   await recordFormConsents(tx, body, {
     contactId: contact.id,

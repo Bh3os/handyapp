@@ -161,8 +161,10 @@ export const api = {
   verify: (f: Fetch, cap: string, channel: Channel, code: string) =>
     call(f, cap, '/contact/verify', { method: 'POST', body: { channel, code: code.trim() } }, (data) => {
       const contact = contactOf(data)
-      const verified = (data as { verified?: { changed?: unknown } }).verified
-      return contact && verified ? { contact, changed: verified.changed === true } : null
+      const verified = (data as { verified?: { changed?: unknown; projectAccess?: unknown } }).verified
+      return contact && verified
+        ? { contact, changed: verified.changed === true, projectAccess: verified.projectAccess === true }
+        : null
     }),
   decline: (f: Fetch, cap: string) =>
     call(f, cap, '/account-offer/decline', { method: 'POST', body: {} }, () => true as const),

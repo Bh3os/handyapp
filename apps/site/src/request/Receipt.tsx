@@ -5,7 +5,9 @@
 // no new request is needed), "What happens next?" from configuration, and Return Home. English only.
 // TSK-0033: the contact verification (masked email and phone, code entry, Resend, Change Contact) under this tab's
 // receipt capability, then, once a contact is verified, the optional Create an Account offer with "No thanks".
-// View My Request arrives with project access (TSK-0034); no action is shown before it works.
+// TSK-0034: View My Request (OWN-DEC-97) appears once this browser's session opens the request's project: after a
+// code entered here, or a link already opened in this browser. It goes to /access, which shows the project only to
+// that session; no action is shown before it works.
 // - The counts the page learns (a Retry, a processing photo settling) are given to the wizard with the time they were
 //   taken, which writes them back to the tab's record (receipt.ts). A page that cannot check again (after a reload the
 //   capability is gone; it is never stored) shows them as of that time, never as current (T13).
@@ -18,6 +20,7 @@ import { Button, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Ref } from 'react'
 import { problemValues, STATE_LABEL, STATE_TONE, uploadPhotoFile, type PhotoLimits } from './photos.js'
 import { ContactVerification } from './ContactVerification.js'
+import { accessApi } from '../access/access.js'
 import {
   checkedAtText,
   countsFromServer,
@@ -263,6 +266,18 @@ export function Receipt({
     saveReceipt(storage, next)
     onRecord?.(next)
   }
+  const [canView, setCanView] = useState(false)
+  useEffect(() => {
+    let live = true
+    void accessApi
+      .session((input, init) => fetch(input, init))
+      .then((r) => {
+        if (live && r.ok && r.data.includes(record.reference)) setCanView(true)
+      })
+    return () => {
+      live = false
+    }
+  }, [record.reference])
   return (
     <section className="hh-receipt" aria-labelledby="hh-receipt-title">
       <h2 id="hh-receipt-title" ref={headingRef} tabIndex={-1} className="hh-h2">
@@ -316,11 +331,23 @@ export function Receipt({
         <p>{t('request.receipt.separate')}</p>
       </section>
 
-      <ContactVerification capability={record.capability ?? null} declined={declined} onDecline={decline} />
+      <ContactVerification
+        capability={record.capability ?? null}
+        declined={declined}
+        onDecline={decline}
+        onProjectAccess={() => setCanView(true)}
+      />
 
-      <a className="hh-button hh-button--secondary" href="/">
-        {t('request.home')}
-      </a>
+      <div className="hh-request__actions">
+        {canView ? (
+          <a className="hh-button" href="/access">
+            {t('request.receipt.viewRequest')}
+          </a>
+        ) : null}
+        <a className="hh-button hh-button--secondary" href="/">
+          {t('request.home')}
+        </a>
+      </div>
     </section>
   )
 }

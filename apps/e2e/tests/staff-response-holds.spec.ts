@@ -148,12 +148,12 @@ test.describe('the first-response clock and review holds (TSK-0043)', () => {
     await page.getByRole('button', { name: 'Confirm: Ask a Question' }).click()
     await expect(page.getByText('Done. The request has moved on.')).toBeVisible()
 
-    // Answered and handled: the new-request item leaves the queue (the request's failed receipt, NOT CONFIGURED, may
-    // still be listed as its own delivery item).
+    // Answered and handled: the new-request item leaves the queue. The request's failed receipt (TSK-0032) and its
+    // failed project access link (TSK-0034), both NOT CONFIGURED, stay listed as their own delivery items.
     await page.getByRole('link', { name: 'Back to the action queue' }).click()
     await queue.getByLabel('Reference').fill(reference)
     await queue.getByRole('button', { name: 'Apply filters' }).click()
-    await expect(page.getByRole('listitem', { name: new RegExp(`Delivery failure ${reference}`) })).toBeVisible()
+    await expect(page.getByRole('listitem', { name: new RegExp(`Delivery failure ${reference}`) })).toHaveCount(2)
     await expect(item).toHaveCount(0)
   })
 

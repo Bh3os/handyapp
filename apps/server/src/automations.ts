@@ -11,10 +11,18 @@ import { photoProcessAutomation } from './modules/photos/index.js'
 import { queueAutomations } from './modules/queue/index.js'
 import { receiptEmailAutomation } from './modules/requests/receipt-email.js'
 import { responseClockAutomation } from './modules/requests/response-clock.js'
+import { accessLinkAutomation } from './modules/access/link-message.js'
+import type { CodeKeySettings } from './modules/identity/index.js'
 import type { Automation } from './platform/automation.js'
 import type { Providers } from './providers/index.js'
 
-export type AutomationDeps = LinkEmailDeps & { providers: Pick<Providers, 'email' | 'sms' | 'storage'> }
+export type AutomationDeps = LinkEmailDeps & {
+  providers: Pick<Providers, 'email' | 'sms' | 'storage'>
+  /** TSK-0034: the key the access links are derived with; unset: no grant exists to send. */
+  codeKey?: CodeKeySettings
+  /** TSK-0034: the public site's base URL for the access link; undefined while not configured. */
+  publicSiteUrl?: string | undefined
+}
 
 export function buildAutomations(deps: AutomationDeps): Automation[] {
   return [
@@ -35,5 +43,11 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     receiptEmailAutomation({ providers: { email: deps.providers.email, sms: null } }),
     // TSK-0043: a meaningful customer message whose delivery succeeded stops the first-response clock.
     responseClockAutomation(),
+    // TSK-0034: the secure project access link, once per grant, by email and (with the SMS opt-in) by text.
+    accessLinkAutomation({
+      providers: { email: deps.providers.email, sms: deps.providers.sms },
+      codeKey: deps.codeKey ?? { state: 'not_configured', missing: ['CODE_HASH_KEY'] },
+      publicSiteUrl: deps.publicSiteUrl,
+    }),
   ]
 }

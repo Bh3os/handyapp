@@ -13,7 +13,8 @@ import { clientAddress, networkKey } from '../../access-gate.js'
 import { ApiError } from '../../api/errors.js'
 import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
 import { currentContext } from '../../platform/request-context.js'
-import type { CodeKeySettings } from '../identity/index.js'
+import { readSessionToken, resolveCustomerSession, sessionCookie, type CodeKeySettings } from '../identity/index.js'
+import { startReceiptSession } from '../access/landing.js'
 import {
   CONTACT_CHANNELS,
   contactStatus,
@@ -221,7 +222,10 @@ export function verificationModule(deps: VerificationDeps): ApiModule {
       'Checks the code of the channel’s latest send. A match marks that exact value verified (an email change then ' +
       'replaces the old address); the other channel is never touched. A wrong, expired, replaced, used or ' +
       'exhausted code is the same neutral 400 (field body.code, invalid_code); the attempt is counted and kept ' +
-      '(the refusal commits), so the configured attempt limit holds. Verifying links nothing to any other record.',
+      '(the refusal commits), so the configured attempt limit holds. Verifying links nothing to any other record. ' +
+      'TSK-0034: a match also starts this browser’s customer session for the request’s one project (Set-Cookie; ' +
+      'projectAccess true), from the project’s live access grant; a verified email change first revokes the ' +
+      'project’s grants and their sessions and issues a new grant. Without a usable grant, projectAccess is false.',
     kind: 'write',
     rateLimit: CODE_VERIFY_RATE_LIMIT,
     audit: 'contact_verification.verify',
@@ -241,8 +245,8 @@ export function verificationModule(deps: VerificationDeps): ApiModule {
             verified: {
               type: 'object',
               additionalProperties: false,
-              required: ['channel', 'changed'],
-              properties: { channel: CHANNEL_FIELD, changed: { type: 'boolean' } },
+              required: ['channel', 'changed', 'projectAccess'],
+              properties: { channel: CHANNEL_FIELD, changed: { type: 'boolean' }, projectAccess: { type: 'boolean' } },
             },
             contact: STATUS_SCHEMA,
           },
@@ -269,9 +273,25 @@ export function verificationModule(deps: VerificationDeps): ApiModule {
           }),
         }
       }
-      await ctx.audit({ target, summary: { channel: out.channel, changed: out.changed } })
+      // TSK-0034 (HH-ID-05, HH-INT-21): the entered code is the verified exchange, so it starts this browser's
+      // session for the request's one project (View My Request); a verified email change first revokes the
+      // project's grants and issues a new one. Without a usable grant (NOT CONFIGURED) no session starts.
+      const existing = await resolveCustomerSession(ctx.tx, readSessionToken(ctx.req))
+      const session = await startReceiptSession(ctx.tx, deps.codeKey, {
+        requestId: cap.requestId,
+        changed: out.changed,
+        ...(existing ? { replaces: existing.id } : {}),
+      })
+      await ctx.audit({
+        target,
+        summary: { channel: out.channel, changed: out.changed, projectAccess: session !== null },
+      })
       return {
-        body: { verified: { channel: out.channel, changed: out.changed }, contact: await statusOf(ctx, cap.requestId) },
+        body: {
+          verified: { channel: out.channel, changed: out.changed, projectAccess: session !== null },
+          contact: await statusOf(ctx, cap.requestId),
+        },
+        ...(session ? { headers: { 'set-cookie': sessionCookie(session) } } : {}),
       }
     },
   }

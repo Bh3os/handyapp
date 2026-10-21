@@ -27,6 +27,8 @@ export type StartSessionInput = {
   verifiedAt: Date
   /** A session this one replaces (it is revoked in the same transaction). */
   replaces?: string
+  /** TSK-0034: the project access grant a guest session is started from (revoking the grant ends the session). */
+  grantId?: string
   now?: Date
 }
 
@@ -78,6 +80,7 @@ export async function startCustomerSession(tx: Tx, input: StartSessionInput): Pr
       created_at: now,
       last_seen_at: now,
       expires_at: expiresAt,
+      grant_id: input.grantId ?? null,
     })
     .execute()
   return { sessionId, token, expiresAt, idleMinutes }
@@ -125,6 +128,22 @@ export async function revokeCustomerSession(
     .where('revoked_at', 'is', null)
     .executeTakeFirst()
   return Number(r.numUpdatedRows) > 0
+}
+
+/** Ends every live session started from these grants (TSK-0034: a revoked grant opens nothing any more). */
+export async function revokeGrantSessions(
+  tx: Tx,
+  grantIds: readonly string[],
+  now: Date = new Date(),
+): Promise<number> {
+  if (grantIds.length === 0) return 0
+  const r = await tx
+    .updateTable('identity.customer_sessions')
+    .set({ revoked_at: now, revoke_reason: 'access_revoked' })
+    .where('grant_id', 'in', [...grantIds])
+    .where('revoked_at', 'is', null)
+    .executeTakeFirst()
+  return Number(r.numUpdatedRows)
 }
 
 /** A fresh verification inside the session (for example a new code before an approval) restarts its fresh window. */

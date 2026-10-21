@@ -142,6 +142,8 @@ export const CONFIG_KEYS = {
     maxFailedAttemptsPerClientPerHour: int(1, 10_000),
     freshVerificationMinutes: int(1, 24 * 60),
   }),
+  // TSK-0034: how long a single-project guest link works (HH-ID-06, ENT-ProjectAccessGrant; PROPOSED 24 hours).
+  'access.grants': shape({ linkHours: int(1, 24 * 366) }),
   // FACT-AUTOMATIC-MESSAGES (TSK-0047): the one list of messages that send without staff release. Codes are message
   // types of modules/notifications, which refuses an unknown code when it reads the list.
   'messages.automatic': shape({

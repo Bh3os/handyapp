@@ -453,6 +453,7 @@ export {
   refreshVerification,
   resolveCustomerSession,
   revokeCustomerSession,
+  revokeGrantSessions,
   sessionCookie,
   SessionConfigError,
   setSessionCookie,

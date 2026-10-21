@@ -205,6 +205,9 @@ test.describe('the receipt (TSK-0032)', () => {
       )
       .toEqual([
         { type: 'delivery_failed', reason: 'delivery_not_configured', reference },
+        // TSK-0034: the secure access message (FACT-AUTOMATIC-MESSAGES #3) has no released wording either
+        // (OQ-ACCESS-LINK-WORDING), so it is its own delivery issue for the same request.
+        { type: 'delivery_failed', reason: 'delivery_not_configured', reference },
         // A form sent within seconds of opening is quietly flagged (HH-INT-11); either way staff see the request.
         { type: 'new_request', reason: expect.stringMatching(/^new_request(_flagged)?$/), reference },
       ])

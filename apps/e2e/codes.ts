@@ -12,3 +12,11 @@ export function codeFor(row: { id: string; nonce: string }, digits = 6): string 
     10n ** BigInt(digits)
   return n.toString().padStart(digits, '0')
 }
+
+/**
+ * The access link token of a stored grant (TSK-0034). Mirrors accessToken of apps/server/src/modules/access/grants.ts
+ * (HMAC-SHA-256 over "project_access|<grant id>|<nonce>", base64url).
+ */
+export function accessTokenFor(row: { id: string; nonce: string }): string {
+  return createHmac('sha256', E2E_CODE_KEY).update(['project_access', row.id, row.nonce].join('|')).digest('base64url')
+}
