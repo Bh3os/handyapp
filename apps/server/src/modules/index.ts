@@ -17,6 +17,7 @@ import { portalModule } from './portal/index.js'
 import { SITE_MODULE } from './site/index.js'
 import { systemModule, type SystemDeps } from './system/index.js'
 import { verificationModule } from './verification/index.js'
+import { visitsModule } from './visits/index.js'
 import type { CodeKeySettings } from './identity/index.js'
 
 export type ModuleDeps = {
@@ -72,6 +73,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
       codeKey: deps.codeKey ?? NO_CODE_KEY,
       trustProxyHops: deps.trustProxyHops ?? 0,
     }),
+    // TSK-0061: the visit model (tentative estimate and work visits, local windows in an IANA zone, window history).
+    visitsModule(),
   ]
 }
 

@@ -20,8 +20,27 @@ export type ObligationCheck = {
   readonly check: (tx: Tx, projectId: string) => Promise<boolean>
 }
 
-/** The checks of the modules that exist. None of accepted estimates, visits or payments is built yet. */
-export const DEFAULT_OBLIGATION_CHECKS: readonly ObligationCheck[] = []
+/**
+ * TSK-0061: a visit of the project (estimate or work) that is not canceled. PROPOSED: a tentative visit counts, and an
+ * expired one (an offer nobody took) does not.
+ */
+export const VISIT_OBLIGATION_CHECK: ObligationCheck = {
+  fact: 'appointmentExists',
+  source: 'visits (TSK-0061)',
+  check: async (tx, projectId) => {
+    const found = await tx
+      .selectFrom('work.visits')
+      .select('id')
+      .where('project_id', '=', projectId)
+      .where('state', 'not in', ['canceled', 'expired'])
+      .limit(1)
+      .executeTakeFirst()
+    return found !== undefined
+  },
+}
+
+/** The checks of the modules that exist: visits. Accepted estimates and payments add theirs. */
+export const DEFAULT_OBLIGATION_CHECKS: readonly ObligationCheck[] = [VISIT_OBLIGATION_CHECK]
 
 /** The three facts for a project, read inside the decision's transaction (after the project row is locked). */
 export async function obligationFacts(

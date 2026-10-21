@@ -947,6 +947,52 @@ export interface WorkSchedulingTasksTable {
   version: Generated<number>
 }
 
+export interface WorkVisitWindowsTable {
+  visit_id: string
+  window_version: number
+  local_date: string
+  window_start: string
+  window_end: string
+  time_zone: string
+  start_offset_minutes: number
+  end_offset_minutes: number
+  starts_at: Timestamp
+  ends_at: Timestamp
+  visit_state: string
+  set_by: string
+  reason: string | null
+  set_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface WorkVisitsTable {
+  id: Generated<string>
+  purpose: string
+  project_id: string
+  job_id: string | null
+  property_id: string
+  state: Generated<string>
+  version: Generated<number>
+  window_version: Generated<number>
+  local_date: string
+  window_start: string
+  window_end: string
+  time_zone: string
+  start_offset_minutes: number
+  end_offset_minutes: number
+  starts_at: Timestamp
+  ends_at: Timestamp
+  window_set_by: string
+  window_reason: string | null
+  expected_duration_minutes: number | null
+  preparation_buffer_minutes: number | null
+  travel_buffer_minutes: number | null
+  required_workers: number | null
+  equipment: Generated<string[]>
+  created_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface WorkWorkPackagesTable {
   id: Generated<string>
   project_id: string
@@ -1026,5 +1072,7 @@ export interface Database {
   'work.job_scope_snapshots': WorkJobScopeSnapshotsTable
   'work.jobs': WorkJobsTable
   'work.scheduling_tasks': WorkSchedulingTasksTable
+  'work.visit_windows': WorkVisitWindowsTable
+  'work.visits': WorkVisitsTable
   'work.work_packages': WorkWorkPackagesTable
 }

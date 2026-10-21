@@ -1,0 +1,174 @@
+// Visits module (TSK-0061; HH-SCH-01, HH-SCH-02, HH-DATA-06, T09, T37, T41, ENT-Visit, RULE-SERVER-AUTHZ).
+//   GET  /staff/projects/:projectId/visits     the project's visits, its job and scheduling task (schedule.view_board)
+//   POST /staff/projects/:projectId/visits     plan a tentative visit (visit.offer_windows; an Estimator: estimate
+//                                              visits only)
+//   POST /staff/visits/:visitId/window         change a visit's window as its next window version (If-Match)
+// Every write takes an idempotency key and records its audit event with the local window, zone, offsets and instants.
+// Nothing here confirms a visit, reserves capacity, shows a visit to the customer or sends a notice: those are the
+// window-offer, reservation and confirmation tasks' (TSK-0062, TSK-0063, TSK-0064).
+import type { Tx } from '@handyhub/db'
+import { ApiError } from '../../api/errors.js'
+import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
+import { WORK_VISIT_GATES, type WorkVisitGate } from './gates.js'
+import { NEW_VISIT_BODY, PROJECT_PARAMS, PROJECT_VISITS, VISIT_PARAMS, WINDOW_BODY } from './schemas.js'
+import { changeWindow, planVisit, projectVisits, windowSummary, type NewVisit, type WindowEntry } from './visits.js'
+
+const TEST = 'test/integration/visits.test.ts'
+
+export type VisitsDeps = {
+  /** The gates every work-visit window passes (WORK_VISIT_GATES); tests may add their own. */
+  workVisitGates?: readonly WorkVisitGate[]
+}
+
+const staffActor = (ctx: ApiContext) => {
+  if (ctx.actor.kind !== 'staff') throw new ApiError('FORBIDDEN')
+  return ctx.actor
+}
+
+const projectOf: NonNullable<RouteDef['resource']> = async ({ req, db }) => {
+  const { projectId } = req.params as { projectId: string }
+  const p = await db.selectFrom('crm.projects').select('id').where('id', '=', projectId).executeTakeFirst()
+  return p ? { projectId: p.id } : null
+}
+
+const visitProjectOf: NonNullable<RouteDef['resource']> = async ({ req, db }) => {
+  const { visitId } = req.params as { visitId: string }
+  const v = await db.selectFrom('work.visits').select('project_id').where('id', '=', visitId).executeTakeFirst()
+  return v ? { projectId: v.project_id } : null
+}
+
+export function visitsModule(deps: VisitsDeps = {}): ApiModule {
+  const gates = deps.workVisitGates ?? WORK_VISIT_GATES
+
+  const list: RouteDef = {
+    method: 'GET',
+    path: '/staff/projects/:projectId/visits',
+    operationId: 'listProjectVisits',
+    summary: "A project's visits",
+    description:
+      'Staff with schedule.view_board (Owner, Office; Estimator PROPOSED). The visits of one project (estimate visits ' +
+      "and the job's work visits), each with its purpose, state, version, current window (local date, arrival " +
+      'window, IANA zone, UTC offsets and instants, and whether it lies inside the daily visit hours of contact.hours ' +
+      'in the business zone; null while NOT CONFIGURED) and every earlier window version. Beside them, kept apart, ' +
+      "the project's job with its scope version and its scheduling task (never a booking), the property's zone, the " +
+      'business zone with its PROPOSED mark, and what the caller may plan now. A timing preference on the request is ' +
+      'never listed here.',
+    actors: ['staff'],
+    permission: 'schedule.view_board',
+    kind: 'read',
+    idempotency: 'none',
+    expectedVersion: 'none',
+    rateLimit: 'none',
+    audit: 'none',
+    pagination: false,
+    test: TEST,
+    resource: projectOf,
+    schema: { params: PROJECT_PARAMS, response: { 200: PROJECT_VISITS } },
+    handler: async (ctx) => {
+      const { projectId } = ctx.req.params as { projectId: string }
+      return { body: await projectVisits(ctx.db, staffActor(ctx), ctx.scope, projectId) }
+    },
+  }
+
+  const plan: RouteDef = {
+    method: 'POST',
+    path: '/staff/projects/:projectId/visits',
+    operationId: 'planVisit',
+    summary: 'Plan a tentative visit',
+    description:
+      'Staff with visit.offer_windows: Owner and Office any purpose; an Estimator estimate visits only (PROPOSED). ' +
+      'Creates one tentative visit: an Estimate visit (site_estimate) on an open project, with no job and no price ' +
+      "approval, or a work visit (service, follow_up, return_work) on the project's job, which exists only after " +
+      "approval, after the job's scheduling gates pass. The window is a local date and arrival window in the " +
+      "property's IANA zone; a time inside a spring-forward gap is refused (LOCAL_TIME_GAP), a time inside a repeated " +
+      'hour needs its offset (LOCAL_TIME_REPEATED, then startOffset or endOffset such as "-05:00") and is stored ' +
+      'with it, and a window must start in the future (WINDOW_IN_PAST, PROPOSED). NOT CONFIGURED while ' +
+      'business.timezone is unset. PROPOSED: the first work visit moves the scheduling task to planning. Nothing is ' +
+      "confirmed, reserved, shown to the customer or sent. Returns the project's visits.",
+    actors: ['staff'],
+    permission: 'visit.offer_windows',
+    kind: 'write',
+    idempotency: 'required',
+    expectedVersion: 'none',
+    rateLimit: 'none',
+    audit: 'visit.plan',
+    pagination: false,
+    test: TEST,
+    resource: projectOf,
+    schema: { params: PROJECT_PARAMS, body: NEW_VISIT_BODY, response: { 201: PROJECT_VISITS } },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const actor = staffActor(ctx)
+      const { projectId } = ctx.req.params as { projectId: string }
+      const body = ctx.req.body as NewVisit
+      const out = await planVisit(tx, actor, ctx.scope, projectId, body, { gates, now: new Date() })
+      await ctx.audit({
+        target: { type: 'visit', id: out.id, version: out.version },
+        summary: { projectId, purpose: body.purpose, windowVersion: 1, window: windowSummary(out.window) },
+      })
+      return { status: 201, body: await projectVisits(tx, actor, ctx.scope, projectId), version: out.version }
+    },
+  }
+
+  const move: RouteDef = {
+    method: 'POST',
+    path: '/staff/visits/:visitId/window',
+    operationId: 'changeVisitWindow',
+    summary: "Change a visit's window",
+    description:
+      'Staff with visit.offer_windows (an Estimator: estimate visits only, PROPOSED), with If-Match: the visit ' +
+      'version shown. While the visit is tentative or confirmed, sets a new window as its next window version; ' +
+      'the earlier windows stay in its history. The local times are kept as entered and the instants follow the ' +
+      "zone on the chosen date, so a window moved across a daylight-saving change keeps its local times. The visit's " +
+      'zone does not change. Same window rules and refusals as planning; an unchanged window is refused ' +
+      "(WINDOW_UNCHANGED). An optional reason is kept in the history. Returns the project's visits.",
+    actors: ['staff'],
+    permission: 'visit.offer_windows',
+    kind: 'write',
+    idempotency: 'required',
+    expectedVersion: 'required',
+    rateLimit: 'none',
+    audit: 'visit.change_window',
+    pagination: false,
+    test: TEST,
+    resource: visitProjectOf,
+    schema: { params: VISIT_PARAMS, body: WINDOW_BODY, response: { 200: PROJECT_VISITS } },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const actor = staffActor(ctx)
+      const { visitId } = ctx.req.params as { visitId: string }
+      const body = ctx.req.body as WindowEntry & { reason?: string }
+      const out = await changeWindow(tx, actor, ctx.scope, visitId, body, {
+        gates,
+        now: new Date(),
+        expectedVersion: ctx.expectedVersion(),
+      })
+      const reason = body.reason?.trim()
+      await ctx.audit({
+        target: { type: 'visit', id: out.id, version: out.version },
+        summary: {
+          projectId: out.projectId,
+          purpose: out.purpose,
+          windowVersion: out.windowVersion,
+          from: windowSummary(out.from),
+          to: windowSummary(out.to),
+        },
+        ...(reason ? { reason } : {}),
+      })
+      return { body: await projectVisits(tx, actor, ctx.scope, out.projectId), version: out.version }
+    },
+  }
+
+  return { name: 'visits', routes: [list, plan, move] }
+}
+
+export { WORK_VISIT_GATES, unmetGates, type WorkVisitGate, type WorkVisitJob } from './gates.js'
+export {
+  businessZone,
+  ESTIMATE_VISIT_PROJECT_STATES,
+  mayPlanWorkVisits,
+  projectVisits,
+  VISIT_LIMITS,
+  WORK_VISIT_PROJECT_STATES,
+  type ProjectVisits,
+} from './visits.js'

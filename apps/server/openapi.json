@@ -34673,6 +34673,1218 @@
         }
       }
     },
+    "/api/v1/staff/projects/{projectId}/visits": {
+      "get": {
+        "operationId": "listProjectVisits",
+        "summary": "A project's visits",
+        "description": "Staff with schedule.view_board (Owner, Office; Estimator PROPOSED). The visits of one project (estimate visits and the job's work visits), each with its purpose, state, version, current window (local date, arrival window, IANA zone, UTC offsets and instants, and whether it lies inside the daily visit hours of contact.hours in the business zone; null while NOT CONFIGURED) and every earlier window version. Beside them, kept apart, the project's job with its scope version and its scheduling task (never a booking), the property's zone, the business zone with its PROPOSED mark, and what the caller may plan now. A timing preference on the request is never listed here.",
+        "tags": [
+          "visits"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "projectId",
+                    "projectState",
+                    "timeZone",
+                    "businessTimeZone",
+                    "visitHours",
+                    "job",
+                    "schedulingTask",
+                    "actions",
+                    "visits"
+                  ],
+                  "properties": {
+                    "projectId": {
+                      "type": "string"
+                    },
+                    "projectState": {
+                      "type": "string"
+                    },
+                    "timeZone": {
+                      "type": "string"
+                    },
+                    "businessTimeZone": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "zone",
+                            "proposed"
+                          ],
+                          "properties": {
+                            "zone": {
+                              "type": "string"
+                            },
+                            "proposed": {
+                              "type": "boolean"
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "visitHours": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "open",
+                            "close"
+                          ],
+                          "properties": {
+                            "open": {
+                              "type": "string"
+                            },
+                            "close": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "job": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "scopeVersion"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "scopeVersion": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "schedulingTask": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state"
+                          ],
+                          "properties": {
+                            "state": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "planEstimateVisit",
+                        "planWorkVisit"
+                      ],
+                      "properties": {
+                        "planEstimateVisit": {
+                          "type": "boolean"
+                        },
+                        "planWorkVisit": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "visits": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "purpose",
+                          "state",
+                          "version",
+                          "jobId",
+                          "window",
+                          "windowVersion",
+                          "expectedDurationMinutes",
+                          "preparationBufferMinutes",
+                          "travelBufferMinutes",
+                          "requiredWorkers",
+                          "equipment",
+                          "createdBy",
+                          "createdAt",
+                          "history",
+                          "actions"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "purpose": {
+                            "type": "string",
+                            "enum": [
+                              "site_estimate",
+                              "service",
+                              "follow_up",
+                              "return_work"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "tentative",
+                              "confirmed",
+                              "en_route",
+                              "arrived",
+                              "completed",
+                              "expired",
+                              "canceled",
+                              "no_access"
+                            ]
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "jobId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "window": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "localDate",
+                              "start",
+                              "end",
+                              "timeZone",
+                              "startOffset",
+                              "endOffset",
+                              "startsAt",
+                              "endsAt",
+                              "withinVisitHours"
+                            ],
+                            "properties": {
+                              "localDate": {
+                                "type": "string"
+                              },
+                              "start": {
+                                "type": "string"
+                              },
+                              "end": {
+                                "type": "string"
+                              },
+                              "timeZone": {
+                                "type": "string"
+                              },
+                              "startOffset": {
+                                "type": "string"
+                              },
+                              "endOffset": {
+                                "type": "string"
+                              },
+                              "startsAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "endsAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "withinVisitHours": {
+                                "type": [
+                                  "boolean",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "windowVersion": {
+                            "type": "integer"
+                          },
+                          "expectedDurationMinutes": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "preparationBufferMinutes": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "travelBufferMinutes": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "requiredWorkers": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "equipment": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "createdBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "history": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "windowVersion",
+                                "window",
+                                "visitState",
+                                "setBy",
+                                "setAt",
+                                "reason"
+                              ],
+                              "properties": {
+                                "windowVersion": {
+                                  "type": "integer"
+                                },
+                                "window": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "localDate",
+                                    "start",
+                                    "end",
+                                    "timeZone",
+                                    "startOffset",
+                                    "endOffset",
+                                    "startsAt",
+                                    "endsAt",
+                                    "withinVisitHours"
+                                  ],
+                                  "properties": {
+                                    "localDate": {
+                                      "type": "string"
+                                    },
+                                    "start": {
+                                      "type": "string"
+                                    },
+                                    "end": {
+                                      "type": "string"
+                                    },
+                                    "timeZone": {
+                                      "type": "string"
+                                    },
+                                    "startOffset": {
+                                      "type": "string"
+                                    },
+                                    "endOffset": {
+                                      "type": "string"
+                                    },
+                                    "startsAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    },
+                                    "endsAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    },
+                                    "withinVisitHours": {
+                                      "type": [
+                                        "boolean",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "visitState": {
+                                  "type": "string"
+                                },
+                                "setBy": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "setAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "reason": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "actions": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "changeWindow"
+                            ],
+                            "properties": {
+                              "changeWindow": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "schedule.view_board",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/visits.test.ts"
+        }
+      },
+      "post": {
+        "operationId": "planVisit",
+        "summary": "Plan a tentative visit",
+        "description": "Staff with visit.offer_windows: Owner and Office any purpose; an Estimator estimate visits only (PROPOSED). Creates one tentative visit: an Estimate visit (site_estimate) on an open project, with no job and no price approval, or a work visit (service, follow_up, return_work) on the project's job, which exists only after approval, after the job's scheduling gates pass. The window is a local date and arrival window in the property's IANA zone; a time inside a spring-forward gap is refused (LOCAL_TIME_GAP), a time inside a repeated hour needs its offset (LOCAL_TIME_REPEATED, then startOffset or endOffset such as \"-05:00\") and is stored with it, and a window must start in the future (WINDOW_IN_PAST, PROPOSED). NOT CONFIGURED while business.timezone is unset. PROPOSED: the first work visit moves the scheduling task to planning. Nothing is confirmed, reserved, shown to the customer or sent. Returns the project's visits.",
+        "tags": [
+          "visits"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "purpose",
+                  "localDate",
+                  "windowStart",
+                  "windowEnd"
+                ],
+                "properties": {
+                  "purpose": {
+                    "type": "string",
+                    "enum": [
+                      "site_estimate",
+                      "service",
+                      "follow_up",
+                      "return_work"
+                    ]
+                  },
+                  "localDate": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  },
+                  "windowStart": {
+                    "type": "string",
+                    "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                  },
+                  "windowEnd": {
+                    "type": "string",
+                    "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                  },
+                  "startOffset": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^[+-]\\d{2}:\\d{2}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "endOffset": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^[+-]\\d{2}:\\d{2}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "expectedDurationMinutes": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 20160
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "preparationBufferMinutes": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1440
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "travelBufferMinutes": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1440
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "requiredWorkers": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 20
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "equipment": {
+                    "type": "array",
+                    "maxItems": 50,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 120
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "projectId",
+                    "projectState",
+                    "timeZone",
+                    "businessTimeZone",
+                    "visitHours",
+                    "job",
+                    "schedulingTask",
+                    "actions",
+                    "visits"
+                  ],
+                  "properties": {
+                    "projectId": {
+                      "type": "string"
+                    },
+                    "projectState": {
+                      "type": "string"
+                    },
+                    "timeZone": {
+                      "type": "string"
+                    },
+                    "businessTimeZone": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "zone",
+                            "proposed"
+                          ],
+                          "properties": {
+                            "zone": {
+                              "type": "string"
+                            },
+                            "proposed": {
+                              "type": "boolean"
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "visitHours": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "open",
+                            "close"
+                          ],
+                          "properties": {
+                            "open": {
+                              "type": "string"
+                            },
+                            "close": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "job": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "scopeVersion"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "scopeVersion": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "schedulingTask": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state"
+                          ],
+                          "properties": {
+                            "state": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "planEstimateVisit",
+                        "planWorkVisit"
+                      ],
+                      "properties": {
+                        "planEstimateVisit": {
+                          "type": "boolean"
+                        },
+                        "planWorkVisit": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "visits": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "purpose",
+                          "state",
+                          "version",
+                          "jobId",
+                          "window",
+                          "windowVersion",
+                          "expectedDurationMinutes",
+                          "preparationBufferMinutes",
+                          "travelBufferMinutes",
+                          "requiredWorkers",
+                          "equipment",
+                          "createdBy",
+                          "createdAt",
+                          "history",
+                          "actions"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "purpose": {
+                            "type": "string",
+                            "enum": [
+                              "site_estimate",
+                              "service",
+                              "follow_up",
+                              "return_work"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "tentative",
+                              "confirmed",
+                              "en_route",
+                              "arrived",
+                              "completed",
+                              "expired",
+                              "canceled",
+                              "no_access"
+                            ]
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "jobId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "window": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "localDate",
+                              "start",
+                              "end",
+                              "timeZone",
+                              "startOffset",
+                              "endOffset",
+                              "startsAt",
+                              "endsAt",
+                              "withinVisitHours"
+                            ],
+                            "properties": {
+                              "localDate": {
+                                "type": "string"
+                              },
+                              "start": {
+                                "type": "string"
+                              },
+                              "end": {
+                                "type": "string"
+                              },
+                              "timeZone": {
+                                "type": "string"
+                              },
+                              "startOffset": {
+                                "type": "string"
+                              },
+                              "endOffset": {
+                                "type": "string"
+                              },
+                              "startsAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "endsAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "withinVisitHours": {
+                                "type": [
+                                  "boolean",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "windowVersion": {
+                            "type": "integer"
+                          },
+                          "expectedDurationMinutes": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "preparationBufferMinutes": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "travelBufferMinutes": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "requiredWorkers": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "equipment": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "createdBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "history": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "windowVersion",
+                                "window",
+                                "visitState",
+                                "setBy",
+                                "setAt",
+                                "reason"
+                              ],
+                              "properties": {
+                                "windowVersion": {
+                                  "type": "integer"
+                                },
+                                "window": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "localDate",
+                                    "start",
+                                    "end",
+                                    "timeZone",
+                                    "startOffset",
+                                    "endOffset",
+                                    "startsAt",
+                                    "endsAt",
+                                    "withinVisitHours"
+                                  ],
+                                  "properties": {
+                                    "localDate": {
+                                      "type": "string"
+                                    },
+                                    "start": {
+                                      "type": "string"
+                                    },
+                                    "end": {
+                                      "type": "string"
+                                    },
+                                    "timeZone": {
+                                      "type": "string"
+                                    },
+                                    "startOffset": {
+                                      "type": "string"
+                                    },
+                                    "endOffset": {
+                                      "type": "string"
+                                    },
+                                    "startsAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    },
+                                    "endsAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    },
+                                    "withinVisitHours": {
+                                      "type": [
+                                        "boolean",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "visitState": {
+                                  "type": "string"
+                                },
+                                "setBy": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "setAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "reason": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "actions": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "changeWindow"
+                            ],
+                            "properties": {
+                              "changeWindow": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "visit.offer_windows",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "visit.plan",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/visits.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/queue": {
       "get": {
         "operationId": "listActionQueue",
@@ -41721,6 +42933,648 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/system.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/visits/{visitId}/window": {
+      "post": {
+        "operationId": "changeVisitWindow",
+        "summary": "Change a visit's window",
+        "description": "Staff with visit.offer_windows (an Estimator: estimate visits only, PROPOSED), with If-Match: the visit version shown. While the visit is tentative or confirmed, sets a new window as its next window version; the earlier windows stay in its history. The local times are kept as entered and the instants follow the zone on the chosen date, so a window moved across a daylight-saving change keeps its local times. The visit's zone does not change. Same window rules and refusals as planning; an unchanged window is refused (WINDOW_UNCHANGED). An optional reason is kept in the history. Returns the project's visits.",
+        "tags": [
+          "visits"
+        ],
+        "parameters": [
+          {
+            "name": "visitId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "localDate",
+                  "windowStart",
+                  "windowEnd"
+                ],
+                "properties": {
+                  "localDate": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  },
+                  "windowStart": {
+                    "type": "string",
+                    "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                  },
+                  "windowEnd": {
+                    "type": "string",
+                    "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                  },
+                  "startOffset": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^[+-]\\d{2}:\\d{2}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "endOffset": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^[+-]\\d{2}:\\d{2}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "projectId",
+                    "projectState",
+                    "timeZone",
+                    "businessTimeZone",
+                    "visitHours",
+                    "job",
+                    "schedulingTask",
+                    "actions",
+                    "visits"
+                  ],
+                  "properties": {
+                    "projectId": {
+                      "type": "string"
+                    },
+                    "projectState": {
+                      "type": "string"
+                    },
+                    "timeZone": {
+                      "type": "string"
+                    },
+                    "businessTimeZone": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "zone",
+                            "proposed"
+                          ],
+                          "properties": {
+                            "zone": {
+                              "type": "string"
+                            },
+                            "proposed": {
+                              "type": "boolean"
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "visitHours": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "open",
+                            "close"
+                          ],
+                          "properties": {
+                            "open": {
+                              "type": "string"
+                            },
+                            "close": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "job": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "scopeVersion"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "scopeVersion": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "schedulingTask": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state"
+                          ],
+                          "properties": {
+                            "state": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "planEstimateVisit",
+                        "planWorkVisit"
+                      ],
+                      "properties": {
+                        "planEstimateVisit": {
+                          "type": "boolean"
+                        },
+                        "planWorkVisit": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "visits": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "purpose",
+                          "state",
+                          "version",
+                          "jobId",
+                          "window",
+                          "windowVersion",
+                          "expectedDurationMinutes",
+                          "preparationBufferMinutes",
+                          "travelBufferMinutes",
+                          "requiredWorkers",
+                          "equipment",
+                          "createdBy",
+                          "createdAt",
+                          "history",
+                          "actions"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "purpose": {
+                            "type": "string",
+                            "enum": [
+                              "site_estimate",
+                              "service",
+                              "follow_up",
+                              "return_work"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "tentative",
+                              "confirmed",
+                              "en_route",
+                              "arrived",
+                              "completed",
+                              "expired",
+                              "canceled",
+                              "no_access"
+                            ]
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "jobId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "window": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "localDate",
+                              "start",
+                              "end",
+                              "timeZone",
+                              "startOffset",
+                              "endOffset",
+                              "startsAt",
+                              "endsAt",
+                              "withinVisitHours"
+                            ],
+                            "properties": {
+                              "localDate": {
+                                "type": "string"
+                              },
+                              "start": {
+                                "type": "string"
+                              },
+                              "end": {
+                                "type": "string"
+                              },
+                              "timeZone": {
+                                "type": "string"
+                              },
+                              "startOffset": {
+                                "type": "string"
+                              },
+                              "endOffset": {
+                                "type": "string"
+                              },
+                              "startsAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "endsAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "withinVisitHours": {
+                                "type": [
+                                  "boolean",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "windowVersion": {
+                            "type": "integer"
+                          },
+                          "expectedDurationMinutes": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "preparationBufferMinutes": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "travelBufferMinutes": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "requiredWorkers": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "equipment": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "createdBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "history": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "windowVersion",
+                                "window",
+                                "visitState",
+                                "setBy",
+                                "setAt",
+                                "reason"
+                              ],
+                              "properties": {
+                                "windowVersion": {
+                                  "type": "integer"
+                                },
+                                "window": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "localDate",
+                                    "start",
+                                    "end",
+                                    "timeZone",
+                                    "startOffset",
+                                    "endOffset",
+                                    "startsAt",
+                                    "endsAt",
+                                    "withinVisitHours"
+                                  ],
+                                  "properties": {
+                                    "localDate": {
+                                      "type": "string"
+                                    },
+                                    "start": {
+                                      "type": "string"
+                                    },
+                                    "end": {
+                                      "type": "string"
+                                    },
+                                    "timeZone": {
+                                      "type": "string"
+                                    },
+                                    "startOffset": {
+                                      "type": "string"
+                                    },
+                                    "endOffset": {
+                                      "type": "string"
+                                    },
+                                    "startsAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    },
+                                    "endsAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    },
+                                    "withinVisitHours": {
+                                      "type": [
+                                        "boolean",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "visitState": {
+                                  "type": "string"
+                                },
+                                "setBy": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "setAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "reason": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "actions": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "changeWindow"
+                            ],
+                            "properties": {
+                              "changeWindow": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "visit.offer_windows",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "visit.change_window",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/visits.test.ts"
         }
       }
     }
