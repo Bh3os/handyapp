@@ -323,6 +323,7 @@
   "enum.configKey.business.public_contact": "Teléfono y correo públicos",
   "enum.configKey.verification.limits": "Límites de los códigos de verificación",
   "enum.configKey.access.grants": "Duración del enlace de acceso al proyecto",
+  "enum.configKey.access.recovery": "Nuevos enlaces de acceso al proyecto a petición",
   "enum.configKey.messages.automatic": "Mensajes que se envían automáticamente",
   "enum.configKey.sms.help_reply": "Respuesta a un texto HELP",
   "enum.configKey.coverage.area": "Área de servicio",

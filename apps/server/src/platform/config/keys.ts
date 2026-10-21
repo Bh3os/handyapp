@@ -144,6 +144,8 @@ export const CONFIG_KEYS = {
   }),
   // TSK-0034: how long a single-project guest link works (HH-ID-06, ENT-ProjectAccessGrant; PROPOSED 24 hours).
   'access.grants': shape({ linkHours: int(1, 24 * 366) }),
+  // TSK-0035: how many new links one project may be sent per day on request (HH-ID-09, HH-INT-11; PROPOSED 3).
+  'access.recovery': shape({ maxReissuesPerProjectPerDay: int(1, 100) }),
   // FACT-AUTOMATIC-MESSAGES (TSK-0047): the one list of messages that send without staff release. Codes are message
   // types of modules/notifications, which refuses an unknown code when it reads the list.
   'messages.automatic': shape({

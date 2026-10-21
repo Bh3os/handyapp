@@ -57,7 +57,8 @@ export const ANY_HOST_PATHS = new Set(['/healthz', '/readyz', '/robots.txt'])
  */
 export function isPrivatePath(side: HostSide, url: string): boolean {
   if (side === 'staff') return true
-  return /^\/(staff|portal|api|access|project|account|request)(\/|$)/.test(url)
+  // A built page's own file name (/access.html) is the same private page (TSK-0035, HH-ID-08).
+  return /^\/(staff|portal|api|access|project|account|request)(\/|\.html$|$)/.test(url)
 }
 
 const inlineTag = /<(script|style)(\s[^>]*)?>([\s\S]*?)<\/\1>/g
