@@ -59,6 +59,7 @@ import { alternatives, capacitySettings, evaluate, type ReservationRequest } fro
 import { notificationAutomation, type Destination, type NotificationProviders } from '../notifications/index.js'
 import { openQueueItem, resolveQueueItem } from '../queue/items.js'
 import { findProject } from '../records/index.js'
+import { customerRequestsOf } from './changes.js'
 import { unmetGates, type WorkVisitGate } from './gates.js'
 import { approvalProblems, blockingHoldProblems, confirmationPreconditions, customerRefusal } from './preconditions.js'
 import { factsOf, mayPlanWorkVisits, resolveEntry, storedWindow, type WindowEntry } from './visits.js'
@@ -95,7 +96,7 @@ async function dbNow(tx: Reader): Promise<Date> {
 const requestIdOf = (fallback: string) => currentContext()?.requestId ?? fallback
 
 /** The project's request (its reference, responsible staff member and contact). */
-async function requestOf(db: Reader, projectId: string) {
+export async function requestOf(db: Reader, projectId: string) {
   return db
     .selectFrom('intake.requests as r')
     .innerJoin('crm.contacts as c', 'c.id', 'r.contact_id')
@@ -862,11 +863,17 @@ export type CustomerOffer = {
   windows: (WindowShown & { position: number })[]
 }
 export type CustomerAppointment = {
+  /** TSK-0066: the visit's number inside the project (the customer never sees a database ID). */
+  number: number
   purpose: 'estimate_visit' | 'work_visit'
   status: string
   window: WindowShown
   address: { street: string; unit: string | null; city: string; state: string; zip: string }
   preparationInstructions: string | null
+  /** TSK-0066 (HH-PORT-04): the customer's latest request, while it awaits staff or once declined; null otherwise. */
+  request: { kind: 'reschedule' | 'cancellation'; status: 'awaiting_confirmation' | 'declined' } | null
+  /** What the customer may ask for now: only for a confirmed visit with no open request. */
+  actions: { requestReschedule: boolean; requestCancellation: boolean }
 }
 export type CustomerAppointments = { offers: CustomerOffer[]; appointments: CustomerAppointment[] }
 
@@ -894,6 +901,7 @@ export async function appointmentsOf(db: Reader, projectId: string, now: Date): 
     .innerJoin('crm.properties as p', 'p.id', 'v.property_id')
     .select([
       'v.id',
+      'v.number',
       'v.purpose',
       'v.state',
       'v.local_date',
@@ -944,6 +952,10 @@ export async function appointmentsOf(db: Reader, projectId: string, now: Date): 
     : []
   const shownOffers: CustomerOffer[] = []
   const appointments: CustomerAppointment[] = []
+  const requests = await customerRequestsOf(
+    db,
+    visits.map((v) => v.id),
+  )
   const purposeOf = new Map(visits.map((v) => [v.id, customerPurpose(v.purpose)]))
   // An offer that ended unselected is shown until a newer offer of the same purpose, or a confirmed visit of it, exists.
   const superseded = (o: { visit_id: string; number: number }) =>
@@ -980,14 +992,23 @@ export async function appointmentsOf(db: Reader, projectId: string, now: Date): 
             .map((p) => ({ position: p.position, ...windowShape(storedWindow(p)) })),
         })
     }
-    if ((SHOWN_VISIT_STATES as readonly string[]).includes(v.state)) {
+    // TSK-0066: a canceled appointment stays listed, as canceled, so the customer sees the change took effect.
+    if ((SHOWN_VISIT_STATES as readonly string[]).includes(v.state) || v.state === 'canceled') {
       const selected = offers.find((o) => o.visit_id === v.id && o.state === 'selected')
+      const request = v.state === 'confirmed' ? (requests.get(v.id) ?? null) : null
+      const open = request?.status === 'awaiting_confirmation'
       appointments.push({
+        number: v.number,
         purpose: customerPurpose(v.purpose),
         status: v.state,
         window: windowShape(storedWindow(v)),
         address: { street: v.street, unit: v.unit, city: v.city, state: v.address_state, zip: v.zip },
         preparationInstructions: selected?.preparation_instructions ?? null,
+        request,
+        actions: {
+          requestReschedule: v.state === 'confirmed' && !open,
+          requestCancellation: v.state === 'confirmed' && !open,
+        },
       })
     }
   }
@@ -1001,12 +1022,13 @@ export async function appointmentsOf(db: Reader, projectId: string, now: Date): 
  */
 export function overviewVisitFacts(a: CustomerAppointments, projectApproved: boolean) {
   const stage = projectApproved ? 'work_visit' : 'estimate_visit'
-  const current = a.appointments.find((x) => x.purpose === stage && x.status !== 'completed')
+  const live = (x: CustomerAppointment) => x.status !== 'completed' && x.status !== 'canceled'
+  const current = a.appointments.find((x) => x.purpose === stage && live(x))
   return {
     visitWindowsOffered: a.offers.some((o) => o.status === 'open' && o.purpose === 'estimate_visit'),
     workWindowsOffered: a.offers.some((o) => o.status === 'open' && o.purpose === 'work_visit'),
     visit: current ? (current.status === 'confirmed' ? ('confirmed' as const) : ('on_the_way' as const)) : undefined,
-    appointment: a.appointments.find((x) => x.status !== 'completed') ?? null,
+    appointment: a.appointments.find(live) ?? null,
   }
 }
 
@@ -1014,7 +1036,7 @@ export function overviewVisitFacts(a: CustomerAppointments, projectApproved: boo
 
 export type VisitNoticeDeps = { providers: NotificationProviders }
 
-function destinationsOf(r: { email: string; phone_e164: string; preferred_channel: string }): Destination[] {
+export function destinationsOf(r: { email: string; phone_e164: string; preferred_channel: string }): Destination[] {
   return [
     { channel: 'email', destination: r.email, permission: r.preferred_channel === 'email' ? 'preferred' : 'permitted' },
     ...(r.phone_e164

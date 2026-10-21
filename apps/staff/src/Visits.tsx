@@ -471,7 +471,13 @@ function ChangeWindow({
         onChange={setEntry}
         errors={errors.fields}
       />
-      <Field label={t('visits.change.reason')} value={reason} onChange={(e) => setReason(e.target.value)} />
+      {/* TSK-0066: a booked visit's reschedule records its reason (the server refuses it without one). */}
+      <Field
+        label={t(visit.state === 'confirmed' ? 'change.reason' : 'visits.change.reason')}
+        value={reason}
+        required={visit.state === 'confirmed'}
+        onChange={(e) => setReason(e.target.value)}
+      />
       {stale ? (
         <StateView
           kind="stale"

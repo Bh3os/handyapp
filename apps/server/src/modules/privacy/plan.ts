@@ -9,6 +9,12 @@
 //   and accepted estimates (protected evidence), estimates under a hold or still open, requests (their erasure is not
 //   performed yet, OQ-RECORD-ERASURE), photos, job and safety records, the customer profile needed by kept records,
 //   consent records (evidence of permission), audit entries (7 years each, OWN-DEC-142) and the privacy requests.
+// - visits (TSK-0066): the committed change history of the requester's visits (work.visit_changes: reschedules,
+//   reassignments and cancellations with the FACT-CANCELLATION-RULES outcome in cents, which is a computed outcome,
+//   never a charge or refund) is part of the job records and retained with them; the requester's own Request to
+//   Reschedule / Request Cancellation rows (work.visit_change_requests) are counted with their requests, retained as
+//   the record of what they asked (append-only, migration 0059; PROPOSED). Neither names an estimate version, so
+//   neither blocks nor is removed with an estimate never accepted.
 // - exclude: other contacts of the same customer (third-party data, PROPOSED: neither exported nor deleted here). The
 //   search covers the requester's own projects: those of their requests and of their login accounts' links.
 // - financial records: the deposit records and recorded payments of the requester's projects (TSK-0064) are
@@ -284,7 +290,29 @@ export async function customerPlan(db: Reader, subject: PlanSubject, now = new D
         .executeTakeFirstOrThrow()
     ).n,
   )
-  add('job_records', 'retain', jobs + visits, 'active_record', 'job_records')
+  // The committed change history of those visits (TSK-0066) stays with the job records.
+  const visitChanges = n(
+    (
+      await db
+        .selectFrom('work.visit_changes')
+        .select(sql<string>`count(*)::text`.as('n'))
+        .where('project_id', 'in', inProjects)
+        .executeTakeFirstOrThrow()
+    ).n,
+  )
+  add('job_records', 'retain', jobs + visits + visitChanges, 'active_record', 'job_records')
+  // The requester's own change requests of their visits (TSK-0066, HH-PORT-04): the record of what they asked.
+  const changeRequests = n(
+    (
+      await db
+        .selectFrom('work.visit_change_requests')
+        .select(sql<string>`count(*)::text`.as('n'))
+        .where('project_id', 'in', inProjects)
+        .where('requested_by_contact', '=', subject.contactId)
+        .executeTakeFirstOrThrow()
+    ).n,
+  )
+  add('requests', 'retain', changeRequests, 'request_record', 'job_records')
 
   const holds = await db.selectFrom('work.holds').select(['state']).where('project_id', 'in', inProjects).execute()
   const openHolds = holds.filter((h) => h.state === 'open' || h.state === 'under_review').length
@@ -336,7 +364,18 @@ export async function customerPlan(db: Reader, subject: PlanSubject, now = new D
           .execute()
       ).map((v) => v.id)
     : []
-  const targets = [...projectIds, ...requestIds, ...versionIds, ...estimates.map((e) => e.id)]
+  // The audit entries of the projects' visits and change requests (TSK-0065, TSK-0066) are counted with the rest.
+  const visitTargets = projectIds.length
+    ? [
+        ...(await db.selectFrom('work.visits').select('id').where('project_id', 'in', projectIds).execute()),
+        ...(await db
+          .selectFrom('work.visit_change_requests')
+          .select('id')
+          .where('project_id', 'in', projectIds)
+          .execute()),
+      ].map((v) => v.id)
+    : []
+  const targets = [...projectIds, ...requestIds, ...versionIds, ...estimates.map((e) => e.id), ...visitTargets]
   const audits = targets.length
     ? n(
         (

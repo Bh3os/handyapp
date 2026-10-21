@@ -755,7 +755,8 @@ describe('[HH-SCH-04][T42] a reschedule checks capacity; a failed change keeps t
         who,
         'POST',
         `/api/v1/staff/visits/${v.id}/window`,
-        { localDate: day(12), windowStart: start, windowEnd: end },
+        // TSK-0066: a reschedule of a confirmed visit records its reason.
+        { localDate: day(12), windowStart: start, windowEnd: end, reason: 'Synthetic: a reschedule.' },
         version,
       )
     // Onto b's range: refused with alternatives, and nothing changes.
@@ -1023,7 +1024,7 @@ describe('[HH-SCH-04][HH-SCH-05] work visits use the same mechanism', () => {
     const moved = await gated.inject({
       method: 'POST',
       url: `/api/v1/staff/visits/${v.id}/window`,
-      payload: { localDate: day(22), windowStart: '11:00', windowEnd: '12:00' },
+      payload: { localDate: day(22), windowStart: '11:00', windowEnd: '12:00', reason: 'Synthetic: a reschedule.' },
       headers: {
         cookie: gatedSession.cookie,
         'x-csrf-token': gatedSession.csrf,

@@ -146,6 +146,19 @@ export {
 } from './visit.js'
 export type { VisitEvent, VisitFacts, VisitPurpose, VisitState } from './visit.js'
 export * from './local-time.js'
+export {
+  CANCELLATION_INITIATORS,
+  CANCELLATION_OUTCOMES,
+  cancellationOutcome,
+  HANDYHUB_CAUSES,
+  needsOwnerAction,
+  type CancellationFacts,
+  type CancellationInitiator,
+  type CancellationOutcome,
+  type CancellationOutcomeKind,
+  type CancellationRules,
+  type HandyhubCause,
+} from './cancellation.js'
 export * from './capacity.js'
 export {
   holdExpiresAt,

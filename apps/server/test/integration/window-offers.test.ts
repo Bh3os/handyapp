@@ -714,11 +714,15 @@ describe('[HH-SCH-11][HH-LEAD-07][T37] the customer selects one window in the po
     expect(after.offers).toEqual([])
     expect(after.appointments).toEqual([
       {
+        number: 1,
         purpose: 'estimate_visit',
         status: 'confirmed',
         window: expect.objectContaining({ localDate: day(6), start: '12:00', end: '13:00', timeZone: ZONE }),
         address: expect.objectContaining({ street: p.street, city: 'Testville' }),
         preparationInstructions: 'Synthetic: keep pets in another room.',
+        // TSK-0066: the customer may ask to reschedule or cancel a confirmed appointment.
+        request: null,
+        actions: { requestReschedule: true, requestCancellation: true },
       },
     ])
     // The selected window's hold became the confirmed reservation (the same row); the others were released.

@@ -8,6 +8,11 @@
 //   confirmation precondition is unmet) the page says so, that nothing is booked, and the times stay as offered.
 // - A confirmed visit shows its purpose (an Estimate visit approves no price, T37), the date and arrival window in the
 //   property's zone, the property address and the preparation instructions HandyHub wrote.
+// - TSK-0066 (HH-PORT-04, OWN-DEC-107): a confirmed appointment offers "Request to Reschedule" and "Request
+//   Cancellation", each with an optional reason (and preferred times). Afterwards it says "Request received—awaiting
+//   staff confirmation." and the appointment stays shown and in force until staff confirm a change; a declined request
+//   says so and leaves it as it is. No fee, refund or other term is shown (the customer wording of the rules comes
+//   with the attorney-reviewed estimate terms, OQ-ATTORNEY-TERMS). A canceled appointment shows as canceled.
 // - English only, from the customer catalog; the wording no decision gives is PROPOSED (OQ-PORTAL-WORDING).
 import type { CustomerKey } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
@@ -18,7 +23,9 @@ import {
   type Appointment,
   type AppointmentStatus,
   type Fetch,
+  type ChangeRequestFailure,
   type OfferAnswerFailure,
+  type RequestKind,
   type VisitPurpose,
   type VisitWindow,
   type WindowOffer,
@@ -38,6 +45,18 @@ export const STATUS_LABEL: Record<AppointmentStatus, CustomerKey> = {
   en_route: 'portal.appointment.status.en_route',
   arrived: 'portal.appointment.status.arrived',
   completed: 'portal.appointment.status.completed',
+  canceled: 'portal.appointment.status.canceled',
+}
+const CHANGE_FAILURE: Record<ChangeRequestFailure, CustomerKey> = {
+  not_changeable: 'portal.appointment.request.notChangeable',
+  other_open: 'portal.appointment.request.otherOpen',
+  fresh_verification: 'portal.estimate.failure.fresh_verification',
+  not_applicable: 'portal.appointment.request.notChangeable',
+  invalid: 'portal.appointment.request.failed',
+  rate_limited: 'portal.estimate.failure.rate_limited',
+  failed: 'portal.appointment.request.failed',
+  expired: 'portal.estimate.failure.expired',
+  unavailable: 'portal.appointment.request.failed',
 }
 const FAILURE: Record<OfferAnswerFailure, CustomerKey> = {
   unavailable_window: 'portal.appointment.offer.unavailable',
@@ -80,7 +99,7 @@ export function AppointmentCard({ a }: { a: Appointment }) {
     <div className="portal-appointment" data-testid="appointment">
       <p>
         <strong>{t(PURPOSE_LABEL[a.purpose])}</strong>{' '}
-        <StatusBadge tone="success">{t(STATUS_LABEL[a.status])}</StatusBadge>
+        <StatusBadge tone={a.status === 'canceled' ? 'neutral' : 'success'}>{t(STATUS_LABEL[a.status])}</StatusBadge>
       </p>
       <dl className="portal-appointment__facts">
         <div>
@@ -104,6 +123,117 @@ export function AppointmentCard({ a }: { a: Appointment }) {
       </dl>
       {a.purpose === 'estimate_visit' ? (
         <p className="hh-small hh-muted">{t('portal.appointment.estimateNote')}</p>
+      ) : null}
+    </div>
+  )
+}
+
+/** Request to Reschedule and Request Cancellation of one confirmed appointment, and the request's state. */
+function ChangeRequests({
+  reference,
+  a,
+  fetchImpl,
+  onChanged,
+}: {
+  reference: string
+  a: Appointment
+  fetchImpl: Fetch
+  onChanged: () => void
+}) {
+  const [asking, setAsking] = useState<RequestKind | null>(null)
+  const [reason, setReason] = useState('')
+  const [times, setTimes] = useState('')
+  const [message, setMessage] = useState<CustomerKey | null>(null)
+  const [pending, setPending] = useState(false)
+  const key = useRef<{ kind: RequestKind; key: string } | null>(null)
+  async function send(e: FormEvent) {
+    e.preventDefault()
+    if (!asking) return
+    if (key.current?.kind !== asking) key.current = { kind: asking, key: idempotencyKey() }
+    setPending(true)
+    const r = await portalApi.requestChange(
+      fetchImpl,
+      { reference, number: a.number },
+      asking,
+      { reason, preferredTimes: times },
+      key.current.key,
+    )
+    setPending(false)
+    if (r.ok || r.failure !== 'failed') key.current = null
+    if (r.ok) {
+      setMessage(null)
+      setAsking(null)
+      return onChanged()
+    }
+    setMessage(CHANGE_FAILURE[r.failure])
+    if (r.failure === 'not_changeable' || r.failure === 'other_open') onChanged()
+  }
+  return (
+    <div className="portal-appointment__requests" data-testid="appointment-requests">
+      {a.request?.status === 'awaiting_confirmation' ? (
+        <div role="status" data-testid="appointment-request">
+          <p>
+            <strong>{t('portal.appointment.request.received')}</strong>
+          </p>
+          <p className="hh-small hh-muted">{t('portal.appointment.request.kept')}</p>
+        </div>
+      ) : null}
+      {a.request?.status === 'declined' ? (
+        <p role="status" data-testid="appointment-request">
+          {t('portal.appointment.request.declined')}
+        </p>
+      ) : null}
+      {asking ? (
+        <form onSubmit={(e) => void send(e)} data-testid="appointment-request-form" data-kind={asking}>
+          <Field
+            label={t('portal.appointment.request.reason')}
+            multiline
+            rows={3}
+            maxLength={500}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
+          {asking === 'reschedule' ? (
+            <Field
+              label={t('portal.appointment.request.times')}
+              multiline
+              rows={2}
+              maxLength={1000}
+              value={times}
+              onChange={(e) => setTimes(e.target.value)}
+            />
+          ) : null}
+          <div className="hh-button-row">
+            <Button type="submit" pending={pending}>
+              {t(
+                asking === 'reschedule'
+                  ? 'portal.appointment.request.submit.reschedule'
+                  : 'portal.appointment.request.submit.cancellation',
+              )}
+            </Button>
+            <Button variant="secondary" onClick={() => setAsking(null)}>
+              {t('portal.appointment.request.back')}
+            </Button>
+          </div>
+        </form>
+      ) : a.actions.requestReschedule || a.actions.requestCancellation ? (
+        <div className="hh-button-row">
+          {a.actions.requestReschedule ? (
+            <Button variant="secondary" onClick={() => setAsking('reschedule')}>
+              {t('portal.appointment.requestReschedule')}
+            </Button>
+          ) : null}
+          {a.actions.requestCancellation ? (
+            <Button variant="secondary" onClick={() => setAsking('cancellation')}>
+              {t('portal.appointment.requestCancellation')}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+      {message ? (
+        <p className="hh-field__error" role="alert" data-testid="appointment-request-message">
+          {t(message)}
+        </p>
       ) : null}
     </div>
   )
@@ -234,7 +364,10 @@ export function AppointmentsList({
             {t('portal.appointment.confirmed.title')}
           </h3>
           {appointments.map((a) => (
-            <AppointmentCard key={`${a.purpose}-${a.window.startsAt}`} a={a} />
+            <div key={a.number} data-testid="appointment-item">
+              <AppointmentCard a={a} />
+              <ChangeRequests reference={reference} a={a} fetchImpl={fetchImpl} onChanged={onChanged} />
+            </div>
           ))}
         </section>
       ) : null}

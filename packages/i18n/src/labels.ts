@@ -91,6 +91,7 @@ export const LABEL_FAMILIES = {
     'deletion_request',
     'invoice_overdue_decision',
     'cancellation_review',
+    'visit_cancellation_review',
     'incident_notification',
   ],
   /** Why a queue item needs action (HH-OPS-02 "reason"). */
@@ -138,6 +139,7 @@ export const LABEL_FAMILIES = {
     'assignee_disabled',
     'availability_changed',
     'equipment_retired',
+    'work_cancellation_requested',
   ],
   /** The one action button of a queue item (HH-OPS-02); it opens the record's screen. */
   queueAction: [
@@ -598,7 +600,34 @@ export const LABEL_FAMILIES = {
     'REVIEW_HOLD_OPEN',
     'JOB_ON_HOLD',
     'CRITICAL_HOLD_OPEN',
+    // TSK-0066: reschedule, reassign, cancel and the customer's change requests (apps/server/src/modules/visits/changes.ts).
+    'INITIATOR_REQUIRED',
+    'CAUSE_REQUIRED',
+    'CAUSE_NOT_APPLICABLE',
+    'REQUEST_IS_CUSTOMER',
+    'REQUEST_NOT_FOR_VISIT',
+    'REQUEST_CONFIRMED',
+    'REQUEST_DECLINED',
+    'REQUEST_CLOSED',
+    'VISIT_NOT_CONFIRMED',
+    'TEAM_UNCHANGED',
+    'OWNER_CANCELS_WORK',
+    'CANCELLATION_RULES_NOT_CONFIGURED',
   ],
+  /** The outcome of a final cancellation under FACT-CANCELLATION-RULES (TSK-0066; @handyhub/domain/cancellation). */
+  cancellationOutcome: [
+    'full_refund_no_charge',
+    'late_cancellation',
+    'work_started',
+    'customer_chooses',
+    'owner_review',
+  ],
+  /** Who initiated a change of a booked visit (TSK-0066). */
+  changeInitiator: ['customer', 'handyhub'],
+  /** Why HandyHub cancels or moves a visit (TSK-0066; OWN-DEC-134 names weather, a safety stop and a sick worker). */
+  handyhubCause: ['weather', 'safety_stop', 'sick_worker', 'other'],
+  /** The customer's change requests of a confirmed visit (TSK-0066; HH-PORT-04, OWN-DEC-107). */
+  changeRequestKind: ['reschedule', 'cancellation'],
   /** Window offer states (TSK-0063; @handyhub/domain/window-offer, migration 0053). */
   windowOfferState: ['open', 'selected', 'other_times_requested', 'withdrawn', 'expired'],
   /** What happened to one automatic notice's delivery (migration 0008 message_deliveries.state). */

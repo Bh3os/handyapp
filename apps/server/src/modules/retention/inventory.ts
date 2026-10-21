@@ -619,6 +619,18 @@ export const TABLES = {
   },
   'work.scheduling_tasks': { holds: 'Scheduling tasks of a job', classes: ['scheduling'], categories: [J] },
   'work.time_off': { holds: 'Recorded staff time off', classes: ['staff_account'], categories: [NS] },
+  'work.visit_change_requests': {
+    holds:
+      "Customers' reschedule and cancellation requests of a visit: the customer's reason and preferred times, outcome",
+    classes: ['scheduling', 'request_details'],
+    categories: [R, J],
+  },
+  'work.visit_changes': {
+    holds:
+      'Committed reschedules, reassignments and cancellations: actor, reason, teams, and a cancellation outcome in cents',
+    classes: ['scheduling', 'payment_reference'],
+    categories: [J, F],
+  },
   'work.visit_windows': {
     holds: 'The history of a visit window',
     classes: ['scheduling'],

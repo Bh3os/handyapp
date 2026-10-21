@@ -93,6 +93,9 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
         // TSK-0063: the customer's answer to offered windows.
         'selectOfferedWindow',
         'requestOtherWindows',
+        // TSK-0066: Request to Reschedule and Request Cancellation of a confirmed appointment.
+        'requestAppointmentReschedule',
+        'requestAppointmentCancellation',
         // TSK-0051: questions from HandyHub, the reply and its photos, and writing in the project conversation.
         'listCustomerQuestions',
         'createQuestionReplyUpload',
@@ -337,6 +340,9 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
             gateCode: 'x',
           },
           preparationInstructions: null,
+          number: 1,
+          request: { kind: 'reschedule', status: 'awaiting_confirmation', requestId: 'req-1' },
+          actions: { requestReschedule: false, requestCancellation: false },
           visitId: 'visit-1',
           workers: ['staff-1'],
         } as never,
@@ -344,12 +350,20 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
       internalNote: 'staff only',
     } as never)
     const raw = JSON.stringify(out)
-    for (const leak of ['hold-1', 'staff-1', 'offer-1', 'visit-1', 'r-1', 'gateCode', 'staff only'])
+    for (const leak of ['hold-1', 'staff-1', 'offer-1', 'visit-1', 'r-1', 'req-1', 'gateCode', 'staff only'])
       expect(raw).not.toContain(leak)
     expect(out).toMatchObject({
       state: 'listed',
       offers: [{ number: 1, windows: [{ position: 1, start: '09:00' }] }],
-      appointments: [{ address: { street: '1 Synthetic Way' }, window: { start: '09:00' } }],
+      appointments: [
+        {
+          number: 1,
+          address: { street: '1 Synthetic Way' },
+          window: { start: '09:00' },
+          request: { kind: 'reschedule', status: 'awaiting_confirmation' },
+          actions: { requestReschedule: false, requestCancellation: false },
+        },
+      ],
     })
   })
 })

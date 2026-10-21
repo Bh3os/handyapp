@@ -40,6 +40,7 @@ const window = (date: string, start: string, end: string): BoardVisit['window'] 
 
 const estimate = (over: Partial<BoardVisit> = {}): BoardVisit => ({
   id: V1,
+  number: 1,
   projectId: 'p1',
   projectReference: 'HH-SYN-0001',
   requestId: '99999999-9999-4999-8999-999999999999',
@@ -65,8 +66,10 @@ const estimate = (over: Partial<BoardVisit> = {}): BoardVisit => ({
   })),
   items: [],
   openOffer: false,
+  changeRequest: null,
+  cancellationPreview: null,
   confirmationBlockers: null,
-  actions: { changeWindow: true, confirm: false, offerWindows: false },
+  actions: { changeWindow: true, confirm: false, reassign: false, cancel: false, offerWindows: false },
   ...over,
 })
 const work = (over: Partial<BoardVisit> = {}): BoardVisit => ({
@@ -85,7 +88,7 @@ const work = (over: Partial<BoardVisit> = {}): BoardVisit => ({
   reservedRange: { startsAt: at('2026-11-04', '13:00'), endsAt: at('2026-11-04', '15:00') },
   team: [],
   confirmationBlockers: [{ field: 'deposit', code: 'DEPOSIT_REQUIRED' }],
-  actions: { changeWindow: true, confirm: false, offerWindows: false },
+  actions: { changeWindow: true, confirm: false, reassign: false, cancel: false, offerWindows: false },
   ...over,
 })
 
@@ -264,6 +267,10 @@ describe('the scheduling board (TSK-0065, HH-SCH-13)', () => {
     // The keyboard alternative to dragging: one day later.
     fireEvent.click(within(form).getByRole('button', { name: 'One day later' }))
     expect((within(form).getByLabelText('Date') as HTMLInputElement).value).toBe('2026-11-05')
+    // TSK-0066: a booked visit's reschedule records its reason.
+    fireEvent.change(within(form).getByLabelText('Reason (required)'), {
+      target: { value: 'Synthetic: the customer asked.' },
+    })
     fireEvent.click(within(form).getByRole('button', { name: 'Save the new window' }))
     const banner = await within(form).findByTestId('conflict-banner')
     const rows = within(banner)
@@ -294,6 +301,7 @@ describe('the scheduling board (TSK-0065, HH-SCH-13)', () => {
       windowEnd: '10:00',
       startOffset: null,
       endOffset: null,
+      reason: 'Synthetic: the customer asked.',
     })
   })
 
@@ -319,6 +327,7 @@ describe('the scheduling board (TSK-0065, HH-SCH-13)', () => {
     const form = screen.getByRole('form', { name: 'Move this visit' })
     fireEvent.change(within(form).getByLabelText('Arrival window starts'), { target: { value: '14:00' } })
     fireEvent.change(within(form).getByLabelText('Arrival window ends'), { target: { value: '15:00' } })
+    fireEvent.change(within(form).getByLabelText('Reason (required)'), { target: { value: 'Synthetic: later.' } })
     fireEvent.click(within(form).getByRole('button', { name: 'Save the new window' }))
     const alert = await within(form).findByRole('alert')
     expect(alert.textContent).toContain('Nothing was changed: the booking stays exactly as it was.')
@@ -346,7 +355,7 @@ describe('the scheduling board (TSK-0065, HH-SCH-13)', () => {
       .getAllByTestId('board-day')
       .find((d) => d.getAttribute('data-date') === '2026-11-05') as HTMLElement
     expect(thursday.getAttribute('data-drop')).toBe('ok')
-    // Another worker's lane is not a drop target here: reassigning is its own action.
+    // Another worker's lane on another day is not a drop target (TSK-0066: a swap is on the visit's own day only).
     const owner = within(lane('Synthetic Owner'))
       .getAllByTestId('board-day')
       .find((d) => d.getAttribute('data-date') === '2026-11-05') as HTMLElement
@@ -373,7 +382,7 @@ describe('the scheduling board (TSK-0065, HH-SCH-13)', () => {
                 work({
                   id: 'v3',
                   confirmationBlockers: [],
-                  actions: { changeWindow: true, confirm: true, offerWindows: false },
+                  actions: { changeWindow: true, confirm: true, reassign: false, cancel: false, offerWindows: false },
                 }),
               ]),
             )
@@ -414,6 +423,190 @@ describe('the scheduling board (TSK-0065, HH-SCH-13)', () => {
     expect(within(lane('Synthetic Ann')).getByTestId('board-capacity').textContent).toBe('Libre: 6 h 30 min')
     expect(screen.getByRole('button', { name: 'Semana' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Lista' })).toBeTruthy()
+  })
+})
+
+const CAL = { id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', name: 'Synthetic Cal' }
+const R1 = '33333333-3333-4333-8333-333333333333'
+function capacityDay() {
+  const span = { startsAt: at('2026-11-04', '08:00'), endsAt: at('2026-11-04', '18:00') }
+  return {
+    date: '2026-11-04',
+    timeZone: ZONE,
+    timeZoneProposed: true,
+    visitHours: null,
+    workers: [ANN, BEN, OWNER, CAL].map((w) => ({
+      id: w.id,
+      name: w.name,
+      roles: ['worker'],
+      eligibleFor: { estimateVisits: true, workVisits: true },
+      scheduleVersion: 1,
+      working: [span],
+      timeOff: [],
+      reservations: [],
+      free: [span],
+    })),
+    equipment: [],
+  }
+}
+const outcome = (kind: string, over: object = {}) => ({
+  kind,
+  noticeMinutes: 49 * 60,
+  keptCents: 0,
+  refundCents: 30_000,
+  invoiceCents: 0,
+  ...over,
+})
+const booked = (over: Partial<BoardVisit> = {}) =>
+  estimate({
+    actions: { changeWindow: true, confirm: false, reassign: true, cancel: true, offerWindows: false },
+    cancellationPreview: {
+      depositPaidCents: 0,
+      depositPendingCents: 0,
+      workStarted: false,
+      customer: outcome('full_refund_no_charge', { refundCents: 0 }),
+      handyhub: outcome('customer_chooses', { refundCents: 0 }),
+      rulesProposed: false,
+    },
+    ...over,
+  })
+
+describe('changes of a booked visit on the board (TSK-0066, HH-SCH-07, HH-PORT-04)', () => {
+  it('[HH-SCH-07][T42][HH-A11Y-02] dragging onto another worker on the same day only fills Reassign; Reassign sends the swap with its reason', async () => {
+    const posts: { url: string; init: RequestInit }[] = []
+    const fetchImpl = api(
+      (url) => (url.startsWith('/api/v1/staff/schedule') ? json(200, board('day', [booked()])) : undefined),
+      (url) => (url.startsWith('/api/v1/staff/capacity') ? json(200, capacityDay()) : undefined),
+      (url, init) => {
+        if (init?.method !== 'POST') return undefined
+        posts.push({ url, init })
+        return json(200, {})
+      },
+    )
+    show(fetchImpl)
+    const ann = await screen.findByRole('region', { name: 'Synthetic Ann' })
+    const item = within(ann).getByTestId('board-entry')
+    const data = new Map<string, string>()
+    const dataTransfer = {
+      setData: (k: string, v: string) => data.set(k, v),
+      getData: (k: string) => data.get(k) ?? '',
+      effectAllowed: '',
+      dropEffect: '',
+    }
+    fireEvent.dragStart(item, { dataTransfer })
+    const ownerDay = within(lane('Synthetic Owner')).getByTestId('board-day')
+    expect(ownerDay.getAttribute('data-drop')).toBe('ok')
+    // Ben is on the visit already: not a swap target.
+    expect(within(lane('Synthetic Ben')).getByTestId('board-day').getAttribute('data-drop')).toBeNull()
+    fireEvent.dragOver(ownerDay, { dataTransfer })
+    fireEvent.drop(ownerDay, { dataTransfer })
+    const form = await screen.findByRole('form', { name: 'Reassign the visit' })
+    await within(form).findByText(/Synthetic Ann would be replaced by Synthetic Owner/)
+    expect(posts).toHaveLength(0)
+    fireEvent.change(within(form).getByLabelText('Reason (required)'), { target: { value: 'Synthetic: swap.' } })
+    await waitFor(() =>
+      expect((within(form).getByRole('button', { name: 'Reassign' }) as HTMLButtonElement).disabled).toBe(false),
+    )
+    fireEvent.click(within(form).getByRole('button', { name: 'Reassign' }))
+    await screen.findByText('The visit was reassigned.')
+    expect(posts[0]?.url).toBe(`/api/v1/staff/visits/${V1}/reassign`)
+    expect((posts[0]?.init.headers as Record<string, string>)['if-match']).toBe('"3"')
+    expect(JSON.parse(String(posts[0]?.init.body))).toEqual({
+      workerIds: [OWNER.id, BEN.id],
+      reason: 'Synthetic: swap.',
+    })
+  })
+
+  it('[HH-PORT-04][T25] a customer request is shown first; Decline needs a reason; confirming a cancellation shows the outcome and sends the request', async () => {
+    const posts: { url: string; init: RequestInit }[] = []
+    const request = {
+      id: R1,
+      kind: 'cancellation' as const,
+      state: 'open',
+      version: 1,
+      requestedAt: at('2026-11-02', '09:00'),
+      reason: 'Synthetic: plans changed.',
+      preferredTimes: null,
+      outcome: outcome('full_refund_no_charge'),
+      actions: { confirm: true, decline: true },
+    }
+    const fetchImpl = api(
+      (url) =>
+        url.startsWith('/api/v1/staff/schedule')
+          ? json(200, board('day', [booked({ changeRequest: request })]))
+          : undefined,
+      (url, init) => {
+        if (init?.method !== 'POST') return undefined
+        posts.push({ url, init })
+        return json(200, {})
+      },
+    )
+    show(fetchImpl)
+    const entry = await within(await screen.findByRole('region', { name: 'Synthetic Ann' })).findByRole('button', {
+      name: /Estimate visit/,
+    })
+    expect(entry.textContent).toContain('Request Cancellation')
+    fireEvent.click(entry)
+    const panel = screen.getByTestId('board-selected')
+    const shown = within(panel).getByTestId('change-request')
+    expect(shown.textContent).toContain('Synthetic: plans changed.')
+    expect(shown.textContent).toContain('The appointment stays as booked until a change is saved.')
+    expect(within(shown).getByTestId('cancellation-outcome').textContent).toContain('To refund: $300.00')
+    expect(within(shown).getByTestId('cancellation-outcome').textContent).toContain(
+      'Nothing is refunded, kept or invoiced automatically',
+    )
+    fireEvent.click(within(shown).getByRole('button', { name: 'Decline the request' }))
+    const decline = within(shown).getByTestId('decline-request')
+    fireEvent.change(within(decline).getByLabelText('Why it is declined (required)'), {
+      target: { value: 'Synthetic: kept.' },
+    })
+    fireEvent.click(within(decline).getByRole('button', { name: 'Decline' }))
+    await screen.findByText('The request was declined. The appointment stays as booked.')
+    expect(posts[0]?.url).toBe(`/api/v1/staff/visit-change-requests/${R1}/decline`)
+    expect((posts[0]?.init.headers as Record<string, string>)['if-match']).toBe('"1"')
+    expect(JSON.parse(String(posts[0]?.init.body))).toEqual({ reason: 'Synthetic: kept.' })
+
+    fireEvent.click(
+      within(screen.getByTestId('change-request')).getByRole('button', { name: 'Cancel the visit as asked' }),
+    )
+    const form = screen.getByRole('form', { name: 'Cancel the visit' })
+    expect(form.textContent).toContain("This confirms the customer's cancellation request.")
+    expect(within(form).getByTestId('cancellation-outcome').getAttribute('data-outcome')).toBe('full_refund_no_charge')
+    fireEvent.change(within(form).getByLabelText('Reason (required)'), { target: { value: 'Synthetic: as asked.' } })
+    fireEvent.click(within(form).getByRole('button', { name: 'Cancel the visit' }))
+    await screen.findByText('The visit was canceled.')
+    expect(posts[1]?.url).toBe(`/api/v1/staff/visits/${V1}/cancel`)
+    expect(JSON.parse(String(posts[1]?.init.body))).toEqual({ reason: 'Synthetic: as asked.', changeRequestId: R1 })
+  })
+
+  it('[HH-SCH-07][OWN-DEC-134] a HandyHub cancellation names its cause and shows that the customer chooses', async () => {
+    const posts: { url: string; init: RequestInit }[] = []
+    const fetchImpl = api(
+      (url) => (url.startsWith('/api/v1/staff/schedule') ? json(200, board('day', [booked()])) : undefined),
+      (url, init) => {
+        if (init?.method !== 'POST') return undefined
+        posts.push({ url, init })
+        return json(200, {})
+      },
+    )
+    show(fetchImpl, 'es')
+    const entry = await within(await screen.findByRole('region', { name: 'Synthetic Ann' })).findByRole('button', {
+      name: /Visita de presupuesto/,
+    })
+    fireEvent.click(entry)
+    fireEvent.click(within(screen.getByTestId('board-selected')).getByRole('button', { name: 'Cancelar la visita' }))
+    const form = screen.getByRole('form', { name: 'Cancelar la visita' })
+    fireEvent.click(within(form).getByLabelText('HandyHub'))
+    fireEvent.change(within(form).getByLabelText('Motivo de HandyHub'), { target: { value: 'weather' } })
+    expect(within(form).getByTestId('cancellation-outcome').getAttribute('data-outcome')).toBe('customer_chooses')
+    fireEvent.change(within(form).getByLabelText('Motivo (obligatorio)'), { target: { value: 'Sintético: tormenta.' } })
+    fireEvent.click(within(form).getByRole('button', { name: 'Cancelar la visita' }))
+    await screen.findByText('Se canceló la visita.')
+    expect(JSON.parse(String(posts[0]?.init.body))).toEqual({
+      reason: 'Sintético: tormenta.',
+      initiator: 'handyhub',
+      handyhubCause: 'weather',
+    })
   })
 })
 

@@ -13,22 +13,40 @@
 //                                              If-Match; TSK-0063)
 //   GET  /staff/schedule                       the scheduling board: a day or a week by worker, with every visit of
 //                                              the range (schedule.view_board; TSK-0065)
+//   POST /staff/visits/:visitId/reassign       reassign a confirmed visit to another team, same window (visit.reassign,
+//                                              If-Match; TSK-0066)
+//   POST /staff/visits/:visitId/cancel         cancel a confirmed visit with its FACT-CANCELLATION-RULES outcome
+//                                              (visit.cancel; a work visit: the Owner; If-Match; TSK-0066)
+//   POST /staff/visit-change-requests/:requestId/decline  decline a customer's reschedule or cancellation request
+//                                              (visit.reschedule or the cancel rule; If-Match; TSK-0066)
 // Every write takes an idempotency key and records its audit event with the local window, zone, offsets and instants.
 // The customer's side of an offer (select a window, ask for other times) is the portal module's (portal/appointments.ts).
 import type { Tx } from '@handyhub/db'
 import { ApiError } from '../../api/errors.js'
 import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
 import { scheduleBoard, type BoardQuery } from './board.js'
+import {
+  cancelVisit,
+  declineRequest,
+  reassignVisit,
+  type CancelInput,
+  type ReassignInput,
+  type RescheduleMeta,
+} from './changes.js'
 import { WORK_VISIT_GATES, type WorkVisitGate } from './gates.js'
 import { offerWindows, windowOfferExpiryAutomation, withdrawOffer, type OfferInput } from './offers.js'
 import {
   BOARD_QUERY,
+  CANCEL_BODY,
   CONFIRM_BODY,
+  DECLINE_BODY,
   NEW_VISIT_BODY,
   OFFER_BODY,
   OFFER_PARAMS,
   PROJECT_PARAMS,
   PROJECT_VISITS,
+  REASSIGN_BODY,
+  REQUEST_PARAMS,
   SCHEDULE_BOARD,
   VISIT_PARAMS,
   WINDOW_BODY,
@@ -49,6 +67,7 @@ const TEST = 'test/integration/visits.test.ts'
 const CAPACITY_TEST = 'test/integration/capacity.test.ts'
 const OFFERS_TEST = 'test/integration/window-offers.test.ts'
 const BOARD_TEST = 'test/integration/schedule-board.test.ts'
+const CHANGES_TEST = 'test/integration/visit-changes.test.ts'
 
 export type VisitsDeps = {
   /** The gates every work-visit window passes (WORK_VISIT_GATES); tests may add their own. */
@@ -70,6 +89,16 @@ const visitProjectOf: NonNullable<RouteDef['resource']> = async ({ req, db }) =>
   const { visitId } = req.params as { visitId: string }
   const v = await db.selectFrom('work.visits').select('project_id').where('id', '=', visitId).executeTakeFirst()
   return v ? { projectId: v.project_id } : null
+}
+
+const requestProjectOf: NonNullable<RouteDef['resource']> = async ({ req, db }) => {
+  const { requestId } = req.params as { requestId: string }
+  const r = await db
+    .selectFrom('work.visit_change_requests')
+    .select('project_id')
+    .where('id', '=', requestId)
+    .executeTakeFirst()
+  return r ? { projectId: r.project_id } : null
 }
 
 const offerProjectOf: NonNullable<RouteDef['resource']> = async ({ req, db }) => {
@@ -170,7 +199,13 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
       '(the old reservations are kept, ended "rescheduled"); a capacity conflict refuses with every problem and the ' +
       'alternatives, and the booking stays exactly as it was. A confirmed visit is moved only while every ' +
       'confirmation precondition still holds (TSK-0064: the approval, the deposit, the gates, no blocking hold), named ' +
-      "with the capacity problems. Returns the project's visits.",
+      'with the capacity problems. TSK-0066 (HH-SCH-07): a reschedule of a confirmed visit needs a reason ' +
+      '(REASON_REQUIRED) and may name who initiated it (initiator customer or handyhub, with handyhubCause weather, ' +
+      'safety_stop, sick_worker or other; rescheduling is always free) and the customer reschedule request it confirms ' +
+      '(changeRequestId; REQUEST_NOT_FOR_VISIT, REQUEST_<state>). It writes one change record and the committed ' +
+      'appointment.change_committed event: after commit the customer gets the automatic "Appointment changed" notice ' +
+      '(FACT-AUTOMATIC-MESSAGES #11) and the affected workers the staff notice, once per change (wording NOT ' +
+      "CONFIGURED: each delivery is recorded as not configured, never as sent). Returns the project's visits.",
     actors: ['staff'],
     permission: 'visit.offer_windows',
     kind: 'write',
@@ -186,7 +221,7 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
       const tx = ctx.tx as Tx
       const actor = staffActor(ctx)
       const { visitId } = ctx.req.params as { visitId: string }
-      const body = ctx.req.body as WindowEntry & { reason?: string }
+      const body = ctx.req.body as WindowEntry & RescheduleMeta
       const out = await changeWindow(tx, actor, ctx.scope, visitId, body, {
         gates,
         now: new Date(),
@@ -201,6 +236,14 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
           windowVersion: out.windowVersion,
           from: windowSummary(out.from),
           to: windowSummary(out.to),
+          ...(out.reschedule
+            ? {
+                changeId: out.changeId,
+                initiator: out.reschedule.initiator,
+                handyhubCause: out.reschedule.cause,
+                changeRequestId: out.reschedule.request?.id ?? null,
+              }
+            : {}),
         },
         ...(reason ? { reason } : {}),
       })
@@ -401,10 +444,174 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
     }),
   }
 
-  return { name: 'visits', routes: [list, plan, move, confirm, offer, withdraw, board] }
+  const reassign: RouteDef = {
+    method: 'POST',
+    path: '/staff/visits/:visitId/reassign',
+    operationId: 'reassignVisit',
+    summary: 'Reassign a confirmed visit to another team',
+    description:
+      'Staff with visit.reassign (Owner, Office), with If-Match: the visit version shown (TSK-0066, HH-SCH-07, T42). ' +
+      'Names the new team (exactly the number of workers the visit needs, the lead first) and, optionally, its ' +
+      'equipment items (default: the ones reserved now), with a reason (required). The window stays. In one ' +
+      'transaction the server runs every confirmation precondition (approval, deposit, gates, no blocking hold) and ' +
+      "checks every worker and item like a confirmation, with the visit's own reservations set aside, then reserves the " +
+      'new team; the old reservations end "reassigned" and stay as history (a flagged reservation that ends resolves ' +
+      'its visit_flagged queue item). A refusal (STALE_VERSION with the current values; CONFLICT VISIT_NOT_CONFIRMED, ' +
+      'TEAM_UNCHANGED, WORKER_COUNT_MISMATCH, the precondition and capacity codes with alternatives) changes nothing. ' +
+      'Writes one change record and the committed appointment.change_committed event: after commit the customer gets ' +
+      'the automatic "Appointment changed" notice (#11) and the old and new workers the staff notice, once (wording NOT ' +
+      'CONFIGURED). A worker removed from the visit loses its access-code reveal on the next request. Returns the ' +
+      "project's visits.",
+    actors: ['staff'],
+    permission: 'visit.reassign',
+    kind: 'write',
+    idempotency: 'required',
+    expectedVersion: 'required',
+    rateLimit: 'none',
+    audit: 'visit.reassign',
+    pagination: false,
+    test: CHANGES_TEST,
+    resource: visitProjectOf,
+    schema: { params: VISIT_PARAMS, body: REASSIGN_BODY, response: { 200: PROJECT_VISITS } },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const actor = staffActor(ctx)
+      const { visitId } = ctx.req.params as { visitId: string }
+      const out = await reassignVisit(tx, actor, ctx.scope, visitId, ctx.req.body as ReassignInput, {
+        gates,
+        now: new Date(),
+        expectedVersion: ctx.expectedVersion(),
+      })
+      await ctx.audit({
+        target: { type: 'visit', id: out.id, version: out.version },
+        summary: {
+          projectId: out.projectId,
+          purpose: out.purpose,
+          changeId: out.changeId,
+          fromWorkers: out.from.workers,
+          toWorkers: out.to.workers,
+          fromEquipment: out.from.equipment,
+          toEquipment: out.to.equipment,
+        },
+        reason: out.reason,
+      })
+      return { body: await projectVisits(tx, actor, ctx.scope, out.projectId, gates), version: out.version }
+    },
+  }
+
+  const cancel: RouteDef = {
+    method: 'POST',
+    path: '/staff/visits/:visitId/cancel',
+    operationId: 'cancelVisit',
+    summary: 'Cancel a confirmed visit',
+    description:
+      'Staff with visit.cancel (Owner, Office), with If-Match: the visit version shown (TSK-0066, HH-SCH-07, ' +
+      'HH-PORT-04, T25). A work visit is accepted, scheduled work: only the Owner cancels it (cancellation and ' +
+      'financial review, work.cancel_with_financial_review; FORBIDDEN OWNER_CANCELS_WORK otherwise). Names who initiated ' +
+      'it (initiator customer or handyhub, with handyhubCause weather, safety_stop, sick_worker or other) and a reason ' +
+      "(required), or the customer's open cancellation request it confirms (changeRequestId). The server computes the " +
+      'outcome of FACT-CANCELLATION-RULES from the active cancellation.rules (NOT CONFIGURED while unset): the notice ' +
+      "(from the customer's request, or now), whether work started (PROPOSED: the job past preparation, or a work " +
+      'visit arrived or completed) and the verified deposit (an uncleared check is shown apart, never counted): ' +
+      'full_refund_no_charge (24 hours or more before work starts), late_cancellation ($50.00 kept from the deposit ' +
+      'and the rest refunded, or invoiced with no deposit), work_started (work done plus materials, which the Owner ' +
+      'determines), customer_chooses (HandyHub cancels: a free reschedule or a full refund) or owner_review (a case the ' +
+      'rules do not decide). The visit is canceled, its reservations end and stay as history, the outcome is kept on ' +
+      "the change record, and an outcome with money opens the Owner's cancellation_outcome item: nothing is refunded, " +
+      'kept or invoiced automatically (HH-FIN-14). The affected workers get the staff notice after commit; a ' +
+      "cancellation is not on the customer's automatic list. Returns the project's visits.",
+    actors: ['staff'],
+    permission: 'visit.cancel',
+    kind: 'write',
+    idempotency: 'required',
+    expectedVersion: 'required',
+    rateLimit: 'none',
+    audit: 'visit.cancel',
+    pagination: false,
+    test: CHANGES_TEST,
+    resource: visitProjectOf,
+    schema: { params: VISIT_PARAMS, body: CANCEL_BODY, response: { 200: PROJECT_VISITS } },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const actor = staffActor(ctx)
+      const { visitId } = ctx.req.params as { visitId: string }
+      const out = await cancelVisit(tx, actor, ctx.scope, visitId, ctx.req.body as CancelInput, {
+        now: new Date(),
+        expectedVersion: ctx.expectedVersion(),
+      })
+      await ctx.audit({
+        target: { type: 'visit', id: out.id, version: out.version },
+        summary: {
+          projectId: out.projectId,
+          purpose: out.purpose,
+          changeId: out.changeId,
+          changeRequestId: out.requestId,
+          initiator: out.initiator,
+          handyhubCause: out.cause,
+          outcome: out.outcome.kind,
+          noticeMinutes: out.outcome.noticeMinutes,
+          keptCents: out.outcome.keptCents,
+          refundCents: out.outcome.refundCents,
+          invoiceCents: out.outcome.invoiceCents,
+          depositPaidCents: out.facts.depositPaidCents,
+          workStarted: out.facts.workStarted,
+          rulesVersion: out.rulesVersion,
+        },
+        reason: out.reason,
+      })
+      return { body: await projectVisits(tx, actor, ctx.scope, out.projectId, gates), version: out.version }
+    },
+  }
+
+  const decline: RouteDef = {
+    method: 'POST',
+    path: '/staff/visit-change-requests/:requestId/decline',
+    operationId: 'declineVisitChangeRequest',
+    summary: "Decline a customer's reschedule or cancellation request",
+    description:
+      'Staff with visit.reschedule (a reschedule request) or the cancel rule (a cancellation request; a work visit: ' +
+      'the Owner, PROPOSED), with If-Match: the request version shown and a reason (required), TSK-0066 (HH-PORT-04, ' +
+      'T25). The request ends declined and its queue items resolve; the booking stays exactly as it is and the ' +
+      "customer's Appointments tab says the request was not confirmed. A request that already ended is CONFLICT " +
+      "naming its state. Returns the project's visits.",
+    actors: ['staff'],
+    permission: 'visit.reschedule',
+    kind: 'write',
+    idempotency: 'required',
+    expectedVersion: 'required',
+    rateLimit: 'none',
+    audit: 'visit.decline_change_request',
+    pagination: false,
+    test: CHANGES_TEST,
+    resource: requestProjectOf,
+    schema: { params: REQUEST_PARAMS, body: DECLINE_BODY, response: { 200: PROJECT_VISITS } },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const actor = staffActor(ctx)
+      const { requestId } = ctx.req.params as { requestId: string }
+      const out = await declineRequest(tx, actor, ctx.scope, requestId, ctx.req.body as { reason: string }, {
+        expectedVersion: ctx.expectedVersion(),
+      })
+      await ctx.audit({
+        target: { type: 'visit_change_request', id: out.id, version: out.version },
+        summary: { projectId: out.projectId, visitId: out.visitId, kind: out.kind },
+        reason: out.reason,
+      })
+      return { body: await projectVisits(tx, actor, ctx.scope, out.projectId, gates), version: out.version }
+    },
+  }
+
+  return { name: 'visits', routes: [list, plan, move, confirm, offer, withdraw, board, reassign, cancel, decline] }
 }
 
 export { BOARD_VIEWS, boardDays, scheduleBoard, type ScheduleBoard } from './board.js'
+export {
+  appointmentChangedAutomation,
+  customerRequestsOf,
+  requestVisitChange,
+  scheduleChangeStaffAutomation,
+  type CustomerChangeRequest,
+} from './changes.js'
 export { DEPOSIT_GATE, WORK_VISIT_GATES, unmetGates, type WorkVisitGate, type WorkVisitJob } from './gates.js'
 export {
   appointmentConfirmedAutomation,

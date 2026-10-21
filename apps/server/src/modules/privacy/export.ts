@@ -2,7 +2,9 @@
 // OQ-PRIVACY-REQUESTS). Read when the customer downloads it, from the records as they are then, for the requester
 // only: their customer name, their own contact values, their sign-in values, the properties and requests they
 // submitted, the estimate versions they received, their approvals, the consent records of their
-// own contact values, the privacy requests they made and photo counts. Other contacts of the customer (third parties),
+// own contact values, the privacy requests they made, the Request to Reschedule / Request Cancellation they made of
+// their appointments (TSK-0066: their own words and preferred times, the appointment's number and the request's
+// state; the staff decision reason and the cancellation outcome are staff handling) and photo counts. Other contacts of the customer (third parties),
 // staff-only notes and handling, staff details and audit entries are excluded and named so (PROPOSED; the attorney
 // reviews what an export must hold). The answer is the PRIVACY_EXPORT customer view (allow-listed fields only).
 import type { Db, Tx } from '@handyhub/db'
@@ -132,6 +134,28 @@ export async function customerExport(
     .where('contact_id', '=', who.contactId)
     .orderBy('reference')
     .execute()
+  // The requester's own change requests of their appointments (TSK-0066, HH-PORT-04), never another contact's.
+  const changeRequests = projectIds.length
+    ? await db
+        .selectFrom('work.visit_change_requests as c')
+        .innerJoin('work.visits as v', 'v.id', 'c.visit_id')
+        .innerJoin('crm.projects as p', 'p.id', 'c.project_id')
+        .select([
+          'p.reference',
+          'v.number',
+          'c.kind',
+          'c.state',
+          'c.reason',
+          'c.preferred_times',
+          'c.requested_at',
+          'c.decided_at',
+        ])
+        .where('c.project_id', 'in', projectIds)
+        .where('c.requested_by_contact', '=', who.contactId)
+        .orderBy('c.requested_at')
+        .orderBy('c.id')
+        .execute()
+    : []
   const photos = requestIds.length
     ? await db
         .selectFrom('intake.photos')
@@ -215,6 +239,16 @@ export async function customerExport(
       kind: p.kind,
       state: p.state,
       submittedAt: p.submitted_at,
+    })),
+    appointmentRequests: changeRequests.map((c) => ({
+      project: c.reference,
+      appointment: c.number,
+      kind: c.kind,
+      state: c.state,
+      reason: c.reason,
+      preferredTimes: c.preferred_times,
+      requestedAt: c.requested_at,
+      endedAt: c.decided_at,
     })),
     photos: {
       received: photos.filter((p) => p.state === 'ready').length,

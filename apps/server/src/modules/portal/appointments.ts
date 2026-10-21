@@ -2,6 +2,8 @@
 // OWN-DEC-99, OWN-DEC-105, OWN-DEC-144, RULE-SERVER-AUTHZ).
 //   POST /customer/projects/:reference/window-offers/:number/select        select one offered window
 //   POST /customer/projects/:reference/window-offers/:number/other-times   ask for other times (optional note)
+//   POST /customer/projects/:reference/appointments/:number/reschedule-request    Request to Reschedule (TSK-0066)
+//   POST /customer/projects/:reference/appointments/:number/cancellation-request  Request Cancellation (TSK-0066)
 // - Both are the matrix's visit.select_window (Customer "V": own verified project; PROPOSED mapping for asking for other
 //   times, which the matrix names with the selection). Every project outside the session, an unknown offer number
 //   and a malformed reference answer the same NOT_FOUND (T19).
@@ -9,12 +11,19 @@
 //   staff detail or ID. A refusal names only the offer's state or that the window can no longer be kept; it changes
 //   nothing, and the customer can choose another offered window or ask for other times without restarting.
 // - The customer's note stays on the offer; the audit keeps what happened, never the note.
+// - TSK-0066 (HH-PORT-04, OWN-DEC-107): the change requests are the matrix's visit.request_reschedule and
+//   visit.request_cancellation (Customer "V"). A request records the intent (an optional reason, and preferred times
+//   for a reschedule), appears prominently in the staff queue and never changes the booking: the confirmed
+//   appointment stays visible and in force until staff commit a change; the tab then says "Request received—awaiting
+//   staff confirmation." Rescheduling is always free; no fee or refund term is shown. The audit records that a reason
+//   or times were given, never the words.
 import type { CustomerActor } from '@handyhub/policy'
 import { ApiError } from '../../api/errors.js'
 import type { RouteDef } from '../../api/route.js'
 import { projectIdOf } from '../access/projects.js'
 import { PROJECT_APPOINTMENTS } from '../records/index.js'
 import { WORK_VISIT_GATES, type WorkVisitGate } from '../visits/gates.js'
+import { CHANGE_LIMITS, requestVisitChange, type RequestKind } from '../visits/changes.js'
 import { OFFER_LIMITS, requestOtherTimes, selectWindow } from '../visits/offers.js'
 import { projectTab } from './tabs.js'
 
@@ -26,6 +35,12 @@ export type PortalAppointmentDeps = {
 const TEST = 'test/integration/window-offers.test.ts'
 /** PROPOSED (no owner value): per client network and hour, like the other customer-facing writes. */
 export const WINDOW_ANSWER_RATE_LIMIT = { bucket: 'customer-window-answer', limit: 60, windowSeconds: 3600 } as const
+/** PROPOSED (no owner value), TSK-0066: the appointment change requests, per client network and hour. */
+export const CHANGE_REQUEST_RATE_LIMIT = {
+  bucket: 'customer-appointment-request',
+  limit: 30,
+  windowSeconds: 3600,
+} as const
 
 const PATH = '/customer/projects/:reference/window-offers/:number'
 const PARAMS = {
@@ -38,6 +53,8 @@ const PARAMS = {
   },
 } as const
 type Params = { reference: string; number: string }
+const APPOINTMENT_PARAMS = PARAMS
+const CHANGES_TEST = 'test/integration/visit-changes.test.ts'
 
 const resource: NonNullable<RouteDef['resource']> = async ({ req, db }) => {
   const id = await projectIdOf(db, (req.params as Params).reference)
@@ -165,5 +182,65 @@ export function portalAppointmentRoutes(deps: PortalAppointmentDeps = {}): Route
     },
   }
 
-  return [select, otherTimes]
+  const changeRequest = (kind: RequestKind): RouteDef => ({
+    ...base,
+    rateLimit: CHANGE_REQUEST_RATE_LIMIT,
+    permission: kind === 'reschedule' ? 'visit.request_reschedule' : 'visit.request_cancellation',
+    path: `/customer/projects/:reference/appointments/:number/${kind}-request`,
+    operationId: kind === 'reschedule' ? 'requestAppointmentReschedule' : 'requestAppointmentCancellation',
+    summary: kind === 'reschedule' ? 'Request to Reschedule an appointment' : 'Request Cancellation of an appointment',
+    description:
+      `The verified customer's "${kind === 'reschedule' ? 'Request to Reschedule' : 'Request Cancellation'}" of a ` +
+      'confirmed estimate or work visit (TSK-0066, HH-PORT-04, OWN-DEC-107), named by its number on the Appointments ' +
+      'tab, with an optional reason' +
+      (kind === 'reschedule' ? ' and preferred times' : '') +
+      '. The request is recorded and put in the staff queue; the booking does not change: the appointment stays ' +
+      'confirmed and in force until staff commit a change, and a declined request leaves it as it is. The same ' +
+      'request again answers the open one. Refusals: CONFLICT on `appointment` (APPOINTMENT_NOT_CHANGEABLE: not ' +
+      'confirmed; REQUEST_ALREADY_OPEN: another request is open). Answers the refreshed Appointments tab, whose ' +
+      'appointment then shows the request awaiting staff confirmation. Any other project or number is NOT_FOUND (T19).',
+    audit: kind === 'reschedule' ? 'visit.request_reschedule' : 'visit.request_cancellation',
+    test: CHANGES_TEST,
+    schema: {
+      params: APPOINTMENT_PARAMS,
+      body: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          reason: { type: 'string', maxLength: CHANGE_LIMITS.reason },
+          ...(kind === 'reschedule'
+            ? { preferredTimes: { type: 'string', maxLength: CHANGE_LIMITS.preferredTimes } }
+            : {}),
+        },
+      },
+      response: { 200: PROJECT_APPOINTMENTS.schema },
+    },
+    handler: async (ctx) => {
+      if (!ctx.tx) throw new Error('the change request runs in its write transaction')
+      const p = ctx.req.params as Params
+      const body = (ctx.req.body ?? {}) as { reason?: string; preferredTimes?: string }
+      const out = await requestVisitChange(ctx.tx, ctx.actor as CustomerActor, ctx.scope, {
+        reference: p.reference,
+        number: Number(p.number),
+        kind,
+        reason: body.reason,
+        preferredTimes: body.preferredTimes,
+      })
+      await ctx.audit({
+        target: { type: 'visit_change_request', id: out.id },
+        summary: {
+          visitId: out.visitId,
+          purpose: out.purpose,
+          kind,
+          number: Number(p.number),
+          created: out.created,
+          reasonGiven: Boolean(body.reason?.trim()),
+          ...(kind === 'reschedule' ? { preferredTimesGiven: Boolean(body.preferredTimes?.trim()) } : {}),
+        },
+      })
+      return { body: await tab(ctx, p.reference) }
+    },
+  })
+
+  return [select, otherTimes, changeRequest('reschedule'), changeRequest('cancellation')]
 }

@@ -15,6 +15,10 @@
 //   nothing is saved until the person chooses Save. Every drag has the form and buttons as its alternative (keyboard,
 //   touch, screen readers): Move, "One day earlier" and "One day later".
 // - The queue's links to a visit (/schedule/<visit id>) open the board on that visit's day with the visit open.
+// - TSK-0066 (HH-SCH-07, HH-PORT-04): a booked visit can be reassigned (Reassign, or dragging its entry onto another
+//   worker's lane of the same day, which only opens the Reassign form with that swap filled in) and cancelled; the
+//   customer's open request is shown first with Confirm and Decline. A reschedule of a booked visit records a reason
+//   and, optionally, who asked for it. Nothing changes until the person saves, and the server checks it all again.
 import { addLocalDays, isLocalDate, localDateOf } from '@handyhub/domain/local-time'
 import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
@@ -34,6 +38,14 @@ import { AlternativesView, ConfirmVisit, spanText, type Alternatives } from './C
 import { ConflictBanner, conflictOf, type Conflict } from './ConflictBanner'
 import { OfferWindows, type OfferPolicy } from './Offers'
 import { codeLabel } from './Requests'
+import {
+  CancelVisit,
+  ChangeRequestPanel,
+  HANDYHUB_CAUSES,
+  ReassignVisit,
+  type CancellationPreview,
+  type ChangeRequest,
+} from './VisitChanges'
 import { EMPTY_ENTRY, WindowFields, errorsOf, shownWindow, windowBody, type Entry, type VisitWindow } from './Visits'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
@@ -42,6 +54,7 @@ type StaffRef = { id: string; name: string | null }
 
 export type BoardVisit = {
   id: string
+  number: number
   projectId: string
   projectReference: string
   requestId: string | null
@@ -67,8 +80,10 @@ export type BoardVisit = {
   }[]
   items: { id: string; name: string; kind: string }[]
   openOffer: boolean
+  changeRequest: ChangeRequest | null
+  cancellationPreview: CancellationPreview | null
   confirmationBlockers: { field: string; code: string }[] | null
-  actions: { changeWindow: boolean; confirm: boolean; offerWindows: boolean }
+  actions: { changeWindow: boolean; confirm: boolean; reassign: boolean; cancel: boolean; offerWindows: boolean }
 }
 
 type BoardEntry = {
@@ -157,10 +172,29 @@ function teamText(t: T, v: BoardVisit): string {
   return names.length ? t('board.entry.team', { names: [...new Set(names)].join(', ') }) : t('board.entry.noTeam')
 }
 
-/** Whether a dragged visit may be dropped on this day of this lane (worker id, or null for the unassigned lane). */
-function canDrop(v: BoardVisit | undefined, lane: string | null, date: string): boolean {
-  if (!v || !v.actions.changeWindow || v.window.localDate === date) return false
-  return lane === null ? v.team.length === 0 : v.team.some((m) => m.worker.id === lane)
+type Dragged = { visitId: string; lane: string | null }
+/** What a drop means: a move to another day of the same lane, or (TSK-0066) a swap onto another worker's lane. */
+type Drop = { visitId: string; date: string } | { visitId: string; reassign: { from: string; to: string } }
+
+/** What dropping a dragged visit on this day of this lane (worker id, or null for unassigned) would open, if anything. */
+function dropOf(v: BoardVisit | undefined, from: string | null, lane: string | null, date: string): Drop | null {
+  if (!v) return null
+  if (lane === from) {
+    if (!v.actions.changeWindow || v.window.localDate === date) return null
+    const ok = lane === null ? v.team.length === 0 : v.team.some((m) => m.worker.id === lane)
+    return ok ? { visitId: v.id, date } : null
+  }
+  // Another worker's lane of the visit's own day: reassign the dragged worker to that one.
+  if (
+    lane !== null &&
+    from !== null &&
+    v.actions.reassign &&
+    v.window.localDate === date &&
+    v.team.some((m) => m.worker.id === from && m.kind === 'confirmed') &&
+    !v.team.some((m) => m.worker.id === lane)
+  )
+    return { visitId: v.id, reassign: { from, to: lane } }
+  return null
 }
 
 export interface ScheduleBoardProps {
@@ -182,8 +216,8 @@ export function ScheduleBoard({ t, locale, fetchImpl, go, href, focusVisitId }: 
   const [data, setData] = useState<Board | null | undefined>(undefined)
   const [failure, setFailure] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(focusVisitId ?? null)
-  const [dropped, setDropped] = useState<{ visitId: string; date: string } | null>(null)
-  const [dragging, setDragging] = useState<string | null>(null)
+  const [dropped, setDropped] = useState<Drop | null>(null)
+  const [dragging, setDragging] = useState<Dragged | null>(null)
   const [goTo, setGoTo] = useState('')
   const [notice, setNotice] = useState('')
   const panel = useRef<HTMLHeadingElement>(null)
@@ -241,29 +275,32 @@ export function ScheduleBoard({ t, locale, fetchImpl, go, href, focusVisitId }: 
   }
 
   const drag = {
-    start: (e: DragEvent<HTMLElement>, visitId: string) => {
+    start: (e: DragEvent<HTMLElement>, visitId: string, lane: string | null) => {
       e.dataTransfer.setData('text/plain', visitId)
       e.dataTransfer.effectAllowed = 'move'
-      setDragging(visitId)
+      setDragging({ visitId, lane })
     },
     end: () => setDragging(null),
     over: (e: DragEvent<HTMLElement>, lane: string | null, day: string) => {
-      if (!dragging || !canDrop(visits.get(dragging), lane, day)) return
+      if (!dragging || !dropOf(visits.get(dragging.visitId), dragging.lane, lane, day)) return
       e.preventDefault()
       e.dataTransfer.dropEffect = 'move'
     },
     drop: (e: DragEvent<HTMLElement>, lane: string | null, day: string) => {
-      const id = dragging ?? e.dataTransfer.getData('text/plain')
+      const from = dragging ?? { visitId: e.dataTransfer.getData('text/plain'), lane }
       setDragging(null)
-      if (!canDrop(visits.get(id), lane, day)) return
+      const d = dropOf(visits.get(from.visitId), from.lane, lane, day)
+      if (!d) return
       e.preventDefault()
       trigger.current = null
       focusPanel.current = true
       setNotice('')
-      setSelected(id)
-      setDropped({ visitId: id, date: day })
+      setSelected(d.visitId)
+      setDropped(d)
     },
   }
+  const dropMark = (lane: string | null, day: string) =>
+    dragging && dropOf(visits.get(dragging.visitId), dragging.lane, lane, day) ? 'ok' : undefined
 
   const heading = (
     <h1 id={`${ids}-title`} className="hh-h3">
@@ -376,7 +413,7 @@ export function ScheduleBoard({ t, locale, fetchImpl, go, href, focusVisitId }: 
       ) : null}
       {current ? (
         <SelectedVisit
-          key={`${current.id}-${dropped?.visitId === current.id ? dropped.date : ''}`}
+          key={`${current.id}-${dropped?.visitId === current.id ? JSON.stringify(dropped) : ''}`}
           t={t}
           locale={locale}
           fetchImpl={fetchImpl}
@@ -385,7 +422,8 @@ export function ScheduleBoard({ t, locale, fetchImpl, go, href, focusVisitId }: 
           visit={current}
           policy={data.windowOffers}
           headingRef={panel}
-          droppedOn={dropped?.visitId === current.id ? dropped.date : null}
+          droppedOn={dropped?.visitId === current.id && 'date' in dropped ? dropped.date : null}
+          droppedSwap={dropped?.visitId === current.id && 'reassign' in dropped ? dropped.reassign : null}
           onClose={close}
           onChanged={(message, movedTo) => {
             if (message) setNotice(message)
@@ -417,7 +455,7 @@ export function ScheduleBoard({ t, locale, fetchImpl, go, href, focusVisitId }: 
                     className="staff-board__day"
                     data-testid="board-day"
                     data-date={d.date}
-                    data-drop={dragging && canDrop(visits.get(dragging), w.id, d.date) ? 'ok' : undefined}
+                    data-drop={dropMark(w.id, d.date)}
                     onDragOver={(e) => drag.over(e, w.id, d.date)}
                     onDrop={(e) => drag.drop(e, w.id, d.date)}
                   >
@@ -443,6 +481,7 @@ export function ScheduleBoard({ t, locale, fetchImpl, go, href, focusVisitId }: 
                             id={`${ids}-e-${e.reservationId}`}
                             visit={visits.get(e.visitId)}
                             entry={e}
+                            lane={w.id}
                           />
                         ))}
                       </ul>
@@ -468,7 +507,7 @@ export function ScheduleBoard({ t, locale, fetchImpl, go, href, focusVisitId }: 
                     key={day}
                     className="staff-board__day"
                     data-date={day}
-                    data-drop={dragging && canDrop(visits.get(dragging), null, day) ? 'ok' : undefined}
+                    data-drop={dropMark(null, day)}
                     onDragOver={(e) => drag.over(e, null, day)}
                     onDrop={(e) => drag.drop(e, null, day)}
                   >
@@ -496,7 +535,7 @@ export function ScheduleBoard({ t, locale, fetchImpl, go, href, focusVisitId }: 
 }
 
 type Drag = {
-  start: (e: DragEvent<HTMLElement>, visitId: string) => void
+  start: (e: DragEvent<HTMLElement>, visitId: string, lane: string | null) => void
   end: () => void
 }
 
@@ -508,6 +547,7 @@ function EntryItem({
   id,
   visit,
   entry,
+  lane = null,
   drag,
   open,
 }: {
@@ -517,6 +557,8 @@ function EntryItem({
   id: string
   visit: BoardVisit | undefined
   entry?: BoardEntry
+  /** The worker lane the entry is on (null: the unassigned lane or the list). */
+  lane?: string | null
   /** Absent in the list, which has no days to drop on. */
   drag?: Drag
   open: (visitId: string, from: string | null) => void
@@ -527,8 +569,8 @@ function EntryItem({
   return (
     <li
       className="staff-board__item"
-      draggable={drag !== undefined && visit.actions.changeWindow && !held}
-      onDragStart={drag ? (e) => drag.start(e, visit.id) : undefined}
+      draggable={drag !== undefined && (visit.actions.changeWindow || visit.actions.reassign) && !held}
+      onDragStart={drag ? (e) => drag.start(e, visit.id, lane) : undefined}
       onDragEnd={drag?.end}
       data-testid="board-entry"
       data-visit={visit.id}
@@ -580,6 +622,11 @@ function EntryItem({
         </span>
         <span className="staff-board__line">{t('board.selected.project', { reference: visit.projectReference })}</span>
         {visit.openOffer ? <span className="staff-board__line">{t('board.entry.offered')}</span> : null}
+        {visit.changeRequest ? (
+          <span className="staff-board__line">
+            <StatusBadge tone="warning">{codeLabel(t, 'changeRequestKind', visit.changeRequest.kind)}</StatusBadge>
+          </span>
+        ) : null}
         {visit.confirmationBlockers?.length ? (
           <span className="staff-board__line">{t('board.entry.notReady')}</span>
         ) : null}
@@ -685,6 +732,7 @@ function SelectedVisit({
   policy,
   headingRef,
   droppedOn,
+  droppedSwap,
   onClose,
   onChanged,
 }: {
@@ -697,11 +745,16 @@ function SelectedVisit({
   policy: OfferPolicy | null
   headingRef: RefObject<HTMLHeadingElement | null>
   droppedOn: string | null
+  droppedSwap: { from: string; to: string } | null
   onClose: () => void
   onChanged: (message: string | null, movedTo?: string) => void
 }) {
   const ids = useId()
   const [moving, setMoving] = useState(droppedOn !== null)
+  // TSK-0066: the open change form (Reassign or Cancel), and whether it confirms the customer's request.
+  const [changing, setChanging] = useState<'reassign' | 'cancel' | null>(droppedSwap ? 'reassign' : null)
+  const [forRequest, setForRequest] = useState(false)
+  const request = visit.changeRequest
   const zone = visit.window.timeZone
   const recordLink = visit.requestId ? `/requests/${visit.requestId}` : null
   return (
@@ -725,6 +778,26 @@ function SelectedVisit({
           </>
         ) : null}
       </p>
+      {request ? (
+        <ChangeRequestPanel
+          t={t}
+          locale={locale}
+          fetchImpl={fetchImpl}
+          request={request}
+          ownerOnly={request.kind === 'cancellation' && visit.purpose !== 'site_estimate'}
+          onConfirm={() => {
+            setForRequest(true)
+            if (request.kind === 'reschedule') {
+              setChanging(null)
+              setMoving(true)
+            } else {
+              setMoving(false)
+              setChanging('cancel')
+            }
+          }}
+          onChanged={(message) => onChanged(message)}
+        />
+      ) : null}
       {visit.state === 'tentative' && visit.confirmationBlockers?.length ? (
         <div data-testid="board-blockers">
           <StateView
@@ -809,8 +882,38 @@ function SelectedVisit({
           </a>
         ) : null}
         {visit.actions.changeWindow && !moving ? (
-          <Button variant="secondary" onClick={() => setMoving(true)}>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setForRequest(false)
+              setChanging(null)
+              setMoving(true)
+            }}
+          >
             {t('board.move.open')}
+          </Button>
+        ) : null}
+        {visit.actions.reassign && changing !== 'reassign' ? (
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setMoving(false)
+              setChanging('reassign')
+            }}
+          >
+            {t('change.reassign.open')}
+          </Button>
+        ) : null}
+        {visit.actions.cancel && changing !== 'cancel' ? (
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setForRequest(false)
+              setMoving(false)
+              setChanging('cancel')
+            }}
+          >
+            {t('change.cancel.open')}
           </Button>
         ) : null}
         <Button variant="quiet" onClick={onClose}>
@@ -824,10 +927,43 @@ function SelectedVisit({
           fetchImpl={fetchImpl}
           visit={visit}
           droppedOn={droppedOn}
+          changeRequestId={forRequest && request?.kind === 'reschedule' ? request.id : null}
           onCancel={() => setMoving(false)}
           onSaved={(movedTo) => {
             setMoving(false)
             onChanged(t('board.move.saved'), movedTo)
+          }}
+          onReload={() => onChanged(null)}
+        />
+      ) : null}
+      {visit.state === 'confirmed' && !visit.actions.cancel && visit.purpose !== 'site_estimate' ? (
+        <p className="staff-request__hint">{t('change.ownerOnly')}</p>
+      ) : null}
+      {visit.actions.reassign && changing === 'reassign' ? (
+        <ReassignVisit
+          t={t}
+          locale={locale}
+          fetchImpl={fetchImpl}
+          visit={visit}
+          replace={droppedSwap}
+          onCancel={() => setChanging(null)}
+          onSaved={() => {
+            setChanging(null)
+            onChanged(t('change.reassign.saved'))
+          }}
+          onReload={() => onChanged(null)}
+        />
+      ) : null}
+      {visit.actions.cancel && changing === 'cancel' ? (
+        <CancelVisit
+          t={t}
+          fetchImpl={fetchImpl}
+          visit={visit}
+          request={forRequest && request?.kind === 'cancellation' ? request : null}
+          onCancel={() => setChanging(null)}
+          onSaved={() => {
+            setChanging(null)
+            onChanged(t('change.cancel.saved'))
           }}
           onReload={() => onChanged(null)}
         />
@@ -868,6 +1004,7 @@ function MoveVisit({
   fetchImpl,
   visit,
   droppedOn,
+  changeRequestId,
   onCancel,
   onSaved,
   onReload,
@@ -877,6 +1014,8 @@ function MoveVisit({
   fetchImpl: Fetch
   visit: BoardVisit
   droppedOn: string | null
+  /** TSK-0066: the customer's reschedule request this move confirms. */
+  changeRequestId: string | null
   onCancel: () => void
   onSaved: (movedTo: string) => void
   onReload: () => void
@@ -889,6 +1028,9 @@ function MoveVisit({
     windowEnd: visit.window.end,
   })
   const [reason, setReason] = useState('')
+  const [initiator, setInitiator] = useState<'' | 'customer' | 'handyhub'>('')
+  const [cause, setCause] = useState('')
+  const booked = visit.state === 'confirmed'
   const [expected, setExpected] = useState(visit.version)
   // The state the person saw when they started, shown beside the current one in a conflict.
   const [seenState] = useState(visit.state)
@@ -911,7 +1053,13 @@ function MoveVisit({
     const r = await call<unknown>(fetchImpl, `/staff/visits/${encodeURIComponent(visit.id)}/window`, {
       method: 'POST',
       headers: { 'idempotency-key': key.current, 'if-match': `"${expected}"` },
-      body: { ...windowBody(entry), ...(reason.trim() ? { reason: reason.trim() } : {}) },
+      body: {
+        ...windowBody(entry),
+        ...(reason.trim() ? { reason: reason.trim() } : {}),
+        ...(changeRequestId ? { changeRequestId } : {}),
+        ...(!changeRequestId && booked && initiator ? { initiator } : {}),
+        ...(!changeRequestId && booked && initiator === 'handyhub' && cause ? { handyhubCause: cause } : {}),
+      },
     })
     setPending(false)
     if (r.ok || r.status < 500) key.current = null
@@ -957,7 +1105,40 @@ function MoveVisit({
           {t('board.move.later')}
         </Button>
       </div>
-      <Field label={t('visits.change.reason')} value={reason} onChange={(e) => setReason(e.target.value)} />
+      {booked && !changeRequestId ? (
+        <div className="staff-queue__select">
+          <label htmlFor={`${ids}-initiator`}>{t('change.initiator')}</label>
+          <select
+            id={`${ids}-initiator`}
+            value={initiator}
+            onChange={(e) => setInitiator(e.target.value as '' | 'customer' | 'handyhub')}
+          >
+            <option value="">{t('change.initiator.none')}</option>
+            <option value="customer">{codeLabel(t, 'changeInitiator', 'customer')}</option>
+            <option value="handyhub">{codeLabel(t, 'changeInitiator', 'handyhub')}</option>
+          </select>
+        </div>
+      ) : null}
+      {booked && !changeRequestId && initiator === 'handyhub' ? (
+        <div className="staff-queue__select">
+          <label htmlFor={`${ids}-cause`}>{t('change.cause')}</label>
+          <select id={`${ids}-cause`} value={cause} onChange={(e) => setCause(e.target.value)}>
+            <option value="">{t('change.cause.choose')}</option>
+            {HANDYHUB_CAUSES.map((c) => (
+              <option key={c} value={c}>
+                {codeLabel(t, 'handyhubCause', c)}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+      {changeRequestId ? <p className="staff-request__hint">{t('change.move.fromRequest')}</p> : null}
+      <Field
+        label={t(booked ? 'change.reason' : 'visits.change.reason')}
+        value={reason}
+        required={booked}
+        onChange={(e) => setReason(e.target.value)}
+      />
       {conflict ? (
         <ConflictBanner
           t={t}

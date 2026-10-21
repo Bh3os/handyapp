@@ -237,7 +237,7 @@ export type Receipt = { state: ReceiptState; issuedAt: string | null; byteSize: 
 // The offered windows and the confirmed visits of the Appointments tab (TSK-0063; HH-LEAD-07, HH-SCH-11, T37).
 export const VISIT_PURPOSES = ['estimate_visit', 'work_visit'] as const
 export type VisitPurpose = (typeof VISIT_PURPOSES)[number]
-export const APPOINTMENT_STATUSES = ['confirmed', 'en_route', 'arrived', 'completed'] as const
+export const APPOINTMENT_STATUSES = ['confirmed', 'en_route', 'arrived', 'completed', 'canceled'] as const
 export type AppointmentStatus = (typeof APPOINTMENT_STATUSES)[number]
 export const OFFER_STATUSES = ['open', 'expired', 'other_times_requested'] as const
 export type OfferStatus = (typeof OFFER_STATUSES)[number]
@@ -249,12 +249,20 @@ export type VisitWindow = {
   startsAt: string
   endsAt: string
 }
+/** TSK-0066 (HH-PORT-04): the customer's own request of an appointment, and what they may ask for now. */
+export const REQUEST_KINDS = ['reschedule', 'cancellation'] as const
+export type RequestKind = (typeof REQUEST_KINDS)[number]
+export const REQUEST_STATUSES = ['awaiting_confirmation', 'declined'] as const
+export type AppointmentRequest = { kind: RequestKind; status: (typeof REQUEST_STATUSES)[number] }
 export type Appointment = {
+  number: number
   purpose: VisitPurpose
   status: AppointmentStatus
   window: VisitWindow
   address: { street: string; unit: string | null; city: string; state: string; zip: string }
   preparationInstructions: string | null
+  request: AppointmentRequest | null
+  actions: { requestReschedule: boolean; requestCancellation: boolean }
 }
 export type WindowOffer = {
   number: number
@@ -283,7 +291,26 @@ export function parseAppointment(v: unknown): Appointment | undefined {
   const unit = a['unit']
   const prep = v['preparationInstructions']
   if ((unit !== null && !isStr(unit)) || (prep !== null && !isStr(prep))) return undefined
+  const req = v['request']
+  const request =
+    req === null
+      ? null
+      : isObj(req) && oneOf(REQUEST_KINDS)(req['kind']) && oneOf(REQUEST_STATUSES)(req['status'])
+        ? { kind: req['kind'], status: req['status'] }
+        : undefined
+  const actions = v['actions']
+  if (
+    !isInt(v['number']) ||
+    request === undefined ||
+    !isObj(actions) ||
+    typeof actions['requestReschedule'] !== 'boolean' ||
+    typeof actions['requestCancellation'] !== 'boolean'
+  )
+    return undefined
   return {
+    number: v['number'],
+    request,
+    actions: { requestReschedule: actions['requestReschedule'], requestCancellation: actions['requestCancellation'] },
     purpose: v['purpose'],
     status: v['status'],
     window,
@@ -770,6 +797,36 @@ async function answerOffer(
   return { ok: false, failure: failureOf(r.status, r.json) }
 }
 
+/**
+ * The customer's Request to Reschedule or Request Cancellation (TSK-0066, HH-PORT-04): the refreshed Appointments tab,
+ * or why nothing was sent: `not_changeable` (the appointment is no longer confirmed: the refreshed tab says what it is),
+ * `other_open` (another request is already waiting) or a general failure. The booking never changes here.
+ */
+export type ChangeRequestFailure = WriteFailure | 'not_changeable' | 'other_open'
+export type ChangeRequestResult = { ok: true; data: TabData } | { ok: false; failure: ChangeRequestFailure }
+async function requestChange(
+  fetchImpl: Fetch,
+  ref: { reference: string; number: number },
+  kind: RequestKind,
+  body: { reason?: string; preferredTimes?: string },
+  key: string,
+): Promise<ChangeRequestResult> {
+  const path = `/customer/projects/${encodeURIComponent(ref.reference)}/appointments/${ref.number}/${kind}-request`
+  const payload: Record<string, string> = {}
+  if (body.reason?.trim()) payload['reason'] = body.reason.trim()
+  if (kind === 'reschedule' && body.preferredTimes?.trim()) payload['preferredTimes'] = body.preferredTimes.trim()
+  const r = await post(fetchImpl, path, payload, key)
+  if (!r) return { ok: false, failure: 'failed' }
+  if (r.status === 200) {
+    const data = parseTab('appointments', r.json)
+    return data ? { ok: true, data } : { ok: false, failure: 'failed' }
+  }
+  const codes = fieldCodes(r.json)
+  if (r.status === 409 && codes.includes('REQUEST_ALREADY_OPEN')) return { ok: false, failure: 'other_open' }
+  if (r.status === 409) return { ok: false, failure: 'not_changeable' }
+  return { ok: false, failure: failureOf(r.status, r.json) }
+}
+
 /** Why an approval was not recorded, as the page says it. */
 export type ApprovalFailure = WriteFailure | 'not_configured' | 'total_changed' | 'access_revoked'
 export type ApprovalResult = { ok: true; approved: Approved } | { ok: false; failure: ApprovalFailure }
@@ -1231,6 +1288,7 @@ export const portalApi = {
     answerOffer(f, ref, { position }, key),
   requestOtherTimes: (f: Fetch, ref: { reference: string; number: number }, note: string, key: string) =>
     answerOffer(f, ref, { note }, key),
+  requestChange,
   verification: (f: Fetch) => read(f, '/customer/session/verification', parseVerification),
   sendCode,
   verify,
