@@ -198,6 +198,7 @@ export const LABEL_FAMILIES = {
     'business.timezone',
     'reminders.cadences',
     'request.reopen_period',
+    'replies.contact_hours',
     'response.target',
     'session.timings',
     'uploads.limits',
@@ -296,6 +297,19 @@ export const LABEL_FAMILIES = {
   bodyState: ['received', 'html_converted', 'not_retrieved', 'retrieval_failed', 'empty'],
   smsKeyword: ['stop', 'start', 'help'],
   inboundState: ['configured', 'fake', 'not_configured', 'unknown'],
+  /** Staff replies (TSK-0050; apps/server/src/modules/inbox/replies.ts): why a channel cannot carry a reply now. */
+  replyChannelReason: ['available', 'unverified', 'no_opt_in', 'opted_out'],
+  /** Why a delivery was not sent (apps/server/src/modules/notifications/deliveries.ts and the providers' guard). */
+  deliveryError: [
+    'template_not_configured',
+    'channel_not_configured',
+    'template_values_missing',
+    'sms_no_opt_in',
+    'sms_opted_out',
+    'record_changed',
+    'not_on_test_allowlist',
+    'invalid_destination',
+  ],
   /** Entries of a customer's activity history (apps/server/src/modules/customers/record.ts). */
   customerTimeline: [
     'request_submitted',

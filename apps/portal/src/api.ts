@@ -175,14 +175,25 @@ export const WORKSPACE_TABS = ['messages', 'documents', 'photos', 'appointments'
 export type WorkspaceTab = (typeof WORKSPACE_TABS)[number]
 type TabHead = { reference: string; refreshedAt: string; refreshSeconds: number }
 export type PhotoCounts = { received: number; processing: number; failed: number }
-/** What each tab holds today: a closed state code, or (Photos) the counts of the customer-visible photos. */
+/** One message of the project conversation (TSK-0050): who, how, when and the text exactly as written. */
+export type ConversationMessage = {
+  from: 'you' | 'handyhub'
+  channel: 'email' | 'sms'
+  at: string
+  text: string | null
+  textState: 'shown' | 'empty' | 'not_available'
+  attachments: number
+}
+/**
+ * What each tab holds today: a closed state code, (Photos) the counts of the customer-visible photos, or (Messages,
+ * TSK-0050) the project conversation.
+ */
 export type TabData =
-  | (TabHead & { tab: 'messages'; state: 'not_shown' })
+  | (TabHead & { tab: 'messages'; messages: ConversationMessage[] })
   | (TabHead & { tab: 'documents' | 'appointments' | 'payments'; state: 'none' })
   | (TabHead & { tab: 'photos'; photos: PhotoCounts })
 
-const TAB_STATE: Record<Exclude<WorkspaceTab, 'photos'>, string> = {
-  messages: 'not_shown',
+const TAB_STATE: Record<Exclude<WorkspaceTab, 'photos' | 'messages'>, string> = {
   documents: 'none',
   appointments: 'none',
   payments: 'none',
@@ -200,9 +211,29 @@ export function parseTab(tab: WorkspaceTab, v: unknown): TabData | null {
     if (!isObj(p) || !isSeconds(p['received']) || !isSeconds(p['processing']) || !isSeconds(p['failed'])) return null
     return { ...head, tab, photos: { received: p['received'], processing: p['processing'], failed: p['failed'] } }
   }
+  if (tab === 'messages') {
+    const list = v['messages']
+    if (!Array.isArray(list) || 'state' in v) return null
+    const messages = list.map(conversationMessage)
+    if (messages.some((m) => m === null)) return null
+    return { ...head, tab, messages: messages as ConversationMessage[] }
+  }
   // Any other state (for example "paid" or "read") is not what the view declares: a failure, never shown as data.
   if (v['state'] !== TAB_STATE[tab]) return null
-  return tab === 'messages' ? { ...head, tab, state: 'not_shown' } : { ...head, tab, state: 'none' }
+  return { ...head, tab, state: 'none' }
+}
+
+const FROM = ['you', 'handyhub'] as const
+const CHANNELS = ['email', 'sms'] as const
+const TEXT_STATES = ['shown', 'empty', 'not_available'] as const
+
+function conversationMessage(v: unknown): ConversationMessage | null {
+  if (!isObj(v)) return null
+  const { from, channel, at, text, textState, attachments } = v
+  if (!oneOf(FROM)(from) || !oneOf(CHANNELS)(channel) || !isDate(at) || !oneOf(TEXT_STATES)(textState)) return null
+  if (text !== null && !isStr(text)) return null
+  if ((textState === 'shown') !== (text !== null) || !isSeconds(attachments)) return null
+  return { from, channel, at, text, textState, attachments }
 }
 
 async function read<T>(fetchImpl: Fetch, path: string, parse: (v: unknown) => T | null): Promise<Result<T>> {

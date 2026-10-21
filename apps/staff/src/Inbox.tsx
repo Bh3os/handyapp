@@ -5,6 +5,14 @@
 // and the separate internal conversation. A Needs Linking message is linked to a project with a written reason; the
 // message itself never changes. Staff text is English or Spanish (staff catalogs); the server decides every read and
 // write.
+// TSK-0050 (HH-COM-08, HH-COM-09, OWN-DEC-120, S06): the reply composer of the project conversation. It shows the
+// customer's preferred channel and, when that one is not permitted, the other permitted options for staff to choose
+// (never a silent switch); the daily contact hours (outside them the email or text waits for the next opening, while
+// the reply shows on the customer's project page at once); and whether reply wording is released. Pressing Send is the
+// release. The draft and its idempotency key are kept (also across a reload of the tab) until the server accepts the
+// reply, so a retry after a failure sends it once. Each reply shows its delivery state, with Retry for a failed one.
+// A project with no conversation yet opens at /inbox/<project id>: the composer starts it. Internal notes stay in the
+// separate internal form.
 import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge, type StatusTone } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
@@ -52,6 +60,8 @@ export type ThreadMessage = {
   linkState: string
   matchRule: string | null
   author: { kind: 'contact' | 'unknown_sender' | 'staff'; id: string | null; name: string | null }
+  /** TSK-0050: a staff reply's email or text as its delivery records it. */
+  delivery?: { id: string; state: string; errorCode: string | null; sendAt: string | null; retry: boolean } | null
 }
 export type Conversation = {
   id: string
@@ -64,6 +74,35 @@ export type Conversation = {
   deliveries: { id: string; messageKey: string; channel: string; state: string; at: string }[]
   internal: { id: string | null; messages: ThreadMessage[] }
 }
+export type ReplyChannel = 'email' | 'sms'
+export type ReplyOptions = {
+  contact: { id: string; name: string } | null
+  preferred: 'email' | 'text' | 'call'
+  options: {
+    channel: ReplyChannel
+    destination: string
+    preferred: boolean
+    available: boolean
+    reason: 'available' | 'unverified' | 'no_opt_in' | 'opted_out'
+  }[]
+  defaultChannel: ReplyChannel | null
+  contactHours: {
+    state: 'open' | 'closed' | 'not_configured'
+    applies: boolean
+    open: string | null
+    close: string | null
+    zone: string | null
+    sendAt: string
+  }
+  templates: { email: 'configured' | 'not_configured'; sms: 'configured' | 'not_configured' }
+  maxLength: number
+}
+export type ProjectConversation = {
+  conversationId: string | null
+  project: { id: string; reference: string; state: string }
+  customer: { id: string; displayName: string }
+}
+
 export type NeedsLinkingItem = {
   id: string
   channel: string
@@ -339,15 +378,30 @@ function writeError(t: T, error: ApiErrorBody): string {
 export function InboxRecord(props: Props & { id: string }) {
   const { fetchImpl, id } = props
   const [found, setFound] = useState<
-    { kind: 'conversation'; data: Conversation } | { kind: 'message'; data: MessageDetail } | null | undefined
+    | { kind: 'conversation'; data: Conversation }
+    | { kind: 'message'; data: MessageDetail }
+    | { kind: 'project'; data: ProjectConversation }
+    | null
+    | undefined
   >(undefined)
   const load = useCallback(async () => {
-    const c = await call<Conversation>(fetchImpl, `/staff/inbox/conversations/${encodeURIComponent(id)}`)
+    const conversation = (conversationId: string) =>
+      call<Conversation>(fetchImpl, `/staff/inbox/conversations/${encodeURIComponent(conversationId)}`)
+    const c = await conversation(id)
     if (c.ok && typeof c.data?.id === 'string') return setFound({ kind: 'conversation', data: c.data })
     const m = await call<MessageDetail>(fetchImpl, `/staff/inbox/messages/${encodeURIComponent(id)}`)
     if (m.ok && typeof m.data?.id === 'string') return setFound({ kind: 'message', data: m.data })
+    // TSK-0050: a project's own address (/inbox/<project id>): its conversation, or the composer that starts it.
+    const p = await call<ProjectConversation>(fetchImpl, `/staff/inbox/projects/${encodeURIComponent(id)}/conversation`)
+    if (p.ok && typeof p.data?.project?.id === 'string') {
+      if (p.data.conversationId) {
+        const pc = await conversation(p.data.conversationId)
+        if (pc.ok && typeof pc.data?.id === 'string') return setFound({ kind: 'conversation', data: pc.data })
+      } else return setFound({ kind: 'project', data: p.data })
+    }
     setFound(null)
   }, [fetchImpl, id])
+  const [replySent, setReplySent] = useState(false)
   useEffect(() => {
     void load()
   }, [load])
@@ -361,10 +415,279 @@ export function InboxRecord(props: Props & { id: string }) {
         <StateView kind="empty" title={props.t('inbox.notFound')} />
       </section>
     )
+  // The reply composer's confirmation outlives the reload that follows a Send (a first reply turns the project's
+  // empty page into its conversation).
+  const onReplySent = async () => {
+    setReplySent(true)
+    await load()
+  }
+  if (found.kind === 'project')
+    return <NewConversationView {...props} view={found.data} replySent={replySent} onReplySent={onReplySent} />
   return found.kind === 'conversation' ? (
-    <ConversationView {...props} view={found.data} reload={load} />
+    <ConversationView {...props} view={found.data} reload={load} replySent={replySent} onReplySent={onReplySent} />
   ) : (
     <MessageView {...props} view={found.data} reload={load} />
+  )
+}
+
+/** A project with no message yet: its heading and the composer that starts the conversation (TSK-0050). */
+function NewConversationView({
+  t,
+  locale,
+  fetchImpl,
+  go,
+  href,
+  view,
+  replySent,
+  onReplySent,
+}: Props & { view: ProjectConversation; replySent: boolean; onReplySent: () => Promise<void> }) {
+  const link = linkTo(go, href)
+  return (
+    <section className="staff-screen staff-inbox" aria-labelledby="staff-screen-title">
+      <h1 id="staff-screen-title" className="hh-h3">
+        {t('inbox.conversationHeading', { reference: view.project.reference })}
+      </h1>
+      <ul className="staff-queue__facts">
+        <li>
+          <a {...link(`/customers/${view.customer.id}`)}>{view.customer.displayName}</a>
+        </li>
+        <li>{codeLabel(t, 'projectState', view.project.state)}</li>
+      </ul>
+      <StateView kind="empty" title={t('inbox.newConversation')} />
+      <ReplyComposer
+        t={t}
+        locale={locale}
+        fetchImpl={fetchImpl}
+        projectId={view.project.id}
+        sent={replySent}
+        onSent={onReplySent}
+      />
+    </section>
+  )
+}
+
+type Draft = { text: string; channel: ReplyChannel | null; key: string | null }
+const draftStore = (projectId: string) => `hh.staff.replyDraft.${projectId}`
+function readDraft(projectId: string): Draft {
+  try {
+    const raw = window.sessionStorage.getItem(draftStore(projectId))
+    const d = raw ? (JSON.parse(raw) as Partial<Draft>) : null
+    if (d && typeof d.text === 'string')
+      return {
+        text: d.text,
+        channel: d.channel === 'email' || d.channel === 'sms' ? d.channel : null,
+        key: typeof d.key === 'string' ? d.key : null,
+      }
+  } catch {
+    // Storage unavailable: the draft lives in this screen only.
+  }
+  return { text: '', channel: null, key: null }
+}
+function writeDraft(projectId: string, d: Draft | null) {
+  try {
+    if (d && (d.text || d.key)) window.sessionStorage.setItem(draftStore(projectId), JSON.stringify(d))
+    else window.sessionStorage.removeItem(draftStore(projectId))
+  } catch {
+    // Storage unavailable: nothing to keep.
+  }
+}
+
+/** The reply composer of a project (TSK-0050; HH-COM-08, HH-COM-09, OWN-DEC-120). */
+function ReplyComposer({
+  t,
+  locale,
+  fetchImpl,
+  projectId,
+  sent = false,
+  onSent,
+}: {
+  t: T
+  locale: StaffLocale
+  fetchImpl: Fetch
+  projectId: string
+  /** A reply was just sent from this screen (the confirmation survives the reload that follows). */
+  sent?: boolean
+  onSent: () => Promise<void>
+}) {
+  const ids = useId()
+  const [options, setOptions] = useState<ReplyOptions | null | undefined>(undefined)
+  const [draft, setDraftState] = useState<Draft>(() => readDraft(projectId))
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(sent ? t('inbox.reply.sent') : null)
+  const setDraft = (next: Draft) => {
+    setDraftState(next)
+    writeDraft(projectId, next)
+  }
+  const loadOptions = useCallback(async () => {
+    const r = await call<ReplyOptions>(
+      fetchImpl,
+      `/staff/inbox/projects/${encodeURIComponent(projectId)}/reply-options`,
+    )
+    setOptions(r.ok && Array.isArray(r.data?.options) ? r.data : null)
+  }, [fetchImpl, projectId])
+  useEffect(() => {
+    void loadOptions()
+  }, [loadOptions])
+  const when = formatter(locale)
+  if (options === undefined) return <StateView kind="loading" title={t('common.loading')} />
+  const heading = (
+    <h2 id={`${ids}-reply`} className="staff-queue__heading">
+      {t('inbox.reply.heading')}
+    </h2>
+  )
+  if (options === null)
+    return (
+      <section className="staff-request__section" aria-labelledby={`${ids}-reply`}>
+        {heading}
+        <StateView kind="error" title={t('inbox.loadFailed')} />
+      </section>
+    )
+  const available = options.options.filter((o) => o.available)
+  const preferred = options.options.find((o) => o.preferred) ?? null
+  // The preferred channel while permitted; otherwise only what staff chose among the permitted ones.
+  const channel: ReplyChannel | null =
+    options.defaultChannel ??
+    (draft.channel && available.some((o) => o.channel === draft.channel) ? draft.channel : null)
+  const hours = options.contactHours
+  const hoursText =
+    hours.state === 'not_configured'
+      ? t('inbox.reply.hoursNotConfigured')
+      : !hours.applies
+        ? t('inbox.reply.hoursNotApplied')
+        : hours.state === 'open'
+          ? t('inbox.reply.hoursOpen', { open: hours.open ?? '', close: hours.close ?? '', zone: hours.zone ?? '' })
+          : t('inbox.reply.hoursClosed', {
+              open: hours.open ?? '',
+              close: hours.close ?? '',
+              zone: hours.zone ?? '',
+              time: when.format(new Date(hours.sendAt)),
+            })
+  const reason = (o: ReplyOptions['options'][number]) => codeLabel(t, 'replyChannelReason', o.reason)
+  async function send(e: FormEvent) {
+    e.preventDefault()
+    if (!channel || !draft.text.trim()) return
+    setPending(true)
+    setError(null)
+    setNotice(null)
+    // One key per draft and channel: a retry of the same reply presents it again, so the server sends it once.
+    const key = draft.key ?? idempotencyKey()
+    const kept = { ...draft, channel, key }
+    setDraft(kept)
+    const r = await call<{ id: string }>(fetchImpl, `/staff/inbox/projects/${encodeURIComponent(projectId)}/replies`, {
+      method: 'POST',
+      body: { body: draft.text, channel },
+      headers: { 'idempotency-key': key },
+    })
+    setPending(false)
+    if (r.ok) {
+      setDraft({ text: '', channel: null, key: null })
+      setNotice(t('inbox.reply.sent'))
+      await onSent()
+      await loadOptions()
+      return
+    }
+    // A refusal the server answered for certain made nothing: the next try is a new submission.
+    if (r.status >= 400 && r.status < 500) setDraft({ ...kept, key: null })
+    const codes = r.error.fieldErrors.map((f) => f.code)
+    if (codes.includes('card_number')) return setError(t('inbox.cardNumber'))
+    const conflict = codes.find((c) =>
+      ['PREFERRED_CHANNEL_AVAILABLE', 'CHANNEL_UNAVAILABLE', 'NO_PERMITTED_CHANNEL', 'NO_CONTACT'].includes(c),
+    )
+    if (conflict) {
+      setError(t('inbox.reply.channelChanged'))
+      await loadOptions()
+      return
+    }
+    if (r.error.code === 'FORBIDDEN') return setError(t('shell.notAllowed'))
+    if (r.error.code === 'VALIDATION_FAILED') return setError(t('inbox.invalid'))
+    setError(t('inbox.reply.keptDraft'))
+  }
+  const missing = channel ? options.templates[channel] === 'not_configured' : false
+  return (
+    <section className="staff-request__section" aria-labelledby={`${ids}-reply`}>
+      {heading}
+      <p className="staff-request__hint">{t('inbox.reply.intro')}</p>
+      {!options.contact ? (
+        <StateView kind="blocked" title={t('inbox.reply.noContact')} />
+      ) : available.length === 0 ? (
+        <StateView kind="blocked" title={t('inbox.reply.noChannel')} />
+      ) : (
+        <form className="staff-auth__form" onSubmit={(e) => void send(e)} noValidate>
+          <p className="staff-request__hint">{t('inbox.reply.to', { name: options.contact.name })}</p>
+          {options.preferred === 'call' ? (
+            <p className="staff-request__hint">{t('inbox.reply.preferredCall')}</p>
+          ) : preferred && !preferred.available ? (
+            <StateView
+              kind="stale"
+              title={t('inbox.reply.preferredUnavailable', {
+                channel: codeLabel(t, 'messageChannel', preferred.channel),
+                reason: reason(preferred),
+              })}
+            />
+          ) : null}
+          <fieldset className="staff-request__check">
+            <legend>{t('inbox.reply.channel')}</legend>
+            <div className="staff-request__outcomes">
+              {options.options.map((o) => (
+                <label key={o.channel}>
+                  <input
+                    type="radio"
+                    name={`${ids}-channel`}
+                    value={o.channel}
+                    checked={channel === o.channel}
+                    // While the preferred channel is permitted it is the only choice (no silent switch).
+                    disabled={!o.available || (options.defaultChannel !== null && options.defaultChannel !== o.channel)}
+                    onChange={() => setDraft({ ...draft, channel: o.channel, key: null })}
+                  />{' '}
+                  {t(o.channel === 'email' ? 'inbox.reply.channelEmail' : 'inbox.reply.channelSms', {
+                    destination: o.destination,
+                  })}
+                  {o.preferred ? ` · ${t('inbox.reply.preferred')}` : ''}
+                  {o.available ? '' : ` · ${reason(o)}`}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <p className="staff-request__hint" data-testid="reply-hours">
+            {hoursText}
+          </p>
+          {missing ? (
+            <StateView
+              kind="stale"
+              title={t(channel === 'sms' ? 'inbox.reply.templateMissingSms' : 'inbox.reply.templateMissingEmail')}
+            />
+          ) : null}
+          <Field
+            label={t('inbox.reply.label')}
+            hint={t('inbox.reply.hint', { max: options.maxLength })}
+            name="reply"
+            multiline
+            rows={4}
+            maxLength={options.maxLength}
+            value={draft.text}
+            onChange={(e) => setDraft({ ...draft, text: e.target.value, key: null })}
+          />
+          {error ? <StateView kind="error" title={error} /> : null}
+          {notice ? (
+            <p role="status" className="staff-request__hint">
+              {notice}
+            </p>
+          ) : null}
+          <Button
+            type="submit"
+            pending={pending}
+            {...(!draft.text.trim()
+              ? { disabledReason: t('inbox.reply.empty') }
+              : !channel
+                ? { disabledReason: t('inbox.reply.chooseChannel') }
+                : {})}
+          >
+            {t('inbox.reply.send')}
+          </Button>
+        </form>
+      )}
+    </section>
   )
 }
 
@@ -373,7 +696,63 @@ function bodyNote(t: T, m: { bodyState: string; bodyTruncated: boolean }): strin
   return codeLabel(t, 'bodyState', m.bodyState)
 }
 
-function MessageCard({ t, when, m }: { t: T; when: Intl.DateTimeFormat; m: ThreadMessage }) {
+/** A staff reply's email or text (TSK-0050): its state, when it sends, why it was not sent, and Retry. */
+function ReplyDelivery({
+  t,
+  when,
+  m,
+  onRetry,
+}: {
+  t: T
+  when: Intl.DateTimeFormat
+  m: ThreadMessage
+  onRetry?: (deliveryId: string) => Promise<void>
+}) {
+  const d = m.delivery
+  const [pending, setPending] = useState(false)
+  if (!d) return null
+  return (
+    <div className="staff-inbox__delivery">
+      <p className="staff-queue__reason">
+        {t('inbox.reply.deliveryLine', {
+          channel: codeLabel(t, 'messageChannel', m.channel),
+          to: m.to[0] ?? '',
+        })}{' '}
+        <StatusBadge tone={d.state === 'failed' ? 'danger' : d.state === 'suppressed' ? 'warning' : 'neutral'}>
+          {codeLabel(t, 'deliveryState', d.state)}
+        </StatusBadge>
+      </p>
+      {d.state === 'queued' && d.sendAt ? (
+        <p className="staff-queue__reason">{t('inbox.reply.sendsAt', { time: when.format(new Date(d.sendAt)) })}</p>
+      ) : null}
+      {d.errorCode ? <p className="staff-queue__masked">{codeLabel(t, 'deliveryError', d.errorCode)}</p> : null}
+      {d.retry && onRetry ? (
+        <Button
+          variant="secondary"
+          pending={pending}
+          onClick={() => {
+            setPending(true)
+            void onRetry(d.id).finally(() => setPending(false))
+          }}
+        >
+          {t('queue.retry')}
+        </Button>
+      ) : null}
+    </div>
+  )
+}
+
+function MessageCard({
+  t,
+  when,
+  m,
+  onRetry,
+}: {
+  t: T
+  when: Intl.DateTimeFormat
+  m: ThreadMessage
+  onRetry?: (deliveryId: string) => Promise<void>
+}) {
   const ids = useId()
   const author =
     m.author.kind === 'staff'
@@ -402,6 +781,7 @@ function MessageCard({ t, when, m }: { t: T; when: Intl.DateTimeFormat; m: Threa
       {m.attachments.length ? (
         <p className="staff-queue__masked">{t('inbox.attachmentsNotImported', { count: m.attachments.length })}</p>
       ) : null}
+      {m.direction === 'outbound' ? <ReplyDelivery t={t} when={when} m={m} {...(onRetry ? { onRetry } : {})} /> : null}
     </li>
   )
 }
@@ -414,7 +794,14 @@ function ConversationView({
   href,
   view,
   reload,
-}: Props & { view: Conversation; reload: () => Promise<void> }) {
+  replySent = false,
+  onReplySent,
+}: Props & {
+  view: Conversation
+  reload: () => Promise<void>
+  replySent?: boolean
+  onReplySent?: () => Promise<void>
+}) {
   const ids = useId()
   const write = useWrite(fetchImpl)
   const [error, setError] = useState<string | null>(null)
@@ -427,6 +814,12 @@ function ConversationView({
     setError(null)
     const r = await write(`/staff/inbox/conversations/${view.id}/handled`, {})
     setPending(null)
+    if (!r.ok) return setError(writeError(t, r.error))
+    await reload()
+  }
+  async function retry(deliveryId: string) {
+    setError(null)
+    const r = await write(`/staff/message-deliveries/${encodeURIComponent(deliveryId)}/retry`, {})
     if (!r.ok) return setError(writeError(t, r.error))
     await reload()
   }
@@ -467,11 +860,19 @@ function ConversationView({
         ) : (
           <ol className="staff-queue__items">
             {view.messages.map((m) => (
-              <MessageCard key={m.id} t={t} when={when} m={m} />
+              <MessageCard key={m.id} t={t} when={when} m={m} onRetry={retry} />
             ))}
           </ol>
         )}
       </Section>
+      <ReplyComposer
+        t={t}
+        locale={locale}
+        fetchImpl={fetchImpl}
+        projectId={view.project.id}
+        sent={replySent}
+        onSent={onReplySent ?? reload}
+      />
       <Section id={`${ids}-deliveries`} title={t('inbox.notifications')}>
         {view.deliveries.length === 0 ? (
           <StateView kind="empty" title={t('inbox.noNotifications')} />

@@ -181,12 +181,37 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
       expect(fieldNames(schema).filter(forbiddenForCustomer)).toEqual([])
   })
 
-  it('[TSK-0039][HH-PORT-09][HH-ARC-04] the tab views send only their state codes or counts, never a record field', () => {
+  it('[TSK-0039][HH-PORT-09][HH-ARC-04][TSK-0050][HH-PORT-08] the tab views send only their state codes or counts, never a record field', () => {
     const at = new Date('2026-10-21T12:00:00Z')
     const head = { reference: 'HH-0000TEST', refreshedAt: at, refreshSeconds: 30 }
     const out = { reference: 'HH-0000TEST', refreshedAt: '2026-10-21T12:00:00.000Z', refreshSeconds: 30 }
     const extra = { internalNote: 'staff only', objectKey: 'requests/photos/x', id: 'photo-1' }
-    expect(PROJECT_MESSAGES.project({ ...head, ...extra, state: 'not_shown' })).toEqual({ ...out, state: 'not_shown' })
+    // TSK-0050: the Messages tab lists the conversation: who, how, when and the text, nothing else of the record.
+    const message = {
+      from: 'handyhub' as const,
+      channel: 'email' as const,
+      at,
+      text: 'Synthetic reply text.',
+      textState: 'shown' as const,
+      attachments: 0,
+      authorStaffId: 'staff-1',
+      staffName: 'Synthetic Staff',
+      toAddresses: ['someone@example.test'],
+      deliveryId: 'delivery-1',
+    }
+    expect(PROJECT_MESSAGES.project({ ...head, ...extra, messages: [message] } as never)).toEqual({
+      ...out,
+      messages: [
+        {
+          from: 'handyhub',
+          channel: 'email',
+          at: '2026-10-21T12:00:00.000Z',
+          text: 'Synthetic reply text.',
+          textState: 'shown',
+          attachments: 0,
+        },
+      ],
+    })
     for (const view of [PROJECT_DOCUMENTS, PROJECT_APPOINTMENTS, PROJECT_PAYMENTS])
       expect(view.project({ ...head, ...extra, state: 'none' })).toEqual({ ...out, state: 'none' })
     expect(
@@ -197,7 +222,19 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
       }),
     ).toEqual({ ...out, photos: { received: 2, processing: 1, failed: 0 } })
     // The states are closed sets: a tab cannot answer "paid", "read" or a list it does not have yet.
-    expect(PROJECT_MESSAGES.schema).toMatchObject({ properties: { state: { enum: ['not_shown'] } } })
+    expect(PROJECT_MESSAGES.schema).toMatchObject({
+      additionalProperties: false,
+      properties: {
+        messages: {
+          items: {
+            additionalProperties: false,
+            required: ['from', 'channel', 'at', 'text', 'textState', 'attachments'],
+            properties: { from: { enum: ['you', 'handyhub'] } },
+          },
+        },
+      },
+    })
+    expect(fieldNames(PROJECT_MESSAGES.schema).filter(forbiddenForCustomer)).toEqual([])
     for (const view of [PROJECT_DOCUMENTS, PROJECT_APPOINTMENTS, PROJECT_PAYMENTS])
       expect(view.schema).toMatchObject({ additionalProperties: false, properties: { state: { enum: ['none'] } } })
     expect(PROJECT_PHOTOS.schema).toMatchObject({

@@ -149,3 +149,31 @@
   margin: 0 0 var(--hh-space-3);
   padding-left: var(--hh-space-6);
 }
+
+/* The project conversation (TSK-0050): the customer's messages and HandyHub's replies, oldest first. */
+.portal-conversation {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--hh-space-3);
+}
+.portal-conversation__item {
+  border: 1px solid var(--hh-line);
+  border-radius: var(--hh-radius-md);
+  padding: var(--hh-space-3);
+  max-width: var(--hh-measure);
+}
+.portal-conversation__item--handyhub {
+  background: var(--hh-surface-2);
+}
+.portal-conversation__item p {
+  margin: 0;
+}
+.portal-conversation__item p.portal-conversation__meta {
+  margin-bottom: var(--hh-space-2);
+}
+.portal-conversation__text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

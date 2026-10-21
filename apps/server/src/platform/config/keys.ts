@@ -113,6 +113,9 @@ export const CONFIG_KEYS = {
     repeatService: shape({ schedule: exactly('customer_agreed'), ...contactHoursOnly }),
   }),
   'request.reopen_period': shape({ days: int(0, 3660) }),
+  // TSK-0050 (HH-COM-09, FACT-HOURS, OWN-DEC-120): whether a staff reply's email or text waits for contact.hours when
+  // Send is pressed outside them. PROPOSED (migration 0046): no decision names replies explicitly.
+  'replies.contact_hours': shape({ ...contactHoursOnly }),
   'response.target': shape({ minutes: int(1, 24 * 60), countedWithin: exactly('contact_hours') }),
   'session.timings': shape({
     staffInviteLinkHours: hours,

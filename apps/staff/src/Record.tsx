@@ -270,7 +270,21 @@ export function RequestRecord({
           </a>
         </dd>
         <dt>{t('request.project')}</dt>
-        <dd>{codeLabel(t, 'projectState', view.project.state)}</dd>
+        <dd>
+          {codeLabel(t, 'projectState', view.project.state)}
+          {/* TSK-0050: the project's customer conversation and its reply composer. */}
+          {' · '}
+          <a
+            href={href(`/inbox/${view.project.id}`)}
+            onClick={(e: MouseEvent<HTMLAnchorElement>) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
+              e.preventDefault()
+              go(`/inbox/${view.project.id}`)
+            }}
+          >
+            {t('inbox.openProjectConversation')}
+          </a>
+        </dd>
         <dt>{t('request.nextStep')}</dt>
         <dd>{codeLabel(t, 'requestNextStep', view.nextStep)}</dd>
         <dt>{t('record.request.responsible')}</dt>

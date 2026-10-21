@@ -550,3 +550,10 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* A staff reply's email or text (TSK-0050): its delivery state, send time and Retry. */
+.staff-inbox__delivery {
+  display: grid;
+  gap: var(--hh-space-1);
+  justify-items: start;
+}

@@ -5,7 +5,9 @@
 //   one delivery row per destination.
 // - Every other message is a draft (`createDraft`) that a staff member releases (`releaseDraft`); the release is
 //   audited and scheduled as a job of the `notify.release` automation. Reminders whose cadence is held to contact
-//   hours wait for the next opening; unanswered-estimate reminders and replies send at once.
+//   hours wait for the next opening; unanswered-estimate reminders send at once. TSK-0050: a staff reply (Send is its
+//   release) waits for the opening too while replies.contact_hours says so (PROPOSED), and its failed delivery opens
+//   a delivery issue with Retry like an automatic message's.
 // - A delivery row is metadata only (template version, audience, channel, destination, permission, event, record,
 //   attempts, provider message ID, state, error code): the rendered text is never stored or logged.
 // - The provider idempotency key is derived from the delivery's unique tuple (message type, channel, subject,
@@ -590,16 +592,37 @@ const REMINDER_CADENCE: Record<string, string> = {
   'reminder.repeat_service': 'repeatService',
 }
 
-/** When a released draft may send: now, or the next contact-hours opening for reminders held to those hours. */
-export function releaseTime(config: Config, messageKey: string, now: Date): Date {
+/** The staff reply (TSK-0050, HH-COM-08): Send is its release. */
+export const STAFF_REPLY_MESSAGE_KEY = 'staff.reply'
+
+/**
+ * Whether a released message of this type is held to the daily contact hours (HH-COM-09): a reminder whose cadence
+ * says so (reminders.cadences; unanswered-estimate reminders are not, OWN-DEC-132), and the staff reply while
+ * replies.contact_hours says so (TSK-0050, PROPOSED). Unknown while that configuration is NOT CONFIGURED.
+ */
+export function heldToContactHours(config: Config, messageKey: string): boolean | 'not_configured' {
+  if (messageKey === STAFF_REPLY_MESSAGE_KEY) {
+    const replies = config.get('replies.contact_hours')
+    return replies.state === 'CONFIGURED' ? replies.value.contactHoursOnly : 'not_configured'
+  }
   const cadenceKey = REMINDER_CADENCE[messageKey]
-  if (!cadenceKey) return now
+  if (!cadenceKey) return false
   const cadences = config.get('reminders.cadences')
+  if (cadences.state !== 'CONFIGURED') return 'not_configured'
+  const cadence = (cadences.value as Record<string, { contactHoursOnly: boolean }>)[cadenceKey]
+  return cadence?.contactHoursOnly ?? false
+}
+
+/**
+ * When a released draft may send: now, or the next contact-hours opening for messages held to those hours (reminders
+ * whose cadence says so; staff replies while replies.contact_hours says so). While the rule, the hours or the zone
+ * is NOT CONFIGURED no window is guessed and it sends now.
+ */
+export function releaseTime(config: Config, messageKey: string, now: Date): Date {
+  if (heldToContactHours(config, messageKey) !== true) return now
   const hours = config.get('contact.hours')
   const zone = config.get('business.timezone')
-  if (cadences.state !== 'CONFIGURED' || hours.state !== 'CONFIGURED' || zone.state !== 'CONFIGURED') return now
-  const cadence = (cadences.value as Record<string, { contactHoursOnly: boolean }>)[cadenceKey]
-  if (!cadence?.contactHoursOnly) return now
+  if (hours.state !== 'CONFIGURED' || zone.state !== 'CONFIGURED') return now
   return nextContactTime(now, hours.value, zone.value.zone)
 }
 
@@ -620,10 +643,25 @@ export type RecordCheck = (
 ) => Promise<RecordCheckResult>
 export type RecordChecks = Readonly<Record<string, RecordCheck>>
 
+/**
+ * TSK-0050: the staff queue facts of a released message whose failed delivery staff should see as a delivery issue
+ * with Retry (HH-COM-02: a failed send becomes a staff exception), or undefined for none. Staff replies have one.
+ */
+export type ReleaseFailureItem = (
+  tx: Tx,
+  row: {
+    id: string
+    message_key: string
+    record_type: string | null
+    record_id: string | null
+    project_id: string | null
+  },
+) => Promise<FailureItem | undefined>
+
 /** The automation that sends released drafts (scheduled per release). */
 export function releaseAutomation(
   providers: NotificationProviders,
-  options: { recordChecks?: RecordChecks } = {},
+  options: { recordChecks?: RecordChecks; failureItem?: ReleaseFailureItem } = {},
 ): Automation {
   return {
     name: 'notify.release',
@@ -656,16 +694,16 @@ export function releaseAutomation(
               subjectKey: row.subject_key,
             })
           : 'current'
+      const item = options.failureItem ? await options.failureItem(ctx.tx, row) : undefined
       if (verdict === 'stale') {
         await ctx.tx
           .updateTable('platform.message_deliveries')
           .set({ state: 'cancelled', error_code: 'record_changed', updated_at: sql<Date>`now()` })
           .where('id', '=', row.id)
           .execute()
-        await auditDelivery(ctx.tx, ctx.job, 'system.notifications', row, {
-          state: 'cancelled',
-          errorCode: 'record_changed',
-        })
+        const cancelled = { state: 'cancelled', errorCode: 'record_changed' }
+        await auditDelivery(ctx.tx, ctx.job, 'system.notifications', row, cancelled)
+        await syncFailureItem(ctx.tx, row.id, cancelled, item)
         return 'cancelled'
       }
       if (verdict !== 'current') {
@@ -682,8 +720,12 @@ export function releaseAutomation(
           .execute()
         return 'cancelled'
       }
-      const result = await send(ctx.tx, row, (row.variables ?? {}) as Record<string, string>, providers)
+      // TSK-0050: a temporary failure on the last attempt is recorded as failed (with its delivery issue, if any) instead
+      // of leaving the delivery queued for good.
+      const final = ctx.job.maxAttempts !== undefined && ctx.job.attempt >= ctx.job.maxAttempts
+      const result = await send(ctx.tx, row, (row.variables ?? {}) as Record<string, string>, providers, final)
       await auditDelivery(ctx.tx, ctx.job, 'system.notifications', row, result)
+      await syncFailureItem(ctx.tx, row.id, result, item)
       return 'done'
     },
   }

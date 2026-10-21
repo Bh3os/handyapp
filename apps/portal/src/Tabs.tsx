@@ -1,16 +1,18 @@
 // The workspace tabs beside the Overview (TSK-0039; HH-PORT-09, HH-PORT-06, HH-ARC-10, OWN-DEC-106, RULE-LANGUAGES).
 // - Each tab reads its own customer view from the server the first time it is shown, and refreshes only while it is
 //   shown (useLive's `active`): a tab that is not on screen never polls.
-// - Each says truthfully what it holds today. Messages: the conversation is not shown here yet (it is never claimed
-//   empty). Documents, Appointments, Payments: nothing exists yet, with what will appear. Photos: how many photos
+// - Each says truthfully what it holds today. Messages (TSK-0050): the project conversation, oldest first: the
+//   customer's own email and texts on the project and HandyHub's replies, each with who wrote it, how, when and the
+//   text exactly as written (never translated); an empty conversation says what will appear. Writing from here is
+//   TSK-0051's. Documents, Appointments, Payments: nothing exists yet, with what will appear. Photos: how many photos
 //   the project has by state, the same counts as the receipt, and that viewing them here is not available yet.
 // - A tab once opened stays mounted while another is shown, so anything typed in it survives a tab switch.
 // English only, from the customer catalog; the wording no decision gives is PROPOSED (OQ-PORTAL-WORDING).
 import type { CustomerKey } from '@handyhub/i18n'
 import { StateView } from '@handyhub/ui'
 import { useEffect, useState } from 'react'
-import { portalApi, type Fetch, type TabData, type WorkspaceTab } from './api'
-import { t } from './labels'
+import { portalApi, type ConversationMessage, type Fetch, type TabData, type WorkspaceTab } from './api'
+import { t, when } from './labels'
 import { useLive } from './live'
 import { NotShown, RefreshLine } from './States'
 
@@ -40,10 +42,47 @@ function Empty({ title, text, more }: { title: CustomerKey; text: CustomerKey; m
   )
 }
 
+/** The project conversation (TSK-0050); PROPOSED wording (OQ-PORTAL-WORDING). */
+function Conversation({ messages }: { messages: readonly ConversationMessage[] }) {
+  if (messages.length === 0) return <Empty title="portal.messages.none.title" text="portal.messages.none.text" />
+  return (
+    <ol className="portal-conversation" aria-label={t('portal.messages.list')}>
+      {messages.map((m, i) => {
+        const from = t(m.from === 'you' ? 'portal.messages.from.you' : 'portal.messages.from.handyhub')
+        const channel = t(m.channel === 'sms' ? 'portal.messages.channel.sms' : 'portal.messages.channel.email')
+        return (
+          <li
+            key={`${m.at}-${i}`}
+            className={`portal-conversation__item portal-conversation__item--${m.from}`}
+            aria-label={t('portal.messages.item', { from, channel })}
+          >
+            <p className="portal-conversation__meta">
+              <strong>{from}</strong> <span className="hh-muted">{channel}</span>{' '}
+              <time className="hh-muted" dateTime={m.at}>
+                {when(m.at)}
+              </time>
+            </p>
+            {m.text !== null ? (
+              <p className="portal-conversation__text">{m.text}</p>
+            ) : (
+              <p className="hh-muted">
+                {t(m.textState === 'empty' ? 'portal.messages.noText' : 'portal.messages.textNotAvailable')}
+              </p>
+            )}
+            {m.attachments > 0 ? (
+              <p className="hh-muted">{t('portal.messages.attachments', { count: m.attachments })}</p>
+            ) : null}
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
+
 function Content({ data }: { data: TabData }) {
   switch (data.tab) {
     case 'messages':
-      return <Empty title="portal.messages.notShown.title" text="portal.messages.notShown.text" />
+      return <Conversation messages={data.messages} />
     case 'documents':
       return <Empty title="portal.documents.none.title" text="portal.documents.none.text" />
     case 'appointments':

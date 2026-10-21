@@ -9,8 +9,10 @@
 // the reference of the project it opens), customer and account records, documents, invoices and cases. (The
 // workspace tabs of TSK-0039 name Document and Invoice only for their "none yet" states; no record field is sent.)
 // TSK-0044: contacts, notes (every class: notes are never customer-shared) and candidate matches have no customer
-// view either. TSK-0049: inbound messages, conversations and Needs Linking have none yet (the portal Messages tab is
-// TSK-0050); internal messages never get one.
+// view either. TSK-0049: conversations and Needs Linking have none; internal messages never get one. TSK-0050: the
+// portal Messages tab (PROJECT_MESSAGES) shows the project's customer conversation: the customer's own email and
+// texts on the project and HandyHub's replies, each as who, how, when and the text as written; never a staff name,
+// an address, a delivery detail, an internal message or a message from a sender who is not the customer's contact.
 import {
   CUSTOMER_NEXT_ACTIONS,
   CUSTOMER_SITUATIONS,
@@ -293,8 +295,7 @@ export const PROJECT_OVERVIEW = customerView(
 // The workspace tabs (TSK-0039; HH-PORT-09, OWN-DEC-106). Each tab answers with its own view: the project reference,
 // what the tab holds as the records stand, the server time of the read and the refresh interval. A tab whose records
 // later tasks build says so with an explicit state code, so an empty section is never a guess:
-// - messages 'not_shown': the project conversation is not shown in the portal yet (TSK-0050, TSK-0051); messages that
-//   exist are never claimed absent;
+// - messages (TSK-0050): the project's customer conversation, its messages listed (an empty list: none yet);
 // - documents, appointments, payments 'none': no customer document, visit or payment record exists for any project
 //   yet (estimates TSK-0054/0058, visits TSK-0061, payments TSK-0087), so there is truthfully nothing to show;
 // - photos: the counts of the customer-visible photos by state (received, processing, failed); viewing them in the
@@ -313,8 +314,46 @@ function tabView<S extends string>(name: string, entity: Entity, states: readonl
   }))
 }
 
-/** The Messages tab: the conversation is not shown in the portal yet (TSK-0050). */
-export const PROJECT_MESSAGES = tabView('project.messages', 'Project', ['not_shown'] as const)
+/**
+ * One message of the project conversation as the customer sees it (TSK-0050; C06, HH-PORT-08): from the customer
+ * ('you') or HandyHub, by email or text, when, and the text exactly as written (customer free text is never
+ * translated); textState says when there is no text to show (an empty message, or an email whose text HandyHub could
+ * not read). Attachments are a count only: they are not imported (TSK-0049), so none is shown.
+ */
+export type ConversationMessageRecord = {
+  from: 'you' | 'handyhub'
+  channel: 'email' | 'sms'
+  at: Date
+  text: string | null
+  textState: 'shown' | 'empty' | 'not_available'
+  attachments: number
+}
+const CONVERSATION_MESSAGE = object({
+  from: enumOf(['you', 'handyhub']),
+  channel: enumOf(['email', 'sms']),
+  at: DATE,
+  text: { type: ['string', 'null'] },
+  textState: enumOf(['shown', 'empty', 'not_available']),
+  attachments: { type: 'integer', minimum: 0 },
+})
+
+/** The Messages tab (TSK-0050): the project's customer conversation, oldest first; empty: nothing yet. */
+export const PROJECT_MESSAGES = customerView(
+  'project.messages',
+  'Message',
+  { ...TAB_FIELDS, messages: { type: 'array', items: CONVERSATION_MESSAGE } },
+  (r: TabRecord & { messages: readonly ConversationMessageRecord[] }) => ({
+    ...tabHead(r),
+    messages: r.messages.map((m) => ({
+      from: m.from,
+      channel: m.channel,
+      at: m.at.toISOString(),
+      text: m.text,
+      textState: m.textState,
+      attachments: m.attachments,
+    })),
+  }),
+)
 /** The Documents tab: no customer document exists yet. */
 export const PROJECT_DOCUMENTS = tabView('project.documents', 'Document', ['none'] as const)
 /** The Appointments tab: no visit exists yet (TSK-0061). */

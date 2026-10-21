@@ -101,6 +101,7 @@ export interface CommsMessagesTable {
   suggested_project_id: string | null
   link_version: Generated<number>
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  delivery_id: string | null
 }
 
 export interface CommsProjectReplyTokensTable {

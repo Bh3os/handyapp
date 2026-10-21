@@ -102,15 +102,27 @@ export function portalModule(): ApiModule {
     },
   }
 
-  // The other five tabs (TSK-0039): the same permission, scope and NOT_FOUND as the Overview, each with its own view.
-  const TABS: readonly { tab: WorkspaceTab; operationId: string; view: CustomerView<never>; says: string }[] = [
+  // The other five tabs (TSK-0039): the same permission, scope and NOT_FOUND as the Overview, each with its own view;
+  // Messages (TSK-0050) is authorized by the matrix row of the project thread (message.reply, customer "V").
+  const TABS: readonly {
+    tab: WorkspaceTab
+    operationId: string
+    view: CustomerView<never>
+    says: string
+    permission?: RouteDef['permission']
+  }[] = [
     {
       tab: 'messages',
       operationId: 'getCustomerProjectMessages',
       view: PROJECT_MESSAGES as CustomerView<never>,
       says:
-        'The Messages tab. state "not_shown": the project conversation is not shown in the portal yet (TSK-0050); ' +
-        'it never claims that no message exists.',
+        'The Messages tab (TSK-0050): the project’s customer conversation, oldest first: the customer’s own email and ' +
+        'texts on the project (from the customer’s contacts only) and HandyHub’s replies (shown when staff press ' +
+        'Send), each with who wrote it (you or HandyHub), the channel, the time and the text exactly as written, or ' +
+        'why there is no text; attachments as a count (they are not imported). Never an internal message, a staff ' +
+        'name, an address or a delivery detail. An empty list: no message yet. Authorized by message.reply (ROLE-MATRIX ' +
+        '"V project thread").',
+      permission: 'message.reply',
     },
     {
       tab: 'documents',
@@ -140,8 +152,9 @@ export function portalModule(): ApiModule {
       says: 'The Payments tab. state "none": no approved total, deposit, invoice or recorded payment exists yet.',
     },
   ]
-  const tabs: RouteDef[] = TABS.map(({ tab, operationId, view, says }) => ({
+  const tabs: RouteDef[] = TABS.map(({ tab, operationId, view, says, permission }) => ({
     ...overview,
+    ...(permission ? { permission } : {}),
     path: `/customer/projects/:reference/${tab}`,
     test: 'test/integration/portal-tabs.test.ts',
     operationId,

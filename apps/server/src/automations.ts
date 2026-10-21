@@ -6,14 +6,19 @@ import {
   estimateExpiryAutomation,
   estimateReadyAutomation,
 } from './modules/estimates/index.js'
-import { deliveryStatusAutomation } from './modules/notifications/index.js'
+import { deliveryStatusAutomation, releaseAutomation } from './modules/notifications/index.js'
 import { photoProcessAutomation } from './modules/photos/index.js'
 import { queueAutomations } from './modules/queue/index.js'
 import { receiptEmailAutomation } from './modules/requests/receipt-email.js'
 import { responseClockAutomation } from './modules/requests/response-clock.js'
 import { accessLinkAutomation } from './modules/access/link-message.js'
 import { customerAutomations } from './modules/customers/index.js'
-import { inboxIntakeAutomation, type InboundAddress } from './modules/inbox/index.js'
+import {
+  inboxIntakeAutomation,
+  replyFailureItem,
+  replyRecordCheck,
+  type InboundAddress,
+} from './modules/inbox/index.js'
 import type { CodeKeySettings } from './modules/identity/index.js'
 import type { Automation } from './platform/automation.js'
 import type { Providers } from './providers/index.js'
@@ -64,5 +69,12 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
       inboundEmail: deps.providers.inboundEmail ?? null,
       replyAddress: deps.replyAddress ?? null,
     }),
+    // TSK-0050: staff-released messages (a staff reply's Send; released reminders), each at its release time: inside
+    // the daily contact hours for those held to them. A reply is rechecked against its contact at send time, and its
+    // failed delivery opens a delivery issue with Retry.
+    releaseAutomation(
+      { email: deps.providers.email, sms: deps.providers.sms, replyAddress: deps.replyAddress ?? null },
+      { recordChecks: { project: replyRecordCheck }, failureItem: replyFailureItem },
+    ),
   ]
 }
