@@ -44,6 +44,30 @@ export interface CatalogServicesTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface CrmCandidateMatchEventsTable {
+  id: Generated<string>
+  match_id: string
+  event: string
+  reasons: string[]
+  reason: string | null
+  staff_id: string | null
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CrmCandidateMatchesTable {
+  id: Generated<string>
+  customer_id: string
+  candidate_customer_id: string
+  pair_low: GeneratedAlways<string | null>
+  pair_high: GeneratedAlways<string | null>
+  reasons: string[]
+  status: Generated<string>
+  detected_by: string
+  detected_at: ColumnType<Date, Date | string | undefined, Date | string>
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
+}
+
 export interface CrmContactsTable {
   id: Generated<string>
   customer_id: string
@@ -59,6 +83,15 @@ export interface CrmContactsTable {
   version: Generated<number>
   email_verified_value: string | null
   phone_verified_value: string | null
+}
+
+export interface CrmCustomerNotesTable {
+  id: Generated<string>
+  customer_id: string
+  author_staff_id: string
+  visibility: Generated<string>
+  body: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
 export interface CrmCustomerPropertiesTable {
@@ -105,6 +138,19 @@ export interface CrmPropertiesTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   version: Generated<number>
   coverage_rule_set: number | null
+}
+
+export interface CrmRecordChangesTable {
+  id: Generated<string>
+  customer_id: string
+  record_type: string
+  record_id: string
+  fields: string[]
+  previous: Json
+  current: Json
+  reason: string
+  changed_by: string
+  changed_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
 export interface EstimatingEstimateDocumentsTable {
@@ -865,11 +911,15 @@ export interface WorkWorkPackagesTable {
 export interface Database {
   'catalog.service_versions': CatalogServiceVersionsTable
   'catalog.services': CatalogServicesTable
+  'crm.candidate_match_events': CrmCandidateMatchEventsTable
+  'crm.candidate_matches': CrmCandidateMatchesTable
   'crm.contacts': CrmContactsTable
+  'crm.customer_notes': CrmCustomerNotesTable
   'crm.customer_properties': CrmCustomerPropertiesTable
   'crm.customers': CrmCustomersTable
   'crm.projects': CrmProjectsTable
   'crm.properties': CrmPropertiesTable
+  'crm.record_changes': CrmRecordChangesTable
   'estimating.estimate_documents': EstimatingEstimateDocumentsTable
   'estimating.estimate_line_costs': EstimatingEstimateLineCostsTable
   'estimating.estimate_lines': EstimatingEstimateLinesTable

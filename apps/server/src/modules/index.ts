@@ -7,6 +7,7 @@ import type { ObjectStorage } from '../providers/index.js'
 import { COVERAGE_MODULE } from './coverage/index.js'
 import type { EnvironmentName } from '../config.js'
 import { estimatesModule } from './estimates/index.js'
+import { CUSTOMERS_MODULE } from './customers/index.js'
 import { NOTIFICATIONS_MODULE } from './notifications/index.js'
 import { photosModule } from './photos/index.js'
 import { QUEUE_MODULE } from './queue/index.js'
@@ -66,6 +67,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     accountsModule({ codeKey: deps.codeKey ?? NO_CODE_KEY, trustProxyHops: deps.trustProxyHops ?? 0 }),
     // TSK-0038: the customer project workspace frame (projects list and Overview); TSK-0039: the other five tabs.
     portalModule(),
+    // TSK-0044: staff customer and contact records, notes with visibility classes and duplicate suggestions.
+    CUSTOMERS_MODULE,
   ]
 }
 

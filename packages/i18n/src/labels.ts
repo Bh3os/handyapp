@@ -74,6 +74,7 @@ export const LABEL_FAMILIES = {
     'delivery_failed',
     'case_open',
     'estimate_to_write',
+    'candidate_match',
     'deposit_waiver',
     'start_work_exception',
     'refund_request',
@@ -108,6 +109,7 @@ export const LABEL_FAMILIES = {
     'not_a_fit_with_obligations',
     'ready_for_estimate',
     'estimate_draft',
+    'possible_duplicate',
   ],
   /** The one action button of a queue item (HH-OPS-02); it opens the record's screen. */
   queueAction: [
@@ -118,6 +120,7 @@ export const LABEL_FAMILIES = {
     'open_case',
     'decide',
     'write_estimate',
+    'review_match',
   ],
   /**
    * System health (TSK-0101; HH-NFR-02): the checks, their states, metrics and notes, as the server's health report
@@ -254,6 +257,41 @@ export const LABEL_FAMILIES = {
   propertyType: ['house', 'apartment_condo', 'townhouse', 'rental_short_term'],
   timeWindow: ['mornings', 'afternoons', 'evenings', 'weekends', 'any_time'],
   photoState: ['quarantined', 'ready', 'rejected'],
+  /** Customer records (TSK-0044; ENT-Customer, HH-CRM-01). */
+  customerStatus: ['active', 'inactive', 'merged'],
+  customerProvenance: ['request_submission', 'staff_entry'],
+  /** Visibility classes of notes and attachments (HH-STAFF-05; @handyhub/domain VISIBILITY_CLASSES). */
+  visibilityClass: ['internal_operational', 'restricted_incident', 'restricted_financial', 'customer_shared'],
+  /** What two customers share in a duplicate suggestion (HH-ID-02; @handyhub/domain MATCH_REASONS). */
+  matchReason: ['email', 'phone', 'address', 'name'],
+  candidateStatus: ['open', 'dismissed'],
+  /** Consent records (ENT-ConsentPreference; apps/server/src/modules/notifications/consent.ts). */
+  consentPurpose: ['service_communication', 'transactional_sms', 'marketing'],
+  consentChannel: ['email', 'sms'],
+  consentSource: ['request_form', 'portal', 'sms_keyword', 'provider_suppression', 'staff_recorded'],
+  consentState: ['granted', 'withdrawn', 'none'],
+  /** Fields a staff edit of a customer or contact changes (crm.record_changes). */
+  recordField: ['displayName', 'fullName', 'email', 'phone', 'preferredChannel'],
+  /** Message delivery states (HH-COM-02; platform.message_deliveries). */
+  deliveryState: ['draft', 'queued', 'sent', 'delivered', 'failed', 'suppressed', 'cancelled'],
+  /** Entries of a customer's activity history (apps/server/src/modules/customers/record.ts). */
+  customerTimeline: [
+    'request_submitted',
+    'request_assigned',
+    'request_decision',
+    'request_note',
+    'customer_note',
+    'customer_changed',
+    'contact_changed',
+    'consent_granted',
+    'consent_withdrawn',
+    'message',
+    'candidate_detected',
+    'candidate_reasons_added',
+    'candidate_reopened',
+    'candidate_dismissed',
+  ],
+  timelineActor: ['staff', 'customer', 'system'],
   /** Why the server refused a request action (the problem codes of @handyhub/domain and the requests module). */
   requestRefusal: [
     'INVALID_TRANSITION',

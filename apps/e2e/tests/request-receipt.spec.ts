@@ -172,7 +172,11 @@ test.describe('the receipt (TSK-0032)', () => {
     // Saved once: the request exists; the receipt email has no approved wording, so its delivery is recorded as not
     // sent, and staff get one delivery issue while the request stays in their queue.
     const saved = await withDb((db) =>
-      db.selectFrom('intake.requests').select(['id', 'reference']).where('reference', '=', reference).execute(),
+      db
+        .selectFrom('intake.requests')
+        .select(['id', 'reference', 'customer_id'])
+        .where('reference', '=', reference)
+        .execute(),
     )
     expect(saved).toHaveLength(1)
     const requestId = saved[0]?.id as string
@@ -189,28 +193,52 @@ test.describe('the receipt (TSK-0032)', () => {
         { timeout: 15_000 },
       )
       .toEqual([{ state: 'failed', error_code: 'template_not_configured' }])
+    // TSK-0044 (HH-ID-02): when an earlier synthetic request shares this request's email, phone or address, staff also
+    // get one duplicate suggestion to review (never a link); a suite run alone has none.
+    const customerId = saved[0]?.customer_id as string
     await expect
       .poll(
         () =>
-          withDb((db) =>
-            db
+          withDb(async (db) => {
+            const items = await db
               .selectFrom('ops.queue_items')
               .select(['type', 'reason', 'reference'])
               .where('reference', '=', reference)
               .where('resolved_at', 'is', null)
+              .where('type', '<>', 'candidate_match')
               .orderBy('type')
-              .execute(),
-          ),
+              .execute()
+            const shared = await db
+              .selectFrom('crm.candidate_matches')
+              .select('id')
+              .where('customer_id', '=', customerId)
+              .where('status', '=', 'open')
+              .execute()
+            const suggestion = await db
+              .selectFrom('ops.queue_items')
+              .select(['type', 'reason', 'reference'])
+              .where('type', '=', 'candidate_match')
+              .where('subject_id', '=', customerId)
+              .where('resolved_at', 'is', null)
+              .execute()
+            const expected =
+              suggestion.length === (shared.length ? 1 : 0) &&
+              suggestion.every((x) => x.reason === 'possible_duplicate' && x.reference === reference)
+            return { items, suggestion: expected ? 'as expected' : suggestion }
+          }),
         { timeout: 15_000 },
       )
-      .toEqual([
-        { type: 'delivery_failed', reason: 'delivery_not_configured', reference },
-        // TSK-0034: the secure access message (FACT-AUTOMATIC-MESSAGES #3) has no released wording either
-        // (OQ-ACCESS-LINK-WORDING), so it is its own delivery issue for the same request.
-        { type: 'delivery_failed', reason: 'delivery_not_configured', reference },
-        // A form sent within seconds of opening is quietly flagged (HH-INT-11); either way staff see the request.
-        { type: 'new_request', reason: expect.stringMatching(/^new_request(_flagged)?$/), reference },
-      ])
+      .toEqual({
+        suggestion: 'as expected',
+        items: [
+          { type: 'delivery_failed', reason: 'delivery_not_configured', reference },
+          // TSK-0034: the secure access message (FACT-AUTOMATIC-MESSAGES #3) has no released wording either
+          // (OQ-ACCESS-LINK-WORDING), so it is its own delivery issue for the same request.
+          { type: 'delivery_failed', reason: 'delivery_not_configured', reference },
+          // A form sent within seconds of opening is quietly flagged (HH-INT-11); either way staff see the request.
+          { type: 'new_request', reason: expect.stringMatching(/^new_request(_flagged)?$/), reference },
+        ],
+      })
 
     // A reload of this tab shows the same receipt; another browser with the same address sees nothing of it.
     await page.reload()

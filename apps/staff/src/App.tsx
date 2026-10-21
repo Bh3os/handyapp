@@ -8,6 +8,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { call, setCsrfToken, type ApiErrorBody, type Fetch } from './api'
 import { EstimatePublishingSetting } from './EstimateLifecycle'
 import { EstimateBuilder, EstimatesScreen } from './Estimates'
+import { CustomerRecord, CustomersScreen } from './Customers'
 import { QueueHome } from './Queue'
 import { RequestRecord } from './Record'
 import { RequestsScreen } from './Requests'
@@ -228,6 +229,18 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
             <EstimatesScreen t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
           ) : route.page === 'record' && route.screen === 'estimates' && allowed ? (
             <EstimateBuilder key={route.id} t={t} fetchImpl={doFetch} id={route.id} go={go} href={href} />
+          ) : shown === 'customers' && allowed && route.page === 'screen' ? (
+            <CustomersScreen t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
+          ) : route.page === 'record' && route.screen === 'customers' && allowed ? (
+            <CustomerRecord
+              key={route.id}
+              t={t}
+              locale={locale}
+              fetchImpl={doFetch}
+              id={route.id}
+              go={go}
+              href={href}
+            />
           ) : route.page === 'record' && route.screen === 'requests' && allowed ? (
             <RequestRecord key={route.id} t={t} locale={locale} fetchImpl={doFetch} id={route.id} go={go} href={href} />
           ) : (

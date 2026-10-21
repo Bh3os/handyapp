@@ -56,6 +56,8 @@ export type Hold = {
   canceledAt: string | null
   actions: { startReview: boolean; resolve: boolean; cancel: boolean }
 }
+/** The classes a staff note may have (TSK-0044, HH-STAFF-05): never customer-shared. */
+const NOTE_CLASSES = ['internal_operational', 'restricted_incident', 'restricted_financial'] as const
 
 export type RequestDetail = {
   id: string
@@ -101,7 +103,16 @@ export type RequestDetail = {
     recordedAt: string
   } | null
   missingChecks: string[]
-  notes: { id: string; body: string; author: StaffRef; createdAt: string }[]
+  /** TSK-0044 (HH-STAFF-05): each note's visibility class; a restricted note the role may not read arrives masked. */
+  notes: {
+    id: string
+    visibility: string
+    masked: boolean
+    body: string | null
+    author: StaffRef | null
+    createdAt: string
+  }[]
+  customer: { id: string; displayName: string }
   decisions: {
     id: string
     action: string
@@ -244,6 +255,19 @@ export function RequestRecord({
         <dt>{t('record.request.status')}</dt>
         <dd>
           <StatusBadge>{codeLabel(t, 'requestState', view.state)}</StatusBadge>
+        </dd>
+        <dt>{t('customer.record')}</dt>
+        <dd>
+          <a
+            href={href(`/customers/${view.customer.id}`)}
+            onClick={(e: MouseEvent<HTMLAnchorElement>) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
+              e.preventDefault()
+              go(`/customers/${view.customer.id}`)
+            }}
+          >
+            {view.customer.displayName}
+          </a>
         </dd>
         <dt>{t('request.project')}</dt>
         <dd>{codeLabel(t, 'projectState', view.project.state)}</dd>
@@ -1128,17 +1152,23 @@ function Notes({ t, fetchImpl, view, onChanged, when }: Props & { when: (iso: st
   const ids = useId()
   const write = useWrite(fetchImpl)
   const [body, setBody] = useState('')
+  const [visibility, setVisibility] = useState('internal_operational')
   const [pending, setPending] = useState(false)
   const [problem, setProblem] = useState<Problem | null>(null)
+  const [sensitive, setSensitive] = useState(false)
   async function submit(e: FormEvent) {
     e.preventDefault()
     if (!body.trim()) return
     setPending(true)
-    const r = await write(`/staff/requests/${view.id}/notes`, 'POST', { body })
+    const r = await write(`/staff/requests/${view.id}/notes`, 'POST', { body, visibility })
     setPending(false)
-    if (!r.ok) return setProblem(problemOf(r.error))
+    // TSK-0044 (HH-CRM-01): a card number is refused; the note stays in the box to be corrected.
+    setSensitive(!r.ok && r.error.fieldErrors.some((f) => f.code === 'sensitive_content'))
+    if (!r.ok)
+      return setProblem(r.error.fieldErrors.some((f) => f.code === 'sensitive_content') ? null : problemOf(r.error))
     setProblem(null)
     setBody('')
+    setVisibility('internal_operational')
     await onChanged()
   }
   return (
@@ -1148,9 +1178,14 @@ function Notes({ t, fetchImpl, view, onChanged, when }: Props & { when: (iso: st
         <ul className="staff-request__list">
           {view.notes.map((n) => (
             <li key={n.id}>
-              <p className="staff-request__note">{n.body}</p>
+              <StatusBadge tone={n.visibility === 'internal_operational' ? 'neutral' : 'warning'}>
+                {codeLabel(t, 'visibilityClass', n.visibility)}
+              </StatusBadge>
+              <p className="staff-request__note">{n.masked ? t('customer.noteMasked') : n.body}</p>
               <p className="staff-request__hint">
-                {t('request.noteBy', { name: name(t, n.author), time: when(n.createdAt) })}
+                {n.masked
+                  ? when(n.createdAt)
+                  : t('request.noteBy', { name: name(t, n.author), time: when(n.createdAt) })}
               </p>
             </li>
           ))}
@@ -1165,8 +1200,20 @@ function Notes({ t, fetchImpl, view, onChanged, when }: Props & { when: (iso: st
             label={t('request.newNote')}
             maxLength={5000}
             value={body}
+            hint={t('customer.noteHint')}
+            {...(sensitive ? { error: t('customer.noteSensitive') } : {})}
             onChange={(e) => setBody(e.target.value)}
           />
+          <div className="staff-queue__select">
+            <label htmlFor={`${ids}-visibility`}>{t('customer.noteVisibility')}</label>
+            <select id={`${ids}-visibility`} value={visibility} onChange={(e) => setVisibility(e.target.value)}>
+              {NOTE_CLASSES.map((v) => (
+                <option key={v} value={v}>
+                  {codeLabel(t, 'visibilityClass', v)}
+                </option>
+              ))}
+            </select>
+          </div>
           <Button type="submit" variant="secondary" pending={pending}>
             {t('request.addNote')}
           </Button>

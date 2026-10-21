@@ -22,7 +22,7 @@ import {
 } from '@handyhub/domain'
 import { serviceQuestions } from '@handyhub/domain/request-form'
 import { customerTranslator } from '@handyhub/i18n'
-import { decide, type Action, type Actor, type DataScope } from '@handyhub/policy'
+import { decide, readsVisibility, type Action, type Actor, type DataScope } from '@handyhub/policy'
 import { projectInScope } from '../../platform/data-scope.js'
 import { responseClockView } from './clock-view.js'
 import { requestHolds } from './holds.js'
@@ -156,7 +156,10 @@ export async function staffRequestView(db: Reader, scope: DataScope, requestId: 
     .selectFrom('intake.requests as r')
     .innerJoin('crm.projects as p', 'p.id', 'r.project_id')
     .innerJoin('crm.contacts as c', 'c.id', 'r.contact_id')
+    .innerJoin('crm.customers as cu', 'cu.id', 'r.customer_id')
     .select([
+      'cu.id as customer_id',
+      'cu.display_name as customer_display_name',
       'r.id',
       'r.reference',
       'r.state',
@@ -236,7 +239,7 @@ export async function staffRequestView(db: Reader, scope: DataScope, requestId: 
   const qualification = await latestQualification(db, requestId)
   const notes = await db
     .selectFrom('intake.request_notes')
-    .select(['id', 'author_staff_id', 'body', 'created_at'])
+    .select(['id', 'author_staff_id', 'visibility', 'body', 'created_at'])
     .where('request_id', '=', requestId)
     .orderBy('created_at')
     .orderBy('id')
@@ -305,6 +308,7 @@ export async function staffRequestView(db: Reader, scope: DataScope, requestId: 
     privacyNoticeVersion: r.privacy_notice_version,
     spam: { suspected: r.spam_suspected, signals: r.spam_signals },
     project: { id: r.project_id, reference: r.project_reference, state: r.project_state },
+    customer: { id: r.customer_id, displayName: r.customer_display_name },
     original: {
       services: services.map((s) => ({ serviceId: s.service_id, code: s.code, notes: s.notes })),
       notSure: r.not_sure,
@@ -364,12 +368,24 @@ export async function staffRequestView(db: Reader, scope: DataScope, requestId: 
         }
       : null,
     missingChecks: unqualifiedChecks(checks),
-    notes: notes.map((n) => ({
-      id: n.id,
-      body: n.body,
-      author: ref(n.author_staff_id) as StaffRef,
-      createdAt: n.created_at.toISOString(),
-    })),
+    // TSK-0044 (HH-STAFF-05, OWN-DEC-143): a restricted note the caller may not read is masked: it exists, with its
+    // class and time, never its text or author.
+    notes: notes.map((n) => {
+      const read = readsVisibility(
+        actor,
+        n.visibility,
+        { projectId: r.project_id, ownerStaffId: n.author_staff_id },
+        new Date(),
+      )
+      return {
+        id: n.id,
+        visibility: n.visibility,
+        masked: !read.allowed,
+        body: read.allowed ? n.body : null,
+        author: read.allowed ? (ref(n.author_staff_id) as StaffRef) : null,
+        createdAt: n.created_at.toISOString(),
+      }
+    }),
     decisions: decisions.map((d) => ({
       id: d.id,
       action: d.action,

@@ -25,6 +25,7 @@ export const QUEUE_ACTIONS = [
   'open_case',
   'decide',
   'write_estimate',
+  'review_match',
 ] as const
 export type QueueAction = (typeof QUEUE_ACTIONS)[number]
 
@@ -137,6 +138,18 @@ export const QUEUE_ITEM_TYPES = [
     reasons: ['ready_for_estimate', 'estimate_draft'],
     action: 'write_estimate',
     screen: 'requests',
+  },
+  // TSK-0044 (HH-ID-02, T21): customers sharing an email, phone or address wait for staff review; the item opens the
+  // customer record with its suggestions. Never merged or linked automatically.
+  {
+    id: 'candidate_match',
+    section: 'queue',
+    subject: 'customer',
+    band: 'other',
+    view: 'customer.view_duplicates',
+    reasons: ['possible_duplicate'],
+    action: 'review_match',
+    screen: 'customers',
   },
   // Owner Decisions (HH-OPS-01 "Owner, additionally"): each decision is owner-only in the matrix.
   {
