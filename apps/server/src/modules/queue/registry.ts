@@ -26,6 +26,7 @@ export const QUEUE_ACTIONS = [
   'decide',
   'write_estimate',
   'review_estimate',
+  'release_reminder',
 ] as const
 export type QueueAction = (typeof QUEUE_ACTIONS)[number]
 
@@ -151,6 +152,20 @@ export const QUEUE_ITEM_TYPES = [
     view: 'estimate.revise',
     reasons: ['estimate_changes_requested', 'estimate_declined', 'estimate_update_requested'],
     action: 'review_estimate',
+    screen: 'estimates',
+  },
+  // A reminder draft waiting for staff release (S01 "message drafts awaiting release"; HH-EST-14, TSK-0060): one item
+  // per estimate version while a first or final unanswered-estimate reminder is a draft; it resolves once the draft is
+  // released, dismissed or stopped. Seen by the roles that work on estimates (the link opens the version, whose
+  // reminders panel releases or dismisses the draft); band and view action are PROPOSED.
+  {
+    id: 'estimate_reminder',
+    section: 'queue',
+    subject: 'estimate_version',
+    band: 'time_sensitive',
+    view: 'estimate.revise',
+    reasons: ['estimate_reminder_first', 'estimate_reminder_final'],
+    action: 'release_reminder',
     screen: 'estimates',
   },
   // Owner Decisions (HH-OPS-01 "Owner, additionally"): each decision is owner-only in the matrix.

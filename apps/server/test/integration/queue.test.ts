@@ -157,8 +157,8 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
   it('[HH-OPS-01][T26] an estimator sees requests and safety holds, but no cases and no Owner Decisions', async () => {
     const est = await list('estimator')
     expect(est.sections).toEqual(['queue'])
-    // Pending estimates (estimate_to_write, TSK-0053) and the customer's responses to estimates (estimate_response,
-    // TSK-0056) are the Estimator's too.
+    // Pending estimates (estimate_to_write, TSK-0053), the customer's responses to estimates (estimate_response,
+    // TSK-0056) and estimate reminder drafts to send (estimate_reminder, TSK-0060) are the Estimator's too.
     expect(est.types).toEqual([
       'new_request',
       'review_hold',
@@ -166,6 +166,7 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       'delivery_failed',
       'estimate_to_write',
       'estimate_response',
+      'estimate_reminder',
     ])
     expect(est.items.map((i) => i.type)).not.toContain('case_open')
     expect((await get('estimator', '/api/v1/staff/queue/owner-decisions')).statusCode).toBe(403)

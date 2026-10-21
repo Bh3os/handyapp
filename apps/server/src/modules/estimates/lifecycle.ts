@@ -52,6 +52,7 @@ import { PDF_TYPE } from './document-content.js'
 import { isUuid, saveDraft, TEXT_LISTS, type DraftInput } from './model.js'
 import { discountFor, pricingPolicies } from './pricing.js'
 import { publishReadiness, type PublishProblem } from './readiness.js'
+import { stopEstimateReminders } from './reminders.js'
 import { estimateResponses, resolveResponsesOnRevision } from './responses.js'
 
 type Reader = Db | Tx
@@ -261,6 +262,8 @@ export async function publishVersion(
       .set({ state: sup.to, state_changed_at: now, row_version: sup.version })
       .where('id', '=', previous.id)
       .execute()
+    // TSK-0060: the superseded version's waiting reminder drafts stop (HH-EST-14).
+    await stopEstimateReminders(tx, previous.id)
   }
 
   // The customer PDF exactly as published, stored once under an opaque key with its SHA-256 (ENT-EstimateVersion).
@@ -390,6 +393,8 @@ export async function changeVersionState(
     .set({ state: moved.to, state_changed_at: now, row_version: moved.version })
     .where('id', '=', versionId)
     .execute()
+  // TSK-0060: a withdrawn, expired or declined version's waiting reminder drafts stop (HH-EST-14).
+  if (event === 'withdraw' || event === 'expire_now' || event === 'decline') await stopEstimateReminders(tx, versionId)
   if (event === 'request_review' || event === 'return_to_draft') {
     const requests = await tx
       .selectFrom('intake.requests')
@@ -418,6 +423,7 @@ export async function expireIfDue(tx: Tx, versionId: string): Promise<'expired' 
     .set({ state: moved.to, state_changed_at: now, row_version: moved.version })
     .where('id', '=', versionId)
     .execute()
+  await stopEstimateReminders(tx, versionId)
   return 'expired'
 }
 

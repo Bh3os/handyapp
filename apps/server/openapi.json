@@ -11588,6 +11588,786 @@
         }
       }
     },
+    "/api/v1/staff/estimate-reminders/{deliveryId}/dismiss": {
+      "post": {
+        "operationId": "dismissEstimateReminder",
+        "summary": "Dismiss an estimate reminder draft",
+        "description": "Staff with message.release_draft (Owner, Office; an Estimator for an estimate they prepared). Dismisses one unanswered-estimate reminder draft: it is cancelled as dismissed, kept with who dismissed it, and never sent. The next reminder of the cadence is still drafted at its time (PROPOSED). A reminder that is not a draft is a CONFLICT (REMINDER_NOT_DRAFT). Returns the version’s reminders.",
+        "tags": [
+          "estimates"
+        ],
+        "parameters": [
+          {
+            "name": "deliveryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "versionId",
+                    "cadence",
+                    "stoppedBy",
+                    "reminders"
+                  ],
+                  "properties": {
+                    "versionId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "cadence": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "CONFIGURED",
+                            "NOT_CONFIGURED"
+                          ]
+                        },
+                        "proposed": {
+                          "type": "boolean"
+                        },
+                        "firstHours": {
+                          "type": "number"
+                        },
+                        "finalHours": {
+                          "type": "number"
+                        },
+                        "firstAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "finalAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "stoppedBy": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "accepted",
+                        "declined",
+                        "expired",
+                        "withdrawn",
+                        "superseded",
+                        "not_published",
+                        "customer_responded",
+                        "conversation_recorded",
+                        "project_not_open",
+                        null
+                      ]
+                    },
+                    "reminders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "step",
+                          "state",
+                          "channel",
+                          "reason",
+                          "draftedAt",
+                          "releasedAt",
+                          "releasedBy",
+                          "cancelledAt",
+                          "cancelledBy",
+                          "actions"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "step": {
+                            "type": "string",
+                            "enum": [
+                              "first",
+                              "final"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "draft",
+                              "queued",
+                              "sent",
+                              "delivered",
+                              "failed",
+                              "suppressed",
+                              "cancelled"
+                            ]
+                          },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "email",
+                              "sms"
+                            ]
+                          },
+                          "reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "draftedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "releasedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "releasedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "cancelledAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "cancelledBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "system"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "actions": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "release",
+                              "dismiss"
+                            ],
+                            "properties": {
+                              "release": {
+                                "type": "boolean"
+                              },
+                              "dismiss": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.release_draft",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "estimate_reminder.dismiss",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/estimate-reminders.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/estimate-reminders/{deliveryId}/release": {
+      "post": {
+        "operationId": "releaseEstimateReminder",
+        "summary": "Send an estimate reminder draft",
+        "description": "Staff with message.release_draft (Owner, Office; an Estimator for an estimate they prepared). Releases one unanswered-estimate reminder draft; it sends at once, at any hour (OWN-DEC-132), through a send job that checks the estimate, consent and the template again. Before releasing, under the estimate lock, the stop rules and the channel permission are checked: when one applies the draft is cancelled with that reason, kept, and the answer is CONFLICT naming it (fieldErrors[].field \"reminder\", code the reason). A reminder that is not a draft is a CONFLICT (REMINDER_NOT_DRAFT). Returns the version’s reminders.",
+        "tags": [
+          "estimates"
+        ],
+        "parameters": [
+          {
+            "name": "deliveryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "versionId",
+                    "cadence",
+                    "stoppedBy",
+                    "reminders"
+                  ],
+                  "properties": {
+                    "versionId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "cadence": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "CONFIGURED",
+                            "NOT_CONFIGURED"
+                          ]
+                        },
+                        "proposed": {
+                          "type": "boolean"
+                        },
+                        "firstHours": {
+                          "type": "number"
+                        },
+                        "finalHours": {
+                          "type": "number"
+                        },
+                        "firstAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "finalAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "stoppedBy": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "accepted",
+                        "declined",
+                        "expired",
+                        "withdrawn",
+                        "superseded",
+                        "not_published",
+                        "customer_responded",
+                        "conversation_recorded",
+                        "project_not_open",
+                        null
+                      ]
+                    },
+                    "reminders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "step",
+                          "state",
+                          "channel",
+                          "reason",
+                          "draftedAt",
+                          "releasedAt",
+                          "releasedBy",
+                          "cancelledAt",
+                          "cancelledBy",
+                          "actions"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "step": {
+                            "type": "string",
+                            "enum": [
+                              "first",
+                              "final"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "draft",
+                              "queued",
+                              "sent",
+                              "delivered",
+                              "failed",
+                              "suppressed",
+                              "cancelled"
+                            ]
+                          },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "email",
+                              "sms"
+                            ]
+                          },
+                          "reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "draftedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "releasedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "releasedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "cancelledAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "cancelledBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "system"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "actions": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "release",
+                              "dismiss"
+                            ],
+                            "properties": {
+                              "release": {
+                                "type": "boolean"
+                              },
+                              "dismiss": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.release_draft",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "estimate_reminder.release",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/estimate-reminders.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/estimate-versions/{versionId}": {
       "get": {
         "operationId": "getEstimateVersion",
@@ -26089,6 +26869,345 @@
         }
       }
     },
+    "/api/v1/staff/estimate-versions/{versionId}/reminders": {
+      "get": {
+        "operationId": "listEstimateReminders",
+        "summary": "Reminders of an estimate version",
+        "description": "Staff with estimate.draft (Owner, Estimator). The unanswered-estimate reminders of one version (HH-EST-14): the configured cadence (reminders.cadences, measured from publishing) and the due times of the first and the final draft, whether a stop rule applies now (accepted, declined, expired, withdrawn, superseded, a customer response, a recorded conversation, the project no longer open), and every reminder drafted: step, state, channel, the reason it stopped or was not sent, who released or dismissed it, and whether the caller may release or dismiss it now. The destination is not shown.",
+        "tags": [
+          "estimates"
+        ],
+        "parameters": [
+          {
+            "name": "versionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "versionId",
+                    "cadence",
+                    "stoppedBy",
+                    "reminders"
+                  ],
+                  "properties": {
+                    "versionId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "cadence": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "CONFIGURED",
+                            "NOT_CONFIGURED"
+                          ]
+                        },
+                        "proposed": {
+                          "type": "boolean"
+                        },
+                        "firstHours": {
+                          "type": "number"
+                        },
+                        "finalHours": {
+                          "type": "number"
+                        },
+                        "firstAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "finalAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "stoppedBy": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "accepted",
+                        "declined",
+                        "expired",
+                        "withdrawn",
+                        "superseded",
+                        "not_published",
+                        "customer_responded",
+                        "conversation_recorded",
+                        "project_not_open",
+                        null
+                      ]
+                    },
+                    "reminders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "step",
+                          "state",
+                          "channel",
+                          "reason",
+                          "draftedAt",
+                          "releasedAt",
+                          "releasedBy",
+                          "cancelledAt",
+                          "cancelledBy",
+                          "actions"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "step": {
+                            "type": "string",
+                            "enum": [
+                              "first",
+                              "final"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "draft",
+                              "queued",
+                              "sent",
+                              "delivered",
+                              "failed",
+                              "suppressed",
+                              "cancelled"
+                            ]
+                          },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "email",
+                              "sms"
+                            ]
+                          },
+                          "reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "draftedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "releasedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "releasedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "cancelledAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "cancelledBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "system"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "actions": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "release",
+                              "dismiss"
+                            ],
+                            "properties": {
+                              "release": {
+                                "type": "boolean"
+                              },
+                              "dismiss": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "estimate.draft",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/estimate-reminders.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/estimate-versions/{versionId}/request-review": {
       "post": {
         "operationId": "requestEstimateReview",
@@ -32495,6 +33614,7 @@
                 "case_open",
                 "estimate_to_write",
                 "estimate_response",
+                "estimate_reminder",
                 "deposit_waiver",
                 "start_work_exception",
                 "refund_request",
@@ -32612,6 +33732,7 @@
                               "case_open",
                               "estimate_to_write",
                               "estimate_response",
+                              "estimate_reminder",
                               "deposit_waiver",
                               "start_work_exception",
                               "refund_request",
@@ -32821,7 +33942,8 @@
                               "open_case",
                               "decide",
                               "write_estimate",
-                              "review_estimate"
+                              "review_estimate",
+                              "release_reminder"
                             ]
                           },
                           "link": {
@@ -32869,6 +33991,7 @@
                           "case_open",
                           "estimate_to_write",
                           "estimate_response",
+                          "estimate_reminder",
                           "deposit_waiver",
                           "start_work_exception",
                           "refund_request",
@@ -33005,6 +34128,7 @@
                 "case_open",
                 "estimate_to_write",
                 "estimate_response",
+                "estimate_reminder",
                 "deposit_waiver",
                 "start_work_exception",
                 "refund_request",
@@ -33122,6 +34246,7 @@
                               "case_open",
                               "estimate_to_write",
                               "estimate_response",
+                              "estimate_reminder",
                               "deposit_waiver",
                               "start_work_exception",
                               "refund_request",
@@ -33331,7 +34456,8 @@
                               "open_case",
                               "decide",
                               "write_estimate",
-                              "review_estimate"
+                              "review_estimate",
+                              "release_reminder"
                             ]
                           },
                           "link": {
@@ -33379,6 +34505,7 @@
                           "case_open",
                           "estimate_to_write",
                           "estimate_response",
+                          "estimate_reminder",
                           "deposit_waiver",
                           "start_work_exception",
                           "refund_request",

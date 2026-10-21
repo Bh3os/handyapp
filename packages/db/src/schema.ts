@@ -739,6 +739,8 @@ export interface PlatformMessageDeliveriesTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   updated_at: ColumnType<Date, Date | string | undefined, Date | string>
   status_at: Timestamp | null
+  cancelled_by: string | null
+  cancelled_at: Timestamp | null
 }
 
 export interface PlatformMessageDeliveryEventsTable {

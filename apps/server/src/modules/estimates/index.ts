@@ -5,16 +5,18 @@
 // TSK-0055 (HH-EST-04) adds the lifecycle: publishing under the Owner's publishing policy, revising as a new version,
 // withdrawing, expiring and recording a decline, the validity expiry job, the estimate-ready notice and the version
 // history (lifecycle.ts, lifecycle-routes.ts, notify.ts). TSK-0056 (HH-EST-09, HH-EST-13) adds the customer view and the
-// customer's responses (customer.ts, responses.ts; the routes are the portal module's).
+// customer's responses (customer.ts, responses.ts; the routes are the portal module's). TSK-0060 (HH-EST-14) adds the
+// unanswered-estimate reminder drafts, their stop rules and the staff release routes (reminders.ts, reminder-routes.ts).
 import type { ApiModule } from '../../api/route.js'
 import { estimateDocumentRoutes, type EstimateDocumentDeps } from './document-routes.js'
 import { lifecycleRoutes } from './lifecycle-routes.js'
+import { reminderRoutes } from './reminder-routes.js'
 import { ESTIMATE_ROUTES } from './routes.js'
 
 export function estimatesModule(deps: EstimateDocumentDeps): ApiModule {
   return {
     name: 'estimates',
-    routes: [...ESTIMATE_ROUTES, ...estimateDocumentRoutes(deps), ...lifecycleRoutes(deps)],
+    routes: [...ESTIMATE_ROUTES, ...estimateDocumentRoutes(deps), ...lifecycleRoutes(deps), ...reminderRoutes()],
   }
 }
 export { builderView } from './routes.js'
@@ -64,6 +66,29 @@ export {
   type ResponseKind,
   type ResponseNoticeDeps,
 } from './responses.js'
+export {
+  DISMISSED,
+  ESTIMATE_REMINDER_ITEM,
+  ESTIMATE_REMINDER_MESSAGE_KEY,
+  estimateReminderAutomations,
+  estimateReminderDraftAutomation,
+  estimateReminderRecordCheck,
+  estimateReminderScheduleAutomation,
+  REMINDER_STEPS,
+  REMINDER_STOP_REASONS,
+  reminderCadence,
+  reminderStopReason,
+  reminderSubjectKey,
+  remindersView,
+  REPLACED_BY_FINAL,
+  stopEstimateReminders,
+  type ReminderCadence,
+  type ReminderDraftDeps,
+  type ReminderStep,
+  type ReminderStopReason,
+  type RemindersView,
+  type ReminderView,
+} from './reminders.js'
 export type { EstimateDocumentDeps } from './document-routes.js'
 export {
   customerPdfInput,
