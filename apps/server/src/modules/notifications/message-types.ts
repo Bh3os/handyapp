@@ -144,6 +144,17 @@ const TYPES: readonly MessageType[] = [
     variables: link,
     sourceIds: ['OWN-DEC-111', 'OWN-DEC-110'],
   },
+  // TSK-0036 (HH-ID-11): the notice to the old value after a customer account's sign-in email changed. It is NOT on
+  // the owner's automatic list and has no approved wording (OQ-ACCOUNT-CONTACT-NOTICE): until both exist, changing a
+  // sign-in email answers NOT CONFIGURED. It carries no link, code or detail of the account.
+  {
+    key: 'account.contact_changed',
+    audience: 'customer',
+    channels: both,
+    triggerEvents: ['customer_account.contact_changed'],
+    variables: {},
+    sourceIds: ['HH-ID-11', 'OQ-ACCOUNT-CONTACT-NOTICE'],
+  },
   // Staff accounts (automatic).
   {
     key: 'staff.invitation',

@@ -445,6 +445,7 @@ export {
   readSessionToken,
   refreshVerification,
   resolveCustomerSession,
+  revokeAccountSessions,
   revokeCustomerSession,
   revokeGrantSessions,
   sessionCookie,
@@ -452,6 +453,7 @@ export {
   setSessionCookie,
   startCustomerSession,
   type CustomerSession,
+  type SessionEndReason,
   type StartedSession,
   type StartSessionInput,
 } from './customer-sessions.js'

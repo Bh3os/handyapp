@@ -9,10 +9,14 @@
 //   link with the email or mobile phone on the request (and the reference when this tab holds no old link). The
 //   answer is the same whether or not anything matches. A code that can no longer be used (expired, or too many
 //   tries) gets its own neutral page that offers a new code; nothing about the project is shown on either.
+// - TSK-0036 (HH-ID-10, HH-INT-14 "registering later"): a project opened through its guest link offers the optional
+//   Create an Account, with a code to the link's own verified contact; an account session shows no offer.
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { Button, Field, StateView } from '@handyhub/ui'
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { minutesLeft, noticeText, type Channel, type Fetch, type Notice } from '../request/verification.js'
+import { AccountEnrollment } from '../account/AccountEnrollment.js'
+import { accountApi, type EnrollChannel } from '../account/account.js'
 import {
   accessApi,
   forgetToken,
@@ -45,20 +49,23 @@ type Phase =
   | { kind: 'recover'; token: string }
   | { kind: 'none' }
 
-function Project({ glance }: { glance: ProjectGlance }) {
+/** The opened project at a glance (TSK-0034); TSK-0036: also on the account page, one heading level down. */
+export function ProjectGlanceView({ glance, level = 2 }: { glance: ProjectGlance; level?: 2 | 3 }) {
   const label = stateLabel(glance.requestState)
+  const Title = level === 2 ? 'h2' : 'h3'
+  const Sub = level === 2 ? 'h3' : 'h4'
   return (
     <section className="hh-receipt" aria-labelledby="hh-access-project">
-      <h2 id="hh-access-project" className="hh-h2" tabIndex={-1}>
+      <Title id="hh-access-project" className={level === 2 ? 'hh-h2' : 'hh-h3'} tabIndex={-1}>
         {t('access.project.title')}
-      </h2>
+      </Title>
       <p className="hh-lead">{t('request.receipt.reference', { reference: glance.reference })}</p>
       {label ? <p>{label}</p> : null}
       <p>{sentText(glance.submittedAt)}</p>
       <section className="hh-receipt__section" aria-labelledby="hh-access-services">
-        <h3 id="hh-access-services" className="hh-h3">
+        <Sub id="hh-access-services" className="hh-h3">
           {t('request.step.services')}
-        </h3>
+        </Sub>
         <ul>
           {glance.services.map((s) => (
             <li key={s}>{s}</li>
@@ -68,6 +75,21 @@ function Project({ glance }: { glance: ProjectGlance }) {
       </section>
     </section>
   )
+}
+
+/** The optional account offer for a guest-link session; nothing for an account session or without one. */
+function LinkEnrollment({ fetchImpl }: { fetchImpl: Fetch }) {
+  const [channels, setChannels] = useState<EnrollChannel[] | null>(null)
+  useEffect(() => {
+    let live = true
+    void accountApi.linkChannels(fetchImpl).then((r) => {
+      if (live && r.ok) setChannels(r.data)
+    })
+    return () => {
+      live = false
+    }
+  }, [fetchImpl])
+  return channels ? <AccountEnrollment from={{ kind: 'link' }} channels={channels} fetchImpl={fetchImpl} /> : null
 }
 
 function Neutral({ title, text, children }: { title: CustomerKey; text: CustomerKey; children?: ReactNode }) {
@@ -378,7 +400,12 @@ export default function AccessLanding({ fetchImpl = browserFetch }: { fetchImpl?
       break
     }
     case 'project':
-      body = <Project glance={phase.glance} />
+      body = (
+        <>
+          <ProjectGlanceView glance={phase.glance} />
+          <LinkEnrollment fetchImpl={fetchImpl} />
+        </>
+      )
       break
     case 'recover':
       body = (

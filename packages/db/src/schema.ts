@@ -116,6 +116,53 @@ export interface IdentityAuthIdentitiesTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface IdentityCustomerAccountChangesTable {
+  id: string
+  account_id: string
+  kind: string
+  authority: string
+  old_value: string | null
+  session_id: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface IdentityCustomerAccountsTable {
+  id: string
+  credential_type: Generated<string>
+  state: Generated<string>
+  sign_in_email: string | null
+  email_verified_at: Timestamp | null
+  sign_in_phone: string | null
+  phone_verified_at: Timestamp | null
+  customer_id: string
+  contact_id: string
+  enrolled_via: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  closed_at: Timestamp | null
+  close_reason: string | null
+  closed_by: string | null
+  version: Generated<number>
+}
+
+export interface IdentityCustomerIdentityLinksTable {
+  id: string
+  account_id: string
+  customer_id: string
+  contact_id: string
+  project_id: string
+  request_id: string
+  authority: string
+  evidence: string
+  evidence_channel: string
+  evidence_code_id: string
+  state: string
+  decided_by: string
+  decided_at: Timestamp
+  revoked_at: Timestamp | null
+  revoke_reason: string | null
+  revoked_by: string | null
+}
+
 export interface IdentityCustomerSessionsTable {
   id: string
   token_hash: string
@@ -131,6 +178,8 @@ export interface IdentityCustomerSessionsTable {
   revoked_at: Timestamp | null
   revoke_reason: string | null
   grant_id: string | null
+  account_id: string | null
+  sign_in_channel: string | null
 }
 
 export interface IdentityProjectAccessGrantsTable {
@@ -641,6 +690,9 @@ export interface Database {
   'crm.projects': CrmProjectsTable
   'crm.properties': CrmPropertiesTable
   'identity.auth_identities': IdentityAuthIdentitiesTable
+  'identity.customer_account_changes': IdentityCustomerAccountChangesTable
+  'identity.customer_accounts': IdentityCustomerAccountsTable
+  'identity.customer_identity_links': IdentityCustomerIdentityLinksTable
   'identity.customer_sessions': IdentityCustomerSessionsTable
   'identity.project_access_grants': IdentityProjectAccessGrantsTable
   'identity.rate_limits': IdentityRateLimitsTable

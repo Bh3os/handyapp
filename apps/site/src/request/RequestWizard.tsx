@@ -168,6 +168,8 @@ export default function RequestWizard() {
   const [openCategory, setOpenCategory] = useState<string>(CATEGORIES[0])
   const [limitHit, setLimitHit] = useState(false)
   const [phase, setPhase] = useState<Phase>('loading')
+  /** TSK-0036: the visitor chose Create an Account; the form says how the account is made after sending. */
+  const [accountIntent, setAccountIntent] = useState(false)
   const [values, setValues] = useState<FormValues>(EMPTY_VALUES)
   const [step, setStep] = useState<StepId>('services')
   const [problems, setProblems] = useState<Problem[]>([])
@@ -432,13 +434,23 @@ export default function RequestWizard() {
     >
       <p>{t('request.continue.guestText')}</p>
       <div className="hh-request__choice">
-        <Button variant="secondary" disabledReason={t('request.continue.accountsUnavailable')}>
+        {/* TSK-0036 (HH-ID-10): an account is created from the request's verified contact, so Create an Account
+            opens the same form and the receipt then offers the account (PROPOSED); Sign in opens /account, and the
+            draft stays in this browser (HH-INT-08). */}
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setAccountIntent(true)
+            setPhase('form')
+            focusHeading.current = true
+          }}
+        >
           {t('request.continue.account')}
         </Button>
         <p className="hh-small">{t('request.continue.accountText')}</p>
-        <Button variant="quiet" disabledReason={t('request.continue.accountsUnavailable')}>
+        <a className="hh-button hh-button--quiet" href="/account">
           {t('request.continue.signIn')}
-        </Button>
+        </a>
       </div>
     </Dialog>
   )
@@ -933,6 +945,7 @@ export default function RequestWizard() {
       <p className="hh-small hh-muted">
         {store?.enabled ? t('request.draft.note', { days: settings.draftDays ?? 0 }) : t('request.draft.off')}
       </p>
+      {accountIntent ? <p className="hh-small">{t('request.continue.accountNext')}</p> : null}
       {problems.length ? (
         <div
           ref={summaryRef}

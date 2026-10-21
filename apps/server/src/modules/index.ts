@@ -10,6 +10,7 @@ import { photosModule } from './photos/index.js'
 import { QUEUE_MODULE } from './queue/index.js'
 import { requestsModule } from './requests/index.js'
 import { accessModule } from './access/index.js'
+import { accountsModule } from './accounts/index.js'
 import { SITE_MODULE } from './site/index.js'
 import { systemModule, type SystemDeps } from './system/index.js'
 import { verificationModule } from './verification/index.js'
@@ -47,6 +48,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     verificationModule({ codeKey: deps.codeKey ?? NO_CODE_KEY, trustProxyHops: deps.trustProxyHops ?? 0 }),
     // TSK-0034: the project access link landing and the opened project.
     accessModule({ codeKey: deps.codeKey ?? NO_CODE_KEY, trustProxyHops: deps.trustProxyHops ?? 0 }),
+    // TSK-0036: optional customer accounts with one-time-code sign-in, Sign Out and sign-in email changes.
+    accountsModule({ codeKey: deps.codeKey ?? NO_CODE_KEY, trustProxyHops: deps.trustProxyHops ?? 0 }),
   ]
 }
 
