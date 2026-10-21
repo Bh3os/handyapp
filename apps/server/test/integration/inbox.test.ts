@@ -816,3 +816,92 @@ describe('linking corrections, internal conversations and scope (TSK-0049, HH-CO
     expect(thread.deliveries).toEqual([expect.objectContaining({ id, messageKey: 'reminder.appointment' })])
   })
 })
+
+describe('the inbox follows reviewed merges (TSK-0049 with TSK-0046; HH-COM-07, HH-COM-01, HH-CRM-04, T21)', () => {
+  it('[HH-COM-07][HH-CRM-04][T21] a merged record never matches; its conversations show under the survivor and its projects count there', async () => {
+    const a = await submit({
+      fullName: 'Harper Synthetic Survivor',
+      email: 'merge-49@example.test',
+      phone: '(502) 555-0431',
+    })
+    const b = await submit({
+      fullName: 'Harper Synthetic Duplicate',
+      email: 'merge-49@example.test',
+      phone: '(502) 555-0432',
+    })
+    await verify(a.contactId, 'email')
+    await verify(b.contactId, 'email')
+    // Before the merge: a reply token threads to the duplicate's project; the shared address alone is ambiguous.
+    const token = await withTx(t.db, (tx) => projectReplyToken(tx, b.projectId))
+    const threaded = await deliver('resend', emailIn('merge-49@example.test', [replyAddress(ADDRESS, token)]))
+    expect(threaded).toMatchObject({
+      link_state: 'matched',
+      match_rule: 'reply_token',
+      project_id: b.projectId,
+      customer_id: b.customerId,
+    })
+    expect(await deliver('resend', emailIn('merge-49@example.test', [INBOUND]))).toMatchObject({
+      link_state: 'needs_linking',
+      needs_linking_reason: 'shared_contact',
+    })
+
+    // Office merges the duplicate into the survivor, from the preview and with a reason (TSK-0046).
+    const preview = await get('office', `/staff/customers/${b.customerId}/merge-preview?into=${a.customerId}`)
+    expect(preview.statusCode, preview.body).toBe(200)
+    const merged = await write('office', `/staff/customers/${b.customerId}/merge`, {
+      survivorId: a.customerId,
+      reason: 'Same synthetic person sent two requests',
+      previewDigest: preview.json<{ previewDigest: string }>().previewDigest,
+    })
+    expect(merged.statusCode, merged.body).toBe(200)
+
+    // The conversation keeps its project and its customer (a link, never a move); staff see it under the survivor.
+    const conv = await t.db
+      .selectFrom('comms.conversations')
+      .select(['id', 'customer_id', 'project_id'])
+      .where('id', '=', threaded.conversation_id as string)
+      .executeTakeFirstOrThrow()
+    expect(conv).toMatchObject({ customer_id: b.customerId, project_id: b.projectId })
+    const thread = await get('office', `/staff/inbox/conversations/${conv.id}`)
+    expect(thread.statusCode, thread.body).toBe(200)
+    expect(thread.json()).toMatchObject({ project: { reference: b.reference }, customer: { id: a.customerId } })
+    const list = await get('office', '/staff/inbox/conversations?limit=100')
+    expect(list.json<{ items: { id: string; customer: { id: string } }[] }>().items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: conv.id, customer: expect.objectContaining({ id: a.customerId }) }),
+      ]),
+    )
+    const message = await get('office', `/staff/inbox/messages/${threaded.id}`)
+    expect(message.json()).toMatchObject({ project: { reference: b.reference }, customer: { id: a.customerId } })
+
+    // The merged record's contact never matches, so the address is no longer shared; but the survivor now has two
+    // open projects (its own and the merged record's), so the message waits for staff.
+    expect(await deliver('resend', emailIn('merge-49@example.test', [INBOUND]))).toMatchObject({
+      link_state: 'needs_linking',
+      needs_linking_reason: 'several_projects',
+    })
+    // A reply token to the merged record's project is not attached on its own: its contacts never match.
+    expect(await deliver('resend', emailIn('merge-49@example.test', [replyAddress(ADDRESS, token)]))).toMatchObject({
+      link_state: 'needs_linking',
+      needs_linking_reason: 'sender_not_on_project',
+      suggested_project_id: b.projectId,
+    })
+    // With only the merged record's project open, the survivor's address is suggested for it, never attached.
+    await sql`UPDATE crm.projects SET state = 'closed' WHERE id = ${a.projectId}`.execute(t.db)
+    expect(await deliver('resend', emailIn('merge-49@example.test', [INBOUND]))).toMatchObject({
+      link_state: 'needs_linking',
+      needs_linking_reason: 'sender_not_on_project',
+      suggested_project_id: b.projectId,
+    })
+    // With only the survivor's own project open, it matches as before.
+    await sql`UPDATE crm.projects SET state = 'open' WHERE id = ${a.projectId}`.execute(t.db)
+    await sql`UPDATE crm.projects SET state = 'closed' WHERE id = ${b.projectId}`.execute(t.db)
+    expect(await deliver('resend', emailIn('merge-49@example.test', [INBOUND]))).toMatchObject({
+      link_state: 'matched',
+      match_rule: 'verified_email',
+      project_id: a.projectId,
+      customer_id: a.customerId,
+      contact_id: a.contactId,
+    })
+  })
+})

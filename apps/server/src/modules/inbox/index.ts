@@ -210,7 +210,8 @@ const listConversations: RouteDef = read({
     let q = ctx.db
       .selectFrom('comms.conversations as cv')
       .innerJoin('crm.projects as p', 'p.id', 'cv.project_id')
-      .innerJoin('crm.customers as cu', 'cu.id', 'cv.customer_id')
+      // The customer staff see the project under now (TSK-0046 merges and relinks; the conversation keeps its own).
+      .innerJoin('crm.customers as cu', (j) => j.on('cu.id', '=', sql<string>`crm.project_customer(cv.project_id)`))
       .select([
         'cv.id',
         'cv.last_message_at',
@@ -393,7 +394,8 @@ const getConversation: RouteDef = read({
     const cv = await ctx.db
       .selectFrom('comms.conversations as cv')
       .innerJoin('crm.projects as p', 'p.id', 'cv.project_id')
-      .innerJoin('crm.customers as cu', 'cu.id', 'cv.customer_id')
+      // The customer staff see the project under now (TSK-0046 merges and relinks; the conversation keeps its own).
+      .innerJoin('crm.customers as cu', (j) => j.on('cu.id', '=', sql<string>`crm.project_customer(cv.project_id)`))
       .select([
         'cv.id',
         'cv.state',
@@ -533,7 +535,7 @@ async function messageDetail(ctx: ApiContext, messageId: string) {
   const m = await db
     .selectFrom('comms.messages as m')
     .leftJoin('crm.projects as p', 'p.id', 'm.project_id')
-    .leftJoin('crm.customers as cu', 'cu.id', 'm.customer_id')
+    .leftJoin('crm.customers as cu', (j) => j.on('cu.id', '=', sql<string>`crm.project_customer(m.project_id)`))
     .select([
       'm.id',
       'm.link_version',

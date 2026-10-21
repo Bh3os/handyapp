@@ -12,8 +12,12 @@
 //   conversation"); otherwise, and always for email, several projects are Needs Linking.
 // - Anything else (unknown or unverified sender, merged customer, no open project) is Needs Linking.
 // PROPOSED: open projects are those not closed or canceled; a merged customer's contacts never match (TSK-0046).
+// PROPOSED (TSK-0046 links): a customer's open projects are those staff see under it now (merged records' and
+// relinked requests' included, a request relinked away excluded), so a merge or relink that makes several projects
+// fit sends the message to Needs Linking (HH-COM-07); only a project created for that customer is matched on its own.
 import type { Tx } from '@handyhub/db'
 import { sql } from 'kysely'
+import { projectsUnder } from '../customers/links.js'
 import { replyTokensIn, type InboundAddress } from './threading.js'
 
 export const CLOSED_PROJECT_STATES = ['closed', 'canceled'] as const
@@ -128,17 +132,27 @@ export async function matchInbound(tx: Tx, input: MatchInput): Promise<MatchResu
   if (customers.length > 1) return needs('shared_contact')
   const customerId = customers[0] as string
   const contactId = (verified[0] as { id: string }).id
-  const open = await tx
-    .selectFrom('crm.projects')
-    .select('id')
-    .where('customer_id', '=', customerId)
-    .where('state', 'not in', [...CLOSED_PROJECT_STATES])
-    .execute()
+  // The open projects staff see under this customer now (TSK-0046): its own, those of records merged into it and
+  // those relinked to it, never one relinked away. Only a project created for this customer is matched on its own
+  // (links never move a project); one that only reaches it through a link waits for staff with that suggestion.
+  const seen = await projectsUnder(tx, customerId)
+  const open = seen.length
+    ? await tx
+        .selectFrom('crm.projects')
+        .select(['id', 'customer_id'])
+        .where('id', 'in', seen)
+        .where('state', 'not in', [...CLOSED_PROJECT_STATES])
+        .execute()
+    : []
   if (open.length === 0) return needs('no_open_project')
   const rule: MatchRule = input.channel === 'email' ? 'verified_email' : 'verified_phone'
-  if (open.length === 1)
-    return { state: 'matched', rule, projectId: (open[0] as { id: string }).id, customerId, contactId }
-  if (input.channel === 'sms') {
+  if (open.length === 1) {
+    const only = open[0] as { id: string; customer_id: string }
+    if (only.customer_id !== customerId) return needs('sender_not_on_project', only.id)
+    return { state: 'matched', rule, projectId: only.id, customerId, contactId }
+  }
+  const own = open.filter((o) => o.customer_id === customerId)
+  if (input.channel === 'sms' && own.length) {
     const latest = await tx
       .selectFrom('comms.messages as m')
       .innerJoin('comms.conversations as cv', 'cv.id', 'm.conversation_id')
@@ -151,7 +165,7 @@ export async function matchInbound(tx: Tx, input: MatchInput): Promise<MatchResu
       .where(
         'cv.project_id',
         'in',
-        open.map((o) => o.id),
+        own.map((o) => o.id),
       )
       .orderBy('m.received_at', 'desc')
       .orderBy('m.seq', 'desc')
