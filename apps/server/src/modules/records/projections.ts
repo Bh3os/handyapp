@@ -23,6 +23,7 @@ import {
   type CustomerStatus,
 } from '@handyhub/domain'
 import type { JsonSchema } from '../../api/route.js'
+import { DISPOSITIONS, PLAN_CATEGORIES, RETAIN_REASONS } from '../privacy/plan.js'
 
 /** The entities of TSK-0037 and TSK-0044 (ENT-*). */
 export const ENTITIES = [
@@ -46,6 +47,8 @@ export const ENTITIES = [
   'Message',
   // TSK-0051: staff questions to the customer and the customer's replies.
   'Question',
+  // TSK-0100: the customer's own privacy requests and their data export.
+  'PrivacyRequest',
 ] as const
 export type Entity = (typeof ENTITIES)[number]
 
@@ -1116,6 +1119,378 @@ export const PORTAL_MESSAGE_SENT = customerView(
   (r: { at: Date }) => ({ from: 'you', channel: 'portal', at: r.at.toISOString() }),
 )
 
+// Customer downloads (TSK-0100; HH-PRIV-06, HH-SEC-05, T68, ENT-Document). The documents of one estimate version the
+// customer received, each with a short-lived signed link issued after the record and visibility checks: the customer
+// PDF as published and, for an uploaded estimate, the customer document it was confirmed for. Never a storage key,
+// a private original or a document of another project.
+const DOWNLOAD = object({
+  kind: enumOf(['estimate_pdf', 'estimate_document']),
+  contentType: STRING,
+  byteSize: { type: 'integer', minimum: 1 },
+  url: STRING,
+  expiresAt: DATE,
+})
+export type DownloadRecord = {
+  kind: 'estimate_pdf' | 'estimate_document'
+  contentType: string
+  byteSize: number
+  url: string
+  expiresAt: Date
+}
+export const DOCUMENT_DOWNLOADS = customerView(
+  'document.downloads',
+  'Document',
+  {
+    reference: STRING,
+    number: STRING,
+    version: { type: 'integer', minimum: 1 },
+    documents: { type: 'array', items: DOWNLOAD },
+  },
+  (r: { reference: string; number: string; version: number; documents: readonly DownloadRecord[] }) => ({
+    reference: r.reference,
+    number: r.number,
+    version: r.version,
+    documents: r.documents.map((d) => ({
+      kind: d.kind,
+      contentType: d.contentType,
+      byteSize: d.byteSize,
+      url: d.url,
+      expiresAt: d.expiresAt.toISOString(),
+    })),
+  }),
+)
+
+// Privacy requests (TSK-0100; HH-PRIV-03, ENT-PrivacyRequest, OWN-DEC-71, OWN-DEC-113). The requester's own requests:
+// the reference, kind, state, their own words for a correction, and once decided the outcome they are told: the
+// categories deleted and retained, why, the retention category and its configured years, and until when where known.
+// Never the Owner's reason, the checks, a staff name or another person's data.
+const PLAN_ITEM = object({
+  category: enumOf(PLAN_CATEGORIES),
+  disposition: enumOf(DISPOSITIONS),
+  count: { type: 'integer', minimum: 0 },
+  reason: { type: ['string', 'null'], enum: [...RETAIN_REASONS, null] },
+  retention: NULLABLE_STRING,
+  years: { type: ['integer', 'null'] },
+  reviewAt: NULLABLE_DATE,
+})
+const OUTCOME = object({
+  deleted: { type: 'array', items: object({ category: enumOf(PLAN_CATEGORIES), count: { type: 'integer' } }) },
+  retained: { type: 'array', items: PLAN_ITEM },
+  excluded: { type: 'array', items: PLAN_ITEM },
+  exportReady: { type: 'boolean' },
+  accessClosed: { type: 'boolean' },
+})
+type PlanItemRecord = {
+  category: string
+  disposition: string
+  count: number
+  reason: string | null
+  retention: string | null
+  years: number | null
+  reviewAt: string | null
+}
+type OutcomeRecord = {
+  deleted: readonly { category: string; count: number }[]
+  retained: readonly PlanItemRecord[]
+  excluded: readonly PlanItemRecord[]
+  exportReady: boolean
+  accessClosed: boolean
+}
+const planItem = (i: PlanItemRecord) => ({
+  category: i.category,
+  disposition: i.disposition,
+  count: i.count,
+  reason: i.reason,
+  retention: i.retention,
+  years: i.years,
+  reviewAt: i.reviewAt,
+})
+export type PrivacyRequestRecord = {
+  reference: string
+  kind: 'export' | 'correction' | 'deletion'
+  state: string
+  details: string | null
+  submittedAt: Date
+  decidedAt: Date | null
+  outcome: OutcomeRecord | null
+}
+export const PRIVACY_REQUEST = customerView(
+  'privacy_request.customer',
+  'PrivacyRequest',
+  {
+    reference: STRING,
+    kind: enumOf(['export', 'correction', 'deletion']),
+    state: enumOf(['received', 'under_review', 'completed', 'partially_completed', 'declined']),
+    details: NULLABLE_STRING,
+    submittedAt: DATE,
+    decidedAt: NULLABLE_DATE,
+    outcome: { oneOf: [{ type: 'null' }, OUTCOME] },
+  },
+  (r: PrivacyRequestRecord) => ({
+    reference: r.reference,
+    kind: r.kind,
+    state: r.state,
+    details: r.details,
+    submittedAt: r.submittedAt.toISOString(),
+    decidedAt: r.decidedAt ? r.decidedAt.toISOString() : null,
+    outcome: r.outcome
+      ? {
+          deleted: r.outcome.deleted.map((d) => ({ category: d.category, count: d.count })),
+          retained: r.outcome.retained.map(planItem),
+          excluded: r.outcome.excluded.map(planItem),
+          exportReady: r.outcome.exportReady,
+          accessClosed: r.outcome.accessClosed,
+        }
+      : null,
+  }),
+)
+
+/** The requester's requests, with whether the session is fresh enough to make a new one (identity confirmation). */
+export const PRIVACY_REQUESTS = customerView(
+  'privacy_requests.customer',
+  'PrivacyRequest',
+  {
+    reference: STRING,
+    freshVerification: { type: 'boolean' },
+    requests: { type: 'array', items: PRIVACY_REQUEST.schema },
+  },
+  (r: { reference: string; freshVerification: boolean; requests: readonly PrivacyRequestRecord[] }) => ({
+    reference: r.reference,
+    freshVerification: r.freshVerification,
+    requests: r.requests.map((x) => PRIVACY_REQUEST.project(x)),
+  }),
+)
+
+// The data export (TSK-0100; HH-PRIV-03, OQ-PRIVACY-REQUESTS): the requester's own data as the records hold it, for a
+// completed export request. PROPOSED content: their customer name, their own contact values, sign-in values, the
+// properties and requests they submitted, the estimate versions they received, their approvals, their
+// consent records, their privacy requests and photo counts. Excluded (named in `excluded`): other contacts of the
+// customer (third parties), staff-only notes and handling, staff details and audit entries; whether an export must
+// include more is the attorney's review (OQ-PRIVACY-REQUESTS).
+const NULLABLE_INT = { type: ['integer', 'null'] } as const
+const EXPORT_REQUEST = object({
+  reference: STRING,
+  submittedAt: DATE,
+  services: STRINGS,
+  notSure: { type: 'boolean' },
+  otherServices: NULLABLE_STRING,
+  description: NULLABLE_STRING,
+  answers: {
+    type: 'array',
+    items: object({ question: STRING, service: NULLABLE_STRING, value: NULLABLE_STRING, unit: NULLABLE_STRING }),
+  },
+  preferredDate: NULLABLE_STRING,
+  flexible: { type: 'boolean' },
+  needHelpToday: { type: 'boolean' },
+  timeWindows: STRINGS,
+  estimatePreference: STRING,
+  preferredChannel: STRING,
+  smsOptIn: { type: 'boolean' },
+  marketingOptIn: { type: 'boolean' },
+})
+export type ExportRecord = {
+  generatedAt: Date
+  customer: { name: string }
+  contact: { fullName: string; email: string; phone: string; preferredChannel: string }
+  account: { email: string | null; phone: string | null; since: Date } | null
+  properties: readonly {
+    street: string
+    unit: string | null
+    city: string
+    state: string
+    zip: string
+    propertyType: string
+  }[]
+  requests: readonly {
+    reference: string
+    submittedAt: Date
+    services: readonly string[]
+    notSure: boolean
+    otherServices: string | null
+    description: string | null
+    answers: readonly { question: string; service: string | null; value: string | null; unit: string | null }[]
+    preferredDate: string | null
+    flexible: boolean
+    needHelpToday: boolean
+    timeWindows: readonly string[]
+    estimatePreference: string
+    preferredChannel: string
+    smsOptIn: boolean
+    marketingOptIn: boolean
+  }[]
+  estimates: readonly { number: string; version: number; status: string; publishedAt: Date; totalCents: number }[]
+  approvals: readonly {
+    number: string
+    version: number
+    approvedAt: Date
+    fullName: string
+    totalCents: number
+    depositCents: number | null
+  }[]
+  consents: readonly { purpose: string; channel: string; granted: boolean; recordedAt: Date }[]
+  privacyRequests: readonly { reference: string; kind: string; state: string; submittedAt: Date }[]
+  /** TSK-0066: the requester's own Request to Reschedule / Request Cancellation of their appointments. */
+  appointmentRequests: readonly {
+    project: string
+    appointment: number
+    kind: string
+    state: string
+    reason: string | null
+    preferredTimes: string | null
+    requestedAt: Date
+    endedAt: Date | null
+  }[]
+  photos: { received: number; processing: number; failed: number }
+  excluded: readonly string[]
+}
+export const PRIVACY_EXPORT = customerView(
+  'privacy_export.customer',
+  'PrivacyRequest',
+  {
+    generatedAt: DATE,
+    customer: object({ name: STRING }),
+    contact: object({ fullName: STRING, email: STRING, phone: STRING, preferredChannel: STRING }),
+    account: { oneOf: [{ type: 'null' }, object({ email: NULLABLE_STRING, phone: NULLABLE_STRING, since: DATE })] },
+    properties: {
+      type: 'array',
+      items: object({
+        street: STRING,
+        unit: NULLABLE_STRING,
+        city: STRING,
+        state: STRING,
+        zip: STRING,
+        propertyType: STRING,
+      }),
+    },
+    requests: { type: 'array', items: EXPORT_REQUEST },
+    estimates: {
+      type: 'array',
+      items: object({
+        number: STRING,
+        version: { type: 'integer' },
+        status: STRING,
+        publishedAt: DATE,
+        totalCents: CENTS,
+      }),
+    },
+    approvals: {
+      type: 'array',
+      items: object({
+        number: STRING,
+        version: { type: 'integer' },
+        approvedAt: DATE,
+        fullName: STRING,
+        totalCents: CENTS,
+        depositCents: NULLABLE_INT,
+      }),
+    },
+    consents: {
+      type: 'array',
+      items: object({ purpose: STRING, channel: STRING, granted: { type: 'boolean' }, recordedAt: DATE }),
+    },
+    privacyRequests: {
+      type: 'array',
+      items: object({ reference: STRING, kind: STRING, state: STRING, submittedAt: DATE }),
+    },
+    appointmentRequests: {
+      type: 'array',
+      items: object({
+        project: STRING,
+        appointment: { type: 'integer' },
+        kind: STRING,
+        state: STRING,
+        reason: NULLABLE_STRING,
+        preferredTimes: NULLABLE_STRING,
+        requestedAt: DATE,
+        endedAt: NULLABLE_DATE,
+      }),
+    },
+    photos: object({
+      received: { type: 'integer' },
+      processing: { type: 'integer' },
+      failed: { type: 'integer' },
+    }),
+    excluded: STRINGS,
+  },
+  (r: ExportRecord) => ({
+    generatedAt: r.generatedAt.toISOString(),
+    customer: { name: r.customer.name },
+    contact: {
+      fullName: r.contact.fullName,
+      email: r.contact.email,
+      phone: r.contact.phone,
+      preferredChannel: r.contact.preferredChannel,
+    },
+    account: r.account
+      ? { email: r.account.email, phone: r.account.phone, since: r.account.since.toISOString() }
+      : null,
+    properties: r.properties.map((p) => ({
+      street: p.street,
+      unit: p.unit,
+      city: p.city,
+      state: p.state,
+      zip: p.zip,
+      propertyType: p.propertyType,
+    })),
+    requests: r.requests.map((q) => ({
+      reference: q.reference,
+      submittedAt: q.submittedAt.toISOString(),
+      services: [...q.services],
+      notSure: q.notSure,
+      otherServices: q.otherServices,
+      description: q.description,
+      answers: q.answers.map((a) => ({ question: a.question, service: a.service, value: a.value, unit: a.unit })),
+      preferredDate: q.preferredDate,
+      flexible: q.flexible,
+      needHelpToday: q.needHelpToday,
+      timeWindows: [...q.timeWindows],
+      estimatePreference: q.estimatePreference,
+      preferredChannel: q.preferredChannel,
+      smsOptIn: q.smsOptIn,
+      marketingOptIn: q.marketingOptIn,
+    })),
+    estimates: r.estimates.map((e) => ({
+      number: e.number,
+      version: e.version,
+      status: e.status,
+      publishedAt: e.publishedAt.toISOString(),
+      totalCents: e.totalCents,
+    })),
+    approvals: r.approvals.map((a) => ({
+      number: a.number,
+      version: a.version,
+      approvedAt: a.approvedAt.toISOString(),
+      fullName: a.fullName,
+      totalCents: a.totalCents,
+      depositCents: a.depositCents,
+    })),
+    consents: r.consents.map((c) => ({
+      purpose: c.purpose,
+      channel: c.channel,
+      granted: c.granted,
+      recordedAt: c.recordedAt.toISOString(),
+    })),
+    privacyRequests: r.privacyRequests.map((p) => ({
+      reference: p.reference,
+      kind: p.kind,
+      state: p.state,
+      submittedAt: p.submittedAt.toISOString(),
+    })),
+    appointmentRequests: r.appointmentRequests.map((c) => ({
+      project: c.project,
+      appointment: c.appointment,
+      kind: c.kind,
+      state: c.state,
+      reason: c.reason,
+      preferredTimes: c.preferredTimes,
+      requestedAt: c.requestedAt.toISOString(),
+      endedAt: c.endedAt ? c.endedAt.toISOString() : null,
+    })),
+    photos: { received: r.photos.received, processing: r.photos.processing, failed: r.photos.failed },
+    excluded: [...r.excluded],
+  }),
+)
+
 /** Every customer view, by name. */
 export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
   [
@@ -1143,5 +1518,9 @@ export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
     QUESTION_UPLOAD,
     QUESTION_REPLY_RESULT,
     PORTAL_MESSAGE_SENT,
+    DOCUMENT_DOWNLOADS,
+    PRIVACY_REQUEST,
+    PRIVACY_REQUESTS,
+    PRIVACY_EXPORT,
   ].map((v) => [v.name, v as CustomerView<never>]),
 )

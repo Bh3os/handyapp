@@ -5,8 +5,16 @@
 // - Objects are written once under opaque keys (never a name, address or file name); an existing key is never
 //   overwritten (create-only, If-None-Match), so originals never change.
 // - FakeObjectStorage: local and ci only, in memory, with signed URLs it can check (signature and expiry).
+// - TSK-0100 (HH-PRIV-05): an object is removed only by the Owner's recorded deletion of the record it belongs to,
+//   after that deletion committed (privacy.object_erasure); removing an object that is already gone succeeds.
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
-import { GetObjectCommand, PutObjectCommand, S3Client, type S3ClientConfig } from '@aws-sdk/client-s3'
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+  type S3ClientConfig,
+} from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import type { StorageSettings } from '../settings.js'
 
@@ -27,6 +35,8 @@ export interface ObjectStorage {
   /** Writes a new object; refuses to overwrite one that exists. */
   put(key: string, bytes: Uint8Array, contentType: string): Promise<void>
   get(key: string): Promise<{ bytes: Uint8Array; contentType: string | null }>
+  /** Removes an object (TSK-0100: only after the Owner's recorded deletion committed); an absent key succeeds. */
+  delete(key: string): Promise<void>
   /** A short-lived URL to read one object. Call only after the server authorized the read. */
   signedGetUrl(key: string, options?: SignedUrlOptions): Promise<string>
   /** A short-lived URL to upload one new object of the given content type. */
@@ -106,6 +116,15 @@ export class R2ObjectStorage implements ObjectStorage {
     }
   }
 
+  async delete(key: string): Promise<void> {
+    checkKey(key)
+    try {
+      await this.#client.send(new DeleteObjectCommand({ Bucket: this.#bucket, Key: key }))
+    } catch (err) {
+      throw unavailable(err)
+    }
+  }
+
   async signedGetUrl(key: string, options?: SignedUrlOptions): Promise<string> {
     checkKey(key)
     return getSignedUrl(this.#client, new GetObjectCommand({ Bucket: this.#bucket, Key: key }), {
@@ -141,6 +160,11 @@ export class FakeObjectStorage implements ObjectStorage {
     const o = this.objects.get(key)
     if (!o) throw new StorageError('object storage did not answer as expected (NoSuchKey, 404)')
     return { bytes: o.bytes, contentType: o.contentType }
+  }
+
+  async delete(key: string): Promise<void> {
+    checkKey(key)
+    this.objects.delete(key)
   }
 
   #sign(method: string, key: string, expires: number): string {

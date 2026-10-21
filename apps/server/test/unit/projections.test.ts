@@ -101,6 +101,13 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
         'createQuestionReplyUpload',
         'replyToQuestion',
         'sendPortalMessage',
+        // TSK-0100: the customer's privacy requests, their data export and the document download links.
+        'listCustomerPrivacyRequests',
+        'requestExport',
+        'requestCorrection',
+        'requestDeletion',
+        'getCustomerDataExport',
+        'getCustomerEstimateDownloads',
       ].sort(),
     )
     for (const r of customerRoutes) {

@@ -39,6 +39,7 @@ import {
   scheduleChangeStaffAutomation,
   windowOfferExpiryAutomation,
 } from './modules/visits/index.js'
+import { objectErasureAutomation } from './modules/privacy/log.js'
 import type { CodeKeySettings } from './modules/identity/index.js'
 import type { RecordChecks, ReleaseFailureItem } from './modules/notifications/index.js'
 import type { Automation } from './platform/automation.js'
@@ -167,5 +168,7 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
       publicSiteUrl: deps.publicSiteUrl,
       staffAppUrl: deps.staffAppUrl,
     }),
+    // TSK-0100: the stored files of a record the Owner deleted are removed after the deletion committed.
+    objectErasureAutomation(deps.providers.storage),
   ]
 }
