@@ -14,7 +14,12 @@ import { createStaffUser, setPasswordHash } from '../../src/modules/identity/acc
 import { hashPassword } from '../../src/modules/identity/passwords.js'
 import { deliveryStatusAutomation, notificationAutomation } from '../../src/modules/notifications/index.js'
 import { newRequestQueueAutomation } from '../../src/modules/queue/index.js'
-import { responseClockAutomation, responseReport } from '../../src/modules/requests/response-clock.js'
+import {
+  DELIVERY_FAILED,
+  DELIVERY_SUCCEEDED,
+  responseClockAutomation,
+  responseReport,
+} from '../../src/modules/requests/response-clock.js'
 import { createAutomationRegistry, type Automation } from '../../src/platform/automation.js'
 import { recordPolicyVersion } from '../../src/platform/config/index.js'
 import { createWorker } from '../../src/platform/jobs.js'
@@ -173,7 +178,7 @@ const clockRow = (id: string) =>
 const item = (id: string, type = 'new_request') =>
   t.db
     .selectFrom('ops.queue_items')
-    .select(['reason', 'resolution', 'due_at', 'band', 'subject_status'])
+    .select(['reason', 'resolution', 'due_at', 'band', 'subject_status', 'assigned_staff_id'])
     .where('subject_id', '=', id)
     .where('type', '=', type)
     .orderBy('opened_at', 'desc')
@@ -212,6 +217,27 @@ const drain = async (automations: Automation[]) => {
   }
 }
 const clockWorker = () => drain([responseClockAutomation(), newRequestQueueAutomation()])
+/** The clock's job for one delivery outcome, run directly: as a retry, or a second worker, would run it. */
+const clockJob = (deliveryId: string, eventType: string, at: Date) =>
+  withTx(t.db, (tx) =>
+    responseClockAutomation().handle({
+      tx,
+      job: {
+        id: `synthetic-${eventType}-${deliveryId}`,
+        key: `synthetic-${eventType}-${deliveryId}`,
+        automation: 'requests.response_clock',
+        attempt: 2,
+        payload: { at: at.toISOString() },
+        eventId: null,
+        eventType,
+        target: { type: 'message_delivery', id: deliveryId },
+        requestId: `req-clock-${++rid}`,
+      },
+      idempotencyKey: `synthetic-${eventType}-${deliveryId}`,
+      log: app.log as never,
+      signal: new AbortController().signal,
+    }),
+  )
 let rid = 0
 
 /** Publishes a question about the request through the real notification path (the fake email provider). */
@@ -376,7 +402,8 @@ describe('the first-response clock (TSK-0043, HH-LEAD-05, OWN-DEC-115, OWN-DEC-1
       business_minutes: expected,
       within_target: sentAt.getTime() <= (stopped.due_at as Date).getTime(),
     })
-    expect((await item(r.id))[0]).toMatchObject({ resolution: 'responded' })
+    // Answered while still received: the item stays a new request, with no due time, until an action takes it.
+    expect((await item(r.id))[0]).toMatchObject({ resolution: null, reason: 'new_request', due_at: null })
     expect((await detail('owner', r.id)).responseClock).toMatchObject({ state: 'stopped', stopKind: 'response_sent' })
     // Delivered later changes nothing: the response was the send.
     await providerEvent(delivery.provider_message_id as string, 'email.delivered', new Date(sentAt.getTime() + 5_000))
@@ -386,6 +413,15 @@ describe('the first-response clock (TSK-0043, HH-LEAD-05, OWN-DEC-115, OWN-DEC-1
     // A delivery that bounces after it was accepted is a failed response: the clock runs again, an action item again.
     const fresh = await newRequest()
     await clockWorker()
+    expect((await qualify('office', fresh.id, OK_CHECKS, 0)).statusCode).toBe(200)
+    const asked = await write(
+      'office',
+      'POST',
+      action(fresh.id, 'ask-question'),
+      {},
+      (await detail('office', fresh.id)).version,
+    )
+    expect(asked.statusCode).toBe(200)
     const second = await publishQuestion(fresh.id)
     const at = new Date(Math.max(Date.now(), fresh.submittedAt.getTime()) + 1_000)
     await providerEvent(second.provider_message_id as string, 'email.sent', at)
@@ -403,6 +439,32 @@ describe('the first-response clock (TSK-0043, HH-LEAD-05, OWN-DEC-115, OWN-DEC-1
       .orderBy('seq')
       .execute()
     expect(events.map((e) => e.kind)).toEqual(['response_sent', 'response_failed'])
+  })
+
+  it('[HH-LEAD-05][OWN-DEC-116] outcome jobs run out of order follow the delivery: a late success after a bounce stops nothing', async () => {
+    const r = await newRequest()
+    await clockWorker()
+    const delivery = await publishQuestion(r.id)
+    const sentAt = new Date(Math.max(Date.now(), r.submittedAt.getTime()) + 1_000)
+    const bouncedAt = new Date(sentAt.getTime() + 2_000)
+    await providerEvent(delivery.provider_message_id as string, 'email.sent', sentAt)
+    await providerEvent(delivery.provider_message_id as string, 'email.bounced', bouncedAt)
+    // The failure's job first, then the success's job (retried after a transient error, or on a second worker).
+    expect(await clockJob(delivery.id, DELIVERY_FAILED, bouncedAt)).toBe('done')
+    expect(await clockJob(delivery.id, DELIVERY_SUCCEEDED, sentAt)).toBe('cancelled')
+    expect(await clockRow(r.id)).toMatchObject({ stopped_at: null, business_minutes: null, within_target: null })
+    // The queued jobs themselves agree: the clock stays running and the request stays an action item.
+    await clockWorker()
+    expect((await clockRow(r.id)).stopped_at).toBeNull()
+    const [open] = await item(r.id)
+    expect(open).toMatchObject({ resolution: null, reason: 'new_request' })
+    expect(open?.due_at).not.toBeNull()
+    const events = await t.db
+      .selectFrom('intake.response_events')
+      .select('kind')
+      .where('request_id', '=', r.id)
+      .execute()
+    expect(events.map((e) => e.kind)).toEqual(['response_failed'])
   })
 
   it('[HH-LEAD-05][OWN-DEC-116] a failed delivery leaves the clock running and stays an action item', async () => {
@@ -445,7 +507,8 @@ describe('the first-response clock (TSK-0043, HH-LEAD-05, OWN-DEC-115, OWN-DEC-1
     })
     const clock = await clockRow(r.id)
     expect(clock.business_minutes).toBe(businessMinutesBetween(r.submittedAt, new Date(out.occurredAt), HOURS, ZONE))
-    expect((await item(r.id))[0]).toMatchObject({ resolution: 'responded' })
+    // Answered by phone but not yet handled: it stays in the queue as a new request, no longer due.
+    expect((await item(r.id))[0]).toMatchObject({ resolution: null, reason: 'new_request', due_at: null })
     // A second conversation is history; the first response stays the first.
     expect(
       (await write('office', 'POST', url, { channel: 'in_person', outcome: 'Synthetic: met on site.' })).statusCode,
@@ -453,6 +516,17 @@ describe('the first-response clock (TSK-0043, HH-LEAD-05, OWN-DEC-115, OWN-DEC-1
     expect((await clockRow(r.id)).stopped_at).toEqual(clock.stopped_at)
     const d = await detail('office', r.id)
     expect(d.conversations.map((c) => c.channel)).toEqual(['phone', 'in_person'])
+    // Once an action takes it out of received, the answered request leaves the queue.
+    expect((await qualify('office', r.id, OK_CHECKS, 0)).statusCode).toBe(200)
+    const asked = await write(
+      'office',
+      'POST',
+      action(r.id, 'ask-question'),
+      {},
+      (await detail('office', r.id)).version,
+    )
+    expect(asked.statusCode).toBe(200)
+    expect((await item(r.id))[0]).toMatchObject({ resolution: 'responded' })
     // Staff-only records: never edited, and the outcome text is never in the audit log.
     await expect(
       sql`UPDATE intake.request_conversations SET outcome = 'x' WHERE request_id = ${r.id}`.execute(t.db),
@@ -659,6 +733,41 @@ describe('review holds (TSK-0043, HH-LEAD-04, T40, RULE-SAFETY-GATES, RULE-HUMAN
       .execute()
     expect(audit.length).toBeGreaterThanOrEqual(3)
     expect(JSON.stringify(audit)).not.toContain('painted trim')
+  })
+
+  it('[HH-LEAD-04][HH-OPS-01] the review-hold item follows its request: an assignment and an action update it', async () => {
+    const r = await newRequest()
+    expect((await qualify('office', r.id, flagged(['structural']), 0)).statusCode).toBe(200)
+    const state = async () =>
+      (await t.db.selectFrom('intake.requests').select('state').where('id', '=', r.id).executeTakeFirstOrThrow()).state
+    const [opened] = await item(r.id, 'review_hold')
+    expect(opened).toMatchObject({ resolution: null, band: 'safety', subject_status: await state() })
+    const assign = async (to: string) =>
+      write(
+        'owner',
+        'PUT',
+        `/api/v1/staff/requests/${r.id}/responsible`,
+        { staffUserId: to },
+        (await detail('owner', r.id)).version,
+      )
+    expect((await assign(ids.office)).statusCode).toBe(200)
+    expect((await item(r.id, 'review_hold'))[0]).toMatchObject({ resolution: null, assigned_staff_id: ids.office })
+    // A reassignment moves both of the request's items; neither keeps the previous person.
+    expect((await assign(ids.owner)).statusCode).toBe(200)
+    expect((await item(r.id, 'review_hold'))[0]).toMatchObject({ resolution: null, assigned_staff_id: ids.owner })
+    expect((await item(r.id))[0]).toMatchObject({ assigned_staff_id: ids.owner })
+    const asked = await write(
+      'office',
+      'POST',
+      action(r.id, 'ask-question'),
+      {},
+      (await detail('office', r.id)).version,
+    )
+    expect(asked.statusCode).toBe(200)
+    expect((await item(r.id, 'review_hold'))[0]).toMatchObject({
+      resolution: null,
+      subject_status: 'needs_information',
+    })
   })
 
   it('[HH-LEAD-04] a flagged risk names its hazard; Ask a Question and Not a Fit stay open; a closed request keeps its holds', async () => {

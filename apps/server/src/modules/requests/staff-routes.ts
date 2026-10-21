@@ -336,6 +336,8 @@ async function moveRequest(
     internalNote: optionalNote(input.internalNote),
   })
   await syncNewRequestItem(tx, current.id)
+  // The review-hold item shows the request's status too; it follows the action in the same transaction.
+  await syncReviewHoldItem(tx, current.id)
   await outbox.add(tx, {
     type: input.outboxType,
     aggregate: { type: 'request', id: current.id, version: moved.version },
@@ -611,7 +613,9 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
           assigned_by: actor.userId,
         })
         .execute()
+      // Both of the request's items name the responsible person; neither keeps the previous one.
       await syncNewRequestItem(tx, current.id)
+      await syncReviewHoldItem(tx, current.id)
       await ctx.audit({
         target: { type: 'request', id: current.id, version },
         summary: { from: current.responsibleStaffId, to: target },

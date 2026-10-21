@@ -215,7 +215,8 @@ async function requestOfRecord(tx: Tx, recordType: string | null, recordId: stri
 /**
  * The clock's consumer of delivery outcomes (HH-AUTO-01): a meaningful customer message whose delivery succeeded
  * stops the clock of the request it is about; a failure is recorded and leaves (or puts) the clock running. The
- * delivery row is read as it is now; the event's time is when the provider took the message.
+ * delivery row is read as it is now, and an outcome it no longer has is dropped; the event's time is when the provider
+ * took the message.
  */
 export function responseClockAutomation(): Automation {
   return {
@@ -233,12 +234,20 @@ export function responseClockAutomation(): Automation {
       const deliveryId = job.target.id
       const at = typeof job.payload['at'] === 'string' ? new Date(job.payload['at']) : null
       if (!deliveryId || !at || Number.isNaN(at.getTime())) return 'cancelled'
+      // FOR SHARE waits for a delivery transition still in flight (it holds the row FOR UPDATE), so the state read here
+      // stays current until this job commits.
       const d = await tx
         .selectFrom('platform.message_deliveries')
-        .select(['id', 'message_key', 'audience', 'record_type', 'record_id'])
+        .select(['id', 'message_key', 'audience', 'record_type', 'record_id', 'state'])
         .where('id', '=', deliveryId)
+        .forShare()
         .executeTakeFirst()
       if (!d || d.audience !== 'customer' || !isMeaningfulResponse(d.message_key)) return 'cancelled'
+      // Each transition writes its outcome event with the new state, so the job of the latest transition always agrees
+      // with the delivery. A job the delivery has moved past (retried or run out of order) records nothing: a stale
+      // success after a bounce would otherwise stop the clock on a failed delivery (OWN-DEC-116).
+      const succeeded = d.state === 'sent' || d.state === 'delivered'
+      if ((job.eventType === DELIVERY_SUCCEEDED) !== succeeded) return 'cancelled'
       const requestId = await requestOfRecord(tx, d.record_type, d.record_id)
       if (!requestId) return 'cancelled'
       const r = await recordResponseEvent(tx, {

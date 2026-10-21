@@ -11,8 +11,10 @@ export const REQUEST_SUBMITTED = 'request.submitted'
  * Brings a request's new_request item in line with the request and its first-response clock as they are now
  * (TSK-0043; HH-LEAD-05, OWN-DEC-116): the item stays open, due at the clock's internal target, until a meaningful
  * response stops the clock, whatever staff did meanwhile (opening, assigning, qualifying, the four actions, drafting).
- * While received it reads "new request"; afterwards "awaiting a first response". A request without a clock (none
- * since TSK-0043) keeps the earlier rule: open while received. The provider below runs it from the outbox; the
+ * It also stays open while the request is still received, so a request answered (say by a logged call) before anyone
+ * took one of the four actions does not leave the queue; it then has no due time, since the target was met or missed
+ * already. While received it reads "new request"; afterwards "awaiting a first response". A request without a clock
+ * (none since TSK-0043) keeps the earlier rule: open while received. The provider below runs it from the outbox; the
  * requests module runs it in the same transaction as an assignment, an action or a clock change, so the queue never
  * shows a stale assignee or an answered request.
  */
@@ -28,7 +30,8 @@ export async function syncNewRequestItem(tx: Tx, requestId: string): Promise<'op
     .select(['due_at', 'stopped_at'])
     .where('request_id', '=', requestId)
     .executeTakeFirst()
-  const awaiting = clock ? clock.stopped_at === null : request.state === 'received'
+  const clockRunning = clock ? clock.stopped_at === null : false
+  const awaiting = clockRunning || request.state === 'received'
   if (!awaiting) {
     // Answered (or, without a clock, already handled): an open item from an earlier event is resolved.
     await resolveQueueItem(tx, {
@@ -51,7 +54,7 @@ export async function syncNewRequestItem(tx: Tx, requestId: string): Promise<'op
     reference: request.reference,
     status: request.state,
     assignedStaffId: request.responsible_staff_id,
-    dueAt: clock?.due_at ?? null,
+    dueAt: clockRunning ? (clock?.due_at ?? null) : null,
     openedAt: request.submitted_at,
   })
   return 'open'

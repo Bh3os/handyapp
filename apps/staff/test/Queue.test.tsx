@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { App, routeOf } from '../src/App'
 import { duration, mergeRefresh, QueueHome, type QueueItem, type QueuePage } from '../src/Queue'
+import { businessDuration } from '../src/ResponseClock'
 import { requestDetail } from './request-fixture'
 
 afterEach(cleanup)
@@ -323,6 +324,13 @@ describe('the action queue screen (TSK-0041, HH-OPS-01, HH-OPS-02)', () => {
     expect(duration(t, 59 * 60_000)).toBe('59 minutes')
     expect(duration(t, 90 * 60_000)).toBe('1 hour')
     expect(duration(t, 72 * 3600_000)).toBe('3 days')
+  })
+
+  it('[HH-LEAD-05] words business time in hours, never in 24-hour days', () => {
+    expect(businessDuration(t, 45)).toBe('45 minutes')
+    expect(businessDuration(t, 90)).toBe('1 hour')
+    // 50 business hours are more than three days of 08:00-22:00, so "2 days" would understate the wait.
+    expect(businessDuration(t, 3000)).toBe('50 hours')
   })
 })
 

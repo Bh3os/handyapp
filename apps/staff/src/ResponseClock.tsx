@@ -20,13 +20,14 @@ export type ResponseClock = {
   withinTarget: boolean | null
 }
 
-/** Whole minutes, hours or days of business time. */
+/**
+ * Whole minutes or hours of business time. Never days: business time counts only the configured daily hours, so
+ * dividing it by 24 would understate how long a request has waited.
+ */
 export function businessDuration(t: T, minutes: number): string {
   const m = Math.max(0, Math.floor(minutes))
   if (m < 60) return t('queue.time.minutes', { count: m })
-  const hours = Math.floor(m / 60)
-  if (hours < 48) return t('queue.time.hours', { count: hours })
-  return t('queue.time.days', { count: Math.floor(hours / 24) })
+  return t('queue.time.hours', { count: Math.floor(m / 60) })
 }
 
 /** A time of the clock, shown in the business time zone it counts in (the browser's zone if it has none). */
