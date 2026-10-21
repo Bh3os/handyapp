@@ -9,7 +9,10 @@ import {
   legalContent,
   legalKeys,
   legalPendingItems,
+  legalTextContent,
+  legalTextKeys,
   PRIVACY_NOTICE,
+  SMS_DISCLOSURE,
   SMS_NO_SHARING_KEY,
   SMS_TERMS,
   WEBSITE_TERMS,
@@ -274,5 +277,67 @@ describe('actual practice only; nothing invented (TSK-0024, HH-PRIV-04, RULE-NO-
     // The support contact is a placeholder until the owner gives the real phone and email (OWN-DEC-131).
     expect(nodeStatus('OWN-DEC-131')).toBe('active')
     for (const doc of LEGAL_DOCUMENTS) for (const id of legalPendingItems(doc)) expect(nodeStatus(id), id).toBeDefined()
+  })
+})
+
+describe('the SMS opt-in disclosure beside the request-form checkbox (TSK-0029, HH-INT-22, HH-COM-12, T76)', () => {
+  const disclosure = legalTextKeys(SMS_DISCLOSURE).map((k) => customerTranslator().t(k as CustomerKey))
+  const all = disclosure.join('\n')
+
+  it('[HH-INT-22][ENT-PolicyVersion] is a versioned draft text whose hash covers its exact wording', () => {
+    const hash = createHash('sha256').update(legalTextContent(SMS_DISCLOSURE, customer), 'utf8').digest('hex')
+    expect(hash).toBe(SMS_DISCLOSURE.contentSha256)
+    for (const key of legalTextKeys(SMS_DISCLOSURE)) expect(Object.hasOwn(customer, key), key).toBe(true)
+    expect(SMS_DISCLOSURE).toMatchObject({ documentId: 'sms-disclosure-1', status: 'draft', attorneyReviewed: false })
+    const pattern = new RegExp((REQUEST_FORM_SCHEMA.properties.smsDisclosureVersion as { pattern: string }).pattern)
+    expect(SMS_DISCLOSURE.documentId).toMatch(pattern)
+    expect(LEGAL_DOCUMENTS.map((d) => d.documentId)).not.toContain(SMS_DISCLOSURE.documentId)
+  })
+
+  it('[HH-INT-22][HH-COM-12][T76] names the program and message types, frequency, rates, STOP, HELP, support and links', () => {
+    expect(customer[SMS_DISCLOSURE.label]).toBe('I agree to receive HandyHub Service Texts at the phone number above.')
+    expect(all).toMatch(/HandyHub Service Texts are messages about your estimate requests, projects, appointments/)
+    expect(all).toMatch(/^Message frequency varies/m)
+    expect(all).toContain('Message and data rates may apply.')
+    expect(all).toContain('Reply STOP to opt out.')
+    expect(all).toContain('Reply HELP for help.')
+    expect(all).toContain('Support contact:')
+    expect(SMS_DISCLOSURE.blocks.some((b) => b.kind === 'contact')).toBe(true)
+    expect(SMS_DISCLOSURE.blocks.flatMap((b) => (b.kind === 'link' ? [b.to] : []))).toEqual([
+      'sms_terms',
+      'privacy_notice',
+    ])
+    // Optional and separate: never required to send, never marketing (OWN-DEC-147).
+    expect(all).toMatch(/Texts are optional/)
+    expect(all).toMatch(/Sending a request or giving us your phone number is not agreement to texts\./)
+    expect(all).toMatch(/separate marketing permission/)
+  })
+
+  it('[HH-COM-12] every sentence the SMS terms publish is the same catalog key, so the two never differ', () => {
+    const terms = new Set(legalKeys(SMS_TERMS))
+    const own = legalTextKeys(SMS_DISCLOSURE).filter((k) => !terms.has(k))
+    // Only the checkbox label, the short frequency sentence and the two link labels are the disclosure's own.
+    expect(own.sort()).toEqual([
+      'legal.link.privacy',
+      'legal.link.smsTerms',
+      'legal.smsDisclosure.frequency',
+      'legal.smsDisclosure.label',
+    ])
+  })
+
+  it('[RULE-NO-INVENTED-FACTS][HH-BASE-04] passes the copy lint and invents no number, address or claim', () => {
+    for (const sentence of disclosure) expect(copyProblems(sentence), sentence).toEqual([])
+    expect(all).not.toMatch(/\b\d{3}[-. )]\d{3}[-. ]\d{4}\b|@[a-z0-9-]+\.[a-z]{2,}/i)
+    expect(all).not.toMatch(/\bfree\b|guarantee|\d+ (messages|texts|msgs)/i)
+    expect(all).not.toMatch(/Handyhub LLC/)
+  })
+
+  it('[HH-INT-22] the request wizard shows the label, the blocks and the version, and keeps the box unchecked', () => {
+    const wizard = read('request/RequestWizard.tsx')
+    expect(wizard).toContain('SMS_DISCLOSURE.label')
+    expect(wizard).toContain('SMS_DISCLOSURE.blocks.map')
+    expect(wizard).toContain('smsDisclosureVersion: SMS_DISCLOSURE_VERSION')
+    expect(wizard).toMatch(/name="smsOptIn"[\s\S]*?checked=\{values\.smsOptIn\}/)
+    expect(wizard).not.toMatch(/defaultChecked/)
   })
 })

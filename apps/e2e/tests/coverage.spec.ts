@@ -137,7 +137,7 @@ test.describe('ZIP coverage checker (TSK-0022, HH-CUS-03, T07)', () => {
     await page.getByLabel('Full name').fill('Test Customer')
     await page.getByRole('textbox', { name: /^Email/ }).fill('coverage-customer@example.test')
     await page.getByRole('textbox', { name: /^Phone/ }).fill('(502) 555-0199')
-    await page.getByLabel('Text', { exact: true }).check()
+    await page.getByLabel('Phone call', { exact: true }).check()
     await page.getByLabel('Let HandyHub decide').check()
     await page.getByRole('button', { name: 'Next' }).click()
     await page.getByRole('button', { name: 'Send Estimate Request' }).click()

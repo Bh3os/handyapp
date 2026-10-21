@@ -9,7 +9,7 @@ import { buildApp } from '../../src/app.js'
 import { localDate } from '../../src/modules/requests/submit.js'
 import { recordPolicyVersion } from '../../src/platform/config/index.js'
 import { testConfig } from '../fixtures/env.js'
-import { PRIVACY_NOTICE } from '@handyhub/domain/legal'
+import { PRIVACY_NOTICE, SMS_DISCLOSURE } from '@handyhub/domain/legal'
 
 let t: TestDatabase
 let app: FastifyInstance
@@ -63,7 +63,9 @@ function body(over: Record<string, unknown> = {}) {
       phone: '(502) 555-0101',
       preferredChannel: 'text',
     },
-    smsOptIn: false,
+    // Text as the preferred method needs the SMS opt-in with the disclosure shown (TSK-0029, HH-INT-22).
+    smsOptIn: true,
+    smsDisclosureVersion: SMS_DISCLOSURE.documentId,
     marketingOptIn: false,
     ...over,
   }

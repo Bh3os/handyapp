@@ -1388,10 +1388,20 @@
                     }
                   },
                   "smsOptIn": {
-                    "type": "boolean"
+                    "enum": [
+                      true,
+                      false
+                    ]
+                  },
+                  "smsDisclosureVersion": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9._-]{1,40}$"
                   },
                   "marketingOptIn": {
-                    "type": "boolean"
+                    "enum": [
+                      true,
+                      false
+                    ]
                   },
                   "website": {
                     "type": "string",
@@ -9633,6 +9643,7 @@
                               "legal.privacy_notice",
                               "legal.sms_terms",
                               "legal.website_terms",
+                              "legal.sms_disclosure",
                               "ai.module"
                             ]
                           },

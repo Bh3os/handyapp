@@ -189,6 +189,7 @@ export const LABEL_FAMILIES = {
     'legal.privacy_notice',
     'legal.sms_terms',
     'legal.website_terms',
+    'legal.sms_disclosure',
     'ai.module',
   ],
   /** Staff qualification of a request (TSK-0042; HH-LEAD-02). */

@@ -326,6 +326,7 @@
   "enum.configKey.legal.privacy_notice": "Versión de la política de privacidad",
   "enum.configKey.legal.sms_terms": "Versión de los términos de SMS",
   "enum.configKey.legal.website_terms": "Versión de los términos del sitio web",
+  "enum.configKey.legal.sms_disclosure": "Versión del aviso de consentimiento para SMS",
   "enum.configKey.ai.module": "Funciones de IA",
   "system.retry": "Intentar de nuevo",
   "system.refresh": "Actualizar",
