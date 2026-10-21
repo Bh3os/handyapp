@@ -59,7 +59,12 @@ export function buildOpenApi(modules: readonly ApiModule[]): Record<string, unkn
   for (const { module, route } of routes) {
     const responses: Record<string, unknown> = {}
     for (const [status, schema] of Object.entries(route.schema.response))
-      responses[status] = { description: 'Success', content: { 'application/json': { schema } } }
+      responses[status] = {
+        description: 'Success',
+        content: route.binaryResponse
+          ? Object.fromEntries(route.binaryResponse.contentTypes.map((t) => [t, { schema }]))
+          : { 'application/json': { schema } },
+      }
     for (const status of errorStatuses(route))
       responses[String(status)] = {
         description: 'Error',

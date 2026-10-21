@@ -92,6 +92,16 @@ export const CLAIMS: readonly Claim[] = [
       decision: 'OWN-DEC-134',
     },
   ])
+  // The customer estimate PDF shows the job's one discount as a totals row in the owner's own format, "Discount
+  // (military) -10%" (TSK-0054; OWN-DEC-145, FACT-PRICING-DISCOUNTS): a stored totals row, not a price claim.
+  .concat([
+    {
+      key: 'estimatePdf.discount',
+      text: 'Discount ({category}) -{percent}%',
+      source: 'owner, 2026-10-20',
+      decision: 'OWN-DEC-145',
+    },
+  ])
 
 /** Claim words and phrases that stay off customer text unless the claim is registered above. */
 export const BLOCKED: readonly { readonly pattern: RegExp; readonly reason: string }[] = [

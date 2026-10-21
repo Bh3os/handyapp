@@ -110,6 +110,7 @@ export function envelope(error: ApiError, audience: Audience, requestId: string)
       requestId,
       retryable: error.retryable,
       ...(error.options.current ? { current: error.options.current } : {}),
+      ...(error.options.existing ? { existing: error.options.existing } : {}),
     },
   }
 }
@@ -209,9 +210,11 @@ async function runRoute(
   if (route.permission !== AUTHENTICATION) {
     const body = req.body as { reason?: unknown } | undefined
     const reason = typeof body?.reason === 'string' ? body.reason : undefined
+    const facts = route.decisionContext ? await route.decisionContext({ req, actor, db }) : {}
     const d = decide(actor, route.permission, resource, {
       now: new Date(),
       online: true,
+      ...facts,
       ...(reason ? { reason } : {}),
     })
     if (d.effect === 'deny') {
@@ -269,7 +272,7 @@ async function runRoute(
         : undefined
     result = await withTx(db, async (tx) => {
       if (scope) {
-        const stored = await claim(tx, scope)
+        const stored = await claim(tx, scope, route.idempotencyConflict)
         if (stored) return { status: stored.status, body: stored.body, replayed: true }
       }
       const out = await route.handler(context(tx))

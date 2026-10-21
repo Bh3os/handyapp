@@ -4,6 +4,8 @@
 // audit. Errors are generic: a wrong password, an unknown email and an account that cannot sign in all answer
 // INVALID_CREDENTIALS, and "Forgot password?" always answers the same, so no response reveals whether an email exists.
 import { STAFF_ROLES } from '@handyhub/policy'
+import type { FastifyRequest } from 'fastify'
+import { clientAddress } from '../../access-gate.js'
 import { ApiError, type FieldError } from '../../api/errors.js'
 import { AUTHENTICATION, type ApiModule, type RouteDef } from '../../api/route.js'
 import { accountForSignIn, createStaffUser, DuplicateStaffEmailError, setPasswordHash } from './accounts.js'
@@ -39,9 +41,14 @@ export type IdentityDeps = {
   cookies: CookieOptions
   /** Seals TOTP secrets; null while MFA is NOT CONFIGURED (MFA_ENCRYPTION_KEY unset). */
   mfaKey: Secret | null
+  /** Proxies that append to X-Forwarded-For (TRUST_PROXY_HOPS), as the API rate limiter and the access gate read it. */
+  trustProxyHops: number
 }
 
 export function identityModule(deps: IdentityDeps): ApiModule {
+  // The network a per-network limit counts: the client the trusted proxies saw, never the proxy itself (behind
+  // Render every request would otherwise share one address and one limit). Without trusted hops, the socket peer.
+  const clientNetwork = (req: FastifyRequest) => networkOf(clientAddress(req.raw, deps.trustProxyHops))
   const base = {
     expectedVersion: 'none' as const,
     pagination: false,
@@ -74,7 +81,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
       handler: async ({ req, db, tx, audit, auditAlways }) => {
         const { email, password } = req.body as { email: string; password: string }
         // Failures are counted; a network or account over its limit is refused even with the right password.
-        const network = networkOf(req.ip)
+        const network = clientNetwork(req)
         const key = normalizeEmail(email)
         await check(db, RATE_RULES.signInNetwork, network)
         await check(db, RATE_RULES.signInAccount, key)
@@ -270,7 +277,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
       },
       handler: async ({ req, db, tx, audit }) => {
         const email = normalizeEmail((req.body as { email: string }).email)
-        await hit(db, RATE_RULES.resetNetwork, networkOf(req.ip))
+        await hit(db, RATE_RULES.resetNetwork, clientNetwork(req))
         await hit(db, RATE_RULES.resetAccount, email)
         const trx = tx as NonNullable<typeof tx>
         const account = await accountForSignIn(trx, email)
@@ -315,7 +322,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
       },
       handler: async ({ req, db, tx, audit, auditAlways }) => {
         const { token, password } = req.body as { token: string; password: string }
-        await hit(db, RATE_RULES.linkNetwork, networkOf(req.ip))
+        await hit(db, RATE_RULES.linkNetwork, clientNetwork(req))
         const trx = tx as NonNullable<typeof tx>
         const link = await consumeLink(trx, token)
         const user = link

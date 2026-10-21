@@ -10,7 +10,8 @@ import type { Db, Tx } from '@handyhub/db'
 import { listingScope, type StaffActor } from '@handyhub/policy'
 import { sql, type Expression, type SqlBool } from 'kysely'
 import { ApiError } from '../../api/errors.js'
-import { encodeCursor, type Page, type PageRequest } from '../../api/pagination.js'
+import { encodeCursor, isCursorInstant, type Page, type PageRequest } from '../../api/pagination.js'
+import { responseClockView, type ResponseClockView } from '../requests/clock-view.js'
 import {
   bandRank,
   deepLink,
@@ -173,6 +174,8 @@ export type QueueItemView = {
   openedAt: string
   dueAt: string | null
   clock: 'response_target' | null
+  /** The first-response clock read now (TSK-0043): remaining, paused or overdue in business minutes. */
+  responseClock: ResponseClockView | null
   reason: string
   /** The reason was replaced by the generic one: its detail is restricted to other roles. */
   masked: boolean
@@ -186,17 +189,16 @@ type Cursor = [rank: number, due: string, opened: string, id: string]
 function readCursor(after: unknown[] | undefined): Cursor | undefined {
   if (after === undefined) return undefined
   const [rank, due, opened, id] = after
-  // PostgreSQL's text form of a timestamptz, as the cursor was built from it.
-  const instant = (v: unknown) =>
-    typeof v === 'string' && /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(\.\d{1,6})?([+-]\d{2}(:?\d{2})?|Z)$/.test(v)
+  // The instants are PostgreSQL's text form of a timestamptz, as the cursor was built from it, with a date and time
+  // that exist (isCursorInstant), so the casts in the query never fail.
   if (
     after.length === 4 &&
     typeof rank === 'number' &&
     Number.isInteger(rank) &&
     rank >= 1 &&
     rank <= QUEUE_BANDS.length &&
-    (due === 'infinity' || instant(due)) &&
-    instant(opened) &&
+    (due === 'infinity' || isCursorInstant(due)) &&
+    isCursorInstant(opened) &&
     typeof id === 'string' &&
     UUID.test(id)
   )
@@ -276,6 +278,17 @@ export async function listQueue(
 
   const more = rows.length > page.limit
   const shown = rows.slice(0, page.limit)
+  // The first-response clocks of the shown items that carry one (TSK-0043, HH-LEAD-05).
+  const clockIds = shown
+    .filter((r) => queueItemType(r.type)?.clock === 'response_target' && UUID.test(r.subject_id))
+    .map((r) => r.subject_id)
+  const clocks = new Map(
+    clockIds.length
+      ? (await db.selectFrom('intake.response_clocks').selectAll().where('request_id', 'in', clockIds).execute()).map(
+          (c) => [c.request_id, c],
+        )
+      : [],
+  )
   const items: QueueItemView[] = []
   for (const r of shown) {
     const type = queueItemType(r.type)
@@ -300,6 +313,10 @@ export async function listQueue(
       openedAt: r.opened_at.toISOString(),
       dueAt: r.due_at ? r.due_at.toISOString() : null,
       clock: type.clock ?? null,
+      responseClock: (() => {
+        const c = type.clock === 'response_target' ? clocks.get(r.subject_id) : undefined
+        return c ? responseClockView(c, now) : null
+      })(),
       reason: masked && type.restricted ? type.restricted.generic : r.reason,
       masked,
       action: type.action,
