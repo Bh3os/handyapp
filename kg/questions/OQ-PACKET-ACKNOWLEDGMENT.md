@@ -5,7 +5,7 @@ title: The packet acknowledgment details no decision gives
 status: open
 area: field
 links:
-  related: ["[[HH-DATA-08]]", "[[HH-WORK-10]]", "[[HH-PKT-02]]", "[[HH-CHG-03]]", "[[HH-STAFF-02]]", "[[HH-OFF-06]]", "[[ENT-Acknowledgment]]", "[[OWN-DEC-121]]", "[[OWN-DEC-123]]", "[[OQ-PACKET-DETAILS]]", "[[OQ-SAFETY-REVIEW]]", "[[TSK-0072]]", "[[TSK-0073]]", "[[TSK-0080]]", "[[TSK-0094]]"]
+  related: ["[[HH-DATA-08]]", "[[HH-WORK-10]]", "[[HH-PKT-02]]", "[[HH-CHG-03]]", "[[HH-STAFF-02]]", "[[HH-OFF-06]]", "[[ENT-Acknowledgment]]", "[[OWN-DEC-121]]", "[[OWN-DEC-123]]", "[[OQ-PACKET-DETAILS]]", "[[OQ-SAFETY-REVIEW]]", "[[TSK-0070]]", "[[TSK-0071]]", "[[TSK-0072]]", "[[TSK-0073]]", "[[TSK-0080]]", "[[TSK-0094]]", "[[TSK-0100]]"]
 source: "TSK-0072 (2026-10-21): HH-DATA-08 and HH-WORK-10 state the rules; the details below are PROPOSED or wait for later tasks"
 ---
 **Question:** does the owner approve, or change, these PROPOSED details of the personal packet acknowledgment?
@@ -19,6 +19,7 @@ source: "TSK-0072 (2026-10-21): HH-DATA-08 and HH-WORK-10 state the rules; the d
   - When a removal ends an acknowledgment: when the worker's last active confirmed reservation on a live visit of the job ends (reassignment, cancellation, release), checked at commit; a reschedule that re-creates the same worker's reservation in the same transaction keeps it. Assigned again later, the worker reviews again.
   - A disabled account (offboarding, [[HH-STAFF-02]]) ends every acknowledgment of that person in the disabling transaction; a re-enabled account reviews again.
   - Every end is recorded once (critical change, assignment removed, account disabled), by the database in the same transaction as its cause; acknowledgments and their ends are append-only (retention: job records and safety records).
+  - A loadout task block raised or ended ([[TSK-0071]]) is a hold change, so a critical change: it ends every assigned worker's acknowledgment. My Day lists the worker's own acknowledgment as missing or ended among the readiness items ([[TSK-0070]]); On my way, Arrived and Finished never depend on it and never restore it. In a privacy request the acknowledgments and their ends are retained job records ([[TSK-0100]]).
   - The worker ticks "I reviewed this packet myself: the open tasks, hazards and holds, approved changes, tools and equipment, prior photos and this version" before the Acknowledge button works (wording PROPOSED, English and a plain Spanish translation).
 - **Not built here, waiting for later tasks:** the Start Job gate reading the acknowledgment inside the start transaction ([[TSK-0073]], through `packetAcknowledgment()`); offline sync, reconnect revalidation and quarantine of a revoked worker's pending evidence ([[TSK-0080]]); resuming after an incident with renewed checks ([[TSK-0094]]); unresolved checklist tasks and prior field evidence in the review list once those records exist. No message tells a worker that their acknowledgment ended (no approved wording): they see it in the packet and on My Day.
 - **Until answered:** the PROPOSED details above are used; each is a small code change.

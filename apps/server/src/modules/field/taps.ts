@@ -9,8 +9,9 @@
 // - A repeated tap records nothing and sends nothing (idempotent); the idempotency key of the request covers retries.
 // - The first On my way moves the visit to en_route and writes the visit.on_my_way event in the same transaction
 //   (HH-ARC-08): after commit it sends the automatic on-the-way notice once (FACT-AUTOMATIC-MESSAGES #12; the event key
-//   is the visit, so a visit can send it only once). A later On my way of a teammate records that worker's departure
-//   only.
+//   is the visit, so a visit can send it only once). The same transaction cancels the visit's waiting appointment
+//   reminders, audited with the reason visit_en_route (TSK-0067, HH-COM-11). A later On my way of a teammate records
+//   that worker's departure only.
 // - Arrived moves an en-route visit to arrived; it never starts work and never passes the Start Work gate. Finished
 //   completes the visit once every assigned worker has a Finished value (PROPOSED, OQ-MY-DAY-DETAILS). The database
 //   refuses any of these state changes without its record (migration 0062).
@@ -21,6 +22,7 @@ import { sql } from 'kysely'
 import { ApiError } from '../../api/errors.js'
 import { outbox } from '../../platform/outbox.js'
 import { currentContext } from '../../platform/request-context.js'
+import { stopAppointmentReminders } from '../visits/reminders.js'
 import { onMyWayRule } from './my-day.js'
 
 export const ON_MY_WAY_EVENT = 'visit.on_my_way'
@@ -137,6 +139,9 @@ export async function recordTap(
       .values({ visit_id: visitId, staff_user_id: actor.userId, moved_visit: moves, device_recorded_at: device })
       .execute()
     if (!moves) return { ...base, recorded: true, toState: v.state, version: v.version, moved: false }
+    // TSK-0067: the visit leaves 'confirmed', so its waiting appointment reminders are outdated: cancelled here, in the
+    // tap's transaction and audited, just before the state changes (migration 0060 stays the database's backstop).
+    await stopAppointmentReminders(tx, visitId, { reason: 'visit_en_route' })
     const version = await moveVisit(tx, visitId, 'confirmed', 'en_route', v.version)
     await outbox.add(tx, {
       type: ON_MY_WAY_EVENT,

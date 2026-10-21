@@ -32,6 +32,7 @@ import { createStaffUser, setPasswordHash } from '../../src/modules/identity/acc
 import { startCustomerSession } from '../../src/modules/identity/customer-sessions.js'
 import { readCodeKey, type CodeKeySettings } from '../../src/modules/identity/index.js'
 import { hashPassword } from '../../src/modules/identity/passwords.js'
+import { customerPlan, reapplyDeletions } from '../../src/modules/privacy/index.js'
 import { createAutomationRegistry } from '../../src/platform/automation.js'
 import { recordPolicyVersion } from '../../src/platform/config/index.js'
 import { createWorker } from '../../src/platform/jobs.js'
@@ -306,6 +307,54 @@ async function approve(p: Project): Promise<string> {
   return (
     await t.db.selectFrom('work.jobs').select('id').where('project_id', '=', p.projectId).executeTakeFirstOrThrow()
   ).id
+}
+
+/** An estimate published and withdrawn on the project: never accepted, so nothing blocks its deletion. */
+async function withdrawnEstimate(p: Project): Promise<{ estimateId: string; number: string }> {
+  const created = await staffWrite('estimator', 'POST', `/api/v1/staff/projects/${p.projectId}/estimates`, {})
+  expect(created.statusCode, created.body).toBe(201)
+  const c = created.json<{ estimateId: string; number: string; versionId: string }>()
+  const draft = (await staffGet('estimator', `/api/v1/staff/estimate-versions/${c.versionId}`)).json<{
+    rowVersion: number
+    workPackages: { id: string }[]
+  }>()
+  const saved = await staffWrite(
+    'estimator',
+    'PUT',
+    `/api/v1/staff/estimate-versions/${c.versionId}/draft`,
+    {
+      lines: [
+        {
+          kind: 'base',
+          workPackageId: draft.workPackages[0]?.id,
+          description: 'Synthetic: the withdrawn patch',
+          quantity: '1',
+          unit: 'patch',
+          unitPriceCents: 900,
+        },
+      ],
+      texts: {},
+    },
+    draft.rowVersion,
+  )
+  expect(saved.statusCode, saved.body).toBe(200)
+  const published = await staffWrite(
+    'estimator',
+    'POST',
+    `/api/v1/staff/estimate-versions/${c.versionId}/publish`,
+    {},
+    saved.json<{ rowVersion: number }>().rowVersion,
+  )
+  expect(published.statusCode, published.body).toBe(200)
+  const withdrawn = await staffWrite(
+    'estimator',
+    'POST',
+    `/api/v1/staff/estimate-versions/${c.versionId}/withdraw`,
+    { reason: 'Synthetic: sent by mistake.' },
+    published.json<{ rowVersion: number }>().rowVersion,
+  )
+  expect(withdrawn.statusCode, withdrawn.body).toBe(200)
+  return { estimateId: c.estimateId, number: c.number }
 }
 
 /** A work visit planned by Office for a future date and confirmed with one worker. */
@@ -908,6 +957,7 @@ describe('[HH-DATA-08][HH-PKT-06][HH-OFF-09] the seam of My Day, the packet ackn
     // The real imported lists (business configuration, not synthetic data), before this job's packet first pins them.
     await syncLoadouts(t.db, loadLoadoutSeed())
     const p = await project()
+    const lost = await withdrawnEstimate(p)
     const jobId = await approve(p)
     // Its own early slot (Ben's other visit today is later), so On my way is open whenever the suite runs.
     const visitId = await fixtureVisit(p, jobId, today(), ['ben'], '00:20')
@@ -1001,5 +1051,129 @@ describe('[HH-DATA-08][HH-PKT-06][HH-OFF-09] the seam of My Day, the packet ackn
           .executeTakeFirstOrThrow()
       ).state,
     ).toBe('open')
+
+    // TSK-0100: in a privacy request every one of these field records is a retained job record, and deleting the
+    // project's estimate never accepted (the same erasure as Confirm Delete) leaves them as they are.
+    const count = async (
+      table:
+        | 'work.visit_departures'
+        | 'work.time_stamps'
+        | 'work.time_stamp_corrections'
+        | 'work.work_package_loadouts'
+        | 'work.loadout_checks'
+        | 'work.job_packet_acknowledgments'
+        | 'work.job_packet_acknowledgment_invalidations',
+    ) =>
+      Number(
+        (
+          await sql<{ n: string }>`SELECT count(*)::text AS n FROM ${sql.table(table)} WHERE ${sql.ref(
+            table === 'work.visit_departures' || table === 'work.time_stamps' || table === 'work.time_stamp_corrections'
+              ? 'visit_id'
+              : 'job_id',
+          )} = ${table.startsWith('work.visit') || table.startsWith('work.time') ? visitId : jobId}`.execute(t.db)
+        ).rows[0]?.n,
+      )
+    const fieldTables = [
+      'work.visit_departures',
+      'work.time_stamps',
+      'work.time_stamp_corrections',
+      'work.work_package_loadouts',
+      'work.loadout_checks',
+      'work.job_packet_acknowledgments',
+      'work.job_packet_acknowledgment_invalidations',
+    ] as const
+    const fieldRows = async () => {
+      const out: number[] = []
+      for (const table of fieldTables) out.push(await count(table))
+      return out
+    }
+    const field = await fieldRows()
+    // One departure, one Arrived, no correction, one pinned list, one statement, two acknowledgments, one end.
+    expect(field).toEqual([1, 1, 0, 1, 1, 2, 1])
+    const owner = await t.db
+      .selectFrom('intake.requests as r')
+      .innerJoin('crm.projects as pr', 'pr.id', 'r.project_id')
+      .select(['pr.customer_id', 'r.contact_id'])
+      .where('r.id', '=', p.requestId)
+      .executeTakeFirstOrThrow()
+    const plan = await customerPlan(t.db, {
+      customerId: owner.customer_id,
+      contactId: owner.contact_id,
+      accountIds: [],
+    })
+    const n = async (q: string) => Number((await sql<{ n: string }>`${sql.raw(q)}`.execute(t.db)).rows[0]?.n)
+    const others =
+      1 +
+      (await n(`SELECT count(*)::text AS n FROM work.visits WHERE project_id = '${p.projectId}'`)) +
+      (await n(`SELECT count(*)::text AS n FROM work.visit_changes WHERE project_id = '${p.projectId}'`)) +
+      (await n(
+        `SELECT ((SELECT count(*) FROM work.job_packets WHERE job_id = '${jobId}')
+          + (SELECT count(*) FROM work.job_packet_views WHERE job_id = '${jobId}')
+          + (SELECT count(*) FROM work.job_packet_exports WHERE job_id = '${jobId}'))::text AS n`,
+      )) +
+      (await n(
+        `SELECT count(*)::text AS n FROM platform.message_deliveries d JOIN work.visits v ON v.id::text = d.record_id
+          WHERE d.record_type = 'visit' AND d.message_key = 'reminder.appointment' AND v.project_id = '${p.projectId}'`,
+      ))
+    expect(plan.items).toContainEqual(
+      expect.objectContaining({
+        category: 'job_records',
+        disposition: 'retain',
+        count: others + field.reduce((a, b) => a + b, 0),
+        reason: 'active_record',
+      }),
+    )
+    // The loadout task block is a hold: an open one is a safety record kept for it.
+    expect(plan.items).toContainEqual(
+      expect.objectContaining({ category: 'safety_records', disposition: 'retain', count: 1, reason: 'hold' }),
+    )
+    // While the task block is open it is an open hold on the project, which keeps even an estimate never accepted
+    // (the open_holds check of TSK-0100, unchanged: PROPOSED in OQ-LOADOUT-DETAILS). The Owner cancels it as entered
+    // in error; then the estimate is deletable.
+    expect(plan.deletable.estimates).toEqual([])
+    const taskBlock = await t.db
+      .selectFrom('work.holds')
+      .select(['id', 'version'])
+      .where('kind', '=', 'task_block')
+      .where('project_id', '=', p.projectId)
+      .executeTakeFirstOrThrow()
+    const canceled = await staffWrite(
+      'owner',
+      'POST',
+      `/api/v1/staff/loadout-blocks/${taskBlock.id}/actions/cancel`,
+      { reason: 'Synthetic: it was in the other bag' },
+      taskBlock.version,
+    )
+    expect(canceled.statusCode, canceled.body).toBe(200)
+    const cleared = await customerPlan(t.db, {
+      customerId: owner.customer_id,
+      contactId: owner.contact_id,
+      accountIds: [],
+    })
+    expect(cleared.deletable.estimates).toEqual([expect.objectContaining({ id: lost.estimateId })])
+    // The block's end is itself a critical packet change (holds section): Ben's second review ends too.
+    const kept = await fieldRows()
+    expect(kept).toEqual([1, 1, 0, 1, 1, 2, 2])
+    const done = await withTx(t.db, (tx) =>
+      reapplyDeletions(
+        tx,
+        [
+          {
+            id: randomUUID(),
+            recordType: 'estimate',
+            recordId: lost.estimateId,
+            recordRef: lost.number,
+            reason: 'Synthetic: never accepted.',
+            decidedAt: new Date().toISOString(),
+          },
+        ],
+        { requestId: `req-${key('erase')}` },
+      ),
+    )
+    expect(done).toEqual([expect.objectContaining({ outcome: 'reapplied', blockers: [] })])
+    expect(
+      await t.db.selectFrom('estimating.estimates').select('id').where('id', '=', lost.estimateId).execute(),
+    ).toEqual([])
+    expect(await fieldRows()).toEqual(kept)
   })
 })

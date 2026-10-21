@@ -5,7 +5,7 @@ title: My Day, On my way, Arrived and Finished details no decision gives
 status: open
 area: field
 links:
-  related: ["[[HH-OFF-09]]", "[[HH-SCH-08]]", "[[HH-PORT-07]]", "[[HH-WORK-06]]", "[[HH-FIN-16]]", "[[ENT-Visit]]", "[[ENT-TimeStamp]]", "[[OWN-DEC-107]]", "[[OWN-DEC-69]]", "[[OWN-DEC-121]]", "[[OWN-DEC-149]]", "[[OWN-DEC-40]]", "[[RULE-HUMAN-REVIEW]]", "[[RULE-SAFETY-GATES]]", "[[OQ-ON-THE-WAY-WORDING]]", "[[OQ-PACKET-DETAILS]]", "[[TSK-0070]]", "[[TSK-0071]]", "[[TSK-0072]]", "[[TSK-0079]]", "[[TSK-0083]]", "[[TSK-0096]]"]
+  related: ["[[HH-OFF-09]]", "[[HH-SCH-08]]", "[[HH-PORT-07]]", "[[HH-WORK-06]]", "[[HH-FIN-16]]", "[[ENT-Visit]]", "[[ENT-TimeStamp]]", "[[OWN-DEC-107]]", "[[OWN-DEC-69]]", "[[OWN-DEC-121]]", "[[OWN-DEC-149]]", "[[OWN-DEC-40]]", "[[RULE-HUMAN-REVIEW]]", "[[RULE-SAFETY-GATES]]", "[[OQ-ON-THE-WAY-WORDING]]", "[[OQ-PACKET-DETAILS]]", "[[TSK-0070]]", "[[TSK-0071]]", "[[TSK-0072]]", "[[TSK-0079]]", "[[TSK-0083]]", "[[TSK-0096]]", "[[TSK-0100]]", "[[HH-COM-11]]"]
 source: "TSK-0070 (2026-10-21): HH-OFF-09, HH-SCH-08, HH-PORT-07 and HH-WORK-06 state the rules; the details below are PROPOSED or wait for later tasks"
 ---
 **Question:** does the owner approve, or change, these PROPOSED details of My Day and the Arrived and Finished times?
@@ -23,6 +23,8 @@ source: "TSK-0070 (2026-10-21): HH-OFF-09, HH-SCH-08, HH-PORT-07 and HH-WORK-06 
   - Only the Owner sees and corrects the times (`visit.correct_timestamps`). A correction is in the past, keeps Arrived before Finished and is entered in the device's zone (the visit's zone is shown beside it).
   - The CSV has one row per worker and visit date (in the visit's zone): date, zone, project reference, visit number and purpose, worker name and ID, Arrived and Finished (local and UTC, with recorded, corrected, pending or missing), whole minutes between them when both exist, and whether a value was corrected. One export covers at most 366 days, needs the Owner's fresh sign-in and a reason (the accounting-export rule), is audited, and is limited to 30 per hour.
   - The notice's first names are the first word of each display name; a worker without one is left out.
+  - The first On my way cancels the visit's waiting appointment reminders (a draft, or a released one not yet with the provider) in the tap's transaction, audited with the reason `visit_en_route`, and resolves their queue item ([[HH-COM-11]]: an outdated reminder is never sent; migration 0060 stays the database's backstop).
+  - In a privacy request ([[TSK-0100]]) the departures, the Arrived and Finished times and their corrections are job records, retained with the visits; they name a visit, never an estimate version, so deleting an estimate never accepted leaves them.
   - The device's clock is kept beside the server's time when the app sends it. A tap without a connection is not saved on the phone: the screen says it was not recorded (offline drafts and their sync are [[TSK-0079]]).
 - **Waiting for later tasks:** offline timestamps and sync ([[TSK-0079]]); the sequence from Arrived to Awaiting quality review ([[TSK-0083]]); the Owner Dashboard and the other accountant-ready exports ([[TSK-0096]]).
 - **Until answered:** the PROPOSED details above are used; each is a small code change.
