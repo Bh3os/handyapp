@@ -179,6 +179,9 @@ export const CONFIG_KEYS = {
   'legal.sms_terms': legalDocument,
   'legal.website_terms': legalDocument,
   'legal.sms_disclosure': legalDocument,
+  // TSK-0053 (HH-EST-13, OWN-DEC-127): the estimate terms each published version carries. NOT CONFIGURED (migration
+  // 0028) until terms v1.0 is recorded with TSK-0056; publish readiness names it while it is missing.
+  'legal.estimate_terms': legalDocument,
   // RULE-AI-WAVE2: only `false` is a valid value; the database refuses anything else as well.
   'ai.module': shape({ enabled: exactly(false) }),
 } as const satisfies Record<string, Parser<unknown>>

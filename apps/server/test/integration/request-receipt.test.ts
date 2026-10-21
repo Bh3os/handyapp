@@ -1,6 +1,9 @@
 // The receipt email and the receipt page's server side against PostgreSQL 16 and the provider fakes (TSK-0032; HH-INT-20,
 // HH-INT-12, HH-INT-10, HH-COM-02, HH-INT-07, T01, T12, T13, T65). Every visitor, address, number and template text
 // here is synthetic (RULE-SYNTHETIC-DATA); nothing reaches a real provider.
+// The review fixes (HH-ARC-09, HH-SEC-06, HH-OPS-02, RULE-SERVER-AUTHZ): each delivery is audited with its true outcome,
+// an uncertain provider outcome is never retried blindly, Retry needs an open delivery issue and a re-run that sends
+// nothing leaves the delivery failed, and a delivery issue follows the request's responsible staff member.
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -16,6 +19,7 @@ import { currentTemplate, releaseTemplateVersion } from '../../src/modules/notif
 import { queueAutomations } from '../../src/modules/queue/index.js'
 import { briefSummary, receiptEmailAutomation } from '../../src/modules/requests/receipt-email.js'
 import { createAutomationRegistry, type Automation } from '../../src/platform/automation.js'
+import { recordPolicyVersion } from '../../src/platform/config/index.js'
 import { createWorker, rerunJob } from '../../src/platform/jobs.js'
 import { createProviders } from '../../src/providers/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
@@ -45,12 +49,12 @@ const fastRetry = (a: Automation, maxAttempts = 3): Automation => ({
 })
 const tick = () => new Promise((r) => setTimeout(r, 15))
 /** The worker as the server runs it for this slice: the staff intake item and the receipt, from request.submitted. */
-const worker = (maxAttempts = 3) =>
+const worker = (maxAttempts = 3, receipt: (a: Automation) => Automation = (a) => a) =>
   createWorker({
     db: t.db,
     registry: createAutomationRegistry([
       ...queueAutomations(),
-      fastRetry(receiptEmailAutomation({ providers: { email: fakes.email, sms: null } }), maxAttempts),
+      receipt(fastRetry(receiptEmailAutomation({ providers: { email: fakes.email, sms: null } }), maxAttempts)),
     ]),
   })
 
@@ -166,6 +170,42 @@ const queue = async (who: Person) => {
   }>().items
 }
 
+/** Every audit event of a request and of its deliveries, oldest first. */
+const audited = (requestId: string, deliveryId: string) =>
+  t.db
+    .selectFrom('platform.audit_events')
+    .select(['action', 'target_type', 'result', 'actor_id'])
+    .where((eb) =>
+      eb.or([
+        eb.and([eb('target_type', '=', 'request'), eb('target_id', '=', requestId)]),
+        eb.and([eb('target_type', '=', 'message_delivery'), eb('target_id', '=', deliveryId)]),
+      ]),
+    )
+    .orderBy('seq')
+    .execute()
+/** Office (or another staff member) makes someone responsible for a request through the staff route. */
+async function assign(who: Person, requestId: string, staffUserId: string) {
+  const { state_version } = await t.db
+    .selectFrom('intake.requests')
+    .select('state_version')
+    .where('id', '=', requestId)
+    .executeTakeFirstOrThrow()
+  const res = await app.inject({
+    method: 'PUT',
+    url: `/api/v1/staff/requests/${requestId}/responsible`,
+    payload: { staffUserId },
+    headers: {
+      cookie: cookies[who],
+      'x-csrf-token': csrf[who],
+      'idempotency-key': `assign-receipt-${++n}-0001`,
+      'if-match': `"${state_version}"`,
+    },
+  })
+  expect(res.statusCode).toBe(200)
+}
+const conflictCode = (res: { json: () => unknown }) =>
+  (res.json() as { error: { code: string; fieldErrors: { code: string }[] } }).error
+
 /** The owner's exact response wording (FACT-RESPONSE-TARGET, OWN-DEC-94) and the separate sentence (HH-INT-12). */
 const fact = readFileSync(new URL('../../../../kg/facts/FACT-RESPONSE-TARGET.md', import.meta.url), 'utf8')
 const OWNER_RESPONSE = /receipt email, exact\): "([^"]+)"/.exec(fact)?.[1] ?? ''
@@ -196,6 +236,20 @@ describe('the receipt email stays NOT CONFIGURED until the owner approves its wo
       ['delivery_not_configured', r.reference, r.project_id, null],
     ])
   })
+
+  it('[HH-INT-20][T12][HH-SEC-06] a NOT CONFIGURED receipt is never audited as sent: the job is processed, the delivery failed', async () => {
+    const email = 'receipt-unconfigured-audit@example.test'
+    const r = await submitted(email)
+    await worker().runOnce()
+    const [d] = await deliveries(r.id)
+    expect(d?.error_code).toBe('template_not_configured')
+    const events = await audited(r.id, d?.id as string)
+    expect(events.filter((e) => e.action === 'notification.sent')).toEqual([])
+    expect(events.filter((e) => e.action.startsWith('notification.'))).toEqual([
+      { action: 'notification.failed', target_type: 'message_delivery', result: 'failed', actor_id: null },
+      { action: 'notification.processed', target_type: 'request', result: 'succeeded', actor_id: null },
+    ])
+  })
 })
 
 describe('one receipt per request (TSK-0032, HH-INT-20, HH-INT-10, T01)', () => {
@@ -218,7 +272,7 @@ describe('one receipt per request (TSK-0032, HH-INT-20, HH-INT-10, T01)', () => 
   it('[T01][HH-INT-20][HH-INT-10] one English receipt with the reference, services, summary and next steps; a double submit, a re-dispatch and a replayed job send no second', async () => {
     const email = 'receipt-once@example.test'
     const payload = body(email)
-    // Built at runtime so the secret scanner never reads a synthetic key as a credential.
+    // Built from parts so the secret scan does not read a synthetic key as a credential (RULE-SYNTHETIC-DATA).
     const key = ['synthetic', 'receipt', 'once', '0001'].join('-')
     const first = await submit(payload, key)
     const again = await submit(payload, key)
@@ -334,13 +388,19 @@ describe('a failed send keeps the request and gives staff one retry (TSK-0032, H
     expect((await retry('office', deliveryId)).statusCode).toBe(409)
     await w.runOnce()
     expect(sentTo(email)).toHaveLength(1)
+    // Each step is audited as what it was: the failure, the staff retry, then the send (HH-SEC-06).
     const audit = await t.db
       .selectFrom('platform.audit_events')
-      .select(['action', 'actor_id'])
+      .select(['action', 'actor_id', 'result'])
       .where('target_type', '=', 'message_delivery')
       .where('target_id', '=', deliveryId)
+      .orderBy('seq')
       .execute()
-    expect(audit).toEqual([{ action: 'message.retry', actor_id: ids.office }])
+    expect(audit).toEqual([
+      { action: 'notification.failed', actor_id: null, result: 'failed' },
+      { action: 'message.retry', actor_id: ids.office, result: 'succeeded' },
+      { action: 'notification.sent', actor_id: null, result: 'succeeded' },
+    ])
   })
 
   it('[T12][HH-OPS-02] the delivery issue belongs to the staff member responsible for the request', async () => {
@@ -351,6 +411,191 @@ describe('a failed send keeps the request and gives staff one retry (TSK-0032, H
     await worker().runOnce()
     const [d] = await deliveries(r.id)
     expect((await items('delivery_failed', d?.id as string)).map((i) => i.assigned_staff_id)).toEqual([ids.office])
+  })
+
+  it('[T12][HH-OPS-02][RULE-SERVER-AUTHZ] a delivery issue follows the request when it is assigned after the failure: the new owner sees it and retries, the previous one is refused', async () => {
+    const email = 'receipt-reassigned@example.test'
+    fakes.fake.script({ outcome: 'rejected', errorCode: 'http_422_validation_error' })
+    const r = await submitted(email)
+    const w = worker()
+    await w.runOnce()
+    const [d] = await deliveries(r.id)
+    const deliveryId = d?.id as string
+    const owner = async () => (await items('delivery_failed', deliveryId)).map((i) => i.assigned_staff_id)
+    expect(await owner()).toEqual([null])
+    expect((await queue('estimator')).filter((i) => i.subjectId === deliveryId)).toEqual([])
+
+    // Office makes the Estimator responsible: the item is now theirs, listed for them, and their Retry is checked
+    // against the request's current owner.
+    await assign('office', r.id, ids.estimator)
+    expect(await owner()).toEqual([ids.estimator])
+    expect((await queue('estimator')).filter((i) => i.subjectId === deliveryId)).toEqual([
+      expect.objectContaining({ reference: r.reference, action: 'retry_delivery' }),
+    ])
+    fakes.fake.script({ outcome: 'rejected', errorCode: 'http_422_validation_error' })
+    expect((await retry('estimator', deliveryId)).statusCode).toBe(200)
+    await w.runOnce()
+    expect(await owner()).toEqual([ids.estimator])
+    expect(sentTo(email)).toEqual([])
+
+    // The request moves to Office: the item follows, and the Estimator no longer sees it or may retry it.
+    await assign('office', r.id, ids.office)
+    expect(await owner()).toEqual([ids.office])
+    expect((await queue('estimator')).filter((i) => i.subjectId === deliveryId)).toEqual([])
+    expect((await retry('estimator', deliveryId)).statusCode).toBe(403)
+    // Defence in depth: even an item left with a stale owner gives the Estimator nothing; the request's owner counts.
+    await t.db
+      .updateTable('ops.queue_items')
+      .set({ assigned_staff_id: ids.estimator })
+      .where('type', '=', 'delivery_failed')
+      .where('subject_id', '=', deliveryId)
+      .execute()
+    expect((await retry('estimator', deliveryId)).statusCode).toBe(403)
+    expect((await retry('office', deliveryId)).statusCode).toBe(200)
+    await w.runOnce()
+    expect(sentTo(email)).toHaveLength(1)
+  })
+
+  it('[T12][HH-COM-06][RULE-SERVER-AUTHZ] Retry needs an open delivery issue: a failed verification code or a resolved issue is refused', async () => {
+    const email = 'receipt-no-issue@example.test'
+    fakes.fake.script({ outcome: 'rejected', errorCode: 'http_422_validation_error' })
+    const r = await submitted(email)
+    await worker().runOnce()
+    const [d] = await deliveries(r.id)
+    // A failed automatic message that never had a delivery issue (a synthetic one-time code delivery of the same event,
+    // whose job finished): there is no Retry for it, so the route refuses it.
+    const event = await t.db
+      .selectFrom('platform.outbox_events')
+      .select('id')
+      .where('idempotency_key', '=', `request.submitted:${r.id}`)
+      .executeTakeFirstOrThrow()
+    const code = await t.db
+      .insertInto('platform.message_deliveries')
+      .values({
+        message_key: 'contact.verification_code',
+        channel: 'email',
+        audience: 'customer',
+        subject_key: `synthetic-code:${r.id}`,
+        release: 'automatic',
+        state: 'failed',
+        locale: 'en',
+        outbox_event_id: event.id,
+        record_type: 'contact',
+        record_id: 'synthetic-contact',
+        recipient_kind: 'customer_contact',
+        destination: email,
+        channel_permission: 'permitted',
+        error_code: 'channel_not_configured',
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow()
+    await t.db
+      .insertInto('platform.jobs')
+      .values({
+        automation: 'notify.contact.verification_code',
+        job_key: `${event.id}:notify.contact.verification_code`,
+        outbox_event_id: event.id,
+        event_type: 'request.submitted',
+        attempts: 1,
+        payload: '{}',
+        request_id: 'synthetic-code-job',
+        state: 'succeeded',
+        max_attempts: 1,
+        finished_at: new Date(),
+      })
+      .execute()
+    const refused = await retry('office', code.id)
+    expect(refused.statusCode).toBe(409)
+    expect(conflictCode(refused).fieldErrors.map((f) => f.code)).toEqual(['NO_DELIVERY_ISSUE'])
+    const [still] = await t.db
+      .selectFrom('platform.message_deliveries')
+      .select(['state', 'error_code'])
+      .where('id', '=', code.id)
+      .execute()
+    expect(still).toEqual({ state: 'failed', error_code: 'channel_not_configured' })
+    // The receipt's own issue, once resolved, offers no Retry either.
+    await t.db
+      .updateTable('ops.queue_items')
+      .set({ resolved_at: new Date(), resolution: 'handled' })
+      .where('type', '=', 'delivery_failed')
+      .where('subject_id', '=', d?.id as string)
+      .execute()
+    expect((await retry('owner', d?.id as string)).statusCode).toBe(409)
+  })
+
+  it('[T12][HH-COM-02] a retried receipt that the re-run does not send goes back to failed with its reason, never queued for good', async () => {
+    const email = 'receipt-retry-cancelled@example.test'
+    fakes.fake.script({ outcome: 'rejected', errorCode: 'http_422_validation_error' })
+    const r = await submitted(email)
+    const w = worker()
+    await w.runOnce()
+    const [d] = await deliveries(r.id)
+    const deliveryId = d?.id as string
+    expect((await retry('office', deliveryId)).statusCode).toBe(200)
+    // Between the Retry and its run the receipt is taken off the automatic list: the run sends nothing.
+    const seeded = (
+      await t.db
+        .selectFrom('platform.policy_version')
+        .select('value')
+        .where('key', '=', 'messages.automatic')
+        .orderBy('version', 'desc')
+        .executeTakeFirstOrThrow()
+    ).value as { customer: string[]; staffAccount: string[]; staffNotifications: string[] }
+    await recordPolicyVersion(t.db, {
+      key: 'messages.automatic',
+      value: { ...seeded, customer: seeded.customer.filter((k) => k !== 'request.receipt') } as never,
+      sourceIds: ['FACT-AUTOMATIC-MESSAGES'],
+      changedBy: 'test',
+      reason: 'synthetic test of a message taken off the list after a retry',
+    })
+    try {
+      expect(await w.runOnce()).toMatchObject({ cancelled: 1 })
+    } finally {
+      await recordPolicyVersion(t.db, {
+        key: 'messages.automatic',
+        value: seeded as never,
+        sourceIds: ['FACT-AUTOMATIC-MESSAGES'],
+        changedBy: 'test',
+        reason: 'restore',
+      })
+    }
+    expect(sentTo(email)).toEqual([])
+    const [after] = await deliveries(r.id)
+    expect([after?.state, after?.error_code]).toEqual(['failed', 'not_automatic'])
+    // Its delivery issue follows: no Retry can send it, so it is resolved with that reason and refused again.
+    expect((await items('delivery_failed', deliveryId)).map((i) => [i.resolution, i.resolved_at !== null])).toEqual([
+      ['not_automatic', true],
+    ])
+    expect((await retry('office', deliveryId)).statusCode).toBe(409)
+    expect((await audited(r.id, deliveryId)).map((e) => e.action).filter((a) => a.startsWith('notification.'))).toEqual(
+      ['notification.failed', 'notification.processed', 'notification.failed'],
+    )
+  })
+
+  it('[T12][HH-COM-02][HH-ARC-09] a retried receipt whose re-run fails goes back to failed and keeps its Retry', async () => {
+    const email = 'receipt-retry-failed@example.test'
+    fakes.fake.script({ outcome: 'rejected', errorCode: 'http_422_validation_error' })
+    const r = await submitted(email)
+    await worker(1).runOnce()
+    const [d] = await deliveries(r.id)
+    const deliveryId = d?.id as string
+    expect((await retry('office', deliveryId)).statusCode).toBe(200)
+    // The re-run fails on its only attempt (a synthetic outage while reading the records).
+    const broken = worker(1, (a) => ({
+      ...a,
+      handle: async () => {
+        throw new Error('synthetic outage')
+      },
+    }))
+    expect(await broken.runOnce()).toMatchObject({ failed: 1 })
+    const [after] = await deliveries(r.id)
+    expect([after?.state, after?.error_code]).toEqual(['failed', 'retry_job_failed'])
+    expect((await items('delivery_failed', deliveryId)).map((i) => i.resolved_at)).toEqual([null])
+    // Retry works again and sends one receipt.
+    expect((await retry('office', deliveryId)).statusCode).toBe(200)
+    await worker(1).runOnce()
+    expect(sentTo(email)).toHaveLength(1)
+    expect((await items('delivery_failed', deliveryId)).map((i) => i.resolution)).toEqual(['queued'])
   })
 
   it('[T12] a receipt that is not failed cannot be retried, and an unknown delivery is not found', async () => {
@@ -383,11 +628,11 @@ describe('temporary provider failures (TSK-0032, T65, HH-ARC-09, HH-INT-20)', ()
     expect(await items('delivery_failed', d?.id as string)).toEqual([])
   })
 
-  it('[T65][T12] a failure on the last attempt is recorded as failed with a staff retry, never as sent', async () => {
+  it('[T65][T12][HH-SEC-06] a definite failure on the last attempt is recorded as failed with a staff retry, never as sent', async () => {
     const email = 'receipt-down@example.test'
     fakes.fake.script(
-      { outcome: 'retryable_error', errorCode: 'http_503' },
       { outcome: 'outcome_unknown', errorCode: 'timeout' },
+      { outcome: 'retryable_error', errorCode: 'http_503' },
     )
     const r = await submitted(email)
     const w = worker(2)
@@ -396,12 +641,75 @@ describe('temporary provider failures (TSK-0032, T65, HH-ARC-09, HH-INT-20)', ()
     const result = await w.runOnce()
     expect(result.failed).toBe(0)
     const [d] = await deliveries(r.id)
-    expect([d?.state, d?.error_code, d?.provider_message_id]).toEqual(['failed', 'timeout', null])
+    expect([d?.state, d?.error_code, d?.provider_message_id]).toEqual(['failed', 'http_503', null])
     expect((await items('delivery_failed', d?.id as string)).map((i) => i.reason)).toEqual(['delivery_failed'])
     expect(sentTo(email)).toEqual([])
+    // Audited as the failure it is, never as a send.
+    const events = await audited(r.id, d?.id as string)
+    expect(events.filter((e) => e.action === 'notification.sent')).toEqual([])
+    expect(events).toContainEqual({
+      action: 'notification.failed',
+      target_type: 'message_delivery',
+      result: 'failed',
+      actor_id: null,
+    })
     expect((await retry('owner', d?.id as string)).statusCode).toBe(200)
     await w.runOnce()
     expect(sentTo(email)).toHaveLength(1)
+  })
+
+  it('[HH-ARC-09][HH-INT-20][T12] an uncertain outcome on the last attempt is never retried blindly: it is kept for reconciliation and Retry is refused', async () => {
+    const email = 'receipt-uncertain@example.test'
+    fakes.fake.script(
+      { outcome: 'retryable_error', errorCode: 'http_503' },
+      { outcome: 'outcome_unknown', errorCode: 'timeout' },
+    )
+    const r = await submitted(email)
+    const w = worker(2)
+    await w.runOnce()
+    await tick()
+    expect((await w.runOnce()).failed).toBe(0)
+    const [d] = await deliveries(r.id)
+    const deliveryId = d?.id as string
+    // The provider may have sent it: recorded as an unknown outcome, with no delivery issue offering Retry.
+    expect([d?.state, d?.error_code, d?.provider_message_id]).toEqual(['failed', 'outcome_unknown_timeout', null])
+    expect(await items('delivery_failed', deliveryId)).toEqual([])
+    const refused = await retry('owner', deliveryId)
+    expect(refused.statusCode).toBe(409)
+    expect(conflictCode(refused).fieldErrors.map((f) => f.code)).toEqual(['OUTCOME_UNKNOWN'])
+    // Even long after the provider's idempotency window, nothing is sent again.
+    await t.db
+      .updateTable('platform.message_deliveries')
+      .set({ updated_at: new Date(Date.now() - 3 * 86_400_000) })
+      .where('id', '=', deliveryId)
+      .execute()
+    expect((await retry('office', deliveryId)).statusCode).toBe(409)
+    await w.runOnce()
+    const calls = fakes.fake.calls.filter((c) => c.to === email)
+    expect(calls).toHaveLength(2)
+    const [still] = await deliveries(r.id)
+    expect([still?.state, still?.error_code]).toEqual(['failed', 'outcome_unknown_timeout'])
+    const events = await audited(r.id, deliveryId)
+    expect(events.filter((e) => e.action === 'notification.sent')).toEqual([])
+    expect(events.map((e) => e.action)).toContain('notification.outcome_unknown')
+  })
+
+  it('[HH-ARC-09][T12] a retried receipt that ends uncertain loses its Retry: its delivery issue is resolved as outcome_unknown', async () => {
+    const email = 'receipt-retry-uncertain@example.test'
+    fakes.fake.script({ outcome: 'rejected', errorCode: 'http_422_validation_error' })
+    const r = await submitted(email)
+    const w = worker(1)
+    await w.runOnce()
+    const [d] = await deliveries(r.id)
+    const deliveryId = d?.id as string
+    expect((await retry('office', deliveryId)).statusCode).toBe(200)
+    fakes.fake.script({ outcome: 'outcome_unknown', errorCode: 'network_error' })
+    await w.runOnce()
+    const [after] = await deliveries(r.id)
+    expect([after?.state, after?.error_code]).toEqual(['failed', 'outcome_unknown_network_error'])
+    expect((await items('delivery_failed', deliveryId)).map((i) => i.resolution)).toEqual(['outcome_unknown'])
+    expect((await retry('office', deliveryId)).statusCode).toBe(409)
+    expect(sentTo(email)).toEqual([])
   })
 })
 

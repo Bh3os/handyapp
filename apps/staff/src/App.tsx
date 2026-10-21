@@ -1,11 +1,12 @@
 // Staff app (TSK-0014; HH-STAFF-01, OWN-DEC-114): sign-in, "Forgot password?", setting a password from an invite or
 // reset link, and the signed-in shell (TSK-0040: role navigation, EN/ES switch, offline indicator, search box) with
-// Sign out. Text comes from the staff catalogs (HH-LANG-02); the signed-in staff member's stored locale replaces the
+// Sign out (TSK-0053: the estimates list and the estimate builder). Text comes from the staff catalogs (HH-LANG-02); the signed-in staff member's stored locale replaces the
 // default once the session is known, and switching it keeps every open form as it is (HH-OPS-04).
 import { staffTranslator, type StaffKey, type StaffLocale } from '@handyhub/i18n'
 import { Button, Card, Field, StateView } from '@handyhub/ui'
 import { useEffect, useState, type FormEvent } from 'react'
 import { call, setCsrfToken, type ApiErrorBody, type Fetch } from './api'
+import { EstimateBuilder, EstimatesScreen } from './Estimates'
 import { QueueHome } from './Queue'
 import { RequestRecord } from './Record'
 import { RequestsScreen } from './Requests'
@@ -219,6 +220,10 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
             <ConfigurationScreen t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
           ) : shown === 'requests' && allowed && route.page === 'screen' ? (
             <RequestsScreen t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
+          ) : shown === 'estimates' && allowed && route.page === 'screen' ? (
+            <EstimatesScreen t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
+          ) : route.page === 'record' && route.screen === 'estimates' && allowed ? (
+            <EstimateBuilder key={route.id} t={t} fetchImpl={doFetch} id={route.id} go={go} href={href} />
           ) : route.page === 'record' && route.screen === 'requests' && allowed ? (
             <RequestRecord key={route.id} t={t} locale={locale} fetchImpl={doFetch} id={route.id} go={go} href={href} />
           ) : (

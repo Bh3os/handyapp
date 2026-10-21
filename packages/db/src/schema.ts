@@ -107,6 +107,113 @@ export interface CrmPropertiesTable {
   coverage_rule_set: number | null
 }
 
+export interface EstimatingEstimateDocumentsTable {
+  id: string
+  version_id: string
+  project_id: string
+  role: string
+  source: string
+  derived_from: string | null
+  object_key: string
+  content_type: string
+  byte_size: number
+  sha256: string
+  visibility: string
+  state: Generated<string>
+  rejection_reason: string | null
+  uploaded_by: string
+  uploaded_at: ColumnType<Date, Date | string | undefined, Date | string>
+  processed_at: Timestamp | null
+  replaced_at: Timestamp | null
+}
+
+export interface EstimatingEstimateLineCostsTable {
+  line_id: string
+  version_id: string
+  material_cost_cents: Int8 | null
+  labor_cost_cents: Int8 | null
+  currency: Generated<string>
+  note: string | null
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface EstimatingEstimateLinesTable {
+  id: Generated<string>
+  version_id: string
+  project_id: string
+  position: number
+  kind: Generated<string>
+  work_package_id: string | null
+  description: string | null
+  quantity_milli: Int8 | null
+  unit: string | null
+  quantity_source: string | null
+  unit_price_cents: Int8 | null
+  amount_cents: Int8 | null
+  currency: Generated<string>
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface EstimatingEstimateVersionInternalsTable {
+  version_id: string
+  markup_assumptions: string | null
+  estimator_notes: string | null
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface EstimatingEstimateVersionsTable {
+  id: Generated<string>
+  estimate_id: string
+  project_id: string
+  version: number
+  state: Generated<string>
+  state_changed_at: ColumnType<Date, Date | string | undefined, Date | string>
+  authoring_method: string
+  currency: Generated<string>
+  assumptions: Generated<string[]>
+  exclusions: Generated<string[]>
+  customer_responsibilities: Generated<string[]>
+  dependencies: Generated<string[]>
+  schedule_assumptions: Generated<string[]>
+  discount_category: string | null
+  discount_percent_bps: number | null
+  discount_rule_version: number | null
+  subtotal_cents: Int8 | null
+  discount_cents: Int8 | null
+  total_cents: Int8 | null
+  deposit_state: string | null
+  deposit_cents: Int8 | null
+  deposit_rule_version: number | null
+  tax_mode_version: number | null
+  totals_computed_at: Timestamp | null
+  payment_term: string
+  payment_term_version: number
+  validity_policy_version: number | null
+  valid_until: Timestamp | null
+  terms_version: string | null
+  prepared_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  updated_by: string
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+  published_by: string | null
+  published_at: Timestamp | null
+  first_viewed_at: Timestamp | null
+  row_version: Generated<number>
+  agreement_document_id: string | null
+  agreement_confirmed_by: string | null
+  agreement_confirmed_at: Timestamp | null
+}
+
+export interface EstimatingEstimatesTable {
+  id: Generated<string>
+  project_id: string
+  sequence: number
+  number: string
+  created_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface IdentityAuthIdentitiesTable {
   id: Generated<string>
   staff_user_id: string
@@ -295,6 +402,18 @@ export interface IntakeRequestAssignmentsTable {
   assigned_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface IntakeRequestConversationsTable {
+  id: Generated<string>
+  request_id: string
+  project_id: string
+  channel: string
+  outcome: string
+  visibility: Generated<string>
+  occurred_at: Timestamp
+  recorded_by: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface IntakeRequestDecisionsTable {
   id: Generated<string>
   request_id: string
@@ -371,6 +490,36 @@ export interface IntakeRequestsTable {
   original_submission: Json
   responsible_staff_id: string | null
   coverage_rule_set: number | null
+}
+
+export interface IntakeResponseClocksTable {
+  request_id: string
+  project_id: string
+  started_at: Timestamp
+  target_minutes: number | null
+  hours_open: string | null
+  hours_close: string | null
+  time_zone: string | null
+  config_versions: ColumnType<JsonValue, string | undefined, string>
+  due_at: Timestamp | null
+  stopped_at: Timestamp | null
+  stop_kind: string | null
+  stop_ref: string | null
+  business_minutes: number | null
+  within_target: boolean | null
+  version: Generated<number>
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface IntakeResponseEventsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  request_id: string
+  kind: string
+  ref: string
+  message_key: string | null
+  occurred_at: Timestamp
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
 export interface IntakeUploadCapabilitiesTable {
@@ -618,6 +767,32 @@ export interface PlatformWebhookReceiptsTable {
   processed_at: Timestamp | null
 }
 
+export interface WorkHoldsTable {
+  id: Generated<string>
+  kind: string
+  scope_type: string
+  scope_id: string
+  project_id: string
+  request_id: string | null
+  category: string
+  note: string
+  source: string
+  source_ref: string
+  state: Generated<string>
+  raised_by: string
+  raised_at: ColumnType<Date, Date | string | undefined, Date | string>
+  review_started_by: string | null
+  review_started_at: Timestamp | null
+  resolution_note: string | null
+  reviewer: string | null
+  resolved_by: string | null
+  resolved_at: Timestamp | null
+  cancel_reason: string | null
+  canceled_by: string | null
+  canceled_at: Timestamp | null
+  version: Generated<number>
+}
+
 export interface WorkWorkPackagesTable {
   id: Generated<string>
   project_id: string
@@ -640,6 +815,12 @@ export interface Database {
   'crm.customers': CrmCustomersTable
   'crm.projects': CrmProjectsTable
   'crm.properties': CrmPropertiesTable
+  'estimating.estimate_documents': EstimatingEstimateDocumentsTable
+  'estimating.estimate_line_costs': EstimatingEstimateLineCostsTable
+  'estimating.estimate_lines': EstimatingEstimateLinesTable
+  'estimating.estimate_version_internals': EstimatingEstimateVersionInternalsTable
+  'estimating.estimate_versions': EstimatingEstimateVersionsTable
+  'estimating.estimates': EstimatingEstimatesTable
   'identity.auth_identities': IdentityAuthIdentitiesTable
   'identity.customer_sessions': IdentityCustomerSessionsTable
   'identity.project_access_grants': IdentityProjectAccessGrantsTable
@@ -656,11 +837,14 @@ export interface Database {
   'intake.receipt_capabilities': IntakeReceiptCapabilitiesTable
   'intake.request_answers': IntakeRequestAnswersTable
   'intake.request_assignments': IntakeRequestAssignmentsTable
+  'intake.request_conversations': IntakeRequestConversationsTable
   'intake.request_decisions': IntakeRequestDecisionsTable
   'intake.request_notes': IntakeRequestNotesTable
   'intake.request_qualifications': IntakeRequestQualificationsTable
   'intake.request_services': IntakeRequestServicesTable
   'intake.requests': IntakeRequestsTable
+  'intake.response_clocks': IntakeResponseClocksTable
+  'intake.response_events': IntakeResponseEventsTable
   'intake.upload_capabilities': IntakeUploadCapabilitiesTable
   'ops.queue_items': OpsQueueItemsTable
   'platform.audit_events': PlatformAuditEventsTable
@@ -678,5 +862,6 @@ export interface Database {
   'platform.rate_counters': PlatformRateCountersTable
   'platform.schema_migration': PlatformSchemaMigrationTable
   'platform.webhook_receipts': PlatformWebhookReceiptsTable
+  'work.holds': WorkHoldsTable
   'work.work_packages': WorkWorkPackagesTable
 }

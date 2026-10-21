@@ -254,10 +254,15 @@ export function createWorker(options: WorkerOptions): Worker {
     })
   }
 
-  async function fail(j: JobRow, a: Automation | undefined, err: unknown): Promise<'retried' | 'failed'> {
+  async function fail(
+    j: JobRow,
+    a: Automation | undefined,
+    err: unknown,
+    jobLog: Logger = log,
+  ): Promise<'retried' | 'failed'> {
     const errorClass = (err instanceof Error && err.name ? err.name : 'Error').slice(0, 120)
     const final = !a || j.attempts >= j.max_attempts
-    return withTx(db, async (tx) => {
+    const outcome = await withTx(db, async (tx) => {
       const delay = a ? retryDelayMs(a.retry, j.attempts) : 0
       const updated = await tx
         .updateTable('platform.jobs')
@@ -286,6 +291,17 @@ export function createWorker(options: WorkerOptions): Worker {
         })
       return final ? 'failed' : 'retried'
     })
+    // The failure is recorded; the automation may now make the records it owns say so (TSK-0032), in its own
+    // transaction so that nothing it does can undo the job's failure record.
+    if (outcome === 'failed' && a?.onFinalFailure) {
+      const hook = a.onFinalFailure
+      try {
+        await withTx(db, (tx) => hook({ tx, job: view(j), errorClass, log: jobLog }))
+      } catch (e) {
+        jobLog.error({ err: e }, 'final-failure hook failed')
+      }
+    }
+    return outcome
   }
 
   async function runJob(j: JobRow): Promise<'succeeded' | 'cancelled' | 'retried' | 'failed' | 'lost'> {
@@ -319,7 +335,7 @@ export function createWorker(options: WorkerOptions): Worker {
         }
         jobLog.error({ err }, 'job attempt failed')
         try {
-          return await fail(j, a, err)
+          return await fail(j, a, err, jobLog)
         } catch (e) {
           if (e instanceof LeaseLostError) return 'lost'
           throw e
