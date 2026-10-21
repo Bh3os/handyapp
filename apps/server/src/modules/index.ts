@@ -20,11 +20,17 @@ export type ModuleDeps = {
   storage?: ObjectStorage | null
   /** What the system health and configuration views report about this process (TSK-0101); unset: unknown. */
   system?: SystemDeps
+  /** Proxies in front of the service that append to X-Forwarded-For (TRUST_PROXY_HOPS); unset: 0. */
+  trustProxyHops?: number
 }
 
 export function apiModules(deps: ModuleDeps): ApiModule[] {
   return [
-    identityModule({ cookies: { secure: deps.secureCookies }, mfaKey: deps.mfaKey }),
+    identityModule({
+      cookies: { secure: deps.secureCookies },
+      mfaKey: deps.mfaKey,
+      trustProxyHops: deps.trustProxyHops ?? 0,
+    }),
     REQUESTS_MODULE,
     COVERAGE_MODULE,
     photosModule({ storage: deps.storage ?? null }),
