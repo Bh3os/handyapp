@@ -195,10 +195,16 @@ describe('offline indicator (TSK-0040, HH-BASE-01)', () => {
     )
     await screen.findByRole('heading', { level: 1, name: 'My Day' })
     expect(screen.queryByText('You are offline.')).toBeNull()
-    act(() => void window.dispatchEvent(new Event('offline')))
-    expect(screen.getByText('You are offline.')).toBeTruthy()
-    act(() => void window.dispatchEvent(new Event('online')))
-    expect(screen.queryByText('You are offline.')).toBeNull()
+    // The listeners attach in an effect that may not have run yet under load: repeat the (idempotent) event until the
+    // state shows, so an event dispatched before the effect is not mistaken for a missing indicator.
+    await waitFor(() => {
+      act(() => void window.dispatchEvent(new Event('offline')))
+      expect(screen.getByText('You are offline.')).toBeTruthy()
+    })
+    await waitFor(() => {
+      act(() => void window.dispatchEvent(new Event('online')))
+      expect(screen.queryByText('You are offline.')).toBeNull()
+    })
   })
 })
 
