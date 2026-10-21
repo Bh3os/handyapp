@@ -144,6 +144,8 @@ export const CONFIG_KEYS = {
   }),
   // TSK-0034: how long a single-project guest link works (HH-ID-06, ENT-ProjectAccessGrant; PROPOSED 24 hours).
   'access.grants': shape({ linkHours: int(1, 24 * 366) }),
+  // TSK-0035: how many new links one project may be sent per day on request (HH-ID-09, HH-INT-11; PROPOSED 3).
+  'access.recovery': shape({ maxReissuesPerProjectPerDay: int(1, 100) }),
   // FACT-AUTOMATIC-MESSAGES (TSK-0047): the one list of messages that send without staff release. Codes are message
   // types of modules/notifications, which refuses an unknown code when it reads the list.
   'messages.automatic': shape({
@@ -179,6 +181,9 @@ export const CONFIG_KEYS = {
   'legal.sms_terms': legalDocument,
   'legal.website_terms': legalDocument,
   'legal.sms_disclosure': legalDocument,
+  // TSK-0053 (HH-EST-13, OWN-DEC-127): the estimate terms each published version carries. NOT CONFIGURED (migration
+  // 0028) until terms v1.0 is recorded with TSK-0056; publish readiness names it while it is missing.
+  'legal.estimate_terms': legalDocument,
   // RULE-AI-WAVE2: only `false` is a valid value; the database refuses anything else as well.
   'ai.module': shape({ enabled: exactly(false) }),
 } as const satisfies Record<string, Parser<unknown>>

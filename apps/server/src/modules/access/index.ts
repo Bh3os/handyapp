@@ -23,10 +23,12 @@ import { resolveGrant, type Grant } from './grants.js'
 import { accessChannels, exchangeAccessCode, sendAccessCode } from './landing.js'
 import { listOf, PROJECT_GLANCE, PROJECT_REFERENCE, scopedProjectReferences } from '../records/index.js'
 import { projectGlance, projectIdOf, referencesOf } from './projects.js'
+import { reissueRoute } from './recovery.js'
 
 export * from './grants.js'
 export * from './landing.js'
 export * from './link-message.js'
+export * from './recovery.js'
 
 /** PROPOSED (no owner value): per client network and hour, on top of the configured per-code and per-address limits. */
 export const ACCESS_OPEN_RATE_LIMIT = { bucket: 'public-access-open', limit: 30, windowSeconds: 3600 } as const
@@ -190,9 +192,10 @@ export function accessModule(deps: AccessDeps): ApiModule {
       'The explicit verified exchange (HH-ID-05): the code of the channel’s latest send for this grant. A match ' +
       'records the exact value as verified on the contact, records the grant’s verified time and starts a new ' +
       'customer session for the grant’s one project (Set-Cookie; any earlier session of this browser ends). Other ' +
-      'projects of the same customer, email or phone are never attached (HH-ID-03). A wrong, expired, replaced, used ' +
-      'or exhausted code is one neutral 400 (body.code, invalid_code); the attempt is counted and kept, so the ' +
-      'configured attempt limit holds.',
+      'projects of the same customer, email or phone are never attached (HH-ID-03). A wrong code is a neutral 400 ' +
+      '(body.code, invalid_code); once this link’s code can no longer be used (expired, replaced, used or out of ' +
+      'attempts) the 400 says code_ended, so the page offers a new code (TSK-0035, HH-ID-09). Every attempt is ' +
+      'counted and kept, so the configured attempt limit holds.',
     rateLimit: ACCESS_EXCHANGE_RATE_LIMIT,
     audit: 'project_access.exchange',
     schema: {
@@ -243,10 +246,11 @@ export function accessModule(deps: AccessDeps): ApiModule {
           result: 'denied',
           reason: 'invalid_code',
         })
+        // TSK-0035: once the code can no longer be used the page offers a new code (neutral recovery, HH-ID-09).
         return {
           body: null,
           refusal: new ApiError('VALIDATION_FAILED', {
-            fieldErrors: [{ field: 'body.code', code: 'invalid_code', message: '' }],
+            fieldErrors: [{ field: 'body.code', code: out.ended ? 'code_ended' : 'invalid_code', message: '' }],
           }),
         }
       }
@@ -326,5 +330,5 @@ export function accessModule(deps: AccessDeps): ApiModule {
     },
   }
 
-  return { name: 'access', routes: [open, send, exchange, session, project] }
+  return { name: 'access', routes: [open, send, exchange, reissueRoute(deps), session, project] }
 }

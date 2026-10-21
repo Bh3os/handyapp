@@ -50,6 +50,11 @@ describe('automation declarations (TSK-0012, HH-AUTO-01)', () => {
     expect(() => createAutomationRegistry([noAudit as Automation])).toThrow(/audit/)
   })
 
+  it('[HH-ARC-09] accepts an optional final-failure hook only as a function', () => {
+    expect(() => createAutomationRegistry([declared({ onFinalFailure: async () => undefined })])).not.toThrow()
+    expect(() => createAutomationRegistry([declared({ onFinalFailure: 'later' as never })])).toThrow(/onFinalFailure/)
+  })
+
   it('refuses two automations with the same name', () => {
     expect(() => createAutomationRegistry([declared(), declared()])).toThrow(/declared twice/)
   })

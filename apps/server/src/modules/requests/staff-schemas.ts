@@ -1,6 +1,14 @@
 // JSON schemas of the staff request routes (TSK-0042). Every input object refuses unknown fields; every response
 // object lists its fields, so nothing undeclared reaches the staff app (HH-ARC-04).
-import { NOT_A_FIT_CATEGORIES, QUALIFICATION_CHECKS, QUALIFICATION_OUTCOMES, REQUEST_STATES } from '@handyhub/domain'
+import {
+  HAZARD_CATEGORIES,
+  NOT_A_FIT_CATEGORIES,
+  QUALIFICATION_CHECKS,
+  QUALIFICATION_OUTCOMES,
+  REQUEST_STATES,
+} from '@handyhub/domain'
+import { CLOCK_SCHEMA } from './clock-view.js'
+import { HOLD_SCHEMA } from './holds.js'
 import { NEXT_STEPS } from './staff-record.js'
 
 export const UUID = {
@@ -42,6 +50,13 @@ const CHECK_ENTRY = {
   properties: {
     outcome: { type: 'string', enum: [...QUALIFICATION_OUTCOMES] },
     note: { type: ['string', 'null'], maxLength: 1000 },
+    // Risk flags only (TSK-0043, HH-LEAD-04): the potential hazards found; each newly named one opens a review hold.
+    hazards: {
+      type: ['array', 'null'],
+      uniqueItems: true,
+      maxItems: HAZARD_CATEGORIES.length,
+      items: { type: 'string', enum: [...HAZARD_CATEGORIES] },
+    },
   },
 } as const
 
@@ -63,6 +78,21 @@ const CHECKS_OUT = {
   type: 'object',
   additionalProperties: false,
   properties: Object.fromEntries(QUALIFICATION_CHECKS.map((c) => [c, CHECK_ENTRY])),
+} as const
+
+/** A completed customer conversation staff recorded (TSK-0043): staff only. */
+export const CONVERSATION = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['id', 'channel', 'outcome', 'occurredAt', 'recordedBy', 'recordedAt'],
+  properties: {
+    id: { type: 'string' },
+    channel: { type: 'string', enum: ['phone', 'in_person'] },
+    outcome: { type: 'string' },
+    occurredAt: { type: 'string', format: 'date-time' },
+    recordedBy: STAFF_REF,
+    recordedAt: { type: 'string', format: 'date-time' },
+  },
 } as const
 
 export const LIST_ITEM = {
@@ -122,6 +152,10 @@ export const DETAIL = {
     'workPackages',
     'nextStep',
     'followUpDueAt',
+    'responseClock',
+    'conversations',
+    'holds',
+    'estimateBlockedByHolds',
     'actions',
     'serviceCatalog',
   ],
@@ -347,6 +381,12 @@ export const DETAIL = {
     },
     nextStep: { type: 'string', enum: [...NEXT_STEPS] },
     followUpDueAt: NULLABLE_STRING,
+    // The first-response clock (TSK-0043, HH-LEAD-05): an internal target, staff only. Null for a request from before
+    // the clock existed.
+    responseClock: { anyOf: [{ type: 'null' }, CLOCK_SCHEMA] },
+    conversations: { type: 'array', items: CONVERSATION },
+    holds: { type: 'array', items: HOLD_SCHEMA },
+    estimateBlockedByHolds: { type: 'boolean' },
     actions: {
       type: 'object',
       additionalProperties: false,
@@ -358,6 +398,7 @@ export const DETAIL = {
         'assign',
         'qualify',
         'addNote',
+        'recordConversation',
       ],
       properties: {
         askQuestion: { type: 'boolean' },
@@ -367,6 +408,7 @@ export const DETAIL = {
         assign: { type: 'boolean' },
         qualify: { type: 'boolean' },
         addNote: { type: 'boolean' },
+        recordConversation: { type: 'boolean' },
       },
     },
     serviceCatalog: {

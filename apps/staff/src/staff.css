@@ -448,3 +448,98 @@
   margin: 0;
   overflow-wrap: anywhere;
 }
+
+/* The estimate builder (TSK-0053): one fieldset per line inside its work package; amounts are the server's. */
+.staff-estimate__line {
+  display: grid;
+  gap: var(--hh-space-2);
+  margin: 0;
+  padding: var(--hh-space-3);
+  border: var(--hh-hairline);
+  border-radius: var(--hh-radius-sm);
+  min-width: 0;
+}
+
+.staff-estimate__line legend {
+  font-weight: 600;
+  padding: 0 var(--hh-space-1);
+}
+
+.staff-estimate__row {
+  display: grid;
+  gap: var(--hh-space-2) var(--hh-space-3);
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  align-items: start;
+}
+
+.staff-estimate__amount {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* An amount from the last save that an edit has made out of date: the text says so, and it loses its emphasis. */
+.staff-estimate__amount[data-outdated] {
+  font-weight: 400;
+  font-style: italic;
+}
+
+.staff-estimate__internal {
+  padding-top: var(--hh-space-2);
+  border-top: var(--hh-hairline);
+}
+
+/* Upload an Estimate (TSK-0054): the file pickers, the agree-confirmation and the document hashes. */
+.staff-estimate__upload {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hh-space-2) var(--hh-space-3);
+  align-items: center;
+  margin-block: var(--hh-space-2);
+}
+
+.staff-estimate__upload label {
+  font-weight: 600;
+}
+
+.staff-estimate__agree {
+  display: flex;
+  gap: var(--hh-space-2);
+  align-items: flex-start;
+}
+
+.staff-estimate__agree input {
+  margin-top: 0.25rem;
+  flex: none;
+}
+
+.staff-estimate__hash {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+/* Publishing and the version history (TSK-0055): the actions, and every version of the estimate in a table whose
+   cells wrap, so a phone never scrolls sideways. */
+.staff-estimate__lifecycle-action {
+  display: grid;
+  gap: var(--hh-space-2);
+  margin-block: var(--hh-space-2);
+}
+
+.staff-estimate__history table {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.staff-estimate__history th,
+.staff-estimate__history td {
+  text-align: left;
+  vertical-align: top;
+  padding: var(--hh-space-1) var(--hh-space-2);
+  border-bottom: var(--hh-hairline);
+  overflow-wrap: anywhere;
+}
+
+.staff-estimate__history tr[aria-current='true'] {
+  font-weight: 600;
+}
