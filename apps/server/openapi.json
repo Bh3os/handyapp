@@ -294,7 +294,8 @@
           "audit": "none",
           "pagination": false,
           "cache": "private, no-store",
-          "test": "test/integration/customer-accounts.test.ts"
+          "test": "test/integration/customer-accounts.test.ts",
+          "projection": "account.customer"
         }
       }
     },
@@ -520,7 +521,8 @@
           "audit": "customer_account.email_change",
           "pagination": false,
           "cache": "private, no-store",
-          "test": "test/integration/customer-accounts.test.ts"
+          "test": "test/integration/customer-accounts.test.ts",
+          "projection": "account.signed_in"
         }
       }
     },
@@ -714,7 +716,8 @@
           "audit": "customer_account.email_code",
           "pagination": false,
           "cache": "private, no-store",
-          "test": "test/integration/customer-accounts.test.ts"
+          "test": "test/integration/customer-accounts.test.ts",
+          "projection": "account.code_sent"
         }
       }
     },
@@ -852,7 +855,8 @@
           "audit": "none",
           "pagination": false,
           "cache": "private, no-store",
-          "test": "test/integration/customer-accounts.test.ts"
+          "test": "test/integration/customer-accounts.test.ts",
+          "projection": "account.enrollment_channel"
         }
       },
       "post": {
@@ -1078,7 +1082,8 @@
           "audit": "customer_account.enroll",
           "pagination": false,
           "cache": "private, no-store",
-          "test": "test/integration/customer-accounts.test.ts"
+          "test": "test/integration/customer-accounts.test.ts",
+          "projection": "account.signed_in"
         }
       }
     },
@@ -1274,7 +1279,8 @@
           "audit": "customer_account.enrollment_code",
           "pagination": false,
           "cache": "private, no-store",
-          "test": "test/integration/customer-accounts.test.ts"
+          "test": "test/integration/customer-accounts.test.ts",
+          "projection": "account.code_sent"
         }
       }
     },
@@ -3254,7 +3260,8 @@
           "audit": "customer_account.sign_in",
           "pagination": false,
           "cache": "private, no-store",
-          "test": "test/integration/customer-accounts.test.ts"
+          "test": "test/integration/customer-accounts.test.ts",
+          "projection": "account.signed_in"
         }
       }
     },
@@ -4637,7 +4644,8 @@
           "audit": "customer_account.enroll",
           "pagination": false,
           "cache": "private, no-store",
-          "test": "test/integration/customer-accounts.test.ts"
+          "test": "test/integration/customer-accounts.test.ts",
+          "projection": "account.signed_in"
         }
       }
     },
@@ -4970,7 +4978,8 @@
           "audit": "customer_account.enrollment_code",
           "pagination": false,
           "cache": "private, no-store",
-          "test": "test/integration/customer-accounts.test.ts"
+          "test": "test/integration/customer-accounts.test.ts",
+          "projection": "account.code_sent"
         }
       }
     },

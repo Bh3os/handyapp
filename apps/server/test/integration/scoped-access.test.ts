@@ -100,11 +100,91 @@ async function photo(p: Project, uploader: 'customer' | 'staff', n: number): Pro
   return id
 }
 
-async function customerCookie(contactRef: string, projectIds: string[], via: 'grant' | 'account' = 'grant') {
+async function customerCookie(contactRef: string, projectIds: string[]) {
   const s = await withTx(t.db, (tx) =>
-    startCustomerSession(tx, { contactRef, via, projectIds, verifiedAt: new Date() }),
+    startCustomerSession(tx, { contactRef, via: 'grant', projectIds, verifiedAt: new Date() }),
   )
   return `__Host-hh_customer=${s.token}`
+}
+/**
+ * TSK-0036: an account session for an account of `owner`'s contact whose active links name `linked` (code-evidenced
+ * links as enrollment writes them; synthetic evidence). The session itself names no project: on every request it
+ * opens what the account's active links name. Returns the cookie and the link IDs by project.
+ */
+async function accountCookie(owner: Project, linked: Project[]) {
+  return withTx(t.db, async (tx) => {
+    const now = new Date()
+    const email = `account-${randomUUID().slice(0, 8)}@example.test`
+    const codeId = randomUUID()
+    await tx
+      .insertInto('identity.verification_codes')
+      .values({
+        id: codeId,
+        purpose: 'account_sign_in',
+        channel: 'email',
+        destination: email,
+        subject_ref: 'synthetic-scoped-account',
+        nonce: randomBytes(16).toString('hex'),
+        code_digest: createHash('sha256').update(codeId).digest('hex'),
+        max_attempts: 1,
+        expires_at: new Date(now.getTime() + 600_000),
+        request_id: 'synthetic-scoped-account',
+        created_at: now,
+      })
+      .execute()
+    const accountId = randomUUID()
+    const customerOf = async (p: Project) =>
+      (
+        await tx
+          .selectFrom('crm.projects')
+          .select('customer_id')
+          .where('id', '=', p.projectId)
+          .executeTakeFirstOrThrow()
+      ).customer_id
+    await tx
+      .insertInto('identity.customer_accounts')
+      .values({
+        id: accountId,
+        sign_in_email: email,
+        email_verified_at: now,
+        customer_id: await customerOf(owner),
+        contact_id: owner.contactId,
+        enrolled_via: 'receipt_offer',
+        created_at: now,
+      })
+      .execute()
+    const links: Record<string, string> = {}
+    // Linked one after another, in the order given (the session lists them in link order).
+    for (const [i, p] of linked.entries()) {
+      links[p.projectId] = randomUUID()
+      await tx
+        .insertInto('identity.customer_identity_links')
+        .values({
+          id: links[p.projectId] as string,
+          account_id: accountId,
+          customer_id: await customerOf(p),
+          contact_id: p.contactId,
+          project_id: p.projectId,
+          request_id: p.requestId,
+          authority: 'owner',
+          evidence: 'receipt_code',
+          evidence_channel: 'email',
+          evidence_code_id: codeId,
+          state: 'active',
+          decided_by: `customer_account:${accountId}`,
+          decided_at: new Date(now.getTime() - (linked.length - i) * 1000),
+        })
+        .execute()
+    }
+    const s = await startCustomerSession(tx, {
+      contactRef: `customer_account:${accountId}`,
+      via: 'account',
+      projectIds: [],
+      verifiedAt: now,
+      account: { id: accountId, signInChannel: 'email' },
+    })
+    return { cookie: `__Host-hh_customer=${s.token}`, links }
+  })
 }
 const get = (url: string, cookie?: string) =>
   app.inject({ method: 'GET', url: `/api/v1${url}`, headers: cookie ? { cookie } : {} })
@@ -256,12 +336,36 @@ describe('project B is unreachable from project A’s session (TSK-0037, HH-DATA
   })
 
   it('[HH-PORT-01][HH-DATA-01] an account customer reaches exactly the linked projects, never another', async () => {
-    const cookie = await customerCookie(A.contactId, [A.projectId, C.projectId], 'account')
+    // TSK-0036: an account session opens what the account's active links name (here A and C).
+    const { cookie } = await accountCookie(A, [A, C])
     expect((await get('/customer/access/session', cookie)).json()).toEqual({
       projects: [{ reference: A.reference }, { reference: C.reference }],
     })
     expect((await get(`/customer/projects/${C.reference}`, cookie)).statusCode).toBe(200)
     expect((await get(`/customer/projects/${B.reference}`, cookie)).statusCode).toBe(404)
+    // The TSK-0038 projects list and Overview read the same scope.
+    const listed = (await get('/customer/projects', cookie)).json<{ projects: { reference: string }[] }>()
+    expect(listed.projects.map((p) => p.reference).sort()).toEqual([A.reference, C.reference].sort())
+    expect((await get(`/customer/projects/${C.reference}/overview`, cookie)).statusCode).toBe(200)
+    expect((await get(`/customer/projects/${B.reference}/overview`, cookie)).statusCode).toBe(404)
+  })
+
+  it('[HH-ID-10][HH-DATA-01] an account session re-reads its active links on every request: a revoked link opens nothing', async () => {
+    const { cookie, links } = await accountCookie(A, [A, C])
+    expect((await get(`/customer/projects/${C.reference}/overview`, cookie)).statusCode).toBe(200)
+    await t.db
+      .updateTable('identity.customer_identity_links')
+      .set({ state: 'revoked', revoked_at: new Date(), revoke_reason: 'corrected_link', revoked_by: 'test' })
+      .where('id', '=', links[C.projectId] as string)
+      .execute()
+    // The same session, the next request: C is gone everywhere, the same NOT_FOUND as a missing project.
+    expect((await get('/customer/access/session', cookie)).json()).toEqual({ projects: [{ reference: A.reference }] })
+    const listed = (await get('/customer/projects', cookie)).json<{ projects: { reference: string }[] }>()
+    expect(listed.projects.map((p) => p.reference)).toEqual([A.reference])
+    for (const url of [`/customer/projects/${C.reference}`, `/customer/projects/${C.reference}/overview`])
+      expect((await get(url, cookie)).statusCode, url).toBe(404)
+    expect((await get(`/customer/requests/${C.requestId}/photos`, cookie)).statusCode).toBe(404)
+    expect((await get(`/customer/projects/${A.reference}/overview`, cookie)).statusCode).toBe(200)
   })
 
   it('[HH-DATA-01] the repository helpers find nothing outside the scope they are given', async () => {

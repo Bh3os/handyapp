@@ -32,6 +32,7 @@ import {
   type CodeKeySettings,
   type CustomerSession,
 } from '../identity/index.js'
+import { ACCOUNT_CODE_SENT, ACCOUNT_SIGNED_IN, CUSTOMER_ACCOUNT, ENROLLMENT_CHANNEL, listOf } from '../records/index.js'
 import { RECEIPT_CAPABILITY_HEADER, resolveReceiptCapability } from '../verification/receipt-capability.js'
 import {
   accountView,
@@ -74,46 +75,10 @@ const TEST = 'test/integration/customer-accounts.test.ts'
 const CHANNEL_FIELD = { type: 'string', enum: ['email', 'phone'] } as const
 const CODE_FIELD = { type: 'string', minLength: 1, maxLength: 20 } as const
 const CONTACT_FIELD = { type: 'string', minLength: 1, maxLength: 320 } as const
-const PROJECTS_SCHEMA = {
-  type: 'array',
-  items: {
-    type: 'object',
-    additionalProperties: false,
-    required: ['reference'],
-    properties: { reference: { type: 'string' } },
-  },
-} as const
-const ACCOUNT_SCHEMA = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['email', 'phone', 'projects', 'freshVerification', 'emailChange'],
-  properties: {
-    email: { type: ['string', 'null'] },
-    phone: { type: ['string', 'null'] },
-    projects: PROJECTS_SCHEMA,
-    freshVerification: { type: 'boolean' },
-    emailChange: { type: 'string', enum: ['available', 'not_configured'] },
-  },
-} as const
-const SENT_SCHEMA = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['sent'],
-  properties: {
-    sent: {
-      type: 'object',
-      additionalProperties: false,
-      required: ['channel', 'destination', 'expiresAt'],
-      properties: { channel: CHANNEL_FIELD, destination: { type: 'string' }, expiresAt: { type: 'string' } },
-    },
-  },
-} as const
-const ENROLLED_SCHEMA = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['account'],
-  properties: { account: ACCOUNT_SCHEMA },
-} as const
+// The answers are the declared customer views (records/projections.ts, TSK-0037 HH-ARC-04): allow-listed fields only.
+const ACCOUNT_SCHEMA = CUSTOMER_ACCOUNT.schema
+const SENT_SCHEMA = ACCOUNT_CODE_SENT.schema
+const ENROLLED_SCHEMA = ACCOUNT_SIGNED_IN.schema
 
 const invalidCode = () =>
   new ApiError('VALIDATION_FAILED', { fieldErrors: [{ field: 'body.code', code: 'invalid_code', message: '' }] })
@@ -155,7 +120,9 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
       })
     return {
       status: 202,
-      body: { sent: { channel: out.channel, destination: out.sentTo, expiresAt: out.expiresAt.toISOString() } },
+      body: ACCOUNT_CODE_SENT.project({
+        sent: { channel: out.channel, destination: out.sentTo, expiresAt: out.expiresAt },
+      }),
     }
   }
 
@@ -190,7 +157,7 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
     })
     const session = await resolveCustomerSession(ctx.tx, out.session.token)
     return {
-      body: { account: await viewOf(ctx, session, true) },
+      body: ACCOUNT_SIGNED_IN.project({ account: await viewOf(ctx, session, true) }),
       headers: { 'set-cookie': sessionCookie(out.session) },
     }
   }
@@ -247,6 +214,7 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
       },
       response: { 202: SENT_SCHEMA },
     },
+    projection: ACCOUNT_CODE_SENT,
     handler: async (ctx) => {
       if (!ctx.tx) throw new Error('sendReceiptAccountCode runs in its write transaction')
       const source = sourceOf(ctx)
@@ -289,6 +257,7 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
       },
       response: { 200: ENROLLED_SCHEMA },
     },
+    projection: ACCOUNT_SIGNED_IN,
     handler: async (ctx) => enrollHandler(ctx, sourceOf(ctx)),
   }
 
@@ -328,27 +297,11 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
     kind: 'read',
     rateLimit: 'none',
     audit: 'none',
-    schema: {
-      response: {
-        200: {
-          type: 'object',
-          additionalProperties: false,
-          required: ['channels'],
-          properties: {
-            channels: {
-              type: 'array',
-              items: {
-                type: 'object',
-                additionalProperties: false,
-                required: ['channel', 'destination'],
-                properties: { channel: CHANNEL_FIELD, destination: { type: 'string' } },
-              },
-            },
-          },
-        },
-      },
-    },
-    handler: async (ctx) => ({ body: { channels: await enrollmentChannels(ctx.db, sourceOf(ctx)) } }),
+    projection: ENROLLMENT_CHANNEL,
+    schema: { response: { 200: listOf('channels', ENROLLMENT_CHANNEL) } },
+    handler: async (ctx) => ({
+      body: { channels: (await enrollmentChannels(ctx.db, sourceOf(ctx))).map((c) => ENROLLMENT_CHANNEL.project(c)) },
+    }),
   }
 
   const linkCodes: RouteDef = {
@@ -364,6 +317,7 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
     rateLimit: ENROLL_CODE_RATE_LIMIT,
     audit: 'customer_account.enrollment_code',
     schema: receiptCodes.schema,
+    projection: ACCOUNT_CODE_SENT,
     handler: receiptCodes.handler,
   }
 
@@ -381,6 +335,7 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
     rateLimit: ENROLL_RATE_LIMIT,
     audit: 'customer_account.enroll',
     schema: receiptEnroll.schema,
+    projection: ACCOUNT_SIGNED_IN,
     handler: async (ctx) => enrollHandler(ctx, sourceOf(ctx)),
   }
 
@@ -480,6 +435,7 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
       },
       response: { 200: ENROLLED_SCHEMA },
     },
+    projection: ACCOUNT_SIGNED_IN,
     handler: async (ctx) => {
       if (!ctx.tx) throw new Error('accountSignIn runs in its write transaction')
       const body = ctx.req.body as { contact: string; code: string }
@@ -507,7 +463,7 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
       })
       const session = await resolveCustomerSession(ctx.tx, out.session.token)
       return {
-        body: { account: await viewOf(ctx, session, true) },
+        body: ACCOUNT_SIGNED_IN.project({ account: await viewOf(ctx, session, true) }),
         headers: { 'set-cookie': sessionCookie(out.session) },
       }
     },
@@ -549,11 +505,12 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
     kind: 'read',
     rateLimit: 'none',
     audit: 'none',
+    projection: CUSTOMER_ACCOUNT,
     schema: { response: { 200: ACCOUNT_SCHEMA } },
     handler: async (ctx) => {
       const view = await viewOf(ctx, accountSessionOf(ctx), fresh(ctx))
       if (!view) throw new ApiError('NOT_FOUND')
-      return { body: view }
+      return { body: CUSTOMER_ACCOUNT.project(view) }
     },
   }
 
@@ -582,6 +539,7 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
       },
       response: { 202: SENT_SCHEMA },
     },
+    projection: ACCOUNT_CODE_SENT,
     handler: async (ctx) => {
       if (!ctx.tx) throw new Error('sendAccountEmailCode runs in its write transaction')
       const session = accountSessionOf(ctx)
@@ -603,7 +561,9 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
       await ctx.audit({ target: { type: 'customer_account', id: session.accountId ?? '' } })
       return {
         status: 202,
-        body: { sent: { channel: 'email', destination: out.sentTo, expiresAt: out.expiresAt.toISOString() } },
+        body: ACCOUNT_CODE_SENT.project({
+          sent: { channel: 'email', destination: out.sentTo, expiresAt: out.expiresAt },
+        }),
       }
     },
   }
@@ -634,6 +594,7 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
       },
       response: { 200: ENROLLED_SCHEMA },
     },
+    projection: ACCOUNT_SIGNED_IN,
     handler: async (ctx) => {
       if (!ctx.tx) throw new Error('changeAccountEmail runs in its write transaction')
       const session = accountSessionOf(ctx)
@@ -664,7 +625,7 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
       })
       const renewed = await resolveCustomerSession(ctx.tx, out.session.token)
       return {
-        body: { account: await viewOf(ctx, renewed, true) },
+        body: ACCOUNT_SIGNED_IN.project({ account: await viewOf(ctx, renewed, true) }),
         headers: { 'set-cookie': sessionCookie(out.session) },
       }
     },
