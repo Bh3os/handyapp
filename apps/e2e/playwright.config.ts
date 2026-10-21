@@ -4,6 +4,7 @@
 // by @playwright/test instead. Traces are kept on failure; test data is synthetic only.
 import { fileURLToPath } from 'node:url'
 import { defineConfig, devices } from '@playwright/test'
+import { E2E_CODE_KEY } from './codes.js'
 import { GATE_USERS } from './gate.js'
 
 const executablePath = process.env['E2E_CHROMIUM_EXECUTABLE']
@@ -63,6 +64,9 @@ export default defineConfig({
         // send its own synthetic documentation address (RFC 5737) in X-Forwarded-For; the limits themselves are
         // unchanged and still apply per address.
         TRUST_PROXY_HOPS: '1',
+        // One synthetic code key for every server (TSK-0033), so the receipt specs can read a sent code back from
+        // the database; without it each process would use its own random key.
+        CODE_HASH_KEY: E2E_CODE_KEY,
         ...(databaseUrl ? { DATABASE_URL: databaseUrl, TEST_EMAIL_DESTINATIONS: 'e2e-owner@example.test' } : {}),
       },
       reuseExistingServer: false,
@@ -82,6 +86,9 @@ export default defineConfig({
         // uploaded there can be processed only there.
         JOB_WORKER: 'off',
         ...splitEnv,
+        // One synthetic code key for every server (TSK-0033), so the receipt specs can read a sent code back from
+        // the database; without it each process would use its own random key.
+        CODE_HASH_KEY: E2E_CODE_KEY,
         ...(databaseUrl ? { DATABASE_URL: databaseUrl, TEST_EMAIL_DESTINATIONS: 'e2e-owner@example.test' } : {}),
       },
       reuseExistingServer: false,
@@ -98,6 +105,9 @@ export default defineConfig({
         HOST: '127.0.0.1',
         ACCESS_GATE_USERS: GATE_USERS,
         JOB_WORKER: 'off',
+        // One synthetic code key for every server (TSK-0033), so the receipt specs can read a sent code back from
+        // the database; without it each process would use its own random key.
+        CODE_HASH_KEY: E2E_CODE_KEY,
         ...(databaseUrl ? { DATABASE_URL: databaseUrl, TEST_EMAIL_DESTINATIONS: 'e2e-owner@example.test' } : {}),
       },
       reuseExistingServer: false,

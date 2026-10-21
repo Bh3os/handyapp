@@ -72,18 +72,24 @@ const routes: RouteDef[] = [
         type: 'object',
         additionalProperties: false,
         required: ['name'],
-        properties: { name: { type: 'string', minLength: 1, maxLength: 40 }, fail: { type: 'boolean' } },
+        properties: {
+          name: { type: 'string', minLength: 1, maxLength: 40 },
+          fail: { type: 'boolean' },
+          // TSK-0033: a refusal that keeps the transaction's writes (ApiResult.refusal).
+          refuse: { type: 'boolean' },
+        },
       },
       response: { 201: widget },
     },
     handler: async ({ tx, req, audit }) => {
-      const body = req.body as { name: string; fail?: boolean }
+      const body = req.body as { name: string; fail?: boolean; refuse?: boolean }
       const row = await sql<WidgetRow>`INSERT INTO public.api_widgets (name) VALUES (${body.name}) RETURNING *`.execute(
         need(tx),
       )
       const created = row.rows[0] as WidgetRow
       await audit({ target: { type: 'widget', id: String(created.id), version: 1 } })
       if (body.fail) throw new Error('synthetic failure after the insert: SELECT secret FROM somewhere')
+      if (body.refuse) return { body: null, refusal: new ApiError('CONFLICT') }
       return { status: 201, body: created, version: created.version }
     },
   },

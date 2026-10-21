@@ -3,8 +3,9 @@
 // a Copy button, the project at a glance as submitted, the photos received, processing and failed shown separately
 // (a failed photo can be retried here while this page still holds it, under the request's own upload capability, so
 // no new request is needed), "What happens next?" from configuration, and Return Home. English only.
-// The contact-verification panel, View My Request and Create an Account arrive with their flows (TSK-0033, TSK-0034);
-// no action is shown before it works.
+// TSK-0033: the contact verification (masked email and phone, code entry, Resend, Change Contact) under this tab's
+// receipt capability, then, once a contact is verified, the optional Create an Account offer with "No thanks".
+// View My Request arrives with project access (TSK-0034); no action is shown before it works.
 // - The counts the page learns (a Retry, a processing photo settling) are given to the wizard with the time they were
 //   taken, which writes them back to the tab's record (receipt.ts). A page that cannot check again (after a reload the
 //   capability is gone; it is never stored) shows them as of that time, never as current (T13).
@@ -16,7 +17,18 @@ import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { Button, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Ref } from 'react'
 import { problemValues, STATE_LABEL, STATE_TONE, uploadPhotoFile, type PhotoLimits } from './photos.js'
-import { checkedAtText, countsFromServer, nextStepsText, type PhotoCounts, type ReceiptRecord } from './receipt.js'
+import { ContactVerification } from './ContactVerification.js'
+import {
+  checkedAtText,
+  countsFromServer,
+  loadReceipt,
+  nextStepsText,
+  saveReceipt,
+  tabStorage,
+  withAccountDeclined,
+  type PhotoCounts,
+  type ReceiptRecord,
+} from './receipt.js'
 
 const t = (key: CustomerKey, values?: Record<string, string | number>) => customerTranslator().t(key, values)
 
@@ -227,12 +239,15 @@ export function Receipt({
   photos = null,
   limits = null,
   headingRef,
+  onRecord,
 }: {
   record: ReceiptRecord
   /** The live photos of the page that sent the request; null after a reload (the counts as last written back). */
   photos?: ReceiptPhotos | null
   limits?: PhotoLimits | null
   headingRef?: Ref<HTMLHeadingElement>
+  /** Told the record this page saved (the account-offer answer), so the page that sent it writes back the same. */
+  onRecord?: (record: ReceiptRecord) => void
 }) {
   // The live counts while this page holds them, else the tab's record (the counts as last written back).
   const counts = photos?.snapshot?.counts ?? record.photos
@@ -240,6 +255,14 @@ export function Receipt({
   // Only a page holding the request's upload capability checks the counts again; any other shows when they were taken.
   const current = photos?.canRetry === true
   const timing = record.glance.some((e) => e.id === 'timing')
+  const [declined, setDeclined] = useState(record.accountOffer === 'declined')
+  const decline = () => {
+    setDeclined(true)
+    const storage = tabStorage()
+    const next = withAccountDeclined(loadReceipt(storage, record.reference), record)
+    saveReceipt(storage, next)
+    onRecord?.(next)
+  }
   return (
     <section className="hh-receipt" aria-labelledby="hh-receipt-title">
       <h2 id="hh-receipt-title" ref={headingRef} tabIndex={-1} className="hh-h2">
@@ -292,6 +315,8 @@ export function Receipt({
         <p>{nextStepsText(record.facts)}</p>
         <p>{t('request.receipt.separate')}</p>
       </section>
+
+      <ContactVerification capability={record.capability ?? null} declined={declined} onDecline={decline} />
 
       <a className="hh-button hh-button--secondary" href="/">
         {t('request.home')}

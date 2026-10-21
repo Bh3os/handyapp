@@ -7,6 +7,7 @@ import type { Action, Actor, Allow, Resource } from '@handyhub/policy'
 import type { FastifyRequest } from 'fastify'
 import type { AuditEventInput } from '../platform/audit.js'
 import type { ConflictDetail } from './idempotency.js'
+import type { ApiError } from './errors.js'
 import type { PageRequest } from './pagination.js'
 import { surfaceOf } from '../hosts.js'
 
@@ -63,7 +64,18 @@ export interface ApiContext {
  */
 export const AUTHENTICATION = 'authentication' as const
 
-export type ApiResult = { status?: number; body: unknown; version?: number; headers?: Record<string, string> }
+export type ApiResult = {
+  status?: number
+  body: unknown
+  version?: number
+  headers?: Record<string, string>
+  /**
+   * A write route's refusal that must keep what its transaction recorded (for example a counted code attempt, so the
+   * attempt limit holds): the transaction commits, nothing is stored for idempotency, and this error is answered
+   * exactly as if it had been thrown. The route records its audit event (result denied) before returning it.
+   */
+  refusal?: ApiError
+}
 
 export interface RouteDef {
   method: HttpMethod

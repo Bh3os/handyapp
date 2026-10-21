@@ -412,6 +412,7 @@
   "request.checkNote": "Note (optional)",
   "request.confirm": "Confirm: {action}",
   "request.contact": "Contact",
+  "request.contactCurrent": "Current: {value}",
   "request.coverage": "Coverage result",
   "request.customerPreference": "Customer's stated preference: {preference}. Staff confirm the approach.",
   "request.customerReason": "Plain-language reason the customer sees",

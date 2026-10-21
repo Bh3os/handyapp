@@ -61,6 +61,40 @@ describe('the original request view (TSK-0042, HH-LEAD-01)', () => {
     expect(screen.getByText('Solicitud original')).toBeTruthy()
     expect(screen.getByText('Synthetic description of the work.')).toBeTruthy()
   })
+
+  it('[HH-LEAD-01][HH-INT-13] after a verified Change Contact the badge sits with the current email; the original stays as sent', async () => {
+    const detail = requestDetail()
+    renderRecord(
+      api({
+        ...detail,
+        contactVerification: {
+          email: 'verified',
+          phone: 'expired',
+          current: { email: 'corrected@example.test', phone: '+15025550101' },
+        },
+      }),
+    )
+    const original = await screen.findByTestId('original-request')
+    expect(within(original).getByText(/synthetic@example\.test/)).toBeTruthy()
+    expect(within(original).getByText(/Current: corrected@example\.test/)).toBeTruthy()
+    expect(within(original).getByText('Email: Verified')).toBeTruthy()
+    // The same number written another way is not a change; a code that ran out reads as expired.
+    expect(within(original).queryByText(/Current: \+15025550101/)).toBeNull()
+    expect(within(original).getByText('Phone: Code expired')).toBeTruthy()
+    cleanup()
+    renderRecord(
+      api({
+        ...detail,
+        contactVerification: {
+          email: 'verified',
+          phone: 'unverified',
+          current: { email: 'corrected@example.test', phone: '+15025550101' },
+        },
+      }),
+      'es',
+    )
+    expect(await screen.findByText(/Actual: corrected@example\.test/)).toBeTruthy()
+  })
 })
 
 describe('the four actions (TSK-0042, HH-LEAD-02, HH-LEAD-08, OWN-DEC-100)', () => {

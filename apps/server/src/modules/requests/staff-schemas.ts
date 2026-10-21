@@ -267,8 +267,18 @@ export const DETAIL = {
     contactVerification: {
       type: 'object',
       additionalProperties: false,
-      required: ['email', 'phone'],
-      properties: { email: { type: 'string' }, phone: { type: 'string' } },
+      required: ['email', 'phone', 'current'],
+      properties: {
+        email: { type: 'string' },
+        phone: { type: 'string' },
+        // The contact's current values, which the badges describe (TSK-0033: a verified Change Contact).
+        current: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['email', 'phone'],
+          properties: { email: { type: 'string' }, phone: { type: 'string' } },
+        },
+      },
     },
     coverage: {
       type: 'object',

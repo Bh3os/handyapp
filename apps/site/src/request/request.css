@@ -304,3 +304,28 @@
 .hh-receipt > .hh-button {
   justify-self: start;
 }
+
+/* TSK-0033: contact verification on the receipt, one block per channel. */
+.hh-verify__channel {
+  display: grid;
+  gap: var(--hh-space-2);
+  padding: var(--hh-space-3) 0;
+  border-top: 1px solid var(--hh-line-strong);
+}
+.hh-verify__label {
+  margin: 0;
+  font-size: 1rem;
+}
+.hh-verify__value {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.hh-verify__form {
+  display: grid;
+  gap: var(--hh-space-2);
+  max-width: 24rem;
+}
+.hh-verify__notice {
+  min-height: 1.5em;
+  margin: 0;
+}

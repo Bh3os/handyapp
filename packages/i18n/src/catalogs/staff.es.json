@@ -412,6 +412,7 @@
   "request.checkNote": "Nota (opcional)",
   "request.confirm": "Confirmar: {action}",
   "request.contact": "Contacto",
+  "request.contactCurrent": "Actual: {value}",
   "request.coverage": "Resultado de cobertura",
   "request.customerPreference": "Preferencia indicada por el cliente: {preference}. El personal confirma el enfoque.",
   "request.customerReason": "Motivo en lenguaje sencillo que ve el cliente",
