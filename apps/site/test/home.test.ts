@@ -67,11 +67,15 @@ describe('homepage wording (TSK-0020, HH-CUS-06, OWN-DEC-86)', () => {
     expect(items).toEqual(WHY)
   })
 
-  it('[HH-CUS-06] every registered claim is the catalog value, cites the owner on 2026-10-12, and is on the page', () => {
+  it('[HH-CUS-06] every registered claim is the catalog value, cites the owner decision, and is on the page', () => {
+    const source: Record<string, string> = {
+      'OWN-DEC-86': 'owner, 2026-10-12',
+      'OWN-DEC-89': 'owner, 2026-10-12',
+      'OWN-DEC-135': 'owner, 2026-10-20',
+    }
     for (const claim of CLAIMS) {
       expect(customer[claim.key], claim.key).toBe(claim.text)
-      expect(claim.source).toBe('owner, 2026-10-12')
-      expect(['OWN-DEC-86', 'OWN-DEC-89']).toContain(claim.decision)
+      expect(claim.source, claim.key).toBe(source[claim.decision])
       if (claim.key.startsWith('home.')) expect(page, claim.key).toContain(`'${claim.key}'`)
     }
     expect(CLAIMS.filter((c) => c.decision === 'OWN-DEC-86')).toHaveLength(3 + 1 + 12)

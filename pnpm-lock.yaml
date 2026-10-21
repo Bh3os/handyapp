@@ -143,6 +143,9 @@ importers:
       '@handyhub/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@handyhub/money':
+        specifier: workspace:*
+        version: link:../../packages/money
       '@handyhub/ui':
         specifier: workspace:*
         version: link:../../packages/ui

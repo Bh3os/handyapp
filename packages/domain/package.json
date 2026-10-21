@@ -13,6 +13,11 @@
       "@handyhub/source": "./src/request-form.ts",
       "types": "./dist/request-form.d.ts",
       "default": "./dist/request-form.js"
+    },
+    "./legal": {
+      "@handyhub/source": "./src/legal.ts",
+      "types": "./dist/legal.d.ts",
+      "default": "./dist/legal.js"
     }
   },
   "scripts": {

@@ -51,6 +51,21 @@ export const CLAIMS: readonly Claim[] = [
       decision: 'OWN-DEC-89',
     },
   ])
+  // The website terms describe the decided 90-day workmanship warranty (TSK-0024; HH-PRIV-04, FACT-WARRANTY,
+  // OWN-DEC-135). Its wording and any exclusions wait on attorney review (OQ-ATTORNEY-TERMS); none is invented.
+  .concat(
+    [
+      { key: 'legal.terms.warranty.heading', text: 'Workmanship warranty' },
+      {
+        key: 'legal.terms.warranty.text',
+        text: 'HandyHub gives a 90-day workmanship warranty, counted from the reviewed completion date.',
+      },
+      {
+        key: 'legal.terms.warranty.pending',
+        text: 'The wording of the warranty and any exclusions are waiting for attorney review.',
+      },
+    ].map((c) => ({ ...c, source: 'owner, 2026-10-20', decision: 'OWN-DEC-135' })),
+  )
 
 /** Claim words and phrases that stay off customer text unless the claim is registered above. */
 export const BLOCKED: readonly { readonly pattern: RegExp; readonly reason: string }[] = [
