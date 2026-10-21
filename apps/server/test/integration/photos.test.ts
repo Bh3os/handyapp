@@ -13,6 +13,7 @@ import { createWorker } from '../../src/platform/jobs.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { testConfig } from '../fixtures/env.js'
 import { jpeg, pdf, png, webp } from '../fixtures/images.js'
+import { PRIVACY_NOTICE } from '@handyhub/domain/legal'
 
 const MiB = 1024 * 1024
 let t: TestDatabase
@@ -84,7 +85,7 @@ const process = () =>
 const future = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10)
 const requestBody = (photoDraft?: string) => ({
   formVersion: 'test-1',
-  privacyNoticeVersion: 'draft-test-1',
+  privacyNoticeVersion: PRIVACY_NOTICE.documentId,
   services: [],
   notSure: true,
   description: 'Synthetic project with photos.',

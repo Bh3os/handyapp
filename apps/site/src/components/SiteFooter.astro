@@ -3,12 +3,15 @@
 // The labels are built in; which payment methods apply and the public contact come from configuration at run time
 // (GET /api/v1/public/site). The contact is not provided today (OWN-DEC-131): each detail shows a labelled
 // placeholder and is never a link (OWN-DEC-47). Cards are named as taken with Square; no surcharge text exists.
+// TSK-0024 (HH-COM-12, OWN-DEC-147, FACT-LEGAL-ENTITY): links to the privacy policy, the SMS terms and the website
+// terms, and the brand and legal-entity sentence the legal pages use, the same name on every page.
 // The service area (TSK-0023; HH-CUS-04): each county links to its page when one is published, otherwise to its anchor
 // on the Areas page.
 import { AREAS_PATH } from '@handyhub/domain/areas'
 import { customerTranslator } from '@handyhub/i18n'
 import { areaByState } from '../site/areas'
 import { PAYMENT_ITEMS } from '../site/facts'
+import LegalLinks from './LegalLinks.astro'
 
 const t = customerTranslator()
 const methodLabel = {
@@ -37,6 +40,7 @@ const counties = areaByState(t).flatMap((s) => s.counties)
     <div>
       <p class="hh-site-footer__brand">HandyHub</p>
       <p class="hh-small">{t.t('home.trust.visits')}</p>
+      <p class="hh-small" data-testid="legal-entity">{t.t('legal.common.entity')}</p>
     </div>
     <section aria-labelledby="site-footer-contact">
       <h2 class="hh-site-footer__heading" id="site-footer-contact">{t.t('site.footer.contactHeading')}</h2>
@@ -73,6 +77,10 @@ const counties = areaByState(t).flatMap((s) => s.counties)
         {PAYMENT_ITEMS.map((item) => <li data-payment-item={item} hidden>{methodLabel[item]}</li>)}
       </ul>
     </section>
+    <nav aria-labelledby="site-footer-legal">
+      <h2 class="hh-site-footer__heading" id="site-footer-legal">{t.t('site.footer.legalHeading')}</h2>
+      <LegalLinks />
+    </nav>
   </div>
 </footer>
 

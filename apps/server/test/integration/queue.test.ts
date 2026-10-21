@@ -2,6 +2,7 @@
 // RULE-SERVER-AUTHZ). Staff, requests and items are synthetic (RULE-SYNTHETIC-DATA).
 import { loadServiceSeed, syncServices, withTx } from '@handyhub/db'
 import { createTestDatabase, type TestDatabase } from '@handyhub/db/testing'
+import { PRIVACY_NOTICE } from '@handyhub/domain/legal'
 import type { FastifyInstance } from 'fastify'
 import { sql } from 'kysely'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -326,7 +327,7 @@ describe('new requests feed the queue from the outbox (TSK-0041, HH-OPS-01, TSK-
   const future = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10)
   const body = (spam = false) => ({
     formVersion: 'test-1',
-    privacyNoticeVersion: 'draft-test-1',
+    privacyNoticeVersion: PRIVACY_NOTICE.documentId,
     services: [{ serviceId: 'SVC-DW-01' }],
     notSure: false,
     description: 'Synthetic queue description.',

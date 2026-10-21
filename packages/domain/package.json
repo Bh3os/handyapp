@@ -19,6 +19,11 @@
       "types": "./dist/coverage.d.ts",
       "default": "./dist/coverage.js"
     },
+    "./legal": {
+      "@handyhub/source": "./src/legal.ts",
+      "types": "./dist/legal.d.ts",
+      "default": "./dist/legal.js"
+    },
     "./areas": {
       "@handyhub/source": "./src/areas.ts",
       "types": "./dist/areas.d.ts",

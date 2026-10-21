@@ -67,6 +67,8 @@ export function htmlText(html) {
   rest = rest.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ').replace(/<!--[\s\S]*?-->/g, ' ')
   for (const m of rest.matchAll(/\s(alt|title|aria-label|placeholder|content|data-[a-z-]+)=("([^"]*)"|'([^']*)')/gi)) {
     const value = decode(m[3] ?? m[4] ?? '').trim()
+    // A data-* value without spaces is an identifier (data-key="legal.terms.warranty.text"), never customer text.
+    if (/^data-/i.test(m[1] ?? '') && /^[\w.:/#-]+$/.test(value)) continue
     if (value && /[a-z]{2}/i.test(value)) texts.push(value)
   }
   const body = decode(rest.replace(/<[^>]+>/g, ' '))
@@ -98,24 +100,38 @@ export function collectTexts({ root = ROOT, dist = [] } = {}) {
 }
 
 /** The problems in the given texts: `where`, the matched words and the rule's reason. */
-export function lintTexts(entries) {
+export function lintTexts(entries, allowed = []) {
   return entries.flatMap(({ where, text }) =>
-    copyProblems(text).map((p) => ({ where, match: p.match, reason: p.reason })),
+    copyProblems(text, undefined, allowed).map((p) => ({ where, match: p.match, reason: p.reason })),
   )
 }
 
-function main(argv) {
+/**
+ * The exact amounts the legal pages state from decided configuration (TSK-0024; statedAmounts in
+ * apps/site/src/site/legal.ts). Built pages render them, so the --dist check allows exactly these. It reads the built
+ * packages, which exist whenever there is a dist to check.
+ */
+export async function statedAmounts(root = ROOT) {
+  const { LEGAL_DOCUMENTS } = await import(path.join(root, 'packages/domain/dist/legal.js'))
+  const { cents, formatUsd } = await import(path.join(root, 'packages/money/dist/index.js'))
+  const out = new Set()
+  for (const doc of LEGAL_DOCUMENTS)
+    for (const [name, value] of Object.entries(doc.values)) if (name.endsWith('Cents')) out.add(formatUsd(cents(value)))
+  return [...out]
+}
+
+async function main(argv) {
   const dist = []
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--dist' && argv[i + 1]) dist.push(argv[++i])
     else throw new Error(`unknown argument ${argv[i]} (usage: node tools/content-lint.mjs [--dist <dir>])`)
   }
   const entries = collectTexts({ dist })
-  const problems = lintTexts(entries)
+  const problems = lintTexts(entries, dist.length ? await statedAmounts() : [])
   for (const p of problems) process.stderr.write(`${p.where}: "${p.match}" - ${p.reason}\n`)
   process.stdout.write(`content lint: ${entries.length} texts checked, ${problems.length} problems\n`)
   return problems.length ? 1 : 0
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url))
-  process.exitCode = main(process.argv.slice(2))
+  process.exitCode = await main(process.argv.slice(2))
