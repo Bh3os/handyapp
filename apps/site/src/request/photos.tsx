@@ -239,3 +239,22 @@ export function PhotoUploader({ photos, limits }: { photos: PhotosApi; limits: P
     </section>
   )
 }
+
+/**
+ * The photos on the final review (TSK-0030, HH-INT-19): each preview with its state, without controls (Edit opens the
+ * step that has them). A failed photo is shown as failed: it is not sent with the request (HH-INT-07).
+ */
+export function PhotoReviewList({ items }: { items: readonly PhotoItem[] }) {
+  return (
+    <ul className="hh-request__photo-list">
+      {items.map((item, n) => (
+        <li key={item.key} className="hh-request__photo" data-state={item.state}>
+          <img src={item.preview} alt={t('request.photos.alt', { n: n + 1 })} width={96} height={96} />
+          <div className="hh-request__photo-info">
+            <StatusBadge tone={STATE_TONE[item.state]}>{t(STATE_LABEL[item.state])}</StatusBadge>
+          </div>
+        </li>
+      ))}
+    </ul>
+  )
+}

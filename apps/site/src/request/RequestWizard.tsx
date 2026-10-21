@@ -4,6 +4,9 @@
 // fields without losing input, and the browser draft with Resume and Clear Draft. Every label comes from the
 // customer catalog (English only, RULE-LANGUAGES). The step contents are deliberately plain; TSK-0027..0030 refine
 // each step (category cards, service questions, photos, SMS opt-in and consent, the final review).
+// TSK-0030 (HH-INT-19, HH-INT-10, OWN-DEC-93): the review summarizes every section with an Edit action that opens its
+// step and keeps every other answer (Return to review comes straight back); the privacy policy is linked with the
+// exact version sent; "Send Estimate Request" uses the draft's idempotency key and sends once while it is pending.
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { Button, Dialog, Field, StateView } from '@handyhub/ui'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
@@ -11,8 +14,17 @@ import { checkZip, takeRememberedZip, type CoverageCheck } from '../coverage/cov
 import { zip5 } from '@handyhub/domain/coverage'
 import { legalDocument, PRIVACY_NOTICE, SMS_DISCLOSURE } from '@handyhub/domain/legal'
 import { contactDetails, parseSiteFacts, type ContactDetail } from '../site/facts.js'
-import { DraftStore } from './draft.js'
-import { PhotoUploader, usePhotos, type PhotoLimits } from './photos.js'
+import { DraftStore, newSend, type DraftSend } from './draft.js'
+import { PhotoReviewList, PhotoUploader, usePhotos, type PhotoLimits } from './photos.js'
+import {
+  CHANNEL_LABEL,
+  ESTIMATE_LABEL,
+  PROPERTY_LABEL,
+  reviewSections,
+  WINDOW_LABEL,
+  type ReviewRow,
+} from './review.js'
+import { preparedOnText } from '../site/legal.js'
 import {
   CONTACT_CHANNELS,
   EMPTY_VALUES,
@@ -28,7 +40,6 @@ import {
   PROPERTY_TYPES,
   STEPS,
   stepOf,
-  TIME_WINDOWS,
   toBody,
   validate,
   type FormMeta,
@@ -57,32 +68,6 @@ const CATEGORY_LABEL: Record<string, CustomerKey> = {
   painting: 'request.category.painting',
   cleaning: 'request.category.cleaning',
 }
-const PROPERTY_LABEL: Record<(typeof PROPERTY_TYPES)[number], CustomerKey> = {
-  house: 'request.property.house',
-  apartment_condo: 'request.property.apartment_condo',
-  townhouse: 'request.property.townhouse',
-  rental_short_term: 'request.property.rental_short_term',
-}
-const WINDOW_LABEL: Record<(typeof TIME_WINDOWS)[number], CustomerKey> = {
-  mornings: 'request.timing.mornings',
-  afternoons: 'request.timing.afternoons',
-  evenings: 'request.timing.evenings',
-  weekends: 'request.timing.weekends',
-  any_time: 'request.timing.any_time',
-}
-const CHANNEL_LABEL: Record<(typeof CONTACT_CHANNELS)[number], CustomerKey> = {
-  email: 'request.contact.email_channel',
-  call: 'request.contact.call',
-  text: 'request.contact.text',
-}
-const ESTIMATE_LABEL: Record<(typeof ESTIMATE_PREFERENCES)[number], CustomerKey> = {
-  online: 'request.estimate.online',
-  site_visit: 'request.estimate.site_visit',
-  let_handyhub_decide: 'request.estimate.let_handyhub_decide',
-}
-const label = <T extends string>(map: Record<T, CustomerKey>, code: string): string =>
-  Object.hasOwn(map, code) ? t(map[code as T]) : ''
-
 /** PROPOSED: the form version. */
 const FORM_VERSION = 'wizard-1'
 /** The privacy policy version this page presents, saved with the request (TSK-0024; HH-PRIV-04, OWN-DEC-72). */
@@ -155,7 +140,7 @@ const DAY_WINDOW_CODES: readonly string[] = ['mornings', 'afternoons', 'evenings
 type PhotoSummary = { received: number; processing: number; failed: number }
 /** The support contact of the SMS disclosure, from configuration (GET /api/v1/public/site); null while unknown. */
 type SupportContact = { phone: ContactDetail; email: ContactDetail } | null
-type Banner = { kind: 'error'; message: string } | { kind: 'success'; message: string } | null
+type Banner = { kind: 'error'; message: string; retry: boolean } | { kind: 'success'; message: string } | null
 
 function browserStorage(): Storage | null {
   try {
@@ -167,11 +152,6 @@ function browserStorage(): Storage | null {
   } catch {
     return null
   }
-}
-
-async function hash(text: string): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
-  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('')
 }
 
 export default function RequestWizard() {
@@ -193,8 +173,12 @@ export default function RequestWizard() {
   // The ZIP checked before arriving (HH-INT-16) and the coverage of the ZIP in the form, rechecked as it changes.
   const checkedZip = useRef<string | null>(null)
   const [coverage, setCoverage] = useState<CoverageCheck | null>(null)
-  const started = useRef(Date.now())
-  const attempt = useRef<{ key: string; bodyHash: string } | null>(null)
+  // The draft's send: one idempotency key per draft, kept with the draft until the request is saved (TSK-0030).
+  const draftSend = useRef<DraftSend>(newSend())
+  // Set at the first press, before anything else runs, so a double click sends one request (HH-INT-10, T11).
+  const inFlight = useRef(false)
+  // An Edit from the review: the step offers Return to review, which keeps every other answer (HH-INT-19).
+  const [fromReview, setFromReview] = useState(false)
   const summaryRef = useRef<HTMLDivElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const focusSummary = useRef(false)
@@ -247,7 +231,7 @@ export default function RequestWizard() {
     if (phase !== 'form' || !store) return
     // Nothing entered yet: nothing to keep.
     if (step === 'services' && JSON.stringify(values) === JSON.stringify(EMPTY_VALUES)) store.clear()
-    else store.save(values, step)
+    else store.save(values, step, Date.now(), draftSend.current)
   }, [phase, store, values, step])
 
   // Correcting the ZIP rechecks coverage without touching any other answer (HH-INT-16); it never blocks the form.
@@ -288,7 +272,7 @@ export default function RequestWizard() {
     formVersion: FORM_VERSION,
     privacyNoticeVersion: PRIVACY_NOTICE_VERSION,
     smsDisclosureVersion: SMS_DISCLOSURE_VERSION,
-    startedAt: started.current,
+    startedAt: draftSend.current.startedAt,
     ...(website ? { website } : {}),
   }
   const opts = {
@@ -304,6 +288,8 @@ export default function RequestWizard() {
   }
   const show = (found: Problem[], to?: StepId) => {
     setProblems(found)
+    // A problem found when sending opens its step, which then offers Return to review (HH-INT-19).
+    if (to && step === 'review' && to !== 'review') setFromReview(true)
     if (to) setStep(to)
     focusSummary.current = found.length > 0
   }
@@ -311,37 +297,43 @@ export default function RequestWizard() {
     setProblems([])
     setBanner(null)
     setStep(to)
+    if (to === 'review') setFromReview(false)
     focusHeading.current = true
+  }
+  const edit = (to: StepId) => {
+    goTo(to)
+    setFromReview(true)
   }
   const index = STEPS.indexOf(step)
 
-  const next = () => {
+  const next = (to: StepId = STEPS[index + 1] ?? 'review') => {
     const mine = validate(values, meta, opts).filter((p) => stepOf(p.field) === step)
     if (mine.length) return show(mine)
-    goTo(STEPS[index + 1] ?? 'review')
+    goTo(to)
   }
 
   const send = async () => {
+    // One send at a time: a second press while the first is pending does nothing (the button is also pending).
+    if (inFlight.current) return
     const all = validate(values, meta, opts)
     if (all.length) return show(all, stepOf(all[0]?.field ?? '') as StepId)
+    inFlight.current = true
+    setSending(true)
+    setBanner(null)
     // The server binds the draft's stored photos to the request; failed photos were never stored (TSK-0031).
     const stored = photos.items.some((i) => i.id)
     const body = {
       ...toBody(values, meta, services),
       ...(stored && photos.capability ? { photoDraft: photos.capability } : {}),
     }
-    const text = JSON.stringify(body)
-    const bodyHash = await hash(text)
-    // The same key for a retry of the same content, so a double tap or a retry creates one request (HH-INT-10).
-    if (!attempt.current || attempt.current.bodyHash !== bodyHash)
-      attempt.current = { key: crypto.randomUUID(), bodyHash }
-    setSending(true)
-    setBanner(null)
+    // The draft's key for every send of this draft: a double tap, a retry or a send after a reload returns the request
+    // already saved; changed details under a key already used are refused as a conflict (HH-INT-10, T11).
+    const key = draftSend.current.idempotencyKey
     try {
       const res = await fetch('/api/v1/public/requests', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', 'idempotency-key': attempt.current.key },
-        body: text,
+        headers: { 'content-type': 'application/json', 'idempotency-key': key },
+        body: JSON.stringify(body),
       })
       const data = (await res.json().catch(() => null)) as {
         reference?: string
@@ -350,6 +342,7 @@ export default function RequestWizard() {
       } | null
       if (res.status === 201 && data?.reference) {
         store?.clear()
+        draftSend.current = newSend()
         setReference(data.reference)
         // Photos that failed here were never stored; the receipt counts them with any the server refused.
         const failedHere = photos.items.filter((i) => i.state === 'failed').length
@@ -362,11 +355,17 @@ export default function RequestWizard() {
         const found = fromServer(data.error.fieldErrors)
         return show(found, stepOf(found[0]?.field ?? '') as StepId)
       }
-      setBanner({ kind: 'error', message: data?.error?.message ?? t('error.INTERNAL') })
+      setBanner({
+        kind: 'error',
+        message: data?.error?.message ?? t('error.INTERNAL'),
+        // The same details again cannot change a conflict: the request under this key was saved with other details.
+        retry: data?.error?.code !== 'IDEMPOTENCY_CONFLICT',
+      })
     } catch {
       // The outcome is unknown: the same key is kept, so trying again cannot create a second request.
-      setBanner({ kind: 'error', message: t('request.uncertain') })
+      setBanner({ kind: 'error', message: t('request.uncertain'), retry: true })
     } finally {
+      inFlight.current = false
       setSending(false)
     }
   }
@@ -432,6 +431,8 @@ export default function RequestWizard() {
                 const remembered = checkedZip.current
                 setValues(remembered && !draft.values.zip ? { ...draft.values, zip: remembered } : draft.values)
                 setStep(draft.step)
+                // The draft's own send: a send after the reload reuses its key (TSK-0030, HH-INT-10).
+                if (draft.send) draftSend.current = draft.send
               }
               setPhase('form')
               focusHeading.current = true
@@ -443,6 +444,7 @@ export default function RequestWizard() {
             variant="secondary"
             onClick={() => {
               store?.clear()
+              draftSend.current = newSend()
               setValues(EMPTY_VALUES)
               setBanner({ kind: 'success', message: t('request.draft.cleared') })
               setPhase('choose')
@@ -542,6 +544,7 @@ export default function RequestWizard() {
   const plan = questionPlan(values.services.flatMap((id) => services.filter((x) => x.id === id)))
   const savedPhotos = photos.items.filter((i) => i.state === 'complete' || i.state === 'processing').length
   const failedPhotos = photos.items.filter((i) => i.state === 'failed').length
+  const sections = step === 'review' ? reviewSections(values, services, { windows: settings.windows }) : []
   const body: Record<StepId, ReactNode> = {
     services: (
       <>
@@ -812,22 +815,70 @@ export default function RequestWizard() {
     ),
     review: (
       <>
-        {failedPhotos ? (
-          <p className="hh-request__warning" role="status">
-            {t('request.photos.failedNotice', { count: failedPhotos })}
-          </p>
-        ) : null}
-        {(['services', 'job', 'property', 'contact'] as const).map((s) => (
-          <section key={s} className="hh-card hh-request__review" aria-labelledby={`hh-review-${s}`}>
-            <h3 id={`hh-review-${s}`} className="hh-h3">
-              {t(STEP_LABEL[s])}
-            </h3>
-            <dl>{reviewLines(s, values, services, savedPhotos)}</dl>
-            <Button variant="quiet" onClick={() => goTo(s)} aria-describedby={`hh-review-${s}`}>
-              {t('request.edit')}
-            </Button>
+        {/* Nothing here is a price or a confirmed time (HH-INT-19): scope, pricing and scheduling follow review. */}
+        <p className="hh-muted">{t('request.services.note')}</p>
+        {sections.map((section) => (
+          <section
+            key={section.id}
+            className="hh-card hh-request__review"
+            aria-labelledby={`hh-review-${section.id}`}
+            data-section={section.id}
+          >
+            <div className="hh-request__review-head">
+              <h3 id={`hh-review-${section.id}`} className="hh-h3">
+                {section.title}
+              </h3>
+              <Button
+                variant="quiet"
+                onClick={() => edit(section.step)}
+                aria-label={t('request.review.editNamed', { section: section.title })}
+              >
+                {t('request.edit')}
+              </Button>
+            </div>
+            {section.groups.map((g, i) => (
+              <div key={g.title ?? i} className="hh-request__review-group">
+                {g.title ? <h4 className="hh-request__review-sub">{g.title}</h4> : null}
+                <dl>{g.rows.map(reviewRow)}</dl>
+              </div>
+            ))}
+            {section.id === 'photos' ? (
+              photos.items.length ? (
+                <>
+                  {savedPhotos ? <p>{t('request.photos.saved', { count: savedPhotos })}</p> : null}
+                  {failedPhotos ? (
+                    <p className="hh-request__warning" role="status">
+                      {t('request.photos.failedNotice', { count: failedPhotos })}
+                    </p>
+                  ) : null}
+                  <PhotoReviewList items={photos.items} />
+                </>
+              ) : (
+                <p className="hh-muted">{t('request.review.noPhotos')}</p>
+              )
+            ) : null}
+            {/* Preferences, never an appointment (HH-INT-02, OWN-DEC-92); staff confirm the approach (HH-INT-03). */}
+            {section.id === 'timing' ? <p className="hh-small hh-muted">{t('request.timing.note')}</p> : null}
+            {section.id === 'contact' ? <p className="hh-small hh-muted">{t('request.estimate.note')}</p> : null}
           </section>
         ))}
+        {/* The privacy policy, linked, with the exact version this request is sent with (OWN-DEC-72, ENT-PolicyVersion). */}
+        <div className="hh-request__privacy" data-privacy-notice={PRIVACY_NOTICE_VERSION}>
+          <p>
+            {t('request.review.privacy')}{' '}
+            <a href={PRIVACY_NOTICE.path} target="_blank" rel="noopener">
+              {t('legal.link.privacy')}
+              <span className="hh-visually-hidden"> {t('request.newTab')}</span>
+            </a>
+          </p>
+          <p className="hh-small hh-muted" data-testid="privacy-version">
+            {t('legal.common.version', {
+              version: PRIVACY_NOTICE.version,
+              preparedOn: preparedOnText(PRIVACY_NOTICE.preparedOn),
+              documentId: PRIVACY_NOTICE.documentId,
+            })}
+          </p>
+        </div>
       </>
     ),
   }
@@ -892,7 +943,13 @@ export default function RequestWizard() {
         <StateView
           kind="error"
           title={banner.message}
-          action={<Button onClick={() => void send()}>{t('request.retry')}</Button>}
+          action={
+            banner.retry ? (
+              <Button onClick={() => void send()} pending={sending}>
+                {t('request.retry')}
+              </Button>
+            ) : undefined
+          }
         />
       ) : null}
       {body[step]}
@@ -913,6 +970,11 @@ export default function RequestWizard() {
             {t('request.back')}
           </Button>
         ) : null}
+        {fromReview && step !== 'review' ? (
+          <Button variant="secondary" onClick={() => next('review')}>
+            {t('request.review.return')}
+          </Button>
+        ) : null}
         {step === 'review' ? (
           <Button type="submit" pending={sending}>
             {t('request.send')}
@@ -925,65 +987,26 @@ export default function RequestWizard() {
   )
 }
 
-function reviewLines(step: StepId, v: FormValues, services: FormService[], savedPhotos: number): ReactNode {
-  const line = (label: CustomerKey, value: string) =>
-    value ? (
-      <div key={label}>
-        <dt>{t(label)}</dt>
-        <dd>{value}</dd>
-      </div>
-    ) : null
-  switch (step) {
-    case 'services':
-      return [
-        line(
-          'request.services.select',
-          v.services.map((id) => services.find((s) => s.id === id)?.name ?? id).join(', '),
-        ),
-        v.notSure ? line('request.services.notSure', '✓') : null,
-        line('request.services.other', v.otherServicesText),
-      ]
-    case 'job': {
-      const plan = questionPlan(v.services.flatMap((id) => services.filter((s) => s.id === id)))
-      const rows = [
-        ...plan.shared.map((q) => ({ id: undefined as string | undefined, q })),
-        ...plan.perService.flatMap((g) => g.questions.map((q) => ({ id: g.serviceId as string | undefined, q }))),
-      ]
-      return [
-        line('request.job.description', v.description),
-        ...rows.map(({ id, q }) => {
-          const a = v.answers[answerKey(id, q.key)]
-          const value = a?.unknown ? t('request.questions.unknown') : (a?.text ?? '')
-          return value ? (
-            <div key={answerKey(id, q.key)}>
-              <dt>{q.label}</dt>
-              <dd>{value}</dd>
-            </div>
-          ) : null
-        }),
-        savedPhotos ? line('request.photos.title', t('request.photos.saved', { count: savedPhotos })) : null,
-      ]
-    }
-    case 'property':
-      return [
-        line('request.property.street', [v.street, v.unit].filter(Boolean).join(', ')),
-        line('request.property.city', [v.city, v.state, v.zip].filter(Boolean).join(' ')),
-        line('request.property.type', label(PROPERTY_LABEL, v.propertyType)),
-        line('request.timing.date', v.flexible ? t('request.timing.flexible') : v.preferredDate),
-        v.needHelpToday ? line('request.timing.needHelpToday', '✓') : null,
-        line('request.timing.windows', v.windows.map((w) => label(WINDOW_LABEL, w)).join(', ')),
-      ]
-    default:
-      return [
-        line('request.contact.fullName', v.fullName),
-        line('request.contact.email', v.email),
-        line('request.contact.phone', v.phone),
-        line('request.contact.channel', label(CHANNEL_LABEL, v.preferredChannel)),
-        line('request.review.sms', t(v.smsOptIn ? 'request.review.yes' : 'request.review.no')),
-        line('request.review.marketing', t(v.marketingOptIn ? 'request.review.yes' : 'request.review.no')),
-        line('request.estimate.title', label(ESTIMATE_LABEL, v.estimatePreference)),
-      ]
-  }
+/** One summary line; a value with several lines (an address, the services) is a list. */
+function reviewRow(row: ReviewRow): ReactNode {
+  return (
+    <div key={row.label}>
+      <dt>{row.label}</dt>
+      <dd>
+        {typeof row.value === 'string' ? (
+          row.value
+        ) : row.value.length === 1 ? (
+          row.value[0]
+        ) : (
+          <ul className="hh-request__review-lines">
+            {row.value.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        )}
+      </dd>
+    </div>
+  )
 }
 
 /**
