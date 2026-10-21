@@ -6,7 +6,8 @@
 //
 // Entities with no customer view below are internal as a whole until a task declares one from its requirement: the
 // project access grant itself (its nonce, token hash, contact and revocation are never sent; a customer only learns
-// the reference of the project it opens), customer and account records, documents, invoices and cases. (The
+// the reference of the project it opens), customer records, documents, invoices and cases. TSK-0036 declares the
+// signed-in account's own view (masked sign-in values and linked project references) and its code notices. (The
 // workspace tabs of TSK-0039 name Document and Invoice only for their "none yet" states; no record field is sent.)
 // TSK-0044: contacts, notes (every class: notes are never customer-shared) and candidate matches have no customer
 // view either.
@@ -333,6 +334,64 @@ export const PROJECT_PHOTOS = customerView(
   }),
 )
 
+// Optional customer accounts (TSK-0036; HH-ID-10, HH-ID-11, HH-ID-03, ENT-CustomerAccount). The account a session
+// signed in to, as its owner sees it: the sign-in values masked, the references of its linked projects (read from the
+// active links on every request) and two flags. No account ID, contact ID, link, code or unmasked value.
+const CHANNEL = enumOf(['email', 'phone'])
+type AccountRecord = {
+  email: string | null
+  phone: string | null
+  projects: readonly { reference: string }[]
+  freshVerification: boolean
+  emailChange: 'available' | 'not_configured'
+}
+
+/** The signed-in account (GET /customer/account). */
+export const CUSTOMER_ACCOUNT = customerView(
+  'account.customer',
+  'CustomerAccount',
+  {
+    email: { type: ['string', 'null'] },
+    phone: { type: ['string', 'null'] },
+    projects: { type: 'array', items: PROJECT_REFERENCE.schema },
+    freshVerification: { type: 'boolean' },
+    emailChange: enumOf(['available', 'not_configured']),
+  },
+  (a: AccountRecord) => ({
+    email: a.email,
+    phone: a.phone,
+    projects: a.projects.map((p) => PROJECT_REFERENCE.project(p)),
+    freshVerification: a.freshVerification,
+    emailChange: a.emailChange,
+  }),
+)
+
+/** The account after an enrollment, a sign-in or a sign-in email change. */
+export const ACCOUNT_SIGNED_IN = customerView(
+  'account.signed_in',
+  'CustomerAccount',
+  { account: CUSTOMER_ACCOUNT.schema },
+  (r: { account: AccountRecord | null }) => ({ account: r.account ? CUSTOMER_ACCOUNT.project(r.account) : null }),
+)
+
+/** A one-time code went out: its channel, the masked destination and when it expires. */
+export const ACCOUNT_CODE_SENT = customerView(
+  'account.code_sent',
+  'CustomerAccount',
+  { sent: object({ channel: CHANNEL, destination: STRING, expiresAt: STRING }) },
+  (r: { sent: { channel: 'email' | 'phone'; destination: string; expiresAt: Date } }) => ({
+    sent: { channel: r.sent.channel, destination: r.sent.destination, expiresAt: r.sent.expiresAt.toISOString() },
+  }),
+)
+
+/** A verified channel an account can be created with from a guest link (masked). */
+export const ENROLLMENT_CHANNEL = customerView(
+  'account.enrollment_channel',
+  'Customer',
+  { channel: CHANNEL, destination: STRING },
+  (c: { channel: 'email' | 'phone'; destination: string }) => ({ channel: c.channel, destination: c.destination }),
+)
+
 /** Every customer view, by name. */
 export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
   [
@@ -347,5 +406,9 @@ export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
     PROJECT_PHOTOS,
     PROJECT_APPOINTMENTS,
     PROJECT_PAYMENTS,
+    CUSTOMER_ACCOUNT,
+    ACCOUNT_SIGNED_IN,
+    ACCOUNT_CODE_SENT,
+    ENROLLMENT_CHANNEL,
   ].map((v) => [v.name, v as CustomerView<never>]),
 )

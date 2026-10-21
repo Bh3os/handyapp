@@ -275,8 +275,10 @@ export async function buildApp({
     // which a browser never sends, so this GET reads nothing and changes nothing: a link-preview fetch consumes no
     // grant, starts no session and sees no project. Never cached or indexed, and no referrer leaves it (hosts.ts);
     // the built file's own name is the same private page (TSK-0035, HH-ID-08: never in a shared cache).
-    if (url === '/access' || url === '/access/' || url === '/access.html') {
-      const file = fileIn(site, '/access.html')
+    // TSK-0036: the account page (/account: sign-in and the signed-in account) is private in the same way.
+    const privatePage = /^\/(access|account)(\/|\.html)?$/.exec(url)?.[1]
+    if (privatePage) {
+      const file = fileIn(site, `/${privatePage}.html`)
       if (!file) return reply.callNotFound()
       return reply
         .header('cache-control', 'no-store')
