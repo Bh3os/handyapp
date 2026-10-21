@@ -316,3 +316,49 @@
   margin: 0;
   overflow-wrap: anywhere;
 }
+
+/* System health and configuration (TSK-0101). */
+.staff-system__section {
+  display: grid;
+  gap: var(--hh-space-3);
+}
+
+.staff-system__none {
+  margin: 0;
+  color: var(--hh-muted);
+}
+
+.staff-system__pair {
+  display: contents;
+}
+
+.staff-system__metrics,
+.staff-system__fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hh-space-2) var(--hh-space-4);
+  margin: 0;
+}
+
+.staff-system__metrics div,
+.staff-system__fields div {
+  display: flex;
+  gap: var(--hh-space-1);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.staff-system__metrics dt::after,
+.staff-system__fields dt::after {
+  content: ':';
+}
+
+.staff-system__metrics dd,
+.staff-system__fields dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.staff-system code {
+  overflow-wrap: anywhere;
+}

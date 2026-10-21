@@ -9,6 +9,7 @@ import { call, setCsrfToken, type ApiErrorBody, type Fetch } from './api'
 import { QueueHome } from './Queue'
 import { RequestRecord } from './Record'
 import { SearchScreen, Screen, Shell, type Navigation } from './Shell'
+import { ConfigurationScreen, HealthScreen } from './System'
 
 type Session = {
   staffUserId: string
@@ -211,6 +212,10 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
               href={href}
               staffUserId={session.staffUserId}
             />
+          ) : route.page === 'screen' && shown === 'health' && allowed ? (
+            <HealthScreen t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
+          ) : route.page === 'screen' && shown === 'settings' && allowed ? (
+            <ConfigurationScreen t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
           ) : route.page === 'record' && route.screen === 'requests' && allowed ? (
             <RequestRecord key={route.id} t={t} locale={locale} fetchImpl={doFetch} id={route.id} go={go} href={href} />
           ) : (
