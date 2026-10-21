@@ -71,6 +71,7 @@ export const LABEL_FAMILIES = {
     'review_hold',
     'safety_hold',
     'visit_change_request',
+    'appointment_reminder',
     'delivery_failed',
     'case_open',
     'estimate_to_write',
@@ -140,6 +141,8 @@ export const LABEL_FAMILIES = {
     'availability_changed',
     'equipment_retired',
     'work_cancellation_requested',
+    // TSK-0067: an appointment reminder draft waiting for release.
+    'appointment_reminder',
   ],
   /** The one action button of a queue item (HH-OPS-02); it opens the record's screen. */
   queueAction: [
@@ -674,6 +677,7 @@ export const LABEL_FAMILIES = {
   auditArea: [
     'access_code',
     'account_offer',
+    'appointment_reminder',
     'approval_receipt',
     'automation',
     'check',
@@ -876,6 +880,18 @@ export const LABEL_FAMILIES = {
     'channel_not_configured',
     'template_values_missing',
     'record_changed',
+    // TSK-0067 (HH-COM-11): why an appointment reminder is not drafted or sent
+    // (apps/server/src/modules/visits/reminders.ts APPOINTMENT_REMINDER_STOP_REASONS).
+    'visit_canceled',
+    'visit_rescheduled',
+    'visit_en_route',
+    'visit_arrived',
+    'visit_completed',
+    'visit_no_access',
+    'visit_not_confirmed',
+    'visit_started',
+    'already_reminded',
+    'details_changed',
   ],
   /** Deposit requirement states (ENT-DepositRequirement; TSK-0059). */
   depositState: ['not_required', 'required', 'partly_satisfied', 'satisfied', 'applied', 'waived'],

@@ -74,6 +74,7 @@ import { findProject } from '../records/index.js'
 import type { WorkVisitGate } from './gates.js'
 import { destinationsOf, requestOf } from './offers.js'
 import { confirmationPreconditions } from './preconditions.js'
+import { stopAppointmentReminders } from './reminders.js'
 import { factsOf, storedWindow } from './visits.js'
 
 type Reader = Db | Tx
@@ -321,6 +322,8 @@ export async function finishReschedule(
     await endRequest(tx, prepared.request, actor, 'confirmed', null)
     await resolveRequestItems(tx, before.id, 'reschedule_confirmed')
   }
+  // TSK-0067 (HH-COM-11): the old window's waiting reminder is outdated; the new window gets its own after commit.
+  await stopAppointmentReminders(tx, before.id)
   return recordChange(tx, {
     kind: 'rescheduled',
     visit: before,
@@ -546,6 +549,8 @@ export async function cancelVisit(
     // Before the visit's state changes, so its items read as confirmed (the database closes anything still open).
     await resolveRequestItems(tx, v.id, 'cancellation_confirmed')
   }
+  // TSK-0067 (HH-COM-11): a canceled visit's reminders never send; cancelled here with the reason and audited.
+  await stopAppointmentReminders(tx, v.id, { reason: 'visit_canceled' })
   const updated = await tx
     .updateTable('work.visits')
     .set({ state: 'canceled', version: v.version + 1, updated_at: sql<Date>`now()` })

@@ -235,7 +235,6 @@ const TYPES: readonly MessageType[] = [
     [
       ['reminder.unanswered_estimate', 'OWN-DEC-132'],
       ['reminder.unanswered_question', 'OWN-DEC-101'],
-      ['reminder.appointment', 'OWN-DEC-107'],
       ['reminder.satisfaction_check', 'OWN-DEC-78'],
       ['reminder.unpaid_invoice', 'OWN-DEC-112'],
       ['reminder.repeat_service', 'OWN-DEC-113'],
@@ -249,6 +248,16 @@ const TYPES: readonly MessageType[] = [
     variables: link,
     sourceIds: [source, 'FACT-REMINDER-CADENCES'],
   })),
+  // TSK-0067 (HH-COM-11, OWN-DEC-107): the appointment reminder holds the confirmed date and arrival window, the
+  // address and the approved preparation steps (when staff gave any), and links to the project.
+  {
+    key: 'reminder.appointment',
+    audience: 'customer',
+    channels: both,
+    triggerEvents: [],
+    variables: { visitWindow: 'datetime', serviceAddress: 'text', preparationSteps: 'text', ...link },
+    sourceIds: ['OWN-DEC-107', 'FACT-REMINDER-CADENCES'],
+  },
 ]
 
 export const MESSAGE_TYPES: ReadonlyMap<string, MessageType> = new Map(TYPES.map((t) => [t.key, t]))
