@@ -799,6 +799,7 @@ async function estimateApproval(db: Reader, estimateId: string) {
     .innerJoin('work.jobs as j', 'j.approval_id', 'a.id')
     .innerJoin('work.scheduling_tasks as s', 's.job_id', 'j.id')
     .select([
+      'a.id',
       'a.version',
       'a.created_at',
       'a.full_name',
@@ -807,12 +808,27 @@ async function estimateApproval(db: Reader, estimateId: string) {
       'a.deposit_cents',
       'a.terms_document_id',
       'a.test_mark',
+      'j.id as job_id',
       'j.operational_state',
       's.state as task_state',
     ])
     .where('a.estimate_id', '=', estimateId)
     .executeTakeFirst()
   if (!a) return null
+  // TSK-0058 (HH-EST-12): the receipt PDF issued for it, and what happened to each automatic receipt message.
+  const receipt = await db
+    .selectFrom('estimating.approval_receipts')
+    .select(['issued_at', 'byte_size'])
+    .where('approval_id', '=', a.id)
+    .executeTakeFirst()
+  const deliveries = await db
+    .selectFrom('platform.message_deliveries')
+    .select(['channel', 'state', 'error_code'])
+    .where('message_key', '=', 'approval.receipt')
+    .where('record_type', '=', 'estimate_approval')
+    .where('record_id', '=', a.id)
+    .orderBy('channel')
+    .execute()
   return {
     version: a.version,
     at: a.created_at.toISOString(),
@@ -822,8 +838,14 @@ async function estimateApproval(db: Reader, estimateId: string) {
     depositCents: a.deposit_cents === null ? null : Number(a.deposit_cents),
     termsVersion: a.terms_document_id,
     testMark: a.test_mark,
+    // TSK-0059: the job, so the staff panel can show its deposit (GET /staff/jobs/:jobId/deposit).
+    jobId: a.job_id,
     jobState: a.operational_state,
     schedulingTaskState: a.task_state,
+    receipt: receipt
+      ? { state: 'issued' as const, issuedAt: receipt.issued_at.toISOString(), byteSize: receipt.byte_size }
+      : { state: 'preparing' as const, issuedAt: null, byteSize: null },
+    receiptDeliveries: deliveries.map((d) => ({ channel: d.channel, state: d.state, errorCode: d.error_code })),
   }
 }
 

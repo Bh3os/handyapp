@@ -28,6 +28,11 @@
       "@handyhub/source": "./src/areas.ts",
       "types": "./dist/areas.d.ts",
       "default": "./dist/areas.js"
+    },
+    "./local-time": {
+      "@handyhub/source": "./src/local-time.ts",
+      "types": "./dist/local-time.d.ts",
+      "default": "./dist/local-time.js"
     }
   },
   "scripts": {

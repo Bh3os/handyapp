@@ -18,15 +18,18 @@ import {
   reminderStopReason,
 } from '../../src/modules/estimates/index.js'
 import { createStaffUser, setPasswordHash } from '../../src/modules/identity/accounts.js'
+import { inboxIntakeAutomation } from '../../src/modules/inbox/index.js'
 import { startCustomerSession } from '../../src/modules/identity/customer-sessions.js'
 import { hashPassword } from '../../src/modules/identity/passwords.js'
 import { recordConsent, releaseAutomation } from '../../src/modules/notifications/index.js'
 import { createAutomationRegistry, type Automation } from '../../src/platform/automation.js'
 import { recordPolicyVersion, type ConfigKey } from '../../src/platform/config/index.js'
 import { createWorker } from '../../src/platform/jobs.js'
+import { runWithContext } from '../../src/platform/request-context.js'
 import { createProviders } from '../../src/providers/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
+import { recordWebhookReceipt } from '../../src/providers/webhooks.js'
 import { testConfig } from '../fixtures/env.js'
 
 const pw = (n: number) => ['synthetic', 'estimate', 'reminders', 'passphrase', String(n)].join(' ')
@@ -53,7 +56,9 @@ const release = releaseAutomation(
 )
 const reminderAutomations = estimateReminderAutomations({ publicSiteUrl: SITE })
 const fast = (a: Automation): Automation => ({ ...a, retry: { maxAttempts: 1, baseDelayMs: 1, maxDelayMs: 1 } })
-const registry = createAutomationRegistry([...reminderAutomations, fast(release)])
+// TSK-0049 inbound intake: a customer's text arrives on the project from a stored (verified) webhook receipt.
+const intake = inboxIntakeAutomation({ inboundEmail: null, replyAddress: null })
+const registry = createAutomationRegistry([...reminderAutomations, fast(release), intake])
 
 async function setConfig(key: ConfigKey, value: unknown, sourceIds = ['TEST-SYNTHETIC']) {
   await recordPolicyVersion(t.db, {
@@ -703,5 +708,154 @@ describe('[HH-EST-14][RULE-SERVER-AUTHZ] staff review, send and dismiss', () => 
       headers: { cookie },
     })
     expect([401, 403, 404]).toContain(res.statusCode)
+  })
+})
+
+describe('[HH-EST-14][T65] customer messages and question replies stop the waiting reminders (TSK-0049, TSK-0050, TSK-0051)', () => {
+  let hook = 0
+  /** A customer's text as the Bird webhook stores it (verified receipt and outbox event), then the inbox intake. */
+  async function textIn(from: string, text: string) {
+    const id = `msg_reminders_${++hook}_${randomUUID()}`
+    const payload = {
+      type: 'sms.received',
+      timestamp: new Date().toISOString(),
+      data: { sms_id: `sms_in_${id}`, from, to: '+15025550199', text },
+    }
+    await runWithContext({ requestId: `test:${id}` }, () =>
+      withTx(t.db, (tx) =>
+        recordWebhookReceipt(tx, {
+          provider: 'bird',
+          deliveryId: id,
+          eventType: 'sms.received',
+          providerMessageId: `sms_in_${id}`,
+          eventOccurredAt: new Date(),
+          payload,
+          rawBody: Buffer.from(JSON.stringify(payload)),
+        }),
+      ),
+    )
+    await drain()
+    return t.db
+      .selectFrom('comms.messages as m')
+      .innerJoin('platform.webhook_receipts as r', 'r.id', 'm.webhook_receipt_id')
+      .select(['m.id', 'm.link_state', 'm.link_version', 'm.project_id', 'm.keyword'])
+      .where('r.delivery_id', '=', id)
+      .executeTakeFirstOrThrow()
+  }
+  const verifyPhone = (contactId: string) =>
+    sql`UPDATE crm.contacts SET phone_verification = 'verified', phone_verified_value = phone_e164
+        WHERE id = ${contactId}`.execute(t.db)
+  async function waitingDraft(e: Published) {
+    await drain()
+    await due(e.versionId, 'first')
+    const rows = await reminders(e.versionId)
+    expect(rows.map((r) => r.state)).toEqual(['draft'])
+    return rows[0]?.id as string
+  }
+  async function expectStopped(e: Published, reason: string) {
+    expect((await reminders(e.versionId)).map((r) => [r.state, r.error_code, r.cancelled_by])).toEqual([
+      ['cancelled', reason, 'system'],
+    ])
+    expect((await itemOf(e.versionId))[0]).toMatchObject({ resolution: 'stopped' })
+    expect((await view(e.versionId, 'owner')).stoppedBy).toBe(reason)
+    // The final reminder is not drafted either.
+    await due(e.versionId, 'final')
+    expect((await reminders(e.versionId)).map((r) => r.subject_key.split(':').at(-1))).toEqual(['first'])
+  }
+  const portalMessage = async (e: Published, text: string) =>
+    app.inject({
+      method: 'POST',
+      url: `/api/v1/customer/projects/${e.reference}/messages`,
+      payload: { text },
+      headers: {
+        cookie: await customerCookie(e),
+        'idempotency-key': key('customer'),
+        'x-forwarded-for': '198.51.100.252',
+      },
+    })
+
+  it('an inbound text matched to the project cancels the waiting draft at once; an SMS keyword does not', async () => {
+    const e = await published()
+    await verifyPhone(e.contactId)
+    await waitingDraft(e)
+    // HELP is consent handling (TSK-0048), not a response: the draft keeps waiting.
+    const help = await textIn(e.phone, 'HELP')
+    expect(help).toMatchObject({ link_state: 'matched', project_id: e.projectId, keyword: 'help' })
+    expect(await reminderStopReason(t.db, e.versionId, new Date())).toBeNull()
+    expect((await reminders(e.versionId)).map((r) => r.state)).toEqual(['draft'])
+    const m = await textIn(e.phone, 'Synthetic: can we talk about the estimate?')
+    expect(m).toMatchObject({ link_state: 'matched', project_id: e.projectId, keyword: null })
+    await expectStopped(e, 'customer_message')
+  })
+
+  it('a message staff link to the project from Needs Linking cancels the waiting draft (TSK-0049 link)', async () => {
+    const e = await published()
+    await waitingDraft(e)
+    // An unknown number: Needs Linking, on no project, so nothing stops yet.
+    const m = await textIn(`+1502555${String(9000 + hook).slice(-4)}`, 'Synthetic: about my estimate')
+    expect(m).toMatchObject({ link_state: 'needs_linking', project_id: null })
+    expect((await reminders(e.versionId)).map((r) => r.state)).toEqual(['draft'])
+    const linked = await staffWrite(
+      'office',
+      'POST',
+      `/api/v1/staff/inbox/messages/${m.id}/link`,
+      { projectReference: e.reference, reason: 'Synthetic: the customer wrote from another phone' },
+      m.link_version,
+    )
+    expect(linked.statusCode, linked.body).toBe(200)
+    await expectStopped(e, 'customer_message')
+  })
+
+  it('a message the customer writes in the portal cancels the waiting draft at once (TSK-0051 Messages)', async () => {
+    const e = await published()
+    await waitingDraft(e)
+    const res = await portalMessage(e, 'Synthetic: could the work start in the afternoon?')
+    expect(res.statusCode, res.body).toBe(201)
+    await expectStopped(e, 'customer_message')
+  })
+
+  it('a reply to a question cancels the waiting draft at once (TSK-0051 question replies)', async () => {
+    const e = await published()
+    await waitingDraft(e)
+    // A question HandyHub asked on the request and that is still open (synthetic fixture row).
+    const q = await t.db
+      .insertInto('intake.questions')
+      .values({
+        request_id: e.requestId,
+        project_id: e.projectId,
+        kind: 'general',
+        body: 'Synthetic: which wall is it?',
+        author_staff_id: staff.estimator.userId,
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow()
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/v1/customer/projects/${e.reference}/questions/${q.id}/replies`,
+      payload: { text: 'Synthetic: the hallway wall.' },
+      headers: {
+        cookie: await customerCookie(e),
+        'idempotency-key': key('customer'),
+        'x-forwarded-for': '198.51.100.253',
+      },
+    })
+    expect(res.statusCode, res.body).toBe(201)
+    await expectStopped(e, 'question_replied')
+  })
+
+  it('recheck at send time: a reminder released, then a customer message before the send, is cancelled', async () => {
+    const e = await published()
+    const id = await waitingDraft(e)
+    const sentBefore = fakeEmail.sent.length
+    // The worker does not run between the release and the message: the send job is still waiting.
+    expect((await releaseIt(id)).statusCode).toBe(200)
+    expect((await portalMessage(e, 'Synthetic: one more question first.')).statusCode).toBe(201)
+    // Released (queued), not a draft: the send job's record check stops it.
+    expect((await reminders(e.versionId)).map((r) => r.state)).toEqual(['queued'])
+    await drain()
+    expect((await reminders(e.versionId)).map((r) => [r.state, r.error_code])).toEqual([
+      ['cancelled', 'customer_message'],
+    ])
+    expect(fakeEmail.sent.length).toBe(sentBefore)
   })
 })

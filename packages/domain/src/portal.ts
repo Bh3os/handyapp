@@ -87,7 +87,14 @@ export type CustomerStep = (typeof CUSTOMER_STEPS)[number]
  * What the customer timeline lists today (HH-PORT-03): the request they sent and the staff decisions published to
  * them. Later tasks add their own published events (estimate, visit, hold, completion, invoice).
  */
-export const CUSTOMER_TIMELINE_KINDS = ['received', 'more_information', 'site_visit', 'not_a_fit'] as const
+export const CUSTOMER_TIMELINE_KINDS = [
+  'received',
+  'more_information',
+  'site_visit',
+  'not_a_fit',
+  // TSK-0051 (OWN-DEC-101): staff closed the request "Closed—no response".
+  'closed_no_response',
+] as const
 export type CustomerTimelineKind = (typeof CUSTOMER_TIMELINE_KINDS)[number]
 
 export type PortalFacts = {
@@ -118,6 +125,11 @@ export type PortalFacts = {
   readonly changeToReview?: boolean
   /** TSK-0085: an issued invoice has a balance due. */
   readonly invoiceDue?: boolean
+  /**
+   * TSK-0051 (OWN-DEC-101, FACT-REOPEN-PERIOD): a "Closed—no response" request is still within the reopen period and
+   * has a question the customer can answer; the reply reopens it for HandyHub's review.
+   */
+  readonly reopenByReply?: boolean
 }
 
 export type CustomerStatus = {
@@ -173,7 +185,11 @@ export function customerStatus(f: PortalFacts): CustomerStatus {
     case 'canceled':
       return { situation, step: 'decision', waitingOn: 'nobody', nextAction: 'none' }
     case 'closed_no_response':
-      return { situation, step: 'closed', waitingOn: 'nobody', nextAction: 'none' }
+      // Closed. Within the reopen period a reply to an open question reopens it, so that reply is the customer's one
+      // action (and who waits says so); after the period nobody waits.
+      return f.reopenByReply
+        ? theirs('closed', 'reply')
+        : { situation, step: 'closed', waitingOn: 'nobody', nextAction: 'none' }
     case 'safety_hold':
       // T48: only the neutral safety wording; the customer is never asked to act on a hazard.
       return { situation, step: 'safety_review', waitingOn: 'handyhub', nextAction: 'none' }

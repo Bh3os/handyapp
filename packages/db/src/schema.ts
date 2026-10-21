@@ -44,6 +44,30 @@ export interface CatalogServicesTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface CatalogSopVersionsTable {
+  id: Generated<string>
+  sop_id: string
+  service_id: string
+  version: number
+  title: string
+  source_file: string
+  source_sha256: string
+  content: Json
+  content_sha256: string
+  hazard_sha256: string
+  quality_sha256: string
+  review_state: Generated<string>
+  spanish_status: Generated<string>
+  reviewer_name: string | null
+  reviewer_qualification: string | null
+  review_note: string | null
+  signed_off_by: string | null
+  signed_off_at: Timestamp | null
+  superseded_at: Timestamp | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  row_version: Generated<number>
+}
+
 export interface CommsConversationsTable {
   id: Generated<string>
   project_id: string
@@ -101,6 +125,7 @@ export interface CommsMessagesTable {
   suggested_project_id: string | null
   link_version: Generated<number>
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  delivery_id: string | null
 }
 
 export interface CommsProjectReplyTokensTable {
@@ -305,6 +330,23 @@ export interface CrmRecordLinksTable {
   reversal_recheck: Json | null
 }
 
+export interface EstimatingApprovalReceiptsTable {
+  id: Generated<string>
+  approval_id: string
+  project_id: string
+  kind: Generated<string>
+  object_key: string
+  content_type: string
+  byte_size: number
+  sha256: string
+  terms_document_id: string
+  terms_sha256: string
+  test_mark: boolean
+  renderer_version: number
+  visibility: Generated<string>
+  issued_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface EstimatingApprovalSelectionsTable {
   version_id: string
   contact_ref: string
@@ -474,6 +516,62 @@ export interface EstimatingEstimatesTable {
   number: string
   created_by: string
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface FinanceDepositRequirementsTable {
+  id: Generated<string>
+  job_id: string
+  project_id: string
+  approval_id: string
+  rule_version: number
+  base_total_cents: Int8
+  required: boolean
+  amount_cents: Int8 | null
+  state: string
+  payment_link: string | null
+  payment_link_set_by: string | null
+  payment_link_set_at: Timestamp | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
+}
+
+export interface FinanceDepositWaiversTable {
+  id: Generated<string>
+  deposit_requirement_id: string
+  job_id: string
+  waived_by: string
+  reason: string
+  staff_session_id: string
+  authenticated_at: Timestamp
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface FinancePaymentAllocationsTable {
+  id: Generated<string>
+  payment_id: string
+  deposit_requirement_id: string
+  amount_cents: Int8
+  allocated_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface FinancePaymentsTable {
+  id: Generated<string>
+  project_id: string
+  job_id: string
+  method: string
+  amount_cents: Int8
+  currency: Generated<string>
+  received_on: string
+  collector_staff_id: string
+  recorded_by: string
+  reference: string | null
+  payer_name: string | null
+  state: string
+  cleared_by: string | null
+  cleared_at: Timestamp | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
 }
 
 export interface IdentityAuthIdentitiesTable {
@@ -686,6 +784,40 @@ export interface IntakePhotosTable {
   visibility: Generated<string>
 }
 
+export interface IntakeQuestionRepliesTable {
+  id: Generated<string>
+  question_id: string
+  request_id: string
+  project_id: string
+  author_contact_id: string
+  body: string | null
+  not_sure: Generated<boolean>
+  reopened_request: Generated<boolean>
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface IntakeQuestionReplyPhotosTable {
+  reply_id: string
+  photo_id: string
+  position: number
+}
+
+export interface IntakeQuestionsTable {
+  id: Generated<string>
+  request_id: string
+  project_id: string
+  kind: string
+  body: string
+  author_staff_id: string
+  published_at: ColumnType<Date, Date | string | undefined, Date | string>
+  state: Generated<string>
+  answered_at: Timestamp | null
+  notice_sent_at: Timestamp | null
+  first_reminder_sent_at: Timestamp | null
+  final_reminder_sent_at: Timestamp | null
+  version: Generated<number>
+}
+
 export interface IntakeReceiptCapabilitiesTable {
   id: string
   token_hash: string
@@ -844,6 +976,7 @@ export interface IntakeUploadCapabilitiesTable {
   expires_at: Timestamp
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   consumed_at: Timestamp | null
+  question_id: string | null
 }
 
 export interface OpsQueueItemsTable {
@@ -1148,6 +1281,67 @@ export interface WorkSchedulingTasksTable {
   version: Generated<number>
 }
 
+export interface WorkVisitWindowsTable {
+  visit_id: string
+  window_version: number
+  local_date: string
+  window_start: string
+  window_end: string
+  time_zone: string
+  start_offset_minutes: number
+  end_offset_minutes: number
+  starts_at: Timestamp
+  ends_at: Timestamp
+  visit_state: string
+  set_by: string
+  reason: string | null
+  set_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface WorkVisitsTable {
+  id: Generated<string>
+  purpose: string
+  project_id: string
+  job_id: string | null
+  property_id: string
+  state: Generated<string>
+  version: Generated<number>
+  window_version: Generated<number>
+  local_date: string
+  window_start: string
+  window_end: string
+  time_zone: string
+  start_offset_minutes: number
+  end_offset_minutes: number
+  starts_at: Timestamp
+  ends_at: Timestamp
+  window_set_by: string
+  window_reason: string | null
+  expected_duration_minutes: number | null
+  preparation_buffer_minutes: number | null
+  travel_buffer_minutes: number | null
+  required_workers: number | null
+  equipment: Generated<string[]>
+  created_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface WorkWorkPackageSopPinsTable {
+  id: Generated<string>
+  work_package_id: string
+  project_id: string
+  job_id: string
+  service_id: string
+  outcome: string
+  sop_version_id: string | null
+  content_sha256: string | null
+  hazard_sha256: string | null
+  quality_sha256: string | null
+  source: string
+  pinned_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface WorkWorkPackagesTable {
   id: Generated<string>
   project_id: string
@@ -1160,11 +1354,14 @@ export interface WorkWorkPackagesTable {
   created_by: string
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   version: Generated<number>
+  sop_version_id: string | null
+  sop_pinned_at: Timestamp | null
 }
 
 export interface Database {
   'catalog.service_versions': CatalogServiceVersionsTable
   'catalog.services': CatalogServicesTable
+  'catalog.sop_versions': CatalogSopVersionsTable
   'comms.conversations': CommsConversationsTable
   'comms.message_links': CommsMessageLinksTable
   'comms.messages': CommsMessagesTable
@@ -1184,6 +1381,7 @@ export interface Database {
   'crm.property_details': CrmPropertyDetailsTable
   'crm.record_changes': CrmRecordChangesTable
   'crm.record_links': CrmRecordLinksTable
+  'estimating.approval_receipts': EstimatingApprovalReceiptsTable
   'estimating.approval_selections': EstimatingApprovalSelectionsTable
   'estimating.approvals': EstimatingApprovalsTable
   'estimating.customer_responses': EstimatingCustomerResponsesTable
@@ -1193,6 +1391,10 @@ export interface Database {
   'estimating.estimate_version_internals': EstimatingEstimateVersionInternalsTable
   'estimating.estimate_versions': EstimatingEstimateVersionsTable
   'estimating.estimates': EstimatingEstimatesTable
+  'finance.deposit_requirements': FinanceDepositRequirementsTable
+  'finance.deposit_waivers': FinanceDepositWaiversTable
+  'finance.payment_allocations': FinancePaymentAllocationsTable
+  'finance.payments': FinancePaymentsTable
   'identity.auth_identities': IdentityAuthIdentitiesTable
   'identity.customer_account_changes': IdentityCustomerAccountChangesTable
   'identity.customer_accounts': IdentityCustomerAccountsTable
@@ -1209,6 +1411,9 @@ export interface Database {
   'identity.verification_attempts': IdentityVerificationAttemptsTable
   'identity.verification_codes': IdentityVerificationCodesTable
   'intake.photos': IntakePhotosTable
+  'intake.question_replies': IntakeQuestionRepliesTable
+  'intake.question_reply_photos': IntakeQuestionReplyPhotosTable
+  'intake.questions': IntakeQuestionsTable
   'intake.receipt_capabilities': IntakeReceiptCapabilitiesTable
   'intake.request_answers': IntakeRequestAnswersTable
   'intake.request_assignments': IntakeRequestAssignmentsTable
@@ -1241,5 +1446,8 @@ export interface Database {
   'work.job_scope_snapshots': WorkJobScopeSnapshotsTable
   'work.jobs': WorkJobsTable
   'work.scheduling_tasks': WorkSchedulingTasksTable
+  'work.visit_windows': WorkVisitWindowsTable
+  'work.visits': WorkVisitsTable
+  'work.work_package_sop_pins': WorkWorkPackageSopPinsTable
   'work.work_packages': WorkWorkPackagesTable
 }

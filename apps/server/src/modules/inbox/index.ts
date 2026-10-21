@@ -6,8 +6,11 @@
 //   not recorded yet, so their scope reaches none; a Worker has no inbox).
 // - Needs Linking, a single inbound message and linking: message.view_unmatched / message.link (Owner, Office only).
 //   Other roles are refused, and a Needs Linking message is in no project, so no project-scoped route reaches it.
-// - No route answers a customer: messages have no customer projection yet (records/projections; TSK-0050 adds the
-//   portal Messages tab), and internal messages never will.
+// - No route here answers a customer: the portal's Messages tab (TSK-0050) reads the customer conversation through
+//   its own customer view (records/projections, portal/messages.ts); internal messages never reach it.
+// - TSK-0050 (HH-COM-08, HH-COM-09): staff reply from the project (replies.ts): the reply options, the project's
+//   conversation and Send. A conversation lists each staff reply with its delivery state (queued until the contact
+//   hours open, sent, delivered where reported, failed with Retry, suppressed).
 import { looksLikeCardNumber } from '@handyhub/domain'
 import { listingScope, type StaffActor } from '@handyhub/policy'
 import { sql } from 'kysely'
@@ -16,6 +19,7 @@ import { pageSchema, toPage } from '../../api/pagination.js'
 import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
 import { projectInScope } from '../../platform/data-scope.js'
 import type { ProviderSettings } from '../../providers/settings.js'
+import { isOutcomeUnknown } from '../notifications/index.js'
 import {
   applyLink,
   ensureConversation,
@@ -24,8 +28,10 @@ import {
   resolveNeedsLinking,
   touchConversation,
 } from './conversations.js'
+import { stopProjectEstimateReminders } from '../estimates/reminders.js'
 import { SUPPORTED_INBOUND } from './intake.js'
 import { contactOf } from './matching.js'
+import { replyRoutes } from './replies.js'
 import {
   CONVERSATION,
   CONVERSATION_ITEM,
@@ -44,6 +50,20 @@ import {
 } from './schemas.js'
 
 export { inboxIntakeAutomation, INBOX_INTAKE, SUPPORTED_INBOUND, type IntakeDeps } from './intake.js'
+export {
+  channelOptions,
+  channelRefusal,
+  defaultChannel,
+  replyContact,
+  replyContactHours,
+  replyFailureItem,
+  replyRecordCheck,
+  ReplyError,
+  sendReply,
+  type ChannelOption,
+  type ReplyChannel,
+  type SentReply,
+} from './replies.js'
 export { CLOSED_PROJECT_STATES, matchInbound, type MatchInput, type MatchResult } from './matching.js'
 export {
   newReplyToken,
@@ -64,6 +84,8 @@ export const CANDIDATE_LIMIT = 10
 export type InboxDeps = {
   /** This process's provider settings; unset: the channel states are reported as unknown, never as configured. */
   providers?: ProviderSettings | null
+  /** TSK-0050: the clock of the reply routes (tests). Default: the real time. */
+  now?: () => Date
 }
 
 const conflict = (code: string) => new ApiError('CONFLICT', { fieldErrors: [{ field: 'state', code, message: '' }] })
@@ -121,6 +143,8 @@ const messageResource: NonNullable<RouteDef['resource']> = async ({ req, db }) =
     .select('id')
     .where('id', '=', messageId)
     .where('direction', '=', 'inbound')
+    // TSK-0051: a portal message is placed by the customer's own session and is never relinked.
+    .where('channel', '<>', 'portal')
     .executeTakeFirst()
   return row ? {} : null
 }
@@ -307,6 +331,11 @@ type MessageRow = {
   contact_name: string | null
   author_staff_id: string | null
   staff_name: string | null
+  delivery_id: string | null
+  delivery_state: string | null
+  delivery_error: string | null
+  delivery_send_at: Date | null
+  delivery_issue: boolean | null
 }
 
 const attachmentsOf = (v: unknown) =>
@@ -335,11 +364,22 @@ function threadMessage(m: MessageRow) {
     linkState: m.link_state,
     matchRule: m.match_rule,
     author:
-      m.direction === 'internal'
+      m.direction === 'internal' || m.direction === 'outbound'
         ? { kind: 'staff' as const, id: m.author_staff_id, name: m.staff_name }
         : m.contact_id
           ? { kind: 'contact' as const, id: m.contact_id, name: m.contact_name }
           : { kind: 'unknown_sender' as const, id: null, name: null },
+    // TSK-0050: a staff reply's email or text as its delivery records it; Retry only for a definite failure with its
+    // open delivery issue (an unknown provider outcome is reconciled, never resent).
+    delivery: m.delivery_id
+      ? {
+          id: m.delivery_id,
+          state: m.delivery_state as string,
+          errorCode: m.delivery_error,
+          sendAt: m.delivery_state === 'queued' ? iso(m.delivery_send_at) : null,
+          retry: m.delivery_state === 'failed' && Boolean(m.delivery_issue) && !isOutcomeUnknown(m.delivery_error),
+        }
+      : null,
   }
 }
 
@@ -348,6 +388,7 @@ const messagesOf = (ctx: ApiContext, conversationId: string) =>
     .selectFrom('comms.messages as m')
     .leftJoin('crm.contacts as c', 'c.id', 'm.contact_id')
     .leftJoin('identity.staff_users as su', 'su.id', 'm.author_staff_id')
+    .leftJoin('platform.message_deliveries as d', 'd.id', 'm.delivery_id')
     .select([
       'm.id',
       'm.direction',
@@ -367,6 +408,13 @@ const messagesOf = (ctx: ApiContext, conversationId: string) =>
       'c.full_name as contact_name',
       'm.author_staff_id',
       'su.display_name as staff_name',
+      'm.delivery_id',
+      'd.state as delivery_state',
+      'd.error_code as delivery_error',
+      sql<Date | null>`(SELECT min(j.run_at) FROM platform.jobs j WHERE j.target_type = 'message_delivery'
+        AND j.target_id = d.id::text AND j.state = 'queued')`.as('delivery_send_at'),
+      sql<boolean>`EXISTS (SELECT 1 FROM ops.queue_items q WHERE q.type = 'delivery_failed'
+        AND q.subject_id = d.id::text AND q.resolved_at IS NULL)`.as('delivery_issue'),
     ])
     .where('m.conversation_id', '=', conversationId)
     .orderBy('m.received_at')
@@ -430,6 +478,8 @@ const getConversation: RouteDef = read({
       .where('project_id', '=', cv.project_id)
       .where('audience', '=', 'customer')
       .where('state', '<>', 'draft')
+      // Staff replies are listed on the reply itself (TSK-0050).
+      .where('message_key', '<>', 'staff.reply')
       .orderBy('seq')
       .limit(200)
       .execute()
@@ -562,6 +612,7 @@ async function messageDetail(ctx: ApiContext, messageId: string) {
     ])
     .where('m.id', '=', messageId)
     .where('m.direction', '=', 'inbound')
+    .where('m.channel', '<>', 'portal')
     .executeTakeFirst()
   if (!m) throw new ApiError('NOT_FOUND')
   // Candidates for office staff: projects of the customers whose contacts have this address (verified or not), and
@@ -722,6 +773,7 @@ const linkMessage: RouteDef = {
       ])
       .where('id', '=', messageId)
       .where('direction', '=', 'inbound')
+      .where('channel', '<>', 'portal')
       .forUpdate()
       .executeTakeFirst()
     if (!m) throw new ApiError('NOT_FOUND')
@@ -771,6 +823,8 @@ const linkMessage: RouteDef = {
       nextVersion: version,
     })
     if (conversationId) await touchConversation(tx, conversationId, m.received_at, true)
+    // TSK-0060 (HH-EST-14): a customer message linked to the project stops its waiting estimate reminder drafts.
+    await stopProjectEstimateReminders(tx, project.id)
     if (m.conversation_id && m.conversation_id !== conversationId)
       await resolveCustomerRepliedIfQuiet(tx, m.conversation_id)
     await resolveNeedsLinking(tx, m.id)
@@ -919,6 +973,7 @@ export function inboxModule(deps: InboxDeps = {}): ApiModule {
       listNeedsLinking,
       getMessage,
       linkMessage,
+      ...replyRoutes(deps.now ? { now: deps.now } : {}),
     ],
   }
 }

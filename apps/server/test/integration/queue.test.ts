@@ -127,6 +127,11 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       // TSK-0049: the private Needs Linking list (message.view_unmatched) and customer replies.
       'inbox_needs_linking',
       'customer_replied',
+      // TSK-0051: replies to staff questions and question reminders to release.
+      'question_replied',
+      'question_reminder',
+      // TSK-0059: deposits to collect (payment.record: the Owner and Office).
+      'deposit_due',
     ])
     expect(office.items.map((i) => i.type)).not.toContain('deposit_waiver')
     expect(office.items.map((i) => i.id)).not.toContain(ownerOnly)
@@ -176,6 +181,9 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       'estimate_reminder',
       'candidate_match',
       'customer_replied',
+      // TSK-0051: replies to staff questions (request.view) and reminders on their own requests (own threads).
+      'question_replied',
+      'question_reminder',
     ])
     expect(est.items.map((i) => i.type)).not.toContain('case_open')
     expect((await get('estimator', '/api/v1/staff/queue/owner-decisions')).statusCode).toBe(403)

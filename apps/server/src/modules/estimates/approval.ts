@@ -21,13 +21,14 @@
 //   task, the work packages' job link and the committed event estimate.approved (the approval receipt, TSK-0058,
 //   reads it). TSK-0060 (HH-EST-14): the same transaction cancels the version's waiting reminder drafts with the reason
 //   'accepted' (stopEstimateReminders), so no unanswered-estimate reminder is left to release after an approval; a
-//   released one not yet sent is stopped by its send-time check. Unique constraints back each "one" (one approval per version, one job per project and approval, one
+//   released one not yet sent is stopped by its send-time check. TSK-0068: each work package also pins its service's
+//   current SOP version (or records NOT CONFIGURED). Unique constraints back each "one" (one approval per version, one job per project and approval, one
 //   scheduling task per job). A second call that finds the version already approved by the same verified contact
 //   with the same options and total answers with that first approval (two tabs, a retry under a new key); anything
 //   else is a CONFLICT. The same idempotency key is answered by the API's stored response (claim/store).
 // - Approval never confirms an appointment, reserves capacity or marks a deposit paid (OWN-DEC-103, HH-EST-08).
 import { createHash } from 'node:crypto'
-import type { Db, Tx } from '@handyhub/db'
+import { pinJobSops, type Db, type Tx } from '@handyhub/db'
 import { apply, type EstimateVersionState, type ProjectState } from '@handyhub/domain'
 import { estimateTermsDocument, estimateTermsInEffect } from '@handyhub/domain/legal'
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
@@ -672,6 +673,9 @@ export async function approveVersion(
     .where('project_id', '=', v.project_id)
     .where('job_id', 'is', null)
     .execute()
+  // TSK-0068 (HH-PKT-03): each work package of the job pins the current SOP version of its service, or records that
+  // none exists (NOT CONFIGURED: the package cannot become ready until one is pinned).
+  await pinJobSops(tx, { jobId: job.id, source: 'approval', at: now })
   // The selection was working data for this approval; the approval now holds it.
   await tx.deleteFrom('estimating.approval_selections').where('version_id', '=', v.id).execute()
 

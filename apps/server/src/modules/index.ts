@@ -9,6 +9,7 @@ import type { EnvironmentName } from '../config.js'
 import { estimatesModule } from './estimates/index.js'
 import { CUSTOMERS_MODULE } from './customers/index.js'
 import { inboxModule } from './inbox/index.js'
+import { FINANCE_MODULE } from './finance/index.js'
 import { NOTIFICATIONS_MODULE } from './notifications/index.js'
 import { photosModule } from './photos/index.js'
 import { propertiesModule } from './properties/index.js'
@@ -17,9 +18,12 @@ import { requestsModule } from './requests/index.js'
 import { accessModule } from './access/index.js'
 import { accountsModule } from './accounts/index.js'
 import { portalModule } from './portal/index.js'
+import { questionsModule } from './questions/index.js'
 import { SITE_MODULE } from './site/index.js'
+import { sopsModule } from './sops/index.js'
 import { systemModule, type SystemDeps } from './system/index.js'
 import { verificationModule } from './verification/index.js'
+import { visitsModule } from './visits/index.js'
 import type { CodeKeySettings } from './identity/index.js'
 
 export type ModuleDeps = {
@@ -61,6 +65,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     QUEUE_MODULE,
     // TSK-0053: Write an Estimate and the staff builder; TSK-0054: Upload an Estimate and the customer PDF.
     estimatesModule({ storage: deps.storage ?? null, testMark: deps.environment !== 'production' }),
+    // TSK-0059: the deposit requirement, recorded deposit payments, the Owner's waiver (the gate is called by visits).
+    FINANCE_MODULE,
     NOTIFICATIONS_MODULE,
     systemModule(deps.system ?? {}),
     // TSK-0033: the receipt's contact verification and its account-offer answer.
@@ -83,6 +89,12 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     inboxModule({ providers: deps.system?.providers ?? null }),
     // TSK-0045: property records and the protected access-code store.
     propertiesModule({ accessCodeKey: deps.accessCodeKey ?? null }),
+    // TSK-0051: staff questions, customer replies and portal messages, reminders and "Closed—no response".
+    questionsModule(),
+    // TSK-0061: the visit model (tentative estimate and work visits, local windows in an IANA zone, window history).
+    visitsModule(),
+    // TSK-0068: the SOP version pinned on each work package of a job, and the Owner's competent-review sign-off.
+    sopsModule(deps.environment ? { environment: deps.environment } : {}),
   ]
 }
 

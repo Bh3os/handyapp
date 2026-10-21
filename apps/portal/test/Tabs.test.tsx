@@ -43,7 +43,7 @@ const overview = (refreshSeconds = 0) => ({
 })
 const head = (refreshSeconds = 0) => ({ reference: REF, refreshedAt: NOW, refreshSeconds })
 const TAB_BODY: Record<WorkspaceTab, (s?: number) => unknown> = {
-  messages: (s) => ({ ...head(s), state: 'not_shown' }),
+  messages: (s) => ({ ...head(s), messages: [] }),
   documents: (s) => ({ ...head(s), state: 'none' }),
   photos: (s) => ({ ...head(s), photos: { received: 0, processing: 0, failed: 0 } }),
   appointments: (s) => ({ ...head(s), state: 'none' }),
@@ -108,7 +108,7 @@ describe('the six tabs (TSK-0039, HH-PORT-09, T69)', () => {
     expect(selected().textContent).toBe('Messages')
     expect(document.activeElement).toBe(at('Messages'))
     expect(window.location.pathname).toBe(`/portal/p/${REF}/messages`)
-    expect(await within(panel()).findByText("Messages aren't shown here yet")).toBeTruthy()
+    expect(await within(panel()).findByText('No messages yet')).toBeTruthy()
     fireEvent.keyDown(at('Messages'), { key: 'End' })
     expect(selected().textContent).toBe('Payments')
     expect(window.location.pathname).toBe(`/portal/p/${REF}/payments`)
@@ -133,10 +133,11 @@ describe('the six tabs (TSK-0039, HH-PORT-09, T69)', () => {
       await within(panel()).findByText(/^Updated /)
       return panel()
     }
+    // TSK-0050: an empty conversation says what will appear; it never invents a message.
     let p = await show('Messages')
-    expect(within(p).getByText("Messages aren't shown here yet")).toBeTruthy()
-    expect(within(p).getByText('Your project conversation with HandyHub will appear here.')).toBeTruthy()
-    expect(within(p).queryByText(/no messages/i)).toBeNull()
+    expect(within(p).getByText('No messages yet')).toBeTruthy()
+    expect(within(p).getByText('Messages between you and HandyHub about this project appear here.')).toBeTruthy()
+    expect(within(p).queryByRole('listitem')).toBeNull()
     p = await show('Documents')
     expect(within(p).getByText('No documents yet')).toBeTruthy()
     p = await show('Photos')
@@ -149,6 +150,43 @@ describe('the six tabs (TSK-0039, HH-PORT-09, T69)', () => {
     expect(within(p).queryByRole('button', { name: /pay/i })).toBeNull()
     // Each panel has its heading under the page heading.
     expect(within(p).getByRole('heading', { level: 2, name: 'Payments' })).toBeTruthy()
+  })
+
+  it('[TSK-0050][HH-COM-08][HH-PORT-08][C06] Messages: the conversation oldest first, who wrote it, how and when; customer text as written', async () => {
+    // Customer free text in the customer's own language is kept exactly as written (HH-PORT-08).
+    const own = 'Hola: ¿pueden venir el martes? Synthetic customer text.'
+    const reply = 'Synthetic reply: Tuesday at 9 works.\nSee you then.'
+    const { fetchImpl } = api({
+      messages: () =>
+        json(200, {
+          ...head(),
+          messages: [
+            { from: 'you', channel: 'sms', at: SENT, text: own, textState: 'shown', attachments: 0 },
+            { from: 'handyhub', channel: 'email', at: NOW, text: reply, textState: 'shown', attachments: 0 },
+            { from: 'you', channel: 'email', at: NOW, text: null, textState: 'not_available', attachments: 2 },
+          ],
+        }),
+    })
+    open(fetchImpl, 'messages')
+    const p = await screen.findByRole('tabpanel')
+    const list = await within(p).findByRole('list', { name: 'Project conversation' })
+    const items = within(list).getAllByRole('listitem')
+    expect(items.map((i) => i.getAttribute('aria-label'))).toEqual([
+      'You, Text message',
+      'HandyHub, Email',
+      'You, Email',
+    ])
+    expect(within(items[0] as HTMLElement).getByText(own)).toBeTruthy()
+    expect((items[1] as HTMLElement).querySelector('.portal-conversation__text')?.textContent).toBe(reply)
+    expect(within(items[2] as HTMLElement).getByText("The text of this message isn't available here.")).toBeTruthy()
+    expect(within(items[2] as HTMLElement).getByText("2 attachments aren't shown here.")).toBeTruthy()
+    expect(
+      within(items[0] as HTMLElement)
+        .getByRole('time')
+        .getAttribute('datetime'),
+    ).toBe(SENT)
+    // No staff name, address or delivery state reaches the page; nothing claims the customer read anything.
+    expect(p.textContent).not.toMatch(/delivered|read|sent by|@/i)
   })
 
   it('[HH-PORT-09][HH-PORT-11] Photos: the counts by state as the server sent them, and that viewing is not available here yet', async () => {
@@ -202,12 +240,19 @@ describe('the six tabs (TSK-0039, HH-PORT-09, T69)', () => {
     expect(screen.getByRole('tablist')).toBeTruthy()
     fail = false
     fireEvent.click(within(p).getByRole('button', { name: 'Try again' }))
-    expect(await within(p).findByText("Messages aren't shown here yet")).toBeTruthy()
+    expect(await within(p).findByText('No messages yet')).toBeTruthy()
   })
 
   it('[HH-PORT-06] a tab answer that is not its declared view is a failure, never shown as data', () => {
     expect(parseTab('messages', TAB_BODY.messages())).not.toBeNull()
     expect(parseTab('messages', { ...head(), state: 'read' })).toBeNull()
+    expect(parseTab('messages', { ...head(), state: 'not_shown' })).toBeNull()
+    // TSK-0050: a message that is not the declared view (a staff name, a "read" state, text with the wrong state).
+    const m = { from: 'handyhub', channel: 'email', at: SENT, text: 'Synthetic.', textState: 'shown', attachments: 0 }
+    expect(parseTab('messages', { ...head(), messages: [m] })).not.toBeNull()
+    expect(parseTab('messages', { ...head(), messages: [{ ...m, from: 'staff' }] })).toBeNull()
+    expect(parseTab('messages', { ...head(), messages: [{ ...m, textState: 'not_available' }] })).toBeNull()
+    expect(parseTab('messages', { ...head(), messages: [{ ...m, channel: 'internal' }] })).toBeNull()
     expect(parseTab('payments', { ...head(), state: 'paid' })).toBeNull()
     expect(parseTab('documents', TAB_BODY.messages())).toBeNull()
     expect(parseTab('photos', { ...head(), photos: { received: -1, processing: 0, failed: 0 } })).toBeNull()

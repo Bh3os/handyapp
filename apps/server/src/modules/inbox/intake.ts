@@ -35,6 +35,7 @@ import {
   touchConversation,
   type LinkTarget,
 } from './conversations.js'
+import { stopProjectEstimateReminders } from '../estimates/reminders.js'
 import { matchInbound, type MatchResult } from './matching.js'
 import type { InboundAddress } from './threading.js'
 
@@ -145,7 +146,11 @@ async function store(tx: Tx, r: Receipt, m: NewMessage, match: MatchResult, requ
   const conversationId = await applyLink(tx, { messageId: id, from: null, to: target })
   if (conversationId && match.state === 'matched') {
     await touchConversation(tx, conversationId, at, true)
-    if (!m.keyword) await customerReplied(tx, conversationId, match.projectId, at)
+    if (!m.keyword) {
+      await customerReplied(tx, conversationId, match.projectId, at)
+      // TSK-0060 (HH-EST-14): a customer message stops the project's waiting estimate reminder drafts.
+      await stopProjectEstimateReminders(tx, match.projectId)
+    }
   } else await openNeedsLinking(tx, id, at)
   await tx
     .updateTable('platform.webhook_receipts')

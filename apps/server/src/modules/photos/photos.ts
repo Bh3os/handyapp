@@ -9,6 +9,10 @@
 //   rejected. Only ready photos are served, only by a short-lived signed URL, only after the caller was authorized.
 // - On submission the draft's photos are bound to the new request and project by the server and the draft capability
 //   is consumed.
+// - TSK-0051 (HH-LEAD-03, HH-SEC-05): a 'reply' capability is one question's reply, created for the verified customer
+//   of the project. Its photos are checked exactly like request photos, count toward the request's photo limit, stay
+//   unbound until the reply is submitted (then they are bound to the request and project and the capability is
+//   consumed), and may be removed before that.
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import type { Db, Tx } from '@handyhub/db'
 import { sql } from 'kysely'
@@ -24,7 +28,15 @@ export const CAPABILITY_HEADER = 'upload-capability'
 export const PHOTO_URL_SECONDS = 300
 
 export type PhotoLimits = { maxFileBytes: number; maxPhotos: number; types: readonly string[] }
-export type Capability = { id: string; scope: 'draft' | 'request'; requestId: string | null; expiresAt: Date }
+export type CapabilityScope = 'draft' | 'request' | 'reply'
+export type Capability = {
+  id: string
+  scope: CapabilityScope
+  requestId: string | null
+  /** Reply capabilities only (TSK-0051): the question the reply answers. */
+  questionId: string | null
+  expiresAt: Date
+}
 
 export type UploadProblem = ContentProblem | 'too_large' | 'too_many' | 'empty' | 'type_not_allowed'
 
@@ -53,7 +65,10 @@ function draftLifetimeDays(config: Config): number | null {
 /** A new capability; the token is returned once and only its hash is kept. */
 export async function createCapability(
   tx: Tx,
-  input: { scope: 'draft' } | { scope: 'request'; requestId: string },
+  input:
+    | { scope: 'draft' }
+    | { scope: 'request'; requestId: string }
+    | { scope: 'reply'; requestId: string; questionId: string },
   now: Date = new Date(),
 ): Promise<{ token: string; capability: Capability }> {
   const days = draftLifetimeDays(await loadConfig(tx))
@@ -61,7 +76,8 @@ export async function createCapability(
   const token = randomBytes(32).toString('base64url')
   const id = randomUUID()
   const expiresAt = new Date(now.getTime() + days * 86_400_000)
-  const requestId = input.scope === 'request' ? input.requestId : null
+  const requestId = input.scope === 'draft' ? null : input.requestId
+  const questionId = input.scope === 'reply' ? input.questionId : null
   await tx
     .insertInto('intake.upload_capabilities')
     .values({
@@ -69,11 +85,12 @@ export async function createCapability(
       token_hash: hash(token),
       scope: input.scope,
       request_id: requestId,
+      question_id: questionId,
       expires_at: expiresAt,
       created_at: now,
     })
     .execute()
-  return { token, capability: { id, scope: input.scope, requestId, expiresAt } }
+  return { token, capability: { id, scope: input.scope, requestId, questionId, expiresAt } }
 }
 
 /** The open, unexpired capability for a token, or null (answered like a missing record). */
@@ -85,13 +102,19 @@ export async function resolveCapability(
   if (typeof token !== 'string' || !TOKEN.test(token)) return null
   const row = await db
     .selectFrom('intake.upload_capabilities')
-    .select(['id', 'scope', 'request_id', 'expires_at'])
+    .select(['id', 'scope', 'request_id', 'question_id', 'expires_at'])
     .where('token_hash', '=', hash(token))
     .where('state', '=', 'open')
     .where('expires_at', '>', now)
     .executeTakeFirst()
   return row
-    ? { id: row.id, scope: row.scope as 'draft' | 'request', requestId: row.request_id, expiresAt: row.expires_at }
+    ? {
+        id: row.id,
+        scope: row.scope as CapabilityScope,
+        requestId: row.request_id,
+        questionId: row.question_id,
+        expiresAt: row.expires_at,
+      }
     : null
 }
 
@@ -133,10 +156,19 @@ async function activeCount(tx: Tx, cap: Capability): Promise<number> {
     .selectFrom('intake.photos')
     .select((eb) => eb.fn.countAll<string>().as('n'))
     .where('state', 'in', ['quarantined', 'ready'])
+  const requestId = cap.requestId
   q =
-    cap.scope === 'request' && cap.requestId
-      ? q.where('request_id', '=', cap.requestId)
-      : q.where('capability_id', '=', cap.id)
+    cap.scope === 'request' && requestId
+      ? q.where('request_id', '=', requestId)
+      : cap.scope === 'reply' && requestId
+        ? // The request's photos and this reply's own unbound ones: "up to 10 photos in total" (FACT-UPLOAD-LIMITS).
+          q.where((eb) =>
+            eb.or([
+              eb('request_id', '=', requestId),
+              eb.and([eb('capability_id', '=', cap.id), eb('request_id', 'is', null)]),
+            ]),
+          )
+        : q.where('capability_id', '=', cap.id)
   return Number((await q.executeTakeFirst())?.n ?? 0)
 }
 
@@ -210,9 +242,9 @@ export async function uploadPhoto(
   return { photo: view(row), created: true }
 }
 
-/** Removes a photo of the capability's own draft before submission; false when it is not one of them. */
+/** Removes a photo of the capability's own draft (or reply) before submission; false when it is not one of them. */
 export async function removePhoto(tx: Tx, cap: Capability, photoId: string): Promise<boolean> {
-  if (cap.scope !== 'draft') return false
+  if (cap.scope !== 'draft' && cap.scope !== 'reply') return false
   const r = await tx
     .updateTable('intake.photos')
     .set({ state: 'removed', removed_at: sql<Date>`now()` })
@@ -260,6 +292,52 @@ export async function bindDraftPhotos(
     else summary.failed++
   }
   return summary
+}
+
+/** Why a reply's photos cannot be attached (TSK-0051). */
+export class ReplyPhotoError extends Error {
+  override name = 'ReplyPhotoError'
+  constructor(readonly problem: 'unknown_photo' | 'photo_rejected') {
+    super(problem)
+  }
+}
+
+/**
+ * Binds the photos a reply attaches to the request and project (inside the reply's transaction) and consumes the reply
+ * capability. Only the capability's own unbound photos that are received or still processing may be attached; any
+ * other ID is refused (ReplyPhotoError), so nothing is attached by an ID alone. Returns the photo IDs in order.
+ */
+export async function bindReplyPhotos(
+  tx: Tx,
+  input: { cap: Capability; photoIds: readonly string[]; requestId: string; projectId: string },
+): Promise<string[]> {
+  if (input.cap.scope !== 'reply' || input.cap.requestId !== input.requestId) throw new ReplyPhotoError('unknown_photo')
+  const ids = [...new Set(input.photoIds)]
+  const rows = ids.length
+    ? await tx
+        .selectFrom('intake.photos')
+        .select(['id', 'state'])
+        .where('capability_id', '=', input.cap.id)
+        .where('request_id', 'is', null)
+        .where('id', 'in', ids)
+        .forUpdate()
+        .execute()
+    : []
+  if (rows.length !== ids.length) throw new ReplyPhotoError('unknown_photo')
+  if (rows.some((r) => r.state !== 'ready' && r.state !== 'quarantined')) throw new ReplyPhotoError('photo_rejected')
+  if (ids.length)
+    await tx
+      .updateTable('intake.photos')
+      .set({ request_id: input.requestId, project_id: input.projectId })
+      .where('id', 'in', ids)
+      .execute()
+  await tx
+    .updateTable('intake.upload_capabilities')
+    .set({ state: 'consumed', consumed_at: sql<Date>`now()` })
+    .where('id', '=', input.cap.id)
+    .where('state', '=', 'open')
+    .execute()
+  return ids
 }
 
 /** A short-lived signed URL for a ready photo of a request; null for any other photo (missing, quarantined, rejected). */
