@@ -54,6 +54,16 @@ describe('staging boot behind the gate (TSK-0003, OWN-DEC-73)', () => {
     expect(await res.json()).toEqual({ status: 'ready', checks: { database: 'ok', migrations: 'ok' } })
   })
 
+  it("[HH-PRIV-01] boot schedules today's retention scan once (TSK-0099)", async () => {
+    const key = `retention.review_scan:day:${new Date().toISOString().slice(0, 10)}:1`
+    await expect
+      .poll(
+        async () =>
+          (await testDb.db.selectFrom('platform.jobs').select('job_key').where('job_key', '=', key).execute()).length,
+      )
+      .toBe(1)
+  })
+
   it('[RULE-SYNTHETIC-DATA] robots.txt disallows everything on staging', async () => {
     const res = await fetch(`${base}/robots.txt`, { headers: { authorization: basic('tester1', gatePassword(2)) } })
     expect(await res.text()).toBe('User-agent: *\nDisallow: /\n')

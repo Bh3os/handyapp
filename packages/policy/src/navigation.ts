@@ -11,7 +11,7 @@ import { STAFF_ROLES } from './roles.js'
 /**
  * The staff app's top-level screens, in menu order, each with the actions that open it (PROPOSED mapping; the journeys
  * name who acts: S01 queue, S07 My Day, S02 requests, S03 records, S04 estimates, S05 board, S06 inbox, C10 payments,
- * S10 cases, S09 staff and audit, S11 dashboard, HH-NFR-02 system health (TSK-0101), S08 configuration).
+ * S10 cases, S09 staff and audit, the retention reviews (TSK-0099), S11 dashboard, HH-NFR-02 system health (TSK-0101), S08 configuration).
  * System health opens with the Owner Dashboard's action (PROPOSED: the matrix has no separate row for it).
  */
 export const NAV_ITEMS = [
@@ -26,6 +26,7 @@ export const NAV_ITEMS = [
   { id: 'cases', gate: ['case.record_complaint'] },
   { id: 'staff', gate: ['staff.invite'] },
   { id: 'audit', gate: ['audit.view'] },
+  { id: 'retention', gate: ['retention.view'] },
   { id: 'dashboard', gate: ['dashboard.view'] },
   { id: 'health', gate: ['dashboard.view'] },
   { id: 'settings', gate: ['policy_values.change'] },

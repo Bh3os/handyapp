@@ -83,6 +83,7 @@ export const LABEL_FAMILIES = {
     'question_replied',
     'question_reminder',
     'deposit_due',
+    'visit_flagged',
     'deposit_waiver',
     'start_work_exception',
     'refund_request',
@@ -134,6 +135,9 @@ export const LABEL_FAMILIES = {
     'question_reminder_first',
     'question_reminder_final',
     'no_response_close_available',
+    'assignee_disabled',
+    'availability_changed',
+    'equipment_retired',
   ],
   /** The one action button of a queue item (HH-OPS-02); it opens the record's screen. */
   queueAction: [
@@ -151,6 +155,7 @@ export const LABEL_FAMILIES = {
     'link_message',
     'open_conversation',
     'review_deposit',
+    'reassign_visit',
   ],
   /**
    * System health (TSK-0101; HH-NFR-02): the checks, their states, metrics and notes, as the server's health report
@@ -244,6 +249,14 @@ export const LABEL_FAMILIES = {
     'legal.website_terms',
     'legal.sms_disclosure',
     'legal.estimate_terms',
+    'retention.audit_log',
+    'retention.requests_not_converted',
+    'retention.unaccepted_estimates',
+    'retention.customer_profiles',
+    'retention.accepted_agreements',
+    'retention.financial_records',
+    'retention.job_records',
+    'retention.safety_records',
     'scheduling.window_offers',
     'ai.module',
   ],
@@ -616,6 +629,137 @@ export const LABEL_FAMILIES = {
     'VALIDATION_FAILED',
     'CONFLICT',
     'NOT_CONFIGURED',
+    'INTERNAL',
+    'UNAVAILABLE',
+  ],
+  /** Staff roles a person can be granted (OWN-DEC-114 role list; ROLE-MATRIX columns; TSK-0097). */
+  staffRole: ['owner', 'office', 'estimator', 'worker'],
+  /** Named capabilities the Owner grants per person (ENT-RoleGrant; TSK-0097). */
+  staffCapability: ['collect'],
+  /** Staff account states (ENT-StaffUser: invited, active, disabled). */
+  staffStatus: ['invited', 'active', 'disabled'],
+  /**
+   * The areas of audit actions (TSK-0098; HH-SEC-06): the part of an action code before its first dot, as the
+   * modules record them. An area not listed here is shown by its code.
+   */
+  auditArea: [
+    'access_code',
+    'account_offer',
+    'approval_receipt',
+    'automation',
+    'check',
+    'contact_verification',
+    'coverage',
+    'customer',
+    'customer_account',
+    'customer_session',
+    'deposit',
+    'equipment',
+    'estimate',
+    'estimate_document',
+    'estimate_reminder',
+    'hold',
+    'inbox',
+    'incident',
+    'job_hold',
+    'message',
+    'notification',
+    'payment',
+    'photo',
+    'portal',
+    'project_access',
+    'property',
+    'question',
+    'queue',
+    'request',
+    'request_draft',
+    'retention',
+    'security',
+    'sms',
+    'sop',
+    'staff',
+    'staff_link',
+    'visit',
+  ],
+  /** Retention schedule categories (TSK-0099; apps/server/src/modules/retention/schedule.ts, FACT-RETENTION-SCHEDULE). */
+  retentionCategory: [
+    'requests_not_converted',
+    'unaccepted_estimates',
+    'customer_profiles',
+    'accepted_agreements',
+    'financial_records',
+    'job_records',
+    'safety_records',
+    'audit_log',
+    'access_codes',
+    'sessions_and_links',
+    'regulated_employee_records',
+    'not_scheduled',
+  ],
+  /** The categories with a period, which deletion-review entries carry (privacy.retention_reviews.category). */
+  retentionPeriodCategory: [
+    'requests_not_converted',
+    'unaccepted_estimates',
+    'customer_profiles',
+    'accepted_agreements',
+    'financial_records',
+    'job_records',
+    'safety_records',
+    'audit_log',
+  ],
+  /** The rule of a category without a period (FACT-RETENTION-SCHEDULE; not_scheduled: OQ-RETENTION-UNSCHEDULED). */
+  retentionNoPeriod: ['access_codes', 'sessions_and_links', 'regulated_employee_records', 'not_scheduled'],
+  /** What starts a period (the `after` field of the retention.* values; audit records: when recorded). */
+  retentionStart: [
+    'request_closed',
+    'estimate_expired_or_closed',
+    'last_completed_service',
+    'final_job_closeout',
+    'tax_return_filed_or_tax_paid',
+    'job_closeout',
+    'closure',
+    'recorded',
+  ],
+  /** Whether the daily review finds a category's records yet (TSK-0099 ScanState). */
+  retentionScan: ['scanned', 'start_not_recorded', 'no_period'],
+  /** The hold checks of a deletion-review entry (ENT-RetentionReview "holds found"). */
+  retentionHoldCheck: [
+    'open_holds',
+    'complaints',
+    'warranties',
+    'disputes',
+    'claims',
+    'investigations',
+    'unfiled_tax_returns',
+    'legal_holds',
+    'insurance_holds',
+  ],
+  retentionHoldResult: ['found', 'none_found', 'not_applicable', 'not_recorded'],
+  /** The record types the review opens entries for. */
+  retentionRecordType: ['request', 'estimate', 'audit_event'],
+  /** The result of an audited action (ENT-AuditEvent; platform.audit_events.result). */
+  auditResult: ['succeeded', 'denied', 'failed'],
+  /** Who performed an audited action, when it was not a staff member (ENT-AuditEvent; actor_kind). */
+  auditActorKind: ['staff', 'customer', 'guest', 'system'],
+  /**
+   * Why the server refused a staff-management change (TSK-0097; apps/server/src/modules/staff/members.ts), and the
+   * error codes shown when no field is named.
+   */
+  staffProblem: [
+    'ACCOUNT_DISABLED',
+    'ACCOUNT_NOT_DISABLED',
+    'GRANT_EXISTS',
+    'GRANT_NOT_LIVE',
+    'CAPABILITY_NEEDS_WORKER',
+    'LAST_ROLE',
+    'LAST_OWNER',
+    'OWN_ACCOUNT',
+    'required',
+    'FORBIDDEN',
+    'FRESH_AUTH_REQUIRED',
+    'NOT_FOUND',
+    'VALIDATION_FAILED',
+    'CONFLICT',
     'INTERNAL',
     'UNAVAILABLE',
   ],

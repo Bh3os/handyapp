@@ -18,6 +18,7 @@ describe('staff navigation by role (TSK-0040, HH-STAFF-06)', () => {
         'cases',
         'staff',
         'audit',
+        'retention',
         'dashboard',
         'health',
         'settings',

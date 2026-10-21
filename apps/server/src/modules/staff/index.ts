@@ -1,0 +1,286 @@
+// Staff management module (TSK-0097; HH-STAFF-02, HH-STAFF-03, HH-STAFF-07, T26, T27, ENT-StaffUser, ENT-RoleGrant,
+// OWN-DEC-114, OWN-DEC-123, RULE-SERVER-AUTHZ). The Owner's staff screen:
+//   GET  /staff/members                                   every staff member (staff.view, PROPOSED mapping)
+//   GET  /staff/members/:staffUserId                      one member: grants, status history, upcoming assignments
+//   POST /staff/members/:staffUserId/grants               grant a role or capability (staff.grant_role: fresh sign-in,
+//                                                         reason, never oneself)
+//   POST /staff/members/:staffUserId/grants/end           end a grant (staff.end_grant: protective, never delayed)
+//   POST /staff/members/:staffUserId/disable              offboarding (staff.disable: never delayed)
+//   POST /staff/members/:staffUserId/enable               re-enable (staff.enable: fresh sign-in and a reason)
+//   POST /staff/members/:staffUserId/password-recovery    email a reset link (staff.start_password_recovery)
+// Inviting stays POST /staff/invitations and revoking sessions POST /staff/:id/sessions/revoke (identity module);
+// working days, hours and time off stay the capacity module's routes on its own tables (TSK-0062). Every write takes
+// an idempotency key and records its audit event with the change (never a hash, token or link).
+import type { Tx } from '@handyhub/db'
+import { ApiError } from '../../api/errors.js'
+import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
+import {
+  disable,
+  enable,
+  endGrant,
+  grant,
+  listMembers,
+  memberDetail,
+  startRecovery,
+  type GrantKind,
+} from './members.js'
+import {
+  DISABLE_BODY,
+  DISABLED,
+  EMPTY_BODY,
+  ENABLE_BODY,
+  END_GRANT_BODY,
+  GRANT_BODY,
+  LINK_SENT,
+  MEMBER,
+  MEMBER_PARAMS,
+  MEMBERS,
+} from './schemas.js'
+
+const TEST = 'test/integration/staff-management.test.ts'
+
+const staffActor = (ctx: ApiContext) => {
+  if (ctx.actor.kind !== 'staff') throw new ApiError('FORBIDDEN')
+  return ctx.actor
+}
+
+const subject: NonNullable<RouteDef['resource']> = async ({ req, db }) => {
+  const { staffUserId } = req.params as { staffUserId: string }
+  const user = await db.selectFrom('identity.staff_users').select('id').where('id', '=', staffUserId).executeTakeFirst()
+  return user ? { subjectStaffId: user.id } : null
+}
+
+const write = {
+  actors: ['staff'],
+  kind: 'write',
+  idempotency: 'required',
+  expectedVersion: 'none',
+  rateLimit: 'none',
+  pagination: false,
+  test: TEST,
+  resource: subject,
+} as const
+
+const trimmed = (reason: string | undefined) => {
+  const r = reason?.trim()
+  return r ? r : null
+}
+
+async function detailOf(ctx: ApiContext, staffUserId: string) {
+  return memberDetail(ctx.tx as Tx, staffActor(ctx).userId, staffUserId, new Date())
+}
+
+export function staffModule(): ApiModule {
+  const list: RouteDef = {
+    method: 'GET',
+    path: '/staff/members',
+    operationId: 'listStaffMembers',
+    summary: 'Every staff member',
+    description:
+      'Owner only (staff.view; PROPOSED in the staff-management row). Every staff account, disabled ones too (their ' +
+      'history is kept): name, login email, locale, status and its times, live roles and capabilities, whether a ' +
+      'password is set and an authenticator enrolled, live sessions, and how many upcoming assignments the person ' +
+      'has and how many are flagged for review. Never a hash, token or link.',
+    actors: ['staff'],
+    permission: 'staff.view',
+    kind: 'read',
+    idempotency: 'none',
+    expectedVersion: 'none',
+    rateLimit: 'none',
+    audit: 'none',
+    pagination: false,
+    test: TEST,
+    schema: { response: { 200: MEMBERS } },
+    handler: async (ctx) => ({ body: { members: await listMembers(ctx.db, staffActor(ctx).userId, new Date()) } }),
+  }
+
+  const detail: RouteDef = {
+    method: 'GET',
+    path: '/staff/members/:staffUserId',
+    operationId: 'getStaffMember',
+    summary: "One staff member's record",
+    description:
+      'Owner only (staff.view). The member with every role and capability grant (live and ended, who issued and ' +
+      'ended it, the reason), the disabling and re-enabling history, and the upcoming assignments (reservations of ' +
+      'visits) with their review flags.',
+    actors: ['staff'],
+    permission: 'staff.view',
+    kind: 'read',
+    idempotency: 'none',
+    expectedVersion: 'none',
+    rateLimit: 'none',
+    audit: 'none',
+    pagination: false,
+    test: TEST,
+    resource: subject,
+    schema: { params: MEMBER_PARAMS, response: { 200: MEMBER } },
+    handler: async (ctx) => {
+      const { staffUserId } = ctx.req.params as { staffUserId: string }
+      return { body: await memberDetail(ctx.db, staffActor(ctx).userId, staffUserId, new Date()) }
+    },
+  }
+
+  const grantRoute: RouteDef = {
+    ...write,
+    method: 'POST',
+    path: '/staff/members/:staffUserId/grants',
+    operationId: 'grantStaffRole',
+    summary: 'Grant a role or capability',
+    description:
+      'Owner only, with a fresh sign-in and a written reason (ROLE-MATRIX staff.grant_role); nobody grants ' +
+      'themselves anything. Roles: owner, office, estimator, worker (one person may hold several); capability: ' +
+      'collect, only for someone holding the Worker role (PROPOSED). Takes effect on the next request of that person. ' +
+      'Refusals: NOT_FOUND, FRESH_AUTH_REQUIRED, FORBIDDEN (self), CONFLICT (ACCOUNT_DISABLED, GRANT_EXISTS, ' +
+      'CAPABILITY_NEEDS_WORKER), VALIDATION_FAILED.',
+    permission: 'staff.grant_role',
+    audit: 'staff.grant_role',
+    schema: { params: MEMBER_PARAMS, body: GRANT_BODY, response: { 201: MEMBER } },
+    handler: async (ctx) => {
+      const actor = staffActor(ctx)
+      const { staffUserId } = ctx.req.params as { staffUserId: string }
+      const body = ctx.req.body as { kind: GrantKind; name: string; reason: string }
+      const out = await grant(ctx.tx as Tx, { actorId: actor.userId, staffUserId, ...body })
+      const member = await detailOf(ctx, staffUserId)
+      await ctx.audit({
+        target: { type: 'staff_user', id: staffUserId, version: member.version },
+        summary: { change: 'granted', kind: body.kind, name: body.name, grantId: out.grantId, roles: member.roles },
+        reason: body.reason.trim(),
+        stepUpUsed: true,
+      })
+      return { status: 201, body: member }
+    },
+  }
+
+  const endRoute: RouteDef = {
+    ...write,
+    method: 'POST',
+    path: '/staff/members/:staffUserId/grants/end',
+    operationId: 'endStaffGrant',
+    summary: 'End a role or capability grant',
+    description:
+      'Owner only (staff.end_grant; protective, never delayed by a fresh sign-in, PROPOSED mapping; ENT-RoleGrant). ' +
+      'The grant is ended, never edited or deleted; the reason, when given, is audited. PROPOSED: the person keeps ' +
+      'at least one role (disable the account instead). At least one active Owner always remains. Refusals: ' +
+      'NOT_FOUND, CONFLICT (GRANT_NOT_LIVE, LAST_ROLE, LAST_OWNER).',
+    permission: 'staff.end_grant',
+    audit: 'staff.end_grant',
+    schema: { params: MEMBER_PARAMS, body: END_GRANT_BODY, response: { 200: MEMBER } },
+    handler: async (ctx) => {
+      const actor = staffActor(ctx)
+      const { staffUserId } = ctx.req.params as { staffUserId: string }
+      const body = ctx.req.body as { kind: GrantKind; name: string; reason?: string }
+      const out = await endGrant(ctx.tx as Tx, { actorId: actor.userId, staffUserId, kind: body.kind, name: body.name })
+      const member = await detailOf(ctx, staffUserId)
+      const reason = trimmed(body.reason)
+      await ctx.audit({
+        target: { type: 'staff_user', id: staffUserId, version: member.version },
+        summary: { change: 'ended', kind: body.kind, name: body.name, grantId: out.grantId, roles: member.roles },
+        ...(reason ? { reason } : {}),
+      })
+      return { body: member }
+    },
+  }
+
+  const disableRoute: RouteDef = {
+    ...write,
+    method: 'POST',
+    path: '/staff/members/:staffUserId/disable',
+    operationId: 'disableStaffMember',
+    summary: 'Disable an account (offboarding)',
+    description:
+      'Owner only (staff.disable; never delayed). In one transaction, after the in-flight writes of the person commit: ' +
+      'the account is disabled (every later request and every queued or offline write from it is refused), every ' +
+      'session is revoked, every open invite or reset link invalidated and the password cleared (PROPOSED); the ' +
+      'upcoming assignments are flagged for reassignment and each flagged visit opens its action-queue item, never ' +
+      'cancelled; job history and evidence stay. Refusals: NOT_FOUND, CONFLICT (ACCOUNT_DISABLED, LAST_OWNER, ' +
+      'OWN_ACCOUNT, PROPOSED).',
+    permission: 'staff.disable',
+    audit: 'staff.disable',
+    schema: { params: MEMBER_PARAMS, body: DISABLE_BODY, response: { 200: DISABLED } },
+    handler: async (ctx) => {
+      const actor = staffActor(ctx)
+      const { staffUserId } = ctx.req.params as { staffUserId: string }
+      const reason = trimmed((ctx.req.body as { reason?: string } | undefined)?.reason)
+      const out = await disable(ctx.tx as Tx, { actorId: actor.userId, staffUserId, reason })
+      const member = await detailOf(ctx, staffUserId)
+      await ctx.audit({
+        target: { type: 'staff_user', id: staffUserId, version: member.version },
+        summary: {
+          change: 'disabled',
+          sessionsRevoked: out.sessionsRevoked,
+          linksInvalidated: out.linksInvalidated,
+          upcomingAssignments: out.upcoming,
+          flagged: out.flagged,
+        },
+        ...(reason ? { reason } : {}),
+      })
+      return {
+        body: {
+          member,
+          sessionsRevoked: out.sessionsRevoked,
+          linksInvalidated: out.linksInvalidated,
+          upcomingAssignments: out.upcoming,
+          flagged: out.flagged,
+        },
+      }
+    },
+  }
+
+  const enableRoute: RouteDef = {
+    ...write,
+    method: 'POST',
+    path: '/staff/members/:staffUserId/enable',
+    operationId: 'enableStaffMember',
+    summary: 'Re-enable a disabled account',
+    description:
+      'Owner only, with a fresh sign-in and a written reason (staff.enable, PROPOSED in the grant row; ENT-StaffUser). ' +
+      'The account returns to active (invited when it never set a password) with its role grants unchanged, and a ' +
+      'single-use reset (or invite) link is emailed through the outbox: the old password was cleared when it was ' +
+      'disabled. Refusals: NOT_FOUND, FRESH_AUTH_REQUIRED, FORBIDDEN (self), CONFLICT (ACCOUNT_NOT_DISABLED).',
+    permission: 'staff.enable',
+    audit: 'staff.enable',
+    schema: { params: MEMBER_PARAMS, body: ENABLE_BODY, response: { 200: LINK_SENT } },
+    handler: async (ctx) => {
+      const actor = staffActor(ctx)
+      const { staffUserId } = ctx.req.params as { staffUserId: string }
+      const { reason } = ctx.req.body as { reason: string }
+      const out = await enable(ctx.tx as Tx, { actorId: actor.userId, staffUserId, reason })
+      const member = await detailOf(ctx, staffUserId)
+      await ctx.audit({
+        target: { type: 'staff_user', id: staffUserId, version: member.version },
+        summary: { change: 'enabled', status: out.status, linkSent: out.link },
+        reason: reason.trim(),
+        stepUpUsed: true,
+      })
+      return { body: { member, linkSent: out.link } }
+    },
+  }
+
+  const recovery: RouteDef = {
+    ...write,
+    method: 'POST',
+    path: '/staff/members/:staffUserId/password-recovery',
+    operationId: 'startStaffPasswordRecovery',
+    summary: 'Start password recovery for a staff member',
+    description:
+      'Owner only (staff.start_password_recovery; never delayed). Emails a single-use reset link (an invite link ' +
+      'while the account is invited) through the outbox; earlier open links end. Setting the new password revokes ' +
+      'every session. The Owner never sees a password or the link. Refusals: NOT_FOUND, CONFLICT (ACCOUNT_DISABLED).',
+    permission: 'staff.start_password_recovery',
+    audit: 'staff.start_password_recovery',
+    schema: { params: MEMBER_PARAMS, body: EMPTY_BODY, response: { 200: LINK_SENT } },
+    handler: async (ctx) => {
+      const actor = staffActor(ctx)
+      const { staffUserId } = ctx.req.params as { staffUserId: string }
+      const out = await startRecovery(ctx.tx as Tx, { actorId: actor.userId, staffUserId })
+      const member = await detailOf(ctx, staffUserId)
+      await ctx.audit({
+        target: { type: 'staff_user', id: staffUserId, version: member.version },
+        summary: { linkSent: out.link },
+      })
+      return { body: { member, linkSent: out.link } }
+    },
+  }
+
+  return { name: 'staff', routes: [list, detail, grantRoute, endRoute, disableRoute, enableRoute, recovery] }
+}
