@@ -529,6 +529,9 @@ export const LABEL_FAMILIES = {
     'PROJECT_NOT_OPEN',
     'PROJECT_NOT_ACTIVE',
     'NO_JOB',
+    // TSK-0059's deposit gate, registered in WORK_VISIT_GATES (apps/server/src/modules/visits/gates.ts).
+    'DEPOSIT_REQUIRED',
+    'DEPOSIT_REQUIREMENT_MISSING',
     'PROPERTY_ZONE_UNKNOWN',
     'BUSINESS_TIMEZONE_NOT_CONFIGURED',
     'FORBIDDEN',

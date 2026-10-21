@@ -1591,6 +1591,8 @@
   "enum.visitProblem.PROJECT_NOT_OPEN": "Las visitas de presupuesto se planifican mientras el proyecto está abierto.",
   "enum.visitProblem.PROJECT_NOT_ACTIVE": "Este proyecto no está activo; no se puede planificar una visita de trabajo.",
   "enum.visitProblem.NO_JOB": "Las visitas de trabajo se planifican después de aprobar el presupuesto, cuando existe el trabajo.",
+  "enum.visitProblem.DEPOSIT_REQUIRED": "El depósito requerido del trabajo aún no está cubierto con dinero verificado ni dispensado por el Propietario; no se puede planificar una visita de trabajo.",
+  "enum.visitProblem.DEPOSIT_REQUIREMENT_MISSING": "El trabajo aún no tiene registro de depósito; no se puede planificar una visita de trabajo.",
   "enum.visitProblem.PROPERTY_ZONE_UNKNOWN": "La zona horaria de la propiedad no es una zona IANA conocida. Corrija primero la propiedad.",
   "enum.visitProblem.BUSINESS_TIMEZONE_NOT_CONFIGURED": "La zona horaria del negocio no está configurada.",
   "enum.visitProblem.FORBIDDEN": "Su rol no permite esta visita.",

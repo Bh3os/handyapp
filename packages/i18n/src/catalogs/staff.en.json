@@ -1591,6 +1591,8 @@
   "enum.visitProblem.PROJECT_NOT_OPEN": "Estimate visits are planned while the project is open.",
   "enum.visitProblem.PROJECT_NOT_ACTIVE": "This project is not active, so no work visit can be planned.",
   "enum.visitProblem.NO_JOB": "Work visits are planned after the estimate is approved and the job exists.",
+  "enum.visitProblem.DEPOSIT_REQUIRED": "The job's required deposit is not covered by verified money or waived by the Owner yet, so no work visit can be planned.",
+  "enum.visitProblem.DEPOSIT_REQUIREMENT_MISSING": "The job has no deposit record yet, so no work visit can be planned.",
   "enum.visitProblem.PROPERTY_ZONE_UNKNOWN": "The property's time zone is not a known IANA zone. Correct the property first.",
   "enum.visitProblem.BUSINESS_TIMEZONE_NOT_CONFIGURED": "The business time zone is not configured.",
   "enum.visitProblem.FORBIDDEN": "Your role does not allow this visit.",

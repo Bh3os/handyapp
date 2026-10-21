@@ -9,6 +9,7 @@
 import { randomUUID } from 'node:crypto'
 import { loadServiceSeed, syncServices, withTx } from '@handyhub/db'
 import { createTestDatabase, type TestDatabase } from '@handyhub/db/testing'
+import { addLocalDays, localDateOf } from '@handyhub/domain'
 import { ESTIMATE_TERMS } from '@handyhub/domain/legal'
 import type { FastifyInstance } from 'fastify'
 import { sql } from 'kysely'
@@ -24,6 +25,8 @@ import {
   requireConfirmationDepositGate,
 } from '../../src/modules/finance/index.js'
 import { squareLinkProblem } from '../../src/modules/finance/deposits.js'
+import { apiModules } from '../../src/modules/index.js'
+import { DEPOSIT_GATE, visitsModule, WORK_VISIT_GATES } from '../../src/modules/visits/index.js'
 import { loadConfig, recordPolicyVersion, type ConfigKey } from '../../src/platform/config/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { testConfig } from '../fixtures/env.js'
@@ -879,5 +882,123 @@ describe('[S01][HH-FIN-12] deposits to collect and checks to verify appear in th
         .statusCode,
     ).toBe(200)
     expect(await item(waived.jobId)).toMatchObject({ resolution: 'waived' })
+  })
+})
+
+describe('[HH-SCH-06][HH-SCH-11][HH-FIN-02][T36] planning or changing a work-visit window runs the deposit gate (TSK-0059, TSK-0061)', () => {
+  const ZONE = 'America/Kentucky/Louisville'
+  const date = () => addLocalDays(localDateOf(new Date(), ZONE), 2)
+  /** The same server without any work-visit gate: a visit planned before the deposit was required (fixture). */
+  let ungated: FastifyInstance
+  let ungatedOwner: [string, string]
+  beforeAll(async () => {
+    const modules = apiModules({ secureCookies: false, mfaKey: null, codeKey: KEY, trustProxyHops: 1 }).map((m) =>
+      m.name === 'visits' ? visitsModule({ workVisitGates: [] }) : m,
+    )
+    ungated = await buildApp({ config: testConfig({ TRUST_PROXY_HOPS: '1' }), api: { db: t.db, modules } })
+    const res = await ungated.inject({
+      method: 'POST',
+      url: '/api/v1/staff/auth/sign-in',
+      payload: { email: email('owner'), password: pw(1) },
+    })
+    expect(res.statusCode, res.body).toBe(200)
+    const cookie = String(res.headers['set-cookie']).split(';')[0] as string
+    const session = await ungated.inject({ method: 'GET', url: '/api/v1/staff/auth/session', headers: { cookie } })
+    ungatedOwner = [cookie, session.json<{ csrfToken: string }>().csrfToken]
+  })
+  afterAll(async () => {
+    await ungated?.close()
+  })
+  type Planned = { visits: { id: string; version: number; purpose: string }[] }
+  const plan = (projectId: string, purpose: string, server: FastifyInstance = app) =>
+    server.inject({
+      method: 'POST',
+      url: `/api/v1/staff/projects/${projectId}/visits`,
+      payload: { purpose, localDate: date(), windowStart: '09:00', windowEnd: '10:00' },
+      headers: {
+        cookie: server === app ? cookies.owner : ungatedOwner[0],
+        'x-csrf-token': server === app ? csrf.owner : ungatedOwner[1],
+        'idempotency-key': key('visit'),
+      },
+    })
+  const codes = (body: string) =>
+    (JSON.parse(body) as { error: { fieldErrors: { field: string; code: string }[] } }).error.fieldErrors.map((f) => [
+      f.field,
+      f.code,
+    ])
+  const visitCount = async (projectId: string) =>
+    (await t.db.selectFrom('work.visits').select('id').where('project_id', '=', projectId).execute()).length
+
+  it('the deposit gate is a registered work-visit gate', () => {
+    expect(WORK_VISIT_GATES).toContain(DEPOSIT_GATE)
+  })
+
+  it('a work visit waits for verified money or the Owner’s waiver; an estimate visit never waits', async () => {
+    // An estimate visit on an open project: no job and no deposit, never gated (OWN-DEC-119, FACT-VISIT-FEE).
+    const open = await readyRequest()
+    const estimateVisit = await plan(open.projectId, 'site_estimate')
+    expect(estimateVisit.statusCode, estimateVisit.body).toBe(201)
+
+    // A required deposit not yet covered: the work visit is refused with the deposit named; nothing is stored.
+    const paid = await approvedJob([{ kind: 'base', cents: 150_000 }]) // deposit $300.00
+    const refused = await plan(paid.projectId, 'service')
+    expect(refused.statusCode, refused.body).toBe(409)
+    expect(codes(refused.body)).toEqual([['job', 'DEPOSIT_REQUIRED']])
+    expect(await visitCount(paid.projectId)).toBe(0)
+    // A check received but not cleared is not verified money: still refused.
+    expect(
+      (
+        await pay('office', paid.jobId, {
+          method: 'check',
+          amountCents: 30_000,
+          reference: ref('CHECK'),
+          payerName: 'Synthetic Payer',
+        })
+      ).statusCode,
+    ).toBe(201)
+    expect(codes((await plan(paid.projectId, 'service')).body)).toEqual([['job', 'DEPOSIT_REQUIRED']])
+    const cardJob = await approvedJob([{ kind: 'base', cents: 150_000 }])
+    expect(
+      (await pay('office', cardJob.jobId, { method: 'square_payment_link', amountCents: 30_000, reference: ref('SQ') }))
+        .statusCode,
+    ).toBe(201)
+    const ok = await plan(cardJob.projectId, 'service')
+    expect(ok.statusCode, ok.body).toBe(201)
+
+    // The Owner's waiver opens it too, without marking anything paid.
+    const waived = await approvedJob([{ kind: 'base', cents: 160_000 }])
+    expect(codes((await plan(waived.projectId, 'service')).body)).toEqual([['job', 'DEPOSIT_REQUIRED']])
+    const w = await staffWrite('owner', 'POST', `/api/v1/staff/jobs/${waived.jobId}/deposit/waiver`, {
+      reason: 'Synthetic: the owner waives this deposit',
+    })
+    expect(w.statusCode, w.body).toBe(200)
+    expect((await plan(waived.projectId, 'service')).statusCode).toBe(201)
+    expect((await deposit(waived.jobId)).verifiedCents).toBe(0)
+
+    // No deposit required: the gate passes at once.
+    const small = await approvedJob([{ kind: 'base', cents: 100_000 }])
+    expect((await plan(small.projectId, 'service')).statusCode).toBe(201)
+  })
+
+  it('changing a work visit’s window runs the gate again', async () => {
+    const job = await approvedJob([{ kind: 'base', cents: 150_000 }])
+    // Fixture: a visit planned by a server without the gate, while the deposit is still due.
+    const planned = await plan(job.projectId, 'service', ungated)
+    expect(planned.statusCode, planned.body).toBe(201)
+    const v = planned.json<Planned>().visits.find((x) => x.purpose === 'service') as Planned['visits'][number]
+    const move = (version: number) =>
+      staffWrite(
+        'owner',
+        'POST',
+        `/api/v1/staff/visits/${v.id}/window`,
+        { localDate: date(), windowStart: '10:00', windowEnd: '11:00' },
+        { 'if-match': `"${version}"` },
+      )
+    const refused = await move(v.version)
+    expect(refused.statusCode, refused.body).toBe(409)
+    expect(codes(refused.body)).toEqual([['job', 'DEPOSIT_REQUIRED']])
+    expect((await pay('office', job.jobId, { method: 'cash', amountCents: 30_000 })).statusCode).toBe(201)
+    const moved = await move(v.version)
+    expect(moved.statusCode, moved.body).toBe(200)
   })
 })
