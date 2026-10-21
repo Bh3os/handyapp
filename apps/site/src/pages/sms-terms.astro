@@ -1,0 +1,15 @@
+---
+// /sms-terms, the SMS terms of the HandyHub text program (TSK-0024; HH-PRIV-04, HH-COM-12, OWN-DEC-72, OWN-DEC-147). A versioned draft document
+// (@handyhub/domain/legal), shown with the "Draft - not reviewed by an attorney" banner until reviewed.
+import { customerTranslator } from '@handyhub/i18n'
+import { SMS_TERMS } from '@handyhub/domain/legal'
+import LegalDocument from '../components/LegalDocument.astro'
+import SiteLayout from '../layouts/SiteLayout.astro'
+import { LINK_LABEL } from '../site/legal'
+
+const title = customerTranslator().t(LINK_LABEL[SMS_TERMS.code])
+---
+
+<SiteLayout title={`${title} | HandyHub`}>
+  <LegalDocument doc={SMS_TERMS} />
+</SiteLayout>

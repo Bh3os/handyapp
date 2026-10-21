@@ -94,7 +94,7 @@ const key = (what: string) => `synthetic-${what}-${String(++seq).padStart(6, '0'
 function requestBody(over: Record<string, unknown> = {}) {
   return {
     formVersion: 'test-1',
-    privacyNoticeVersion: 'draft-test-1',
+    privacyNoticeVersion: 'privacy-notice-1',
     services: [{ serviceId: 'SVC-DW-01', notes: 'Synthetic service note' }, { serviceId: 'SVC-PT-01' }],
     notSure: false,
     description: 'Synthetic project description.',

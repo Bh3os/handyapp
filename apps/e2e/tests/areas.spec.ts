@@ -133,7 +133,9 @@ test.describe('county URLs and the sitemap (TSK-0023, T08, HH-CUS-04, HH-CUS-05)
     const paths = locs(await sitemap.text())
     for (const [anchor] of COUNTIES) expect(paths).not.toContain(`/areas/${anchor}`)
     expect(paths.filter((p) => p.startsWith('/areas/'))).toEqual([])
-    expect(paths.slice(0, 3)).toEqual(['/', '/areas', '/services'])
+    // The homepage leads; the other public pages (with the legal pages of TSK-0024) are all listed.
+    expect(paths[0]).toBe('/')
+    expect(paths).toEqual(expect.arrayContaining(['/areas', '/services', '/privacy', '/sms-terms', '/terms']))
   })
 
   test('[HH-CUS-05] the sitemap lists only existing, public, indexable pages; private routes are noindex', async ({

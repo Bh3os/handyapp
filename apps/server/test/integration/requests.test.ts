@@ -9,6 +9,7 @@ import { buildApp } from '../../src/app.js'
 import { localDate } from '../../src/modules/requests/submit.js'
 import { recordPolicyVersion } from '../../src/platform/config/index.js'
 import { testConfig } from '../fixtures/env.js'
+import { PRIVACY_NOTICE } from '@handyhub/domain/legal'
 
 let t: TestDatabase
 let app: FastifyInstance
@@ -39,7 +40,7 @@ const weekday = (() => {
 function body(over: Record<string, unknown> = {}) {
   return {
     formVersion: 'test-1',
-    privacyNoticeVersion: 'draft-test-1',
+    privacyNoticeVersion: PRIVACY_NOTICE.documentId,
     services: [{ serviceId: 'SVC-DW-01', notes: 'Synthetic note' }, { serviceId: 'SVC-PT-01' }],
     notSure: false,
     description: 'Synthetic project description.',

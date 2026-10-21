@@ -1,0 +1,166 @@
+---
+// One legal document page body (TSK-0024; HH-PRIV-04, HH-COM-12, OWN-DEC-72, OWN-DEC-147). Renders a versioned
+// document of @handyhub/domain/legal: title, the draft banner while no attorney has reviewed it, the version and
+// document ID, a table of contents, the sections and the related documents. Every sentence is a customer catalog key.
+// - A `pending` block is a visible "pending review" note naming what still waits (data-pending lists the open
+//   questions); nothing is filled in for it.
+// - A `contact` block shows the public phone and email from configuration (GET /api/v1/public/site). They are not
+//   provided today (OWN-DEC-131): each shows a labelled placeholder and is never a link (OWN-DEC-47).
+import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
+import { isDraft, LEGAL_DOCUMENTS, legalValues, LINK_LABEL, pathOf, preparedOnText, type LegalDocument } from '../site/legal'
+
+interface Props {
+  doc: LegalDocument
+}
+const { doc } = Astro.props
+const tr = customerTranslator()
+const values = legalValues(doc)
+const t = (key: string) => tr.t(key as CustomerKey, values)
+const related = LEGAL_DOCUMENTS.filter((d) => d.code !== doc.code)
+const loading = tr.t('site.footer.loading')
+---
+
+<article
+  class="hh-legal"
+  data-legal-document={doc.code}
+  data-document-id={doc.documentId}
+  data-unavailable={tr.t('error.UNAVAILABLE')}
+  data-placeholder={tr.t('site.footer.contactPlaceholder')}
+>
+  <div class="hh-site__wrap hh-legal__wrap">
+    <header class="hh-legal__header">
+      <h1 class="hh-h1">{t(doc.title)}</h1>
+      {
+        isDraft(doc) ? (
+          <div class="hh-legal__draft" role="note" data-draft-banner>
+            <p class="hh-legal__draft-title">{tr.t('legal.common.draftBanner')}</p>
+            <p>{tr.t('legal.common.draftBannerText')}</p>
+          </div>
+        ) : null
+      }
+      <p class="hh-small hh-legal__version" data-testid="legal-version">
+        {
+          tr.t('legal.common.version', {
+            version: doc.version,
+            preparedOn: preparedOnText(doc.preparedOn),
+            documentId: doc.documentId,
+          })
+        }
+      </p>
+      <p class="hh-legal__summary">{t(doc.summary)}</p>
+    </header>
+    <nav class="hh-legal__toc" aria-labelledby="legal-toc">
+      <h2 class="hh-legal__toc-title" id="legal-toc">{tr.t('legal.common.onThisPage')}</h2>
+      <ol>
+        {
+          doc.sections.map((s) => (
+            <li>
+              <a href={`#${s.id}`}>{t(s.heading)}</a>
+            </li>
+          ))
+        }
+      </ol>
+    </nav>
+    {
+      doc.sections.map((s) => (
+        <section class="hh-legal__section" aria-labelledby={s.id} data-section={s.id}>
+          <h2 class="hh-h2" id={s.id}>
+            {t(s.heading)}
+          </h2>
+          {s.blocks.map((b) => {
+            if (b.kind === 'p') return <p data-key={b.key}>{t(b.key)}</p>
+            if (b.kind === 'list')
+              return (
+                <ul class="hh-legal__list">
+                  {b.keys.map((k) => (
+                    <li data-key={k}>{t(k)}</li>
+                  ))}
+                </ul>
+              )
+            if (b.kind === 'pending')
+              return (
+                <p class="hh-legal__pending" data-pending={b.waitsOn.join(' ')} data-key={b.key}>
+                  <span class="hh-badge hh-badge--warning">{t(b.label)}</span>
+                  <span>{t(b.key)}</span>
+                </p>
+              )
+            if (b.kind === 'link')
+              return (
+                <p>
+                  <a href={pathOf(b.to)}>{t(b.key)}</a>
+                </p>
+              )
+            return (
+              <dl class="hh-legal__contact" data-legal-contact data-pending={b.waitsOn.join(' ')}>
+                <div>
+                  <dt>{tr.t('site.footer.phone')}</dt>
+                  <dd data-contact="phone">{loading}</dd>
+                </div>
+                <div>
+                  <dt>{tr.t('site.footer.email')}</dt>
+                  <dd data-contact="email">{loading}</dd>
+                </div>
+              </dl>
+            )
+          })}
+        </section>
+      ))
+    }
+    <nav class="hh-legal__related" aria-labelledby="legal-related">
+      <h2 class="hh-h2" id="legal-related">{tr.t('legal.common.related')}</h2>
+      <ul class="hh-legal__list">
+        {
+          related.map((d) => (
+            <li>
+              <a href={d.path}>{tr.t(LINK_LABEL[d.code])}</a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+  </div>
+</article>
+
+<script>
+  import { contactDetails, parseSiteFacts, type ContactDetail, type SiteFacts } from '../site/facts'
+
+  const root = document.querySelector<HTMLElement>('[data-legal-document]')
+
+  function show(el: HTMLElement, detail: ContactDetail | null, placeholder: string, unavailable: string) {
+    if (!detail) {
+      // Unknown is not safe: nothing is guessed while the facts cannot be read.
+      el.textContent = unavailable
+      return
+    }
+    if (detail.kind === 'placeholder') {
+      const span = document.createElement('span')
+      span.className = 'hh-badge'
+      span.textContent = placeholder
+      el.replaceChildren(span)
+      return
+    }
+    const a = document.createElement('a')
+    a.href = detail.href
+    a.textContent = detail.value
+    el.replaceChildren(a)
+  }
+
+  function render(facts: SiteFacts | null) {
+    if (!root) return
+    const placeholder = root.dataset['placeholder'] ?? ''
+    const unavailable = root.dataset['unavailable'] ?? ''
+    const details = facts ? contactDetails(facts.contact) : null
+    for (const block of root.querySelectorAll<HTMLElement>('[data-legal-contact]')) {
+      const phone = block.querySelector<HTMLElement>('[data-contact="phone"]')
+      const email = block.querySelector<HTMLElement>('[data-contact="email"]')
+      if (phone) show(phone, details?.phone ?? null, placeholder, unavailable)
+      if (email) show(email, details?.email ?? null, placeholder, unavailable)
+    }
+  }
+
+  if (root?.querySelector('[data-legal-contact]'))
+    fetch('/api/v1/public/site', { headers: { accept: 'application/json' }, credentials: 'same-origin' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body: unknown) => render(parseSiteFacts(body)))
+      .catch(() => render(null))
+</script>

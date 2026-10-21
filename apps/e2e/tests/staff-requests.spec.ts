@@ -46,7 +46,7 @@ async function submitRequest(request: APIRequestContext, description: string): P
     headers: { 'idempotency-key': `e2e-staff-requests-${Date.now()}-${++n}` },
     data: {
       formVersion: 'e2e-1',
-      privacyNoticeVersion: 'draft-e2e-1',
+      privacyNoticeVersion: 'privacy-notice-1',
       services: [{ serviceId: 'SVC-DW-01' }, { serviceId: 'SVC-PT-01' }],
       notSure: false,
       description,

@@ -2,13 +2,16 @@
 // The estimate request form (TSK-0026, TSK-0027; HH-INT-01, HH-INT-08, HH-INT-09, HH-INT-15, HH-SVC-03, C02). A React
 // island; it needs the browser (the draft lives in this browser only), so it renders on the client. The services it
 // offers, with their questions, come from the API (GET /api/v1/public/services): only services the public site may show
-// (OWN-DEC-84), with their registry names and intake inputs.
+// (OWN-DEC-84), with their registry names and intake inputs. Below the form, links to the privacy policy, the SMS
+// terms and the website terms (TSK-0024; HH-COM-12, OWN-DEC-147).
 import '@handyhub/ui/styles.css'
 import '../request/request.css'
 import { customerTranslator } from '@handyhub/i18n'
 import RequestWizard from '../request/RequestWizard.tsx'
+import LegalLinks from '../components/LegalLinks.astro'
 
-const title = customerTranslator().t('request.title')
+const t = customerTranslator()
+const title = t.t('request.title')
 ---
 
 <!doctype html>
@@ -24,5 +27,10 @@ const title = customerTranslator().t('request.title')
       <h1 class="hh-h1">{title}</h1>
       <RequestWizard client:only="react" />
     </main>
+    <footer class="hh-request-legal">
+      <nav aria-label={t.t('site.footer.legalHeading')}>
+        <LegalLinks />
+      </nav>
+    </footer>
   </body>
 </html>
