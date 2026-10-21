@@ -22,3 +22,5 @@ export type { Allow, Decision, DecisionContext, Deny, DenyReason } from './decid
 export { NAV_IDS, NAV_ITEMS, navigationFor, SEARCH_SCOPES } from './navigation.js'
 export { heldScopes, listingScope } from './listing.js'
 export type { NavId, SearchScope, StaffNavigation } from './navigation.js'
+export { dataScope, NO_SCOPE, scopeIncludesProject } from './data-scope.js'
+export type { DataScope } from './data-scope.js'

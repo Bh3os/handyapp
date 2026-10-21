@@ -3,7 +3,7 @@
 // error shape, authorization, idempotency, versions, pagination, audit and the OpenAPI entry by declaring them.
 import type { Db, Tx } from '@handyhub/db'
 import type { StaffLocale } from '@handyhub/i18n'
-import type { Action, Actor, Allow, Resource } from '@handyhub/policy'
+import type { Action, Actor, Allow, DataScope, Resource } from '@handyhub/policy'
 import type { FastifyRequest } from 'fastify'
 import type { AuditEventInput } from '../platform/audit.js'
 import type { ApiError } from './errors.js'
@@ -38,6 +38,11 @@ export interface ApiContext {
   actor: Actor
   /** The policy's allow; null on authentication routes, which authenticate the caller themselves. */
   decision: Allow | null
+  /**
+   * The records this caller reaches under the route's permission (TSK-0037, HH-DATA-01): every repository query takes
+   * it, so an altered ID outside it finds nothing. A customer: the live projects of their session; a guest: nothing.
+   */
+  scope: DataScope
   /** Reads outside a transaction. */
   db: Db
   /** Write routes: the business transaction; the idempotency record and audit events commit with it. */
@@ -116,6 +121,11 @@ export interface RouteDef {
    * count) are checked by the handler from configuration.
    */
   binaryBody?: { contentTypes: readonly string[]; maxBytes: number }
+  /**
+   * Customer surface routes (/customer/): the customer view the response is built from (TSK-0037, HH-ARC-04;
+   * modules/records/projections.ts). The response schema is that view's allow-list; nothing else reaches the browser.
+   */
+  projection?: { readonly name: string; readonly entity: string }
   /** The record facts the policy needs; null answers NOT_FOUND. Default: no facts. */
   resource?: (ctx: Pick<ApiContext, 'req' | 'actor' | 'db'>) => Promise<Resource | null>
   handler: (ctx: ApiContext) => Promise<ApiResult>

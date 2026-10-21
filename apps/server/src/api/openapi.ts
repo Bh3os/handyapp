@@ -98,6 +98,7 @@ export function buildOpenApi(modules: readonly ApiModule[]): Record<string, unkn
         pagination: route.pagination,
         cache: 'private, no-store',
         test: route.test,
+        ...(route.projection ? { projection: route.projection.name } : {}),
       },
     }
   }
