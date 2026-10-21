@@ -75,6 +75,7 @@ export const LABEL_FAMILIES = {
     'case_open',
     'estimate_to_write',
     'estimate_response',
+    'window_offer_response',
     'estimate_reminder',
     'candidate_match',
     'inbox_needs_linking',
@@ -122,6 +123,8 @@ export const LABEL_FAMILIES = {
     'estimate_changes_requested',
     'estimate_declined',
     'estimate_update_requested',
+    'window_other_times_requested',
+    'window_offer_expired',
     'estimate_reminder_first',
     'estimate_reminder_final',
     'possible_duplicate',
@@ -146,6 +149,7 @@ export const LABEL_FAMILIES = {
     'decide',
     'write_estimate',
     'review_estimate',
+    'offer_windows',
     'release_reminder',
     'review_match',
     'link_message',
@@ -246,6 +250,7 @@ export const LABEL_FAMILIES = {
     'legal.sms_disclosure',
     'legal.estimate_terms',
     'retention.audit_log',
+    'scheduling.window_offers',
     'ai.module',
   ],
   /** Staff qualification of a request (TSK-0042; HH-LEAD-02). */
@@ -570,7 +575,21 @@ export const LABEL_FAMILIES = {
     'EQUIPMENT_BOOKED',
     'CAPACITY_TAKEN',
     'STALE_VERSION',
+    // TSK-0063: offering windows and withdrawing an offer (apps/server/src/modules/visits/offers.ts).
+    'OFFER_OPEN',
+    'WINDOW_OFFERS_NOT_CONFIGURED',
+    'OFFER_WINDOW_COUNT',
+    'OFFER_WINDOWS_OVERLAP',
+    'REASON_REQUIRED',
+    'OFFER_SELECTED',
+    'OFFER_EXPIRED',
+    'OFFER_WITHDRAWN',
+    'OFFER_OTHER_TIMES_REQUESTED',
   ],
+  /** Window offer states (TSK-0063; @handyhub/domain/window-offer, migration 0053). */
+  windowOfferState: ['open', 'selected', 'other_times_requested', 'withdrawn', 'expired'],
+  /** What happened to one automatic notice's delivery (migration 0008 message_deliveries.state). */
+  noticeState: ['draft', 'queued', 'sent', 'delivered', 'failed', 'suppressed', 'cancelled'],
   /**
    * Why the server refused a working-hours, time-off or equipment change (TSK-0062;
    * apps/server/src/modules/capacity/availability.ts, @handyhub/domain/capacity HoursProblem), and the error codes

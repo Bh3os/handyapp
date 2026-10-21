@@ -18,7 +18,18 @@ import { testConfig } from '../fixtures/env.js'
 
 const ZONE = 'America/Kentucky/Louisville'
 const pw = (n: number) => ['synthetic', 'staff', 'management', 'passphrase', String(n)].join(' ')
-const PEOPLE = ['owner', 'owner2', 'office', 'office2', 'office3', 'estimator', 'worker', 'worker2', 'leaver'] as const
+const PEOPLE = [
+  'owner',
+  'owner2',
+  'office',
+  'office2',
+  'office3',
+  'office4',
+  'estimator',
+  'worker',
+  'worker2',
+  'leaver',
+] as const
 type Person = (typeof PEOPLE)[number]
 const ROLE: Record<Person, 'owner' | 'office' | 'estimator' | 'worker'> = {
   owner: 'owner',
@@ -26,6 +37,7 @@ const ROLE: Record<Person, 'owner' | 'office' | 'estimator' | 'worker'> = {
   office: 'office',
   office2: 'office',
   office3: 'office',
+  office4: 'office',
   estimator: 'estimator',
   worker: 'worker',
   worker2: 'worker',
@@ -581,6 +593,35 @@ describe('[HH-STAFF-02][T27] offboarding', () => {
       .where('direction', '=', 'internal')
       .execute()
     expect(written.map((m) => m.body_text)).toEqual([`${body} (before)`])
+  })
+
+  it('[HH-STAFF-02][T27] and for offering appointment windows (TSK-0063): no offer and no hold commits', async () => {
+    await setHours('worker')
+    const project = await siteVisitProject()
+    const planned = await planVisit(auth.office, project, day(10))
+    expect(planned.statusCode, planned.body).toBe(201)
+    const v = planned.json<{ visits: VisitView[] }>().visits.at(-1) as VisitView
+    const office4 = auth.office4
+    const windows = ['09:00', '12:00'].map((start) => ({
+      localDate: day(10),
+      windowStart: start,
+      windowEnd: `${String(Number(start.slice(0, 2)) + 1).padStart(2, '0')}:00`,
+    }))
+    const res = await raceDisable('office4', () =>
+      send(office4, 'POST', `/staff/visits/${v.id}/offers`, { windows, workerIds: [ids.worker] }, v.version),
+    )
+    expect(res.statusCode, res.body).toBe(401)
+    expect(await t.db.selectFrom('work.window_offers').select('id').where('visit_id', '=', v.id).execute()).toEqual([])
+    expect(await t.db.selectFrom('work.reservations').select('id').where('visit_id', '=', v.id).execute()).toEqual([])
+    // The same offer from an active account is accepted: only the disabling refused it.
+    const ok = await send(
+      auth.office,
+      'POST',
+      `/staff/visits/${v.id}/offers`,
+      { windows, workerIds: [ids.worker] },
+      v.version,
+    )
+    expect(ok.statusCode, ok.body).toBe(201)
   })
 })
 

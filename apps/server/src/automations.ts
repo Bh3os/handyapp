@@ -27,6 +27,12 @@ import {
   type InboundAddress,
 } from './modules/inbox/index.js'
 import { contactChangedNoticeAutomation } from './modules/accounts/notice.js'
+import {
+  appointmentConfirmedAutomation,
+  estimateVisitConfirmedAutomation,
+  estimateVisitOptionsAutomation,
+  windowOfferExpiryAutomation,
+} from './modules/visits/index.js'
 import type { CodeKeySettings } from './modules/identity/index.js'
 import type { RecordChecks, ReleaseFailureItem } from './modules/notifications/index.js'
 import type { Automation } from './platform/automation.js'
@@ -124,6 +130,12 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     // TSK-0036: the notice to the old email after an account's sign-in email changed (HH-ID-11); sends only once the
     // owner lists it as automatic and approves its wording (OQ-ACCOUNT-CONTACT-NOTICE).
     contactChangedNoticeAutomation({ providers: { email: deps.providers.email, sms: null } }),
+    // TSK-0063: an offer's hold ends at its expiry (OWN-DEC-144); the automatic estimate-visit options, estimate-visit
+    // confirmed and work appointment confirmed notices (FACT-AUTOMATIC-MESSAGES #5, #6, #10; wording NOT CONFIGURED).
+    windowOfferExpiryAutomation(),
+    estimateVisitOptionsAutomation({ providers: { email: deps.providers.email, sms: deps.providers.sms } }),
+    estimateVisitConfirmedAutomation({ providers: { email: deps.providers.email, sms: deps.providers.sms } }),
+    appointmentConfirmedAutomation({ providers: { email: deps.providers.email, sms: deps.providers.sms } }),
     // TSK-0051: the automatic question notice and staff reply notice, the reminder clock from the notice's successful
     // send, the reminder drafts and the "may close" queue item.
     ...questionAutomations({

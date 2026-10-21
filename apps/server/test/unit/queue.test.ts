@@ -51,7 +51,8 @@ describe('queue item types (TSK-0041, HH-OPS-01)', () => {
     expect(visibleSections(staff('estimator'))).toEqual(['queue'])
     expect(visibleSections(staff('worker'))).toEqual([])
     // Estimators also see pending estimates (estimate_to_write, TSK-0053), the customer's responses to published
-    // estimates (estimate_response, TSK-0056) and estimate reminder drafts to send (estimate_reminder, TSK-0060).
+    // estimates (estimate_response, TSK-0056), answers to offered windows that need new ones (window_offer_response,
+    // TSK-0063: they offer estimate-visit windows) and estimate reminder drafts to send (estimate_reminder, TSK-0060).
     expect(visibleTypes(staff('estimator'), 'queue')).toEqual({
       // TSK-0044: duplicate suggestions, by the Estimator's PROPOSED customer.view_duplicates cell.
       // TSK-0051: replies to questions, by the Estimator's request.view cell.
@@ -61,6 +62,7 @@ describe('queue item types (TSK-0041, HH-OPS-01)', () => {
         'safety_hold',
         'estimate_to_write',
         'estimate_response',
+        'window_offer_response',
         'estimate_reminder',
         'candidate_match',
         'question_replied',
