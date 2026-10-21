@@ -14,6 +14,12 @@ import { receiptEmailAutomation } from './modules/requests/receipt-email.js'
 import { responseClockAutomation } from './modules/requests/response-clock.js'
 import { accessLinkAutomation } from './modules/access/link-message.js'
 import { contactChangedNoticeAutomation } from './modules/accounts/notice.js'
+import {
+  appointmentConfirmedAutomation,
+  estimateVisitConfirmedAutomation,
+  estimateVisitOptionsAutomation,
+  windowOfferExpiryAutomation,
+} from './modules/visits/index.js'
 import type { CodeKeySettings } from './modules/identity/index.js'
 import type { Automation } from './platform/automation.js'
 import type { Providers } from './providers/index.js'
@@ -59,5 +65,11 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     // TSK-0036: the notice to the old email after an account's sign-in email changed (HH-ID-11); sends only once the
     // owner lists it as automatic and approves its wording (OQ-ACCOUNT-CONTACT-NOTICE).
     contactChangedNoticeAutomation({ providers: { email: deps.providers.email, sms: null } }),
+    // TSK-0063: an offer's hold ends at its expiry (OWN-DEC-144); the automatic estimate-visit options, estimate-visit
+    // confirmed and work appointment confirmed notices (FACT-AUTOMATIC-MESSAGES #5, #6, #10; wording NOT CONFIGURED).
+    windowOfferExpiryAutomation(),
+    estimateVisitOptionsAutomation({ providers: { email: deps.providers.email, sms: deps.providers.sms } }),
+    estimateVisitConfirmedAutomation({ providers: { email: deps.providers.email, sms: deps.providers.sms } }),
+    appointmentConfirmedAutomation({ providers: { email: deps.providers.email, sms: deps.providers.sms } }),
   ]
 }

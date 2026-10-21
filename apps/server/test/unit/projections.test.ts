@@ -90,6 +90,9 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
         'getSessionVerification',
         'sendSessionVerificationCode',
         'confirmSessionVerification',
+        // TSK-0063: the customer's answer to offered windows.
+        'selectOfferedWindow',
+        'requestOtherWindows',
       ].sort(),
     )
     for (const r of customerRoutes) {
@@ -222,8 +225,17 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
     ).toEqual({ ...out, photos: { received: 2, processing: 1, failed: 0 } })
     // The states are closed sets: a tab cannot answer "paid", "read" or a list it does not have yet.
     expect(PROJECT_MESSAGES.schema).toMatchObject({ properties: { state: { enum: ['not_shown'] } } })
-    for (const view of [PROJECT_APPOINTMENTS, PROJECT_PAYMENTS])
-      expect(view.schema).toMatchObject({ additionalProperties: false, properties: { state: { enum: ['none'] } } })
+    expect(PROJECT_PAYMENTS.schema).toMatchObject({
+      additionalProperties: false,
+      properties: { state: { enum: ['none'] } },
+    })
+    // TSK-0063 (HH-LEAD-07, HH-SCH-11): Appointments also answers "listed" with the offered windows and the confirmed
+    // visits; "none" is still the state alone.
+    expect(PROJECT_APPOINTMENTS.schema).toMatchObject({
+      additionalProperties: false,
+      required: ['reference', 'refreshedAt', 'refreshSeconds', 'state'],
+      properties: { state: { enum: ['none', 'listed'] } },
+    })
     // TSK-0056 (HH-PORT-10): Documents also answers "listed" with the estimate versions the customer received; "none"
     // is still the state alone.
     expect(PROJECT_DOCUMENTS.schema).toMatchObject({
@@ -233,6 +245,62 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
     })
     expect(PROJECT_PHOTOS.schema).toMatchObject({
       properties: { photos: { additionalProperties: false, required: ['received', 'processing', 'failed'] } },
+    })
+  })
+
+  it('[TSK-0063][HH-LEAD-07][HH-SCH-11][HH-ARC-04] the Appointments view sends windows and confirmed visits, never a hold, worker or ID', () => {
+    const at = new Date('2026-10-21T12:00:00Z')
+    const w = {
+      localDate: '2026-11-04',
+      start: '09:00',
+      end: '10:00',
+      timeZone: 'America/Kentucky/Louisville',
+      startsAt: '2026-11-04T14:00:00.000Z',
+      endsAt: '2026-11-04T15:00:00.000Z',
+    }
+    const out = PROJECT_APPOINTMENTS.project({
+      reference: 'HH-0000TEST',
+      refreshedAt: at,
+      refreshSeconds: 30,
+      state: 'listed',
+      offers: [
+        {
+          number: 1,
+          purpose: 'estimate_visit',
+          status: 'open',
+          offeredAt: at,
+          expiresAt: at,
+          windows: [{ position: 1, ...w, holdId: 'hold-1', workerId: 'staff-1' } as never],
+          offerId: 'offer-1',
+        } as never,
+      ],
+      appointments: [
+        {
+          purpose: 'estimate_visit',
+          status: 'confirmed',
+          window: { ...w, reservationId: 'r-1' } as never,
+          address: {
+            street: '1 Synthetic Way',
+            unit: null,
+            city: 'Testville',
+            state: 'KY',
+            zip: '40000',
+            gateCode: 'x',
+          },
+          preparationInstructions: null,
+          visitId: 'visit-1',
+          workers: ['staff-1'],
+        } as never,
+      ],
+      internalNote: 'staff only',
+    } as never)
+    const raw = JSON.stringify(out)
+    for (const leak of ['hold-1', 'staff-1', 'offer-1', 'visit-1', 'r-1', 'gateCode', 'staff only'])
+      expect(raw).not.toContain(leak)
+    expect(out).toMatchObject({
+      state: 'listed',
+      offers: [{ number: 1, windows: [{ position: 1, start: '09:00' }] }],
+      appointments: [{ address: { street: '1 Synthetic Way' }, window: { start: '09:00' } }],
     })
   })
 })

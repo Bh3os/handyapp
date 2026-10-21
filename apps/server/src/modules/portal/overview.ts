@@ -8,6 +8,9 @@
 //   visit needed" with its customer explanation (OWN-DEC-99), and the Not a Fit decision in the owner's wording
 //   (OWN-DEC-100). Internal notes, qualification, assignment, the Owner routing and every staff name stay on the
 //   server: this module never selects them (HH-PORT-03, T24).
+// - TSK-0063: the visits feed the status (windows offered for the customer to choose, a confirmed visit) and the
+//   appointment beside it: the next confirmed visit with its date, arrival window, address, purpose and preparation
+//   instructions (visits/offers.ts appointmentsOf, the same customer view as the Appointments tab).
 import type { Db, Tx } from '@handyhub/db'
 import {
   customerStatus,
@@ -21,6 +24,7 @@ import type { DataScope } from '@handyhub/policy'
 import { loadConfig } from '../../platform/config/index.js'
 import { findProject } from '../records/repository.js'
 import { notAFitCustomerMessage } from '../requests/staff-record.js'
+import { appointmentsOf, overviewVisitFacts, type CustomerAppointment } from '../visits/offers.js'
 
 type Reader = Db | Tx
 
@@ -44,8 +48,8 @@ export type ProjectOverview = {
   timeline: TimelineEntry[]
   /** Payment summary, shown beside the status and never merged into it: no estimate, deposit or invoice exists yet. */
   payment: { state: 'none' }
-  /** The confirmed appointment: none until visits exist (TSK-0061). */
-  appointment: null
+  /** The next confirmed visit (TSK-0063), or none. */
+  appointment: CustomerAppointment | null
   refreshedAt: Date
   /** portal.refresh.pollSeconds; 0 while NOT CONFIGURED (the page then refreshes only when asked). */
   refreshSeconds: number
@@ -99,7 +103,14 @@ async function overviewFor(db: Reader, project: { id: string; reference: string 
           : null
     entries.push({ kind, at: d.decided_at, text })
   }
-  const facts: PortalFacts = { requestState: r.state as RequestState, projectState: p.state as ProjectState }
+  const visits = overviewVisitFacts(await appointmentsOf(db, project.id, now), p.state === 'approved')
+  const facts: PortalFacts = {
+    requestState: r.state as RequestState,
+    projectState: p.state as ProjectState,
+    visitWindowsOffered: visits.visitWindowsOffered,
+    workWindowsOffered: visits.workWindowsOffered,
+    ...(visits.visit ? { visit: visits.visit } : {}),
+  }
   const status = customerStatus(facts)
   // The entry that put the project where it is now dates the status and carries its customer text.
   const current = [...entries].reverse().find((e) => e.kind === status.situation)
@@ -113,7 +124,7 @@ async function overviewFor(db: Reader, project: { id: string; reference: string 
     // Newest first: the latest update leads.
     timeline: entries.reverse(),
     payment: { state: 'none' as const },
-    appointment: null,
+    appointment: visits.appointment,
     refreshedAt: now,
   }
 }

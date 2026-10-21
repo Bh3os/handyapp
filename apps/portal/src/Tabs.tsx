@@ -3,8 +3,9 @@
 //   shown (useLive's `active`): a tab that is not on screen never polls.
 // - Each says truthfully what it holds today. Messages: the conversation is not shown here yet (it is never claimed
 //   empty). Documents (TSK-0056, HH-PORT-10): the estimate versions the customer received, each with its status, each
-//   opening the estimate view; nothing yet, with what will appear, while there is none. Appointments, Payments:
-//   nothing exists yet. Photos: how many photos the project has by state, the same counts as the receipt, and that
+//   opening the estimate view; nothing yet, with what will appear, while there is none. Payments: nothing exists yet.
+//   Appointments (TSK-0063): the windows offered to choose from and the confirmed visits (Appointments.tsx); nothing
+//   yet while there is neither. Photos: how many photos the project has by state, the same counts as the receipt, and that
 //   viewing them here is not available yet.
 // - A tab once opened stays mounted while another is shown, so anything typed in it survives a tab switch.
 // English only, from the customer catalog; the wording no decision gives is PROPOSED (OQ-PORTAL-WORDING).
@@ -14,6 +15,7 @@ import { useEffect, useState } from 'react'
 import { cents, formatUsd } from '@handyhub/money'
 import { StatusBadge } from '@handyhub/ui'
 import { portalApi, type EstimateListItem, type Fetch, type TabData, type WorkspaceTab } from './api'
+import { AppointmentsList } from './Appointments'
 import { day, estimatePath, EstimateView, STATUS_LABEL, STATUS_TONE } from './Estimate'
 import { t } from './labels'
 import { useLive } from './live'
@@ -89,7 +91,17 @@ function Estimates({
   )
 }
 
-function Content({ data, onNavigate }: { data: TabData; onNavigate?: ((path: string) => void) | undefined }) {
+function Content({
+  data,
+  onNavigate,
+  fetchImpl,
+  onChanged,
+}: {
+  data: TabData
+  onNavigate?: ((path: string) => void) | undefined
+  fetchImpl: Fetch
+  onChanged: () => void
+}) {
   switch (data.tab) {
     case 'messages':
       return <Empty title="portal.messages.notShown.title" text="portal.messages.notShown.text" />
@@ -100,7 +112,17 @@ function Content({ data, onNavigate }: { data: TabData; onNavigate?: ((path: str
         <Empty title="portal.documents.none.title" text="portal.documents.none.text" />
       )
     case 'appointments':
-      return <Empty title="portal.appointment.none.title" text="portal.appointment.none.text" />
+      return data.state === 'listed' ? (
+        <AppointmentsList
+          reference={data.reference}
+          offers={data.offers}
+          appointments={data.appointments}
+          fetchImpl={fetchImpl}
+          onChanged={onChanged}
+        />
+      ) : (
+        <Empty title="portal.appointment.none.title" text="portal.appointment.none.text" />
+      )
     case 'payments':
       return <Empty title="portal.payment.none.title" text="portal.payment.none.text" more="portal.payments.recorded" />
     case 'photos': {
@@ -160,7 +182,7 @@ function TabRead({
             className={live.stale ? 'portal-section portal-section--stale' : 'portal-section'}
             data-stale={live.stale || undefined}
           >
-            <Content data={live.data} onNavigate={onNavigate} />
+            <Content data={live.data} onNavigate={onNavigate} fetchImpl={fetchImpl} onChanged={() => void refresh()} />
           </div>
         </>
       )}

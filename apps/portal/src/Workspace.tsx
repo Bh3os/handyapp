@@ -10,6 +10,7 @@
 //   (/portal/p/<reference>/<tab>), so a link, Back and a reload open the same tab. The frame reads the Overview first:
 //   a project this session cannot open shows its one neutral state and no tab at all.
 import { Button, StateView, StatusBadge, Tabs, type StatusTone } from '@handyhub/ui'
+import { AppointmentCard } from './Appointments'
 import { portalApi, type Fetch, type NextAction, type ProjectOverview, type Waiting } from './api'
 import { ACTION_LABEL, SITUATION_LABEL, STEP_TEXT, t, TIMELINE_LABEL, WAITING_LABEL, when } from './labels'
 import { useLive } from './live'
@@ -24,6 +25,9 @@ const WAITING_TONE: Record<Waiting, StatusTone> = { customer: 'warning', handyhu
  */
 const ACTION_SCREENS: Partial<Record<NextAction, (reference: string) => string>> = {
   review_estimate: (reference) => tabPath(reference, 'documents'),
+  // TSK-0063: choosing an offered window happens in the Appointments tab.
+  choose_visit_window: (reference) => tabPath(reference, 'appointments'),
+  choose_work_appointment: (reference) => tabPath(reference, 'appointments'),
 }
 
 function NextStep({ o }: { o: ProjectOverview }) {
@@ -82,9 +86,13 @@ function Overview({ o, stale }: { o: ProjectOverview; stale: boolean }) {
         <h3 id="portal-appointment" className="hh-h3">
           {t('portal.appointment.title')}
         </h3>
-        <StateView kind="empty" title={t('portal.appointment.none.title')}>
-          <p>{t('portal.appointment.none.text')}</p>
-        </StateView>
+        {o.appointment ? (
+          <AppointmentCard a={o.appointment} />
+        ) : (
+          <StateView kind="empty" title={t('portal.appointment.none.title')}>
+            <p>{t('portal.appointment.none.text')}</p>
+          </StateView>
+        )}
       </section>
 
       <section {...section('portal-payment')}>

@@ -26,6 +26,7 @@ export const QUEUE_ACTIONS = [
   'decide',
   'write_estimate',
   'review_estimate',
+  'offer_windows',
 ] as const
 export type QueueAction = (typeof QUEUE_ACTIONS)[number]
 
@@ -152,6 +153,20 @@ export const QUEUE_ITEM_TYPES = [
     reasons: ['estimate_changes_requested', 'estimate_declined', 'estimate_update_requested'],
     action: 'review_estimate',
     screen: 'estimates',
+  },
+  // TSK-0063 (HH-SCH-11, OWN-DEC-144): the customer asked for other times, or an offer's hold ended with no window
+  // selected; staff offer new windows. One item per request (the request record lists the visits and their offers),
+  // opened with the answer or the expiry and resolved when a new offer is made or a window is selected. Band, view
+  // action and screen are PROPOSED.
+  {
+    id: 'window_offer_response',
+    section: 'queue',
+    subject: 'request',
+    band: 'time_sensitive',
+    view: 'visit.offer_windows',
+    reasons: ['window_other_times_requested', 'window_offer_expired'],
+    action: 'offer_windows',
+    screen: 'requests',
   },
   // Owner Decisions (HH-OPS-01 "Owner, additionally"): each decision is owner-only in the matrix.
   {

@@ -6,14 +6,29 @@
 //                                              confirmed visit (visit.reschedule) its reservations move with it
 //   POST /staff/visits/:visitId/confirm        confirm a tentative visit, reserving every worker and item it needs
 //                                              (visit.confirm, If-Match; TSK-0062)
+//   POST /staff/visits/:visitId/offers         offer windows of a tentative visit to the customer, each held for the
+//                                              visit's team until the offer expires (visit.offer_windows, If-Match;
+//                                              TSK-0063)
+//   POST /staff/window-offers/:offerId/withdraw  withdraw an open offer, releasing its holds (visit.offer_windows,
+//                                              If-Match; TSK-0063)
 // Every write takes an idempotency key and records its audit event with the local window, zone, offsets and instants.
-// Nothing here offers windows to the customer, shows a visit to the customer or sends a notice: those are the
-// window-offer and confirmation tasks' (TSK-0063, TSK-0064, TSK-0066).
+// The customer's side of an offer (select a window, ask for other times) is the portal module's (portal/appointments.ts).
 import type { Tx } from '@handyhub/db'
 import { ApiError } from '../../api/errors.js'
 import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
 import { WORK_VISIT_GATES, type WorkVisitGate } from './gates.js'
-import { CONFIRM_BODY, NEW_VISIT_BODY, PROJECT_PARAMS, PROJECT_VISITS, VISIT_PARAMS, WINDOW_BODY } from './schemas.js'
+import { offerWindows, windowOfferExpiryAutomation, withdrawOffer, type OfferInput } from './offers.js'
+import {
+  CONFIRM_BODY,
+  NEW_VISIT_BODY,
+  OFFER_BODY,
+  OFFER_PARAMS,
+  PROJECT_PARAMS,
+  PROJECT_VISITS,
+  VISIT_PARAMS,
+  WINDOW_BODY,
+  WITHDRAW_BODY,
+} from './schemas.js'
 import {
   changeWindow,
   confirmVisit,
@@ -27,6 +42,7 @@ import {
 
 const TEST = 'test/integration/visits.test.ts'
 const CAPACITY_TEST = 'test/integration/capacity.test.ts'
+const OFFERS_TEST = 'test/integration/window-offers.test.ts'
 
 export type VisitsDeps = {
   /** The gates every work-visit window passes (WORK_VISIT_GATES); tests may add their own. */
@@ -50,8 +66,15 @@ const visitProjectOf: NonNullable<RouteDef['resource']> = async ({ req, db }) =>
   return v ? { projectId: v.project_id } : null
 }
 
+const offerProjectOf: NonNullable<RouteDef['resource']> = async ({ req, db }) => {
+  const { offerId } = req.params as { offerId: string }
+  const o = await db.selectFrom('work.window_offers').select('project_id').where('id', '=', offerId).executeTakeFirst()
+  return o ? { projectId: o.project_id } : null
+}
+
 export function visitsModule(deps: VisitsDeps = {}): ApiModule {
   const gates = deps.workVisitGates ?? WORK_VISIT_GATES
+  const expiry = windowOfferExpiryAutomation()
 
   const list: RouteDef = {
     method: 'GET',
@@ -192,7 +215,10 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
       'confirmations of the same capacity exactly one succeeds; the other gets CONFLICT naming every unmet ' +
       'requirement with alternatives (other free workers and items, and free periods of that day), and nothing ' +
       'partial is written. PROPOSED: a confirmed work visit fulfils the scheduling task. NOT CONFIGURED while ' +
-      "business.timezone or contact.hours is unset. No notice is sent here. Returns the project's visits.",
+      'business.timezone or contact.hours is unset. A visit whose windows are offered (an open offer) is refused ' +
+      '(OFFER_OPEN): the customer selects, or staff withdraw the offer first. The confirmation writes the committed ' +
+      'event of the automatic confirmation notice (estimate_visit.reserved or appointment.reserved; its wording is NOT ' +
+      "CONFIGURED, so the delivery is recorded as not configured, never as sent). Returns the project's visits.",
     actors: ['staff'],
     permission: 'visit.confirm',
     kind: 'write',
@@ -230,10 +256,121 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
     },
   }
 
-  return { name: 'visits', routes: [list, plan, move, confirm] }
+  const offer: RouteDef = {
+    method: 'POST',
+    path: '/staff/visits/:visitId/offers',
+    operationId: 'offerVisitWindows',
+    summary: 'Offer windows of a tentative visit to the customer, held for its team',
+    description:
+      'Staff with visit.offer_windows (Owner, Office; an Estimator: estimate visits only, PROPOSED), with If-Match: the ' +
+      'visit version shown (HH-SCH-11, HH-LEAD-07, OWN-DEC-144). Names the windows (local date and arrival window in ' +
+      "the visit's zone, with the reading of a repeated hour when needed), the visit's whole team (exactly its number " +
+      'of workers, the lead first, and an item for each equipment entry) and optional customer-facing preparation ' +
+      'instructions. The number of windows is the configured policy (scheduling.window_offers: 2-3, OWN-DEC-99 and ' +
+      'OWN-DEC-105; NOT CONFIGURED while unset), their reserved ranges may not overlap (OFFER_WINDOWS_OVERLAP) and each ' +
+      "must start in the future. Every window is checked like a confirmation (the team's working hours, time off, " +
+      'eligibility and existing reservations or holds, the on-site part inside the visit hours; a work visit passes ' +
+      "the job's scheduling gates) and held for the team until the offer expires: the configured hold hours from the " +
+      'offer, by the database clock (24 hours, OWN-DEC-144). A held window cannot be offered to or confirmed for anyone ' +
+      'else: a concurrent offer or confirmation of the same capacity gets CONFLICT naming every unmet requirement per ' +
+      'window (windows[i].workers.<id>, ...) with alternatives, and nothing partial is written. One open offer per ' +
+      'visit (OFFER_OPEN). An estimate visit writes the committed event of the automatic options notice ' +
+      '(estimate_visit.windows_published, FACT-AUTOMATIC-MESSAGES #5; wording NOT CONFIGURED); the list names none for ' +
+      "work visits. The expiry is scheduled with the offer. Nothing is confirmed here. Returns the project's visits.",
+    actors: ['staff'],
+    permission: 'visit.offer_windows',
+    kind: 'write',
+    idempotency: 'required',
+    expectedVersion: 'required',
+    rateLimit: 'none',
+    audit: 'visit.offer_windows',
+    pagination: false,
+    test: OFFERS_TEST,
+    resource: visitProjectOf,
+    schema: { params: VISIT_PARAMS, body: OFFER_BODY, response: { 201: PROJECT_VISITS } },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const actor = staffActor(ctx)
+      const { visitId } = ctx.req.params as { visitId: string }
+      const body = ctx.req.body as OfferInput
+      const out = await offerWindows(tx, actor, ctx.scope, visitId, body, {
+        gates,
+        now: new Date(),
+        expectedVersion: ctx.expectedVersion(),
+        expiry,
+      })
+      await ctx.audit({
+        target: { type: 'window_offer', id: out.offerId, version: 1 },
+        summary: {
+          projectId: out.projectId,
+          visitId: out.visitId,
+          purpose: out.purpose,
+          number: out.number,
+          windows: out.windows.map(windowSummary),
+          workers: [...out.workerIds],
+          equipment: [...out.equipmentIds],
+          holdHours: out.holdHours,
+          policyVersion: out.policyVersion,
+          expiresAt: out.expiresAt.toISOString(),
+        },
+      })
+      return { status: 201, body: await projectVisits(tx, actor, ctx.scope, out.projectId) }
+    },
+  }
+
+  const withdraw: RouteDef = {
+    method: 'POST',
+    path: '/staff/window-offers/:offerId/withdraw',
+    operationId: 'withdrawWindowOffer',
+    summary: 'Withdraw an open window offer',
+    description:
+      'Staff with visit.offer_windows (an Estimator: estimate visits only, PROPOSED), with If-Match: the offer version ' +
+      'shown and a reason (PROPOSED: required). Ends the offer and releases every hold it has (kept as history, ended ' +
+      '"hold_released"); the visit stays tentative for a new offer. An offer that already ended (selected, expired, ' +
+      "withdrawn, other times asked for) is CONFLICT naming its state. Returns the project's visits.",
+    actors: ['staff'],
+    permission: 'visit.offer_windows',
+    kind: 'write',
+    idempotency: 'required',
+    expectedVersion: 'required',
+    rateLimit: 'none',
+    audit: 'visit.withdraw_offer',
+    pagination: false,
+    test: OFFERS_TEST,
+    resource: offerProjectOf,
+    schema: { params: OFFER_PARAMS, body: WITHDRAW_BODY, response: { 200: PROJECT_VISITS } },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const actor = staffActor(ctx)
+      const { offerId } = ctx.req.params as { offerId: string }
+      const body = ctx.req.body as { reason: string }
+      const out = await withdrawOffer(tx, actor, ctx.scope, offerId, body, { expectedVersion: ctx.expectedVersion() })
+      await ctx.audit({
+        target: { type: 'window_offer', id: out.offerId, version: out.version },
+        summary: { projectId: out.projectId, visitId: out.visitId, number: out.number },
+        reason: body.reason.trim(),
+      })
+      return { body: await projectVisits(tx, actor, ctx.scope, out.projectId), version: out.version }
+    },
+  }
+
+  return { name: 'visits', routes: [list, plan, move, confirm, offer, withdraw] }
 }
 
 export { WORK_VISIT_GATES, unmetGates, type WorkVisitGate, type WorkVisitJob } from './gates.js'
+export {
+  appointmentConfirmedAutomation,
+  customerAppointments,
+  estimateVisitConfirmedAutomation,
+  estimateVisitOptionsAutomation,
+  OFFER_LIMITS,
+  requestOtherTimes,
+  selectWindow,
+  windowOfferExpiryAutomation,
+  type CustomerAppointment,
+  type CustomerAppointments,
+  type CustomerOffer,
+} from './offers.js'
 export {
   businessZone,
   ESTIMATE_VISIT_PROJECT_STATES,

@@ -122,6 +122,8 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       'visit_change_request',
       'delivery_failed',
       'case_open',
+      // TSK-0063: answers to offered windows that need new ones.
+      'window_offer_response',
     ])
     expect(office.items.map((i) => i.type)).not.toContain('deposit_waiver')
     expect(office.items.map((i) => i.id)).not.toContain(ownerOnly)
@@ -157,8 +159,9 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
   it('[HH-OPS-01][T26] an estimator sees requests and safety holds, but no cases and no Owner Decisions', async () => {
     const est = await list('estimator')
     expect(est.sections).toEqual(['queue'])
-    // Pending estimates (estimate_to_write, TSK-0053) and the customer's responses to estimates (estimate_response,
-    // TSK-0056) are the Estimator's too.
+    // Pending estimates (estimate_to_write, TSK-0053), the customer's responses to estimates (estimate_response,
+    // TSK-0056) and answers to offered windows that need new ones (window_offer_response, TSK-0063: Estimators offer
+    // estimate-visit windows) are the Estimator's too.
     expect(est.types).toEqual([
       'new_request',
       'review_hold',
@@ -166,6 +169,7 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       'delivery_failed',
       'estimate_to_write',
       'estimate_response',
+      'window_offer_response',
     ])
     expect(est.items.map((i) => i.type)).not.toContain('case_open')
     expect((await get('estimator', '/api/v1/staff/queue/owner-decisions')).statusCode).toBe(403)

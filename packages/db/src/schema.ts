@@ -973,6 +973,8 @@ export interface WorkReservationsTable {
   ended_at: Timestamp | null
   ended_by: string | null
   ended_reason: string | null
+  offer_id: string | null
+  offer_position: number | null
 }
 
 export interface WorkSchedulingTasksTable {
@@ -1041,6 +1043,42 @@ export interface WorkVisitsTable {
   created_by: string
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface WorkWindowOfferOptionsTable {
+  offer_id: string
+  position: number
+  local_date: string
+  window_start: string
+  window_end: string
+  time_zone: string
+  start_offset_minutes: number
+  end_offset_minutes: number
+  starts_at: Timestamp
+  ends_at: Timestamp
+  reserved_starts_at: Timestamp
+  reserved_ends_at: Timestamp
+}
+
+export interface WorkWindowOffersTable {
+  id: Generated<string>
+  visit_id: string
+  project_id: string
+  number: number
+  state: Generated<string>
+  version: Generated<number>
+  hold_hours: number
+  policy_version: number
+  offered_by: string
+  offered_at: ColumnType<Date, Date | string | undefined, Date | string>
+  expires_at: Timestamp
+  preparation_instructions: string | null
+  selected_position: number | null
+  selected_by_contact: string | null
+  closed_at: Timestamp | null
+  closed_by: string | null
+  closed_reason: string | null
+  customer_note: string | null
 }
 
 export interface WorkWorkPackagesTable {
@@ -1145,6 +1183,8 @@ export interface Database {
   'work.time_off': WorkTimeOffTable
   'work.visit_windows': WorkVisitWindowsTable
   'work.visits': WorkVisitsTable
+  'work.window_offer_options': WorkWindowOfferOptionsTable
+  'work.window_offers': WorkWindowOffersTable
   'work.work_packages': WorkWorkPackagesTable
   'work.worker_schedules': WorkWorkerSchedulesTable
   'work.working_hours': WorkWorkingHoursTable

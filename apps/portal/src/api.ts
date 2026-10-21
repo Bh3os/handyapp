@@ -99,7 +99,8 @@ export type ProjectOverview = {
   submittedAt: string
   status: Status & { text: string | null }
   timeline: TimelineEntry[]
-  appointment: null
+  /** TSK-0063: the next confirmed visit, or none. */
+  appointment: Appointment | null
   payment: { state: 'none' }
   refreshedAt: string
   refreshSeconds: number
@@ -156,7 +157,8 @@ export function parseOverview(v: unknown): ProjectOverview | null {
   const head = summary(v)
   const s = head && isObj(v['status']) ? v['status']['text'] : undefined
   if (!head || (s !== null && !isStr(s))) return null
-  if (!Array.isArray(v['timeline']) || v['appointment'] !== null) return null
+  const appointment = v['appointment'] === null ? null : parseAppointment(v['appointment'])
+  if (!Array.isArray(v['timeline']) || appointment === undefined) return null
   const timeline = v['timeline'].map(entry)
   if (timeline.some((e) => e === null)) return null
   const payment = v['payment']
@@ -166,7 +168,7 @@ export function parseOverview(v: unknown): ProjectOverview | null {
     ...head,
     status: { ...head.status, text: s },
     timeline: timeline as TimelineEntry[],
-    appointment: null,
+    appointment,
     payment: { state: 'none' },
     refreshedAt: v['refreshedAt'],
     refreshSeconds: v['refreshSeconds'],
@@ -191,12 +193,90 @@ export type EstimateListItem = {
   totalCents: number
 }
 
+// The offered windows and the confirmed visits of the Appointments tab (TSK-0063; HH-LEAD-07, HH-SCH-11, T37).
+export const VISIT_PURPOSES = ['estimate_visit', 'work_visit'] as const
+export type VisitPurpose = (typeof VISIT_PURPOSES)[number]
+export const APPOINTMENT_STATUSES = ['confirmed', 'en_route', 'arrived', 'completed'] as const
+export type AppointmentStatus = (typeof APPOINTMENT_STATUSES)[number]
+export const OFFER_STATUSES = ['open', 'expired', 'other_times_requested'] as const
+export type OfferStatus = (typeof OFFER_STATUSES)[number]
+export type VisitWindow = {
+  localDate: string
+  start: string
+  end: string
+  timeZone: string
+  startsAt: string
+  endsAt: string
+}
+export type Appointment = {
+  purpose: VisitPurpose
+  status: AppointmentStatus
+  window: VisitWindow
+  address: { street: string; unit: string | null; city: string; state: string; zip: string }
+  preparationInstructions: string | null
+}
+export type WindowOffer = {
+  number: number
+  purpose: VisitPurpose
+  status: OfferStatus
+  offeredAt: string
+  expiresAt: string
+  windows: (VisitWindow & { position: number })[]
+}
+
+function parseWindow(v: unknown): VisitWindow | null {
+  if (!isObj(v)) return null
+  const { localDate, start, end, timeZone, startsAt, endsAt } = v
+  if (!isStr(localDate) || !isStr(start) || !isStr(end) || !isStr(timeZone) || !isDate(startsAt) || !isDate(endsAt))
+    return null
+  return { localDate, start, end, timeZone, startsAt, endsAt }
+}
+
+/** A confirmed visit as the server sends it; undefined when it is not one. */
+export function parseAppointment(v: unknown): Appointment | undefined {
+  if (!isObj(v) || !oneOf(VISIT_PURPOSES)(v['purpose']) || !oneOf(APPOINTMENT_STATUSES)(v['status'])) return undefined
+  const window = parseWindow(v['window'])
+  const a = v['address']
+  if (!window || !isObj(a) || !isStr(a['street']) || !isStr(a['city']) || !isStr(a['state']) || !isStr(a['zip']))
+    return undefined
+  const unit = a['unit']
+  const prep = v['preparationInstructions']
+  if ((unit !== null && !isStr(unit)) || (prep !== null && !isStr(prep))) return undefined
+  return {
+    purpose: v['purpose'],
+    status: v['status'],
+    window,
+    address: { street: a['street'], unit, city: a['city'], state: a['state'], zip: a['zip'] },
+    preparationInstructions: prep,
+  }
+}
+
+function parseOffer(v: unknown): WindowOffer | null {
+  if (!isObj(v) || !isInt(v['number']) || !oneOf(VISIT_PURPOSES)(v['purpose']) || !oneOf(OFFER_STATUSES)(v['status']))
+    return null
+  if (!isDate(v['offeredAt']) || !isDate(v['expiresAt']) || !Array.isArray(v['windows'])) return null
+  const windows = v['windows'].map((w) => {
+    const parsed = parseWindow(w)
+    return parsed && isObj(w) && isInt(w['position']) ? { position: w['position'], ...parsed } : null
+  })
+  if (windows.some((w) => w === null)) return null
+  return {
+    number: v['number'],
+    purpose: v['purpose'],
+    status: v['status'],
+    offeredAt: v['offeredAt'],
+    expiresAt: v['expiresAt'],
+    windows: windows as WindowOffer['windows'],
+  }
+}
+
 /** What each tab holds today: a closed state code, the estimates (Documents) or the photo counts (Photos). */
 export type TabData =
   | (TabHead & { tab: 'messages'; state: 'not_shown' })
   | (TabHead & { tab: 'documents'; state: 'none' })
   | (TabHead & { tab: 'documents'; state: 'listed'; estimates: EstimateListItem[] })
   | (TabHead & { tab: 'appointments' | 'payments'; state: 'none' })
+  | (TabHead & { tab: 'appointments'; state: 'listed'; offers: WindowOffer[]; appointments: Appointment[] })
   | (TabHead & { tab: 'photos'; photos: PhotoCounts })
 
 const TAB_STATE: Record<Exclude<WorkspaceTab, 'photos'>, string> = {
@@ -222,6 +302,20 @@ export function parseTab(tab: WorkspaceTab, v: unknown): TabData | null {
     const list = Array.isArray(v['estimates']) ? v['estimates'].map(listItem) : null
     if (!list || list.length === 0 || list.some((e) => e === null)) return null
     return { ...head, tab, state: 'listed', estimates: list as EstimateListItem[] }
+  }
+  if (tab === 'appointments' && v['state'] === 'listed') {
+    const offers = Array.isArray(v['offers']) ? v['offers'].map(parseOffer) : null
+    const appointments = Array.isArray(v['appointments']) ? v['appointments'].map(parseAppointment) : null
+    if (!offers || !appointments || offers.some((o) => o === null) || appointments.some((a) => a === undefined))
+      return null
+    if (offers.length + appointments.length === 0) return null
+    return {
+      ...head,
+      tab,
+      state: 'listed',
+      offers: offers as WindowOffer[],
+      appointments: appointments as Appointment[],
+    }
   }
   // Any other state (for example "paid" or "read") is not what the view declares: a failure, never shown as data.
   if (v['state'] !== TAB_STATE[tab]) return null
@@ -540,6 +634,36 @@ function failureOf(status: number, json: unknown): WriteFailure {
   return 'failed'
 }
 
+/**
+ * The customer's answer to offered windows (TSK-0063): the refreshed Appointments tab, or why nothing changed:
+ * `unavailable_window` (that window can no longer be kept), `closed` (the offer was answered, withdrawn or expired:
+ * the refreshed tab says which), or a general failure.
+ */
+export type OfferAnswerFailure = WriteFailure | 'unavailable_window' | 'closed'
+export type OfferAnswerResult = { ok: true; data: TabData } | { ok: false; failure: OfferAnswerFailure }
+async function answerOffer(
+  fetchImpl: Fetch,
+  ref: { reference: string; number: number },
+  answer: { position: number } | { note: string },
+  key: string,
+): Promise<OfferAnswerResult> {
+  const path =
+    `/customer/projects/${encodeURIComponent(ref.reference)}/window-offers/${ref.number}/` +
+    ('position' in answer ? 'select' : 'other-times')
+  const body = 'position' in answer ? answer : answer.note.trim() ? { note: answer.note.trim() } : {}
+  const r = await post(fetchImpl, path, body, key)
+  if (!r) return { ok: false, failure: 'failed' }
+  if (r.status === 200) {
+    const data = parseTab('appointments', r.json)
+    return data ? { ok: true, data } : { ok: false, failure: 'failed' }
+  }
+  const codes = fieldCodes(r.json)
+  if (r.status === 409 && (codes.includes('WINDOW_UNAVAILABLE') || codes.includes('SCHEDULING_NOT_READY')))
+    return { ok: false, failure: 'unavailable_window' }
+  if (r.status === 409) return { ok: false, failure: 'closed' }
+  return { ok: false, failure: failureOf(r.status, r.json) }
+}
+
 /** Why an approval was not recorded, as the page says it. */
 export type ApprovalFailure = WriteFailure | 'not_configured' | 'total_changed' | 'access_revoked'
 export type ApprovalResult = { ok: true; approved: Approved } | { ok: false; failure: ApprovalFailure }
@@ -645,6 +769,10 @@ export const portalApi = {
   respond,
   select,
   approve,
+  selectWindow: (f: Fetch, ref: { reference: string; number: number }, position: number, key: string) =>
+    answerOffer(f, ref, { position }, key),
+  requestOtherTimes: (f: Fetch, ref: { reference: string; number: number }, note: string, key: string) =>
+    answerOffer(f, ref, { note }, key),
   verification: (f: Fetch) => read(f, '/customer/session/verification', parseVerification),
   sendCode,
   verify,

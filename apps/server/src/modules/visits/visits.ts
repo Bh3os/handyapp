@@ -23,6 +23,10 @@
 //   that fails keeps the booking exactly as it was. PROPOSED: confirming a work visit fulfils the job's scheduling
 //   task. The other confirmation preconditions (HH-SCH-06: deposit gate, blocking holds) come with TSK-0064; the
 //   deposit gate plugs into WORK_VISIT_GATES.
+// - TSK-0063 (HH-SCH-11, HH-LEAD-07, OWN-DEC-144): windows are offered to the customer and held through offers.ts. While
+//   a visit has an open offer its window changes and confirmations go through the offer (OFFER_OPEN here). A confirmed
+//   visit writes the committed event of its automatic confirmation notice (estimate_visit.reserved or
+//   appointment.reserved, FACT-AUTOMATIC-MESSAGES #6 and #10), whether staff confirmed it or the customer selected it.
 import type { Db, Tx } from '@handyhub/db'
 import {
   canChangeWindow,
@@ -49,6 +53,7 @@ import {
   type ReservationRequest,
 } from '../capacity/resources.js'
 import { unmetGates, type WorkVisitGate } from './gates.js'
+import { noticesOf, recordReserved, staffOffers, windowOfferPolicy } from './offers.js'
 
 type Reader = Db | Tx
 
@@ -95,6 +100,16 @@ export function mayPlanWorkVisits(actor: StaffActor): boolean {
     const rule = row?.cells[role].rules['visit.offer_windows']
     return rule !== undefined && rule.limit === undefined
   })
+}
+
+async function openOfferOf(db: Reader, visitId: string): Promise<boolean> {
+  const o = await db
+    .selectFrom('work.window_offers')
+    .select('id')
+    .where('visit_id', '=', visitId)
+    .where('state', '=', 'open')
+    .executeTakeFirst()
+  return o !== undefined
 }
 
 /** Whether the actor may plan visits at all (offer windows), on any project. */
@@ -280,8 +295,8 @@ export async function planVisit(
 
 export type WindowChange = { readonly from: LocalWindow; readonly to: LocalWindow; readonly windowVersion: number }
 
-/** The stored window of a visit row as the domain describes it. */
-function storedWindow(v: {
+/** The stored window of a visit row (or an offered window) as the domain describes it. */
+export function storedWindow(v: {
   local_date: string
   window_start: string
   window_end: string
@@ -332,6 +347,8 @@ export async function changeWindow(
       },
     })
   if (!canChangeWindow(v.state)) throw new ApiError('CONFLICT', { fieldErrors: [field('state', 'WINDOW_LOCKED')] })
+  // TSK-0063: the windows offered to the customer are held; withdraw the offer before moving the visit.
+  if (await openOfferOf(tx, v.id)) throw new ApiError('CONFLICT', { fieldErrors: [field('offer', 'OFFER_OPEN')] })
   // Moving a confirmed visit is a reschedule (visit.reschedule: Owner and Office).
   if (v.state === 'confirmed' && !holds(actor, 'visit.reschedule')) throw new ApiError('FORBIDDEN')
   const config = await loadConfig(tx)
@@ -367,7 +384,7 @@ export async function changeWindow(
   }
 }
 
-type VisitRow = {
+export type VisitRow = {
   id: string
   purpose: string
   time_zone: string
@@ -376,7 +393,7 @@ type VisitRow = {
   travel_buffer_minutes: number | null
 }
 
-function factsOf(v: VisitRow) {
+export function factsOf(v: VisitRow) {
   return {
     expectedDurationMinutes: v.expected_duration_minutes ?? 0,
     preparationBufferMinutes: v.preparation_buffer_minutes,
@@ -471,6 +488,8 @@ export async function confirmVisit(
   if (v.version !== deps.expectedVersion)
     throw new ApiError('STALE_VERSION', { current: { version: v.version, values: { state: v.state } } })
   if (v.state !== 'tentative') throw new ApiError('CONFLICT', { fieldErrors: [field('state', 'VISIT_NOT_TENTATIVE')] })
+  // TSK-0063: a visit whose windows are offered is confirmed by the customer's selection, or after a withdrawal.
+  if (await openOfferOf(tx, v.id)) throw new ApiError('CONFLICT', { fieldErrors: [field('offer', 'OFFER_OPEN')] })
   const config = await loadConfig(tx)
   businessZone(config)
   const settings = capacitySettings(config)
@@ -528,6 +547,7 @@ export async function confirmVisit(
       .where('job_id', '=', v.job_id)
       .where('state', 'in', ['open', 'planning'])
       .execute()
+  await recordReserved(tx, { id: v.id, purpose: v.purpose, version: updated.version })
   return {
     id: v.id,
     version: updated.version,
@@ -661,8 +681,43 @@ export async function projectVisits(db: Reader, actor: StaffActor, scope: DataSc
     ...history.map((h) => h.set_by),
     ...reservations.flatMap((r) => (r.staff_user_id ? [r.staff_user_id] : [])),
   ])
+  const offerStaff = visits.length
+    ? await db
+        .selectFrom('work.window_offers')
+        .select(['offered_by', 'closed_by'])
+        .where(
+          'visit_id',
+          'in',
+          visits.map((v) => v.id),
+        )
+        .execute()
+    : []
+  const offerNames = await staffNames(
+    db,
+    offerStaff.flatMap((o) => [o.offered_by, ...(o.closed_by ? [o.closed_by] : [])]),
+  )
   const ref = (id: string) => names.get(id) ?? { id, name: null }
   const businessTz = business ? business.value.zone : null
+  const now = new Date()
+  const offers = await staffOffers(
+    db,
+    visits,
+    (id) => offerNames.get(id) ?? ref(id),
+    (purpose) => mayPlanVisits(actor) && (purpose === 'site_estimate' || mayPlanWorkVisits(actor)),
+    now,
+  )
+  const visitNotices = await noticesOf(
+    db,
+    'visit',
+    visits.map((v) => v.id),
+  )
+  const offerPolicy = (() => {
+    try {
+      return windowOfferPolicy(config)
+    } catch {
+      return null
+    }
+  })()
   const canPlan = mayPlanVisits(actor) && business !== null && isTimeZone(project.time_zone)
   const work = mayPlanWorkVisits(actor)
   const canConfirm = holds(actor, 'visit.confirm') && business !== null && hours !== null
@@ -679,6 +734,14 @@ export async function projectVisits(db: Reader, actor: StaffActor, scope: DataSc
     timeZone: project.time_zone,
     businessTimeZone: business ? { zone: business.value.zone, proposed: business.proposed } : null,
     visitHours: hours,
+    windowOffers: offerPolicy
+      ? {
+          holdHours: offerPolicy.policy.holdHours,
+          minWindows: offerPolicy.policy.minWindows,
+          maxWindows: offerPolicy.policy.maxWindows,
+          proposed: offerPolicy.proposed,
+        }
+      : null,
     job: job ? { id: job.id, scopeVersion: job.scope_version === null ? null : Number(job.scope_version) } : null,
     schedulingTask: job?.task_state ? { state: job.task_state } : null,
     actions: {
@@ -718,7 +781,11 @@ export async function projectVisits(db: Reader, actor: StaffActor, scope: DataSc
           endedAt: r.ended_at ? new Date(r.ended_at).toISOString() : null,
           endedReason: r.ended_reason,
           flags: [...new Set(flags.filter((f) => f.reservation_id === r.id).map((f) => f.cause))],
+          offerNumber: r.offer_id ? (offers.get(v.id)?.find((o) => o.id === r.offer_id)?.number ?? null) : null,
+          offerPosition: r.offer_position,
         })),
+      offers: offers.get(v.id) ?? [],
+      notices: visitNotices.get(v.id) ?? [],
       createdBy: ref(v.created_by),
       createdAt: new Date(v.created_at).toISOString(),
       history: history
@@ -735,11 +802,25 @@ export async function projectVisits(db: Reader, actor: StaffActor, scope: DataSc
         changeWindow:
           canPlan &&
           canChangeWindow(v.state) &&
+          !(offers.get(v.id) ?? []).some((o) => o.state === 'open') &&
           (v.purpose === 'site_estimate' || work) &&
           business !== null &&
           (v.state !== 'confirmed' || holds(actor, 'visit.reschedule')),
         confirm:
-          canConfirm && v.state === 'tentative' && v.expected_duration_minutes !== null && v.required_workers !== null,
+          canConfirm &&
+          v.state === 'tentative' &&
+          v.expected_duration_minutes !== null &&
+          v.required_workers !== null &&
+          !(offers.get(v.id) ?? []).some((o) => o.state === 'open'),
+        offerWindows:
+          canPlan &&
+          v.state === 'tentative' &&
+          (v.purpose === 'site_estimate' || work) &&
+          hours !== null &&
+          offerPolicy !== null &&
+          v.expected_duration_minutes !== null &&
+          v.required_workers !== null &&
+          !(offers.get(v.id) ?? []).some((o) => o.state === 'open'),
       },
     })),
   }

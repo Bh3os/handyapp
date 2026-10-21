@@ -190,6 +190,10 @@ export const CONFIG_KEYS = {
   // recording it is the owner's legal-document sign-off (OQ-TERMS-OWNER-APPROVAL), and the customer view shows its
   // wording only while the recorded content hash matches.
   'legal.estimate_terms': legalDocument,
+  // TSK-0063 (OWN-DEC-144; OWN-DEC-99, OWN-DEC-105): offered appointment windows hold their workers and equipment for
+  // holdHours from the offer; staff offer minWindows to maxWindows windows at a time. Decided values, seeded active by
+  // migration 0053.
+  'scheduling.window_offers': shape({ holdHours: int(1, 24 * 366), minWindows: int(1, 10), maxWindows: int(1, 10) }),
   // RULE-AI-WAVE2: only `false` is a valid value; the database refuses anything else as well.
   'ai.module': shape({ enabled: exactly(false) }),
 } as const satisfies Record<string, Parser<unknown>>

@@ -33,6 +33,8 @@ export const ENTITIES = [
   'EstimateVersion',
   // TSK-0057: the customer's approval of one exact version.
   'Approval',
+  // TSK-0063: the offered windows of a visit and the confirmed visits (ENT-Visit).
+  'Visit',
 ] as const
 export type Entity = (typeof ENTITIES)[number]
 
@@ -237,6 +239,89 @@ export const PROJECT_LIST = customerView(
   }),
 )
 
+// TSK-0063 (HH-LEAD-07, HH-SCH-11, T37): a visit as the customer sees it. The purpose is an "Estimate visit" or a work
+// appointment; the window is the local date and arrival window with its zone and UTC instants; a confirmed visit adds
+// the property address and the preparation instructions staff wrote for the customer. Never a hold, a worker, a staff
+// detail or an ID: an offer is named by its number inside the project.
+export const CUSTOMER_VISIT_PURPOSES = ['estimate_visit', 'work_visit'] as const
+export const CUSTOMER_APPOINTMENT_STATUSES = ['confirmed', 'en_route', 'arrived', 'completed'] as const
+export const CUSTOMER_OFFER_STATUSES = ['open', 'expired', 'other_times_requested'] as const
+const WINDOW_FIELDS = {
+  localDate: STRING,
+  start: STRING,
+  end: STRING,
+  timeZone: STRING,
+  startsAt: DATE,
+  endsAt: DATE,
+} as const
+type WindowRecord = {
+  localDate: string
+  start: string
+  end: string
+  timeZone: string
+  startsAt: string
+  endsAt: string
+}
+const windowOf = (w: WindowRecord) => ({
+  localDate: w.localDate,
+  start: w.start,
+  end: w.end,
+  timeZone: w.timeZone,
+  startsAt: w.startsAt,
+  endsAt: w.endsAt,
+})
+const APPOINTMENT_ITEM = object({
+  purpose: enumOf(CUSTOMER_VISIT_PURPOSES),
+  status: enumOf(CUSTOMER_APPOINTMENT_STATUSES),
+  window: object(WINDOW_FIELDS),
+  address: object({ street: STRING, unit: { type: ['string', 'null'] }, city: STRING, state: STRING, zip: STRING }),
+  preparationInstructions: { type: ['string', 'null'] },
+})
+type AppointmentRecord = {
+  purpose: string
+  status: string
+  window: WindowRecord
+  address: { street: string; unit: string | null; city: string; state: string; zip: string }
+  preparationInstructions: string | null
+}
+const appointmentOf = (a: AppointmentRecord) => ({
+  purpose: a.purpose,
+  status: a.status,
+  window: windowOf(a.window),
+  address: {
+    street: a.address.street,
+    unit: a.address.unit,
+    city: a.address.city,
+    state: a.address.state,
+    zip: a.address.zip,
+  },
+  preparationInstructions: a.preparationInstructions,
+})
+const OFFER_ITEM = object({
+  number: { type: 'integer', minimum: 1 },
+  purpose: enumOf(CUSTOMER_VISIT_PURPOSES),
+  status: enumOf(CUSTOMER_OFFER_STATUSES),
+  offeredAt: DATE,
+  expiresAt: DATE,
+  windows: { type: 'array', items: object({ position: { type: 'integer', minimum: 1 }, ...WINDOW_FIELDS }) },
+})
+type OfferRecord = {
+  number: number
+  purpose: string
+  status: string
+  offeredAt: Date
+  expiresAt: Date
+  windows: (WindowRecord & { position: number })[]
+}
+const offerOf = (o: OfferRecord) => ({
+  number: o.number,
+  purpose: o.purpose,
+  status: o.status,
+  offeredAt: o.offeredAt.toISOString(),
+  expiresAt: o.expiresAt.toISOString(),
+  windows: o.windows.map((w) => ({ position: w.position, ...windowOf(w) })),
+})
+
 const TIMELINE_ENTRY = object({
   kind: enumOf(CUSTOMER_TIMELINE_KINDS),
   at: DATE,
@@ -256,8 +341,8 @@ export const PROJECT_OVERVIEW = customerView(
     submittedAt: DATE,
     status: object({ ...STATUS_FIELDS, text: { type: ['string', 'null'] } }),
     timeline: { type: 'array', items: TIMELINE_ENTRY },
-    // Nothing is confirmed until visits exist (TSK-0061); the slot is explicit so "none" is never a guess.
-    appointment: { type: 'null' },
+    // TSK-0063: the next confirmed visit (or one under way), or null: the slot is explicit so "none" is never a guess.
+    appointment: { anyOf: [APPOINTMENT_ITEM, { type: 'null' }] },
     // Shown beside the status, never merged into it (HH-PORT-03): no estimate, deposit or invoice exists yet.
     payment: object({ state: enumOf(['none']) }),
     refreshedAt: DATE,
@@ -270,7 +355,7 @@ export const PROJECT_OVERVIEW = customerView(
     submittedAt: Date
     status: StatusRecord & { text: string | null }
     timeline: TimelineRecord[]
-    appointment: null
+    appointment: AppointmentRecord | null
     payment: { state: 'none' }
     refreshedAt: Date
     refreshSeconds: number
@@ -281,7 +366,7 @@ export const PROJECT_OVERVIEW = customerView(
     submittedAt: o.submittedAt.toISOString(),
     status: { ...status(o.status), text: o.status.text },
     timeline: o.timeline.map(entry),
-    appointment: null,
+    appointment: o.appointment ? appointmentOf(o.appointment) : null,
     payment: { state: o.payment.state },
     refreshedAt: o.refreshedAt.toISOString(),
     refreshSeconds: o.refreshSeconds,
@@ -373,8 +458,35 @@ export const PROJECT_DOCUMENTS: typeof listedView = {
   // The list is sent only with the "listed" state; "none" is the state alone, as before (TSK-0039).
   schema: { ...listedView.schema, required: Object.keys(TAB_FIELDS).concat('state') },
 }
-/** The Appointments tab: no visit exists yet (TSK-0061). */
-export const PROJECT_APPOINTMENTS = tabView('project.appointments', 'Project', ['none'] as const)
+/**
+ * The Appointments tab (TSK-0063; HH-LEAD-07, HH-SCH-11, T37): "none" while the project has no offered window and no
+ * confirmed visit; otherwise "listed" with the offers the customer can see (open and held until expiresAt, expired
+ * with no selection, or other times asked for), each with its windows, and the confirmed visits with their date,
+ * arrival window, property address, purpose and preparation instructions. The lists are sent only when listed.
+ */
+const appointmentsView = customerView(
+  'project.appointments',
+  'Visit',
+  {
+    ...TAB_FIELDS,
+    state: enumOf(['none', 'listed']),
+    offers: { type: 'array', items: OFFER_ITEM },
+    appointments: { type: 'array', items: APPOINTMENT_ITEM },
+  },
+  (
+    r: TabRecord & ({ state: 'none' } | { state: 'listed'; offers: OfferRecord[]; appointments: AppointmentRecord[] }),
+  ) => ({
+    ...tabHead(r),
+    state: r.state,
+    offers: r.state === 'listed' ? r.offers.map(offerOf) : undefined,
+    appointments: r.state === 'listed' ? r.appointments.map(appointmentOf) : undefined,
+  }),
+)
+export const PROJECT_APPOINTMENTS: typeof appointmentsView = {
+  ...appointmentsView,
+  // The lists are sent only with the "listed" state; "none" is the state alone, as before (TSK-0039).
+  schema: { ...appointmentsView.schema, required: Object.keys(TAB_FIELDS).concat('state') },
+}
 /** The Payments tab: no estimate total, deposit, invoice or recorded payment exists yet (TSK-0087). */
 export const PROJECT_PAYMENTS = tabView('project.payments', 'Invoice', ['none'] as const)
 
