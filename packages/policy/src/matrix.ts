@@ -91,6 +91,9 @@ export const ACTIONS = [
   'job.add_note',
   'job.record_walkthrough',
   'job.report_issue',
+  // PROPOSED (TSK-0071): confirming what is loaded and reporting a missing or damaged loadout item (HH-PKT-05) are
+  // field records like checklist steps and issue reports, so they sit in that row with the same cells.
+  'job.record_loadout',
   'visit.correct_timestamps',
   'quality.review',
   'quality.manage_punch_items',
@@ -460,7 +463,14 @@ export const MATRIX: readonly MatrixRow[] = [
   row(
     FIELD,
     'Checklist steps, photos, notes, walkthrough record, issue reports',
-    ['job.record_checklist_step', 'job.add_photo', 'job.add_note', 'job.record_walkthrough', 'job.report_issue'],
+    [
+      'job.record_checklist_step',
+      'job.add_photo',
+      'job.add_note',
+      'job.record_walkthrough',
+      'job.report_issue',
+      'job.record_loadout',
+    ],
     { owner: A(), worker: A() },
   ),
   row(FIELD, 'Correct Arrived/Finished timestamps', ['visit.correct_timestamps'], { owner: Y() }),

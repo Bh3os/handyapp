@@ -167,6 +167,12 @@ export const TABLES = {
     classes: ['configuration'],
     categories: [NS],
   },
+  'catalog.loadout_versions': {
+    holds: 'Imported loadout lists per service: the vault inventory groups, items and review notes, verbatim',
+    classes: ['configuration'],
+    categories: [NS],
+    protectedEvidence: true,
+  },
   'catalog.sop_versions': {
     holds: 'Imported SOP versions: checklist stages, stop-work section, hazard and quality digests, competent review',
     classes: ['configuration'],
@@ -579,7 +585,7 @@ export const TABLES = {
   },
   'work.equipment': { holds: 'Shared equipment items', classes: ['configuration'], categories: [NS] },
   'work.holds': {
-    holds: 'Review and safety holds with their resolution and reviewer',
+    holds: 'Review and safety holds and loadout task blocks with their resolution and reviewer',
     classes: ['request_details'],
     categories: [R, J, S],
   },
@@ -607,6 +613,13 @@ export const TABLES = {
     protectedEvidence: true,
   },
   'work.jobs': { holds: 'Jobs of approved projects', classes: ['request_details'], categories: [J, A] },
+  'work.loadout_checks': {
+    holds:
+      'What workers stated about each loadout item (loaded, missing, damaged) with their notes, and the approved ' +
+      'substitutes; who and when',
+    classes: ['request_details'],
+    categories: [J, S],
+  },
   'work.reservation_flags': {
     holds: 'Appointments flagged by an availability change',
     classes: ['scheduling'],
@@ -650,6 +663,11 @@ export const TABLES = {
     holds: 'Window offers of a tentative visit: hold expiry, policy version, outcome',
     classes: ['scheduling'],
     categories: [R, J],
+  },
+  'work.work_package_loadouts': {
+    holds: 'The loadout version pinned on each work package of a job',
+    classes: ['request_details'],
+    categories: [J],
   },
   'work.work_package_sop_pins': {
     holds: 'The SOP version and digests pinned on each work package of a job, or NOT CONFIGURED',

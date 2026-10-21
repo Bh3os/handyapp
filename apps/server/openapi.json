@@ -49914,6 +49914,860 @@
         }
       }
     },
+    "/api/v1/staff/jobs/{jobId}/loadout": {
+      "get": {
+        "operationId": "getJobLoadout",
+        "summary": "A job's loadout: what to load per work package, what was stated, and what blocks",
+        "description": "Staff with job.view_packet inside their scope (as for the job packet: the Owner and Office; the Estimator (PROPOSED cell); a worker only while assigned to a live visit of the job). The server first brings the packet up to date, which pins each package's loadout version once. For each work package: the list as the vault inventory file writes it (its groups, items with their vault line, review notes and the proposed additions, which are not approved and never items), PROPOSED every item required; each item's latest statement (loaded, missing, damaged, or an approved substitute) with who and when; the readiness Start Work reads (ready, not confirmed, blocked, or NOT CONFIGURED when the service has no list); and the task blocks with their owner, action and what the caller may do. No quantity is ever added.",
+        "tags": [
+          "loadouts"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "projectReference",
+                    "packetVersion",
+                    "packages",
+                    "actions"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "projectReference": {
+                      "type": "string"
+                    },
+                    "packetVersion": {
+                      "type": "integer"
+                    },
+                    "packages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "workPackageId",
+                          "serviceId",
+                          "serviceCode",
+                          "position",
+                          "state",
+                          "loadout",
+                          "readiness",
+                          "groups",
+                          "proposed",
+                          "blocks"
+                        ],
+                        "properties": {
+                          "workPackageId": {
+                            "type": "string"
+                          },
+                          "serviceId": {
+                            "type": "string"
+                          },
+                          "serviceCode": {
+                            "type": "string"
+                          },
+                          "position": {
+                            "type": "integer"
+                          },
+                          "state": {
+                            "type": "string"
+                          },
+                          "loadout": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "additionalProperties": false,
+                            "required": [
+                              "loadoutVersionId",
+                              "inventoryId",
+                              "version",
+                              "sourceFile",
+                              "pinnedAt"
+                            ],
+                            "properties": {
+                              "loadoutVersionId": {
+                                "type": "string"
+                              },
+                              "inventoryId": {
+                                "type": "string"
+                              },
+                              "version": {
+                                "type": "integer"
+                              },
+                              "sourceFile": {
+                                "type": "string"
+                              },
+                              "pinnedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          },
+                          "readiness": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "state",
+                              "unconfirmed",
+                              "reported",
+                              "blocks"
+                            ],
+                            "properties": {
+                              "state": {
+                                "type": "string",
+                                "enum": [
+                                  "ready",
+                                  "not_confirmed",
+                                  "blocked",
+                                  "not_configured"
+                                ]
+                              },
+                              "unconfirmed": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "reported": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "blocks": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "groups": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "heading",
+                                "line",
+                                "notes",
+                                "items"
+                              ],
+                              "properties": {
+                                "heading": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "line": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "notes": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "lines",
+                                      "line"
+                                    ],
+                                    "properties": {
+                                      "lines": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "line": {
+                                        "type": [
+                                          "integer",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  }
+                                },
+                                "items": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "key",
+                                      "name",
+                                      "lines",
+                                      "line",
+                                      "criticality",
+                                      "category",
+                                      "current"
+                                    ],
+                                    "properties": {
+                                      "key": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "lines": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "line": {
+                                        "type": [
+                                          "integer",
+                                          "null"
+                                        ]
+                                      },
+                                      "criticality": {
+                                        "type": "string"
+                                      },
+                                      "category": {
+                                        "type": "string"
+                                      },
+                                      "current": {
+                                        "type": [
+                                          "object",
+                                          "null"
+                                        ],
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "status",
+                                          "note",
+                                          "substitute",
+                                          "impacts",
+                                          "recordedBy",
+                                          "recordedAt"
+                                        ],
+                                        "properties": {
+                                          "status": {
+                                            "type": "string",
+                                            "enum": [
+                                              "loaded",
+                                              "missing",
+                                              "damaged",
+                                              "substitute_approved"
+                                            ]
+                                          },
+                                          "note": {
+                                            "type": [
+                                              "string",
+                                              "null"
+                                            ]
+                                          },
+                                          "substitute": {
+                                            "type": [
+                                              "string",
+                                              "null"
+                                            ]
+                                          },
+                                          "impacts": {
+                                            "type": [
+                                              "array",
+                                              "null"
+                                            ],
+                                            "items": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "recordedBy": {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "id",
+                                              "name"
+                                            ],
+                                            "properties": {
+                                              "id": {
+                                                "type": "string"
+                                              },
+                                              "name": {
+                                                "type": [
+                                                  "string",
+                                                  "null"
+                                                ]
+                                              }
+                                            }
+                                          },
+                                          "recordedAt": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "proposed": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "additionalProperties": false,
+                            "required": [
+                              "lines",
+                              "line"
+                            ],
+                            "properties": {
+                              "lines": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "line": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "blocks": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "holdId",
+                                "workPackageId",
+                                "itemKey",
+                                "itemName",
+                                "state",
+                                "version",
+                                "note",
+                                "raisedBy",
+                                "raisedAt",
+                                "reviewStartedAt",
+                                "resolutionNote",
+                                "reviewer",
+                                "resolvedAt",
+                                "cancelReason",
+                                "canceledAt",
+                                "owner",
+                                "actions"
+                              ],
+                              "properties": {
+                                "holdId": {
+                                  "type": "string"
+                                },
+                                "workPackageId": {
+                                  "type": "string"
+                                },
+                                "itemKey": {
+                                  "type": "string"
+                                },
+                                "itemName": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "open",
+                                    "under_review",
+                                    "resolved",
+                                    "canceled_as_error"
+                                  ]
+                                },
+                                "version": {
+                                  "type": "integer"
+                                },
+                                "note": {
+                                  "type": "string"
+                                },
+                                "raisedBy": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "raisedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "reviewStartedAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date-time"
+                                },
+                                "resolutionNote": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "reviewer": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "resolvedAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date-time"
+                                },
+                                "cancelReason": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "canceledAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date-time"
+                                },
+                                "owner": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "role",
+                                    "action"
+                                  ],
+                                  "properties": {
+                                    "role": {
+                                      "type": "string"
+                                    },
+                                    "action": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "actions": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "startReview",
+                                    "resolve",
+                                    "cancel"
+                                  ],
+                                  "properties": {
+                                    "startReview": {
+                                      "type": "boolean"
+                                    },
+                                    "resolve": {
+                                      "type": "boolean"
+                                    },
+                                    "cancel": {
+                                      "type": "boolean"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "record"
+                      ],
+                      "properties": {
+                        "record": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job.view_packet",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/loadouts.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/jobs/{jobId}/loadout/checks": {
+      "post": {
+        "operationId": "recordLoadoutChecks",
+        "summary": "State what is loaded, missing or damaged",
+        "description": "Staff with job.record_loadout (PROPOSED in the field-records row: the Owner and workers, assigned jobs only, inside the access window). For one work package of the job, states per item: loaded (loaded and available), missing or damaged, with an optional note. A missing or damaged required item raises a task block on that work package in the same transaction, under the job lock (one per item while it blocks), with its owner and action (the Owner provides the item or approves a substitute), and the packet gets a new version. Start Work stays blocked for that package only. A later \"loaded\" is recorded but releases nothing: only the Owner's recorded resolution does. Each item once per call; only items of the pinned list. Audited (counts only).",
+        "tags": [
+          "loadouts"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "workPackageId",
+                  "items"
+                ],
+                "properties": {
+                  "workPackageId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                  },
+                  "items": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 200,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "key",
+                        "status"
+                      ],
+                      "properties": {
+                        "key": {
+                          "type": "string",
+                          "pattern": "^[0-9]{1,4}$"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "loaded",
+                            "missing",
+                            "damaged"
+                          ]
+                        },
+                        "note": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 1000,
+                          "pattern": "\\S"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "recorded",
+                    "blocksRaised",
+                    "blocksOpen",
+                    "readiness",
+                    "packetVersion"
+                  ],
+                  "properties": {
+                    "recorded": {
+                      "type": "integer"
+                    },
+                    "blocksRaised": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "blocksOpen": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "readiness": {
+                      "type": "string",
+                      "enum": [
+                        "ready",
+                        "not_confirmed",
+                        "blocked",
+                        "not_configured"
+                      ]
+                    },
+                    "packetVersion": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job.record_loadout",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "loadout.check",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/loadouts.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/jobs/{jobId}/packet": {
       "get": {
         "operationId": "getJobPacket",
@@ -50979,14 +51833,84 @@
                       "type": "object",
                       "additionalProperties": false,
                       "required": [
-                        "state"
+                        "state",
+                        "packages"
                       ],
                       "properties": {
                         "state": {
                           "type": "string",
                           "enum": [
+                            "listed",
                             "not_recorded"
                           ]
+                        },
+                        "packages": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "workPackageId",
+                              "serviceCode",
+                              "state",
+                              "version",
+                              "items"
+                            ],
+                            "properties": {
+                              "workPackageId": {
+                                "type": "string"
+                              },
+                              "serviceCode": {
+                                "type": "string"
+                              },
+                              "state": {
+                                "type": "string",
+                                "enum": [
+                                  "pinned",
+                                  "not_configured"
+                                ]
+                              },
+                              "version": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              },
+                              "items": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "key",
+                                    "group",
+                                    "name",
+                                    "criticality"
+                                  ],
+                                  "properties": {
+                                    "key": {
+                                      "type": "string"
+                                    },
+                                    "group": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "criticality": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
                         }
                       }
                     },
@@ -51941,6 +52865,707 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/job-packets.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/loadout-blocks/{holdId}/actions/cancel": {
+      "post": {
+        "operationId": "cancelLoadoutBlockAsError",
+        "summary": "Cancel a task block entered in error",
+        "description": "The Owner (job_hold.set_ready). Only for a block entered in error, with the reason; the block, the worker's statement and the reason stay in the history. The item still needs a \"loaded\" statement before its package is ready.",
+        "tags": [
+          "loadouts"
+        ],
+        "parameters": [
+          {
+            "name": "holdId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "holdId",
+                    "state",
+                    "version",
+                    "jobId",
+                    "packetVersion"
+                  ],
+                  "properties": {
+                    "holdId": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "packetVersion": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job_hold.set_ready",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "loadout.block_cancel",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/loadouts.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/loadout-blocks/{holdId}/actions/resolve": {
+      "post": {
+        "operationId": "resolveLoadoutBlock",
+        "summary": "Resolve a task block under review",
+        "description": "The Owner (job_hold.set_ready; PROPOSED for task blocks). With a note saying how it was resolved and who assessed it, either: item_provided (the item was stated loaded after the block was raised and is still loaded) or substitute_approved (the substitute named, never \"equivalent\", with what it affects: safety, appearance, specification, price, warranty). A substitute that affects the customer is a change order (HH-CHG-02), NOT CONFIGURED until change orders exist: refused with CHANGE_ORDER_REQUIRED. No checkbox, timer, acknowledgment or AI output clears a block.",
+        "tags": [
+          "loadouts"
+        ],
+        "parameters": [
+          {
+            "name": "holdId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "resolution",
+                  "resolutionNote",
+                  "reviewer"
+                ],
+                "properties": {
+                  "resolution": {
+                    "type": "string",
+                    "enum": [
+                      "item_provided",
+                      "substitute_approved"
+                    ]
+                  },
+                  "resolutionNote": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "pattern": "\\S"
+                  },
+                  "reviewer": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "\\S"
+                  },
+                  "substitute": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 300,
+                    "pattern": "\\S"
+                  },
+                  "impacts": {
+                    "type": "array",
+                    "maxItems": 5,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "safety",
+                        "appearance",
+                        "specification",
+                        "price",
+                        "warranty"
+                      ]
+                    }
+                  },
+                  "customerAffected": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "holdId",
+                    "state",
+                    "version",
+                    "jobId",
+                    "packetVersion"
+                  ],
+                  "properties": {
+                    "holdId": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "packetVersion": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job_hold.set_ready",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "loadout.block_resolve",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/loadouts.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/loadout-blocks/{holdId}/actions/start-review": {
+      "post": {
+        "operationId": "startLoadoutBlockReview",
+        "summary": "Start reviewing a task block",
+        "description": "Staff with job_hold.set (the Owner; Office and Estimator PROPOSED) inside their scope. Moves an open task block to \"under review\"; it still blocks Start Work on its work package. If-Match is the block version.",
+        "tags": [
+          "loadouts"
+        ],
+        "parameters": [
+          {
+            "name": "holdId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "holdId",
+                    "state",
+                    "version",
+                    "jobId",
+                    "packetVersion"
+                  ],
+                  "properties": {
+                    "holdId": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "packetVersion": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job_hold.set",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "loadout.block_start_review",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/loadouts.test.ts"
         }
       }
     },
@@ -63317,6 +64942,7 @@
                 "question_reminder",
                 "deposit_due",
                 "visit_flagged",
+                "loadout_shortage",
                 "deposit_waiver",
                 "start_work_exception",
                 "refund_request",
@@ -63444,6 +65070,7 @@
                               "question_reminder",
                               "deposit_due",
                               "visit_flagged",
+                              "loadout_shortage",
                               "deposit_waiver",
                               "start_work_exception",
                               "refund_request",
@@ -63661,7 +65288,8 @@
                               "link_message",
                               "open_conversation",
                               "review_deposit",
-                              "reassign_visit"
+                              "reassign_visit",
+                              "review_shortage"
                             ]
                           },
                           "link": {
@@ -63718,6 +65346,7 @@
                           "question_reminder",
                           "deposit_due",
                           "visit_flagged",
+                          "loadout_shortage",
                           "deposit_waiver",
                           "start_work_exception",
                           "refund_request",
@@ -63864,6 +65493,7 @@
                 "question_reminder",
                 "deposit_due",
                 "visit_flagged",
+                "loadout_shortage",
                 "deposit_waiver",
                 "start_work_exception",
                 "refund_request",
@@ -63991,6 +65621,7 @@
                               "question_reminder",
                               "deposit_due",
                               "visit_flagged",
+                              "loadout_shortage",
                               "deposit_waiver",
                               "start_work_exception",
                               "refund_request",
@@ -64208,7 +65839,8 @@
                               "link_message",
                               "open_conversation",
                               "review_deposit",
-                              "reassign_visit"
+                              "reassign_visit",
+                              "review_shortage"
                             ]
                           },
                           "link": {
@@ -64265,6 +65897,7 @@
                           "question_reminder",
                           "deposit_due",
                           "visit_flagged",
+                          "loadout_shortage",
                           "deposit_waiver",
                           "start_work_exception",
                           "refund_request",

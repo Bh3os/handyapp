@@ -165,7 +165,18 @@ export const PACKET_VIEW = obj({
     blockingHolds: INT,
     liveVisits: INT,
   }),
-  materials: obj({ state: { type: 'string', enum: ['not_recorded'] } }),
+  materials: obj({
+    state: { type: 'string', enum: ['listed', 'not_recorded'] },
+    packages: arr(
+      obj({
+        workPackageId: STR,
+        serviceCode: STR,
+        state: { type: 'string', enum: ['pinned', 'not_configured'] },
+        version: INT_OR_NULL,
+        items: arr(obj({ key: STR, group: STR_OR_NULL, name: STR_OR_NULL, criticality: STR })),
+      }),
+    ),
+  }),
   careNotes: obj({ state: { type: 'string', enum: ['none_approved'] } }),
   communication: obj({
     siteContact: { ...DETAIL, type: ['object', 'null'] },

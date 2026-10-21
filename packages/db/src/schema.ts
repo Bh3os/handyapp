@@ -12,6 +12,20 @@ export type JsonValue = string | number | boolean | null | JsonValue[] | { [key:
 /** json and jsonb: parsed on select; written as JSON text (JSON.stringify) so arrays are not sent as SQL arrays. */
 export type Json = ColumnType<JsonValue, string, string>
 
+export interface CatalogLoadoutVersionsTable {
+  id: Generated<string>
+  inventory_id: string
+  service_id: string
+  version: number
+  title: string
+  source_file: string
+  source_sha256: string
+  content: Json
+  content_sha256: string
+  superseded_at: Timestamp | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface CatalogServiceVersionsTable {
   service_id: string
   version: number
@@ -1343,6 +1357,22 @@ export interface WorkJobsTable {
   version: Generated<number>
 }
 
+export interface WorkLoadoutChecksTable {
+  id: Generated<string>
+  work_package_id: string
+  project_id: string
+  job_id: string
+  loadout_version_id: string
+  item_key: string
+  status: string
+  note: string | null
+  substitute: string | null
+  impacts: string[] | null
+  hold_id: string | null
+  recorded_by: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface WorkReservationFlagsTable {
   id: Generated<string>
   reservation_id: string
@@ -1524,6 +1554,15 @@ export interface WorkWindowOffersTable {
   customer_note: string | null
 }
 
+export interface WorkWorkPackageLoadoutsTable {
+  work_package_id: string
+  project_id: string
+  job_id: string
+  service_id: string
+  loadout_version_id: string
+  pinned_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface WorkWorkPackageSopPinsTable {
   id: Generated<string>
   work_package_id: string
@@ -1573,6 +1612,7 @@ export interface WorkWorkingHoursTable {
 }
 
 export interface Database {
+  'catalog.loadout_versions': CatalogLoadoutVersionsTable
   'catalog.service_versions': CatalogServiceVersionsTable
   'catalog.services': CatalogServicesTable
   'catalog.sop_versions': CatalogSopVersionsTable
@@ -1665,6 +1705,7 @@ export interface Database {
   'work.job_packets': WorkJobPacketsTable
   'work.job_scope_snapshots': WorkJobScopeSnapshotsTable
   'work.jobs': WorkJobsTable
+  'work.loadout_checks': WorkLoadoutChecksTable
   'work.reservation_flags': WorkReservationFlagsTable
   'work.reservations': WorkReservationsTable
   'work.scheduling_tasks': WorkSchedulingTasksTable
@@ -1675,6 +1716,7 @@ export interface Database {
   'work.visits': WorkVisitsTable
   'work.window_offer_options': WorkWindowOfferOptionsTable
   'work.window_offers': WorkWindowOffersTable
+  'work.work_package_loadouts': WorkWorkPackageLoadoutsTable
   'work.work_package_sop_pins': WorkWorkPackageSopPinsTable
   'work.work_packages': WorkWorkPackagesTable
   'work.worker_schedules': WorkWorkerSchedulesTable
