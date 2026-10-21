@@ -75,7 +75,9 @@ describe('homepage wording (TSK-0020, HH-CUS-06, OWN-DEC-86)', () => {
       expect(['OWN-DEC-86', 'OWN-DEC-89', 'OWN-DEC-51']).toContain(claim.decision)
       if (claim.key.startsWith('home.')) expect(page, claim.key).toContain(`'${claim.key}'`)
     }
-    expect(CLAIMS.filter((c) => c.decision === 'OWN-DEC-86')).toHaveLength(3 + 1 + 12)
+    expect(CLAIMS.filter((c) => c.decision === 'OWN-DEC-86' && c.key.startsWith('home.'))).toHaveLength(3 + 1 + 12)
+    // TSK-0028: the free-estimate fact again, beside the request form's estimate choice (HH-INT-03).
+    expect(CLAIMS.find((c) => c.key === 'request.estimate.free')?.text).toBe(customer['home.trust.estimates'])
   })
 
   it('[HH-CUS-06] the request action uses the approved wording and opens the request page', () => {

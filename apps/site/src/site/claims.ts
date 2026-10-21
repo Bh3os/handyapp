@@ -26,6 +26,9 @@ export const CLAIMS: readonly Claim[] = [
   { key: 'home.trust.estimates', text: 'Free estimates—online or at your property.' },
   { key: 'home.trust.pricing', text: 'Every project individually priced to match its scope.' },
   { key: 'home.trust.visits', text: 'Visits every day, 8 AM–10 PM, by appointment.' },
+  // The same free-estimate fact beside the estimate choice of the request form (TSK-0028, HH-INT-03, FACT-VISIT-FEE),
+  // shown only while estimate.visit_fee is configured free.
+  { key: 'request.estimate.free', text: 'Free estimates—online or at your property.' },
   // Why HandyHub (OWN-DEC-86).
   { key: 'home.why.subtitle', text: 'Professional care, from estimate to completion.' },
   { key: 'home.why.clearPricing.label', text: 'Clear pricing:' },

@@ -12,13 +12,15 @@ import { registryServices, type Tx } from '@handyhub/db'
 import { PROJECT_MACHINE, REQUEST_MACHINE } from '@handyhub/domain'
 import { sql } from 'kysely'
 import { ApiError } from '../../api/errors.js'
-import { loadConfig, requireConfigured } from '../../platform/config/index.js'
+import { loadConfig, requireConfigured, type Config } from '../../platform/config/index.js'
 import { outbox } from '../../platform/outbox.js'
 import { lookupCoverage, type CoverageResult } from '../coverage/coverage.js'
 import { bindDraftPhotos, type PhotoSummary } from '../photos/photos.js'
 import {
   localDate,
   normalizeUsPhone,
+  offeredWindows,
+  type OfferedWindow,
   semanticProblems,
   serviceQuestions,
   type SubmitBody,
@@ -40,6 +42,16 @@ export async function coverageOrUnknown(tx: Tx, zip: string, lookup = lookupCove
     await sql`ROLLBACK TO SAVEPOINT coverage_lookup`.execute(tx)
     return { outcome: 'unknown', ruleSet: null }
   }
+}
+
+/** The preferred windows the form offers, from contact.hours and request.window_hours (HH-INT-02, TSK-0028). */
+export function formWindows(config: Config): OfferedWindow[] {
+  const visit = config.get('contact.hours')
+  const hours = config.get('request.window_hours')
+  return offeredWindows(
+    visit.state === 'CONFIGURED' ? visit.value : null,
+    hours.state === 'CONFIGURED' ? hours.value : null,
+  )
 }
 
 const CROCKFORD = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'
@@ -87,6 +99,7 @@ export async function submitRequest(
     today: localDate(now, zone),
     knownServices: new Set(services.keys()),
     questions,
+    windows: formWindows(config).map((w) => w.code),
   })
   if (problems.length) throw new ApiError('VALIDATION_FAILED', { fieldErrors: problems })
 
