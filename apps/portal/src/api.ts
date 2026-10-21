@@ -8,7 +8,9 @@
 // - a network failure, a server error or an unexpected answer: failed.
 // TSK-0056 adds the estimate view (estimate_version.customer) and the customer's responses to it (POST, JSON body,
 // with an idempotency key the page keeps for retries of the same response). TSK-0057 adds the selected options, the
-// approval (one key per approval attempt, kept for its retries) and the session's fresh verification.
+// approval (one key per approval attempt, kept for its retries) and the session's fresh verification. TSK-0100 adds the
+// document download links (short-lived, issued on request), the customer's privacy requests (export, correction,
+// deletion) and the data export of a completed export request.
 
 export type Fetch = (input: string, init?: RequestInit) => Promise<Response>
 
@@ -1083,6 +1085,197 @@ export const portalWrites = {
     ),
 }
 
+// Document downloads (TSK-0100, HH-PRIV-06): short-lived links the server issues after its checks.
+export const DOWNLOAD_KINDS = ['estimate_pdf', 'estimate_document'] as const
+export type DownloadKind = (typeof DOWNLOAD_KINDS)[number]
+export type Download = { kind: DownloadKind; contentType: string; byteSize: number; url: string; expiresAt: string }
+export function parseDownloads(v: unknown): Download[] | null {
+  if (!isObj(v) || !Array.isArray(v['documents'])) return null
+  const out = v['documents'].map((d) =>
+    isObj(d) &&
+    oneOf(DOWNLOAD_KINDS)(d['kind']) &&
+    isStr(d['contentType']) &&
+    isInt(d['byteSize']) &&
+    isStr(d['url']) &&
+    /^https:\/\//.test(d['url']) &&
+    isDate(d['expiresAt'])
+      ? {
+          kind: d['kind'],
+          contentType: d['contentType'],
+          byteSize: d['byteSize'],
+          url: d['url'],
+          expiresAt: d['expiresAt'],
+        }
+      : null,
+  )
+  return out.some((d) => d === null) ? null : (out as Download[])
+}
+
+// Privacy requests (TSK-0100, HH-PRIV-03, ENT-PrivacyRequest).
+export const PRIVACY_KINDS = ['export', 'correction', 'deletion'] as const
+export type PrivacyKind = (typeof PRIVACY_KINDS)[number]
+export const PRIVACY_STATES = ['received', 'under_review', 'completed', 'partially_completed', 'declined'] as const
+export type PrivacyState = (typeof PRIVACY_STATES)[number]
+export const PRIVACY_CATEGORIES = [
+  'login_account',
+  'access_links',
+  'account_preferences',
+  'unaccepted_estimates',
+  'accepted_agreements',
+  'requests',
+  'photos',
+  'job_records',
+  'safety_records',
+  'customer_profile',
+  'consent_records',
+  'audit_log',
+  'privacy_requests',
+  'third_party_contacts',
+  'financial_records',
+] as const
+export type PrivacyCategory = (typeof PRIVACY_CATEGORIES)[number]
+export const PRIVACY_REASONS = [
+  'protected_evidence',
+  'retention_period',
+  'hold',
+  'active_record',
+  'needed_by_retained',
+  'erasure_not_available',
+  'consent_evidence',
+  'third_party',
+  'request_record',
+] as const
+export type PrivacyReason = (typeof PRIVACY_REASONS)[number]
+export type PrivacyItem = {
+  category: PrivacyCategory
+  count: number
+  reason: PrivacyReason | null
+  years: number | null
+  reviewAt: string | null
+}
+export type PrivacyRequest = {
+  reference: string
+  kind: PrivacyKind
+  state: PrivacyState
+  details: string | null
+  submittedAt: string
+  decidedAt: string | null
+  outcome: {
+    deleted: { category: PrivacyCategory; count: number }[]
+    retained: PrivacyItem[]
+    excluded: PrivacyItem[]
+    exportReady: boolean
+    accessClosed: boolean
+  } | null
+}
+export type PrivacyList = { reference: string; freshVerification: boolean; requests: PrivacyRequest[] }
+
+function privacyItem(v: unknown): PrivacyItem | null {
+  if (!isObj(v) || !oneOf(PRIVACY_CATEGORIES)(v['category']) || !isInt(v['count'])) return null
+  const reason = v['reason'] === null ? null : oneOf(PRIVACY_REASONS)(v['reason']) ? v['reason'] : undefined
+  const years = v['years'] === null ? null : isInt(v['years']) ? v['years'] : undefined
+  const reviewAt = v['reviewAt'] === null ? null : isDate(v['reviewAt']) ? v['reviewAt'] : undefined
+  if (reason === undefined || years === undefined || reviewAt === undefined) return null
+  return { category: v['category'], count: v['count'], reason, years, reviewAt }
+}
+function items(v: unknown): PrivacyItem[] | null {
+  if (!Array.isArray(v)) return null
+  const out = v.map(privacyItem)
+  return out.some((i) => i === null) ? null : (out as PrivacyItem[])
+}
+export function parsePrivacyRequest(v: unknown): PrivacyRequest | null {
+  if (!isObj(v) || !isStr(v['reference']) || !oneOf(PRIVACY_KINDS)(v['kind']) || !oneOf(PRIVACY_STATES)(v['state']))
+    return null
+  if (!(v['details'] === null || isStr(v['details'])) || !isDate(v['submittedAt'])) return null
+  if (!(v['decidedAt'] === null || isDate(v['decidedAt']))) return null
+  let outcome: PrivacyRequest['outcome'] = null
+  if (v['outcome'] !== null) {
+    const o = v['outcome']
+    if (!isObj(o) || !Array.isArray(o['deleted'])) return null
+    const deleted = o['deleted'].map((d) =>
+      isObj(d) && oneOf(PRIVACY_CATEGORIES)(d['category']) && isInt(d['count'])
+        ? { category: d['category'], count: d['count'] }
+        : null,
+    )
+    const retained = items(o['retained'])
+    const excluded = items(o['excluded'])
+    if (deleted.some((d) => d === null) || !retained || !excluded) return null
+    if (typeof o['exportReady'] !== 'boolean' || typeof o['accessClosed'] !== 'boolean') return null
+    outcome = {
+      deleted: deleted as { category: PrivacyCategory; count: number }[],
+      retained,
+      excluded,
+      exportReady: o['exportReady'],
+      accessClosed: o['accessClosed'],
+    }
+  }
+  return {
+    reference: v['reference'],
+    kind: v['kind'],
+    state: v['state'],
+    details: v['details'],
+    submittedAt: v['submittedAt'],
+    decidedAt: v['decidedAt'],
+    outcome,
+  }
+}
+export function parsePrivacyList(v: unknown): PrivacyList | null {
+  if (
+    !isObj(v) ||
+    !isStr(v['reference']) ||
+    typeof v['freshVerification'] !== 'boolean' ||
+    !Array.isArray(v['requests'])
+  )
+    return null
+  const requests = v['requests'].map(parsePrivacyRequest)
+  if (requests.some((r) => r === null)) return null
+  return {
+    reference: v['reference'],
+    freshVerification: v['freshVerification'],
+    requests: requests as PrivacyRequest[],
+  }
+}
+
+export type PrivacyFailure = WriteFailure | 'already_open'
+export type PrivacyResult = { ok: true; request: PrivacyRequest } | { ok: false; failure: PrivacyFailure }
+async function requestPrivacy(
+  fetchImpl: Fetch,
+  reference: string,
+  kind: PrivacyKind,
+  body: { details?: string },
+  key: string,
+): Promise<PrivacyResult> {
+  const r = await post(
+    fetchImpl,
+    `/customer/projects/${encodeURIComponent(reference)}/privacy-requests/${kind}`,
+    body,
+    key,
+  )
+  if (!r) return { ok: false, failure: 'failed' }
+  const request = r.status === 201 ? parsePrivacyRequest(r.json) : null
+  if (request) return { ok: true, request }
+  if (r.status === 409 && fieldCodes(r.json).includes('PRIVACY_REQUEST_OPEN'))
+    return { ok: false, failure: 'already_open' }
+  return { ok: false, failure: failureOf(r.status, r.json) }
+}
+
+/** The data export of a completed export request: the JSON as the server sends it (its own customer view). */
+export type ExportResult = { ok: true; data: Record<string, unknown> } | { ok: false; failure: WriteFailure }
+async function dataExport(fetchImpl: Fetch, reference: string, request: string): Promise<ExportResult> {
+  let res: Response
+  try {
+    res = await fetchImpl(
+      `/api/v1/customer/projects/${encodeURIComponent(reference)}/privacy-requests/${encodeURIComponent(request)}/export`,
+      { method: 'GET', credentials: 'same-origin', cache: 'no-store', headers: { accept: 'application/json' } },
+    )
+  } catch {
+    return { ok: false, failure: 'failed' }
+  }
+  const json = (await res.json().catch(() => null)) as unknown
+  if (res.status === 200 && isObj(json) && isDate(json['generatedAt'])) return { ok: true, data: json }
+  return { ok: false, failure: failureOf(res.status, json) }
+}
+
 export const portalApi = {
   projects: (f: Fetch) => read(f, '/customer/projects', parseList),
   questions: (f: Fetch, reference: string) =>
@@ -1108,4 +1301,10 @@ export const portalApi = {
   verification: (f: Fetch) => read(f, '/customer/session/verification', parseVerification),
   sendCode,
   verify,
+  downloads: (f: Fetch, ref: { reference: string; number: string; version: number }) =>
+    read(f, `${versionPath(ref)}/documents`, parseDownloads),
+  privacy: (f: Fetch, reference: string) =>
+    read(f, `/customer/projects/${encodeURIComponent(reference)}/privacy-requests`, parsePrivacyList),
+  requestPrivacy,
+  dataExport,
 }

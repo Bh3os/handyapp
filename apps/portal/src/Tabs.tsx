@@ -7,7 +7,8 @@
 //   writes to HandyHub here too (text only). Documents (TSK-0056, HH-PORT-10): the estimate versions the customer
 //   received, each with its status, each opening the estimate view, and for an approved version its approval receipt
 //   PDF (TSK-0058: ready in the estimate view, or being prepared); nothing yet, with what will appear, while there is
-//   none. Appointments (TSK-0063): the windows offered to choose from and the confirmed visits (Appointments.tsx);
+//   none. TSK-0100 (HH-PRIV-06): each version offers its download, a short-lived link the server issues only when
+//   asked. Appointments (TSK-0063): the windows offered to choose from and the confirmed visits (Appointments.tsx);
 //   nothing yet while there is neither. Payments: nothing exists yet. Photos: how many photos the project has by
 //   state, the same counts as the receipt, and that viewing them here is not available yet.
 // - A tab once opened stays mounted while another is shown, so anything typed in it survives a tab switch.
@@ -22,6 +23,7 @@ import {
   portalApi,
   portalWrites,
   type ConversationMessage,
+  type Download,
   type EstimateListItem,
   type Fetch,
   type TabData,
@@ -58,14 +60,58 @@ function Empty({ title, text, more }: { title: CustomerKey; text: CustomerKey; m
   )
 }
 
+const DOWNLOAD_LABEL: Record<Download['kind'], CustomerKey> = {
+  estimate_pdf: 'portal.documents.download.estimate_pdf',
+  estimate_document: 'portal.documents.download.estimate_document',
+}
+const kb = (bytes: number) => Math.max(1, Math.round(bytes / 1024))
+
+/** The download links of one version: asked for when the customer wants them, valid for a few minutes. */
+function Downloads({ reference, e, fetchImpl }: { reference: string; e: EstimateListItem; fetchImpl: Fetch }) {
+  const [links, setLinks] = useState<Download[] | null>(null)
+  const [pending, setPending] = useState(false)
+  const [failed, setFailed] = useState(false)
+  async function load() {
+    setPending(true)
+    setFailed(false)
+    const r = await portalApi.downloads(fetchImpl, { reference, number: e.number, version: e.version })
+    setPending(false)
+    if (!r.ok) return setFailed(true)
+    setLinks(r.data)
+  }
+  if (links)
+    return (
+      <ul className="portal-downloads">
+        {links.map((d) => (
+          <li key={d.kind}>
+            <a href={d.url} target="_blank" rel="noopener noreferrer" download>
+              {t(DOWNLOAD_LABEL[d.kind], { size: kb(d.byteSize) })}
+            </a>
+          </li>
+        ))}
+        <li className="hh-small hh-muted">{t('portal.documents.download.expires')}</li>
+      </ul>
+    )
+  return (
+    <>
+      <Button variant="secondary" pending={pending} onClick={() => void load()}>
+        {t('portal.documents.download.get', { number: e.number, version: e.version })}
+      </Button>
+      {failed ? <StateView kind="error" title={t('portal.documents.download.failed')} /> : null}
+    </>
+  )
+}
+
 function Estimates({
   reference,
   estimates,
   onNavigate,
+  fetchImpl,
 }: {
   reference: string
   estimates: EstimateListItem[]
   onNavigate?: ((path: string) => void) | undefined
+  fetchImpl: Fetch
 }) {
   return (
     <>
@@ -98,6 +144,7 @@ function Estimates({
                   {t(e.receipt === 'issued' ? 'portal.documents.receipt.issued' : 'portal.documents.receipt.preparing')}
                 </p>
               ) : null}
+              <Downloads reference={reference} e={e} fetchImpl={fetchImpl} />
             </li>
           )
         })}
@@ -264,7 +311,12 @@ function Content({
       )
     case 'documents':
       return data.state === 'listed' ? (
-        <Estimates reference={data.reference} estimates={data.estimates} onNavigate={onNavigate} />
+        <Estimates
+          reference={data.reference}
+          estimates={data.estimates}
+          onNavigate={onNavigate}
+          fetchImpl={fetchImpl}
+        />
       ) : (
         <Empty title="portal.documents.none.title" text="portal.documents.none.text" />
       )

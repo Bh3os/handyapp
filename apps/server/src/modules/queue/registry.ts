@@ -119,6 +119,21 @@ export const QUEUE_ITEM_TYPES = [
     action: 'review_change',
     screen: 'schedule',
   },
+  // TSK-0067 (HH-COM-11, OWN-DEC-107, S01 "message drafts awaiting release"): a confirmed visit's appointment reminder
+  // draft waits for staff release, one item per visit while a draft is waiting; due by the start of the arrival window
+  // (PROPOSED). Resolved once the draft is released, dismissed or stopped (a reschedule or cancellation, or the
+  // database when the visit leaves 'confirmed' another way, migration 0060). Seen by the roles that manage booked
+  // visits; the link opens the visit on the board, whose reminder panel sends or dismisses it.
+  {
+    id: 'appointment_reminder',
+    section: 'queue',
+    subject: 'visit',
+    band: 'time_sensitive',
+    view: 'visit.reschedule',
+    reasons: ['appointment_reminder'],
+    action: 'release_reminder',
+    screen: 'schedule',
+  },
   {
     id: 'delivery_failed',
     section: 'queue',

@@ -1240,6 +1240,71 @@ export interface PlatformWebhookReceiptsTable {
   processed_at: Timestamp | null
 }
 
+export interface PrivacyDeletionsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  record_type: string
+  record_id: string
+  record_ref: string
+  project_id: string | null
+  source: string
+  review_id: string | null
+  privacy_request_id: string | null
+  original_deletion_id: string | null
+  original_decided_at: Timestamp | null
+  reason: string
+  early: boolean
+  permanent: boolean
+  removed: Json
+  checks_confirmed: Generated<string[]>
+  decided_by: string
+  decided_at: ColumnType<Date, Date | string | undefined, Date | string>
+  request_id: string
+  erasure_txid: ColumnType<string, bigint | number | string | undefined, bigint | number | string>
+}
+
+export interface PrivacyPrivacyRequestsTable {
+  id: Generated<string>
+  reference: Generated<string>
+  kind: string
+  customer_id: string
+  contact_id: string
+  account_id: string | null
+  project_id: string
+  details: string | null
+  identity_method: string
+  identity_verified_at: Timestamp
+  session_id: string
+  state: Generated<string>
+  submitted_at: ColumnType<Date, Date | string | undefined, Date | string>
+  review_started_at: Timestamp | null
+  review_started_by: string | null
+  findings: Json | null
+  decided_at: Timestamp | null
+  decided_by: string | null
+  decision_reason: string | null
+  checks_confirmed: Generated<string[]>
+  outcome: Json | null
+  access_closed: boolean | null
+  version: Generated<number>
+  request_id: string
+}
+
+export interface PrivacyRetentionDecisionsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  review_id: string
+  decision: string
+  reason: string
+  keep_until: Timestamp | null
+  blockers: Generated<string[]>
+  checks_confirmed: Generated<string[]>
+  deletion_id: string | null
+  decided_by: string
+  decided_at: ColumnType<Date, Date | string | undefined, Date | string>
+  request_id: string
+}
+
 export interface PrivacyRetentionReviewsTable {
   id: Generated<string>
   seq: GeneratedAlways<string>
@@ -1756,6 +1821,9 @@ export interface Database {
   'platform.rate_counters': PlatformRateCountersTable
   'platform.schema_migration': PlatformSchemaMigrationTable
   'platform.webhook_receipts': PlatformWebhookReceiptsTable
+  'privacy.deletions': PrivacyDeletionsTable
+  'privacy.privacy_requests': PrivacyPrivacyRequestsTable
+  'privacy.retention_decisions': PrivacyRetentionDecisionsTable
   'privacy.retention_reviews': PrivacyRetentionReviewsTable
   'work.equipment': WorkEquipmentTable
   'work.holds': WorkHoldsTable

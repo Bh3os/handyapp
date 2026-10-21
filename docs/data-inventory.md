@@ -75,9 +75,21 @@ Data owner for every category: the Owner, who decides each deletion-review entry
   check. A hold blocks deletion of the record and its related evidence.
 - Issued invoices, payments, signed approvals and other protected evidence use Archive, Void or an audited
   correction, never ordinary deletion. Archived and closed records keep their category and permissions.
-- The Owner's Delete action, its confirmation and the deletion log are the privacy requests task (HH-PRIV-05); the
-  log keeps actor, time, record reference and reason, never the deleted content. Account deletion is separate
-  from business records (OWN-DEC-71).
+- The Owner's Delete action on a review entry (TSK-0100, HH-PRIV-05) shows the record reference, what goes with it,
+  what stays and whether deletion is permanent, and never passes a hold, protected evidence, a record in use or an
+  erasure the software does not perform; checks the software cannot run are confirmed by the Owner first. A blocked
+  deletion offers Archive; Keep longer brings the entry back later. Deletion needs a fresh sign-in and a reason.
+- Erasure performed today: estimates never accepted (versions, lines, internal costs and notes, documents, the
+  customer's responses and selections, reminder drafts nobody released, and their stored files after the commit)
+  and login accounts (closed: sign-in values cleared, sessions and project links revoked). Messages sent about an
+  erased estimate keep only its reference. Signed approvals, approval receipts, jobs, deposit records and recorded
+  payments are protected evidence and block it. Requests that never became jobs keep their history
+  (OQ-RECORD-ERASURE); audit entries are append-only for every role (OQ-AUDIT-ENTRY-DELETION).
+- The deletion log (`privacy.deletions`, append-only) keeps actor, time, record reference, reason and counts, never
+  the deleted content. Account deletion is separate from business records (OWN-DEC-71).
+- Privacy requests (HH-PRIV-03): the customer's export, correction or deletion request is reviewed and decided by
+  the Owner; the scoped search counts every record kind and says what is deleted, retained (why, until when) or
+  excluded (other contacts). Response deadlines and the outcome notice are NOT CONFIGURED (OQ-PRIVACY-REQUESTS).
 - Regulated employee medical or exposure records are excluded from routine deletion; their schedule is human review
   (OQ-RETENTION-REVIEW).
 
@@ -85,7 +97,10 @@ Data owner for every category: the Owner, who decides each deletion-review entry
 
 - Render PostgreSQL backups and Cloudflare R2 object versions: the production plan, backups and their retention are
   NOT CONFIGURED (OQ-PRODUCTION-HOSTING). A deleted row or object stays in a backup until that backup expires.
-- A restore re-applies the deletions and suppressions recorded after the backup before a controlled resume (T72).
+- A restore re-applies the deletions and suppressions recorded after the backup before a controlled resume (T72):
+  the deletion log is exported outside the backups (`node dist/cli/deletions.js export`, references only) and each
+  entry is applied again after a restore (`node dist/cli/deletions.js reapply <file>`); a record that something now
+  blocks is left in place and reported. Suppressions come with their own tasks.
 
 ## Tables
 
@@ -176,6 +191,9 @@ Data owner for every category: the Owner, who decides each deletion-review entry
 | `platform.rate_counters` | Request-form and API rate counters (hashed keys) | Technical records | `sessions_and_links` | Expires per its security settings; keeping expired rows NOT CONFIGURED | Render |
 | `platform.schema_migration` | Applied migrations and their checksums | Configuration and content | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
 | `platform.webhook_receipts` | Verified provider webhooks: delivery statuses and inbound messages | Technical records, Contact | `requests_not_converted`, `job_records`, `not_scheduled` | Owner's deletion review after the period; nothing deleted automatically | Render, Bird, Resend |
+| `privacy.deletions` | The deletion log (TSK-0100): actor, time, record reference, reason and counts; never the deleted content | Logs and audit | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
+| `privacy.privacy_requests` | Customers' export, correction and deletion requests: the requester, identity confirmation, the customer's words for a correction, the review's counts and the Owner's decision | Contact, Logs and audit | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
+| `privacy.retention_decisions` | The Owner's Delete, Archive and Keep longer decisions on review entries, with the reason | Logs and audit | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
 | `privacy.retention_reviews` | The Owner's deletion-review queue: record references and hold checks, never personal content | Logs and audit | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
 | `work.equipment` | Shared equipment items | Configuration and content | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
 | `work.holds` | Review and safety holds and loadout task blocks with their resolution and reviewer | Request and project details | `requests_not_converted`, `job_records`, `safety_records` | Owner's deletion review after the period; nothing deleted automatically | Render |

@@ -75,6 +75,16 @@ describe('queue item types (TSK-0041, HH-OPS-01)', () => {
     expect(visibleTypes(staff('worker', 'office'), 'queue')).toEqual(visibleTypes(staff('office'), 'queue'))
   })
 
+  it('[HH-COM-11][HH-OPS-01] appointment reminders to send are seen by the roles that manage booked visits (TSK-0067)', () => {
+    for (const role of ['owner', 'office'] as const)
+      expect(visibleTypes(staff(role), 'queue').all).toContain('appointment_reminder')
+    const estimator = visibleTypes(staff('estimator'), 'queue')
+    expect([...estimator.all, ...estimator.own]).not.toContain('appointment_reminder')
+    const type = queueItemType('appointment_reminder')
+    if (!type) throw new Error('appointment_reminder is declared')
+    expect([type.subject, type.action, deepLink(type, 'v1')]).toEqual(['visit', 'release_reminder', '/schedule/v1'])
+  })
+
   it('[HH-OPS-01] an item past its due time ranks as time-sensitive at the least', () => {
     const now = new Date('2026-10-20T12:00:00Z')
     const past = new Date('2026-10-20T11:00:00Z')

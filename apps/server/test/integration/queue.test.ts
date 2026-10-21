@@ -121,6 +121,8 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       'review_hold',
       'safety_hold',
       'visit_change_request',
+      // TSK-0067: appointment reminder drafts to send (visit.reschedule: the Owner and Office).
+      'appointment_reminder',
       'delivery_failed',
       'case_open',
       // TSK-0063: answers to offered windows that need new ones.
