@@ -1,0 +1,372 @@
+// The receipt in a real browser (TSK-0032; HH-INT-12, HH-INT-20, HH-INT-07, T01, T12, T13): shown only after the
+// server confirmed the save, at /request/received/<ref>, in the owner's wording, with photo outcomes as the server
+// recorded them and a failed photo retried without a new request; a reference alone shows nothing. The receipt email
+// is NOT CONFIGURED in this database (no approved wording), so the request stays saved and staff get a delivery issue.
+// Review fixes: a photo still uploading holds Send and then counts on the receipt; a Retry is announced and moves focus
+// sensibly; a reload shows the latest counts the tab learned, labelled with when they were taken; the receipt is kept
+// per browser tab and the page says so.
+// Every visitor, address, number and image is synthetic (RULE-SYNTHETIC-DATA).
+import { deflateSync } from 'node:zlib'
+import { AxeBuilder } from '@axe-core/playwright'
+import { createDb } from '@handyhub/db'
+import { expect, test, type Page } from '@playwright/test'
+
+const databaseUrl = process.env['E2E_DATABASE_URL']
+const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
+const future = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10)
+const SENT = '**/api/v1/public/requests'
+const OWNER_NEXT =
+  "We'll review your project and contact you using your preferred method. We aim to respond within one hour during " +
+  'our daily hours, 8 AM–10 PM. Requests received outside those hours are reviewed when we reopen.'
+const SEPARATE = 'Your request is received. Pricing and your appointment will be confirmed separately.'
+
+async function axe(page: Page) {
+  const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
+  expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+}
+
+function crc32(buf: Buffer): number {
+  let c = 0xffffffff
+  for (const b of buf) {
+    c ^= b
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1
+  }
+  return (c ^ 0xffffffff) >>> 0
+}
+function chunk(type: string, data: Buffer): Buffer {
+  const len = Buffer.alloc(4)
+  len.writeUInt32BE(data.length)
+  const body = Buffer.concat([Buffer.from(type, 'ascii'), data])
+  const crc = Buffer.alloc(4)
+  crc.writeUInt32BE(crc32(body))
+  return Buffer.concat([len, body, crc])
+}
+/** A synthetic 2x2 PNG; `shade` makes each one a different file. */
+function png(shade: number): Buffer {
+  const ihdr = Buffer.alloc(13)
+  ihdr.writeUInt32BE(2, 0)
+  ihdr.writeUInt32BE(2, 4)
+  ihdr[8] = 8
+  ihdr[9] = 2
+  const rows = Buffer.from([0, shade, 80, 40, 200, 80, 40, 0, 40, 80, 200, 40, 80, shade])
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk('IHDR', ihdr),
+    chunk('IDAT', deflateSync(rows)),
+    chunk('IEND', Buffer.alloc(0)),
+  ])
+}
+
+async function start(page: Page) {
+  await page.goto('/request')
+  await page.evaluate(() => window.localStorage.clear())
+  await page.goto('/request')
+  await page.getByRole('button', { name: 'Continue as Guest' }).click()
+  await page.getByLabel('Not sure what service I need').check()
+  await page.getByRole('button', { name: 'Next' }).click()
+  await page.getByLabel('Project description').fill('Synthetic receipt project: a loose hallway outlet cover.')
+}
+
+async function finish(page: Page, email: string) {
+  await page.getByRole('button', { name: 'Next' }).click()
+  await page.getByLabel('Street address').fill('100 Synthetic Way')
+  await page.getByLabel('City').fill('Testville')
+  await page.getByLabel('State').fill('KY')
+  await page.getByLabel('ZIP').fill('40000')
+  await page.getByLabel('House', { exact: true }).check()
+  await page.getByLabel('Preferred date').fill(future)
+  await page.getByLabel('Mornings').check()
+  await page.getByRole('button', { name: 'Next' }).click()
+  await page.getByLabel('Full name').fill('Test Customer')
+  await page.getByRole('textbox', { name: /^Email/ }).fill(email)
+  await page.getByRole('textbox', { name: /^Phone/ }).fill('(502) 555-0191')
+  await page.getByLabel('Phone call', { exact: true }).check()
+  await page.getByLabel('Let HandyHub decide').check()
+  await page.getByRole('button', { name: 'Next' }).click()
+  await expect(page.getByRole('heading', { name: 'Step 5 of 5: Review and send' })).toBeVisible()
+}
+
+async function withDb<T>(fn: (db: ReturnType<typeof createDb>) => Promise<T>): Promise<T> {
+  const db = createDb(databaseUrl as string, { max: 1 })
+  try {
+    return await fn(db)
+  } finally {
+    await db.destroy()
+  }
+}
+
+// This spec's own synthetic client address (RFC 5737): the request-form limit counts per network (5 an hour). This
+// spec sends two requests to the server.
+test.use({ extraHTTPHeaders: { 'x-forwarded-for': '198.51.100.27' } })
+
+test.describe('the receipt (TSK-0032)', () => {
+  test.skip(!databaseUrl, 'needs E2E_DATABASE_URL (a fresh PostgreSQL 16 database)')
+
+  test('[HH-INT-12][T01][T12][HH-INT-20] the receipt appears only after a saved response, in the owner’s wording, and stays in this tab only', async ({
+    page,
+    context,
+    browser,
+  }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    const email = 'receipt-e2e@example.test'
+    await start(page)
+    await finish(page, email)
+    const receiptHeading = page.getByRole('heading', { name: 'Your request is in.' })
+
+    // No answer (a lost connection) and a failed answer: no receipt, the form stays, and nothing claims success.
+    await page.route(SENT, (route) => route.abort('connectionreset'))
+    await page.getByRole('button', { name: 'Send Estimate Request' }).click()
+    await expect(page.getByText(/We could not confirm that your request arrived/)).toBeVisible()
+    await expect(receiptHeading).toHaveCount(0)
+    await page.unroute(SENT)
+    await page.route(SENT, (route) =>
+      route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          error: { code: 'UNAVAILABLE', message: 'Service unavailable.', retryable: true, fieldErrors: [] },
+        }),
+      }),
+    )
+    await page.getByRole('button', { name: 'Send Estimate Request' }).click()
+    await expect(page.getByText('Service unavailable.')).toBeVisible()
+    await expect(receiptHeading).toHaveCount(0)
+    expect(new URL(page.url()).pathname).toBe('/request')
+    await page.unroute(SENT)
+
+    // The saved response: the receipt, at its own address, in the owner's wording.
+    await page.getByRole('button', { name: 'Send Estimate Request' }).click()
+    await expect(receiptHeading).toBeFocused()
+    const reference = ((await page.getByText(/^Request reference: /).textContent()) ?? '').replace(
+      'Request reference: ',
+      '',
+    )
+    expect(reference).toMatch(/^HH-[0-9A-HJKMNP-TV-Z]{8}$/)
+    expect(new URL(page.url()).pathname).toBe(`/request/received/${reference}`)
+    await expect(page.getByText('Thank you for choosing HandyHub.')).toBeVisible()
+    await page.getByRole('button', { name: 'Copy' }).click()
+    await expect(page.getByText('Request reference copied.')).toBeVisible()
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(reference)
+    const glance = page.getByRole('region', { name: 'Your project at a glance' })
+    for (const text of [
+      'Not sure what service I need',
+      'Synthetic receipt project: a loose hallway outlet cover.',
+      '100 Synthetic Way',
+      'Testville, KY 40000',
+      'Mornings',
+      'Test Customer',
+      email,
+      '(502) 555-0191',
+      'Preferred method: Phone call',
+      'These are your preferences. Your appointment is confirmed only after we send a date and arrival window.',
+    ])
+      await expect(glance).toContainText(text)
+    const next = page.getByRole('region', { name: 'What happens next?' })
+    await expect(next.getByText(OWNER_NEXT, { exact: true })).toBeVisible()
+    await expect(next.getByText(SEPARATE, { exact: true })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Return Home' })).toHaveAttribute('href', '/')
+    // Nothing that does not work yet, and no booking, price or history.
+    await expect(page.locator('main')).not.toContainText(/View My Request|Create an Account|\$|booked|earlier project/i)
+    await axe(page)
+
+    // Saved once: the request exists; the receipt email has no approved wording, so its delivery is recorded as not
+    // sent, and staff get one delivery issue while the request stays in their queue.
+    const saved = await withDb((db) =>
+      db.selectFrom('intake.requests').select(['id', 'reference']).where('reference', '=', reference).execute(),
+    )
+    expect(saved).toHaveLength(1)
+    const requestId = saved[0]?.id as string
+    await expect
+      .poll(
+        () =>
+          withDb((db) =>
+            db
+              .selectFrom('platform.message_deliveries')
+              .select(['state', 'error_code'])
+              .where('subject_key', '=', `request:${requestId}`)
+              .execute(),
+          ),
+        { timeout: 15_000 },
+      )
+      .toEqual([{ state: 'failed', error_code: 'template_not_configured' }])
+    await expect
+      .poll(
+        () =>
+          withDb((db) =>
+            db
+              .selectFrom('ops.queue_items')
+              .select(['type', 'reason', 'reference'])
+              .where('reference', '=', reference)
+              .where('resolved_at', 'is', null)
+              .orderBy('type')
+              .execute(),
+          ),
+        { timeout: 15_000 },
+      )
+      .toEqual([
+        { type: 'delivery_failed', reason: 'delivery_not_configured', reference },
+        // A form sent within seconds of opening is quietly flagged (HH-INT-11); either way staff see the request.
+        { type: 'new_request', reason: expect.stringMatching(/^new_request(_flagged)?$/), reference },
+      ])
+
+    // A reload of this tab shows the same receipt; another browser with the same address sees nothing of it.
+    await page.reload()
+    await expect(receiptHeading).toBeFocused()
+    await expect(page.getByText(`Request reference: ${reference}`)).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Your project at a glance' })).toContainText(email)
+    // Another tab of the same browser has no receipt: it is kept per tab, and the page says so (PROPOSED wording).
+    const otherTab = await context.newPage()
+    try {
+      await otherTab.goto(`/request/received/${reference}`)
+      await expect(otherTab.getByRole('heading', { name: "This receipt isn't available here" })).toBeVisible()
+      await expect(
+        otherTab.getByText(
+          'A receipt is shown only in the browser tab that sent the request, after the request was saved.',
+        ),
+      ).toBeVisible()
+      await expect(otherTab.locator('main')).not.toContainText(/Your request is in|Test Customer|Synthetic Way/)
+    } finally {
+      await otherTab.close()
+    }
+    const other = await browser.newContext()
+    try {
+      const stranger = await other.newPage()
+      await stranger.goto(`/request/received/${reference}`)
+      await expect(stranger.getByRole('heading', { name: "This receipt isn't available here" })).toBeVisible()
+      await expect(stranger.locator('main')).not.toContainText(
+        /Your request is in|Test Customer|Synthetic Way|receipt-e2e/,
+      )
+    } finally {
+      await other.close()
+    }
+  })
+
+  test('[HH-INT-12] a guessed reference shows nothing and the response never reveals whether it exists', async ({
+    page,
+  }) => {
+    const res = await page.goto('/request/received/HH-00000000')
+    expect(res?.status()).toBe(200)
+    expect(res?.headers()['cache-control']).toBe('no-store')
+    await expect(page.getByRole('heading', { name: "This receipt isn't available here" })).toBeVisible()
+    await expect(
+      page.getByText('A receipt is shown only in the browser tab that sent the request, after the request was saved.'),
+    ).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Your request is in.' })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'Return Home' })).toHaveAttribute('href', '/')
+    await axe(page)
+    expect((await page.goto('/request/received/not-a-reference'))?.status()).toBe(404)
+  })
+
+  test('[T13][HH-INT-07][HH-INT-12] received, processing and failed photos are shown separately; a failed one is retried from the receipt without a new request', async ({
+    page,
+  }) => {
+    const email = 'receipt-photos-e2e@example.test'
+    await start(page)
+    // Of four photos two fail in the browser (their uploads are cut off and never reach the server) and the fourth is
+    // still uploading when the review is reached; the first retry of a failed photo is cut off too.
+    let uploads = 0
+    let release = () => {}
+    const holding = new Promise<void>((resolve) => (release = resolve))
+    await page.route('**/api/v1/public/request-drafts/photos', async (route) => {
+      if (route.request().method() !== 'POST') return route.continue()
+      const n = ++uploads
+      if (n === 2 || n === 3 || n === 5) return route.abort('connectionreset')
+      if (n === 4) await holding
+      return route.continue()
+    })
+    const input = page.locator('input[type="file"][name="photos"]')
+    const items = page.locator('.hh-request__photo')
+    await input.setInputFiles({ name: 'first.png', mimeType: 'image/png', buffer: png(201) })
+    await expect(items.nth(0).getByText('Saved')).toBeVisible({ timeout: 20_000 })
+    await input.setInputFiles({ name: 'second.png', mimeType: 'image/png', buffer: png(202) })
+    await expect(items.nth(1).getByText('Failed')).toBeVisible()
+    await input.setInputFiles({ name: 'third.png', mimeType: 'image/png', buffer: png(203) })
+    await expect(items.nth(2).getByText('Failed')).toBeVisible()
+    await input.setInputFiles({ name: 'fourth.png', mimeType: 'image/png', buffer: png(204) })
+    await expect(items.nth(3).getByText('Uploading')).toBeVisible()
+    await finish(page, email)
+
+    // A photo still uploading holds Send (TSK-0030), so it is never left out of the receipt; once it is saved the
+    // request goes with it.
+    const send = page.getByRole('button', { name: 'Send Estimate Request' })
+    await expect(send).toBeDisabled()
+    release()
+    const review = page.getByRole('region', { name: 'Photos', exact: true })
+    await expect(review.locator('.hh-request__photo').nth(3).getByText('Saved')).toBeVisible({ timeout: 20_000 })
+    await expect(send).toBeEnabled()
+    await send.click()
+    await expect(page.getByRole('heading', { name: 'Your request is in.' })).toBeFocused()
+
+    const photos = page.getByRole('region', { name: 'Your photos' })
+    await expect(photos.getByText('Received: 2')).toBeVisible()
+    await expect(photos.getByText('Processing: 0')).toBeVisible()
+    await expect(photos.getByText('Failed: 2')).toBeVisible()
+    await expect(
+      photos.getByText("You can retry a failed photo here. You don't need to send another request."),
+    ).toBeVisible()
+    // Live counts: no "as of" label while this page can check them.
+    await expect(page.getByTestId('receipt-photos-as-of')).toHaveCount(0)
+    // The held photos are a live region, so a Retry's outcome is announced (HH-A11Y-01).
+    const held = photos.locator('ul.hh-request__photo-list')
+    await expect(held).toHaveAttribute('aria-live', 'polite')
+    const retries = photos.getByRole('button', { name: 'Retry' })
+    await expect(retries).toHaveCount(2)
+    await axe(page)
+
+    // A Retry that fails again stays in the list, failed, with its problem, and keeps the focus.
+    await retries.nth(0).focus()
+    await page.keyboard.press('Enter')
+    await expect.poll(() => uploads).toBe(5)
+    await expect(held.locator('li').nth(0)).toHaveAttribute('data-state', 'failed')
+    await expect(held.locator('li').nth(0).locator('.hh-field__error')).toBeVisible()
+    await expect(retries).toHaveCount(2)
+    await expect(retries.nth(0)).toBeFocused()
+    await expect(photos.getByText('Failed: 2')).toBeVisible()
+
+    // A Retry that succeeds removes the photo from the list: focus moves to the next held photo's Retry, and after the
+    // last one to the "Your photos" heading, never to the page.
+    await page.keyboard.press('Enter')
+    await expect(retries).toHaveCount(1)
+    await expect(retries.nth(0)).toBeFocused()
+    await page.keyboard.press('Enter')
+    await expect(retries).toHaveCount(0)
+    await expect(photos.getByRole('heading', { name: 'Your photos' })).toBeFocused()
+    await expect(photos.getByText('Failed: 0')).toBeVisible()
+    await expect(photos.getByText('Received: 4')).toBeVisible({ timeout: 20_000 })
+    await expect(photos.getByText('Processing: 0')).toBeVisible()
+    await axe(page)
+
+    // A reload shows the counts this tab last learned, labelled with when they were taken; no Retry without the photos.
+    await page.reload()
+    await expect(page.getByRole('heading', { name: 'Your request is in.' })).toBeFocused()
+    await expect(photos.getByText('Received: 4')).toBeVisible()
+    await expect(photos.getByText('Processing: 0')).toBeVisible()
+    await expect(photos.getByText('Failed: 0')).toBeVisible()
+    await expect(page.getByTestId('receipt-photos-as-of')).toHaveText(
+      /^These counts are from .+, the last time this page checked\.$/,
+    )
+    await expect(photos.getByRole('button', { name: 'Retry' })).toHaveCount(0)
+    // The tab keeps the receipt only: no upload capability is ever stored.
+    const kept = await page.evaluate(() => JSON.stringify(Object.entries(window.sessionStorage)))
+    expect(kept).not.toMatch(/capability|blob:/i)
+    await axe(page)
+
+    // One request, holding all four photos.
+    const reference = new URL(page.url()).pathname.replace('/request/received/', '')
+    const rows = await withDb((db) =>
+      db
+        .selectFrom('intake.requests')
+        .innerJoin('crm.contacts', 'crm.contacts.id', 'intake.requests.contact_id')
+        .leftJoin('intake.photos', 'intake.photos.request_id', 'intake.requests.id')
+        .select(['intake.requests.reference', 'intake.photos.state'])
+        .where('crm.contacts.email', '=', email)
+        .execute(),
+    )
+    expect(rows.map((r) => [r.reference, r.state])).toEqual([
+      [reference, 'ready'],
+      [reference, 'ready'],
+      [reference, 'ready'],
+      [reference, 'ready'],
+    ])
+  })
+})

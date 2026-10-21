@@ -65,6 +65,8 @@ type FieldProblem = { field: string; code: string }
 /** The JSON of an answer, as far as the wizard reads it; null when it could not be read. */
 export type SendData = {
   reference?: unknown
+  /** When the server saved the request (TSK-0032: the time the photo counts were taken). */
+  submittedAt?: unknown
   photos?: PhotoSummary
   error?: { code?: string; message?: string; fieldErrors?: FieldProblem[]; existing?: { reference?: unknown } }
 } | null

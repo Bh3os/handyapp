@@ -232,8 +232,8 @@ export type PhotoSummary = { received: number; processing: number; failed: numbe
 export async function bindDraftPhotos(
   tx: Tx,
   input: { token: string | undefined; requestId: string; projectId: string },
-): Promise<PhotoSummary> {
-  const summary: PhotoSummary = { received: 0, processing: 0, failed: 0 }
+): Promise<PhotoSummary & { bound: boolean }> {
+  const summary = { received: 0, processing: 0, failed: 0, bound: false }
   const cap = await resolveCapability(tx, input.token)
   if (!cap || cap.scope !== 'draft') return summary
   const consumed = await tx
@@ -243,6 +243,7 @@ export async function bindDraftPhotos(
     .where('state', '=', 'open')
     .executeTakeFirst()
   if (Number(consumed.numUpdatedRows) === 0) return summary
+  summary.bound = true
   const rows = await tx
     .updateTable('intake.photos')
     .set({ request_id: input.requestId, project_id: input.projectId })

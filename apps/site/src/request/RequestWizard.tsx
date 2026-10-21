@@ -7,6 +7,10 @@
 // TSK-0030 (HH-INT-19, HH-INT-10, OWN-DEC-93): the review summarizes every section with an Edit action that opens its
 // step and keeps every other answer (Return to review comes straight back); the privacy policy is linked with the
 // exact version sent; "Send Estimate Request" uses the draft's idempotency key and sends once while it is pending.
+// TSK-0032 (HH-INT-12, OWN-DEC-94): only the server's confirmation of the save (a 201 with the reference, or a 409
+// naming the request the key already created) shows the receipt. The wizard keeps it in this tab and moves to
+// /request/received/<ref>, where the photos that failed can be retried under the request's own upload capability
+// without a new request (HH-INT-07); the counts the page learns are written back to the tab's record.
 // A send whose outcome is not known is kept for the tab (send.ts): after a reload and Resume the same body goes again,
 // so the customer gets the request and reference already saved; a key that already created a request returns that
 // reference; and nothing is sent while a photo is still uploading (HH-INT-10, HH-INT-07, T11).
@@ -19,15 +23,10 @@ import { legalDocument, PRIVACY_NOTICE, SMS_DISCLOSURE } from '@handyhub/domain/
 import { contactDetails, parseSiteFacts, type ContactDetail } from '../site/facts.js'
 import { DraftStore, newSend, type DraftSend } from './draft.js'
 import { PhotoReviewList, PhotoUploader, usePhotos, type PhotoLimits } from './photos.js'
-import {
-  keepsBody,
-  resumedFrom,
-  SendStore,
-  sendOutcome,
-  type PhotoSummary,
-  type SendData,
-  type SendReply,
-} from './send.js'
+import { Receipt, useReceiptPhotos } from './Receipt.js'
+import { receiptGlance, receiptRecord, saveReceipt, withPhotoCounts, type ReceiptRecord } from './receipt.js'
+import { receiptPath } from '@handyhub/domain/request-form'
+import { keepsBody, resumedFrom, SendStore, sendOutcome, type SendData, type SendReply } from './send.js'
 import {
   CHANNEL_LABEL,
   ESTIMATE_LABEL,
@@ -137,6 +136,8 @@ type Settings = {
   windows: OfferedWindow[]
   /** The free-estimate wording shows only while the configured policy is free (FACT-VISIT-FEE, HH-INT-03). */
   freeEstimates: boolean
+  /** The configured response target in minutes (FACT-RESPONSE-TARGET), for the receipt's next steps; null: unknown. */
+  responseMinutes: number | null
 }
 /** Until the settings arrive, or if they cannot be read: the five windows without hours, and no free-estimate claim. */
 const NO_SETTINGS: Settings = {
@@ -146,6 +147,7 @@ const NO_SETTINGS: Settings = {
   visitHours: null,
   windows: offeredWindows(null, null),
   freeEstimates: false,
+  responseMinutes: null,
 }
 /** Day windows that, with Weekends, are explained as weekend times (HH-INT-02). */
 const DAY_WINDOW_CODES: readonly string[] = ['mornings', 'afternoons', 'evenings']
@@ -186,10 +188,10 @@ export default function RequestWizard() {
   const [problems, setProblems] = useState<Problem[]>([])
   const [banner, setBanner] = useState<Banner>(null)
   const [settings, setSettings] = useState<Settings>(NO_SETTINGS)
-  const [receiptPhotos, setReceiptPhotos] = useState<PhotoSummary | null>(null)
   const photos = usePhotos(settings.photos)
+  const receiptPhotos = useReceiptPhotos()
   const [sending, setSending] = useState(false)
-  const [reference, setReference] = useState<string | null>(null)
+  const [receipt, setReceipt] = useState<ReceiptRecord | null>(null)
   const [website, setWebsite] = useState('')
   const [support, setSupport] = useState<SupportContact | 'loading'>('loading')
   // The ZIP checked before arriving (HH-INT-16) and the coverage of the ZIP in the form, rechecked as it changes.
@@ -206,8 +208,6 @@ export default function RequestWizard() {
   const resumed = useRef<{ key: string; body: string; values: FormValues } | null>(null)
   // The resumed send carries photos this page cannot show (they stay in its photo draft).
   const [earlierPhotos, setEarlierPhotos] = useState(false)
-  // The draft's key had already created a request, sent with other details: the receipt says so.
-  const [alreadyReceived, setAlreadyReceived] = useState(false)
   // An Edit from the review: the step offers Return to review, which keeps every other answer (HH-INT-19).
   const [fromReview, setFromReview] = useState(false)
   const summaryRef = useRef<HTMLDivElement>(null)
@@ -266,6 +266,16 @@ export default function RequestWizard() {
     if (step === 'services' && JSON.stringify(values) === JSON.stringify(EMPTY_VALUES)) store.clear()
     else store.save(values, step, Date.now(), draftSend.current)
   }, [phase, store, values, step])
+
+  // The photo counts the receipt learns (a Retry, a processing photo settling) are written back to the tab's record
+  // with the time they were taken, so a reload shows them as of then, never older ones (TSK-0032, T13). The upload
+  // capability is never stored.
+  const liveCounts = receiptPhotos.snapshot
+  useEffect(() => {
+    if (!receipt || !liveCounts) return
+    if (receipt.photosCheckedAt === liveCounts.checkedAt) return
+    saveReceipt(tabStorage(), withPhotoCounts(receipt, liveCounts.counts, liveCounts.checkedAt))
+  }, [receipt, liveCounts])
 
   // Any change after a Resume makes a new body: the first send then posts what the page shows now (HH-INT-10).
   useEffect(() => {
@@ -371,17 +381,20 @@ export default function RequestWizard() {
     setSending(true)
     setBanner(null)
     // The server binds the draft's stored photos to the request; failed photos were never stored (TSK-0031). Photos
-    // added before a reload are in the same photo draft.
-    const stored = photos.items.some((i) => i.id) || earlierPhotos
+    // added before a reload are in the same photo draft. With any photo the draft is sent, so the receipt gets the
+    // request's upload capability to retry a failed one (TSK-0032).
+    const withPhotos = photos.items.length > 0 || earlierPhotos
     const payload =
       replay ??
       JSON.stringify({
         ...toBody(values, meta, services),
-        ...(stored && photos.capability ? { photoDraft: photos.capability } : {}),
+        ...(withPhotos && photos.capability ? { photoDraft: photos.capability } : {}),
       })
     // Kept for this tab until the outcome is known, so a reload and Resume send exactly this again.
     sends.save(key, payload)
     let reply: SendReply = 'network'
+    // The request's own photo capability, returned once with a fresh save (TSK-0032); never kept in storage.
+    let uploadCapability: string | null = null
     try {
       const res = await fetch('/api/v1/public/requests', {
         method: 'POST',
@@ -389,6 +402,7 @@ export default function RequestWizard() {
         body: payload,
       })
       reply = { status: res.status, data: (await res.json().catch(() => null)) as SendData }
+      uploadCapability = res.headers.get('upload-capability')
     } catch {
       // No answer: the outcome is unknown. The same key and body are kept, so trying again cannot create a second
       // request.
@@ -402,15 +416,36 @@ export default function RequestWizard() {
       store?.clear()
       draftSend.current = newSend()
       resumed.current = null
-      setReference(outcome.reference)
-      setAlreadyReceived(outcome.kind === 'already')
-      // Photos that failed here were never stored; the receipt counts them with any the server refused.
-      const failedHere = photos.items.filter((i) => i.state === 'failed').length
-      setReceiptPhotos(
-        outcome.kind === 'sent' && outcome.photos
-          ? { ...outcome.photos, failed: outcome.photos.failed + failedHere }
-          : null,
-      )
+      // Photos that failed here never reached the server; the receipt counts them with any the server refused, and
+      // keeps them so they can be retried under the request's own capability. A key that had already created a
+      // request saved nothing of this send: its receipt shows the reference only, with no photo count (TSK-0030).
+      const notStored = outcome.kind === 'sent' ? photos.items.filter((i) => i.state === 'failed' && !i.id) : []
+      const data = reply === 'network' ? null : reply.data
+      const record = receiptRecord({
+        reference: outcome.reference,
+        kind: outcome.kind,
+        submittedAt: typeof data?.submittedAt === 'string' ? data.submittedAt : null,
+        photos: outcome.kind === 'sent' ? outcome.photos : null,
+        notStored: notStored.length,
+        glance: receiptGlance(values, services, settings.windows),
+        facts: { visitHours: settings.visitHours, responseMinutes: settings.responseMinutes },
+        now: new Date(),
+      })
+      saveReceipt(tabStorage(), record)
+      receiptPhotos.start({
+        counts: record.photos,
+        checkedAt: record.photosCheckedAt,
+        failed: notStored.map((i) => ({
+          key: i.key,
+          file: i.file,
+          preview: i.preview,
+          state: 'failed' as const,
+          ...(i.problem ? { problem: i.problem } : {}),
+        })),
+        capability: outcome.kind === 'sent' ? uploadCapability : null,
+      })
+      setReceipt(record)
+      window.history.replaceState(null, '', receiptPath(outcome.reference))
       setPhase('sent')
       requestFocus('heading')
       return
@@ -434,22 +469,9 @@ export default function RequestWizard() {
 
   if (phase === 'loading') return <StateView kind="loading" title={t('request.title')} />
 
-  if (phase === 'sent')
-    return (
-      <section aria-labelledby="hh-receipt-title">
-        <h2 id="hh-receipt-title" ref={headingRef} tabIndex={-1} className="hh-h2">
-          {t('request.receipt.title')}
-        </h2>
-        <p>{t('request.receipt.thanks')}</p>
-        <p className="hh-lead">{t('request.receipt.reference', { reference: reference ?? '' })}</p>
-        {alreadyReceived ? <p>{t('request.receipt.already')}</p> : null}
-        {receiptPhotos ? <p>{t('request.receipt.photos', receiptPhotos)}</p> : null}
-        <p>{t('request.receipt.separate')}</p>
-        <a className="hh-button hh-button--secondary" href="/">
-          {t('request.home')}
-        </a>
-      </section>
-    )
+  // The receipt: only from the server's confirmation of the save (HH-INT-12).
+  if (phase === 'sent' && receipt)
+    return <Receipt record={receipt} photos={receiptPhotos} limits={settings.photos} headingRef={headingRef} />
 
   const choose = (
     <Dialog

@@ -950,7 +950,7 @@
       "get": {
         "operationId": "getRequestFormSettings",
         "summary": "Request form settings",
-        "description": "Public read of the configured request-draft period (session.timings.requestDraftDays, FACT-SESSION-TIMINGS), the business time zone, the service limit and the photo limits (uploads.limits). draftDays is null while the value is NOT CONFIGURED; the wizard then keeps no draft. TSK-0028: the visit hours (contact.hours, FACT-HOURS), the preferred windows offered with their configured hours (request.window_hours; no hours while NOT CONFIGURED) and whether estimates are free (estimate.visit_fee, FACT-VISIT-FEE). Preferences only: nothing here is availability, a slot or a price.",
+        "description": "Public read of the configured request-draft period (session.timings.requestDraftDays, FACT-SESSION-TIMINGS), the business time zone, the service limit and the photo limits (uploads.limits). draftDays is null while the value is NOT CONFIGURED; the wizard then keeps no draft. TSK-0028: the visit hours (contact.hours, FACT-HOURS), the preferred windows offered with their configured hours (request.window_hours; no hours while NOT CONFIGURED) and whether estimates are free (estimate.visit_fee, FACT-VISIT-FEE). Preferences only: nothing here is availability, a slot or a price. TSK-0032: the response target in minutes (response.target, FACT-RESPONSE-TARGET), which the receipt’s \"What happens next?\" wording states with the visit hours; null while NOT CONFIGURED (the receipt then states no response time).",
         "tags": [
           "requests"
         ],
@@ -970,7 +970,8 @@
                     "photos",
                     "visitHours",
                     "windows",
-                    "freeEstimates"
+                    "freeEstimates",
+                    "responseMinutes"
                   ],
                   "properties": {
                     "draftDays": {
@@ -1056,6 +1057,12 @@
                     },
                     "freeEstimates": {
                       "type": "boolean"
+                    },
+                    "responseMinutes": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
                     }
                   }
                 }
@@ -1136,7 +1143,7 @@
       "post": {
         "operationId": "submitRequest",
         "summary": "Send Estimate Request",
-        "description": "Guest or customer submission. One transaction creates a new customer, contact, property, project (not a job or appointment) and the request with its services and answers, plus one request.submitted outbox event. Never matched to existing customers. The same Idempotency-Key returns the same request; a changed body is a 409. A key that already created a request, also after its idempotency record expired, is a 409 whose error names that request's reference (existing.reference) and writes nothing. Rate limited per client network with a neutral 429. Spam signals only flag the request for review.",
+        "description": "Guest or customer submission. One transaction creates a new customer, contact, property, project (not a job or appointment) and the request with its services and answers, plus one request.submitted outbox event. Never matched to existing customers. The same Idempotency-Key returns the same request; a changed body is a 409. A key that already created a request, also after its idempotency record expired, is a 409 whose error names that request's reference (existing.reference) and writes nothing. Rate limited per client network with a neutral 429. Spam signals only flag the request for review. TSK-0032: when the draft’s photos were bound, the Upload-Capability response header carries a new capability scoped to this request’s photos only (token returned once, never stored with the replayable response), so the receipt can show their states and retry a failed photo without a new request (HH-INT-07, HH-INT-12).",
         "tags": [
           "requests"
         ],
@@ -5795,6 +5802,181 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/staff-auth.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/message-deliveries/{deliveryId}/retry": {
+      "post": {
+        "operationId": "retryMessageDelivery",
+        "summary": "Retry a failed message",
+        "description": "The Retry action of a delivery_failed queue item (HH-INT-20, HH-COM-02). Queues a failed delivery of an automatic message again, only when it never reached the provider: a new job of the message’s own automation sends it, rechecking the automatic list, the template, consent and the record, under the same provider idempotency key, so a retry sends at most one message. A delivery that is not failed (queued, sent, suppressed), a staff-released draft, a message no longer on the automatic list or a delivery without an open delivery issue is a CONFLICT; so is an uncertain provider outcome (fieldErrors code OUTCOME_UNKNOWN), which is reconciled against the provider instead (HH-ARC-09). A re-run that sends nothing leaves the delivery failed with its reason. Staff with message.release_draft; an Estimator only for deliveries of records they are responsible for. The queue item resolves once the send is handed over.",
+        "tags": [
+          "notifications"
+        ],
+        "parameters": [
+          {
+            "name": "deliveryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "state"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "queued"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.release_draft",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "message.retry",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/request-receipt.test.ts"
         }
       }
     },
