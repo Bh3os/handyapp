@@ -2,6 +2,8 @@
 // the customer project workspace frame.
 //   GET /customer/projects                      the projects the caller's session opens, with their status
 //   GET /customer/projects/:reference/overview  one project's Overview: status, next action, timeline, summaries
+//   GET /customer/projects/:reference/<tab>     the Messages, Documents, Photos, Appointments and Payments tabs
+//                                                (TSK-0039; HH-PORT-09): each tab's truthful state today
 // The Overview is authorized by the policy (ROLE-MATRIX "View intake queue and original requests": Customer "V (own)")
 // and scoped by the session (TSK-0037): another project, an unknown or a malformed reference is the same NOT_FOUND.
 // The list names no record, so like GET /customer/access/session it starts from the session itself; each project
@@ -13,11 +15,22 @@ import { dataScope } from '@handyhub/policy'
 import { ApiError } from '../../api/errors.js'
 import { AUTHENTICATION, type ApiModule, type RouteDef } from '../../api/route.js'
 import { projectIdOf } from '../access/projects.js'
-import { PROJECT_LIST, PROJECT_OVERVIEW } from '../records/index.js'
+import {
+  PROJECT_APPOINTMENTS,
+  PROJECT_DOCUMENTS,
+  PROJECT_LIST,
+  PROJECT_MESSAGES,
+  PROJECT_OVERVIEW,
+  PROJECT_PAYMENTS,
+  PROJECT_PHOTOS,
+  type CustomerView,
+} from '../records/index.js'
 import { projectOverview, projectSummaries, refreshSeconds } from './overview.js'
+import { projectTab, type WorkspaceTab } from './tabs.js'
 
 export { projectOverview, projectSummaries, refreshSeconds } from './overview.js'
 export type { ProjectOverview, ProjectSummary, TimelineEntry } from './overview.js'
+export { projectTab, WORKSPACE_TABS, type TabAnswer, type WorkspaceTab } from './tabs.js'
 
 const TEST = 'test/integration/portal.test.ts'
 const read = {
@@ -89,5 +102,61 @@ export function portalModule(): ApiModule {
     },
   }
 
-  return { name: 'portal', routes: [list, overview] }
+  // The other five tabs (TSK-0039): the same permission, scope and NOT_FOUND as the Overview, each with its own view.
+  const TABS: readonly { tab: WorkspaceTab; operationId: string; view: CustomerView<never>; says: string }[] = [
+    {
+      tab: 'messages',
+      operationId: 'getCustomerProjectMessages',
+      view: PROJECT_MESSAGES as CustomerView<never>,
+      says:
+        'The Messages tab. state "not_shown": the project conversation is not shown in the portal yet (TSK-0050); ' +
+        'it never claims that no message exists.',
+    },
+    {
+      tab: 'documents',
+      operationId: 'getCustomerProjectDocuments',
+      view: PROJECT_DOCUMENTS as CustomerView<never>,
+      says: 'The Documents tab. state "none": no customer document (estimate, receipt, invoice, care notes) exists yet.',
+    },
+    {
+      tab: 'photos',
+      operationId: 'getCustomerProjectPhotos',
+      view: PROJECT_PHOTOS as CustomerView<never>,
+      says:
+        'The Photos tab: the customer-visible photos of the project (the customer’s uploads and photos staff ' +
+        'shared) counted by state: received (ready), processing (quarantined) and failed (rejected). No photo, ' +
+        'URL or ID; internal and restricted photos are not counted.',
+    },
+    {
+      tab: 'appointments',
+      operationId: 'getCustomerProjectAppointments',
+      view: PROJECT_APPOINTMENTS as CustomerView<never>,
+      says: 'The Appointments tab. state "none": no estimate or work visit exists yet.',
+    },
+    {
+      tab: 'payments',
+      operationId: 'getCustomerProjectPayments',
+      view: PROJECT_PAYMENTS as CustomerView<never>,
+      says: 'The Payments tab. state "none": no approved total, deposit, invoice or recorded payment exists yet.',
+    },
+  ]
+  const tabs: RouteDef[] = TABS.map(({ tab, operationId, view, says }) => ({
+    ...overview,
+    path: `/customer/projects/:reference/${tab}`,
+    test: 'test/integration/portal-tabs.test.ts',
+    operationId,
+    summary: `The project ${tab[0]?.toUpperCase()}${tab.slice(1)} tab`,
+    description:
+      `${says} With the server time of the read and the refresh interval (portal.refresh; 0 while NOT ` +
+      'CONFIGURED). Any other project, an unknown or a malformed reference is the same NOT_FOUND (T19).',
+    projection: view,
+    schema: { ...overview.schema, response: { 200: view.schema } },
+    handler: async (ctx) => {
+      const answer = await projectTab(ctx.db, ctx.scope, (ctx.req.params as { reference: string }).reference, tab)
+      if (!answer) throw new ApiError('NOT_FOUND')
+      return { body: view.project(answer as never) }
+    },
+  }))
+
+  return { name: 'portal', routes: [list, overview, ...tabs] }
 }
