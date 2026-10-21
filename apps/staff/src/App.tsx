@@ -6,13 +6,13 @@ import { staffTranslator, type StaffKey, type StaffLocale } from '@handyhub/i18n
 import { Button, Card, Field, StateView } from '@handyhub/ui'
 import { useEffect, useState, type FormEvent } from 'react'
 import { call, setCsrfToken, type ApiErrorBody, type Fetch } from './api'
-import { AvailabilityScreen } from './Capacity'
 import { EstimatePublishingSetting } from './EstimateLifecycle'
 import { EstimateBuilder, EstimatesScreen } from './Estimates'
 import { QueueHome } from './Queue'
 import { RequestRecord } from './Record'
 import { RequestsScreen } from './Requests'
 import { SearchScreen, Screen, Shell, type Navigation } from './Shell'
+import { StaffScreen } from './StaffManagement'
 import { ConfigurationScreen, HealthScreen } from './System'
 
 type Session = {
@@ -224,7 +224,12 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
               <EstimatePublishingSetting t={t} fetchImpl={doFetch} />
             </>
           ) : route.page === 'screen' && shown === 'staff' && allowed ? (
-            <AvailabilityScreen t={t} locale={locale} fetchImpl={doFetch} />
+            <StaffScreen
+              t={t}
+              locale={locale}
+              fetchImpl={doFetch}
+              onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
+            />
           ) : shown === 'requests' && allowed && route.page === 'screen' ? (
             <RequestsScreen t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
           ) : shown === 'estimates' && allowed && route.page === 'screen' ? (

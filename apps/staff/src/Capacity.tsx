@@ -601,12 +601,15 @@ function EquipmentSection({
   fetchImpl,
   items,
   onDone,
+  nested = false,
 }: {
   t: T
   fetchImpl: Fetch
   items: Availability['equipment']
   onDone: (c: Change) => void
+  nested?: boolean
 }) {
+  const H = nested ? 'h3' : 'h2'
   const ids = useId()
   const [name, setName] = useState('')
   const add = useWrite(fetchImpl, t, onDone)
@@ -617,9 +620,9 @@ function EquipmentSection({
   }
   return (
     <section className="staff-request__section" aria-labelledby={`${ids}-equipment`} data-testid="equipment">
-      <h2 id={`${ids}-equipment`} className="staff-queue__heading">
+      <H id={`${ids}-equipment`} className="staff-queue__heading">
         {t('availability.equipment.title')}
-      </h2>
+      </H>
       <p className="staff-request__hint">{t('availability.equipment.hint')}</p>
       {items.length === 0 ? <p>{t('availability.equipment.none')}</p> : null}
       <ul className="staff-request__list">
@@ -658,8 +661,23 @@ function EquipmentSection({
   )
 }
 
-/** The Staff screen: working hours, time off and equipment (Owner). */
-export function AvailabilityScreen({ t, locale, fetchImpl }: { t: T; locale: StaffLocale; fetchImpl: Fetch }) {
+/**
+ * Working hours, time off and equipment (Owner). TSK-0097: shown on the Staff screen below staff management, so its
+ * heading is then a second-level one (headingLevel 2).
+ */
+export function AvailabilityScreen({
+  t,
+  locale,
+  fetchImpl,
+  headingLevel = 1,
+}: {
+  t: T
+  locale: StaffLocale
+  fetchImpl: Fetch
+  headingLevel?: 1 | 2
+}) {
+  const Title = headingLevel === 2 ? 'h2' : 'h1'
+  const Sub = headingLevel === 2 ? 'h3' : 'h2'
   const [data, setData] = useState<Availability | null | undefined>(undefined)
   const load = useCallback(async () => {
     const r = await call<Availability>(fetchImpl, '/staff/availability')
@@ -671,9 +689,9 @@ export function AvailabilityScreen({ t, locale, fetchImpl }: { t: T; locale: Sta
   const done = (c: Change) => setData(c.availability)
   return (
     <section className="staff-screen" aria-labelledby="staff-screen-title" data-testid="availability">
-      <h1 id="staff-screen-title" className="hh-h3">
+      <Title id="staff-screen-title" className="hh-h3">
         {t('availability.title')}
-      </h1>
+      </Title>
       <p className="staff-request__hint">{t('availability.hint')}</p>
       {data === undefined ? <StateView kind="loading" title={t('capacity.loading')} /> : null}
       {data === null ? <StateView kind="error" title={t('capacity.unavailable')} /> : null}
@@ -692,7 +710,7 @@ export function AvailabilityScreen({ t, locale, fetchImpl }: { t: T; locale: Sta
               className="staff-request__section"
               data-testid="availability-worker"
             >
-              <h2 className="staff-queue__heading">{w.name ?? t('queue.unnamed')}</h2>
+              <Sub className="staff-queue__heading">{w.name ?? t('queue.unnamed')}</Sub>
               <p>
                 {w.eligibleFor.workVisits
                   ? t('availability.eligibleWork')
@@ -729,7 +747,13 @@ export function AvailabilityScreen({ t, locale, fetchImpl }: { t: T; locale: Sta
               <TimeOffForm t={t} fetchImpl={fetchImpl} worker={w} onDone={done} />
             </section>
           ))}
-          <EquipmentSection t={t} fetchImpl={fetchImpl} items={data.equipment} onDone={done} />
+          <EquipmentSection
+            t={t}
+            fetchImpl={fetchImpl}
+            items={data.equipment}
+            onDone={done}
+            nested={headingLevel === 2}
+          />
         </>
       ) : null}
     </section>

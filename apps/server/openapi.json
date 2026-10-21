@@ -35481,6 +35481,3845 @@
         }
       }
     },
+    "/api/v1/staff/members": {
+      "get": {
+        "operationId": "listStaffMembers",
+        "summary": "Every staff member",
+        "description": "Owner only (staff.view; PROPOSED in the staff-management row). Every staff account, disabled ones too (their history is kept): name, login email, locale, status and its times, live roles and capabilities, whether a password is set and an authenticator enrolled, live sessions, and how many upcoming assignments the person has and how many are flagged for review. Never a hash, token or link.",
+        "tags": [
+          "staff"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "members"
+                  ],
+                  "properties": {
+                    "members": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "displayName",
+                          "email",
+                          "locale",
+                          "status",
+                          "self",
+                          "roles",
+                          "capabilities",
+                          "invitedAt",
+                          "activatedAt",
+                          "disabledAt",
+                          "passwordSet",
+                          "mfaEnrolled",
+                          "liveSessions",
+                          "upcomingAssignments",
+                          "flaggedAssignments",
+                          "version"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                          },
+                          "displayName": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "email": {
+                            "type": "string"
+                          },
+                          "locale": {
+                            "type": "string",
+                            "enum": [
+                              "en",
+                              "es"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "invited",
+                              "active",
+                              "disabled"
+                            ]
+                          },
+                          "self": {
+                            "type": "boolean"
+                          },
+                          "roles": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "owner",
+                                "office",
+                                "estimator",
+                                "worker"
+                              ]
+                            }
+                          },
+                          "capabilities": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "collect"
+                              ]
+                            }
+                          },
+                          "invitedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "activatedAt": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "disabledAt": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "passwordSet": {
+                            "type": "boolean"
+                          },
+                          "mfaEnrolled": {
+                            "type": "boolean"
+                          },
+                          "liveSessions": {
+                            "type": "integer"
+                          },
+                          "upcomingAssignments": {
+                            "type": "integer"
+                          },
+                          "flaggedAssignments": {
+                            "type": "integer"
+                          },
+                          "version": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "staff.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-management.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/members/{staffUserId}": {
+      "get": {
+        "operationId": "getStaffMember",
+        "summary": "One staff member's record",
+        "description": "Owner only (staff.view). The member with every role and capability grant (live and ended, who issued and ended it, the reason), the disabling and re-enabling history, and the upcoming assignments (reservations of visits) with their review flags.",
+        "tags": [
+          "staff"
+        ],
+        "parameters": [
+          {
+            "name": "staffUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "displayName",
+                    "email",
+                    "locale",
+                    "status",
+                    "self",
+                    "roles",
+                    "capabilities",
+                    "invitedAt",
+                    "activatedAt",
+                    "disabledAt",
+                    "passwordSet",
+                    "mfaEnrolled",
+                    "liveSessions",
+                    "upcomingAssignments",
+                    "flaggedAssignments",
+                    "version",
+                    "grants",
+                    "statusHistory",
+                    "assignments"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                    },
+                    "displayName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "locale": {
+                      "type": "string",
+                      "enum": [
+                        "en",
+                        "es"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "invited",
+                        "active",
+                        "disabled"
+                      ]
+                    },
+                    "self": {
+                      "type": "boolean"
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "owner",
+                          "office",
+                          "estimator",
+                          "worker"
+                        ]
+                      }
+                    },
+                    "capabilities": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "collect"
+                        ]
+                      }
+                    },
+                    "invitedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "activatedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "disabledAt": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "passwordSet": {
+                      "type": "boolean"
+                    },
+                    "mfaEnrolled": {
+                      "type": "boolean"
+                    },
+                    "liveSessions": {
+                      "type": "integer"
+                    },
+                    "upcomingAssignments": {
+                      "type": "integer"
+                    },
+                    "flaggedAssignments": {
+                      "type": "integer"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "grants": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "kind",
+                          "name",
+                          "issuedBy",
+                          "reason",
+                          "effectiveFrom",
+                          "endedAt",
+                          "endedBy"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "role",
+                              "capability"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "issuedBy": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "staffUserId",
+                                  "name",
+                                  "system"
+                                ],
+                                "properties": {
+                                  "staffUserId": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "system": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "effectiveFrom": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "endedAt": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "endedBy": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "staffUserId",
+                                  "name",
+                                  "system"
+                                ],
+                                "properties": {
+                                  "staffUserId": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "system": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "statusHistory": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "from",
+                          "to",
+                          "by",
+                          "reason",
+                          "at"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                          },
+                          "from": {
+                            "type": "string",
+                            "enum": [
+                              "invited",
+                              "active",
+                              "disabled"
+                            ]
+                          },
+                          "to": {
+                            "type": "string",
+                            "enum": [
+                              "invited",
+                              "active",
+                              "disabled"
+                            ]
+                          },
+                          "by": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "staffUserId",
+                                  "name",
+                                  "system"
+                                ],
+                                "properties": {
+                                  "staffUserId": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "system": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "at": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "assignments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "reservationId",
+                          "visitId",
+                          "requestId",
+                          "reference",
+                          "purpose",
+                          "visitState",
+                          "role",
+                          "kind",
+                          "startsAt",
+                          "endsAt",
+                          "timeZone",
+                          "flags"
+                        ],
+                        "properties": {
+                          "reservationId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                          },
+                          "visitId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                          },
+                          "requestId": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "reference": {
+                            "type": "string"
+                          },
+                          "purpose": {
+                            "type": "string"
+                          },
+                          "visitState": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "hold",
+                              "confirmed"
+                            ]
+                          },
+                          "startsAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "endsAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "timeZone": {
+                            "type": "string"
+                          },
+                          "flags": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "staff.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-management.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/members/{staffUserId}/disable": {
+      "post": {
+        "operationId": "disableStaffMember",
+        "summary": "Disable an account (offboarding)",
+        "description": "Owner only (staff.disable; never delayed). In one transaction, after the in-flight writes of the person commit: the account is disabled (every later request and every queued or offline write from it is refused), every session is revoked, every open invite or reset link invalidated and the password cleared (PROPOSED); the upcoming assignments are flagged for reassignment and each flagged visit opens its action-queue item, never cancelled; job history and evidence stay. Refusals: NOT_FOUND, CONFLICT (ACCOUNT_DISABLED, LAST_OWNER, OWN_ACCOUNT, PROPOSED).",
+        "tags": [
+          "staff"
+        ],
+        "parameters": [
+          {
+            "name": "staffUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "member",
+                    "sessionsRevoked",
+                    "linksInvalidated",
+                    "upcomingAssignments",
+                    "flagged"
+                  ],
+                  "properties": {
+                    "member": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "displayName",
+                        "email",
+                        "locale",
+                        "status",
+                        "self",
+                        "roles",
+                        "capabilities",
+                        "invitedAt",
+                        "activatedAt",
+                        "disabledAt",
+                        "passwordSet",
+                        "mfaEnrolled",
+                        "liveSessions",
+                        "upcomingAssignments",
+                        "flaggedAssignments",
+                        "version",
+                        "grants",
+                        "statusHistory",
+                        "assignments"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                        },
+                        "displayName": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "locale": {
+                          "type": "string",
+                          "enum": [
+                            "en",
+                            "es"
+                          ]
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "invited",
+                            "active",
+                            "disabled"
+                          ]
+                        },
+                        "self": {
+                          "type": "boolean"
+                        },
+                        "roles": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "owner",
+                              "office",
+                              "estimator",
+                              "worker"
+                            ]
+                          }
+                        },
+                        "capabilities": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "collect"
+                            ]
+                          }
+                        },
+                        "invitedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "activatedAt": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "disabledAt": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "passwordSet": {
+                          "type": "boolean"
+                        },
+                        "mfaEnrolled": {
+                          "type": "boolean"
+                        },
+                        "liveSessions": {
+                          "type": "integer"
+                        },
+                        "upcomingAssignments": {
+                          "type": "integer"
+                        },
+                        "flaggedAssignments": {
+                          "type": "integer"
+                        },
+                        "version": {
+                          "type": "integer"
+                        },
+                        "grants": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "kind",
+                              "name",
+                              "issuedBy",
+                              "reason",
+                              "effectiveFrom",
+                              "endedAt",
+                              "endedBy"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "role",
+                                  "capability"
+                                ]
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "issuedBy": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "staffUserId",
+                                      "name",
+                                      "system"
+                                    ],
+                                    "properties": {
+                                      "staffUserId": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "system": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "reason": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "effectiveFrom": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "endedAt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "endedBy": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "staffUserId",
+                                      "name",
+                                      "system"
+                                    ],
+                                    "properties": {
+                                      "staffUserId": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "system": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "statusHistory": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "from",
+                              "to",
+                              "by",
+                              "reason",
+                              "at"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                              },
+                              "from": {
+                                "type": "string",
+                                "enum": [
+                                  "invited",
+                                  "active",
+                                  "disabled"
+                                ]
+                              },
+                              "to": {
+                                "type": "string",
+                                "enum": [
+                                  "invited",
+                                  "active",
+                                  "disabled"
+                                ]
+                              },
+                              "by": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "staffUserId",
+                                      "name",
+                                      "system"
+                                    ],
+                                    "properties": {
+                                      "staffUserId": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "system": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "reason": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "at": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        },
+                        "assignments": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "reservationId",
+                              "visitId",
+                              "requestId",
+                              "reference",
+                              "purpose",
+                              "visitState",
+                              "role",
+                              "kind",
+                              "startsAt",
+                              "endsAt",
+                              "timeZone",
+                              "flags"
+                            ],
+                            "properties": {
+                              "reservationId": {
+                                "type": "string",
+                                "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                              },
+                              "visitId": {
+                                "type": "string",
+                                "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                              },
+                              "requestId": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "reference": {
+                                "type": "string"
+                              },
+                              "purpose": {
+                                "type": "string"
+                              },
+                              "visitState": {
+                                "type": "string"
+                              },
+                              "role": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "hold",
+                                  "confirmed"
+                                ]
+                              },
+                              "startsAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "endsAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "timeZone": {
+                                "type": "string"
+                              },
+                              "flags": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "sessionsRevoked": {
+                      "type": "integer"
+                    },
+                    "linksInvalidated": {
+                      "type": "integer"
+                    },
+                    "upcomingAssignments": {
+                      "type": "integer"
+                    },
+                    "flagged": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "staff.disable",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "staff.disable",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-management.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/members/{staffUserId}/enable": {
+      "post": {
+        "operationId": "enableStaffMember",
+        "summary": "Re-enable a disabled account",
+        "description": "Owner only, with a fresh sign-in and a written reason (staff.enable, PROPOSED in the grant row; ENT-StaffUser). The account returns to active (invited when it never set a password) with its role grants unchanged, and a single-use reset (or invite) link is emailed through the outbox: the old password was cleared when it was disabled. Refusals: NOT_FOUND, FRESH_AUTH_REQUIRED, FORBIDDEN (self), CONFLICT (ACCOUNT_NOT_DISABLED).",
+        "tags": [
+          "staff"
+        ],
+        "parameters": [
+          {
+            "name": "staffUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "member",
+                    "linkSent"
+                  ],
+                  "properties": {
+                    "member": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "displayName",
+                        "email",
+                        "locale",
+                        "status",
+                        "self",
+                        "roles",
+                        "capabilities",
+                        "invitedAt",
+                        "activatedAt",
+                        "disabledAt",
+                        "passwordSet",
+                        "mfaEnrolled",
+                        "liveSessions",
+                        "upcomingAssignments",
+                        "flaggedAssignments",
+                        "version",
+                        "grants",
+                        "statusHistory",
+                        "assignments"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                        },
+                        "displayName": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "locale": {
+                          "type": "string",
+                          "enum": [
+                            "en",
+                            "es"
+                          ]
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "invited",
+                            "active",
+                            "disabled"
+                          ]
+                        },
+                        "self": {
+                          "type": "boolean"
+                        },
+                        "roles": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "owner",
+                              "office",
+                              "estimator",
+                              "worker"
+                            ]
+                          }
+                        },
+                        "capabilities": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "collect"
+                            ]
+                          }
+                        },
+                        "invitedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "activatedAt": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "disabledAt": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "passwordSet": {
+                          "type": "boolean"
+                        },
+                        "mfaEnrolled": {
+                          "type": "boolean"
+                        },
+                        "liveSessions": {
+                          "type": "integer"
+                        },
+                        "upcomingAssignments": {
+                          "type": "integer"
+                        },
+                        "flaggedAssignments": {
+                          "type": "integer"
+                        },
+                        "version": {
+                          "type": "integer"
+                        },
+                        "grants": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "kind",
+                              "name",
+                              "issuedBy",
+                              "reason",
+                              "effectiveFrom",
+                              "endedAt",
+                              "endedBy"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "role",
+                                  "capability"
+                                ]
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "issuedBy": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "staffUserId",
+                                      "name",
+                                      "system"
+                                    ],
+                                    "properties": {
+                                      "staffUserId": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "system": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "reason": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "effectiveFrom": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "endedAt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "endedBy": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "staffUserId",
+                                      "name",
+                                      "system"
+                                    ],
+                                    "properties": {
+                                      "staffUserId": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "system": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "statusHistory": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "from",
+                              "to",
+                              "by",
+                              "reason",
+                              "at"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                              },
+                              "from": {
+                                "type": "string",
+                                "enum": [
+                                  "invited",
+                                  "active",
+                                  "disabled"
+                                ]
+                              },
+                              "to": {
+                                "type": "string",
+                                "enum": [
+                                  "invited",
+                                  "active",
+                                  "disabled"
+                                ]
+                              },
+                              "by": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "staffUserId",
+                                      "name",
+                                      "system"
+                                    ],
+                                    "properties": {
+                                      "staffUserId": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "system": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "reason": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "at": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        },
+                        "assignments": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "reservationId",
+                              "visitId",
+                              "requestId",
+                              "reference",
+                              "purpose",
+                              "visitState",
+                              "role",
+                              "kind",
+                              "startsAt",
+                              "endsAt",
+                              "timeZone",
+                              "flags"
+                            ],
+                            "properties": {
+                              "reservationId": {
+                                "type": "string",
+                                "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                              },
+                              "visitId": {
+                                "type": "string",
+                                "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                              },
+                              "requestId": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "reference": {
+                                "type": "string"
+                              },
+                              "purpose": {
+                                "type": "string"
+                              },
+                              "visitState": {
+                                "type": "string"
+                              },
+                              "role": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "hold",
+                                  "confirmed"
+                                ]
+                              },
+                              "startsAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "endsAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "timeZone": {
+                                "type": "string"
+                              },
+                              "flags": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "linkSent": {
+                      "type": "string",
+                      "enum": [
+                        "reset",
+                        "invite"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "staff.enable",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "staff.enable",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-management.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/members/{staffUserId}/grants": {
+      "post": {
+        "operationId": "grantStaffRole",
+        "summary": "Grant a role or capability",
+        "description": "Owner only, with a fresh sign-in and a written reason (ROLE-MATRIX staff.grant_role); nobody grants themselves anything. Roles: owner, office, estimator, worker (one person may hold several); capability: collect, only for someone holding the Worker role (PROPOSED). Takes effect on the next request of that person. Refusals: NOT_FOUND, FRESH_AUTH_REQUIRED, FORBIDDEN (self), CONFLICT (ACCOUNT_DISABLED, GRANT_EXISTS, CAPABILITY_NEEDS_WORKER), VALIDATION_FAILED.",
+        "tags": [
+          "staff"
+        ],
+        "parameters": [
+          {
+            "name": "staffUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "name",
+                  "reason"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "role",
+                      "capability"
+                    ]
+                  },
+                  "name": {
+                    "type": "string",
+                    "enum": [
+                      "owner",
+                      "office",
+                      "estimator",
+                      "worker",
+                      "collect"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "displayName",
+                    "email",
+                    "locale",
+                    "status",
+                    "self",
+                    "roles",
+                    "capabilities",
+                    "invitedAt",
+                    "activatedAt",
+                    "disabledAt",
+                    "passwordSet",
+                    "mfaEnrolled",
+                    "liveSessions",
+                    "upcomingAssignments",
+                    "flaggedAssignments",
+                    "version",
+                    "grants",
+                    "statusHistory",
+                    "assignments"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                    },
+                    "displayName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "locale": {
+                      "type": "string",
+                      "enum": [
+                        "en",
+                        "es"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "invited",
+                        "active",
+                        "disabled"
+                      ]
+                    },
+                    "self": {
+                      "type": "boolean"
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "owner",
+                          "office",
+                          "estimator",
+                          "worker"
+                        ]
+                      }
+                    },
+                    "capabilities": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "collect"
+                        ]
+                      }
+                    },
+                    "invitedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "activatedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "disabledAt": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "passwordSet": {
+                      "type": "boolean"
+                    },
+                    "mfaEnrolled": {
+                      "type": "boolean"
+                    },
+                    "liveSessions": {
+                      "type": "integer"
+                    },
+                    "upcomingAssignments": {
+                      "type": "integer"
+                    },
+                    "flaggedAssignments": {
+                      "type": "integer"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "grants": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "kind",
+                          "name",
+                          "issuedBy",
+                          "reason",
+                          "effectiveFrom",
+                          "endedAt",
+                          "endedBy"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "role",
+                              "capability"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "issuedBy": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "staffUserId",
+                                  "name",
+                                  "system"
+                                ],
+                                "properties": {
+                                  "staffUserId": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "system": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "effectiveFrom": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "endedAt": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "endedBy": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "staffUserId",
+                                  "name",
+                                  "system"
+                                ],
+                                "properties": {
+                                  "staffUserId": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "system": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "statusHistory": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "from",
+                          "to",
+                          "by",
+                          "reason",
+                          "at"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                          },
+                          "from": {
+                            "type": "string",
+                            "enum": [
+                              "invited",
+                              "active",
+                              "disabled"
+                            ]
+                          },
+                          "to": {
+                            "type": "string",
+                            "enum": [
+                              "invited",
+                              "active",
+                              "disabled"
+                            ]
+                          },
+                          "by": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "staffUserId",
+                                  "name",
+                                  "system"
+                                ],
+                                "properties": {
+                                  "staffUserId": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "system": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "at": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "assignments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "reservationId",
+                          "visitId",
+                          "requestId",
+                          "reference",
+                          "purpose",
+                          "visitState",
+                          "role",
+                          "kind",
+                          "startsAt",
+                          "endsAt",
+                          "timeZone",
+                          "flags"
+                        ],
+                        "properties": {
+                          "reservationId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                          },
+                          "visitId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                          },
+                          "requestId": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "reference": {
+                            "type": "string"
+                          },
+                          "purpose": {
+                            "type": "string"
+                          },
+                          "visitState": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "hold",
+                              "confirmed"
+                            ]
+                          },
+                          "startsAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "endsAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "timeZone": {
+                            "type": "string"
+                          },
+                          "flags": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "staff.grant_role",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "staff.grant_role",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-management.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/members/{staffUserId}/grants/end": {
+      "post": {
+        "operationId": "endStaffGrant",
+        "summary": "End a role or capability grant",
+        "description": "Owner only (staff.end_grant; protective, never delayed by a fresh sign-in, PROPOSED mapping; ENT-RoleGrant). The grant is ended, never edited or deleted; the reason, when given, is audited. PROPOSED: the person keeps at least one role (disable the account instead). At least one active Owner always remains. Refusals: NOT_FOUND, CONFLICT (GRANT_NOT_LIVE, LAST_ROLE, LAST_OWNER).",
+        "tags": [
+          "staff"
+        ],
+        "parameters": [
+          {
+            "name": "staffUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "name"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "role",
+                      "capability"
+                    ]
+                  },
+                  "name": {
+                    "type": "string",
+                    "enum": [
+                      "owner",
+                      "office",
+                      "estimator",
+                      "worker",
+                      "collect"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "displayName",
+                    "email",
+                    "locale",
+                    "status",
+                    "self",
+                    "roles",
+                    "capabilities",
+                    "invitedAt",
+                    "activatedAt",
+                    "disabledAt",
+                    "passwordSet",
+                    "mfaEnrolled",
+                    "liveSessions",
+                    "upcomingAssignments",
+                    "flaggedAssignments",
+                    "version",
+                    "grants",
+                    "statusHistory",
+                    "assignments"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                    },
+                    "displayName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "locale": {
+                      "type": "string",
+                      "enum": [
+                        "en",
+                        "es"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "invited",
+                        "active",
+                        "disabled"
+                      ]
+                    },
+                    "self": {
+                      "type": "boolean"
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "owner",
+                          "office",
+                          "estimator",
+                          "worker"
+                        ]
+                      }
+                    },
+                    "capabilities": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "collect"
+                        ]
+                      }
+                    },
+                    "invitedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "activatedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "disabledAt": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "passwordSet": {
+                      "type": "boolean"
+                    },
+                    "mfaEnrolled": {
+                      "type": "boolean"
+                    },
+                    "liveSessions": {
+                      "type": "integer"
+                    },
+                    "upcomingAssignments": {
+                      "type": "integer"
+                    },
+                    "flaggedAssignments": {
+                      "type": "integer"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "grants": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "kind",
+                          "name",
+                          "issuedBy",
+                          "reason",
+                          "effectiveFrom",
+                          "endedAt",
+                          "endedBy"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "role",
+                              "capability"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "issuedBy": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "staffUserId",
+                                  "name",
+                                  "system"
+                                ],
+                                "properties": {
+                                  "staffUserId": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "system": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "effectiveFrom": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "endedAt": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "endedBy": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "staffUserId",
+                                  "name",
+                                  "system"
+                                ],
+                                "properties": {
+                                  "staffUserId": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "system": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "statusHistory": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "from",
+                          "to",
+                          "by",
+                          "reason",
+                          "at"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                          },
+                          "from": {
+                            "type": "string",
+                            "enum": [
+                              "invited",
+                              "active",
+                              "disabled"
+                            ]
+                          },
+                          "to": {
+                            "type": "string",
+                            "enum": [
+                              "invited",
+                              "active",
+                              "disabled"
+                            ]
+                          },
+                          "by": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "staffUserId",
+                                  "name",
+                                  "system"
+                                ],
+                                "properties": {
+                                  "staffUserId": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "system": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "at": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "assignments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "reservationId",
+                          "visitId",
+                          "requestId",
+                          "reference",
+                          "purpose",
+                          "visitState",
+                          "role",
+                          "kind",
+                          "startsAt",
+                          "endsAt",
+                          "timeZone",
+                          "flags"
+                        ],
+                        "properties": {
+                          "reservationId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                          },
+                          "visitId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                          },
+                          "requestId": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "reference": {
+                            "type": "string"
+                          },
+                          "purpose": {
+                            "type": "string"
+                          },
+                          "visitState": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "hold",
+                              "confirmed"
+                            ]
+                          },
+                          "startsAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "endsAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "timeZone": {
+                            "type": "string"
+                          },
+                          "flags": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "staff.end_grant",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "staff.end_grant",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-management.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/members/{staffUserId}/password-recovery": {
+      "post": {
+        "operationId": "startStaffPasswordRecovery",
+        "summary": "Start password recovery for a staff member",
+        "description": "Owner only (staff.start_password_recovery; never delayed). Emails a single-use reset link (an invite link while the account is invited) through the outbox; earlier open links end. Setting the new password revokes every session. The Owner never sees a password or the link. Refusals: NOT_FOUND, CONFLICT (ACCOUNT_DISABLED).",
+        "tags": [
+          "staff"
+        ],
+        "parameters": [
+          {
+            "name": "staffUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "member",
+                    "linkSent"
+                  ],
+                  "properties": {
+                    "member": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "displayName",
+                        "email",
+                        "locale",
+                        "status",
+                        "self",
+                        "roles",
+                        "capabilities",
+                        "invitedAt",
+                        "activatedAt",
+                        "disabledAt",
+                        "passwordSet",
+                        "mfaEnrolled",
+                        "liveSessions",
+                        "upcomingAssignments",
+                        "flaggedAssignments",
+                        "version",
+                        "grants",
+                        "statusHistory",
+                        "assignments"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                        },
+                        "displayName": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "locale": {
+                          "type": "string",
+                          "enum": [
+                            "en",
+                            "es"
+                          ]
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "invited",
+                            "active",
+                            "disabled"
+                          ]
+                        },
+                        "self": {
+                          "type": "boolean"
+                        },
+                        "roles": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "owner",
+                              "office",
+                              "estimator",
+                              "worker"
+                            ]
+                          }
+                        },
+                        "capabilities": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "collect"
+                            ]
+                          }
+                        },
+                        "invitedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "activatedAt": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "disabledAt": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "passwordSet": {
+                          "type": "boolean"
+                        },
+                        "mfaEnrolled": {
+                          "type": "boolean"
+                        },
+                        "liveSessions": {
+                          "type": "integer"
+                        },
+                        "upcomingAssignments": {
+                          "type": "integer"
+                        },
+                        "flaggedAssignments": {
+                          "type": "integer"
+                        },
+                        "version": {
+                          "type": "integer"
+                        },
+                        "grants": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "kind",
+                              "name",
+                              "issuedBy",
+                              "reason",
+                              "effectiveFrom",
+                              "endedAt",
+                              "endedBy"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "role",
+                                  "capability"
+                                ]
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "issuedBy": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "staffUserId",
+                                      "name",
+                                      "system"
+                                    ],
+                                    "properties": {
+                                      "staffUserId": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "system": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "reason": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "effectiveFrom": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "endedAt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "endedBy": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "staffUserId",
+                                      "name",
+                                      "system"
+                                    ],
+                                    "properties": {
+                                      "staffUserId": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "system": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "statusHistory": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "from",
+                              "to",
+                              "by",
+                              "reason",
+                              "at"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                              },
+                              "from": {
+                                "type": "string",
+                                "enum": [
+                                  "invited",
+                                  "active",
+                                  "disabled"
+                                ]
+                              },
+                              "to": {
+                                "type": "string",
+                                "enum": [
+                                  "invited",
+                                  "active",
+                                  "disabled"
+                                ]
+                              },
+                              "by": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "staffUserId",
+                                      "name",
+                                      "system"
+                                    ],
+                                    "properties": {
+                                      "staffUserId": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "system": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "reason": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "at": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        },
+                        "assignments": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "reservationId",
+                              "visitId",
+                              "requestId",
+                              "reference",
+                              "purpose",
+                              "visitState",
+                              "role",
+                              "kind",
+                              "startsAt",
+                              "endsAt",
+                              "timeZone",
+                              "flags"
+                            ],
+                            "properties": {
+                              "reservationId": {
+                                "type": "string",
+                                "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                              },
+                              "visitId": {
+                                "type": "string",
+                                "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                              },
+                              "requestId": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "reference": {
+                                "type": "string"
+                              },
+                              "purpose": {
+                                "type": "string"
+                              },
+                              "visitState": {
+                                "type": "string"
+                              },
+                              "role": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "hold",
+                                  "confirmed"
+                                ]
+                              },
+                              "startsAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "endsAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "timeZone": {
+                                "type": "string"
+                              },
+                              "flags": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "linkSent": {
+                      "type": "string",
+                      "enum": [
+                        "reset",
+                        "invite"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "staff.start_password_recovery",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "staff.start_password_recovery",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-management.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/message-deliveries/{deliveryId}/retry": {
       "post": {
         "operationId": "retryMessageDelivery",
@@ -37784,6 +41623,7 @@
                 "case_open",
                 "estimate_to_write",
                 "estimate_response",
+                "visit_flagged",
                 "deposit_waiver",
                 "start_work_exception",
                 "refund_request",
@@ -37901,6 +41741,7 @@
                               "case_open",
                               "estimate_to_write",
                               "estimate_response",
+                              "visit_flagged",
                               "deposit_waiver",
                               "start_work_exception",
                               "refund_request",
@@ -38110,7 +41951,8 @@
                               "open_case",
                               "decide",
                               "write_estimate",
-                              "review_estimate"
+                              "review_estimate",
+                              "reassign_visit"
                             ]
                           },
                           "link": {
@@ -38158,6 +42000,7 @@
                           "case_open",
                           "estimate_to_write",
                           "estimate_response",
+                          "visit_flagged",
                           "deposit_waiver",
                           "start_work_exception",
                           "refund_request",
@@ -38294,6 +42137,7 @@
                 "case_open",
                 "estimate_to_write",
                 "estimate_response",
+                "visit_flagged",
                 "deposit_waiver",
                 "start_work_exception",
                 "refund_request",
@@ -38411,6 +42255,7 @@
                               "case_open",
                               "estimate_to_write",
                               "estimate_response",
+                              "visit_flagged",
                               "deposit_waiver",
                               "start_work_exception",
                               "refund_request",
@@ -38620,7 +42465,8 @@
                               "open_case",
                               "decide",
                               "write_estimate",
-                              "review_estimate"
+                              "review_estimate",
+                              "reassign_visit"
                             ]
                           },
                           "link": {
@@ -38668,6 +42514,7 @@
                           "case_open",
                           "estimate_to_write",
                           "estimate_response",
+                          "visit_flagged",
                           "deposit_waiver",
                           "start_work_exception",
                           "refund_request",

@@ -431,6 +431,16 @@ export interface IdentityStaffSessionsTable {
   state: Generated<string>
 }
 
+export interface IdentityStaffStatusChangesTable {
+  id: Generated<string>
+  staff_user_id: string
+  from_status: string
+  to_status: string
+  changed_by: string
+  reason: string | null
+  changed_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface IdentityStaffUsersTable {
   id: Generated<string>
   display_name: string | null
@@ -1103,6 +1113,7 @@ export interface Database {
   'identity.staff_mfa': IdentityStaffMfaTable
   'identity.staff_recovery_codes': IdentityStaffRecoveryCodesTable
   'identity.staff_sessions': IdentityStaffSessionsTable
+  'identity.staff_status_changes': IdentityStaffStatusChangesTable
   'identity.staff_users': IdentityStaffUsersTable
   'identity.verification_attempts': IdentityVerificationAttemptsTable
   'identity.verification_codes': IdentityVerificationCodesTable

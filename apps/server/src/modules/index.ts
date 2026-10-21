@@ -16,6 +16,7 @@ import { accountsModule } from './accounts/index.js'
 import { capacityModule } from './capacity/index.js'
 import { portalModule } from './portal/index.js'
 import { SITE_MODULE } from './site/index.js'
+import { staffModule } from './staff/index.js'
 import { systemModule, type SystemDeps } from './system/index.js'
 import { verificationModule } from './verification/index.js'
 import { visitsModule } from './visits/index.js'
@@ -78,6 +79,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     visitsModule(),
     // TSK-0062: working hours, time off, equipment and the capacity of a day (reservations: the visits module).
     capacityModule(),
+    // TSK-0097: staff management (the staff list, role and capability grants, offboarding and re-enabling).
+    staffModule(),
   ]
 }
 

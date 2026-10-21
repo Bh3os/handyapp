@@ -75,6 +75,7 @@ export const LABEL_FAMILIES = {
     'case_open',
     'estimate_to_write',
     'estimate_response',
+    'visit_flagged',
     'deposit_waiver',
     'start_work_exception',
     'refund_request',
@@ -112,6 +113,9 @@ export const LABEL_FAMILIES = {
     'estimate_changes_requested',
     'estimate_declined',
     'estimate_update_requested',
+    'assignee_disabled',
+    'availability_changed',
+    'equipment_retired',
   ],
   /** The one action button of a queue item (HH-OPS-02); it opens the record's screen. */
   queueAction: [
@@ -123,6 +127,7 @@ export const LABEL_FAMILIES = {
     'decide',
     'write_estimate',
     'review_estimate',
+    'reassign_visit',
   ],
   /**
    * System health (TSK-0101; HH-NFR-02): the checks, their states, metrics and notes, as the server's health report
@@ -444,6 +449,34 @@ export const LABEL_FAMILIES = {
     'VALIDATION_FAILED',
     'CONFLICT',
     'NOT_CONFIGURED',
+    'INTERNAL',
+    'UNAVAILABLE',
+  ],
+  /** Staff roles a person can be granted (OWN-DEC-114 role list; ROLE-MATRIX columns; TSK-0097). */
+  staffRole: ['owner', 'office', 'estimator', 'worker'],
+  /** Named capabilities the Owner grants per person (ENT-RoleGrant; TSK-0097). */
+  staffCapability: ['collect'],
+  /** Staff account states (ENT-StaffUser: invited, active, disabled). */
+  staffStatus: ['invited', 'active', 'disabled'],
+  /**
+   * Why the server refused a staff-management change (TSK-0097; apps/server/src/modules/staff/members.ts), and the
+   * error codes shown when no field is named.
+   */
+  staffProblem: [
+    'ACCOUNT_DISABLED',
+    'ACCOUNT_NOT_DISABLED',
+    'GRANT_EXISTS',
+    'GRANT_NOT_LIVE',
+    'CAPABILITY_NEEDS_WORKER',
+    'LAST_ROLE',
+    'LAST_OWNER',
+    'OWN_ACCOUNT',
+    'required',
+    'FORBIDDEN',
+    'FRESH_AUTH_REQUIRED',
+    'NOT_FOUND',
+    'VALIDATION_FAILED',
+    'CONFLICT',
     'INTERNAL',
     'UNAVAILABLE',
   ],
