@@ -12,7 +12,7 @@ import { sql } from 'kysely'
 import { ApiError } from '../../api/errors.js'
 import { pageSchema, toPage } from '../../api/pagination.js'
 import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
-import { customerInScope } from '../../platform/data-scope.js'
+import { customerInScope, projectInScope } from '../../platform/data-scope.js'
 import { currentContext } from '../../platform/request-context.js'
 import { currentConsent, recordConsent } from '../notifications/index.js'
 import { LINK_ROUTES } from './link-routes.js'
@@ -194,6 +194,7 @@ const list: RouteDef = {
               .selectFrom('crm.projects as p')
               .select('p.id')
               .where('p.reference', '=', q.toUpperCase())
+              .where(projectInScope('p.id', ctx.scope))
               // The customer it was created for, and the one staff see it under now (TSK-0046).
               .where((e) =>
                 e.or([
@@ -242,12 +243,14 @@ const list: RouteDef = {
     const merged = out.items.filter((r) => r.status === 'merged').map((r) => r.id)
     const live = ids.filter((i) => !merged.includes(i))
     const counts = new Map<string, number>()
-    for (const root of (await projectRoots(ctx.db, live)).values()) counts.set(root, (counts.get(root) ?? 0) + 1)
+    for (const root of (await projectRoots(ctx.db, live, ctx.scope)).values())
+      counts.set(root, (counts.get(root) ?? 0) + 1)
     if (merged.length)
       for (const p of await ctx.db
         .selectFrom('crm.projects')
         .select(['customer_id', ({ fn }) => fn.countAll<string>().as('n')])
         .where('customer_id', 'in', merged)
+        .where(projectInScope('id', ctx.scope))
         .groupBy('customer_id')
         .execute())
         counts.set(p.customer_id, Number(p.n))

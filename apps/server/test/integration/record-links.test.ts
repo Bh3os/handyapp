@@ -4,17 +4,18 @@
 import { randomUUID } from 'node:crypto'
 import { loadServiceSeed, syncServices, withTx, type Tx } from '@handyhub/db'
 import { createTestDatabase, type TestDatabase } from '@handyhub/db/testing'
-import type { StaffRole } from '@handyhub/policy'
+import { dataScope, type Actor, type StaffRole } from '@handyhub/policy'
 import type { FastifyInstance } from 'fastify'
 import { sql } from 'kysely'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildApp } from '../../src/app.js'
-import { issueGrant } from '../../src/modules/access/index.js'
-import { candidateMatchAutomation, findCandidates } from '../../src/modules/customers/index.js'
+import { issueGrant, parseContact, requestReissue } from '../../src/modules/access/index.js'
+import { candidateMatchAutomation, findCandidates, staffCustomerView } from '../../src/modules/customers/index.js'
 import { createStaffUser, setPasswordHash } from '../../src/modules/identity/accounts.js'
 import { startCustomerSession } from '../../src/modules/identity/customer-sessions.js'
 import { readCodeKey, type CodeKeySettings } from '../../src/modules/identity/index.js'
 import { hashPassword } from '../../src/modules/identity/passwords.js'
+import { releaseTemplateVersion } from '../../src/modules/notifications/index.js'
 import { createAutomationRegistry } from '../../src/platform/automation.js'
 import { createWorker } from '../../src/platform/jobs.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
@@ -735,5 +736,134 @@ describe('relinking a request never widens access; a correction revokes what the
         t.db,
       ),
     ).rejects.toThrow(/survivor that is not merged/)
+  })
+})
+
+describe('the links meet main’s access recovery and data scope (TSK-0046 with TSK-0035 and TSK-0037, T29)', () => {
+  // The neutral recovery (HH-ID-09) needs the access-link wording released; synthetic text only.
+  const releaseAccessWording = () =>
+    withTx(t.db, async (tx) => {
+      for (const channel of ['email', 'sms'] as const)
+        await releaseTemplateVersion(tx, {
+          messageKey: 'project.access_link',
+          channel,
+          locale: 'en',
+          subject: channel === 'email' ? 'Synthetic test access' : null,
+          body: 'SYNTHETIC TEST TEMPLATE {accessLink}',
+          translationReview: 'source',
+          sourceIds: ['TSK-0035'],
+          releasedBy: 'test',
+        })
+    })
+  const reissue = (reference: string, email: string) =>
+    withTx(t.db, (tx) =>
+      requestReissue(tx, KEY, {
+        reference,
+        contact: parseContact(email) as NonNullable<ReturnType<typeof parseContact>>,
+        requestId: `synthetic-links-reissue-${randomUUID()}`,
+      }),
+    )
+  const relink = async (requestId: string, to: string, reason: string) => {
+    const p = await relinkPreview('office', requestId, to)
+    const res = await post('office', `/staff/requests/${requestId}/relink`, {
+      customerId: to,
+      reason,
+      previewDigest: p.previewDigest,
+    })
+    expect(res.statusCode, res.body).toBe(200)
+    return { preview: p, out: res.json<{ linkId: string; access: Access }>() }
+  }
+
+  it('[T29][HH-CRM-04][HH-ID-09] a link reissued while a mistaken relink stood names the project’s own contact, and the correction revokes it', async () => {
+    await releaseAccessWording()
+    const holder = await submit({
+      fullName: 'Rae Synthetic Holder',
+      email: 'holder-reissue-t29@example.test',
+      phone: '(502) 555-0161',
+    })
+    const sender = await submit({
+      fullName: 'Sol Synthetic Sender',
+      email: 'sender-reissue-t29@example.test',
+      phone: '(502) 555-0162',
+    })
+    const before = await grantFor(sender)
+    await relink(sender.requestId, holder.customerId, 'Synthetic: thought to be the holder’s work')
+
+    // Access never follows the link: the holder's contact gets no link for the sender's project; the sender's does.
+    expect(await reissue(sender.reference, 'holder-reissue-t29@example.test')).toMatchObject({
+      status: 'withheld',
+      why: 'no_match',
+    })
+    const during = await reissue(sender.reference, 'sender-reissue-t29@example.test')
+    expect(during).toMatchObject({ status: 'issued', projectId: sender.projectId })
+    const duringId = (during as { grantId: string }).grantId
+    expect(
+      await t.db
+        .selectFrom('identity.project_access_grants')
+        .select(['project_id', 'contact_id', 'issued_reason'])
+        .where('id', '=', duringId)
+        .executeTakeFirstOrThrow(),
+    ).toEqual({ project_id: sender.projectId, contact_id: sender.contactId, issued_reason: 'reissue' })
+
+    // The correction revokes the reissued link (issued while the mistake stood) and keeps the earlier one.
+    const { preview, out } = await relink(
+      sender.requestId,
+      sender.customerId,
+      'Synthetic: linked to the wrong customer',
+    )
+    expect(preview).toMatchObject({ correction: true, revokes: { grants: 1, sessions: 0 } })
+    expect(out.access.grantsRevoked).toEqual([duringId])
+    expect(out.access.sessionsRevoked).toEqual([])
+    expect(await grantRow(duringId)).toMatchObject({ revoke_reason: 'corrected_link' })
+    expect(await grantRow(before.grantId)).toMatchObject({ revoked_at: null })
+    expect(await sessionRow(before.sessionId)).toMatchObject({ revoked_at: null })
+    expect((await get(`/customer/projects/${sender.reference}`, before.cookie)).statusCode).toBe(200)
+
+    // The rightful contact asks again through the neutral recovery: a corrected link never blocks a new one.
+    expect(await reissue(sender.reference, 'sender-reissue-t29@example.test')).toMatchObject({
+      status: 'issued',
+      projectId: sender.projectId,
+    })
+  })
+
+  it('[HH-DATA-01][HH-CRM-04] the staff record shows linked and merged projects only inside the caller’s scope', async () => {
+    const keeper = await submit({
+      fullName: 'Kit Synthetic Keeper',
+      email: 'keeper-scope-t29@example.test',
+      phone: '(502) 555-0163',
+    })
+    const moved = await submit({
+      fullName: 'Mo Synthetic Moved',
+      email: 'moved-scope-t29@example.test',
+      phone: '(502) 555-0164',
+    })
+    await relink(moved.requestId, keeper.customerId, 'Synthetic: the keeper asked for this work')
+    const now = new Date()
+    const owner: Actor = {
+      kind: 'staff',
+      userId: staff.owner.id,
+      roles: ['owner'],
+      capabilities: [],
+      status: 'active',
+      freshAuth: false,
+    }
+    const all = await staffCustomerView(t.db, dataScope(owner, 'customer.view', now), keeper.customerId, owner)
+    expect(all?.projects.map((p) => p.reference).sort()).toEqual([keeper.reference, moved.reference].sort())
+    // A scope limited to the keeper's own project finds the keeper but not the project linked to it.
+    const limited = dataScope(
+      {
+        kind: 'customer',
+        contactId: keeper.contactId,
+        projectAccess: [{ projectId: keeper.projectId, via: 'grant' }],
+        freshVerification: true,
+      },
+      null,
+      now,
+    )
+    const view = await staffCustomerView(t.db, limited, keeper.customerId, owner)
+    expect(view?.projects.map((p) => p.reference)).toEqual([keeper.reference])
+    // A worker's scope reaches no customer record at all.
+    const worker: Actor = { ...owner, userId: staff.worker.id, roles: ['worker'] }
+    expect(await staffCustomerView(t.db, dataScope(worker, 'customer.view', now), keeper.customerId, worker)).toBeNull()
   })
 })

@@ -20,7 +20,7 @@ import type { Db, Tx } from '@handyhub/db'
 import { NOTE_VISIBILITIES } from '@handyhub/domain'
 import { decide, readsVisibility, type Action, type Actor, type DataScope } from '@handyhub/policy'
 import { sql } from 'kysely'
-import { customerInScope } from '../../platform/data-scope.js'
+import { customerInScope, projectInScope } from '../../platform/data-scope.js'
 import { contactBadges } from '../verification/contact-verification.js'
 import { groupMembers, linkHistory, projectCustomers, projectsUnder } from './links.js'
 
@@ -102,10 +102,10 @@ export async function findCustomer(db: Reader, scope: DataScope, customerId: str
 export async function staffCustomerView(db: Reader, scope: DataScope, customerId: string, actor: Actor) {
   const id = await findCustomer(db, scope, customerId)
   if (!id) return null
-  return buildView(db, id, actor)
+  return buildView(db, id, actor, scope)
 }
 
-async function buildView(db: Reader, id: string, actor: Actor) {
+async function buildView(db: Reader, id: string, actor: Actor, scope: DataScope) {
   const now = new Date()
   const customer = await db
     .selectFrom('crm.customers')
@@ -211,9 +211,17 @@ async function buildView(db: Reader, id: string, actor: Actor) {
     .orderBy('cp.created_at')
     .execute()
 
+  // Only the projects inside the caller's scope (TSK-0037): a merge or a relink never shows one outside it.
   const projectIds = merged
-    ? (await db.selectFrom('crm.projects').select('id').where('customer_id', '=', id).execute()).map((p) => p.id)
-    : await projectsUnder(db, id)
+    ? (
+        await db
+          .selectFrom('crm.projects')
+          .select('id')
+          .where('customer_id', '=', id)
+          .where(projectInScope('id', scope))
+          .execute()
+      ).map((p) => p.id)
+    : await projectsUnder(db, id, scope)
   const projects = projectIds.length
     ? await db
         .selectFrom('crm.projects')

@@ -16,7 +16,9 @@
 //   customer's history.
 import { createHash } from 'node:crypto'
 import type { Db, Tx } from '@handyhub/db'
+import type { DataScope } from '@handyhub/policy'
 import { sql } from 'kysely'
+import { projectInScope } from '../../platform/data-scope.js'
 
 type Reader = Db | Tx
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -52,24 +54,33 @@ export async function groupMembers(db: Reader, roots: readonly string[]): Promis
 
 /**
  * Every project that the groups of these survivors reach (created for one of their customers, or linked to or from
- * one of them), with the customer staff see it under now.
+ * one of them), with the customer staff see it under now. A staff view passes the caller's scope (TSK-0037), so a
+ * link never shows a project outside it; a link change passes none, because its access recheck covers every project.
  */
-export async function projectRoots(db: Reader, roots: readonly string[]): Promise<Map<string, string>> {
+export async function projectRoots(
+  db: Reader,
+  roots: readonly string[],
+  scope?: DataScope,
+): Promise<Map<string, string>> {
   const members = await groupMembers(db, roots)
   if (members.length === 0) return new Map()
   const r = await sql<{ id: string; root: string }>`
     SELECT p.id, crm.project_customer(p.id) AS root FROM crm.projects p
-     WHERE p.customer_id = ANY(${members}::uuid[])
+     WHERE (p.customer_id = ANY(${members}::uuid[])
         OR p.id IN (SELECT l.project_id FROM crm.record_links l
                      WHERE l.kind = 'request_relink'
-                       AND (l.source_customer_id = ANY(${members}::uuid[]) OR l.target_customer_id = ANY(${members}::uuid[])))
+                       AND (l.source_customer_id = ANY(${members}::uuid[]) OR l.target_customer_id = ANY(${members}::uuid[]))))
+       AND ${scope ? projectInScope('p.id', scope) : sql<boolean>`true`}
   `.execute(db)
   return new Map(r.rows.map((x) => [x.id, x.root]))
 }
 
-/** The projects staff see under a customer that is not merged: its own, its merged records' and those linked to it. */
-export async function projectsUnder(db: Reader, customerId: string): Promise<string[]> {
-  const all = await projectRoots(db, [customerId])
+/**
+ * The projects staff see under a customer that is not merged: its own, its merged records' and those linked to it
+ * (inside `scope` when given, see projectRoots).
+ */
+export async function projectsUnder(db: Reader, customerId: string, scope?: DataScope): Promise<string[]> {
+  const all = await projectRoots(db, [customerId], scope)
   return [...all].filter(([, root]) => root === customerId).map(([id]) => id)
 }
 
