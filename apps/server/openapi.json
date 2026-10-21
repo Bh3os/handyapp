@@ -1805,7 +1805,7 @@
       "get": {
         "operationId": "getCustomerProjectDocuments",
         "summary": "The project Documents tab",
-        "description": "The Documents tab. state \"none\": no customer document (estimate, receipt, invoice, care notes) exists yet. With the server time of the read and the refresh interval (portal.refresh; 0 while NOT CONFIGURED). Any other project, an unknown or a malformed reference is the same NOT_FOUND (T19).",
+        "description": "The Documents tab (TSK-0056, HH-PORT-10). state \"listed\": the estimate versions the customer received, newest first, each with its number, version, status (current, approved, declined, expired, superseded, withdrawn), dates and stored total in integer cents. state \"none\": no customer document exists yet (receipts, invoices and care notes come with their own tasks). With the server time of the read and the refresh interval (portal.refresh; 0 while NOT CONFIGURED). Any other project, an unknown or a malformed reference is the same NOT_FOUND (T19).",
         "tags": [
           "portal"
         ],
@@ -1850,8 +1850,58 @@
                     "state": {
                       "type": "string",
                       "enum": [
-                        "none"
+                        "none",
+                        "listed"
                       ]
+                    },
+                    "estimates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "number",
+                          "version",
+                          "status",
+                          "publishedAt",
+                          "validUntil",
+                          "totalCents"
+                        ],
+                        "properties": {
+                          "number": {
+                            "type": "string"
+                          },
+                          "version": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "current",
+                              "approved",
+                              "declined",
+                              "expired",
+                              "superseded",
+                              "withdrawn"
+                            ]
+                          },
+                          "publishedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "validUntil": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "totalCents": {
+                            "type": "integer"
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -1935,6 +1985,1265 @@
           "cache": "private, no-store",
           "test": "test/integration/portal-tabs.test.ts",
           "projection": "project.documents"
+        }
+      }
+    },
+    "/api/v1/customer/projects/{reference}/estimates/{number}/versions/{version}": {
+      "get": {
+        "operationId": "getCustomerEstimate",
+        "summary": "One estimate version as the customer received it",
+        "description": "An estimate version of a project the caller’s session opens, as published (HH-EST-06): the business name, the lines, options, exclusions and other texts, the subtotal, any discount row, the total and any deposit in integer cents as stored, the payment term, the valid-until time and the status (current, approved, declined, expired, superseded, withdrawn). For an uploaded estimate, a short-lived link to its customer PDF. The terms it pinned by document ID, with their state: not_configured (no wording this software holds for that ID, or a content hash that does not match), not_in_effect (a draft not approved for real customers: shown with the TEST banner) or in_effect. Approval is never available here (TSK-0057): every reason is listed, with the current version to review or none. The responses the customer may give now and their own earlier responses, the server time of the read and the refresh interval (portal.refresh). Any other project, estimate or version, a draft and a malformed reference are the same NOT_FOUND (T19).",
+        "tags": [
+          "portal"
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          },
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,3}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reference",
+                    "number",
+                    "version",
+                    "status",
+                    "issuerName",
+                    "publishedAt",
+                    "validUntil",
+                    "lines",
+                    "assumptions",
+                    "exclusions",
+                    "customerResponsibilities",
+                    "dependencies",
+                    "scheduleAssumptions",
+                    "subtotalCents",
+                    "reduction",
+                    "totalCents",
+                    "deposit",
+                    "paymentTerm",
+                    "document",
+                    "terms",
+                    "approval",
+                    "actions",
+                    "freshVerification",
+                    "responses",
+                    "testMark",
+                    "refreshedAt",
+                    "refreshSeconds"
+                  ],
+                  "properties": {
+                    "reference": {
+                      "type": "string"
+                    },
+                    "number": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "current",
+                        "approved",
+                        "declined",
+                        "expired",
+                        "superseded",
+                        "withdrawn"
+                      ]
+                    },
+                    "issuerName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "publishedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "validUntil": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "lines": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "serviceCode",
+                          "description",
+                          "quantity",
+                          "unit",
+                          "unitPriceCents",
+                          "amountCents"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "base",
+                              "alternate",
+                              "add_on"
+                            ]
+                          },
+                          "serviceCode": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "description": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "quantity": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "unit": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "unitPriceCents": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "assumptions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "exclusions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "customerResponsibilities": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "dependencies": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "scheduleAssumptions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "subtotalCents": {
+                      "type": "integer"
+                    },
+                    "reduction": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "label",
+                            "amountCents"
+                          ],
+                          "properties": {
+                            "label": {
+                              "type": "string"
+                            },
+                            "amountCents": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "totalCents": {
+                      "type": "integer"
+                    },
+                    "deposit": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state",
+                        "amountCents"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "required",
+                            "not_required"
+                          ]
+                        },
+                        "amountCents": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "paymentTerm": {
+                      "type": "string"
+                    },
+                    "document": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "url",
+                            "byteSize"
+                          ],
+                          "properties": {
+                            "url": {
+                              "type": "string"
+                            },
+                            "byteSize": {
+                              "type": "integer",
+                              "minimum": 1
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "terms": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "documentId",
+                        "state"
+                      ],
+                      "properties": {
+                        "documentId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "not_configured",
+                            "not_in_effect",
+                            "in_effect"
+                          ]
+                        }
+                      }
+                    },
+                    "approval": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "available",
+                        "reasons",
+                        "current"
+                      ],
+                      "properties": {
+                        "available": {
+                          "type": "boolean",
+                          "enum": [
+                            false
+                          ]
+                        },
+                        "reasons": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "terms_not_configured",
+                              "terms_not_in_effect",
+                              "superseded",
+                              "expired",
+                              "not_published",
+                              "approval_not_available"
+                            ]
+                          }
+                        },
+                        "current": {
+                          "oneOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "number",
+                                "version"
+                              ],
+                              "properties": {
+                                "number": {
+                                  "type": "string"
+                                },
+                                "version": {
+                                  "type": "integer",
+                                  "minimum": 1
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "requestChanges",
+                        "decline",
+                        "requestUpdate"
+                      ],
+                      "properties": {
+                        "requestChanges": {
+                          "type": "boolean"
+                        },
+                        "decline": {
+                          "type": "boolean"
+                        },
+                        "requestUpdate": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "freshVerification": {
+                      "type": "boolean"
+                    },
+                    "responses": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "version",
+                          "at",
+                          "message"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "changes_requested",
+                              "declined",
+                              "update_requested"
+                            ]
+                          },
+                          "version": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "message": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "testMark": {
+                      "type": "boolean"
+                    },
+                    "refreshedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "refreshSeconds": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "request.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/portal-estimates.test.ts",
+          "projection": "estimate_version.customer"
+        }
+      }
+    },
+    "/api/v1/customer/projects/{reference}/estimates/{number}/versions/{version}/decline": {
+      "post": {
+        "operationId": "declineEstimate",
+        "summary": "Decline the current estimate version",
+        "description": "Decline (HH-EST-09): the version moves from published to declined with the customer’s optional reason; every earlier record is kept and staff get a follow-up item. Needs a fresh verification of the session (HH-ID-07, the matrix rule of estimate.decline): an older one is FRESH_VERIFICATION_REQUIRED and nothing is written. A version this response does not apply to answers CONFLICT naming its status now. In one transaction: the append-only response, the staff follow-up item (estimate_response) and the committed event of the staff notice, whose wording is NOT CONFIGURED yet. Never accepts the estimate. Any other project, estimate or version is NOT_FOUND (T19).",
+        "tags": [
+          "portal"
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          },
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,3}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 1000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reference",
+                    "number",
+                    "version",
+                    "kind",
+                    "status",
+                    "at"
+                  ],
+                  "properties": {
+                    "reference": {
+                      "type": "string"
+                    },
+                    "number": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "changes_requested",
+                        "declined",
+                        "update_requested"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "current",
+                        "approved",
+                        "declined",
+                        "expired",
+                        "superseded",
+                        "withdrawn"
+                      ]
+                    },
+                    "at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "estimate.decline",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "customer-estimate-response",
+            "limit": 30,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "estimate.customer_decline",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/portal-estimates.test.ts",
+          "projection": "estimate_response.customer"
+        }
+      }
+    },
+    "/api/v1/customer/projects/{reference}/estimates/{number}/versions/{version}/request-changes": {
+      "post": {
+        "operationId": "requestEstimateChanges",
+        "summary": "Request changes to the current estimate version",
+        "description": "Request Changes (HH-EST-09): the customer’s message is kept as a revision request on the project and the responsible staff member is notified. The version is not changed: it stays the current offer. Needs a fresh verification of the session (HH-ID-07, the matrix rule of estimate.request_changes): an older one is FRESH_VERIFICATION_REQUIRED and nothing is written. A version this response does not apply to answers CONFLICT naming its status now. In one transaction: the append-only response, the staff follow-up item (estimate_response) and the committed event of the staff notice, whose wording is NOT CONFIGURED yet. Never accepts the estimate. Any other project, estimate or version is NOT_FOUND (T19).",
+        "tags": [
+          "portal"
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          },
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,3}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "message"
+                ],
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reference",
+                    "number",
+                    "version",
+                    "kind",
+                    "status",
+                    "at"
+                  ],
+                  "properties": {
+                    "reference": {
+                      "type": "string"
+                    },
+                    "number": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "changes_requested",
+                        "declined",
+                        "update_requested"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "current",
+                        "approved",
+                        "declined",
+                        "expired",
+                        "superseded",
+                        "withdrawn"
+                      ]
+                    },
+                    "at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "estimate.request_changes",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "customer-estimate-response",
+            "limit": 30,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "estimate.request_changes",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/portal-estimates.test.ts",
+          "projection": "estimate_response.customer"
+        }
+      }
+    },
+    "/api/v1/customer/projects/{reference}/estimates/{number}/versions/{version}/request-update": {
+      "post": {
+        "operationId": "requestUpdatedEstimate",
+        "summary": "Request an updated estimate for an expired version",
+        "description": "Request an Updated Estimate (OWN-DEC-103, FACT-ESTIMATE-VALIDITY): on a version that expired with no current version of the estimate to review, a request for a new one with an optional message. The expired version stays expired; whether it is re-issued at the old price is decided by staff each time. Needs a fresh verification of the session (HH-ID-07, the matrix rule of estimate.request_changes): an older one is FRESH_VERIFICATION_REQUIRED and nothing is written. A version this response does not apply to answers CONFLICT naming its status now. In one transaction: the append-only response, the staff follow-up item (estimate_response) and the committed event of the staff notice, whose wording is NOT CONFIGURED yet. Never accepts the estimate. Any other project, estimate or version is NOT_FOUND (T19).",
+        "tags": [
+          "portal"
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          },
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,3}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reference",
+                    "number",
+                    "version",
+                    "kind",
+                    "status",
+                    "at"
+                  ],
+                  "properties": {
+                    "reference": {
+                      "type": "string"
+                    },
+                    "number": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "changes_requested",
+                        "declined",
+                        "update_requested"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "current",
+                        "approved",
+                        "declined",
+                        "expired",
+                        "superseded",
+                        "withdrawn"
+                      ]
+                    },
+                    "at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "estimate.request_changes",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "customer-estimate-response",
+            "limit": 30,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "estimate.request_update",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/portal-estimates.test.ts",
+          "projection": "estimate_response.customer"
         }
       }
     },
@@ -14607,6 +15916,7 @@
                         "customerPdf",
                         "revisedFrom",
                         "current",
+                        "customerResponses",
                         "actions",
                         "history"
                       ],
@@ -14745,6 +16055,42 @@
                               }
                             }
                           ]
+                        },
+                        "customerResponses": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "kind",
+                              "version",
+                              "at",
+                              "message"
+                            ],
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "changes_requested",
+                                  "declined",
+                                  "update_requested"
+                                ]
+                              },
+                              "version": {
+                                "type": "integer"
+                              },
+                              "at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "message": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
                         },
                         "actions": {
                           "type": "object",
@@ -15985,6 +17331,7 @@
                         "customerPdf",
                         "revisedFrom",
                         "current",
+                        "customerResponses",
                         "actions",
                         "history"
                       ],
@@ -16123,6 +17470,42 @@
                               }
                             }
                           ]
+                        },
+                        "customerResponses": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "kind",
+                              "version",
+                              "at",
+                              "message"
+                            ],
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "changes_requested",
+                                  "declined",
+                                  "update_requested"
+                                ]
+                              },
+                              "version": {
+                                "type": "integer"
+                              },
+                              "at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "message": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
                         },
                         "actions": {
                           "type": "object",
@@ -17641,6 +19024,7 @@
                         "customerPdf",
                         "revisedFrom",
                         "current",
+                        "customerResponses",
                         "actions",
                         "history"
                       ],
@@ -17779,6 +19163,42 @@
                               }
                             }
                           ]
+                        },
+                        "customerResponses": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "kind",
+                              "version",
+                              "at",
+                              "message"
+                            ],
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "changes_requested",
+                                  "declined",
+                                  "update_requested"
+                                ]
+                              },
+                              "version": {
+                                "type": "integer"
+                              },
+                              "at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "message": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
                         },
                         "actions": {
                           "type": "object",
@@ -18873,6 +20293,7 @@
                         "customerPdf",
                         "revisedFrom",
                         "current",
+                        "customerResponses",
                         "actions",
                         "history"
                       ],
@@ -19011,6 +20432,42 @@
                               }
                             }
                           ]
+                        },
+                        "customerResponses": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "kind",
+                              "version",
+                              "at",
+                              "message"
+                            ],
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "changes_requested",
+                                  "declined",
+                                  "update_requested"
+                                ]
+                              },
+                              "version": {
+                                "type": "integer"
+                              },
+                              "at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "message": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
                         },
                         "actions": {
                           "type": "object",
@@ -20280,6 +21737,7 @@
                         "customerPdf",
                         "revisedFrom",
                         "current",
+                        "customerResponses",
                         "actions",
                         "history"
                       ],
@@ -20418,6 +21876,42 @@
                               }
                             }
                           ]
+                        },
+                        "customerResponses": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "kind",
+                              "version",
+                              "at",
+                              "message"
+                            ],
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "changes_requested",
+                                  "declined",
+                                  "update_requested"
+                                ]
+                              },
+                              "version": {
+                                "type": "integer"
+                              },
+                              "at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "message": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
                         },
                         "actions": {
                           "type": "object",
@@ -21512,6 +23006,7 @@
                         "customerPdf",
                         "revisedFrom",
                         "current",
+                        "customerResponses",
                         "actions",
                         "history"
                       ],
@@ -21650,6 +23145,42 @@
                               }
                             }
                           ]
+                        },
+                        "customerResponses": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "kind",
+                              "version",
+                              "at",
+                              "message"
+                            ],
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "changes_requested",
+                                  "declined",
+                                  "update_requested"
+                                ]
+                              },
+                              "version": {
+                                "type": "integer"
+                              },
+                              "at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "message": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
                         },
                         "actions": {
                           "type": "object",
@@ -23110,6 +24641,7 @@
                         "customerPdf",
                         "revisedFrom",
                         "current",
+                        "customerResponses",
                         "actions",
                         "history"
                       ],
@@ -23248,6 +24780,42 @@
                               }
                             }
                           ]
+                        },
+                        "customerResponses": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "kind",
+                              "version",
+                              "at",
+                              "message"
+                            ],
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "changes_requested",
+                                  "declined",
+                                  "update_requested"
+                                ]
+                              },
+                              "version": {
+                                "type": "integer"
+                              },
+                              "at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "message": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
                         },
                         "actions": {
                           "type": "object",
@@ -24530,6 +26098,7 @@
                         "customerPdf",
                         "revisedFrom",
                         "current",
+                        "customerResponses",
                         "actions",
                         "history"
                       ],
@@ -24668,6 +26237,42 @@
                               }
                             }
                           ]
+                        },
+                        "customerResponses": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "kind",
+                              "version",
+                              "at",
+                              "message"
+                            ],
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "changes_requested",
+                                  "declined",
+                                  "update_requested"
+                                ]
+                              },
+                              "version": {
+                                "type": "integer"
+                              },
+                              "at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "message": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
                         },
                         "actions": {
                           "type": "object",
@@ -25941,6 +27546,7 @@
                         "customerPdf",
                         "revisedFrom",
                         "current",
+                        "customerResponses",
                         "actions",
                         "history"
                       ],
@@ -26079,6 +27685,42 @@
                               }
                             }
                           ]
+                        },
+                        "customerResponses": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "kind",
+                              "version",
+                              "at",
+                              "message"
+                            ],
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "changes_requested",
+                                  "declined",
+                                  "update_requested"
+                                ]
+                              },
+                              "version": {
+                                "type": "integer"
+                              },
+                              "at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "message": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
                         },
                         "actions": {
                           "type": "object",
@@ -27357,6 +28999,7 @@
                         "customerPdf",
                         "revisedFrom",
                         "current",
+                        "customerResponses",
                         "actions",
                         "history"
                       ],
@@ -27495,6 +29138,42 @@
                               }
                             }
                           ]
+                        },
+                        "customerResponses": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "kind",
+                              "version",
+                              "at",
+                              "message"
+                            ],
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "changes_requested",
+                                  "declined",
+                                  "update_requested"
+                                ]
+                              },
+                              "version": {
+                                "type": "integer"
+                              },
+                              "at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "message": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
                         },
                         "actions": {
                           "type": "object",
@@ -28768,6 +30447,7 @@
                         "customerPdf",
                         "revisedFrom",
                         "current",
+                        "customerResponses",
                         "actions",
                         "history"
                       ],
@@ -28906,6 +30586,42 @@
                               }
                             }
                           ]
+                        },
+                        "customerResponses": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "kind",
+                              "version",
+                              "at",
+                              "message"
+                            ],
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "changes_requested",
+                                  "declined",
+                                  "update_requested"
+                                ]
+                              },
+                              "version": {
+                                "type": "integer"
+                              },
+                              "at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "message": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
                         },
                         "actions": {
                           "type": "object",
@@ -30179,6 +31895,7 @@
                         "customerPdf",
                         "revisedFrom",
                         "current",
+                        "customerResponses",
                         "actions",
                         "history"
                       ],
@@ -30317,6 +32034,42 @@
                               }
                             }
                           ]
+                        },
+                        "customerResponses": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "kind",
+                              "version",
+                              "at",
+                              "message"
+                            ],
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "changes_requested",
+                                  "declined",
+                                  "update_requested"
+                                ]
+                              },
+                              "version": {
+                                "type": "integer"
+                              },
+                              "at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "message": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
                         },
                         "actions": {
                           "type": "object",
@@ -31794,6 +33547,7 @@
                         "customerPdf",
                         "revisedFrom",
                         "current",
+                        "customerResponses",
                         "actions",
                         "history"
                       ],
@@ -31932,6 +33686,42 @@
                               }
                             }
                           ]
+                        },
+                        "customerResponses": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "kind",
+                              "version",
+                              "at",
+                              "message"
+                            ],
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "changes_requested",
+                                  "declined",
+                                  "update_requested"
+                                ]
+                              },
+                              "version": {
+                                "type": "integer"
+                              },
+                              "at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "message": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
                         },
                         "actions": {
                           "type": "object",
@@ -39125,6 +40915,7 @@
                 "delivery_failed",
                 "case_open",
                 "estimate_to_write",
+                "estimate_response",
                 "candidate_match",
                 "inbox_needs_linking",
                 "customer_replied",
@@ -39244,6 +41035,7 @@
                               "delivery_failed",
                               "case_open",
                               "estimate_to_write",
+                              "estimate_response",
                               "candidate_match",
                               "inbox_needs_linking",
                               "customer_replied",
@@ -39456,6 +41248,7 @@
                               "open_case",
                               "decide",
                               "write_estimate",
+                              "review_estimate",
                               "review_match",
                               "link_message",
                               "open_conversation"
@@ -39505,6 +41298,7 @@
                           "delivery_failed",
                           "case_open",
                           "estimate_to_write",
+                          "estimate_response",
                           "candidate_match",
                           "inbox_needs_linking",
                           "customer_replied",
@@ -39643,6 +41437,7 @@
                 "delivery_failed",
                 "case_open",
                 "estimate_to_write",
+                "estimate_response",
                 "candidate_match",
                 "inbox_needs_linking",
                 "customer_replied",
@@ -39762,6 +41557,7 @@
                               "delivery_failed",
                               "case_open",
                               "estimate_to_write",
+                              "estimate_response",
                               "candidate_match",
                               "inbox_needs_linking",
                               "customer_replied",
@@ -39974,6 +41770,7 @@
                               "open_case",
                               "decide",
                               "write_estimate",
+                              "review_estimate",
                               "review_match",
                               "link_message",
                               "open_conversation"
@@ -40023,6 +41820,7 @@
                           "delivery_failed",
                           "case_open",
                           "estimate_to_write",
+                          "estimate_response",
                           "candidate_match",
                           "inbox_needs_linking",
                           "customer_replied",

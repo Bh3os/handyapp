@@ -185,7 +185,10 @@ export const CONFIG_KEYS = {
   'legal.website_terms': legalDocument,
   'legal.sms_disclosure': legalDocument,
   // TSK-0053 (HH-EST-13, OWN-DEC-127): the estimate terms each published version carries. NOT CONFIGURED (migration
-  // 0028) until terms v1.0 is recorded with TSK-0056; publish readiness names it while it is missing.
+  // 0028); publish readiness names it while it is missing. TSK-0056 wrote terms v1.0 (ESTIMATE_TERMS of
+  // @handyhub/domain/legal, documentId estimate-terms-1, owner review pending) but records no version of this key:
+  // recording it is the owner's legal-document sign-off (OQ-TERMS-OWNER-APPROVAL), and the customer view shows its
+  // wording only while the recorded content hash matches.
   'legal.estimate_terms': legalDocument,
   // RULE-AI-WAVE2: only `false` is a valid value; the database refuses anything else as well.
   'ai.module': shape({ enabled: exactly(false) }),

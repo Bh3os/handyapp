@@ -10,7 +10,9 @@
     "dev": "vite"
   },
   "dependencies": {
+    "@handyhub/domain": "workspace:*",
     "@handyhub/i18n": "workspace:*",
+    "@handyhub/money": "workspace:*",
     "@handyhub/ui": "workspace:*",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"

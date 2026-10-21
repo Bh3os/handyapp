@@ -4,6 +4,8 @@
 //   GET /customer/projects/:reference/overview  one project's Overview: status, next action, timeline, summaries
 //   GET /customer/projects/:reference/<tab>     the Messages, Documents, Photos, Appointments and Payments tabs
 //                                                (TSK-0039; HH-PORT-09): each tab's truthful state today
+//   GET/POST /customer/projects/:reference/estimates/:number/versions/:version[/...]  the customer estimate view,
+//                                                Request Changes, Decline, Request an Updated Estimate (TSK-0056)
 // The Overview is authorized by the policy (ROLE-MATRIX "View intake queue and original requests": Customer "V (own)")
 // and scoped by the session (TSK-0037): another project, an unknown or a malformed reference is the same NOT_FOUND.
 // The list names no record, so like GET /customer/access/session it starts from the session itself; each project
@@ -26,6 +28,7 @@ import {
   type CustomerView,
 } from '../records/index.js'
 import { projectOverview, projectSummaries, refreshSeconds } from './overview.js'
+import { portalEstimateRoutes, type PortalEstimateDeps } from './estimates.js'
 import { projectTab, type WorkspaceTab } from './tabs.js'
 
 export { projectOverview, projectSummaries, refreshSeconds } from './overview.js'
@@ -45,7 +48,9 @@ const read = {
   test: TEST,
 } as const
 
-export function portalModule(): ApiModule {
+export { ESTIMATE_RESPONSE_RATE_LIMIT, type PortalEstimateDeps } from './estimates.js'
+
+export function portalModule(deps: PortalEstimateDeps = {}): ApiModule {
   const list: RouteDef = {
     ...read,
     path: '/customer/projects',
@@ -116,7 +121,11 @@ export function portalModule(): ApiModule {
       tab: 'documents',
       operationId: 'getCustomerProjectDocuments',
       view: PROJECT_DOCUMENTS as CustomerView<never>,
-      says: 'The Documents tab. state "none": no customer document (estimate, receipt, invoice, care notes) exists yet.',
+      says:
+        'The Documents tab (TSK-0056, HH-PORT-10). state "listed": the estimate versions the customer received, newest ' +
+        'first, each with its number, version, status (current, approved, declined, expired, superseded, withdrawn), ' +
+        'dates and stored total in integer cents. state "none": no customer document exists yet (receipts, invoices ' +
+        'and care notes come with their own tasks).',
     },
     {
       tab: 'photos',
@@ -158,5 +167,5 @@ export function portalModule(): ApiModule {
     },
   }))
 
-  return { name: 'portal', routes: [list, overview, ...tabs] }
+  return { name: 'portal', routes: [list, overview, ...tabs, ...portalEstimateRoutes(deps)] }
 }

@@ -32,6 +32,8 @@ export const ENTITIES = [
   'Document',
   'Invoice',
   'Case',
+  // TSK-0056: the customer's estimate view and their responses to it.
+  'EstimateVersion',
   'Contact',
   'Note',
   'CandidateMatch',
@@ -316,8 +318,66 @@ function tabView<S extends string>(name: string, entity: Entity, states: readonl
 
 /** The Messages tab: the conversation is not shown in the portal yet (TSK-0050). */
 export const PROJECT_MESSAGES = tabView('project.messages', 'Project', ['not_shown'] as const)
-/** The Documents tab: no customer document exists yet. */
-export const PROJECT_DOCUMENTS = tabView('project.documents', 'Document', ['none'] as const)
+/**
+ * The Documents tab (TSK-0039; TSK-0056, HH-PORT-10): "none" while the project has no customer document, or "listed"
+ * with the estimate versions the customer received, newest first, each with its status (current, approved, declined,
+ * expired, superseded, withdrawn), its dates and its stored total in integer cents. The list is present only when
+ * listed. Receipts, invoices, change orders and care notes come with their own tasks.
+ */
+export const CUSTOMER_VERSION_STATUSES = [
+  'current',
+  'approved',
+  'declined',
+  'expired',
+  'superseded',
+  'withdrawn',
+] as const
+const CENTS = { type: 'integer' } as const
+const NULLABLE_CENTS = { type: ['integer', 'null'] } as const
+const NULLABLE_STRING = { type: ['string', 'null'] } as const
+const NULLABLE_DATE = { type: ['string', 'null'], format: 'date-time' } as const
+const STRINGS = { type: 'array', items: STRING } as const
+const ESTIMATE_LIST_ITEM = object({
+  number: STRING,
+  version: { type: 'integer', minimum: 1 },
+  status: enumOf(CUSTOMER_VERSION_STATUSES),
+  publishedAt: DATE,
+  validUntil: NULLABLE_DATE,
+  totalCents: CENTS,
+})
+type EstimateListRecord = {
+  number: string
+  version: number
+  status: string
+  publishedAt: Date
+  validUntil: Date | null
+  totalCents: number
+}
+const listedView = customerView(
+  'project.documents',
+  'Document',
+  { ...TAB_FIELDS, state: enumOf(['none', 'listed']), estimates: { type: 'array', items: ESTIMATE_LIST_ITEM } },
+  (r: TabRecord & ({ state: 'none' } | { state: 'listed'; estimates: EstimateListRecord[] })) => ({
+    ...tabHead(r),
+    state: r.state,
+    estimates:
+      r.state === 'listed'
+        ? r.estimates.map((e) => ({
+            number: e.number,
+            version: e.version,
+            status: e.status,
+            publishedAt: e.publishedAt.toISOString(),
+            validUntil: e.validUntil ? e.validUntil.toISOString() : null,
+            totalCents: e.totalCents,
+          }))
+        : undefined,
+  }),
+)
+export const PROJECT_DOCUMENTS: typeof listedView = {
+  ...listedView,
+  // The list is sent only with the "listed" state; "none" is the state alone, as before (TSK-0039).
+  schema: { ...listedView.schema, required: Object.keys(TAB_FIELDS).concat('state') },
+}
 /** The Appointments tab: no visit exists yet (TSK-0061). */
 export const PROJECT_APPOINTMENTS = tabView('project.appointments', 'Project', ['none'] as const)
 /** The Payments tab: no estimate total, deposit, invoice or recorded payment exists yet (TSK-0087). */
@@ -394,6 +454,191 @@ export const ENROLLMENT_CHANNEL = customerView(
   (c: { channel: 'email' | 'phone'; destination: string }) => ({ channel: c.channel, destination: c.destination }),
 )
 
+// The customer estimate view (TSK-0056; HH-EST-06, HH-EST-09, HH-EST-13, HH-PORT-10, OWN-DEC-103). The customer-facing
+// content of one version as published: the lines, texts and totals in integer cents exactly as stored, the business
+// name, the payment term code, the terms the version pinned (by document ID and state; the portal holds the wording),
+// why approval is not available here and the version to review instead, the responses the customer may give now, and
+// their own earlier responses with their words. Never an internal cost, note, preparer, staff field or storage key.
+const LINE = object({
+  kind: enumOf(['base', 'alternate', 'add_on']),
+  serviceCode: NULLABLE_STRING,
+  description: NULLABLE_STRING,
+  quantity: NULLABLE_STRING,
+  unit: NULLABLE_STRING,
+  unitPriceCents: NULLABLE_CENTS,
+  amountCents: NULLABLE_CENTS,
+})
+const RESPONSE = object({
+  kind: enumOf(['changes_requested', 'declined', 'update_requested']),
+  version: { type: 'integer', minimum: 1 },
+  at: DATE,
+  message: NULLABLE_STRING,
+})
+type ResponseRecord = { kind: string; version: number; at: Date; message: string | null }
+const response = (r: ResponseRecord) => ({
+  kind: r.kind,
+  version: r.version,
+  at: r.at.toISOString(),
+  message: r.message,
+})
+type EstimateDetailRecord = {
+  reference: string
+  number: string
+  version: number
+  status: string
+  issuerName: string | null
+  publishedAt: Date
+  validUntil: Date | null
+  lines: {
+    kind: string
+    serviceCode: string | null
+    description: string | null
+    quantity: string | null
+    unit: string | null
+    unitPriceCents: number | null
+    amountCents: number | null
+  }[]
+  assumptions: string[]
+  exclusions: string[]
+  customerResponsibilities: string[]
+  dependencies: string[]
+  scheduleAssumptions: string[]
+  subtotalCents: number
+  reduction: { label: string; amountCents: number } | null
+  totalCents: number
+  deposit: { state: string; amountCents: number | null }
+  paymentTerm: string
+  document: { url: string; byteSize: number } | null
+  terms: { documentId: string | null; state: string }
+  approval: { available: false; reasons: string[]; current: { number: string; version: number } | null }
+  actions: { requestChanges: boolean; decline: boolean; requestUpdate: boolean }
+  freshVerification: boolean
+  responses: ResponseRecord[]
+  testMark: boolean
+  refreshedAt: Date
+  refreshSeconds: number
+}
+export const CUSTOMER_ESTIMATE = customerView(
+  'estimate_version.customer',
+  'EstimateVersion',
+  {
+    reference: STRING,
+    number: STRING,
+    version: { type: 'integer', minimum: 1 },
+    status: enumOf(CUSTOMER_VERSION_STATUSES),
+    issuerName: NULLABLE_STRING,
+    publishedAt: DATE,
+    validUntil: NULLABLE_DATE,
+    lines: { type: 'array', items: LINE },
+    assumptions: STRINGS,
+    exclusions: STRINGS,
+    customerResponsibilities: STRINGS,
+    dependencies: STRINGS,
+    scheduleAssumptions: STRINGS,
+    subtotalCents: CENTS,
+    // The discount totals row (OWN-DEC-145), labelled by the server in the customer PDF's own words.
+    reduction: { oneOf: [{ type: 'null' }, object({ label: STRING, amountCents: CENTS })] },
+    totalCents: CENTS,
+    deposit: object({ state: enumOf(['required', 'not_required']), amountCents: NULLABLE_CENTS }),
+    paymentTerm: STRING,
+    document: { oneOf: [{ type: 'null' }, object({ url: STRING, byteSize: { type: 'integer', minimum: 1 } })] },
+    terms: object({ documentId: NULLABLE_STRING, state: enumOf(['not_configured', 'not_in_effect', 'in_effect']) }),
+    approval: object({
+      available: { type: 'boolean', enum: [false] },
+      reasons: {
+        type: 'array',
+        items: enumOf([
+          'terms_not_configured',
+          'terms_not_in_effect',
+          'superseded',
+          'expired',
+          'not_published',
+          'approval_not_available',
+        ]),
+      },
+      current: { oneOf: [{ type: 'null' }, object({ number: STRING, version: { type: 'integer', minimum: 1 } })] },
+    }),
+    actions: object({
+      requestChanges: { type: 'boolean' },
+      decline: { type: 'boolean' },
+      requestUpdate: { type: 'boolean' },
+    }),
+    freshVerification: { type: 'boolean' },
+    responses: { type: 'array', items: RESPONSE },
+    // Outside production every estimate carries "TEST — not a real invoice or estimate" (HH-PORT-10, OWN-DEC-126).
+    testMark: { type: 'boolean' },
+    refreshedAt: DATE,
+    refreshSeconds: { type: 'integer', minimum: 0 },
+  },
+  (v: EstimateDetailRecord) => ({
+    reference: v.reference,
+    number: v.number,
+    version: v.version,
+    status: v.status,
+    issuerName: v.issuerName,
+    publishedAt: v.publishedAt.toISOString(),
+    validUntil: v.validUntil ? v.validUntil.toISOString() : null,
+    lines: v.lines.map((l) => ({
+      kind: l.kind,
+      serviceCode: l.serviceCode,
+      description: l.description,
+      quantity: l.quantity,
+      unit: l.unit,
+      unitPriceCents: l.unitPriceCents,
+      amountCents: l.amountCents,
+    })),
+    assumptions: [...v.assumptions],
+    exclusions: [...v.exclusions],
+    customerResponsibilities: [...v.customerResponsibilities],
+    dependencies: [...v.dependencies],
+    scheduleAssumptions: [...v.scheduleAssumptions],
+    subtotalCents: v.subtotalCents,
+    reduction: v.reduction ? { label: v.reduction.label, amountCents: v.reduction.amountCents } : null,
+    totalCents: v.totalCents,
+    deposit: { state: v.deposit.state, amountCents: v.deposit.amountCents },
+    paymentTerm: v.paymentTerm,
+    document: v.document ? { url: v.document.url, byteSize: v.document.byteSize } : null,
+    terms: { documentId: v.terms.documentId, state: v.terms.state },
+    approval: {
+      available: false,
+      reasons: [...v.approval.reasons],
+      current: v.approval.current ? { number: v.approval.current.number, version: v.approval.current.version } : null,
+    },
+    actions: {
+      requestChanges: v.actions.requestChanges,
+      decline: v.actions.decline,
+      requestUpdate: v.actions.requestUpdate,
+    },
+    freshVerification: v.freshVerification,
+    responses: v.responses.map(response),
+    testMark: v.testMark,
+    refreshedAt: v.refreshedAt.toISOString(),
+    refreshSeconds: v.refreshSeconds,
+  }),
+)
+
+/** What a customer's Request Changes, Decline or Request an Updated Estimate recorded (TSK-0056, HH-EST-09). */
+export const CUSTOMER_ESTIMATE_RESPONSE = customerView(
+  'estimate_response.customer',
+  'EstimateVersion',
+  {
+    reference: STRING,
+    number: STRING,
+    version: { type: 'integer', minimum: 1 },
+    kind: enumOf(['changes_requested', 'declined', 'update_requested']),
+    status: enumOf(CUSTOMER_VERSION_STATUSES),
+    at: DATE,
+  },
+  (r: { reference: string; number: string; version: number; kind: string; status: string; at: Date }) => ({
+    reference: r.reference,
+    number: r.number,
+    version: r.version,
+    kind: r.kind,
+    status: r.status,
+    at: r.at.toISOString(),
+  }),
+)
+
 /** Every customer view, by name. */
 export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
   [
@@ -412,5 +657,7 @@ export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
     ACCOUNT_SIGNED_IN,
     ACCOUNT_CODE_SENT,
     ENROLLMENT_CHANNEL,
+    CUSTOMER_ESTIMATE,
+    CUSTOMER_ESTIMATE_RESPONSE,
   ].map((v) => [v.name, v as CustomerView<never>]),
 )

@@ -305,6 +305,19 @@ export interface CrmRecordLinksTable {
   reversal_recheck: Json | null
 }
 
+export interface EstimatingCustomerResponsesTable {
+  id: Generated<string>
+  project_id: string
+  estimate_id: string
+  version_id: string
+  kind: string
+  message: string | null
+  version_state: string
+  contact_ref: string
+  customer_session_id: string | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface EstimatingEstimateDocumentsTable {
   id: string
   version_id: string
@@ -1083,6 +1096,7 @@ export interface Database {
   'crm.property_details': CrmPropertyDetailsTable
   'crm.record_changes': CrmRecordChangesTable
   'crm.record_links': CrmRecordLinksTable
+  'estimating.customer_responses': EstimatingCustomerResponsesTable
   'estimating.estimate_documents': EstimatingEstimateDocumentsTable
   'estimating.estimate_line_costs': EstimatingEstimateLineCostsTable
   'estimating.estimate_lines': EstimatingEstimateLinesTable

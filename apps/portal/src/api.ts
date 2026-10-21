@@ -6,6 +6,8 @@
 // - 403 / 404: this project is not available to this session (a project outside it is the same NOT_FOUND as a
 //   missing one, T19);
 // - a network failure, a server error or an unexpected answer: failed.
+// TSK-0056 adds the estimate view (estimate_version.customer) and the customer's responses to it (POST, JSON body,
+// with an idempotency key the page keeps for retries of the same response).
 
 export type Fetch = (input: string, init?: RequestInit) => Promise<Response>
 
@@ -175,10 +177,25 @@ export const WORKSPACE_TABS = ['messages', 'documents', 'photos', 'appointments'
 export type WorkspaceTab = (typeof WORKSPACE_TABS)[number]
 type TabHead = { reference: string; refreshedAt: string; refreshSeconds: number }
 export type PhotoCounts = { received: number; processing: number; failed: number }
-/** What each tab holds today: a closed state code, or (Photos) the counts of the customer-visible photos. */
+
+// The estimate versions of the Documents tab and the customer estimate view (TSK-0056; HH-PORT-10, HH-EST-06).
+export const VERSION_STATUSES = ['current', 'approved', 'declined', 'expired', 'superseded', 'withdrawn'] as const
+export type VersionStatus = (typeof VERSION_STATUSES)[number]
+export type EstimateListItem = {
+  number: string
+  version: number
+  status: VersionStatus
+  publishedAt: string
+  validUntil: string | null
+  totalCents: number
+}
+
+/** What each tab holds today: a closed state code, the estimates (Documents) or the photo counts (Photos). */
 export type TabData =
   | (TabHead & { tab: 'messages'; state: 'not_shown' })
-  | (TabHead & { tab: 'documents' | 'appointments' | 'payments'; state: 'none' })
+  | (TabHead & { tab: 'documents'; state: 'none' })
+  | (TabHead & { tab: 'documents'; state: 'listed'; estimates: EstimateListItem[] })
+  | (TabHead & { tab: 'appointments' | 'payments'; state: 'none' })
   | (TabHead & { tab: 'photos'; photos: PhotoCounts })
 
 const TAB_STATE: Record<Exclude<WorkspaceTab, 'photos'>, string> = {
@@ -200,9 +217,225 @@ export function parseTab(tab: WorkspaceTab, v: unknown): TabData | null {
     if (!isObj(p) || !isSeconds(p['received']) || !isSeconds(p['processing']) || !isSeconds(p['failed'])) return null
     return { ...head, tab, photos: { received: p['received'], processing: p['processing'], failed: p['failed'] } }
   }
+  if (tab === 'documents' && v['state'] === 'listed') {
+    const list = Array.isArray(v['estimates']) ? v['estimates'].map(listItem) : null
+    if (!list || list.length === 0 || list.some((e) => e === null)) return null
+    return { ...head, tab, state: 'listed', estimates: list as EstimateListItem[] }
+  }
   // Any other state (for example "paid" or "read") is not what the view declares: a failure, never shown as data.
   if (v['state'] !== TAB_STATE[tab]) return null
-  return tab === 'messages' ? { ...head, tab, state: 'not_shown' } : { ...head, tab, state: 'none' }
+  if (tab === 'messages') return { ...head, tab, state: 'not_shown' }
+  if (tab === 'documents') return { ...head, tab, state: 'none' }
+  return { ...head, tab, state: 'none' }
+}
+
+const isInt = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v)
+const isCents = (v: unknown): v is number => isInt(v) && v >= 0
+const isNullableStr = (v: unknown): v is string | null => v === null || isStr(v)
+const isNullableDate = (v: unknown): v is string | null => v === null || isDate(v)
+
+function listItem(v: unknown): EstimateListItem | null {
+  if (!isObj(v)) return null
+  const { number, version, status, publishedAt, validUntil, totalCents } = v
+  if (!isStr(number) || !isInt(version) || !oneOf(VERSION_STATUSES)(status) || !isDate(publishedAt)) return null
+  if (!isNullableDate(validUntil) || !isCents(totalCents)) return null
+  return { number, version, status, publishedAt, validUntil, totalCents }
+}
+
+export const TERMS_STATES = ['not_configured', 'not_in_effect', 'in_effect'] as const
+export type TermsState = (typeof TERMS_STATES)[number]
+export const APPROVAL_REASONS = [
+  'terms_not_configured',
+  'terms_not_in_effect',
+  'superseded',
+  'expired',
+  'not_published',
+  'approval_not_available',
+] as const
+export type ApprovalReason = (typeof APPROVAL_REASONS)[number]
+export const RESPONSE_KINDS = ['changes_requested', 'declined', 'update_requested'] as const
+export type ResponseKind = (typeof RESPONSE_KINDS)[number]
+
+export type EstimateLine = {
+  kind: 'base' | 'alternate' | 'add_on'
+  serviceCode: string | null
+  description: string | null
+  quantity: string | null
+  unit: string | null
+  unitPriceCents: number | null
+  amountCents: number | null
+}
+export type EstimateResponse = { kind: ResponseKind; version: number; at: string; message: string | null }
+export type EstimateDetail = {
+  reference: string
+  number: string
+  version: number
+  status: VersionStatus
+  issuerName: string | null
+  publishedAt: string
+  validUntil: string | null
+  lines: EstimateLine[]
+  assumptions: string[]
+  exclusions: string[]
+  customerResponsibilities: string[]
+  dependencies: string[]
+  scheduleAssumptions: string[]
+  subtotalCents: number
+  /** The totals row before the total, worded by the server (the same words as the customer PDF). */
+  reduction: { label: string; amountCents: number } | null
+  totalCents: number
+  deposit: { state: 'required' | 'not_required'; amountCents: number | null }
+  paymentTerm: string
+  document: { url: string; byteSize: number } | null
+  terms: { documentId: string | null; state: TermsState }
+  approval: { available: false; reasons: ApprovalReason[]; current: { number: string; version: number } | null }
+  actions: { requestChanges: boolean; decline: boolean; requestUpdate: boolean }
+  freshVerification: boolean
+  responses: EstimateResponse[]
+  testMark: boolean
+  refreshedAt: string
+  refreshSeconds: number
+}
+
+const LINE_KINDS = ['base', 'alternate', 'add_on'] as const
+function line(v: unknown): EstimateLine | null {
+  if (!isObj(v) || !oneOf(LINE_KINDS)(v['kind'])) return null
+  const { serviceCode, description, quantity, unit, unitPriceCents, amountCents } = v
+  if (![serviceCode, description, quantity, unit].every(isNullableStr)) return null
+  if (![unitPriceCents, amountCents].every((c) => c === null || isCents(c))) return null
+  return {
+    kind: v['kind'],
+    serviceCode: serviceCode as string | null,
+    description: description as string | null,
+    quantity: quantity as string | null,
+    unit: unit as string | null,
+    unitPriceCents: unitPriceCents as number | null,
+    amountCents: amountCents as number | null,
+  }
+}
+function response(v: unknown): EstimateResponse | null {
+  if (!isObj(v) || !oneOf(RESPONSE_KINDS)(v['kind']) || !isInt(v['version']) || !isDate(v['at'])) return null
+  if (!isNullableStr(v['message'])) return null
+  return { kind: v['kind'], version: v['version'], at: v['at'], message: v['message'] }
+}
+
+/** The customer estimate view (estimate_version.customer); anything else is a failure, never shown as data. */
+export function parseEstimate(v: unknown): EstimateDetail | null {
+  if (!isObj(v)) return null
+  const head = listItem(v)
+  if (!head || !isStr(v['reference']) || !isNullableStr(v['issuerName']) || !isStr(v['paymentTerm'])) return null
+  const lists = [
+    'assumptions',
+    'exclusions',
+    'customerResponsibilities',
+    'dependencies',
+    'scheduleAssumptions',
+  ] as const
+  if (!lists.every((k) => isStrings(v[k]))) return null
+  if (!isCents(v['subtotalCents'])) return null
+  const lines = Array.isArray(v['lines']) ? v['lines'].map(line) : null
+  if (!lines || lines.some((l) => l === null)) return null
+  const reduction = v['reduction']
+  if (reduction !== null && !(isObj(reduction) && isStr(reduction['label']) && isCents(reduction['amountCents'])))
+    return null
+  const deposit = v['deposit']
+  if (!isObj(deposit) || !oneOf(['required', 'not_required'] as const)(deposit['state'])) return null
+  if (deposit['state'] === 'required' ? !isCents(deposit['amountCents']) : deposit['amountCents'] !== null) return null
+  const document = v['document']
+  if (document !== null && !(isObj(document) && isStr(document['url']) && isCents(document['byteSize']))) return null
+  const terms = v['terms']
+  if (!isObj(terms) || !isNullableStr(terms['documentId']) || !oneOf(TERMS_STATES)(terms['state'])) return null
+  const approval = v['approval']
+  if (!isObj(approval) || approval['available'] !== false || !Array.isArray(approval['reasons'])) return null
+  if (!approval['reasons'].every(oneOf(APPROVAL_REASONS))) return null
+  const current = approval['current']
+  if (current !== null && !(isObj(current) && isStr(current['number']) && isInt(current['version']))) return null
+  const actions = v['actions']
+  if (!isObj(actions) || !['requestChanges', 'decline', 'requestUpdate'].every((k) => typeof actions[k] === 'boolean'))
+    return null
+  const responses = Array.isArray(v['responses']) ? v['responses'].map(response) : null
+  if (!responses || responses.some((r) => r === null)) return null
+  if (typeof v['freshVerification'] !== 'boolean' || typeof v['testMark'] !== 'boolean') return null
+  if (!isDate(v['refreshedAt']) || !isSeconds(v['refreshSeconds'])) return null
+  return {
+    ...head,
+    reference: v['reference'],
+    issuerName: v['issuerName'],
+    lines: lines as EstimateLine[],
+    assumptions: v['assumptions'] as string[],
+    exclusions: v['exclusions'] as string[],
+    customerResponsibilities: v['customerResponsibilities'] as string[],
+    dependencies: v['dependencies'] as string[],
+    scheduleAssumptions: v['scheduleAssumptions'] as string[],
+    subtotalCents: v['subtotalCents'],
+    reduction: reduction as EstimateDetail['reduction'],
+    deposit: deposit as EstimateDetail['deposit'],
+    paymentTerm: v['paymentTerm'],
+    document: document as EstimateDetail['document'],
+    terms: terms as EstimateDetail['terms'],
+    approval: approval as EstimateDetail['approval'],
+    actions: actions as EstimateDetail['actions'],
+    freshVerification: v['freshVerification'],
+    responses: responses as EstimateResponse[],
+    testMark: v['testMark'],
+    refreshedAt: v['refreshedAt'],
+    refreshSeconds: v['refreshSeconds'],
+  }
+}
+
+/** Why a response was not recorded, as the page says it. */
+export type WriteFailure = Failure | 'fresh_verification' | 'not_applicable' | 'invalid' | 'rate_limited'
+export type WriteResult = { ok: true; status: VersionStatus } | { ok: false; failure: WriteFailure }
+
+/** A random idempotency key; the page keeps it for retries of the same response. */
+export function idempotencyKey(): string {
+  const bytes = new Uint8Array(16)
+  globalThis.crypto.getRandomValues(bytes)
+  return `portal-${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')}`
+}
+
+const RESPONSE_PATH: Record<ResponseKind, string> = {
+  changes_requested: 'request-changes',
+  declined: 'decline',
+  update_requested: 'request-update',
+}
+
+async function respond(
+  fetchImpl: Fetch,
+  ref: { reference: string; number: string; version: number },
+  kind: ResponseKind,
+  body: Record<string, string>,
+  key: string,
+): Promise<WriteResult> {
+  const path =
+    `/api/v1/customer/projects/${encodeURIComponent(ref.reference)}/estimates/${encodeURIComponent(ref.number)}` +
+    `/versions/${ref.version}/${RESPONSE_PATH[kind]}`
+  let res: Response
+  try {
+    res = await fetchImpl(path, {
+      method: 'POST',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { accept: 'application/json', 'content-type': 'application/json', 'idempotency-key': key },
+      body: JSON.stringify(body),
+    })
+  } catch {
+    return { ok: false, failure: 'failed' }
+  }
+  const json = (await res.json().catch(() => null)) as unknown
+  if (res.status === 201 && isObj(json) && oneOf(VERSION_STATUSES)(json['status']))
+    return { ok: true, status: json['status'] }
+  if (res.status === 401) return { ok: false, failure: 'expired' }
+  if (res.status === 404) return { ok: false, failure: 'unavailable' }
+  const err = isObj(json) && isObj(json['error']) ? json['error'] : null
+  const codes =
+    err && Array.isArray(err['fieldErrors']) ? err['fieldErrors'].map((f) => (isObj(f) ? f['code'] : null)) : []
+  if (res.status === 403 && codes.includes('FRESH_VERIFICATION_REQUIRED'))
+    return { ok: false, failure: 'fresh_verification' }
+  if (res.status === 409) return { ok: false, failure: 'not_applicable' }
+  if (res.status === 400) return { ok: false, failure: 'invalid' }
+  if (res.status === 429) return { ok: false, failure: 'rate_limited' }
+  return { ok: false, failure: 'failed' }
 }
 
 async function read<T>(fetchImpl: Fetch, path: string, parse: (v: unknown) => T | null): Promise<Result<T>> {
@@ -230,4 +463,11 @@ export const portalApi = {
     read(f, `/customer/projects/${encodeURIComponent(reference)}/overview`, parseOverview),
   tab: (f: Fetch, reference: string, tab: WorkspaceTab) =>
     read(f, `/customer/projects/${encodeURIComponent(reference)}/${tab}`, (v) => parseTab(tab, v)),
+  estimate: (f: Fetch, ref: { reference: string; number: string; version: number }) =>
+    read(
+      f,
+      `/customer/projects/${encodeURIComponent(ref.reference)}/estimates/${encodeURIComponent(ref.number)}/versions/${ref.version}`,
+      parseEstimate,
+    ),
+  respond,
 }

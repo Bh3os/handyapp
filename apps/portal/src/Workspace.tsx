@@ -14,17 +14,22 @@ import { portalApi, type Fetch, type NextAction, type ProjectOverview, type Wait
 import { ACTION_LABEL, SITUATION_LABEL, STEP_TEXT, t, TIMELINE_LABEL, WAITING_LABEL, when } from './labels'
 import { useLive } from './live'
 import { NotShown, RefreshLine } from './States'
-import { TAB_LABEL, TAB_ORDER, TabPanel, tabPath, type Tab } from './Tabs'
+import { TAB_LABEL, TAB_ORDER, TabPanel, tabPath, type EstimateRoute, type Tab } from './Tabs'
 
 const WAITING_TONE: Record<Waiting, StatusTone> = { customer: 'warning', handyhub: 'info', nobody: 'neutral' }
 
-/** The screens each next action opens; none exists yet, so each action says it is not available here yet. */
-const ACTION_SCREENS: Partial<Record<NextAction, string>> = {}
+/**
+ * The screens each next action opens; an action whose screen does not exist yet says it is not available here yet.
+ * TSK-0056: Review this estimate opens the Documents tab, where the estimate is.
+ */
+const ACTION_SCREENS: Partial<Record<NextAction, (reference: string) => string>> = {
+  review_estimate: (reference) => tabPath(reference, 'documents'),
+}
 
 function NextStep({ o }: { o: ProjectOverview }) {
   const step = STEP_TEXT[o.status.step]
   const action = o.status.nextAction
-  const screen = ACTION_SCREENS[action]
+  const screen = ACTION_SCREENS[action]?.(o.reference)
   return (
     <div className="portal-next" data-testid="next-action">
       <p className="portal-next__waiting">
@@ -116,11 +121,14 @@ function Overview({ o, stale }: { o: ProjectOverview; stale: boolean }) {
 export function Workspace({
   reference,
   tab = 'overview',
+  estimate,
   onNavigate,
   fetchImpl,
 }: {
   reference: string
   tab?: Tab
+  /** TSK-0056: the estimate version the Documents tab shows (its own page below the tab). */
+  estimate?: EstimateRoute | undefined
   /** Opens another page of the portal (a tab's own path); the App keeps the address bar in step. */
   onNavigate?: (path: string) => void
   fetchImpl: Fetch
@@ -161,7 +169,14 @@ export function Workspace({
                     <Overview o={live.data} stale={live.stale} />
                   </>
                 ) : (
-                  <TabPanel reference={reference} tab={id} active={tab === id} fetchImpl={fetchImpl} />
+                  <TabPanel
+                    reference={reference}
+                    tab={id}
+                    active={tab === id}
+                    fetchImpl={fetchImpl}
+                    onNavigate={onNavigate}
+                    estimate={id === 'documents' ? estimate : undefined}
+                  />
                 ),
             }))}
           />

@@ -50,10 +50,11 @@ describe('queue item types (TSK-0041, HH-OPS-01)', () => {
     expect(visibleSections(staff('office'))).toEqual(['queue'])
     expect(visibleSections(staff('estimator'))).toEqual(['queue'])
     expect(visibleSections(staff('worker'))).toEqual([])
-    // Estimators also see pending estimates (estimate_to_write, TSK-0053).
+    // Estimators also see pending estimates (estimate_to_write, TSK-0053) and the customer's responses to published
+    // estimates (estimate_response, TSK-0056).
     expect(visibleTypes(staff('estimator'), 'queue')).toEqual({
       // TSK-0044: duplicate suggestions, by the Estimator's PROPOSED customer.view_duplicates cell.
-      all: ['new_request', 'review_hold', 'safety_hold', 'estimate_to_write', 'candidate_match'],
+      all: ['new_request', 'review_hold', 'safety_hold', 'estimate_to_write', 'estimate_response', 'candidate_match'],
       // TSK-0049: customer replies on the Estimator's own threads; never the private Needs Linking list.
       own: ['delivery_failed', 'customer_replied'],
     })

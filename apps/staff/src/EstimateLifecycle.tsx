@@ -7,6 +7,8 @@
 //   lists something to resolve. Withdraw and Expire now need a written reason; Record the customer's decline takes the
 //   customer's optional reason. Revise creates the next version as a draft and opens it.
 // - The Owner's publishing setting (Settings): whether Estimators may publish; the Owner always may.
+// - TSK-0056 (HH-EST-09): the customer's Request Changes, Decline and Request an Updated Estimate, newest first, with
+//   the customer's own words; the queue's estimate_response item links here.
 import type { StaffKey } from '@handyhub/i18n'
 import { cents, formatUsd } from '@handyhub/money'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
@@ -28,6 +30,8 @@ export type Lifecycle = {
   customerPdf: { sha256: string; byteSize: number } | null
   revisedFrom: { versionId: string; version: number } | null
   current: { versionId: string; version: number } | null
+  /** TSK-0056 (HH-EST-09): the customer's responses on the estimate, newest first, in their own words. */
+  customerResponses?: { kind: string; version: number; at: string; message: string | null }[]
   actions: Record<
     'publish' | 'requestReview' | 'returnToDraft' | 'withdraw' | 'expire' | 'recordDecline' | 'revise',
     boolean
@@ -420,6 +424,34 @@ export function EstimateLifecycle<V extends VersionLike>({
         </table>
       </div>
       <p className="staff-request__hint">{t('estimate.lifecycle.historyHint')}</p>
+
+      <h3 id={`${ids}-responses`}>{t('estimate.responses.title')}</h3>
+      {lc.customerResponses?.length ? (
+        <ol className="staff-estimate__responses" aria-labelledby={`${ids}-responses`}>
+          {lc.customerResponses.map((r) => (
+            <li key={`${r.at}-${r.kind}-${r.version}`}>
+              <p>
+                <strong>
+                  {t('estimate.responses.entry', {
+                    kind: codeLabel(t, 'estimateResponseKind', r.kind),
+                    n: r.version,
+                    time: new Date(r.at),
+                  })}
+                </strong>
+              </p>
+              {/* The customer's own words, exactly as written (HH-PORT-08): never translated. */}
+              {r.message ? (
+                <p className="staff-estimate__customer-words">{r.message}</p>
+              ) : (
+                <p>{t('estimate.responses.noMessage')}</p>
+              )}
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p>{t('estimate.responses.none')}</p>
+      )}
+      <p className="staff-request__hint">{t('estimate.responses.hint')}</p>
     </section>
   )
 }

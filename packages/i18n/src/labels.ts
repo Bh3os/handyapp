@@ -74,6 +74,7 @@ export const LABEL_FAMILIES = {
     'delivery_failed',
     'case_open',
     'estimate_to_write',
+    'estimate_response',
     'candidate_match',
     'inbox_needs_linking',
     'customer_replied',
@@ -111,6 +112,9 @@ export const LABEL_FAMILIES = {
     'not_a_fit_with_obligations',
     'ready_for_estimate',
     'estimate_draft',
+    'estimate_changes_requested',
+    'estimate_declined',
+    'estimate_update_requested',
     'possible_duplicate',
     'message_needs_linking',
     'customer_replied',
@@ -124,6 +128,7 @@ export const LABEL_FAMILIES = {
     'open_case',
     'decide',
     'write_estimate',
+    'review_estimate',
     'review_match',
     'link_message',
     'open_conversation',
@@ -437,6 +442,11 @@ export const LABEL_FAMILIES = {
     'NO_NEWER_VERSION',
     'FACTS_MISSING',
   ],
+  /**
+   * The customer's responses to an estimate version (TSK-0056, HH-EST-09; migration 0043,
+   * apps/server/src/modules/estimates/responses.ts).
+   */
+  estimateResponseKind: ['changes_requested', 'declined', 'update_requested'],
   /** How an estimate version was authored (HH-EST-11): written in the staff app, or an uploaded document. */
   authoringMethod: ['written', 'uploaded'],
   /** Estimate document states (TSK-0054; migration 0030, apps/server/src/modules/estimates/documents.ts). */

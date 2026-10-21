@@ -12,6 +12,7 @@
     "@playwright/test": "1.56.1"
   },
   "dependencies": {
-    "@handyhub/db": "workspace:*"
+    "@handyhub/db": "workspace:*",
+    "@handyhub/domain": "workspace:*"
   }
 }

@@ -5,6 +5,7 @@ import {
   estimateDocumentProcessAutomation,
   estimateExpiryAutomation,
   estimateReadyAutomation,
+  estimateResponseNoticeAutomations,
 } from './modules/estimates/index.js'
 import { deliveryStatusAutomation } from './modules/notifications/index.js'
 import { photoProcessAutomation } from './modules/photos/index.js'
@@ -43,6 +44,11 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     estimateExpiryAutomation(),
     estimateReadyAutomation({
       providers: { email: deps.providers.email, sms: deps.providers.sms, replyAddress: deps.replyAddress ?? null },
+    }),
+    // TSK-0056: a customer's Request Changes or Decline notifies the responsible staff member (wording NOT CONFIGURED).
+    ...estimateResponseNoticeAutomations({
+      providers: { email: deps.providers.email, sms: null },
+      staffAppUrl: deps.staffAppUrl,
     }),
     // TSK-0041: action queue items from the modules' committed events.
     ...queueAutomations(),

@@ -162,15 +162,16 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
   it('[HH-OPS-01][T26] an estimator sees requests and safety holds, but no cases and no Owner Decisions', async () => {
     const est = await list('estimator')
     expect(est.sections).toEqual(['queue'])
-    // Pending estimates (estimate_to_write, TSK-0053) are the Estimator's too; TSK-0044: duplicate suggestions, by the
-    // Estimator's PROPOSED customer.view_duplicates cell. TSK-0049: customer replies on own threads; never the private
-    // Needs Linking list.
+    // Pending estimates (estimate_to_write, TSK-0053) and the customer's responses to estimates (estimate_response,
+    // TSK-0056) are the Estimator's too; TSK-0044: duplicate suggestions, by the Estimator's PROPOSED
+    // customer.view_duplicates cell. TSK-0049: customer replies on own threads; never the private Needs Linking list.
     expect(est.types).toEqual([
       'new_request',
       'review_hold',
       'safety_hold',
       'delivery_failed',
       'estimate_to_write',
+      'estimate_response',
       'candidate_match',
       'customer_replied',
     ])

@@ -102,6 +102,15 @@ function dateText(iso: string, timeZone: string | null): string {
   return timeZone ? text : `${text} (UTC)`
 }
 
+/** The discount totals row's label in the owner's format, "Discount (military) -10%" (OWN-DEC-145; TSK-0056 too). */
+export function discountRowLabel(d: { category: string; percentBps: number }): string {
+  const categoryKey = DISCOUNT_CATEGORY[d.category]
+  return t('estimatePdf.discount', {
+    category: categoryKey ? t(categoryKey) : d.category,
+    percent: percent(d.percentBps),
+  })
+}
+
 /** The PDF's content for one version. Pure: the same input always gives the same model. */
 export function customerPdfModel(input: CustomerPdfInput): CustomerPdfModel {
   const c = input.content
@@ -163,17 +172,7 @@ export function customerPdfModel(input: CustomerPdfInput): CustomerPdfModel {
   else {
     const rows = [{ label: t('estimatePdf.subtotal'), value: usd(c.totals.subtotalCents), strong: false }]
     const d = c.totals.discount
-    if (d) {
-      const categoryKey = DISCOUNT_CATEGORY[d.category]
-      rows.push({
-        label: t('estimatePdf.discount', {
-          category: categoryKey ? t(categoryKey) : d.category,
-          percent: percent(d.percentBps),
-        }),
-        value: `-${usd(d.amountCents)}`,
-        strong: false,
-      })
-    }
+    if (d) rows.push({ label: discountRowLabel(d), value: `-${usd(d.amountCents)}`, strong: false })
     rows.push({ label: t('estimatePdf.total'), value: usd(c.totals.totalCents), strong: true })
     // The deposit appears only when the deposit rule applies (T31); a missing rule is never read as "no deposit".
     const dep = c.totals.deposit

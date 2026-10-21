@@ -79,6 +79,11 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
         'getCustomerProjectPhotos',
         'getCustomerProjectAppointments',
         'getCustomerProjectPayments',
+        // TSK-0056: the customer estimate view and the customer's responses to it.
+        'getCustomerEstimate',
+        'requestEstimateChanges',
+        'declineEstimate',
+        'requestUpdatedEstimate',
       ].sort(),
     )
     for (const r of customerRoutes) {
@@ -211,8 +216,15 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
     ).toEqual({ ...out, photos: { received: 2, processing: 1, failed: 0 } })
     // The states are closed sets: a tab cannot answer "paid", "read" or a list it does not have yet.
     expect(PROJECT_MESSAGES.schema).toMatchObject({ properties: { state: { enum: ['not_shown'] } } })
-    for (const view of [PROJECT_DOCUMENTS, PROJECT_APPOINTMENTS, PROJECT_PAYMENTS])
+    for (const view of [PROJECT_APPOINTMENTS, PROJECT_PAYMENTS])
       expect(view.schema).toMatchObject({ additionalProperties: false, properties: { state: { enum: ['none'] } } })
+    // TSK-0056 (HH-PORT-10): Documents also answers "listed" with the estimate versions the customer received; "none"
+    // is still the state alone.
+    expect(PROJECT_DOCUMENTS.schema).toMatchObject({
+      additionalProperties: false,
+      required: ['reference', 'refreshedAt', 'refreshSeconds', 'state'],
+      properties: { state: { enum: ['none', 'listed'] } },
+    })
     expect(PROJECT_PHOTOS.schema).toMatchObject({
       properties: { photos: { additionalProperties: false, required: ['received', 'processing', 'failed'] } },
     })

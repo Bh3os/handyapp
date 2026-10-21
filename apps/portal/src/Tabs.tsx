@@ -2,14 +2,19 @@
 // - Each tab reads its own customer view from the server the first time it is shown, and refreshes only while it is
 //   shown (useLive's `active`): a tab that is not on screen never polls.
 // - Each says truthfully what it holds today. Messages: the conversation is not shown here yet (it is never claimed
-//   empty). Documents, Appointments, Payments: nothing exists yet, with what will appear. Photos: how many photos
-//   the project has by state, the same counts as the receipt, and that viewing them here is not available yet.
+//   empty). Documents (TSK-0056, HH-PORT-10): the estimate versions the customer received, each with its status, each
+//   opening the estimate view; nothing yet, with what will appear, while there is none. Appointments, Payments:
+//   nothing exists yet. Photos: how many photos the project has by state, the same counts as the receipt, and that
+//   viewing them here is not available yet.
 // - A tab once opened stays mounted while another is shown, so anything typed in it survives a tab switch.
 // English only, from the customer catalog; the wording no decision gives is PROPOSED (OQ-PORTAL-WORDING).
 import type { CustomerKey } from '@handyhub/i18n'
 import { StateView } from '@handyhub/ui'
 import { useEffect, useState } from 'react'
-import { portalApi, type Fetch, type TabData, type WorkspaceTab } from './api'
+import { cents, formatUsd } from '@handyhub/money'
+import { StatusBadge } from '@handyhub/ui'
+import { portalApi, type EstimateListItem, type Fetch, type TabData, type WorkspaceTab } from './api'
+import { day, estimatePath, EstimateView, STATUS_LABEL, STATUS_TONE } from './Estimate'
 import { t } from './labels'
 import { useLive } from './live'
 import { NotShown, RefreshLine } from './States'
@@ -40,12 +45,60 @@ function Empty({ title, text, more }: { title: CustomerKey; text: CustomerKey; m
   )
 }
 
-function Content({ data }: { data: TabData }) {
+function Estimates({
+  reference,
+  estimates,
+  onNavigate,
+}: {
+  reference: string
+  estimates: EstimateListItem[]
+  onNavigate?: ((path: string) => void) | undefined
+}) {
+  return (
+    <>
+      <h3 className="hh-h3">{t('portal.documents.estimates.title')}</h3>
+      <ul className="portal-documents">
+        {estimates.map((e) => {
+          const href = estimatePath(reference, e.number, e.version)
+          return (
+            <li key={`${e.number}-${e.version}`} className="portal-documents__item">
+              <p>
+                <a
+                  href={href}
+                  onClick={(ev) => {
+                    if (!onNavigate || ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey || ev.button !== 0) return
+                    ev.preventDefault()
+                    onNavigate(href)
+                  }}
+                >
+                  {t('portal.documents.estimate.name', { number: e.number, version: e.version })}
+                </a>{' '}
+                <StatusBadge tone={STATUS_TONE[e.status]}>{t(STATUS_LABEL[e.status])}</StatusBadge>
+              </p>
+              <p className="hh-small hh-muted">
+                {t('portal.documents.estimate.sent', { date: day(e.publishedAt) })}
+                {e.validUntil ? ` · ${t('portal.documents.estimate.validUntil', { date: day(e.validUntil) })}` : ''}
+                {` · ${t('portal.documents.estimate.total', { total: formatUsd(cents(e.totalCents)) })}`}
+              </p>
+            </li>
+          )
+        })}
+      </ul>
+      <p className="hh-muted">{t('portal.documents.others')}</p>
+    </>
+  )
+}
+
+function Content({ data, onNavigate }: { data: TabData; onNavigate?: ((path: string) => void) | undefined }) {
   switch (data.tab) {
     case 'messages':
       return <Empty title="portal.messages.notShown.title" text="portal.messages.notShown.text" />
     case 'documents':
-      return <Empty title="portal.documents.none.title" text="portal.documents.none.text" />
+      return data.state === 'listed' ? (
+        <Estimates reference={data.reference} estimates={data.estimates} onNavigate={onNavigate} />
+      ) : (
+        <Empty title="portal.documents.none.title" text="portal.documents.none.text" />
+      )
     case 'appointments':
       return <Empty title="portal.appointment.none.title" text="portal.appointment.none.text" />
     case 'payments':
@@ -69,16 +122,20 @@ function Content({ data }: { data: TabData }) {
   }
 }
 
+export type EstimateRoute = { number: string; version: number }
+
 function TabRead({
   reference,
   tab,
   active,
   fetchImpl,
+  onNavigate,
 }: {
   reference: string
   tab: WorkspaceTab
   active: boolean
   fetchImpl: Fetch
+  onNavigate?: ((path: string) => void) | undefined
 }) {
   const { live, refresh } = useLive(() => portalApi.tab(fetchImpl, reference, tab), `${reference}/${tab}`, active)
   return (
@@ -103,7 +160,7 @@ function TabRead({
             className={live.stale ? 'portal-section portal-section--stale' : 'portal-section'}
             data-stale={live.stale || undefined}
           >
-            <Content data={live.data} />
+            <Content data={live.data} onNavigate={onNavigate} />
           </div>
         </>
       )}
@@ -111,11 +168,38 @@ function TabRead({
   )
 }
 
-/** One tab beside the Overview: nothing until first shown, then kept (hidden) while another tab is shown. */
-export function TabPanel(props: { reference: string; tab: WorkspaceTab; active: boolean; fetchImpl: Fetch }) {
+/**
+ * One tab beside the Overview: nothing until first shown, then kept (hidden) while another tab is shown. The
+ * Documents tab shows one estimate version instead of its list while its page names one (TSK-0056).
+ */
+export function TabPanel(props: {
+  reference: string
+  tab: WorkspaceTab
+  active: boolean
+  fetchImpl: Fetch
+  onNavigate?: ((path: string) => void) | undefined
+  estimate?: EstimateRoute | undefined
+}) {
   const [opened, setOpened] = useState(props.active)
   useEffect(() => {
     if (props.active) setOpened(true)
   }, [props.active])
-  return opened || props.active ? <TabRead {...props} /> : null
+  if (!(opened || props.active)) return null
+  const { estimate, ...rest } = props
+  if (props.tab === 'documents' && estimate)
+    return (
+      <div className="portal-tab" data-tab="documents">
+        <h2 className="hh-visually-hidden">{t(TAB_LABEL.documents)}</h2>
+        <EstimateView
+          key={`${estimate.number}/${estimate.version}`}
+          reference={props.reference}
+          number={estimate.number}
+          version={estimate.version}
+          active={props.active}
+          fetchImpl={props.fetchImpl}
+          onNavigate={props.onNavigate ?? ((to) => window.location.assign(to))}
+        />
+      </div>
+    )
+  return <TabRead {...rest} />
 }
