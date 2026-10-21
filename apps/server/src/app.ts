@@ -20,6 +20,7 @@ import { countyPagePaths, countyRoute, productionRobots, sitemapXml, staticSiteP
 import type { ObjectStorage } from './providers/index.js'
 import { staffSessionResolver } from './modules/identity/actor.js'
 import { customerSessionResolver } from './modules/identity/customer-sessions.js'
+import type { CodeKeySettings } from './modules/identity/keys.js'
 import { createLogger, type Logger } from './platform/logger.js'
 import { registerRequestContext, requestIdFrom } from './platform/request-context.js'
 
@@ -40,6 +41,8 @@ export interface AppOptions {
     storage?: ObjectStorage | null
     /** The provider settings and variable names the system health and configuration views report (TSK-0101). */
     system?: SystemDeps
+    /** The one-time-code key, the same one the code delivery job uses (boot.ts); unset: codes NOT CONFIGURED. */
+    codeKey?: CodeKeySettings
   }
 }
 
@@ -130,6 +133,8 @@ export async function buildApp({
         mfaKey: config.mfaKey,
         storage: api?.storage ?? null,
         ...(api?.system ? { system: api.system } : {}),
+        ...(api?.codeKey ? { codeKey: api.codeKey } : {}),
+        trustProxyHops: config.trustProxyHops,
       }),
     ...(resolveActor ? { resolveActor } : {}),
   })

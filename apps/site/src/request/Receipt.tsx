@@ -3,13 +3,22 @@
 // a Copy button, the project at a glance as submitted, the photos received, processing and failed shown separately
 // (a failed photo can be retried here while this page still holds it, under the request's own upload capability, so
 // no new request is needed), "What happens next?" from configuration, and Return Home. English only.
-// The contact-verification panel, View My Request and Create an Account arrive with their flows (TSK-0033, TSK-0034);
-// no action is shown before it works.
+// TSK-0033: the contact verification (masked email and phone, code entry, Resend, Change Contact) under this tab's
+// receipt capability, then, once a contact is verified, the optional Create an Account offer with "No thanks".
+// View My Request arrives with project access (TSK-0034); no action is shown before it works.
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { Button, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useRef, useState, type Ref } from 'react'
 import { problemValues, STATE_LABEL, STATE_TONE, uploadPhotoFile, type PhotoLimits } from './photos.js'
-import { countsFromServer, nextStepsText, type PhotoCounts, type ReceiptRecord } from './receipt.js'
+import { ContactVerification } from './ContactVerification.js'
+import {
+  countsFromServer,
+  nextStepsText,
+  saveReceipt,
+  tabStorage,
+  type PhotoCounts,
+  type ReceiptRecord,
+} from './receipt.js'
 
 const t = (key: CustomerKey, values?: Record<string, string | number>) => customerTranslator().t(key, values)
 
@@ -178,6 +187,11 @@ export function Receipt({
 }) {
   const counts = photos?.counts ?? record.photos
   const timing = record.glance.some((e) => e.id === 'timing')
+  const [declined, setDeclined] = useState(record.accountOffer === 'declined')
+  const decline = () => {
+    setDeclined(true)
+    saveReceipt(tabStorage(), { ...record, accountOffer: 'declined' })
+  }
   return (
     <section className="hh-receipt" aria-labelledby="hh-receipt-title">
       <h2 id="hh-receipt-title" ref={headingRef} tabIndex={-1} className="hh-h2">
@@ -227,6 +241,8 @@ export function Receipt({
         <p>{nextStepsText(record.facts)}</p>
         <p>{t('request.receipt.separate')}</p>
       </section>
+
+      <ContactVerification capability={record.capability ?? null} declined={declined} onDecline={decline} />
 
       <a className="hh-button hh-button--secondary" href="/">
         {t('request.home')}

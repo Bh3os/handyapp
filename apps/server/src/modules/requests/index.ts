@@ -9,6 +9,7 @@ import { loadConfig } from '../../platform/config/index.js'
 import { formWindows } from './submit.js'
 import { currentContext } from '../../platform/request-context.js'
 import { CAPABILITY_HEADER, photoLimits } from '../photos/photos.js'
+import { RECEIPT_CAPABILITY_HEADER } from '../verification/receipt-capability.js'
 import { MAX_SERVICES, SUBMIT_BODY, SUBMIT_RESPONSE, type SubmitBody } from './schema.js'
 import type { ObligationCheck } from './obligations.js'
 import { staffRequestRoutes } from './staff-routes.js'
@@ -31,7 +32,9 @@ const submit: RouteDef = {
     'Rate limited per client network with a neutral 429. Spam signals only flag the request for review. ' +
     'TSK-0032: when the draft’s photos were bound, the Upload-Capability response header carries a new capability ' +
     'scoped to this request’s photos only (token returned once, never stored with the replayable response), so the ' +
-    'receipt can show their states and retry a failed photo without a new request (HH-INT-07, HH-INT-12).',
+    'receipt can show their states and retry a failed photo without a new request (HH-INT-07, HH-INT-12). ' +
+    'TSK-0033: the Receipt-Capability response header carries the receipt page’s capability for this request’s own ' +
+    'contact verification and account-offer answer (returned once; a replayed response carries neither header).',
   actors: ['guest', 'customer'],
   permission: 'request.submit',
   kind: 'write',
@@ -65,8 +68,11 @@ const submit: RouteDef = {
         submittedAt: out.submittedAt.toISOString(),
         ...(body.photoDraft ? { photos: out.photos } : {}),
       },
-      // A header, not the body: the idempotency record stores the body, and the server keeps only token hashes.
-      ...(out.photoCapability ? { headers: { [CAPABILITY_HEADER]: out.photoCapability } } : {}),
+      // Headers, not the body: the idempotency record stores the body, and the server keeps only token hashes.
+      headers: {
+        ...(out.photoCapability ? { [CAPABILITY_HEADER]: out.photoCapability } : {}),
+        ...(out.receiptCapability ? { [RECEIPT_CAPABILITY_HEADER]: out.receiptCapability } : {}),
+      },
     }
   },
 }

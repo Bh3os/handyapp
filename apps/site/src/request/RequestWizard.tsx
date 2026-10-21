@@ -20,7 +20,7 @@ import { contactDetails, parseSiteFacts, type ContactDetail } from '../site/fact
 import { DraftStore, newSend, type DraftSend } from './draft.js'
 import { PhotoReviewList, PhotoUploader, usePhotos, type PhotoLimits } from './photos.js'
 import { Receipt, useReceiptPhotos } from './Receipt.js'
-import { receiptGlance, saveReceipt, type ReceiptRecord } from './receipt.js'
+import { receiptGlance, saveReceipt, tabStorage, type ReceiptRecord } from './receipt.js'
 import { receiptPath } from '@handyhub/domain/request-form'
 import {
   CHANNEL_LABEL,
@@ -150,15 +150,6 @@ type PhotoSummary = { received: number; processing: number; failed: number }
 /** The support contact of the SMS disclosure, from configuration (GET /api/v1/public/site); null while unknown. */
 type SupportContact = { phone: ContactDetail; email: ContactDetail } | null
 type Banner = { kind: 'error'; message: string; retry: boolean } | { kind: 'success'; message: string } | null
-
-/** This tab's storage, where the receipt is kept for a reload of its page (receipt.ts); null when blocked. */
-function tabStorage(): Storage | null {
-  try {
-    return window.sessionStorage
-  } catch {
-    return null
-  }
-}
 
 function browserStorage(): Storage | null {
   try {
@@ -377,6 +368,8 @@ export default function RequestWizard() {
           glance: receiptGlance(values, services, settings.windows),
           photos: counts,
           facts: { visitHours: settings.visitHours, responseMinutes: settings.responseMinutes },
+          // TSK-0033: this request's own contact verification on the receipt (absent on a replayed response).
+          capability: res.headers.get('receipt-capability'),
         }
         saveReceipt(tabStorage(), record)
         receiptPhotos.start({

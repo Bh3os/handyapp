@@ -11,6 +11,8 @@ import { QUEUE_MODULE } from './queue/index.js'
 import { REQUESTS_MODULE } from './requests/index.js'
 import { SITE_MODULE } from './site/index.js'
 import { systemModule, type SystemDeps } from './system/index.js'
+import { verificationModule } from './verification/index.js'
+import type { CodeKeySettings } from './identity/index.js'
 
 export type ModuleDeps = {
   /** Secure, `__Host-` session cookies (staging and production); plain cookies over http in local and ci. */
@@ -21,7 +23,13 @@ export type ModuleDeps = {
   storage?: ObjectStorage | null
   /** What the system health and configuration views report about this process (TSK-0101); unset: unknown. */
   system?: SystemDeps
+  /** The one-time-code key (TSK-0016, readCodeKey); unset: codes are NOT CONFIGURED for the receipt (TSK-0033). */
+  codeKey?: CodeKeySettings
+  /** Proxies in front of the service (TRUST_PROXY_HOPS), for the client network the code limits count. */
+  trustProxyHops?: number
 }
+
+const NO_CODE_KEY: CodeKeySettings = { state: 'not_configured', missing: ['CODE_HASH_KEY'] }
 
 export function apiModules(deps: ModuleDeps): ApiModule[] {
   return [
@@ -33,6 +41,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     QUEUE_MODULE,
     NOTIFICATIONS_MODULE,
     systemModule(deps.system ?? {}),
+    // TSK-0033: the receipt's contact verification and its account-offer answer.
+    verificationModule({ codeKey: deps.codeKey ?? NO_CODE_KEY, trustProxyHops: deps.trustProxyHops ?? 0 }),
   ]
 }
 

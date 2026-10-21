@@ -7,17 +7,9 @@ import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { StateView } from '@handyhub/ui'
 import { useEffect, useRef, useState } from 'react'
 import { Receipt } from './Receipt.js'
-import { loadReceipt, referenceFromPath, type ReceiptRecord } from './receipt.js'
+import { loadReceipt, referenceFromPath, tabStorage, type ReceiptRecord } from './receipt.js'
 
 const t = (key: CustomerKey, values?: Record<string, string | number>) => customerTranslator().t(key, values)
-
-function tabStorage(): Storage | null {
-  try {
-    return window.sessionStorage
-  } catch {
-    return null
-  }
-}
 
 export default function ReceiptPage() {
   const [shown, setShown] = useState<ReceiptRecord | null | 'loading'>('loading')

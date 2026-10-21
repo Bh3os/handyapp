@@ -19,6 +19,7 @@ import { lookupCoverage, type CoverageResult } from '../coverage/coverage.js'
 import { isLegalVersion } from '../legal/index.js'
 import { recordConsent } from '../notifications/index.js'
 import { bindDraftPhotos, createCapability, PhotoError, type PhotoSummary } from '../photos/photos.js'
+import { createReceiptCapability } from '../verification/receipt-capability.js'
 import {
   localDate,
   normalizeUsPhone,
@@ -123,7 +124,13 @@ export async function submitRequest(
   body: SubmitBody,
   opts: { idempotencyKey: string; requestId: string; now?: Date },
 ): Promise<
-  Submitted & { serviceCodes: string[]; spamSuspected: boolean; photos: PhotoSummary; photoCapability: string | null }
+  Submitted & {
+    serviceCodes: string[]
+    spamSuspected: boolean
+    photos: PhotoSummary
+    photoCapability: string | null
+    receiptCapability: string | null
+  }
 > {
   const now = opts.now ?? new Date()
   const config = await loadConfig(tx)
@@ -299,6 +306,10 @@ export async function submitRequest(
       )
     : null
 
+  // TSK-0033 (HH-INT-13, OWN-DEC-96): the receipt page's capability for this request's own contact verification and
+  // account-offer answer. None while session.timings is NOT CONFIGURED; the request is saved either way.
+  const receipt = await createReceiptCapability(tx, request.id, now)
+
   await recordFormConsents(tx, body, {
     contactId: contact.id,
     phone: normalizeUsPhone(c.phone) as string,
@@ -325,5 +336,6 @@ export async function submitRequest(
     spamSuspected,
     photos: { received: photos.received, processing: photos.processing, failed: photos.failed },
     photoCapability,
+    receiptCapability: receipt?.token ?? null,
   }
 }
