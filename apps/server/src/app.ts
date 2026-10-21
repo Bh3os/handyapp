@@ -128,6 +128,7 @@ export async function buildApp({
         secureCookies: config.secureCookies,
         mfaKey: config.mfaKey,
         storage: api?.storage ?? null,
+        environment: config.env,
         ...(api?.system ? { system: api.system } : {}),
       }),
     ...(resolveActor ? { resolveActor } : {}),

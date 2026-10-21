@@ -14,6 +14,10 @@
 //   omitted line cost or internal block is kept; null removes it), so another estimator's save never wipes them.
 // - Only draft and in-review versions are written; the database refuses any change to a published version, its
 //   lines and its internal costs (migration 0026). Lifecycle transitions and publishing are TSK-0055.
+// - Both authoring methods (HH-EST-11) save the same record: an uploaded estimate's structured amounts are its lines
+//   (for example one base line of quantity 1 at the total the document states, and each option as a line), priced
+//   by the same server code, so both methods give the same totals, deposit and customer projection. Its documents
+//   are documents.ts; a save clears the uploaded version's agree-confirmation.
 import type { Tx } from '@handyhub/db'
 import {
   type BasisPoints,
@@ -475,6 +479,10 @@ export async function saveDraft(
       deposit_rule_version: t?.depositRuleVersion ?? null,
       tax_mode_version: t?.taxModeVersion ?? null,
       totals_computed_at: t ? new Date() : null,
+      // Uploaded versions (TSK-0054, HH-EST-11): changed amounts need a new agree-confirmation, so a save clears it.
+      agreement_document_id: null,
+      agreement_confirmed_by: null,
+      agreement_confirmed_at: null,
       updated_by: actor.userId,
       updated_at: new Date(),
       row_version: rowVersion,

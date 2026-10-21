@@ -2,6 +2,7 @@
 // response objects list every field, so nothing undeclared (an internal value in particular) leaves the server.
 import { LINE_KINDS } from '@handyhub/money'
 import { CONFIG_KEYS } from '../../platform/config/index.js'
+import { DOCUMENT_ROLES, DOCUMENT_SOURCES, DOCUMENT_STATES } from './documents.js'
 import { DRAFT_LIMITS, QUANTITY_SOURCES, TEXT_LISTS } from './model.js'
 import { PUBLISH_PROBLEM_CODES } from './readiness.js'
 
@@ -237,6 +238,76 @@ const TOTALS = {
   ],
 } as const
 
+const DOCUMENT = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['id', 'role', 'source', 'contentType', 'byteSize', 'sha256', 'state', 'rejectionReason', 'uploadedAt'],
+  properties: {
+    id: { type: 'string' },
+    role: { type: 'string', enum: [...DOCUMENT_ROLES] },
+    source: { type: 'string', enum: [...DOCUMENT_SOURCES] },
+    contentType: { type: 'string' },
+    byteSize: { type: 'integer' },
+    sha256: { type: 'string' },
+    state: { type: 'string', enum: [...DOCUMENT_STATES] },
+    rejectionReason: NULLABLE_STRING,
+    uploadedAt: { type: 'string', format: 'date-time' },
+  },
+} as const
+const NULLABLE_DOCUMENT = { anyOf: [{ type: 'null' }, DOCUMENT] } as const
+
+/** Uploaded versions (TSK-0054): the current documents, "PDF required" and the agree-confirmation; null if written. */
+const DOCUMENTS = {
+  anyOf: [
+    { type: 'null' },
+    {
+      type: 'object',
+      additionalProperties: false,
+      required: ['original', 'customerPdf', 'pdfRequired', 'agreement', 'maxFileBytes', 'types'],
+      properties: {
+        original: NULLABLE_DOCUMENT,
+        customerPdf: NULLABLE_DOCUMENT,
+        pdfRequired: { type: 'boolean' },
+        agreement: {
+          anyOf: [
+            { type: 'null' },
+            {
+              type: 'object',
+              additionalProperties: false,
+              required: ['confirmedBy', 'confirmedAt', 'documentId', 'current'],
+              properties: {
+                confirmedBy: STAFF_REF,
+                confirmedAt: { type: 'string', format: 'date-time' },
+                documentId: { type: 'string' },
+                current: { type: 'boolean' },
+              },
+            },
+          ],
+        },
+        maxFileBytes: NULLABLE_INT,
+        types: STRING_LIST,
+      },
+    },
+  ],
+} as const
+
+export const AGREEMENT_BODY = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['confirmed'],
+  properties: { confirmed: { type: 'boolean' } },
+} as const
+
+export const DOCUMENT_PARAMS = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['versionId', 'documentId'],
+  properties: { versionId: UUID, documentId: UUID },
+} as const
+
+/** A file answer (a PDF or Word document): the bytes themselves. */
+export const FILE = { type: 'string', format: 'binary' } as const
+
 /** The builder's view of one version (staff only). */
 export const VERSION_VIEW = {
   type: 'object',
@@ -266,6 +337,7 @@ export const VERSION_VIEW = {
     'workPackages',
     'readiness',
     'internal',
+    'documents',
     'canEdit',
   ],
   properties: {
@@ -348,6 +420,7 @@ export const VERSION_VIEW = {
     },
     readiness: READINESS,
     internal: INTERNAL,
+    documents: DOCUMENTS,
     canEdit: { type: 'boolean' },
   },
 } as const

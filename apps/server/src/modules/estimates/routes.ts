@@ -7,8 +7,9 @@
 //   CONFIGURED: never a default) and the publish readiness with every reason the version cannot be published yet.
 // - Saving sends the whole draft (lines per work package, options, texts, discount category, internal notes); the
 //   server computes every amount and total (saveDraft), refuses a stale save (If-Match row version) and audits it.
-// - Every route needs estimate.draft (Owner, Estimator). Publishing, revising and the lifecycle are TSK-0055; uploads
-//   are TSK-0054. Nothing here sends a message.
+// - Every route needs estimate.draft (Owner, Estimator). Publishing, revising and the lifecycle are TSK-0055; Upload an
+//   Estimate (TSK-0054) is document-routes.ts, and the builder view shows an uploaded version's documents. Nothing here
+//   sends a message.
 import type { Db, Tx } from '@handyhub/db'
 import { decide, type StaffActor } from '@handyhub/policy'
 import { sql } from 'kysely'
@@ -17,6 +18,7 @@ import { pageSchema, toPage } from '../../api/pagination.js'
 import type { ApiContext, RouteDef } from '../../api/route.js'
 import { loadConfig } from '../../platform/config/index.js'
 import { syncEstimateItem } from '../queue/index.js'
+import { documentsView } from './documents.js'
 import { createEstimate, type DraftInput, EDITABLE_STATES, saveDraft } from './model.js'
 import { staffEstimateVersion } from './projections.js'
 import { documentDetails, readinessOf, versionSnapshot } from './readiness.js'
@@ -33,7 +35,7 @@ import {
 const TEST = 'test/integration/estimate-builder.test.ts'
 type Reader = Db | Tx
 
-function staffActor(ctx: ApiContext): StaffActor {
+export function staffActor(ctx: ApiContext): StaffActor {
   if (ctx.actor.kind !== 'staff') throw new ApiError('FORBIDDEN')
   return ctx.actor
 }
@@ -41,13 +43,13 @@ function staffActor(ctx: ApiContext): StaffActor {
 const allowed = (actor: StaffActor, projectId: string) =>
   decide(actor, 'estimate.draft', { projectId }, { now: new Date(), online: true }).effect === 'allow'
 
-const projectOf: NonNullable<RouteDef['resource']> = async ({ req, db }) => {
+export const projectOf: NonNullable<RouteDef['resource']> = async ({ req, db }) => {
   const { projectId } = req.params as { projectId: string }
   const p = await db.selectFrom('crm.projects').select('id').where('id', '=', projectId).executeTakeFirst()
   return p ? { projectId: p.id } : null
 }
 
-const versionProjectOf: NonNullable<RouteDef['resource']> = async ({ req, db }) => {
+export const versionProjectOf: NonNullable<RouteDef['resource']> = async ({ req, db }) => {
   const { versionId } = req.params as { versionId: string }
   const v = await db
     .selectFrom('estimating.estimate_versions')
@@ -134,6 +136,8 @@ export async function builderView(db: Reader, actor: StaffActor, versionId: stri
     workPackages: packages.map((p) => ({ id: p.id, serviceCode: p.code, position: p.position })),
     readiness,
     internal: v.internal,
+    // Upload an Estimate (TSK-0054, HH-EST-11): the documents, "PDF required" and the agree-confirmation.
+    documents: v.authoringMethod === 'uploaded' ? await documentsView(db, versionId, config) : null,
     canEdit:
       (EDITABLE_STATES as readonly string[]).includes(v.state) &&
       project.state === 'open' &&
