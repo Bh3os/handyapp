@@ -2283,6 +2283,7 @@
                                 "staff",
                                 "audit",
                                 "dashboard",
+                                "health",
                                 "settings",
                                 null
                               ]
@@ -2304,6 +2305,7 @@
                                   "staff",
                                   "audit",
                                   "dashboard",
+                                  "health",
                                   "settings"
                                 ]
                               }
@@ -2903,6 +2905,7 @@
                             "staff",
                             "audit",
                             "dashboard",
+                            "health",
                             "settings",
                             null
                           ]
@@ -2924,6 +2927,7 @@
                               "staff",
                               "audit",
                               "dashboard",
+                              "health",
                               "settings"
                             ]
                           }
@@ -3590,6 +3594,7 @@
                             "staff",
                             "audit",
                             "dashboard",
+                            "health",
                             "settings",
                             null
                           ]
@@ -3611,6 +3616,7 @@
                               "staff",
                               "audit",
                               "dashboard",
+                              "health",
                               "settings"
                             ]
                           }
@@ -3862,6 +3868,7 @@
                             "staff",
                             "audit",
                             "dashboard",
+                            "health",
                             "settings",
                             null
                           ]
@@ -3883,6 +3890,7 @@
                               "staff",
                               "audit",
                               "dashboard",
+                              "health",
                               "settings"
                             ]
                           }
@@ -4122,6 +4130,7 @@
                             "staff",
                             "audit",
                             "dashboard",
+                            "health",
                             "settings",
                             null
                           ]
@@ -4143,6 +4152,7 @@
                               "staff",
                               "audit",
                               "dashboard",
+                              "health",
                               "settings"
                             ]
                           }
@@ -4565,6 +4575,7 @@
                             "staff",
                             "audit",
                             "dashboard",
+                            "health",
                             "settings",
                             null
                           ]
@@ -4586,6 +4597,7 @@
                               "staff",
                               "audit",
                               "dashboard",
+                              "health",
                               "settings"
                             ]
                           }
@@ -9553,6 +9565,857 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/staff-requests.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/system/configuration": {
+      "get": {
+        "operationId": "getSystemConfiguration",
+        "summary": "Configuration view",
+        "description": "Owner only (dashboard.view). Every configuration key with its active version: the value as path and value pairs (money in integer cents), or NOT CONFIGURED with the open question it cites; the source ids; whether the value is a PROPOSED reading; the AI module state (always disabled). Environment variables are listed by name with whether they are set; their values are never read into the response. Changing a value is a separate action (policy_values.change). Reads only.",
+        "tags": [
+          "system"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "loadedAt",
+                    "entries",
+                    "aiModule",
+                    "variables"
+                  ],
+                  "properties": {
+                    "loadedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "entries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "key",
+                          "state",
+                          "version",
+                          "sourceIds",
+                          "proposed",
+                          "effectiveFrom",
+                          "fields"
+                        ],
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "enum": [
+                              "deposit.rule",
+                              "discount.rule",
+                              "discount.eligibility_verification",
+                              "tax.mode",
+                              "estimate.validity",
+                              "estimate.publishing_roles",
+                              "payment.term_default",
+                              "payment.methods",
+                              "payment.instructions",
+                              "cancellation.rules",
+                              "contact.hours",
+                              "business.timezone",
+                              "reminders.cadences",
+                              "request.reopen_period",
+                              "response.target",
+                              "session.timings",
+                              "uploads.limits",
+                              "business.name",
+                              "business.mailing_address",
+                              "business.public_contact",
+                              "verification.limits",
+                              "messages.automatic",
+                              "sms.help_reply",
+                              "coverage.area",
+                              "request.window_hours",
+                              "estimate.visit_fee",
+                              "legal.privacy_notice",
+                              "legal.sms_terms",
+                              "legal.website_terms",
+                              "legal.sms_disclosure",
+                              "ai.module"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "CONFIGURED",
+                              "NOT_CONFIGURED"
+                            ]
+                          },
+                          "version": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "sourceIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "proposed": {
+                            "type": "boolean"
+                          },
+                          "effectiveFrom": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "fields": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "path",
+                                "value"
+                              ],
+                              "properties": {
+                                "path": {
+                                  "type": "string"
+                                },
+                                "value": {
+                                  "type": [
+                                    "string",
+                                    "number",
+                                    "boolean"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "aiModule": {
+                      "type": "string",
+                      "enum": [
+                        "AI_DISABLED"
+                      ]
+                    },
+                    "variables": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "name",
+                              "group",
+                              "set",
+                              "secret"
+                            ],
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "group": {
+                                "type": "string",
+                                "enum": [
+                                  "server",
+                                  "providers"
+                                ]
+                              },
+                              "set": {
+                                "type": "boolean"
+                              },
+                              "secret": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "dashboard.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/system.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/system/health": {
+      "get": {
+        "operationId": "getSystemHealth",
+        "summary": "System health",
+        "description": "Owner only (dashboard.view). Health checks read from recorded data: the database and migrations; the job queue (queued, running, retrying, overdue, interrupted and permanently failed jobs) and pending outbox events with their age; email and text deliveries; Bird and Resend callbacks; request photo uploads and processing; the request-to-intake integrity check; configuration values NOT CONFIGURED. What the system cannot observe (backups, the last restore drill, scheduling conflicts, error tracking) is unknown or not configured, never ok. Provider modes and missing variable names only: no secret, destination, payload, message text or variable value. The newest 20 failed jobs, failed deliveries, failed callbacks, upload problems and requests missing from intake are listed. Reads only.",
+        "tags": [
+          "system"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "checkedAt",
+                    "environment",
+                    "checks",
+                    "providers",
+                    "webhookSecrets",
+                    "testDestinations",
+                    "failedJobs",
+                    "failedDeliveries",
+                    "failedCallbacks",
+                    "uploadProblems",
+                    "missingFromIntake"
+                  ],
+                  "properties": {
+                    "checkedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "environment": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "checks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "status",
+                          "metrics",
+                          "oldestAt",
+                          "latestAt",
+                          "missing",
+                          "note",
+                          "sourceIds",
+                          "link"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "enum": [
+                              "database",
+                              "migrations",
+                              "jobs",
+                              "outbox",
+                              "deliveries_email",
+                              "deliveries_sms",
+                              "callbacks_bird",
+                              "callbacks_resend",
+                              "uploads",
+                              "intake_integrity",
+                              "configuration",
+                              "scheduling_conflicts",
+                              "error_tracking",
+                              "backups",
+                              "restore_drill"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "ok",
+                              "attention",
+                              "failed",
+                              "not_configured",
+                              "unknown"
+                            ]
+                          },
+                          "metrics": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "value"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "enum": [
+                                    "pending",
+                                    "queued",
+                                    "running",
+                                    "retrying",
+                                    "overdue",
+                                    "interrupted",
+                                    "failed",
+                                    "stale",
+                                    "received",
+                                    "processing_failed",
+                                    "quarantined",
+                                    "rejected",
+                                    "missing",
+                                    "configured",
+                                    "not_configured",
+                                    "proposed"
+                                  ]
+                                },
+                                "value": {
+                                  "type": "integer"
+                                }
+                              }
+                            }
+                          },
+                          "oldestAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "latestAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "missing": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "migrations_unreadable",
+                              "provider_unknown",
+                              "fake_provider",
+                              "rejected_callbacks_in_logs",
+                              "no_scheduling_records",
+                              "no_error_tracker",
+                              "backups_not_observable",
+                              "no_restore_drill_recorded",
+                              null
+                            ]
+                          },
+                          "sourceIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "link": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "providers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "channel",
+                          "mode",
+                          "provider",
+                          "missing"
+                        ],
+                        "properties": {
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "email",
+                              "sms",
+                              "storage"
+                            ]
+                          },
+                          "mode": {
+                            "type": "string",
+                            "enum": [
+                              "real",
+                              "fake",
+                              "not_configured",
+                              "unknown"
+                            ]
+                          },
+                          "provider": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "resend",
+                              "bird",
+                              "r2",
+                              null
+                            ]
+                          },
+                          "missing": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "webhookSecrets": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "bird",
+                        "resend"
+                      ],
+                      "properties": {
+                        "bird": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "resend": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "testDestinations": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "emails",
+                            "phones"
+                          ],
+                          "properties": {
+                            "emails": {
+                              "type": "integer"
+                            },
+                            "phones": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "failedJobs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "automation",
+                          "targetType",
+                          "attempts",
+                          "maxAttempts",
+                          "errorClass",
+                          "failedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "automation": {
+                            "type": "string"
+                          },
+                          "targetType": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "attempts": {
+                            "type": "integer"
+                          },
+                          "maxAttempts": {
+                            "type": "integer"
+                          },
+                          "errorClass": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "failedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "failedDeliveries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "messageKey",
+                          "channel",
+                          "audience",
+                          "errorCode",
+                          "updatedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "messageKey": {
+                            "type": "string"
+                          },
+                          "channel": {
+                            "type": "string"
+                          },
+                          "audience": {
+                            "type": "string"
+                          },
+                          "errorCode": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "failedCallbacks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "jobId",
+                          "provider",
+                          "eventType",
+                          "attempts",
+                          "errorClass",
+                          "failedAt"
+                        ],
+                        "properties": {
+                          "jobId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "provider": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "eventType": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "attempts": {
+                            "type": "integer"
+                          },
+                          "errorClass": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "failedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "uploadProblems": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "state",
+                          "reason",
+                          "contentType",
+                          "byteSize",
+                          "uploadedAt",
+                          "requestId",
+                          "reference"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "state": {
+                            "type": "string"
+                          },
+                          "reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "contentType": {
+                            "type": "string"
+                          },
+                          "byteSize": {
+                            "type": "integer"
+                          },
+                          "uploadedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "requestId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "reference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "missingFromIntake": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "requestId",
+                          "reference",
+                          "submittedAt"
+                        ],
+                        "properties": {
+                          "requestId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "reference": {
+                            "type": "string"
+                          },
+                          "submittedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "dashboard.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/system.test.ts"
         }
       }
     }
