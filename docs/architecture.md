@@ -37,8 +37,9 @@ On every response:
 - `Content-Security-Policy`: same origin only. Inline scripts and styles of the built pages are allowed by their SHA-256 hashes, computed at start from the built HTML; `frame-ancestors 'none'`, `object-src 'none'`.
 - `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Cross-Origin-Opener-Policy: same-origin`.
 - `Strict-Transport-Security: max-age=31536000` in staging and production. PROPOSED: no `includeSubDomains` and no `preload` until the owner controls the DNS (OQ-DOMAIN-OWNERSHIP).
-- `Referrer-Policy: no-referrer` on private routes: the whole staff host, `/portal`, `/api`, `/access`, `/project` and `/account`. The public pages use `strict-origin-when-cross-origin`.
-- `X-Robots-Tag: noindex, nofollow` on the staff host and the private routes in every environment, and on everything outside production. The staff host's `robots.txt` disallows everything.
+- `Referrer-Policy: no-referrer` on private routes: the whole staff host, `/portal`, `/api`, `/access`, `/project`, `/account` and the request form `/request` (it holds the visitor's draft; TSK-0023). The public pages use `strict-origin-when-cross-origin`.
+- `X-Robots-Tag: noindex, nofollow` on the staff host and the private routes in every environment, and on everything outside production. The staff host's `robots.txt` disallows everything, and so does every host outside production.
+- Search hygiene (TSK-0023): in production the public host's `robots.txt` keeps crawlers off `/api/` and names `/sitemap.xml`. The sitemap lists only pages that exist, are public and are indexable: the built pages without a robots `noindex` meta and outside the private routes, the service pages the site may show in that environment, and county pages with approved local content (none yet; every `/areas/<county>` URL answers 301 to its anchor on `/areas`). A missing public page answers 404 with the site's not-found page, a failing one 500 (503 while the database is down) with its error page.
 
 ## Owner setup (not done by the code)
 

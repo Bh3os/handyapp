@@ -1,0 +1,47 @@
+---
+// Dedicated county page (TSK-0023; HH-CUS-04, T08, OWN-DEC-57). Built only for a county with owner-approved local
+// content (at least two lines, citing the approving decision; @handyhub/domain/areas hasCountyPage). None has been
+// supplied, so no page is built today and every county URL answers 301 to its anchor on the Areas page. A page holds the
+// approved lines, the towns the fact names, the kinds of work, the request action and the way to the ZIP check.
+import { AREAS_PATH, countyPages, type ServiceAreaCounty } from '@handyhub/domain/areas'
+import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
+import SiteLayout from '../../layouts/SiteLayout.astro'
+import { countyView } from '../../site/areas'
+import { CATEGORIES, CATEGORY_LABEL } from '../../site/services'
+
+export function getStaticPaths() {
+  return countyPages().map((county) => ({ params: { county: countyView(customerTranslator(), county).id }, props: { county } }))
+}
+
+interface Props {
+  county: ServiceAreaCounty
+}
+const { county } = Astro.props
+const t = customerTranslator()
+const view = countyView(t, county)
+const lines = (county.localContent?.lineKeys ?? []).map((k) => t.t(k as CustomerKey))
+---
+
+<SiteLayout title={`${view.name} | HandyHub`}>
+  <section class="hh-areas" aria-labelledby="county-title" data-county={view.id}>
+    <div class="hh-site__wrap">
+      <h1 class="hh-display hh-areas__title" id="county-title">{view.name}</h1>
+      {view.towns ? <p>{view.towns}</p> : null}
+      {lines.map((line) => <p class="hh-areas__intro">{line}</p>)}
+      <h2 class="hh-h2">{t.t('areas.county.work')}</h2>
+      <ul class="hh-areas__work">
+        {
+          CATEGORIES.map((c) => (
+            <li>
+              <a href={`/services#category-${c}`}>{t.t(CATEGORY_LABEL[c])}</a>
+            </li>
+          ))
+        }
+      </ul>
+      <p class="hh-areas__actions">
+        <a class="hh-button" href="/request">{t.t('site.cta.requestFree')}</a>
+        <a class="hh-areas__zip" href={`${AREAS_PATH}#zip-check`}>{t.t('coverage.title')}</a>
+      </p>
+    </div>
+  </section>
+</SiteLayout>

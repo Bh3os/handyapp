@@ -18,6 +18,11 @@
       "@handyhub/source": "./src/coverage.ts",
       "types": "./dist/coverage.d.ts",
       "default": "./dist/coverage.js"
+    },
+    "./areas": {
+      "@handyhub/source": "./src/areas.ts",
+      "types": "./dist/areas.d.ts",
+      "default": "./dist/areas.js"
     }
   },
   "scripts": {

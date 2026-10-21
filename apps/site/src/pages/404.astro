@@ -1,0 +1,34 @@
+---
+// Not-found page (TSK-0023; HH-CUS-05): served by the server with status 404 for any public page that does not exist
+// (an unpublished service, an unknown path). Kept out of search and the sitemap. English only (RULE-LANGUAGES).
+import { AREAS_PATH } from '@handyhub/domain/areas'
+import { customerTranslator } from '@handyhub/i18n'
+import SiteLayout from '../layouts/SiteLayout.astro'
+
+const t = customerTranslator()
+const links = [
+  { href: '/', label: t.t('site.homeLink') },
+  { href: '/services', label: t.t('services.title') },
+  { href: AREAS_PATH, label: t.t('areas.title') },
+  { href: '/request', label: t.t('site.cta.requestFree') },
+]
+---
+
+<SiteLayout title={`${t.t('notFound.title')} | HandyHub`} noindex>
+  <section class="hh-error-page" aria-labelledby="not-found-title">
+    <div class="hh-site__wrap">
+      <h1 class="hh-display" id="not-found-title">{t.t('notFound.title')}</h1>
+      <p class="hh-lead">{t.t('error.NOT_FOUND')}</p>
+      <p id="not-found-links">{t.t('notFound.links')}</p>
+      <ul class="hh-error-page__links" aria-labelledby="not-found-links">
+        {
+          links.map((l) => (
+            <li>
+              <a href={l.href}>{l.label}</a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+</SiteLayout>
