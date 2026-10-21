@@ -129,6 +129,7 @@ export async function buildApp({
         mfaKey: config.mfaKey,
         storage: api?.storage ?? null,
         environment: config.env,
+        trustProxyHops: config.trustProxyHops,
         ...(api?.system ? { system: api.system } : {}),
       }),
     ...(resolveActor ? { resolveActor } : {}),

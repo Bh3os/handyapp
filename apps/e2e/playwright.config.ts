@@ -58,9 +58,10 @@ export default defineConfig({
         HANDYHUB_ENV: 'ci',
         PORT: String(port),
         HOST: '127.0.0.1',
-        // Every spec reaches this server from 127.0.0.1, so the per-network request-form limit (5 an hour) would be
-        // shared by the whole suite. One trusted hop lets each submitting spec send its own synthetic documentation
-        // address (RFC 5737) in X-Forwarded-For; the limit itself is unchanged and still applies per address.
+        // Every spec reaches this server from 127.0.0.1, so the per-network limits (the request form's 5 an hour, the
+        // staff sign-in, reset and link limits) would be shared by the whole suite. One trusted hop lets each spec
+        // send its own synthetic documentation address (RFC 5737) in X-Forwarded-For; the limits themselves are
+        // unchanged and still apply per address.
         TRUST_PROXY_HOPS: '1',
         ...(databaseUrl ? { DATABASE_URL: databaseUrl, TEST_EMAIL_DESTINATIONS: 'e2e-owner@example.test' } : {}),
       },
