@@ -161,7 +161,7 @@ test.describe('the first-response clock and review holds (TSK-0043)', () => {
     page,
   }) => {
     const reference = refs[1] as string
-    await page.getByRole('navigation').getByRole('link', { name: 'Requests' }).click()
+    await page.getByRole('navigation').getByRole('link', { name: 'Requests', exact: true }).click()
     await page
       .getByRole('listitem', { name: `Request ${reference}` })
       .getByRole('link', { name: 'Open request' })
