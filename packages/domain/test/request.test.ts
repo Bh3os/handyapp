@@ -15,6 +15,8 @@ const OK: RequestFacts = {
   moneyReceived: false,
   notAFitCategory: 'coverage',
   reason: 'Synthetic reason',
+  customerExplanation: 'Synthetic explanation',
+  missingChecks: [],
   finalReminderSentAt: HOURS(25),
   noResponseCloseHours: 24,
   closedAt: DAYS(10),
@@ -105,6 +107,33 @@ describe('request: Not a fit, outside scope and not served (OWN-DEC-100)', () =>
     })
     expect(run('received', 'start_review', OK, 'system')).toMatchObject({ ok: false, code: 'ACTOR_NOT_ALLOWED' })
     expect(run('reviewing', 'withdraw', OK, 'customer')).toMatchObject({ ok: true, to: 'withdrawn' })
+  })
+})
+
+describe('request: qualification and the estimating routes (TSK-0042, HH-LEAD-02, OWN-DEC-99)', () => {
+  it('[HH-LEAD-02] both estimating routes need every qualification check recorded; the server must say which', () => {
+    for (const event of ['require_site_visit', 'mark_ready_for_estimate'] as const) {
+      expect(run('reviewing', event, { ...OK, missingChecks: ['urgency', 'risk_flags'] })).toMatchObject({
+        ok: false,
+        code: 'GUARD_FAILED',
+        problems: [{ code: 'QUALIFICATION_INCOMPLETE', message: expect.stringContaining('urgency, risk_flags') }],
+      })
+      expect(run('reviewing', event, without('missingChecks'))).toMatchObject({
+        problems: [{ code: 'FACTS_MISSING' }],
+      })
+    }
+    expect(run('reviewing', 'mark_ready_for_estimate')).toMatchObject({ ok: true, to: 'ready_for_estimate' })
+  })
+
+  it('[HH-SVC-04][OWN-DEC-99] "Site visit needed" needs its short customer-facing explanation', () => {
+    expect(run('reviewing', 'require_site_visit', { ...OK, customerExplanation: '  ' })).toMatchObject({
+      problems: [{ code: 'REASON_REQUIRED' }],
+    })
+    expect(run('ready_for_estimate', 'require_site_visit')).toMatchObject({
+      ok: true,
+      to: 'needs_site_visit',
+      effects: ['estimate_visit.windows_needed'],
+    })
   })
 })
 

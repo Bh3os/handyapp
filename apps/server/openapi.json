@@ -5158,6 +5158,7 @@
                 "cancellation_outcome",
                 "deletion_request",
                 "invoice_overdue_decision",
+                "cancellation_review",
                 "incident_notification"
               ]
             }
@@ -5270,6 +5271,7 @@
                               "cancellation_outcome",
                               "deletion_request",
                               "invoice_overdue_decision",
+                              "cancellation_review",
                               "incident_notification"
                             ]
                           },
@@ -5412,6 +5414,7 @@
                           "cancellation_outcome",
                           "deletion_request",
                           "invoice_overdue_decision",
+                          "cancellation_review",
                           "incident_notification"
                         ]
                       }
@@ -5544,6 +5547,7 @@
                 "cancellation_outcome",
                 "deletion_request",
                 "invoice_overdue_decision",
+                "cancellation_review",
                 "incident_notification"
               ]
             }
@@ -5656,6 +5660,7 @@
                               "cancellation_outcome",
                               "deletion_request",
                               "invoice_overdue_decision",
+                              "cancellation_review",
                               "incident_notification"
                             ]
                           },
@@ -5798,6 +5803,7 @@
                           "cancellation_outcome",
                           "deletion_request",
                           "invoice_overdue_decision",
+                          "cancellation_review",
                           "incident_notification"
                         ]
                       }
@@ -5900,6 +5906,2541 @@
           "pagination": true,
           "cache": "private, no-store",
           "test": "test/integration/queue.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/requests": {
+      "get": {
+        "operationId": "listStaffRequests",
+        "summary": "Requests",
+        "description": "Staff with request.view (not workers). Requests newest first, filtered by state (open, closed or one state) and responsible staff member (me, unassigned or a staff id). Customer name, city, services and coverage only.",
+        "tags": [
+          "requests"
+        ],
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "open",
+                "closed",
+                "received",
+                "needs_information",
+                "needs_site_visit",
+                "ready_for_estimate"
+              ]
+            }
+          },
+          {
+            "name": "responsible",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "me",
+                    "unassigned"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                }
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "items",
+                    "nextCursor"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "reference",
+                          "state",
+                          "submittedAt",
+                          "services",
+                          "customerName",
+                          "city",
+                          "coverage",
+                          "needHelpToday",
+                          "spamSuspected",
+                          "responsibleStaff"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "received",
+                              "reviewing",
+                              "needs_information",
+                              "needs_site_visit",
+                              "ready_for_estimate",
+                              "estimated",
+                              "declined",
+                              "outside_scope",
+                              "not_served",
+                              "withdrawn",
+                              "closed_no_response"
+                            ]
+                          },
+                          "submittedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "services": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "customerName": {
+                            "type": "string"
+                          },
+                          "city": {
+                            "type": "string"
+                          },
+                          "coverage": {
+                            "type": "string"
+                          },
+                          "needHelpToday": {
+                            "type": "boolean"
+                          },
+                          "spamSuspected": {
+                            "type": "boolean"
+                          },
+                          "responsibleStaff": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "request.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": true,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-requests.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/requests/{requestId}": {
+      "get": {
+        "operationId": "getStaffRequest",
+        "summary": "A request: the original submission and its handling",
+        "description": "Staff with request.view (not workers). The original request exactly as sent (services, answers, description, full address, timing, preferences, contact details), the contact verification badges (email and phone separately), coverage, the responsible staff member and reassignments, the latest qualification, internal notes (staff only), decisions with reasons, work packages, the next step, the follow-up due time and the actions the caller may take. The ETag is the request version for the actions’ If-Match. Photos are read from listRequestPhotos.",
+        "tags": [
+          "requests"
+        ],
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "reference",
+                    "state",
+                    "version",
+                    "source",
+                    "submittedAt",
+                    "formVersion",
+                    "privacyNoticeVersion",
+                    "spam",
+                    "project",
+                    "original",
+                    "contactVerification",
+                    "coverage",
+                    "responsibleStaff",
+                    "assignments",
+                    "qualification",
+                    "missingChecks",
+                    "notes",
+                    "decisions",
+                    "workPackages",
+                    "nextStep",
+                    "followUpDueAt",
+                    "actions",
+                    "serviceCatalog"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "received",
+                        "reviewing",
+                        "needs_information",
+                        "needs_site_visit",
+                        "ready_for_estimate",
+                        "estimated",
+                        "declined",
+                        "outside_scope",
+                        "not_served",
+                        "withdrawn",
+                        "closed_no_response"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "submittedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "formVersion": {
+                      "type": "string"
+                    },
+                    "privacyNoticeVersion": {
+                      "type": "string"
+                    },
+                    "spam": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "suspected",
+                        "signals"
+                      ],
+                      "properties": {
+                        "suspected": {
+                          "type": "boolean"
+                        },
+                        "signals": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "project": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "reference",
+                        "state"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "reference": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "original": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "services",
+                        "notSure",
+                        "otherServicesText",
+                        "description",
+                        "answers",
+                        "property",
+                        "timing",
+                        "estimatePreference",
+                        "preferredChannel",
+                        "smsOptIn",
+                        "marketingOptIn",
+                        "contact"
+                      ],
+                      "properties": {
+                        "services": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "serviceId",
+                              "code",
+                              "notes"
+                            ],
+                            "properties": {
+                              "serviceId": {
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              },
+                              "notes": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "notSure": {
+                          "type": "boolean"
+                        },
+                        "otherServicesText": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "description": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "answers": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "serviceCode",
+                              "question",
+                              "label",
+                              "kind",
+                              "number",
+                              "text",
+                              "unit",
+                              "approximate"
+                            ],
+                            "properties": {
+                              "serviceCode": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "question": {
+                                "type": "string"
+                              },
+                              "label": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "number",
+                                  "text",
+                                  "unknown"
+                                ]
+                              },
+                              "number": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ]
+                              },
+                              "text": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "unit": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "approximate": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        },
+                        "property": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "street",
+                            "unit",
+                            "city",
+                            "state",
+                            "zip",
+                            "propertyType"
+                          ],
+                          "properties": {
+                            "street": {
+                              "type": "string"
+                            },
+                            "unit": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "city": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string"
+                            },
+                            "zip": {
+                              "type": "string"
+                            },
+                            "propertyType": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "timing": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "preferredDate",
+                            "flexible",
+                            "needHelpToday",
+                            "windows"
+                          ],
+                          "properties": {
+                            "preferredDate": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "flexible": {
+                              "type": "boolean"
+                            },
+                            "needHelpToday": {
+                              "type": "boolean"
+                            },
+                            "windows": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "estimatePreference": {
+                          "type": "string"
+                        },
+                        "preferredChannel": {
+                          "type": "string"
+                        },
+                        "smsOptIn": {
+                          "type": "boolean"
+                        },
+                        "marketingOptIn": {
+                          "type": "boolean"
+                        },
+                        "contact": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "fullName",
+                            "email",
+                            "phone"
+                          ],
+                          "properties": {
+                            "fullName": {
+                              "type": "string"
+                            },
+                            "email": {
+                              "type": "string"
+                            },
+                            "phone": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "contactVerification": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "email",
+                        "phone"
+                      ],
+                      "properties": {
+                        "email": {
+                          "type": "string"
+                        },
+                        "phone": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "result",
+                        "ruleSet"
+                      ],
+                      "properties": {
+                        "result": {
+                          "type": "string"
+                        },
+                        "ruleSet": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "responsibleStaff": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "assignments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "staff",
+                          "previous",
+                          "by",
+                          "at"
+                        ],
+                        "properties": {
+                          "staff": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "previous": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "by": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "at": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "qualification": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "revision",
+                            "checks",
+                            "recordedBy",
+                            "recordedAt"
+                          ],
+                          "properties": {
+                            "revision": {
+                              "type": "integer"
+                            },
+                            "checks": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "properties": {
+                                "coverage": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "outcome"
+                                  ],
+                                  "properties": {
+                                    "outcome": {
+                                      "type": "string",
+                                      "enum": [
+                                        "ok",
+                                        "attention",
+                                        "not_checked"
+                                      ]
+                                    },
+                                    "note": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "maxLength": 1000
+                                    }
+                                  }
+                                },
+                                "service_fit": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "outcome"
+                                  ],
+                                  "properties": {
+                                    "outcome": {
+                                      "type": "string",
+                                      "enum": [
+                                        "ok",
+                                        "attention",
+                                        "not_checked"
+                                      ]
+                                    },
+                                    "note": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "maxLength": 1000
+                                    }
+                                  }
+                                },
+                                "essential_facts": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "outcome"
+                                  ],
+                                  "properties": {
+                                    "outcome": {
+                                      "type": "string",
+                                      "enum": [
+                                        "ok",
+                                        "attention",
+                                        "not_checked"
+                                      ]
+                                    },
+                                    "note": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "maxLength": 1000
+                                    }
+                                  }
+                                },
+                                "urgency": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "outcome"
+                                  ],
+                                  "properties": {
+                                    "outcome": {
+                                      "type": "string",
+                                      "enum": [
+                                        "ok",
+                                        "attention",
+                                        "not_checked"
+                                      ]
+                                    },
+                                    "note": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "maxLength": 1000
+                                    }
+                                  }
+                                },
+                                "site_visit_need": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "outcome"
+                                  ],
+                                  "properties": {
+                                    "outcome": {
+                                      "type": "string",
+                                      "enum": [
+                                        "ok",
+                                        "attention",
+                                        "not_checked"
+                                      ]
+                                    },
+                                    "note": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "maxLength": 1000
+                                    }
+                                  }
+                                },
+                                "staff_equipment": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "outcome"
+                                  ],
+                                  "properties": {
+                                    "outcome": {
+                                      "type": "string",
+                                      "enum": [
+                                        "ok",
+                                        "attention",
+                                        "not_checked"
+                                      ]
+                                    },
+                                    "note": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "maxLength": 1000
+                                    }
+                                  }
+                                },
+                                "risk_flags": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "outcome"
+                                  ],
+                                  "properties": {
+                                    "outcome": {
+                                      "type": "string",
+                                      "enum": [
+                                        "ok",
+                                        "attention",
+                                        "not_checked"
+                                      ]
+                                    },
+                                    "note": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "maxLength": 1000
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "recordedBy": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            },
+                            "recordedAt": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "missingChecks": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "coverage",
+                          "service_fit",
+                          "essential_facts",
+                          "urgency",
+                          "site_visit_need",
+                          "staff_equipment",
+                          "risk_flags"
+                        ]
+                      }
+                    },
+                    "notes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "body",
+                          "author",
+                          "createdAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "body": {
+                            "type": "string"
+                          },
+                          "author": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "decisions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "action",
+                          "event",
+                          "fromState",
+                          "toState",
+                          "projectFromState",
+                          "projectToState",
+                          "reasonCategory",
+                          "customerText",
+                          "customerMessage",
+                          "internalNote",
+                          "decidedBy",
+                          "decidedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "action": {
+                            "type": "string"
+                          },
+                          "event": {
+                            "type": "string"
+                          },
+                          "fromState": {
+                            "type": "string"
+                          },
+                          "toState": {
+                            "type": "string"
+                          },
+                          "projectFromState": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "projectToState": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "reasonCategory": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "coverage",
+                              "outside_scope",
+                              "specialist_assessment",
+                              "other",
+                              null
+                            ]
+                          },
+                          "customerText": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "customerMessage": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "internalNote": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "decidedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "decidedAt": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "workPackages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "serviceId",
+                          "code",
+                          "position",
+                          "state"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "serviceId": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "position": {
+                            "type": "integer"
+                          },
+                          "state": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "nextStep": {
+                      "type": "string",
+                      "enum": [
+                        "qualify_and_choose",
+                        "waiting_on_customer",
+                        "offer_visit_windows",
+                        "prepare_estimate",
+                        "estimate_published",
+                        "owner_review",
+                        "closed"
+                      ]
+                    },
+                    "followUpDueAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "askQuestion",
+                        "prepareOnlineEstimate",
+                        "arrangeEstimateVisit",
+                        "notAFit",
+                        "assign",
+                        "qualify",
+                        "addNote"
+                      ],
+                      "properties": {
+                        "askQuestion": {
+                          "type": "boolean"
+                        },
+                        "prepareOnlineEstimate": {
+                          "type": "boolean"
+                        },
+                        "arrangeEstimateVisit": {
+                          "type": "boolean"
+                        },
+                        "notAFit": {
+                          "type": "boolean"
+                        },
+                        "assign": {
+                          "type": "boolean"
+                        },
+                        "qualify": {
+                          "type": "boolean"
+                        },
+                        "addNote": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "serviceCatalog": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "code"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "request.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-requests.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/requests/{requestId}/actions/ask-question": {
+      "post": {
+        "operationId": "askRequestQuestion",
+        "summary": "Ask a Question",
+        "description": "Staff with request.ask_question. Moves the request to \"needs information\" (from review, after a received request is moved to review). The questions themselves and their automatic notice are written and published with TSK-0051: no customer message is sent here; request.information_requested is recorded for it.",
+        "tags": [
+          "requests"
+        ],
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "internalNote": {
+                    "type": "string",
+                    "maxLength": 5000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "requestId",
+                    "outcome",
+                    "state",
+                    "version",
+                    "projectState"
+                  ],
+                  "properties": {
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "moved",
+                        "routed_to_owner"
+                      ]
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "received",
+                        "reviewing",
+                        "needs_information",
+                        "needs_site_visit",
+                        "ready_for_estimate",
+                        "estimated",
+                        "declined",
+                        "outside_scope",
+                        "not_served",
+                        "withdrawn",
+                        "closed_no_response"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "projectState": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "request.ask_question",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "request.ask_question",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-requests.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/requests/{requestId}/actions/estimate-visit": {
+      "post": {
+        "operationId": "arrangeEstimateVisit",
+        "summary": "Arrange Estimate Visit",
+        "description": "Staff with request.choose_estimate_approach. \"Site visit needed\" with a short customer-facing explanation (OWN-DEC-99): needs the qualification recorded; creates one work package per listed service and moves the request to \"needs site visit\". Nothing is booked and no message is sent: the visit windows are offered with TSK-0063 (request.site_visit_required is recorded for it).",
+        "tags": [
+          "requests"
+        ],
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "customerExplanation",
+                  "workPackages"
+                ],
+                "properties": {
+                  "customerExplanation": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  },
+                  "workPackages": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 10,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "pattern": "^SVC-[A-Z]{2}-[0-9]{2}$"
+                    }
+                  },
+                  "internalNote": {
+                    "type": "string",
+                    "maxLength": 5000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "requestId",
+                    "outcome",
+                    "state",
+                    "version",
+                    "projectState"
+                  ],
+                  "properties": {
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "moved",
+                        "routed_to_owner"
+                      ]
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "received",
+                        "reviewing",
+                        "needs_information",
+                        "needs_site_visit",
+                        "ready_for_estimate",
+                        "estimated",
+                        "declined",
+                        "outside_scope",
+                        "not_served",
+                        "withdrawn",
+                        "closed_no_response"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "projectState": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "request.choose_estimate_approach",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "request.choose_estimate_approach",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-requests.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/requests/{requestId}/actions/not-a-fit": {
+      "post": {
+        "operationId": "declineNotAFit",
+        "summary": "Not a Fit",
+        "description": "Staff with request.not_a_fit. Needs a reason category (coverage, outside our scope, specialist assessment needed, other) and the plain-language reason the customer sees; the internal note stays staff-only. With accepted work, an appointment or money received the project goes to the Owner for cancellation and financial review (Owner Decisions) and nothing closes; otherwise the request and project close with their history and decision.not_a_fit_published is recorded for the automatic notice.",
+        "tags": [
+          "requests"
+        ],
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "category",
+                  "customerReason"
+                ],
+                "properties": {
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "coverage",
+                      "outside_scope",
+                      "specialist_assessment",
+                      "other"
+                    ]
+                  },
+                  "customerReason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  },
+                  "internalNote": {
+                    "type": "string",
+                    "maxLength": 5000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "requestId",
+                    "outcome",
+                    "state",
+                    "version",
+                    "projectState"
+                  ],
+                  "properties": {
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "moved",
+                        "routed_to_owner"
+                      ]
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "received",
+                        "reviewing",
+                        "needs_information",
+                        "needs_site_visit",
+                        "ready_for_estimate",
+                        "estimated",
+                        "declined",
+                        "outside_scope",
+                        "not_served",
+                        "withdrawn",
+                        "closed_no_response"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "projectState": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "request.not_a_fit",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "request.not_a_fit",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-requests.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/requests/{requestId}/actions/online-estimate": {
+      "post": {
+        "operationId": "prepareOnlineEstimate",
+        "summary": "Prepare Online Estimate",
+        "description": "Staff with request.choose_estimate_approach. \"Estimate online\": needs the qualification recorded; creates one work package per listed service of the one project and moves the request to \"ready for estimate\". The estimate itself is written with TSK-0052/TSK-0053; no message is sent.",
+        "tags": [
+          "requests"
+        ],
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "workPackages"
+                ],
+                "properties": {
+                  "workPackages": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 10,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "pattern": "^SVC-[A-Z]{2}-[0-9]{2}$"
+                    }
+                  },
+                  "internalNote": {
+                    "type": "string",
+                    "maxLength": 5000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "requestId",
+                    "outcome",
+                    "state",
+                    "version",
+                    "projectState"
+                  ],
+                  "properties": {
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "moved",
+                        "routed_to_owner"
+                      ]
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "received",
+                        "reviewing",
+                        "needs_information",
+                        "needs_site_visit",
+                        "ready_for_estimate",
+                        "estimated",
+                        "declined",
+                        "outside_scope",
+                        "not_served",
+                        "withdrawn",
+                        "closed_no_response"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "projectState": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "request.choose_estimate_approach",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "request.choose_estimate_approach",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-requests.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/requests/{requestId}/notes": {
+      "post": {
+        "operationId": "addRequestNote",
+        "summary": "Add an internal note to a request",
+        "description": "Staff with request.add_note (PROPOSED: the request-handling row). A staff-only note, kept separate from customer messages and never shown to customers. Notes are never edited or deleted; a correction is a new note.",
+        "tags": [
+          "requests"
+        ],
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "body"
+                ],
+                "properties": {
+                  "body": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 5000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "createdAt"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "request.add_note",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "request.add_note",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-requests.test.ts"
         }
       }
     },
@@ -6071,6 +8612,637 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/photos.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/requests/{requestId}/qualification": {
+      "put": {
+        "operationId": "qualifyRequest",
+        "summary": "Record the qualification of a request",
+        "description": "Staff with request.qualify (PROPOSED: the request-handling row). One outcome per check of HH-LEAD-02 (coverage, service fit, missing essential facts, urgency, site-visit need, staff and equipment, risk flags) with an optional note; each save is a new revision, and If-Match is the current revision (0 before the first). Classification is by staff; AI stays off. Never changes the request state or stops the clock.",
+        "tags": [
+          "requests"
+        ],
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "checks"
+                ],
+                "properties": {
+                  "checks": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "coverage",
+                      "service_fit",
+                      "essential_facts",
+                      "urgency",
+                      "site_visit_need",
+                      "staff_equipment",
+                      "risk_flags"
+                    ],
+                    "properties": {
+                      "coverage": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "outcome"
+                        ],
+                        "properties": {
+                          "outcome": {
+                            "type": "string",
+                            "enum": [
+                              "ok",
+                              "attention",
+                              "not_checked"
+                            ]
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 1000
+                          }
+                        }
+                      },
+                      "service_fit": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "outcome"
+                        ],
+                        "properties": {
+                          "outcome": {
+                            "type": "string",
+                            "enum": [
+                              "ok",
+                              "attention",
+                              "not_checked"
+                            ]
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 1000
+                          }
+                        }
+                      },
+                      "essential_facts": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "outcome"
+                        ],
+                        "properties": {
+                          "outcome": {
+                            "type": "string",
+                            "enum": [
+                              "ok",
+                              "attention",
+                              "not_checked"
+                            ]
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 1000
+                          }
+                        }
+                      },
+                      "urgency": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "outcome"
+                        ],
+                        "properties": {
+                          "outcome": {
+                            "type": "string",
+                            "enum": [
+                              "ok",
+                              "attention",
+                              "not_checked"
+                            ]
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 1000
+                          }
+                        }
+                      },
+                      "site_visit_need": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "outcome"
+                        ],
+                        "properties": {
+                          "outcome": {
+                            "type": "string",
+                            "enum": [
+                              "ok",
+                              "attention",
+                              "not_checked"
+                            ]
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 1000
+                          }
+                        }
+                      },
+                      "staff_equipment": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "outcome"
+                        ],
+                        "properties": {
+                          "outcome": {
+                            "type": "string",
+                            "enum": [
+                              "ok",
+                              "attention",
+                              "not_checked"
+                            ]
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 1000
+                          }
+                        }
+                      },
+                      "risk_flags": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "outcome"
+                        ],
+                        "properties": {
+                          "outcome": {
+                            "type": "string",
+                            "enum": [
+                              "ok",
+                              "attention",
+                              "not_checked"
+                            ]
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 1000
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "revision",
+                    "missingChecks"
+                  ],
+                  "properties": {
+                    "revision": {
+                      "type": "integer"
+                    },
+                    "missingChecks": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "request.qualify",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "request.qualify",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-requests.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/requests/{requestId}/responsible": {
+      "put": {
+        "operationId": "assignRequest",
+        "summary": "Make one staff member responsible for a request",
+        "description": "Staff with request.assign. Sets the one responsible staff member (an active staff member whose role may handle requests) on the request and its project; every reassignment is kept with who made it. If-Match is the request version; the new version is returned. Assigning never stops the first-response clock.",
+        "tags": [
+          "requests"
+        ],
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "staffUserId"
+                ],
+                "properties": {
+                  "staffUserId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "requestId",
+                    "outcome",
+                    "state",
+                    "version",
+                    "projectState"
+                  ],
+                  "properties": {
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "moved",
+                        "routed_to_owner"
+                      ]
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "received",
+                        "reviewing",
+                        "needs_information",
+                        "needs_site_visit",
+                        "ready_for_estimate",
+                        "estimated",
+                        "declined",
+                        "outside_scope",
+                        "not_served",
+                        "withdrawn",
+                        "closed_no_response"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "projectState": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "request.assign",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "request.assign",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-requests.test.ts"
         }
       }
     },
@@ -6246,6 +9418,143 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/queue.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/requests/assignees": {
+      "get": {
+        "operationId": "listRequestAssignees",
+        "summary": "Who can be responsible for a request",
+        "description": "Staff with request.assign. Active staff whose roles may handle requests (the matrix row \"Ask a question, choose online or site visit, Not a Fit, assign responsible person\"): id and name only.",
+        "tags": [
+          "requests"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "staff"
+                  ],
+                  "properties": {
+                    "staff": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "request.assign",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-requests.test.ts"
         }
       }
     },

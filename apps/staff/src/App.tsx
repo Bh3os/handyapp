@@ -8,6 +8,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { call, setCsrfToken, type ApiErrorBody, type Fetch } from './api'
 import { QueueHome } from './Queue'
 import { RequestRecord } from './Record'
+import { RequestsScreen } from './Requests'
 import { SearchScreen, Screen, Shell, type Navigation } from './Shell'
 import { ConfigurationScreen, HealthScreen } from './System'
 
@@ -216,6 +217,8 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
             <HealthScreen t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
           ) : route.page === 'screen' && shown === 'settings' && allowed ? (
             <ConfigurationScreen t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
+          ) : shown === 'requests' && allowed && route.page === 'screen' ? (
+            <RequestsScreen t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
           ) : route.page === 'record' && route.screen === 'requests' && allowed ? (
             <RequestRecord key={route.id} t={t} locale={locale} fetchImpl={doFetch} id={route.id} go={go} href={href} />
           ) : (

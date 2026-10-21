@@ -19,7 +19,7 @@ export function setCsrfToken(token: string | null): void {
 export async function call<T>(
   fetchImpl: Fetch,
   path: string,
-  options: { method?: string; body?: unknown } = {},
+  options: { method?: string; body?: unknown; headers?: Record<string, string> } = {},
 ): Promise<ApiResponse<T>> {
   let res: Response
   try {
@@ -29,6 +29,7 @@ export async function call<T>(
       headers: {
         ...(options.body === undefined ? {} : { 'content-type': 'application/json' }),
         ...((options.method ?? 'GET') !== 'GET' && csrfToken ? { 'x-csrf-token': csrfToken } : {}),
+        ...(options.headers ?? {}),
       },
       ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
     })
@@ -40,4 +41,14 @@ export async function call<T>(
   if (res.ok) return { ok: true, status: res.status, data: json as T }
   const error = (json as { error?: ApiErrorBody } | null)?.error ?? { code: 'INTERNAL', fieldErrors: [] }
   return { ok: false, status: res.status, error }
+}
+
+/**
+ * A fresh Idempotency-Key for one write (HH-API-04). The caller keeps it for retries of the same submission, so a
+ * double tap or a retried request is answered once.
+ */
+export function idempotencyKey(): string {
+  const bytes = new Uint8Array(16)
+  globalThis.crypto.getRandomValues(bytes)
+  return `staff-${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')}`
 }

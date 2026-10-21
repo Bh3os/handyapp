@@ -328,6 +328,19 @@
   color: var(--hh-muted);
 }
 
+/* The request record (TSK-0042): the original request, read-only, and its handling sections. */
+.staff-request__section {
+  display: grid;
+  gap: var(--hh-space-3);
+  margin-top: var(--hh-space-6);
+  min-width: 0;
+}
+
+.staff-request__hint {
+  margin: 0;
+  color: var(--hh-muted);
+}
+
 .staff-system__pair {
   display: contents;
 }
@@ -360,5 +373,74 @@
 }
 
 .staff-system code {
+  overflow-wrap: anywhere;
+}
+
+.staff-request__list,
+.staff-request__photos {
+  display: grid;
+  gap: var(--hh-space-2);
+  margin: 0;
+  padding-left: var(--hh-space-6);
+}
+
+.staff-request__contact {
+  display: block;
+}
+
+.staff-request__form {
+  display: grid;
+  gap: var(--hh-space-4);
+  min-width: 0;
+}
+
+.staff-request__check {
+  display: grid;
+  gap: var(--hh-space-2);
+  margin: 0;
+  padding: var(--hh-space-3);
+  border: var(--hh-hairline);
+  border-radius: var(--hh-radius-sm);
+  min-width: 0;
+}
+
+.staff-request__check legend {
+  font-weight: 600;
+  padding: 0 var(--hh-space-1);
+}
+
+.staff-request__outcomes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hh-space-2) var(--hh-space-4);
+}
+
+.staff-request__outcomes label,
+.staff-request__package {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hh-space-1);
+  min-height: var(--hh-target);
+}
+
+.staff-request__actions {
+  flex-wrap: wrap;
+}
+
+.staff-request__preview blockquote {
+  margin: var(--hh-space-1) 0 0;
+  padding: var(--hh-space-3);
+  border-left: 4px solid var(--hh-line-strong);
+  background: var(--hh-surface);
+}
+
+.staff-request__note {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.staff-request__decision p {
+  margin: 0;
   overflow-wrap: anywhere;
 }

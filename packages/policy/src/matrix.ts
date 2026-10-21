@@ -17,6 +17,10 @@ export const ACTIONS = [
   'request.choose_estimate_approach',
   'request.not_a_fit',
   'request.assign',
+  // PROPOSED (TSK-0042): recording the qualification and internal notes are part of handling a request, so they sit
+  // in the handling row with the same cells.
+  'request.qualify',
+  'request.add_note',
   'request.reply',
   'customer.view',
   'customer.edit',
@@ -271,7 +275,14 @@ export const MATRIX: readonly MatrixRow[] = [
   row(
     INTAKE,
     'Ask a question, choose online or site visit, Not a Fit, assign responsible person',
-    ['request.ask_question', 'request.choose_estimate_approach', 'request.not_a_fit', 'request.assign'],
+    [
+      'request.ask_question',
+      'request.choose_estimate_approach',
+      'request.not_a_fit',
+      'request.assign',
+      'request.qualify',
+      'request.add_note',
+    ],
     { owner: Y(), office: Y(), estimator: Y('Y (P)', P) },
   ),
   row(INTAKE, 'Reply to a question', ['request.reply'], { customer: V() }),
