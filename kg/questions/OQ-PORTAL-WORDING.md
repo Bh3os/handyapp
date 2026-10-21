@@ -1,0 +1,18 @@
+---
+id: OQ-PORTAL-WORDING
+type: question
+title: Customer wording of the project workspace frame that no decision gives
+status: open
+area: portal
+links:
+  related: ["[[HH-PORT-02]]", "[[HH-PORT-03]]", "[[HH-PORT-06]]", "[[OWN-DEC-106]]", "[[OWN-DEC-98]]", "[[OWN-DEC-105]]", "[[TSK-0038]]", "[[TSK-0039]]", "[[HH-PORT-09]]"]
+source: "TSK-0038 (2026-10-21): HH-PORT-02, HH-PORT-03 and HH-PORT-06 name the states and labels, not every sentence"
+---
+**Question:** does the owner approve, or change, the customer wording the portal uses where no decision or requirement gives the words?
+
+- **Who answers:** the owner.
+- **Given wording, used as written:** the status labels and next steps of [[HH-PORT-03]] (for example "Request received" with "HandyHub will review the details."), "Waiting on you" and **Reply** ([[OWN-DEC-98]]), the two approval steps of [[OWN-DEC-105]], "Work is paused for safety review." ([[T48]]), "Closed—no response" ([[OWN-DEC-101]]), the Not a Fit sentence ([[OWN-DEC-100]]) and "Canceled" (guide 23.1).
+- **PROPOSED wording in use (customer catalog `portal.*`, `access.project.portal`):** "Waiting on HandyHub"; "Nothing is needed from you"; the Not a Fit label "Not a fit" and timeline label "Decision on your request"; "HandyHub will offer visit windows for you to choose from." (a site visit is needed and no windows are offered yet); "HandyHub recorded that your visit is on the way."; "View the date, arrival window and preparation."; the action buttons "Pay your deposit", "Choose your work appointment", "Review the visit", "Review the change", "Pay your invoice", "Contact HandyHub" and the inactive-action reason "This isn't available here yet."; the empty states "No appointment yet" / "When a visit is confirmed, its date and arrival window appear here." and "Nothing to pay yet" / "Your estimate, deposit and invoice amounts appear here once HandyHub shares them."; the refresh line "Updated {time}" / Refresh and the stale state "This page couldn't be updated" / "What you see is from {time} and may be out of date. Check your connection and try again." / "Try again"; the failure, ended-session and not-available states; the page titles "Your projects", "Project {reference}", "All projects" and "Go to your project page" on the access page.
+- **Not configured:** the customer explanation for "Update pending" and the next step under "Completion review" and "Follow-up work" come from reviewed records later tasks build ([[TSK-0074]], [[TSK-0084]]); until then nothing is written under those labels. "Contact HandyHub" needs the public contact ([[FACT-PUBLIC-CONTACT]]).
+- **Until answered:** the PROPOSED wording above is shown on private staging; changing it is a catalog edit only.
+- **Added by [[TSK-0039]] (2026-10-21), PROPOSED:** the tab list name "Project sections"; "Loading this section…" and "This section couldn't be loaded"; Messages "Messages aren't shown here yet" / "Your project conversation with HandyHub will appear here."; Documents "No documents yet" / "Estimates, your approval receipt, change orders, invoices, receipts and care notes appear here once HandyHub shares them."; Photos "No photos yet" / "Photos you send HandyHub appear here, along with before and after photos HandyHub shares with you." and "Viewing photos here isn't available yet."; Payments "A payment you make shows here once HandyHub records it." ([[OWN-DEC-111]]: payments are recorded by staff). The tab names Overview, Messages, Documents, Photos, Appointments and Payments are the owner's ([[OWN-DEC-106]]); the Appointments and Payments tabs reuse the TSK-0038 empty states above, and the Photos counts reuse the receipt's "Your photos" / "Received" / "Processing" / "Failed".

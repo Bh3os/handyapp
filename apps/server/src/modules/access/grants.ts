@@ -18,7 +18,7 @@ import { newNonce } from '../identity/keys.js'
 import { hashToken, TOKEN } from '../identity/tokens.js'
 import type { Secret } from '../../providers/types.js'
 
-export type GrantReason = 'submission' | 'contact_change'
+export type GrantReason = 'submission' | 'contact_change' | 'reissue'
 export type RevokeReason = 'contact_changed' | 'staff_revoked' | 'account_deleted' | 'corrected_link'
 
 export type Grant = {
@@ -119,6 +119,20 @@ export async function resolveGrant(
     .where('expires_at', '>', now)
   const row = await (lock ? q.forUpdate() : q).executeTakeFirst()
   return row ? toGrant(row) : null
+}
+
+/**
+ * The project a presented token was ever issued for, whatever the grant's state (TSK-0035: an expired or revoked link
+ * may ask for a new one). It opens nothing: the caller only learns which project a reissue would be for.
+ */
+export async function projectOfAnyGrant(db: Db | Tx, token: unknown): Promise<string | null> {
+  if (typeof token !== 'string' || !TOKEN.test(token)) return null
+  const row = await db
+    .selectFrom('identity.project_access_grants')
+    .select('project_id')
+    .where('token_hash', '=', hashToken(token))
+    .executeTakeFirst()
+  return row?.project_id ?? null
 }
 
 /** A grant with its nonce (the access-link job derives its token again), whatever its state. */

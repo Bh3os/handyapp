@@ -18,14 +18,28 @@
 // - TSK-0049 (HH-COM-07, OWN-DEC-120): a delivery records its project. A customer email of a project replies to the
 //   project's plus-addressed reply token while a receiving address is configured, so the customer's reply threads back
 //   to that project; without one it keeps the configured reply-to.
+// - TSK-0032 review (HH-ARC-09, HH-INT-20, HH-COM-02, HH-SEC-06):
+//   - every delivery a job handles records its own audit event with what truly happened (notification.sent,
+//     notification.failed, notification.suppressed or notification.outcome_unknown); the job itself is audited as
+//     notification.processed, never as a send;
+//   - an uncertain provider outcome (a timeout or a lost answer after the request went out) on the last attempt is
+//     recorded with an `outcome_unknown_<code>` error code: the provider may have sent it, so it gets no Retry (its
+//     delivery issue is resolved as outcome_unknown and the delivery stays listed as failed in System health for
+//     reconciliation against the provider's own record); only a definite failure is retried by staff;
+//   - a delivery a staff retry queued again that the re-run does not send (the message left the automatic list, the
+//     record went stale, the recipient changed, or the job failed) goes back to failed with that reason, and its
+//     delivery issue follows, so nothing reads queued for good;
+//   - a delivery issue follows its record's responsible staff member when the record is reassigned.
 import { createHash } from 'node:crypto'
 import type { Tx } from '@handyhub/db'
 import type { StaffLocale } from '@handyhub/i18n'
-import { sql } from 'kysely'
+import { sql, type SqlBool } from 'kysely'
 import { audit, type AuditActor } from '../../platform/audit.js'
 import type { Automation, JobContext, JobOutcome } from '../../platform/automation.js'
 import { loadConfig, type Config } from '../../platform/config/index.js'
 import { scheduleJob } from '../../platform/jobs.js'
+import { outbox } from '../../platform/outbox.js'
+import { currentContext } from '../../platform/request-context.js'
 import type { EmailSender, SmsSender } from '../../providers/index.js'
 import { projectReplyToken, replyAddress, type InboundAddress } from '../inbox/threading.js'
 import { openQueueItem, resolveQueueItem } from '../queue/items.js'
@@ -98,6 +112,26 @@ export function deliveryIdempotencyKey(
   return `notification/${h.slice(0, 40)}`
 }
 
+/**
+ * The outcome of a customer delivery, for the modules that follow it (TSK-0043: the first-response clock, HH-LEAD-05).
+ * Written in the same transaction as the delivery's new state: `message.delivery_succeeded` when a delivery first
+ * becomes sent or delivered, `message.delivery_failed` when it fails or is suppressed. Identifiers and times only.
+ */
+export async function recordDeliveryOutcome(
+  tx: Tx,
+  input: { deliveryId: string; audience: string; outcome: 'succeeded' | 'failed'; at: Date; cause: string },
+): Promise<void> {
+  if (input.audience !== 'customer') return
+  const type = input.outcome === 'succeeded' ? 'message.delivery_succeeded' : 'message.delivery_failed'
+  await outbox.add(tx, {
+    type,
+    aggregate: { type: 'message_delivery', id: input.deliveryId },
+    payload: { at: input.at.toISOString() },
+    idempotencyKey: `${type}:${input.deliveryId}:${input.cause}`,
+    requestId: currentContext()?.requestId ?? `delivery:${input.deliveryId}`,
+  })
+}
+
 type DeliveryRow = {
   id: string
   message_key: string
@@ -119,6 +153,44 @@ export type SendResult = { state: string; errorCode: string | null }
 export const NOT_CONFIGURED_ERRORS: ReadonlySet<string> = new Set(['template_not_configured', 'channel_not_configured'])
 
 /**
+ * The error-code prefix of a delivery whose provider outcome is not known (HH-ARC-09): the request may have reached the
+ * provider and been sent, so it is reconciled against the provider's own record, never retried blindly.
+ */
+export const OUTCOME_UNKNOWN_PREFIX = 'outcome_unknown_'
+
+/** Whether a delivery's error code records an uncertain provider outcome. */
+export function isOutcomeUnknown(errorCode: string | null | undefined): boolean {
+  return typeof errorCode === 'string' && errorCode.startsWith(OUTCOME_UNKNOWN_PREFIX)
+}
+
+/** The audit action of a send's result: what truly happened to the delivery (HH-SEC-06). */
+export function deliveryAuditAction(result: SendResult): string {
+  if (result.state === 'failed')
+    return isOutcomeUnknown(result.errorCode) ? 'notification.outcome_unknown' : 'notification.failed'
+  if (result.state === 'suppressed') return 'notification.suppressed'
+  if (result.state === 'cancelled') return 'notification.cancelled'
+  return 'notification.sent'
+}
+
+/** One audit event per delivery handled, in the job's transaction, with the true outcome. */
+async function auditDelivery(
+  tx: Tx,
+  job: { requestId: string },
+  process: string,
+  row: { id: string; message_key: string; channel: string },
+  result: SendResult,
+) {
+  await audit.record(tx, {
+    actor: { kind: 'system', process },
+    action: deliveryAuditAction(result),
+    target: { type: 'message_delivery', id: row.id },
+    result: result.state === 'failed' ? 'failed' : 'succeeded',
+    summary: { messageKey: row.message_key, channel: row.channel, state: result.state, errorCode: result.errorCode },
+    requestId: job.requestId,
+  })
+}
+
+/**
  * Renders and sends one delivery row, recording what happened. Temporary outcomes throw so the job retries, except
  * on the job's last attempt (`final`), where the failure is recorded on the row instead (TSK-0032).
  */
@@ -136,6 +208,22 @@ async function send(
       .set({ ...set, attempts: sql<number>`attempts + 1`, updated_at: sql<Date>`now()` })
       .where('id', '=', row.id)
       .execute()
+    // The outcome for the modules that follow customer deliveries (TSK-0043: the first-response clock), in the same
+    // transaction as the new state: sent or delivered succeeded; failed (also an unknown last outcome) or suppressed failed.
+    const outcome =
+      set.state === 'sent' || set.state === 'delivered'
+        ? 'succeeded'
+        : set.state === 'failed' || set.state === 'suppressed'
+          ? 'failed'
+          : null
+    if (outcome)
+      await recordDeliveryOutcome(tx, {
+        deliveryId: row.id,
+        audience: row.audience,
+        outcome,
+        at: new Date(),
+        cause: 'send',
+      })
     return { state: set.state, errorCode: set.error_code }
   }
   const template = await currentTemplate(tx, row.message_key, channel, row.locale as 'en' | 'es')
@@ -194,10 +282,19 @@ async function send(
     case 'rejected':
       return update({ ...base, state: 'failed', error_code: outcome.errorCode })
     case 'retryable_error':
-    case 'outcome_unknown':
       // The last attempt: the failure is recorded, never shown as sent; a staff retry presents the same key again.
       if (final) return update({ ...base, state: 'failed', error_code: outcome.errorCode })
       // The transaction rolls back; the job retries with the same idempotency key.
+      throw new RetryableDeliveryError(outcome.errorCode)
+    case 'outcome_unknown':
+      // The last attempt: the provider may have sent it. Recorded as an unknown outcome, which staff cannot retry
+      // blindly: once the provider's idempotency window has passed the same key would send a second message.
+      if (final)
+        return update({
+          ...base,
+          state: 'failed',
+          error_code: `${OUTCOME_UNKNOWN_PREFIX}${outcome.errorCode}`.slice(0, 120),
+        })
       throw new RetryableDeliveryError(outcome.errorCode)
   }
 }
@@ -208,6 +305,12 @@ async function send(
  */
 async function syncFailureItem(tx: Tx, deliveryId: string, result: SendResult, item: FailureItem | undefined) {
   if (!item) return
+  // An unknown outcome has no Retry: an open delivery issue (from an earlier definite failure) is resolved, and the
+  // delivery stays listed as failed in System health until it is reconciled against the provider (HH-ARC-09).
+  if (result.state === 'failed' && isOutcomeUnknown(result.errorCode)) {
+    await resolveQueueItem(tx, { type: 'delivery_failed', subjectId: deliveryId, resolution: 'outcome_unknown' })
+    return
+  }
   if (result.state === 'failed') {
     await openQueueItem(tx, {
       type: 'delivery_failed',
@@ -276,6 +379,71 @@ async function upsertDelivery(
     .executeTakeFirstOrThrow()
 }
 
+/**
+ * Deliveries of this event and message that a staff retry queued again (retry.ts) and this run did not send: they go
+ * back to failed with the reason, so none reads queued for good (HH-COM-02). `keepIssue`: their delivery issue stays
+ * open (the failure can be retried again); otherwise it is resolved with the same reason, as no Retry can send it.
+ * Before a staff retry no automatic delivery is queued outside its own job's transaction, so only retried rows match.
+ */
+async function settleUnsentRetries(
+  tx: Tx,
+  input: {
+    eventId: string | null
+    messageKey: string
+    errorCode: string
+    keepIssue: boolean
+    sent?: readonly string[]
+    job: { requestId: string }
+    process: string
+  },
+): Promise<number> {
+  if (!input.eventId) return 0
+  let q = tx
+    .updateTable('platform.message_deliveries')
+    .set({ state: 'failed', error_code: input.errorCode, updated_at: sql<Date>`now()` })
+    .where('outbox_event_id', '=', input.eventId)
+    .where('message_key', '=', input.messageKey)
+    .where('release', '=', 'automatic')
+    .where('state', '=', 'queued')
+    .where('provider_message_id', 'is', null)
+  if (input.sent?.length) q = q.where('id', 'not in', input.sent)
+  const rows = await q.returning(['id', 'message_key', 'channel']).execute()
+  for (const row of rows) {
+    const result = { state: 'failed', errorCode: input.errorCode }
+    await auditDelivery(tx, input.job, input.process, row, result)
+    if (!input.keepIssue)
+      await resolveQueueItem(tx, { type: 'delivery_failed', subjectId: row.id, resolution: input.errorCode })
+  }
+  return rows.length
+}
+
+/**
+ * Keeps the open delivery issues of a record's deliveries with the staff member now responsible for it (TSK-0032,
+ * HH-OPS-02, RULE-SERVER-AUTHZ): called in the same transaction as the reassignment, so the queue and the Retry check
+ * never use a stale owner.
+ */
+export async function syncDeliveryFailureOwner(
+  tx: Tx,
+  input: { recordType: string; recordId: string; assignedStaffId: string | null },
+): Promise<number> {
+  const res = await tx
+    .updateTable('ops.queue_items')
+    .set({ assigned_staff_id: input.assignedStaffId, updated_at: sql<Date>`now()`, version: sql<number>`version + 1` })
+    .where('type', '=', 'delivery_failed')
+    .where('subject_type', '=', 'message_delivery')
+    .where('resolved_at', 'is', null)
+    .where(sql<SqlBool>`assigned_staff_id IS DISTINCT FROM ${input.assignedStaffId}`)
+    .where('subject_id', 'in', (eb) =>
+      eb
+        .selectFrom('platform.message_deliveries')
+        .select(sql<string>`id::text`.as('id'))
+        .where('record_type', '=', input.recordType)
+        .where('record_id', '=', input.recordId),
+    )
+    .executeTakeFirst()
+  return Number(res.numUpdatedRows)
+}
+
 export type NotificationAutomationOptions = {
   messageKey: string
   providers: NotificationProviders
@@ -289,10 +457,11 @@ export type NotificationAutomationOptions = {
 export function notificationAutomation(o: NotificationAutomationOptions): Automation {
   const type = messageType(o.messageKey)
   const readConfig = o.config ?? ((tx: Tx) => loadConfig(tx))
+  const process = 'system.notifications'
   return {
     name: `notify.${type.key}`,
     trigger: { kind: 'event', eventTypes: type.triggerEvents },
-    identity: 'system.notifications',
+    identity: process,
     inputs: {
       description: `the committed ${type.triggerEvents.join(' or ')} event; records read at send time`,
       version: 1,
@@ -302,15 +471,42 @@ export function notificationAutomation(o: NotificationAutomationOptions): Automa
     retry: NOTIFICATION_RETRY,
     timeoutMs: 30_000,
     exceptionOwner: type.audience === 'customer' ? 'office' : 'owner',
-    audit: { action: 'notification.sent' },
+    // The job is audited as processed; each delivery records its own outcome (auditDelivery).
+    audit: { action: 'notification.processed' },
+    // A failed run leaves a delivery a staff retry queued as failed again, with its delivery issue still open.
+    onFinalFailure: async ({ tx, job }) => {
+      await settleUnsentRetries(tx, {
+        eventId: job.eventId,
+        messageKey: type.key,
+        errorCode: 'retry_job_failed',
+        keepIssue: true,
+        job,
+        process,
+      })
+    },
     handle: async (ctx): Promise<JobOutcome> => {
+      const settle = (errorCode: string, sent?: readonly string[]) =>
+        settleUnsentRetries(ctx.tx, {
+          eventId: ctx.job.eventId,
+          messageKey: type.key,
+          errorCode,
+          keepIssue: false,
+          ...(sent ? { sent } : {}),
+          job: ctx.job,
+          process,
+        })
       const policy = automaticPolicy(await readConfig(ctx.tx))
       if (!policy.isAutomatic(type.key)) {
         ctx.log.warn({ messageKey: type.key }, 'message is not on the automatic list; nothing sent')
+        await settle('not_automatic')
         return 'cancelled'
       }
       const resolved = await o.resolve(ctx)
-      if (resolved === 'stale') return 'cancelled'
+      if (resolved === 'stale') {
+        await settle('record_changed')
+        return 'cancelled'
+      }
+      const handled: string[] = []
       for (const recipient of resolved.recipients) {
         for (const destination of recipient.destinations) {
           if (!type.channels.includes(destination.channel)) continue
@@ -325,14 +521,18 @@ export function notificationAutomation(o: NotificationAutomationOptions): Automa
             outboxEventId: ctx.job.eventId,
             projectId: resolved.projectId ?? resolved.failureItem?.projectId ?? null,
           })
+          handled.push(row.id)
           // Already handed to the provider, suppressed or failed for this subject: a replay sends nothing. A failed
           // delivery is queued again only by a staff retry (retry.ts).
           if (row.state !== 'queued' || row.provider_message_id !== null) continue
           const final = ctx.job.maxAttempts !== undefined && ctx.job.attempt >= ctx.job.maxAttempts
           const result = await send(ctx.tx, row, resolved.values, o.providers, final)
+          await auditDelivery(ctx.tx, ctx.job, process, row, result)
           await syncFailureItem(ctx.tx, row.id, result, resolved.failureItem)
         }
       }
+      // A retried delivery whose recipient or destination is no longer resolved was not sent by this run.
+      await settle('recipient_changed', handled)
       return 'done'
     },
   }
@@ -435,7 +635,8 @@ export function releaseAutomation(
     retry: NOTIFICATION_RETRY,
     timeoutMs: 30_000,
     exceptionOwner: 'office',
-    audit: { action: 'notification.sent' },
+    // The job is audited as processed; the delivery records its own outcome (auditDelivery).
+    audit: { action: 'notification.processed' },
     handle: async (ctx): Promise<JobOutcome> => {
       const id = String(ctx.job.payload['deliveryId'] ?? '')
       const row = await ctx.tx
@@ -461,6 +662,10 @@ export function releaseAutomation(
           .set({ state: 'cancelled', error_code: 'record_changed', updated_at: sql<Date>`now()` })
           .where('id', '=', row.id)
           .execute()
+        await auditDelivery(ctx.tx, ctx.job, 'system.notifications', row, {
+          state: 'cancelled',
+          errorCode: 'record_changed',
+        })
         return 'cancelled'
       }
       if (verdict !== 'current') {
@@ -477,7 +682,8 @@ export function releaseAutomation(
           .execute()
         return 'cancelled'
       }
-      await send(ctx.tx, row, (row.variables ?? {}) as Record<string, string>, providers)
+      const result = await send(ctx.tx, row, (row.variables ?? {}) as Record<string, string>, providers)
+      await auditDelivery(ctx.tx, ctx.job, 'system.notifications', row, result)
       return 'done'
     },
   }

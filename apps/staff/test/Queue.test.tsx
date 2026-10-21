@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { App, routeOf } from '../src/App'
 import { duration, mergeRefresh, QueueHome, type QueueItem, type QueuePage } from '../src/Queue'
+import { businessDuration } from '../src/ResponseClock'
 import { requestDetail } from './request-fixture'
 
 afterEach(cleanup)
@@ -61,6 +62,51 @@ const props = (fetchImpl: typeof fetch, go = vi.fn()) => ({
   href: (to: string) => `/staff${to}`,
   staffUserId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   now: () => NOW,
+})
+
+describe('the first-response clock on queue items (TSK-0043, HH-LEAD-05, OWN-DEC-115)', () => {
+  it('[HH-LEAD-05] shows business minutes left or overdue, paused outside the daily hours, as an internal target', async () => {
+    const clock = {
+      state: 'paused' as const,
+      startedAt: '2026-10-20T01:40:00.000Z',
+      targetMinutes: 60,
+      dueAt: '2026-10-20T12:40:00.000Z',
+      remainingMinutes: 40,
+      overdueMinutes: null,
+      resumesAt: '2026-10-20T12:00:00.000Z',
+      timeZone: 'America/Kentucky/Louisville',
+      stoppedAt: null,
+      stopKind: null,
+      businessMinutes: null,
+      withinTarget: null,
+    }
+    const overdue = { ...clock, state: 'overdue' as const, remainingMinutes: null, overdueMinutes: 75, resumesAt: null }
+    const fetchImpl = vi.fn(async () =>
+      json(
+        200,
+        page([
+          item({ dueAt: clock.dueAt, responseClock: clock }),
+          item({
+            id: '00000000-0000-4000-8000-000000000002',
+            reference: 'HH-8K2M9Q4D',
+            dueAt: clock.dueAt,
+            responseClock: overdue,
+            reason: 'awaiting_first_response',
+            status: 'needs_information',
+          }),
+        ]),
+      ),
+    )
+    render(<QueueHome {...props(fetchImpl as unknown as typeof fetch)} />)
+    expect(
+      await screen.findByText(
+        /40 minutes left; paused outside daily hours until Tue,? 8:00\sAM · Internal response target, not a customer promise/,
+      ),
+    ).toBeTruthy()
+    const late = screen.getByText(/Overdue by 1 hour in daily hours/)
+    expect(late.className).toBe('staff-queue__overdue')
+    expect(screen.getByText('Waiting for a first meaningful response')).toBeTruthy()
+  })
 })
 
 describe('the action queue screen (TSK-0041, HH-OPS-01, HH-OPS-02)', () => {
@@ -278,6 +324,13 @@ describe('the action queue screen (TSK-0041, HH-OPS-01, HH-OPS-02)', () => {
     expect(duration(t, 59 * 60_000)).toBe('59 minutes')
     expect(duration(t, 90 * 60_000)).toBe('1 hour')
     expect(duration(t, 72 * 3600_000)).toBe('3 days')
+  })
+
+  it('[HH-LEAD-05] words business time in hours, never in 24-hour days', () => {
+    expect(businessDuration(t, 45)).toBe('45 minutes')
+    expect(businessDuration(t, 90)).toBe('1 hour')
+    // 50 business hours are more than three days of 08:00-22:00, so "2 days" would understate the wait.
+    expect(businessDuration(t, 3000)).toBe('50 hours')
   })
 })
 

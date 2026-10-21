@@ -4,8 +4,17 @@ import type { Db } from '@handyhub/db'
 import { describe, expect, it } from 'vitest'
 import { buildApp } from '../../src/app.js'
 import { ApiError } from '../../src/api/errors.js'
+import { envelope } from '../../src/api/register.js'
 import { buildOpenApi, renderOpenApi } from '../../src/api/openapi.js'
-import { decodeCursor, encodeCursor, MAX_PAGE_SIZE, pageRequest, toPage } from '../../src/api/pagination.js'
+import {
+  decodeCursor,
+  encodeCursor,
+  instantIdCursor,
+  isCursorInstant,
+  MAX_PAGE_SIZE,
+  pageRequest,
+  toPage,
+} from '../../src/api/pagination.js'
 import { RouteContractError, routeProblems, type ApiModule, type RouteDef } from '../../src/api/route.js'
 import { assertVersion, parseIfMatch } from '../../src/api/version.js'
 import { MODULES } from '../../src/modules/index.js'
@@ -14,6 +23,7 @@ import { testActor, WIDGETS } from '../fixtures/widgets.js'
 
 const route = (name: string) => WIDGETS.routes.find((r) => r.operationId === name) as RouteDef
 const fakeDb = {} as Db
+const CUSTOMER = { kind: 'customer' } as const
 
 async function app(modules: readonly ApiModule[] = [WIDGETS], db: Db | null = fakeDb) {
   return buildApp({ config: testConfig(), api: { modules, resolveActor: testActor, ...(db ? { db } : {}) } })
@@ -42,6 +52,14 @@ describe('route contract (TSK-0010, HH-API-01, HH-ARC-02)', () => {
     )
     expect(routeProblems({ ...route('listWidgets'), kind: 'write' })).toContain(
       'GET /staff/widgets: GET routes are reads and every other method is a write',
+    )
+  })
+
+  it('[HH-API-04] only a route with an idempotency key describes an idempotency conflict (TSK-0030)', () => {
+    const detail = () => ({ reference: 'HH-0000TEST' })
+    expect(routeProblems({ ...route('createWidget'), idempotencyConflict: detail })).toEqual([])
+    expect(routeProblems({ ...route('listWidgets'), idempotencyConflict: detail })).toContain(
+      'GET /staff/widgets: only routes with an idempotency key describe an idempotency conflict',
     )
   })
 
@@ -167,6 +185,20 @@ describe('safe error envelope (TSK-0010, HH-API-03)', () => {
     expect(res.json().error.code).toBe('UNAVAILABLE')
     await a.close()
   })
+
+  it('[HH-API-03][HH-INT-10] a conflict that names what its key created carries it; any other error does not (TSK-0030)', () => {
+    const named = envelope(
+      new ApiError('IDEMPOTENCY_CONFLICT', { existing: { reference: 'HH-0000TEST' } }),
+      CUSTOMER,
+      'r1',
+    )
+    expect(named.error).toMatchObject({
+      code: 'IDEMPOTENCY_CONFLICT',
+      retryable: false,
+      existing: { reference: 'HH-0000TEST' },
+    })
+    expect(Object.keys(envelope(new ApiError('IDEMPOTENCY_CONFLICT'), CUSTOMER, 'r2').error)).not.toContain('existing')
+  })
 })
 
 describe('authorization at the enforcement point (TSK-0010, RULE-SERVER-AUTHZ)', () => {
@@ -192,6 +224,47 @@ describe('pagination and versions (TSK-0010, HH-API-04, HH-API-05)', () => {
     expect(page.items).toEqual([1, 2])
     expect(decodeCursor(page.nextCursor as string)).toEqual([2])
     expect(toPage([1], { limit: 2, after: undefined }, (n) => [n]).nextCursor).toBeNull()
+  })
+
+  it('[HH-API-05] an [instant, id] cursor is checked strictly, so a crafted one never reaches a database cast', () => {
+    const id = '0d6f4b8e-3c1a-4f7e-9b2d-5a6c7e8f9a0b'
+    // PostgreSQL's timestamptz text forms, as the lists build their cursors from `<column>::text`.
+    for (const ok of [
+      '2026-10-21 03:06:04.123456+00',
+      '2026-10-21 03:06:04+00',
+      '2026-10-20 23:06:04.5-04',
+      '2024-02-29 00:00:00+05:30',
+      '2026-10-21T03:06:04Z',
+    ])
+      expect(isCursorInstant(ok), ok).toBe(true)
+    for (const bad of [
+      'x',
+      '',
+      '2026-99-99 00:00:00+00',
+      '2026-02-29 00:00:00+00',
+      '2026-04-31 00:00:00+00',
+      '2026-10-21 24:00:00+00',
+      '2026-10-21 03:60:00+00',
+      '2026-10-21 03:06:60+00',
+      '2026-10-21 03:06:04+16',
+      '0000-01-01 00:00:00+00',
+      '2026-10-21 03:06:04.1234567+00',
+      '2026-10-21',
+      42,
+      null,
+    ])
+      expect(isCursorInstant(bad), String(bad)).toBe(false)
+    expect(instantIdCursor(['2026-10-21 03:06:04+00', id])).toEqual(['2026-10-21 03:06:04+00', id])
+    for (const after of [
+      ['x', '-'.repeat(36)],
+      ['2026-10-21 03:06:04+00', '-'.repeat(36)],
+      ['2026-10-21 03:06:04+00', 'not-a-uuid'],
+      ['2026-10-21 03:06:04+00'],
+      ['2026-10-21 03:06:04+00', id, 'extra'],
+    ])
+      expect(() => instantIdCursor(after), JSON.stringify(after)).toThrow(
+        expect.objectContaining({ code: 'VALIDATION_FAILED' }),
+      )
   })
 
   it('[HH-API-04] If-Match is required and a stale version is a conflict with the current values', () => {

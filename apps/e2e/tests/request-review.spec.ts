@@ -1,7 +1,8 @@
-// The final review and "Send Estimate Request" in a real browser (TSK-0030; HH-INT-19, HH-INT-10, T01, T10, T11):
-// every section summarized with an Edit action that keeps everything else, the privacy policy linked with the version
-// saved, one request for a double click, and the draft's idempotency key across a lost response and a reload.
-// Every visitor, address and number is synthetic (RULE-SYNTHETIC-DATA).
+// The final review and "Send Estimate Request" in a real browser (TSK-0030; HH-INT-19, HH-INT-10, HH-INT-07, T01, T10,
+// T11): every section summarized with an Edit action that keeps everything else, the privacy policy linked with the
+// version saved, one request for a double click, the draft's idempotency key across a lost response and a reload (the
+// same body with its consents, or the request already received with its reference), and no send while a photo is
+// still uploading. Every visitor, address, number and image is synthetic (RULE-SYNTHETIC-DATA).
 import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { expect, test, type Page } from '@playwright/test'
@@ -16,6 +17,18 @@ const futureText = new Intl.DateTimeFormat('en-US', { dateStyle: 'full', timeZon
 const CLAIM =
   /\$|\bbooked\b|\bslot\b|scheduled for|appointment is (set|booked|on|at)|confirmed for|visit fee|same-day (charge|fee)/i
 const SENT = '**/api/v1/public/requests'
+const DRAFT_PHOTOS = '**/api/v1/public/request-drafts/photos'
+const SMS_LABEL = 'I agree to receive HandyHub Service Texts at the phone number above.'
+const MARKETING_LABEL = 'Yes, HandyHub may send me marketing messages.'
+const UNCERTAIN =
+  'We could not confirm that your request arrived. Try again: sending it again never creates a second request.'
+const ALREADY =
+  'We had already received this request from this browser. Anything you changed after you first sent it was not included.'
+/** A synthetic 1x1 PNG. */
+const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  'base64',
+)
 
 async function axe(page: Page) {
   const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
@@ -42,11 +55,15 @@ async function property(page: Page, unit = '') {
   await page.getByRole('button', { name: 'Next' }).click()
 }
 
-async function contact(page: Page, email: string, phone: string) {
+async function contact(page: Page, email: string, phone: string, consents = false) {
   await page.getByLabel('Full name').fill('Test Customer')
   await page.getByRole('textbox', { name: /^Email/ }).fill(email)
   await page.getByRole('textbox', { name: /^Phone/ }).fill(phone)
   await page.getByLabel('Phone call', { exact: true }).check()
+  if (consents) {
+    await page.getByLabel(SMS_LABEL).check()
+    await page.getByLabel(MARKETING_LABEL).check()
+  }
   await page.getByLabel('Let HandyHub decide').check()
   await page.getByRole('button', { name: 'Next' }).click()
   await expect(page.getByRole('heading', { name: 'Step 5 of 5: Review and send' })).toBeVisible()
@@ -68,6 +85,8 @@ async function saved(email: string) {
       .select([
         'intake.requests.reference',
         'intake.requests.privacy_notice_version',
+        'intake.requests.sms_opt_in',
+        'intake.requests.marketing_opt_in',
         'crm.contacts.full_name',
         'crm.properties.street',
         'crm.properties.unit',
@@ -79,9 +98,38 @@ async function saved(email: string) {
   }
 }
 
+/** The value of one review row, by section and label. */
+function reviewValue(page: Page, section: string, label: string) {
+  return page
+    .locator(`[data-section="${section}"] dl > div`)
+    .filter({ has: page.locator('dt', { hasText: new RegExp(`^${label}$`) }) })
+    .locator('dd')
+}
+
+/** The send bodies this tab keeps (sessionStorage) and the drafts this browser keeps (localStorage). */
+async function stored(page: Page) {
+  return page.evaluate(() => ({
+    sends: Object.keys(window.sessionStorage).filter((k) => k.startsWith('hh.request-send')),
+    drafts: Object.entries(window.localStorage)
+      .filter(([k]) => k.startsWith('hh.request-draft'))
+      .map(([, v]) => v),
+  }))
+}
+
+/** A send whose request is saved but whose answer never reaches the browser (a connection lost after the commit). */
+async function loseTheAnswer(page: Page) {
+  await page.route(SENT, async (route) => {
+    await route.fetch()
+    await route.abort('failed')
+  })
+  await page.getByRole('button', { name: 'Send Estimate Request' }).click()
+  await expect(page.getByText(UNCERTAIN)).toBeVisible()
+  await page.unroute(SENT)
+}
+
 // This spec's own synthetic client address (RFC 5737): the request-form limit counts per network (5 an hour), and
 // every spec reaches the server from 127.0.0.1 (playwright.config.ts trusts one hop on that server). This spec sends
-// four requests to the server in all.
+// five requests to the server in all.
 test.use({ extraHTTPHeaders: { 'x-forwarded-for': '198.51.100.25' } })
 
 test.describe('final review and Send Estimate Request (TSK-0030)', () => {
@@ -170,6 +218,8 @@ test.describe('final review and Send Estimate Request (TSK-0030)', () => {
       {
         reference,
         privacy_notice_version: 'privacy-notice-1',
+        sms_opt_in: false,
+        marketing_opt_in: false,
         full_name: 'Test Customer',
         street: '200 Edited Way',
         unit: 'Apt 2',
@@ -177,7 +227,7 @@ test.describe('final review and Send Estimate Request (TSK-0030)', () => {
     ])
   })
 
-  test("[HH-INT-10][T11][HH-INT-19] a lost response and a reload keep the draft's key: changed details conflict, the same details return the saved request", async ({
+  test('[HH-INT-10][T11][HH-INT-22] a lost response, a reload and Resume with both consents checked send the same body: the same request and reference', async ({
     page,
   }) => {
     const email = 'review-retry@example.test'
@@ -187,48 +237,130 @@ test.describe('final review and Send Estimate Request (TSK-0030)', () => {
     await page.getByLabel('Project description').fill('Synthetic project: a sticking closet door.')
     await page.getByRole('button', { name: 'Next' }).click()
     await property(page)
-    await contact(page, email, '(502) 555-0182')
+    await contact(page, email, '(502) 555-0182', true)
 
-    // The request is saved, but its answer never reaches the browser (a connection lost after the commit).
-    await page.route(SENT, async (route) => {
-      await route.fetch()
-      await route.abort('failed')
-    })
-    await page.getByRole('button', { name: 'Send Estimate Request' }).click()
-    await expect(
-      page.getByText(
-        'We could not confirm that your request arrived. Try again: sending it again never creates a second request.',
-      ),
-    ).toBeVisible()
-    await page.unroute(SENT)
+    await loseTheAnswer(page)
     const first = await saved(email)
     expect(first).toHaveLength(1)
+    expect(first[0]).toMatchObject({ sms_opt_in: true, marketing_opt_in: true })
+    // The tab keeps the body it sent; the 7-day draft never keeps a consent.
+    const kept = await stored(page)
+    expect(kept.sends).toHaveLength(1)
+    expect(kept.drafts.join('')).not.toMatch(/"smsOptIn":true|"marketingOptIn":true/)
 
-    // A reload: the draft resumes on the review, with its own idempotency key.
+    // A reload: the draft resumes on the review with the outcome still unknown, showing what it sends again.
     await page.reload()
     await page.getByRole('button', { name: 'Resume' }).click()
     await expect(page.getByRole('heading', { name: 'Step 5 of 5: Review and send' })).toBeVisible()
+    await expect(page.getByText(UNCERTAIN)).toBeVisible()
+    await expect(reviewValue(page, 'contact', 'Texts')).toHaveText('Yes')
+    await expect(reviewValue(page, 'contact', 'Marketing permission')).toHaveText('Yes')
+    await axe(page)
 
-    // Changed details under the key already used: refused as a conflict, nothing written, no retry offered.
+    // The same body under the same key: the request already saved, with its reference; still one request.
+    let posts = 0
+    await page.route(SENT, async (route) => {
+      posts++
+      await route.continue()
+    })
+    await page.getByRole('button', { name: 'Send Estimate Request' }).click()
+    expect(await referenceOnReceipt(page)).toBe(first[0]?.reference)
+    expect(posts).toBe(1)
+    await expect(page.getByText(ALREADY)).toHaveCount(0)
+    await page.unroute(SENT)
+    expect(await saved(email)).toEqual(first)
+    expect(await stored(page)).toEqual({ sends: [], drafts: [] })
+  })
+
+  test('[HH-INT-10][T11] changed details after a lost response: the request already received comes back with its reference and nothing is written', async ({
+    page,
+  }) => {
+    const email = 'review-changed@example.test'
+    await start(page)
+    await page.getByLabel('Not sure what service I need').check()
+    await page.getByRole('button', { name: 'Next' }).click()
+    await page.getByLabel('Project description').fill('Synthetic project: a loose cabinet hinge.')
+    await page.getByRole('button', { name: 'Next' }).click()
+    await property(page)
+    await contact(page, email, '(502) 555-0183')
+
+    await loseTheAnswer(page)
+    const first = await saved(email)
+    expect(first).toHaveLength(1)
+
+    // After a reload and Resume the details change under the key already used: the server names the request that key
+    // created, and the customer gets its receipt; they are never told to start a second request.
+    await page.reload()
+    await page.getByRole('button', { name: 'Resume' }).click()
     await page.getByRole('button', { name: 'Edit Contact' }).click()
     await page.getByLabel('Full name').fill('Test Customer Changed')
     await page.getByRole('button', { name: 'Return to review' }).click()
     await page.getByRole('button', { name: 'Send Estimate Request' }).click()
-    const conflict = page.getByText('This request was already sent with different details. Start a new request.')
-    await expect(conflict).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Try again' })).toHaveCount(0)
+    expect(await referenceOnReceipt(page)).toBe(first[0]?.reference)
+    await expect(page.getByText(ALREADY)).toBeVisible()
+    await expect(page.getByText(/start a new request/i)).toHaveCount(0)
+    // What that request holds is not known here (TSK-0032): no project at a glance with the changed details and no
+    // photo count; the receipt is kept for this tab at its own address like any other.
+    expect(new URL(page.url()).pathname).toBe(`/request/received/${first[0]?.reference}`)
+    await expect(page.getByRole('region', { name: 'Your project at a glance' })).toHaveCount(0)
+    await expect(page.getByRole('region', { name: 'Your photos' })).toHaveCount(0)
+    await expect(page.locator('main')).not.toContainText('Test Customer Changed')
     await axe(page)
     expect(await saved(email)).toEqual(first)
-
-    // The same details again: the request already saved, with its reference; still one request.
-    await page.getByRole('button', { name: 'Edit Contact' }).click()
-    await page.getByLabel('Full name').fill('Test Customer')
-    await page.getByRole('button', { name: 'Return to review' }).click()
-    await page.getByRole('button', { name: 'Send Estimate Request' }).click()
+    expect(await stored(page)).toEqual({ sends: [], drafts: [] })
+    await page.reload()
     expect(await referenceOnReceipt(page)).toBe(first[0]?.reference)
-    expect(await saved(email)).toEqual(first)
-    expect(
-      await page.evaluate(() => Object.keys(window.localStorage).filter((k) => k.startsWith('hh.request-draft'))),
-    ).toEqual([])
+    await expect(page.getByText(ALREADY)).toBeVisible()
+  })
+
+  test('[HH-INT-07][HH-INT-19] nothing is sent while a photo is still uploading; the review says so', async ({
+    page,
+  }) => {
+    await start(page)
+    await page.getByLabel('Not sure what service I need').check()
+    await page.getByRole('button', { name: 'Next' }).click()
+    await page.getByLabel('Project description').fill('Synthetic project with a photo still uploading.')
+    // The photo's upload is held until the review has been checked.
+    let release = () => {}
+    const held = new Promise<void>((resolve) => (release = resolve))
+    await page.route(DRAFT_PHOTOS, async (route) => {
+      if (route.request().method() === 'POST') await held
+      await route.continue()
+    })
+    await page
+      .locator('input[type="file"][name="photos"]')
+      .setInputFiles([{ name: 'wall.png', mimeType: 'image/png', buffer: PNG }])
+    await expect(page.locator('.hh-request__photo').getByText('Uploading')).toBeVisible()
+    await page.getByRole('button', { name: 'Next' }).click()
+    await property(page)
+    await contact(page, 'review-uploading@example.test', '(502) 555-0184')
+
+    let posts = 0
+    await page.route(SENT, async (route) => {
+      posts++
+      await route.continue()
+    })
+    const photosRegion = page.getByRole('region', { name: 'Photos', exact: true })
+    await expect(photosRegion.getByRole('status')).toHaveText(
+      '1 photo is still uploading. Wait for it to finish, or use Edit to remove it.',
+    )
+    const send = page.getByRole('button', { name: 'Send Estimate Request' })
+    await expect(send).toBeDisabled()
+    await expect(send).toHaveAccessibleDescription('Wait for your photos to finish uploading, or remove them.')
+    await expect(page.getByText('Wait for your photos to finish uploading, or remove them.')).toBeVisible()
+    await axe(page)
+    // A submit some other way (the keyboard, a script) sends nothing either: the photo draft stays open.
+    await page.locator('form.hh-request').evaluate((form) => (form as HTMLFormElement).requestSubmit())
+    await expect(page.getByRole('heading', { name: 'Step 5 of 5: Review and send' })).toBeVisible()
+    expect(posts).toBe(0)
+
+    // Once the upload finishes, the notice goes and the request can be sent.
+    release()
+    await expect(photosRegion.getByText('Uploading')).toHaveCount(0)
+    await expect(photosRegion.getByRole('status')).toHaveCount(0)
+    await expect(send).toBeEnabled()
+    expect(posts).toBe(0)
+    await page.unroute(SENT)
+    await page.unroute(DRAFT_PHOTOS)
   })
 })

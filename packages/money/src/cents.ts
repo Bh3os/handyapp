@@ -21,6 +21,8 @@ export type MoneyErrorCode =
   | 'INVALID_BASIS_POINTS'
   | 'INVALID_WEIGHTS'
   | 'NEGATIVE_AMOUNT'
+  | 'UNSUPPORTED_CURRENCY'
+  | 'INVALID_LINE_KIND'
 
 export class MoneyError extends Error {
   readonly code: MoneyErrorCode
@@ -32,6 +34,18 @@ export class MoneyError extends Error {
 }
 
 const MAX = BigInt(Number.MAX_SAFE_INTEGER)
+
+/** True only for the supported currency code (HH-DATA-02: USD). */
+export function isCurrency(value: unknown): value is Currency {
+  return value === CURRENCY
+}
+
+/** Refuses any currency other than USD; nothing is ever converted. */
+export function assertCurrency(value: unknown): asserts value is Currency {
+  if (!isCurrency(value)) {
+    throw new MoneyError('UNSUPPORTED_CURRENCY', `unsupported currency ${describe(value)}; only ${CURRENCY} is used`)
+  }
+}
 
 /** True for a safe integer number: the only runtime shape of `Cents`. */
 export function isCents(value: unknown): value is Cents {
