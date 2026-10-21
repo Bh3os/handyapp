@@ -360,7 +360,7 @@ describe('your job packets on My Day (TSK-0069)', () => {
     expect(screen.getByText('Critical change since you viewed it')).toBeTruthy()
     // TSK-0072: where the worker's own acknowledgment stands.
     expect(screen.getByText('Review again')).toBeTruthy()
-    expect(screen.getByRole('heading', { level: 1, name: 'My Day' })).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 2, name: 'Your job packets' })).toBeTruthy()
   })
 })
 

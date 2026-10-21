@@ -188,6 +188,34 @@ export {
 } from './packet.js'
 // TSK-0071: loadouts, critical shortages and their task blocks.
 export * from './loadout.js'
+// TSK-0070: My Day, On my way, Arrived and Finished, and the per-worker timestamps.
+export {
+  correctionProblem,
+  everyoneFinished,
+  FIELD_TAPS,
+  firstName,
+  MY_DAY_NEXT,
+  MY_DAY_VISIT_STATES,
+  myDayActions,
+  onMyWayOpensAt,
+  STAMP_STATUSES,
+  tapDecision,
+  TIME_STAMP_KINDS,
+  workerTimes,
+  type CorrectionProblem,
+  type FieldTap,
+  type MyDayActions,
+  type MyDayFacts,
+  type MyDayNext,
+  type RecordedStamp,
+  type StampCorrection,
+  type StampStatus,
+  type StampValue,
+  type TapRefusal,
+  type TimesFacts,
+  type TimeStampKind,
+  type WorkerTimes,
+} from './field-day.js'
 export {
   holdExpiresAt,
   offerProblems,
