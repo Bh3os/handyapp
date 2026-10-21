@@ -1,4 +1,4 @@
--- 0020 Staff request handling (TSK-0042; HH-LEAD-01, HH-LEAD-02, HH-LEAD-08, HH-SVC-04, OWN-DEC-99, OWN-DEC-100,
+-- 0022 Staff request handling (TSK-0042; HH-LEAD-01, HH-LEAD-02, HH-LEAD-08, HH-SVC-04, OWN-DEC-99, OWN-DEC-100,
 -- OWN-DEC-116, RULE-SERVER-AUTHZ).
 -- - The original submission stays as it was sent: intake.requests already refuses edits to everything but its state,
 --   assignment and their version; its services and answers now refuse every change too.
