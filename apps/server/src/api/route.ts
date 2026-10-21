@@ -3,7 +3,7 @@
 // error shape, authorization, idempotency, versions, pagination, audit and the OpenAPI entry by declaring them.
 import type { Db, Tx } from '@handyhub/db'
 import type { StaffLocale } from '@handyhub/i18n'
-import type { Action, Actor, Allow, Resource } from '@handyhub/policy'
+import type { Action, Actor, Allow, DecisionContext, Resource } from '@handyhub/policy'
 import type { FastifyRequest } from 'fastify'
 import type { AuditEventInput } from '../platform/audit.js'
 import type { ConflictDetail } from './idempotency.js'
@@ -130,6 +130,11 @@ export interface RouteDef {
   binaryResponse?: { contentTypes: readonly string[] }
   /** The record facts the policy needs; null answers NOT_FOUND. Default: no facts. */
   resource?: (ctx: Pick<ApiContext, 'req' | 'actor' | 'db'>) => Promise<Resource | null>
+  /**
+   * Request facts the policy needs beyond the record, read from the server's own data before deciding: the Owner's
+   * estimate publishing policy (OWN-DEC-118, TSK-0055). The handler decides again inside its transaction.
+   */
+  decisionContext?: (ctx: Pick<ApiContext, 'req' | 'actor' | 'db'>) => Promise<Pick<DecisionContext, 'publishingRoles'>>
   handler: (ctx: ApiContext) => Promise<ApiResult>
 }
 

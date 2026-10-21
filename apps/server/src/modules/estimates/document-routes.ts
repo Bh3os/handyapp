@@ -11,6 +11,7 @@
 // - The structured amounts are saved with the builder's draft route (routes.ts): an uploaded version is priced by the
 //   same server code as a written one. Publishing is TSK-0055; it refuses an uploaded version without its ready
 //   documents and the agree-confirmation (readiness.ts, and the database guard of migration 0030).
+import { createHash } from 'node:crypto'
 import type { Tx } from '@handyhub/db'
 import { ApiError } from '../../api/errors.js'
 import type { ApiContext, RouteDef } from '../../api/route.js'
@@ -255,7 +256,8 @@ export function estimateDocumentRoutes(deps: EstimateDocumentDeps): RouteDef[] {
       'customer-facing content and the active configuration only (no internal cost or note; anything NOT CONFIGURED ' +
       'is shown as not provided; outside production every page is marked TEST). Written and uploaded versions use the ' +
       'same renderer; an uploaded version names the SHA-256 of its customer document. A version still being edited ' +
-      'is labelled a draft preview. Deterministic: the same stored data gives the same bytes.',
+      'is labelled a draft preview. Deterministic: the same stored data gives the same bytes. A published version ' +
+      '(TSK-0055) answers the PDF stored when it was published, checked against its SHA-256 (x-content-sha256).',
     kind: 'read',
     idempotency: 'none',
     expectedVersion: 'none',
@@ -265,6 +267,28 @@ export function estimateDocumentRoutes(deps: EstimateDocumentDeps): RouteDef[] {
     schema: { params: VERSION_PARAMS, response: { 200: FILE } },
     handler: async (ctx: ApiContext) => {
       const { versionId } = ctx.req.params as { versionId: string }
+      const stored = await ctx.db
+        .selectFrom('estimating.estimate_versions as v')
+        .innerJoin('estimating.estimates as e', 'e.id', 'v.estimate_id')
+        .select(['v.version', 'v.customer_pdf_object_key', 'v.customer_pdf_sha256', 'e.number'])
+        .where('v.id', '=', versionId)
+        .executeTakeFirst()
+      if (!stored) throw new ApiError('NOT_FOUND')
+      if (stored.customer_pdf_object_key && stored.customer_pdf_sha256) {
+        // The PDF as published, never a re-render: configuration that changed later does not change it.
+        if (!deps.storage) throw new ApiError('UNAVAILABLE')
+        const { bytes } = await deps.storage.get(stored.customer_pdf_object_key)
+        if (createHash('sha256').update(bytes).digest('hex') !== stored.customer_pdf_sha256)
+          throw new ApiError('INTERNAL')
+        return {
+          body: Buffer.from(bytes),
+          headers: {
+            'content-type': PDF_TYPE,
+            'content-disposition': `inline; filename="${stored.number}-v${stored.version}.pdf"`,
+            'x-content-sha256': stored.customer_pdf_sha256,
+          },
+        }
+      }
       const input = await customerPdfInput(ctx.db, versionId, { testMark: deps.testMark })
       if (!input) throw new ApiError('NOT_FOUND')
       return {

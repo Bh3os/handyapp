@@ -3,6 +3,7 @@
 import { LINE_KINDS } from '@handyhub/money'
 import { CONFIG_KEYS } from '../../platform/config/index.js'
 import { DOCUMENT_ROLES, DOCUMENT_SOURCES, DOCUMENT_STATES } from './documents.js'
+import { LIFECYCLE } from './lifecycle-schemas.js'
 import { DRAFT_LIMITS, QUANTITY_SOURCES, TEXT_LISTS } from './model.js'
 import { PUBLISH_PROBLEM_CODES } from './readiness.js'
 
@@ -339,6 +340,7 @@ export const VERSION_VIEW = {
     'internal',
     'documents',
     'canEdit',
+    'lifecycle',
   ],
   properties: {
     id: { type: 'string' },
@@ -422,6 +424,8 @@ export const VERSION_VIEW = {
     internal: INTERNAL,
     documents: DOCUMENTS,
     canEdit: { type: 'boolean' },
+    // TSK-0055: what publishing pinned, the lifecycle actions the caller may take and the version history.
+    lifecycle: LIFECYCLE,
   },
 } as const
 

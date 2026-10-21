@@ -49,6 +49,7 @@ const DECIDED = {
   'tax.mode': { mode: 'no_tax_line' },
   'estimate.validity': { days: 14, from: 'published' },
   'business.name': { documentName: 'Handyhub LLC', brand: 'HandyHub' },
+  'business.timezone': { zone: 'America/Kentucky/Louisville' },
   'legal.estimate_terms': {
     documentId: 'test-terms-1',
     status: 'draft',
@@ -95,8 +96,10 @@ describe('[HH-EST-05][HH-EST-01] publish readiness', () => {
       'legal.estimate_terms',
       'tax.mode',
       'deposit.rule',
+      // TSK-0055: the validity days are counted in the business time zone (FACT-ESTIMATE-VALIDITY).
+      'business.timezone',
     ])
-    for (const key of ['business.name', 'estimate.validity', 'legal.estimate_terms'] as const) {
+    for (const key of ['business.name', 'estimate.validity', 'legal.estimate_terms', 'business.timezone'] as const) {
       const config = fakeConfig(Object.fromEntries(Object.entries(DECIDED).filter(([k]) => k !== key)))
       expect(readinessOf(SAVED, LINES, config)).toEqual({
         ready: false,

@@ -516,3 +516,30 @@
   overflow-wrap: anywhere;
   word-break: break-all;
 }
+
+/* Publishing and the version history (TSK-0055): the actions, and every version of the estimate in a table whose
+   cells wrap, so a phone never scrolls sideways. */
+.staff-estimate__lifecycle-action {
+  display: grid;
+  gap: var(--hh-space-2);
+  margin-block: var(--hh-space-2);
+}
+
+.staff-estimate__history table {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.staff-estimate__history th,
+.staff-estimate__history td {
+  text-align: left;
+  vertical-align: top;
+  padding: var(--hh-space-1) var(--hh-space-2);
+  border-bottom: var(--hh-hairline);
+  overflow-wrap: anywhere;
+}
+
+.staff-estimate__history tr[aria-current='true'] {
+  font-weight: 600;
+}

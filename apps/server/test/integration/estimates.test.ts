@@ -1,7 +1,8 @@
 // Estimate model and server-side totals against PostgreSQL 16 (TSK-0052; HH-DATA-02, HH-EST-02, HH-EST-03,
 // HH-BASE-02, T02, T03, T24, T31, RULE-SERVER-AUTHZ, RULE-MONEY-CENTS). Staff, customers, requests and amounts are
-// synthetic (RULE-SYNTHETIC-DATA). Publishing belongs to TSK-0055: the tests publish with one SQL update, which the
-// database checks exactly as it will check the lifecycle's own update.
+// synthetic (RULE-SYNTHETIC-DATA). Publishing is TSK-0055 (lifecycle.ts publishVersion, tested in
+// estimate-lifecycle.test.ts): these tests publish with one SQL update that writes the same columns as publishing, so
+// the database checks it exactly as it checks the lifecycle's own update.
 import { loadServiceSeed, syncServices, type Tx, withTx } from '@handyhub/db'
 import { createTestDatabase, type TestDatabase } from '@handyhub/db/testing'
 import type { CustomerActor, StaffActor } from '@handyhub/policy'
@@ -157,7 +158,10 @@ async function refused(p: Promise<unknown>): Promise<{ status: number; fields: s
 async function publish(versionId: string) {
   await sql`UPDATE estimating.estimate_versions
             SET state = 'published', state_changed_at = now(), published_at = now(),
-                published_by = ${staff.owner.userId}, valid_until = now() + interval '14 days'
+                published_by = ${staff.owner.userId}, valid_until = now() + interval '14 days',
+                validity_policy_version = 1, terms_version = 'test-estimate-terms-1',
+                customer_pdf_object_key = ${`estimates/published/${crypto.randomUUID()}`},
+                customer_pdf_sha256 = ${'0'.repeat(64)}, customer_pdf_byte_size = 1
             WHERE id = ${versionId}`.execute(t.db)
 }
 

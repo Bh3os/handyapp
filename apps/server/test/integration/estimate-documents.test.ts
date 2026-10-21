@@ -291,7 +291,10 @@ const TEST_TERMS = {
   contentSha256: '0'.repeat(64),
 }
 
-/** Stand-in for TSK-0055's publishing: moves the version on in the database, where the guard decides. */
+/**
+ * Publishing in the database only, with the columns publishing writes (TSK-0055 publishVersion is tested in
+ * estimate-lifecycle.test.ts): the guard decides exactly as it does for the lifecycle's own update.
+ */
 async function publish(versionId: string) {
   await t.db
     .updateTable('estimating.estimate_versions')
@@ -303,6 +306,9 @@ async function publish(versionId: string) {
       validity_policy_version: 1,
       valid_until: new Date('2026-11-04T15:00:00Z'),
       terms_version: TEST_TERMS.documentId,
+      customer_pdf_object_key: `estimates/published/${crypto.randomUUID()}`,
+      customer_pdf_sha256: '0'.repeat(64),
+      customer_pdf_byte_size: 1,
     })
     .where('id', '=', versionId)
     .execute()
