@@ -241,5 +241,17 @@
   "service.related.heading": "Related services",
   "service.related.none": "No related services are listed yet.",
   "service.allServices": "All services",
-  "decision.notAFit.customerMessage": "Thank you for considering HandyHub. We're unable to take on this project because {reason}."
+  "decision.notAFit.customerMessage": "Thank you for considering HandyHub. We're unable to take on this project because {reason}.",
+  "areas.title": "Service area",
+  "areas.intro": "HandyHub serves 11 counties in the Louisville metro area in Kentucky and Southern Indiana.",
+  "areas.state.KY": "Kentucky",
+  "areas.state.IN": "Indiana",
+  "areas.county.name": "{county} County, {state}",
+  "areas.county.towns": "Includes {towns}.",
+  "areas.county.work": "Kinds of work",
+  "areas.county.checkZip": "Check your ZIP code above",
+  "site.footer.areaAll": "All 11 counties",
+  "notFound.title": "Page not found",
+  "notFound.links": "These pages may help:",
+  "serverError.title": "Something went wrong"
 }

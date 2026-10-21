@@ -1,7 +1,9 @@
 ---
 // Public site shell (TSK-0020; HH-CUS-05, HH-BASE-01, HH-A11Y-02): skip link, header with the request action, main
 // landmark and the footer with the configured facts. English only (RULE-LANGUAGES); every string comes from the
-// customer catalog. The pages stay noindex while the site is rebuilt; the server adds its own headers (TSK-0017).
+// customer catalog. Search hygiene (TSK-0023; HH-CUS-05): a public page is indexable, and a page that must stay out of
+// search (not found, error) passes `noindex`. Outside production the server marks every response noindex and robots.txt
+// disallows everything (TSK-0003, OWN-DEC-73); private routes are noindex in every environment (hosts.ts).
 import '@handyhub/ui/styles.css'
 import '../site/site.css'
 import { customerTranslator } from '@handyhub/i18n'
@@ -9,8 +11,10 @@ import SiteFooter from '../components/SiteFooter.astro'
 
 interface Props {
   title: string
+  /** Keeps the page out of search engines and out of the sitemap (TSK-0023). */
+  noindex?: boolean
 }
-const { title } = Astro.props
+const { title, noindex = false } = Astro.props
 const t = customerTranslator()
 ---
 
@@ -19,7 +23,7 @@ const t = customerTranslator()
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="robots" content="noindex, nofollow" />
+    {noindex ? <meta name="robots" content="noindex, nofollow" /> : null}
     <title>{title}</title>
   </head>
   <body class="hh-site">

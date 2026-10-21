@@ -87,8 +87,19 @@ describe('host sides and API surfaces (TSK-0017, HH-ARC-06)', () => {
     expect(surfaceAllowed('public', 'unknown')).toBe(false)
     expect(surfaceAllowed('staff', 'any')).toBe(true)
     expect(isPrivatePath('public', '/services/drywall')).toBe(false)
-    for (const url of ['/portal/', '/api/v1/public/requests', '/access/x', '/project/x', '/account', '/staff/'])
+    for (const url of [
+      '/portal/',
+      '/api/v1/public/requests',
+      '/access/x',
+      '/project/x',
+      '/account',
+      '/staff/',
+      '/request',
+    ])
       expect(isPrivatePath('public', url), url).toBe(true)
+    // TSK-0023: the request form holds drafts (private); the Areas page is public.
+    expect(isPrivatePath('public', '/requests-and-more')).toBe(false)
+    expect(isPrivatePath('public', '/areas')).toBe(false)
     expect(isPrivatePath('staff', '/')).toBe(true)
   })
 })
