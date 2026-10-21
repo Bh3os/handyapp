@@ -638,7 +638,7 @@
       "post": {
         "operationId": "exchangeAccessLink",
         "summary": "Open the project with the link and its code",
-        "description": "The explicit verified exchange (HH-ID-05): the code of the channel’s latest send for this grant. A match records the exact value as verified on the contact, records the grant’s verified time and starts a new customer session for the grant’s one project (Set-Cookie; any earlier session of this browser ends). Other projects of the same customer, email or phone are never attached (HH-ID-03). A wrong, expired, replaced, used or exhausted code is one neutral 400 (body.code, invalid_code); the attempt is counted and kept, so the configured attempt limit holds.",
+        "description": "The explicit verified exchange (HH-ID-05): the code of the channel’s latest send for this grant. A match records the exact value as verified on the contact, records the grant’s verified time and starts a new customer session for the grant’s one project (Set-Cookie; any earlier session of this browser ends). Other projects of the same customer, email or phone are never attached (HH-ID-03). A wrong code is a neutral 400 (body.code, invalid_code); once this link’s code can no longer be used (expired, replaced, used or out of attempts) the 400 says code_ended, so the page offers a new code (TSK-0035, HH-ID-09). Every attempt is counted and kept, so the configured attempt limit holds.",
         "tags": [
           "access"
         ],
@@ -1022,6 +1022,190 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/project-access.test.ts"
+        }
+      }
+    },
+    "/api/v1/public/access/reissue": {
+      "post": {
+        "operationId": "requestAccessLink",
+        "summary": "Ask for a new project access link",
+        "description": "The neutral recovery of an expired, revoked or lost link (HH-ID-09). The body names the project by the old link this tab still holds (any state) or by the request reference, and gives the email or mobile phone on the request. Every well-formed request is the same 202 {accepted: true}, whether or not a project, contact or account exists, the details match, the per-project limit (access.recovery) is reached or a link is sent. On a match a new grant for that one project is issued and the automatic message project.access_link sends it to the contact on file only; other projects of the same customer, email or phone are never touched. A contact that is neither an email nor a US phone number, or no token and no reference, is a 400; while the code key, access.grants, access.recovery or the wording of project.access_link is NOT CONFIGURED, 503 for every caller.",
+        "tags": [
+          "access"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "contact"
+                ],
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "reference": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "contact": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 320
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "accepted"
+                  ],
+                  "properties": {
+                    "accepted": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "guest",
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "public-access-reissue",
+            "limit": 10,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "project_access.reissue",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/access-recovery.test.ts"
         }
       }
     },
@@ -7286,6 +7470,7 @@
                                   "business.public_contact",
                                   "verification.limits",
                                   "access.grants",
+                                  "access.recovery",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -8662,6 +8847,7 @@
                                   "business.public_contact",
                                   "verification.limits",
                                   "access.grants",
+                                  "access.recovery",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -10316,6 +10502,7 @@
                                   "business.public_contact",
                                   "verification.limits",
                                   "access.grants",
+                                  "access.recovery",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -11546,6 +11733,7 @@
                                   "business.public_contact",
                                   "verification.limits",
                                   "access.grants",
+                                  "access.recovery",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -12951,6 +13139,7 @@
                                   "business.public_contact",
                                   "verification.limits",
                                   "access.grants",
+                                  "access.recovery",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -14181,6 +14370,7 @@
                                   "business.public_contact",
                                   "verification.limits",
                                   "access.grants",
+                                  "access.recovery",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -15777,6 +15967,7 @@
                                   "business.public_contact",
                                   "verification.limits",
                                   "access.grants",
+                                  "access.recovery",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -17195,6 +17386,7 @@
                                   "business.public_contact",
                                   "verification.limits",
                                   "access.grants",
+                                  "access.recovery",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -18604,6 +18796,7 @@
                                   "business.public_contact",
                                   "verification.limits",
                                   "access.grants",
+                                  "access.recovery",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -20018,6 +20211,7 @@
                                   "business.public_contact",
                                   "verification.limits",
                                   "access.grants",
+                                  "access.recovery",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -21427,6 +21621,7 @@
                                   "business.public_contact",
                                   "verification.limits",
                                   "access.grants",
+                                  "access.recovery",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -22836,6 +23031,7 @@
                                   "business.public_contact",
                                   "verification.limits",
                                   "access.grants",
+                                  "access.recovery",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -24449,6 +24645,7 @@
                                   "business.public_contact",
                                   "verification.limits",
                                   "access.grants",
+                                  "access.recovery",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -33363,6 +33560,7 @@
                               "business.public_contact",
                               "verification.limits",
                               "access.grants",
+                              "access.recovery",
                               "messages.automatic",
                               "sms.help_reply",
                               "coverage.area",
