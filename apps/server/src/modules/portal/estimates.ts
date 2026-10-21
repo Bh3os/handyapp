@@ -27,6 +27,7 @@ import { readIdempotencyKey } from '../../api/idempotency.js'
 import type { RouteDef } from '../../api/route.js'
 import { projectIdOf } from '../access/projects.js'
 import { approveVersion, FULL_NAME_MAX, saveSelection } from '../estimates/approval.js'
+import { approvalNextStep } from '../estimates/receipt.js'
 import { customerEstimateDetail } from '../estimates/customer.js'
 import { recordCustomerResponse, RESPONSE_LIMITS, type ResponseKind } from '../estimates/responses.js'
 import { readSessionToken, resolveCustomerSession } from '../identity/customer-sessions.js'
@@ -110,7 +111,9 @@ export function portalEstimateRoutes(deps: PortalEstimateDeps = {}): RouteDef[] 
       'banner) or in_effect. Whether it can be approved now (TSK-0057: the current version with terms in effect), with ' +
       'every reason it cannot and the current version to review or none; the digest of its content an approval names; ' +
       'the options the customer selected (kept on the server) with the server’s total and deposit for them; and, once ' +
-      'approved, what was approved. The responses the customer may give now and their own earlier responses, the server ' +
+      'approved, what was approved, the next step (TSK-0058: deposit_due or choose_work_appointment, null once the ' +
+      'project has moved past approval) and the approval receipt PDF (preparing, or issued with a short-lived link ' +
+      'while storage is configured). The responses the customer may give now and their own earlier responses, the server ' +
       'time of the read and the refresh interval (portal.refresh). Any other ' +
       'project, estimate or version, a draft and a malformed reference are the same NOT_FOUND (T19).',
     actors: ['customer'],
@@ -275,8 +278,11 @@ export function portalEstimateRoutes(deps: PortalEstimateDeps = {}): RouteDef[] 
       'approved and creates one job, its scope snapshot and one scheduling task, with the committed event ' +
       'estimate.approved. A retry with the same key returns the first answer; a second tab of the same customer with ' +
       'the same choice gets the same approval (200); anything else on an approved version is CONFLICT. Approval never ' +
-      'confirms an appointment, reserves capacity or marks a deposit paid. Any other project, estimate or version is ' +
-      'NOT_FOUND (T19).',
+      'confirms an appointment, reserves capacity or marks a deposit paid. The answer names the next step (TSK-0058, ' +
+      'OWN-DEC-105): deposit_due while a required deposit is not satisfied, otherwise choose_work_appointment. The ' +
+      'approval receipt PDF is issued afterwards from the committed event, once, and its automatic message is ' +
+      'recorded per destination (wording NOT CONFIGURED: template_not_configured, never sent). Any other project, ' +
+      'estimate or version is NOT_FOUND (T19).',
     actors: ['customer'],
     permission: 'estimate.approve',
     kind: 'write',
@@ -355,9 +361,15 @@ export function portalEstimateRoutes(deps: PortalEstimateDeps = {}): RouteDef[] 
           depositRequired: out.deposit.state === 'required',
         },
       })
+      // TSK-0058 (OWN-DEC-105): the next step from the same records the Overview reads; right after approving the
+      // project is at the approval stage, so only the deposit decides it.
+      const projectId = await projectIdOf(ctx.tx, ref.reference)
+      const nextStep =
+        (projectId ? await approvalNextStep(ctx.tx, projectId) : null) ??
+        (out.deposit.state === 'required' ? 'deposit_due' : 'choose_work_appointment')
       return {
         status: out.created ? 201 : 200,
-        body: CUSTOMER_ESTIMATE_APPROVAL.project({ ...ref, approved: out }),
+        body: CUSTOMER_ESTIMATE_APPROVAL.project({ ...ref, approved: out, nextStep }),
       }
     },
   }

@@ -12,7 +12,10 @@
 //   ticks "I have read and accept the estimate terms" (unchecked by default), types their full name and presses
 //   "Approve Estimate". The page sends the digest of the content it shows, the options and the total and deposit it
 //   showed; one idempotency key per attempt, kept for its retries. A stale verification asks for a new code right
-//   here and keeps the options and the name. After approval: "Estimate approved—scheduling is next." Otherwise the
+//   here and keeps the options and the name. After approval (TSK-0058, OWN-DEC-105) the receipt: the next step in the
+//   owner's words ("Estimate approved—pay your deposit to proceed with scheduling." while a required deposit is not
+//   satisfied, otherwise "Estimate approved—choose your work appointment."), when it was approved, what was approved
+//   and the approval receipt PDF (a download link once issued, or that it is being prepared). Otherwise the
 //   section names every reason approval is not available, and links the version to review instead. Not answering
 //   never approves anything, and the page says so.
 // - Request Changes (a message) and Decline (an optional reason, after a confirmation) on the current version; Request
@@ -36,6 +39,8 @@ import {
   type EstimateDetail,
   type EstimateLine,
   type Fetch,
+  type NextStep,
+  type Receipt,
   type ResponseKind,
   type VersionStatus,
   type WriteFailure,
@@ -97,6 +102,11 @@ const APPROVAL_FAILURE: Record<ApprovalFailure, CustomerKey> = {
   access_revoked: 'portal.estimate.approve.failure.access_revoked',
 }
 const PAYMENT_TERM: Record<string, CustomerKey> = { due_on_receipt: 'estimatePdf.paymentTerm.due_on_receipt' }
+/** The step after approval in the owner's words (OWN-DEC-105), the same labels as the Overview's step. */
+const NEXT_STEP: Record<NextStep, CustomerKey> = {
+  deposit_due: 'portal.step.deposit_due',
+  choose_work_appointment: 'portal.step.choose_work_appointment',
+}
 const usd = (c: number) => formatUsd(cents(c))
 
 /** A day in English: "October 21, 2026". */
@@ -493,10 +503,14 @@ function Approval({
       </h3>
       {approved ? (
         <>
-          <StateView kind="success" title={t('portal.estimate.approve.done')}>
+          <StateView
+            kind="success"
+            title={t(e.approval.nextStep ? NEXT_STEP[e.approval.nextStep] : 'portal.estimate.approve.done')}
+          >
             <p>{t('portal.estimate.approve.approvedOn', { date: day(approved.at) })}</p>
           </StateView>
           <SelectionTotals s={approved} e={e} />
+          <ApprovalReceipt receipt={e.approval.receipt} />
         </>
       ) : e.approval.available ? (
         <ApproveForm e={e} fetchImpl={fetchImpl} onDone={onDone} />
@@ -505,6 +519,31 @@ function Approval({
       )}
       <p>{t('portal.estimate.approval.silence')}</p>
     </section>
+  )
+}
+
+/** The approval receipt PDF (TSK-0058, HH-EST-12): a download once issued, otherwise that it is being prepared. */
+function ApprovalReceipt({ receipt }: { receipt: Receipt | null }) {
+  if (!receipt) return null
+  return (
+    <div className="portal-estimate__receipt" data-testid="approval-receipt">
+      <h4 className="hh-h3">{t('portal.estimate.receipt.title')}</h4>
+      <p>{t('portal.estimate.receipt.contents')}</p>
+      {receipt.state === 'preparing' ? (
+        <p role="status">{t('portal.estimate.receipt.preparing')}</p>
+      ) : receipt.url ? (
+        <p>
+          <a href={receipt.url} rel="noopener" target="_blank">
+            {t('portal.estimate.receipt.download')}
+          </a>{' '}
+          <span className="hh-small hh-muted">
+            {t('portal.estimate.receipt.issued', { date: receipt.issuedAt ? day(receipt.issuedAt) : '' })}
+          </span>
+        </p>
+      ) : (
+        <p>{t('portal.estimate.receipt.unavailable')}</p>
+      )}
+    </div>
   )
 }
 

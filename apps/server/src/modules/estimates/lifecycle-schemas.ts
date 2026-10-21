@@ -101,6 +101,8 @@ export const LIFECYCLE = {
             'testMark',
             'jobState',
             'schedulingTaskState',
+            'receipt',
+            'receiptDeliveries',
           ],
           properties: {
             version: { type: 'integer' },
@@ -113,6 +115,31 @@ export const LIFECYCLE = {
             testMark: { type: 'boolean' },
             jobState: { type: 'string' },
             schedulingTaskState: { type: 'string' },
+            // TSK-0058 (HH-EST-12): the approval receipt PDF (issued once, or being prepared) and each automatic
+            // receipt message's delivery state with its error code (template_not_configured while no wording exists).
+            receipt: {
+              type: 'object',
+              additionalProperties: false,
+              required: ['state', 'issuedAt', 'byteSize'],
+              properties: {
+                state: { type: 'string', enum: ['preparing', 'issued'] },
+                issuedAt: NULLABLE_DATE_TIME,
+                byteSize: { type: ['integer', 'null'] },
+              },
+            },
+            receiptDeliveries: {
+              type: 'array',
+              items: {
+                type: 'object',
+                additionalProperties: false,
+                required: ['channel', 'state', 'errorCode'],
+                properties: {
+                  channel: { type: 'string' },
+                  state: { type: 'string' },
+                  errorCode: { type: ['string', 'null'] },
+                },
+              },
+            },
           },
         },
       ],

@@ -1805,7 +1805,7 @@
       "get": {
         "operationId": "getCustomerProjectDocuments",
         "summary": "The project Documents tab",
-        "description": "The Documents tab (TSK-0056, HH-PORT-10). state \"listed\": the estimate versions the customer received, newest first, each with its number, version, status (current, approved, declined, expired, superseded, withdrawn), dates and stored total in integer cents. state \"none\": no customer document exists yet (receipts, invoices and care notes come with their own tasks). With the server time of the read and the refresh interval (portal.refresh; 0 while NOT CONFIGURED). Any other project, an unknown or a malformed reference is the same NOT_FOUND (T19).",
+        "description": "The Documents tab (TSK-0056, HH-PORT-10). state \"listed\": the estimate versions the customer received, newest first, each with its number, version, status (current, approved, declined, expired, superseded, withdrawn), dates and stored total in integer cents, and for an approved version its approval receipt PDF (TSK-0058: preparing or issued). state \"none\": no customer document exists yet (invoices, receipts and care notes come with their own tasks). With the server time of the read and the refresh interval (portal.refresh; 0 while NOT CONFIGURED). Any other project, an unknown or a malformed reference is the same NOT_FOUND (T19).",
         "tags": [
           "portal"
         ],
@@ -1865,7 +1865,8 @@
                           "status",
                           "publishedAt",
                           "validUntil",
-                          "totalCents"
+                          "totalCents",
+                          "receipt"
                         ],
                         "properties": {
                           "number": {
@@ -1899,6 +1900,20 @@
                           },
                           "totalCents": {
                             "type": "integer"
+                          },
+                          "receipt": {
+                            "oneOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "preparing",
+                                  "issued"
+                                ]
+                              }
+                            ]
                           }
                         }
                       }
@@ -1992,7 +2007,7 @@
       "get": {
         "operationId": "getCustomerEstimate",
         "summary": "One estimate version as the customer received it",
-        "description": "An estimate version of a project the caller’s session opens, as published (HH-EST-06): the business name, the lines, options, exclusions and other texts, the subtotal, any discount row, the total and any deposit in integer cents as stored, the payment term, the valid-until time and the status (current, approved, declined, expired, superseded, withdrawn). For an uploaded estimate, a short-lived link to its customer PDF. The terms it pinned by document ID, with their state: not_configured (no wording this software holds for that ID, or a content hash that does not match), not_in_effect (a draft not approved for real customers: shown with the TEST banner) or in_effect. Whether it can be approved now (TSK-0057: the current version with terms in effect), with every reason it cannot and the current version to review or none; the digest of its content an approval names; the options the customer selected (kept on the server) with the server’s total and deposit for them; and, once approved, what was approved. The responses the customer may give now and their own earlier responses, the server time of the read and the refresh interval (portal.refresh). Any other project, estimate or version, a draft and a malformed reference are the same NOT_FOUND (T19).",
+        "description": "An estimate version of a project the caller’s session opens, as published (HH-EST-06): the business name, the lines, options, exclusions and other texts, the subtotal, any discount row, the total and any deposit in integer cents as stored, the payment term, the valid-until time and the status (current, approved, declined, expired, superseded, withdrawn). For an uploaded estimate, a short-lived link to its customer PDF. The terms it pinned by document ID, with their state: not_configured (no wording this software holds for that ID, or a content hash that does not match), not_in_effect (a draft not approved for real customers: shown with the TEST banner) or in_effect. Whether it can be approved now (TSK-0057: the current version with terms in effect), with every reason it cannot and the current version to review or none; the digest of its content an approval names; the options the customer selected (kept on the server) with the server’s total and deposit for them; and, once approved, what was approved, the next step (TSK-0058: deposit_due or choose_work_appointment, null once the project has moved past approval) and the approval receipt PDF (preparing, or issued with a short-lived link while storage is configured). The responses the customer may give now and their own earlier responses, the server time of the read and the refresh interval (portal.refresh). Any other project, estimate or version, a draft and a malformed reference are the same NOT_FOUND (T19).",
         "tags": [
           "portal"
         ],
@@ -2312,7 +2327,9 @@
                         "current",
                         "contentDigest",
                         "selection",
-                        "approved"
+                        "approved",
+                        "nextStep",
+                        "receipt"
                       ],
                       "properties": {
                         "available": {
@@ -2480,6 +2497,66 @@
                               }
                             }
                           ]
+                        },
+                        "nextStep": {
+                          "oneOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "deposit_due",
+                                "choose_work_appointment"
+                              ]
+                            }
+                          ]
+                        },
+                        "receipt": {
+                          "oneOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "state",
+                                "issuedAt",
+                                "byteSize",
+                                "url"
+                              ],
+                              "properties": {
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "preparing",
+                                    "issued"
+                                  ]
+                                },
+                                "issuedAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date-time"
+                                },
+                                "byteSize": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ],
+                                  "minimum": 1
+                                },
+                                "url": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            }
+                          ]
                         }
                       }
                     },
@@ -2643,7 +2720,7 @@
       "post": {
         "operationId": "approveEstimate",
         "summary": "Approve Estimate: approve this exact version",
-        "description": "The verified customer approves the exact published version they viewed (HH-EST-06, HH-EST-07, HH-EST-08). The body names the digest of the content viewed (approval.contentDigest of the estimate view), the selected options, the total and deposit shown in integer cents, the terms document and its content hash, the ticked \"I have read and accept the estimate terms\" box and the typed full name. Needs a fresh verification of the session (estimate.approve: Customer \"V (fresh verification)\"): an older one is FRESH_VERIFICATION_REQUIRED and nothing is written; the selected options stay on the server. In one transaction under the estimate lock the server checks the version is the current, unexpired published one (else CONFLICT naming its status, with the current version to review when there is one), the terms are the current version and in effect (else NOT_CONFIGURED: terms that are not approved for real customers are never accepted), the content digest, the options and the total and deposit equal its own computation (else refused with no record written), and the session’s access is still valid; then it records the approval, accepts the version, moves the project to approved and creates one job, its scope snapshot and one scheduling task, with the committed event estimate.approved. A retry with the same key returns the first answer; a second tab of the same customer with the same choice gets the same approval (200); anything else on an approved version is CONFLICT. Approval never confirms an appointment, reserves capacity or marks a deposit paid. Any other project, estimate or version is NOT_FOUND (T19).",
+        "description": "The verified customer approves the exact published version they viewed (HH-EST-06, HH-EST-07, HH-EST-08). The body names the digest of the content viewed (approval.contentDigest of the estimate view), the selected options, the total and deposit shown in integer cents, the terms document and its content hash, the ticked \"I have read and accept the estimate terms\" box and the typed full name. Needs a fresh verification of the session (estimate.approve: Customer \"V (fresh verification)\"): an older one is FRESH_VERIFICATION_REQUIRED and nothing is written; the selected options stay on the server. In one transaction under the estimate lock the server checks the version is the current, unexpired published one (else CONFLICT naming its status, with the current version to review when there is one), the terms are the current version and in effect (else NOT_CONFIGURED: terms that are not approved for real customers are never accepted), the content digest, the options and the total and deposit equal its own computation (else refused with no record written), and the session’s access is still valid; then it records the approval, accepts the version, moves the project to approved and creates one job, its scope snapshot and one scheduling task, with the committed event estimate.approved. A retry with the same key returns the first answer; a second tab of the same customer with the same choice gets the same approval (200); anything else on an approved version is CONFLICT. Approval never confirms an appointment, reserves capacity or marks a deposit paid. The answer names the next step (TSK-0058, OWN-DEC-105): deposit_due while a required deposit is not satisfied, otherwise choose_work_appointment. The approval receipt PDF is issued afterwards from the committed event, once, and its automatic message is recorded per destination (wording NOT CONFIGURED: template_not_configured, never sent). Any other project, estimate or version is NOT_FOUND (T19).",
         "tags": [
           "portal"
         ],
@@ -2845,7 +2922,8 @@
                     "nextStep": {
                       "type": "string",
                       "enum": [
-                        "scheduling_next"
+                        "deposit_due",
+                        "choose_work_appointment"
                       ]
                     }
                   }
@@ -2945,7 +3023,8 @@
                     "nextStep": {
                       "type": "string",
                       "enum": [
-                        "scheduling_next"
+                        "deposit_due",
+                        "choose_work_appointment"
                       ]
                     }
                   }
@@ -14077,7 +14156,9 @@
                                 "termsVersion",
                                 "testMark",
                                 "jobState",
-                                "schedulingTaskState"
+                                "schedulingTaskState",
+                                "receipt",
+                                "receiptDeliveries"
                               ],
                               "properties": {
                                 "version": {
@@ -14116,6 +14197,63 @@
                                 },
                                 "schedulingTaskState": {
                                   "type": "string"
+                                },
+                                "receipt": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "state",
+                                    "issuedAt",
+                                    "byteSize"
+                                  ],
+                                  "properties": {
+                                    "state": {
+                                      "type": "string",
+                                      "enum": [
+                                        "preparing",
+                                        "issued"
+                                      ]
+                                    },
+                                    "issuedAt": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "format": "date-time"
+                                    },
+                                    "byteSize": {
+                                      "type": [
+                                        "integer",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "receiptDeliveries": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "channel",
+                                      "state",
+                                      "errorCode"
+                                    ],
+                                    "properties": {
+                                      "channel": {
+                                        "type": "string"
+                                      },
+                                      "state": {
+                                        "type": "string"
+                                      },
+                                      "errorCode": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  }
                                 }
                               }
                             }
@@ -15555,7 +15693,9 @@
                                 "termsVersion",
                                 "testMark",
                                 "jobState",
-                                "schedulingTaskState"
+                                "schedulingTaskState",
+                                "receipt",
+                                "receiptDeliveries"
                               ],
                               "properties": {
                                 "version": {
@@ -15594,6 +15734,63 @@
                                 },
                                 "schedulingTaskState": {
                                   "type": "string"
+                                },
+                                "receipt": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "state",
+                                    "issuedAt",
+                                    "byteSize"
+                                  ],
+                                  "properties": {
+                                    "state": {
+                                      "type": "string",
+                                      "enum": [
+                                        "preparing",
+                                        "issued"
+                                      ]
+                                    },
+                                    "issuedAt": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "format": "date-time"
+                                    },
+                                    "byteSize": {
+                                      "type": [
+                                        "integer",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "receiptDeliveries": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "channel",
+                                      "state",
+                                      "errorCode"
+                                    ],
+                                    "properties": {
+                                      "channel": {
+                                        "type": "string"
+                                      },
+                                      "state": {
+                                        "type": "string"
+                                      },
+                                      "errorCode": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  }
                                 }
                               }
                             }
@@ -17311,7 +17508,9 @@
                                 "termsVersion",
                                 "testMark",
                                 "jobState",
-                                "schedulingTaskState"
+                                "schedulingTaskState",
+                                "receipt",
+                                "receiptDeliveries"
                               ],
                               "properties": {
                                 "version": {
@@ -17350,6 +17549,63 @@
                                 },
                                 "schedulingTaskState": {
                                   "type": "string"
+                                },
+                                "receipt": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "state",
+                                    "issuedAt",
+                                    "byteSize"
+                                  ],
+                                  "properties": {
+                                    "state": {
+                                      "type": "string",
+                                      "enum": [
+                                        "preparing",
+                                        "issued"
+                                      ]
+                                    },
+                                    "issuedAt": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "format": "date-time"
+                                    },
+                                    "byteSize": {
+                                      "type": [
+                                        "integer",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "receiptDeliveries": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "channel",
+                                      "state",
+                                      "errorCode"
+                                    ],
+                                    "properties": {
+                                      "channel": {
+                                        "type": "string"
+                                      },
+                                      "state": {
+                                        "type": "string"
+                                      },
+                                      "errorCode": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  }
                                 }
                               }
                             }
@@ -18643,7 +18899,9 @@
                                 "termsVersion",
                                 "testMark",
                                 "jobState",
-                                "schedulingTaskState"
+                                "schedulingTaskState",
+                                "receipt",
+                                "receiptDeliveries"
                               ],
                               "properties": {
                                 "version": {
@@ -18682,6 +18940,63 @@
                                 },
                                 "schedulingTaskState": {
                                   "type": "string"
+                                },
+                                "receipt": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "state",
+                                    "issuedAt",
+                                    "byteSize"
+                                  ],
+                                  "properties": {
+                                    "state": {
+                                      "type": "string",
+                                      "enum": [
+                                        "preparing",
+                                        "issued"
+                                      ]
+                                    },
+                                    "issuedAt": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "format": "date-time"
+                                    },
+                                    "byteSize": {
+                                      "type": [
+                                        "integer",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "receiptDeliveries": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "channel",
+                                      "state",
+                                      "errorCode"
+                                    ],
+                                    "properties": {
+                                      "channel": {
+                                        "type": "string"
+                                      },
+                                      "state": {
+                                        "type": "string"
+                                      },
+                                      "errorCode": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  }
                                 }
                               }
                             }
@@ -20150,7 +20465,9 @@
                                 "termsVersion",
                                 "testMark",
                                 "jobState",
-                                "schedulingTaskState"
+                                "schedulingTaskState",
+                                "receipt",
+                                "receiptDeliveries"
                               ],
                               "properties": {
                                 "version": {
@@ -20189,6 +20506,63 @@
                                 },
                                 "schedulingTaskState": {
                                   "type": "string"
+                                },
+                                "receipt": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "state",
+                                    "issuedAt",
+                                    "byteSize"
+                                  ],
+                                  "properties": {
+                                    "state": {
+                                      "type": "string",
+                                      "enum": [
+                                        "preparing",
+                                        "issued"
+                                      ]
+                                    },
+                                    "issuedAt": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "format": "date-time"
+                                    },
+                                    "byteSize": {
+                                      "type": [
+                                        "integer",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "receiptDeliveries": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "channel",
+                                      "state",
+                                      "errorCode"
+                                    ],
+                                    "properties": {
+                                      "channel": {
+                                        "type": "string"
+                                      },
+                                      "state": {
+                                        "type": "string"
+                                      },
+                                      "errorCode": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  }
                                 }
                               }
                             }
@@ -21482,7 +21856,9 @@
                                 "termsVersion",
                                 "testMark",
                                 "jobState",
-                                "schedulingTaskState"
+                                "schedulingTaskState",
+                                "receipt",
+                                "receiptDeliveries"
                               ],
                               "properties": {
                                 "version": {
@@ -21521,6 +21897,63 @@
                                 },
                                 "schedulingTaskState": {
                                   "type": "string"
+                                },
+                                "receipt": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "state",
+                                    "issuedAt",
+                                    "byteSize"
+                                  ],
+                                  "properties": {
+                                    "state": {
+                                      "type": "string",
+                                      "enum": [
+                                        "preparing",
+                                        "issued"
+                                      ]
+                                    },
+                                    "issuedAt": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "format": "date-time"
+                                    },
+                                    "byteSize": {
+                                      "type": [
+                                        "integer",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "receiptDeliveries": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "channel",
+                                      "state",
+                                      "errorCode"
+                                    ],
+                                    "properties": {
+                                      "channel": {
+                                        "type": "string"
+                                      },
+                                      "state": {
+                                        "type": "string"
+                                      },
+                                      "errorCode": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  }
                                 }
                               }
                             }
@@ -23180,7 +23613,9 @@
                                 "termsVersion",
                                 "testMark",
                                 "jobState",
-                                "schedulingTaskState"
+                                "schedulingTaskState",
+                                "receipt",
+                                "receiptDeliveries"
                               ],
                               "properties": {
                                 "version": {
@@ -23219,6 +23654,63 @@
                                 },
                                 "schedulingTaskState": {
                                   "type": "string"
+                                },
+                                "receipt": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "state",
+                                    "issuedAt",
+                                    "byteSize"
+                                  ],
+                                  "properties": {
+                                    "state": {
+                                      "type": "string",
+                                      "enum": [
+                                        "preparing",
+                                        "issued"
+                                      ]
+                                    },
+                                    "issuedAt": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "format": "date-time"
+                                    },
+                                    "byteSize": {
+                                      "type": [
+                                        "integer",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "receiptDeliveries": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "channel",
+                                      "state",
+                                      "errorCode"
+                                    ],
+                                    "properties": {
+                                      "channel": {
+                                        "type": "string"
+                                      },
+                                      "state": {
+                                        "type": "string"
+                                      },
+                                      "errorCode": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  }
                                 }
                               }
                             }
@@ -24700,7 +25192,9 @@
                                 "termsVersion",
                                 "testMark",
                                 "jobState",
-                                "schedulingTaskState"
+                                "schedulingTaskState",
+                                "receipt",
+                                "receiptDeliveries"
                               ],
                               "properties": {
                                 "version": {
@@ -24739,6 +25233,63 @@
                                 },
                                 "schedulingTaskState": {
                                   "type": "string"
+                                },
+                                "receipt": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "state",
+                                    "issuedAt",
+                                    "byteSize"
+                                  ],
+                                  "properties": {
+                                    "state": {
+                                      "type": "string",
+                                      "enum": [
+                                        "preparing",
+                                        "issued"
+                                      ]
+                                    },
+                                    "issuedAt": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "format": "date-time"
+                                    },
+                                    "byteSize": {
+                                      "type": [
+                                        "integer",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "receiptDeliveries": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "channel",
+                                      "state",
+                                      "errorCode"
+                                    ],
+                                    "properties": {
+                                      "channel": {
+                                        "type": "string"
+                                      },
+                                      "state": {
+                                        "type": "string"
+                                      },
+                                      "errorCode": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  }
                                 }
                               }
                             }
@@ -26211,7 +26762,9 @@
                                 "termsVersion",
                                 "testMark",
                                 "jobState",
-                                "schedulingTaskState"
+                                "schedulingTaskState",
+                                "receipt",
+                                "receiptDeliveries"
                               ],
                               "properties": {
                                 "version": {
@@ -26250,6 +26803,63 @@
                                 },
                                 "schedulingTaskState": {
                                   "type": "string"
+                                },
+                                "receipt": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "state",
+                                    "issuedAt",
+                                    "byteSize"
+                                  ],
+                                  "properties": {
+                                    "state": {
+                                      "type": "string",
+                                      "enum": [
+                                        "preparing",
+                                        "issued"
+                                      ]
+                                    },
+                                    "issuedAt": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "format": "date-time"
+                                    },
+                                    "byteSize": {
+                                      "type": [
+                                        "integer",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "receiptDeliveries": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "channel",
+                                      "state",
+                                      "errorCode"
+                                    ],
+                                    "properties": {
+                                      "channel": {
+                                        "type": "string"
+                                      },
+                                      "state": {
+                                        "type": "string"
+                                      },
+                                      "errorCode": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  }
                                 }
                               }
                             }
@@ -27727,7 +28337,9 @@
                                 "termsVersion",
                                 "testMark",
                                 "jobState",
-                                "schedulingTaskState"
+                                "schedulingTaskState",
+                                "receipt",
+                                "receiptDeliveries"
                               ],
                               "properties": {
                                 "version": {
@@ -27766,6 +28378,63 @@
                                 },
                                 "schedulingTaskState": {
                                   "type": "string"
+                                },
+                                "receipt": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "state",
+                                    "issuedAt",
+                                    "byteSize"
+                                  ],
+                                  "properties": {
+                                    "state": {
+                                      "type": "string",
+                                      "enum": [
+                                        "preparing",
+                                        "issued"
+                                      ]
+                                    },
+                                    "issuedAt": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "format": "date-time"
+                                    },
+                                    "byteSize": {
+                                      "type": [
+                                        "integer",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "receiptDeliveries": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "channel",
+                                      "state",
+                                      "errorCode"
+                                    ],
+                                    "properties": {
+                                      "channel": {
+                                        "type": "string"
+                                      },
+                                      "state": {
+                                        "type": "string"
+                                      },
+                                      "errorCode": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  }
                                 }
                               }
                             }
@@ -29238,7 +29907,9 @@
                                 "termsVersion",
                                 "testMark",
                                 "jobState",
-                                "schedulingTaskState"
+                                "schedulingTaskState",
+                                "receipt",
+                                "receiptDeliveries"
                               ],
                               "properties": {
                                 "version": {
@@ -29277,6 +29948,63 @@
                                 },
                                 "schedulingTaskState": {
                                   "type": "string"
+                                },
+                                "receipt": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "state",
+                                    "issuedAt",
+                                    "byteSize"
+                                  ],
+                                  "properties": {
+                                    "state": {
+                                      "type": "string",
+                                      "enum": [
+                                        "preparing",
+                                        "issued"
+                                      ]
+                                    },
+                                    "issuedAt": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "format": "date-time"
+                                    },
+                                    "byteSize": {
+                                      "type": [
+                                        "integer",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "receiptDeliveries": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "channel",
+                                      "state",
+                                      "errorCode"
+                                    ],
+                                    "properties": {
+                                      "channel": {
+                                        "type": "string"
+                                      },
+                                      "state": {
+                                        "type": "string"
+                                      },
+                                      "errorCode": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  }
                                 }
                               }
                             }
@@ -30749,7 +31477,9 @@
                                 "termsVersion",
                                 "testMark",
                                 "jobState",
-                                "schedulingTaskState"
+                                "schedulingTaskState",
+                                "receipt",
+                                "receiptDeliveries"
                               ],
                               "properties": {
                                 "version": {
@@ -30788,6 +31518,63 @@
                                 },
                                 "schedulingTaskState": {
                                   "type": "string"
+                                },
+                                "receipt": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "state",
+                                    "issuedAt",
+                                    "byteSize"
+                                  ],
+                                  "properties": {
+                                    "state": {
+                                      "type": "string",
+                                      "enum": [
+                                        "preparing",
+                                        "issued"
+                                      ]
+                                    },
+                                    "issuedAt": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "format": "date-time"
+                                    },
+                                    "byteSize": {
+                                      "type": [
+                                        "integer",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "receiptDeliveries": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "channel",
+                                      "state",
+                                      "errorCode"
+                                    ],
+                                    "properties": {
+                                      "channel": {
+                                        "type": "string"
+                                      },
+                                      "state": {
+                                        "type": "string"
+                                      },
+                                      "errorCode": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  }
                                 }
                               }
                             }
@@ -32464,7 +33251,9 @@
                                 "termsVersion",
                                 "testMark",
                                 "jobState",
-                                "schedulingTaskState"
+                                "schedulingTaskState",
+                                "receipt",
+                                "receiptDeliveries"
                               ],
                               "properties": {
                                 "version": {
@@ -32503,6 +33292,63 @@
                                 },
                                 "schedulingTaskState": {
                                   "type": "string"
+                                },
+                                "receipt": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "state",
+                                    "issuedAt",
+                                    "byteSize"
+                                  ],
+                                  "properties": {
+                                    "state": {
+                                      "type": "string",
+                                      "enum": [
+                                        "preparing",
+                                        "issued"
+                                      ]
+                                    },
+                                    "issuedAt": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "format": "date-time"
+                                    },
+                                    "byteSize": {
+                                      "type": [
+                                        "integer",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "receiptDeliveries": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "channel",
+                                      "state",
+                                      "errorCode"
+                                    ],
+                                    "properties": {
+                                      "channel": {
+                                        "type": "string"
+                                      },
+                                      "state": {
+                                        "type": "string"
+                                      },
+                                      "errorCode": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  }
                                 }
                               }
                             }

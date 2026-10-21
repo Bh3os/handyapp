@@ -107,6 +107,23 @@ export interface CrmPropertiesTable {
   coverage_rule_set: number | null
 }
 
+export interface EstimatingApprovalReceiptsTable {
+  id: Generated<string>
+  approval_id: string
+  project_id: string
+  kind: Generated<string>
+  object_key: string
+  content_type: string
+  byte_size: number
+  sha256: string
+  terms_document_id: string
+  terms_sha256: string
+  test_mark: boolean
+  renderer_version: number
+  visibility: Generated<string>
+  issued_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface EstimatingApprovalSelectionsTable {
   version_id: string
   contact_ref: string
@@ -969,6 +986,7 @@ export interface Database {
   'crm.customers': CrmCustomersTable
   'crm.projects': CrmProjectsTable
   'crm.properties': CrmPropertiesTable
+  'estimating.approval_receipts': EstimatingApprovalReceiptsTable
   'estimating.approval_selections': EstimatingApprovalSelectionsTable
   'estimating.approvals': EstimatingApprovalsTable
   'estimating.customer_responses': EstimatingCustomerResponsesTable

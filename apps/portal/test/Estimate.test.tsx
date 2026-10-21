@@ -97,6 +97,8 @@ const estimate = (over: Record<string, unknown> = {}) => ({
     contentDigest: DIGEST,
     selection: BASE_SELECTION,
     approved: null,
+    nextStep: null,
+    receipt: null,
   },
   actions: { requestChanges: true, decline: true, requestUpdate: false },
   freshVerification: true,
@@ -108,6 +110,8 @@ const estimate = (over: Record<string, unknown> = {}) => ({
 })
 
 type Call = { url: string; init?: RequestInit | undefined }
+/** The Documents tab's receipt state of the listed version (TSK-0058). */
+let documentsReceipt: 'preparing' | 'issued' | null = null
 /** A fetch answering the overview, the documents tab and the estimate view; POSTs answer with `post`. */
 function api(opts: { detail?: () => unknown; post?: (c: Call) => Response } = {}) {
   const calls: Call[] = []
@@ -130,6 +134,7 @@ function api(opts: { detail?: () => unknown; post?: (c: Call) => Response } = {}
             publishedAt: '2026-10-21T14:00:00.000Z',
             validUntil: '2026-11-05T04:59:59.999Z',
             totalCents: 127_500,
+            receipt: documentsReceipt,
           },
         ],
       })
@@ -296,7 +301,9 @@ describe('the customer estimate view (TSK-0056, HH-EST-06, HH-EST-09)', () => {
 
   it('[HH-EST-06][HH-EST-13] shows the exact version, the TEST mark, the terms in full and why it cannot be approved', async () => {
     open(api().fetchImpl)
-    expect(await screen.findByText('Version 1: Current')).toBeTruthy()
+    // The first render of the file also loads the app's modules: under a loaded parallel run that alone can pass the
+    // default 1 s wait, so this first read waits longer (the assertions are unchanged).
+    expect(await screen.findByText('Version 1: Current', undefined, { timeout: 5_000 })).toBeTruthy()
     expect(screen.getByText('TEST — not a real invoice or estimate')).toBeTruthy()
     expect(screen.getByText('Handyhub LLC')).toBeTruthy()
     expect(screen.getByText('Synthetic: patch the hole')).toBeTruthy()
@@ -434,6 +441,8 @@ describe('Approve Estimate (TSK-0057, HH-EST-06, HH-EST-07, HH-ID-07, OWN-DEC-10
         contentDigest: DIGEST,
         selection: BASE_SELECTION,
         approved: null,
+        nextStep: null,
+        receipt: null,
       },
       ...over,
     })
@@ -469,6 +478,8 @@ describe('Approve Estimate (TSK-0057, HH-EST-06, HH-EST-07, HH-ID-07, OWN-DEC-10
               contentDigest: DIGEST,
               selection: null,
               approved: { ...WITH_ADD_ON, at: NOW },
+              nextStep: 'deposit_due',
+              receipt: { state: 'preparing', issuedAt: null, byteSize: null, url: null },
             },
             actions: { requestChanges: false, decline: false, requestUpdate: false },
           }),
@@ -479,7 +490,7 @@ describe('Approve Estimate (TSK-0057, HH-EST-06, HH-EST-07, HH-ID-07, OWN-DEC-10
           version: 1,
           status: 'approved',
           approved: { ...WITH_ADD_ON, at: NOW },
-          nextStep: 'scheduling_next',
+          nextStep: 'deposit_due',
         })
       },
     })
@@ -507,7 +518,11 @@ describe('Approve Estimate (TSK-0057, HH-EST-06, HH-EST-07, HH-ID-07, OWN-DEC-10
     fireEvent.click(button())
     expect(await within(section).findByText("Your approval couldn't be sent. Please try again.")).toBeTruthy()
     fireEvent.click(button())
-    expect(await screen.findByText('Estimate approved—scheduling is next.')).toBeTruthy()
+    // TSK-0058 (OWN-DEC-105): the next step in the owner's words, and the receipt being prepared.
+    expect(await screen.findByText('Estimate approved—pay your deposit to proceed with scheduling.')).toBeTruthy()
+    expect(within(screen.getByTestId('approval-receipt')).getByRole('status').textContent).toBe(
+      'Your approval receipt is being prepared. It appears here shortly.',
+    )
     const approvals = posts.filter((p) => p.url.endsWith('/approve'))
     expect(approvals).toHaveLength(2)
     const keys = approvals.map((p) => (p.init?.headers as Record<string, string>)['idempotency-key'])
@@ -620,6 +635,77 @@ describe('Approve Estimate (TSK-0057, HH-EST-06, HH-EST-07, HH-ID-07, OWN-DEC-10
     expect(
       await within(section).findByText("This estimate can't be approved yet: the estimate terms are not in effect."),
     ).toBeTruthy()
-    expect(screen.queryByText('Estimate approved—scheduling is next.')).toBeNull()
+    expect(screen.queryByText(/^Estimate approved/)).toBeNull()
+    expect(screen.queryByTestId('approval-receipt')).toBeNull()
+  })
+})
+
+describe('the approval receipt (TSK-0058, HH-EST-12, HH-PORT-10, OWN-DEC-105)', () => {
+  const approved = (approval: Record<string, unknown>) =>
+    estimate({
+      status: 'approved',
+      terms: { documentId: 'estimate-terms-1', state: 'in_effect' },
+      approval: {
+        available: false,
+        reasons: [],
+        current: null,
+        contentDigest: DIGEST,
+        selection: null,
+        approved: { ...BASE_SELECTION, at: NOW },
+        ...approval,
+      },
+      actions: { requestChanges: false, decline: false, requestUpdate: false },
+    })
+  const ISSUED = {
+    state: 'issued',
+    issuedAt: NOW,
+    byteSize: 4096,
+    url: 'https://storage.example.test/estimates/receipts/synthetic?sig=x',
+  }
+
+  it("[HH-EST-12][OWN-DEC-105] the next step in the owner's words and a download of the issued receipt PDF", async () => {
+    open(api({ detail: () => approved({ nextStep: 'choose_work_appointment', receipt: ISSUED }) }).fetchImpl)
+    expect(await screen.findByText('Estimate approved—choose your work appointment.')).toBeTruthy()
+    const receipt = screen.getByTestId('approval-receipt')
+    const link = within(receipt).getByRole('link', { name: 'Download your approval receipt (PDF)' })
+    expect(link.getAttribute('href')).toBe(ISSUED.url)
+    expect(
+      within(receipt).getByText(
+        'Your approval receipt is a PDF of what you approved, with the estimate terms you accepted.',
+      ),
+    ).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Approve Estimate' })).toBeNull()
+  })
+
+  it('[HH-PORT-06] an issued receipt without a link says so truthfully; a project past approval names no step', async () => {
+    open(api({ detail: () => approved({ nextStep: null, receipt: { ...ISSUED, url: null } }) }).fetchImpl)
+    expect(await screen.findByText('Estimate approved.')).toBeTruthy()
+    expect(
+      screen.getByText("Your approval receipt is saved, but it can't be downloaded right now. Please try again later."),
+    ).toBeTruthy()
+    expect(screen.queryByRole('link', { name: 'Download your approval receipt (PDF)' })).toBeNull()
+  })
+
+  it('[HH-PORT-06] a receipt or next step that is not the declared view is a failure, never shown as data', () => {
+    const bad = (approval: Record<string, unknown>) => parseEstimate(approved(approval))
+    expect(bad({ nextStep: 'deposit_due', receipt: ISSUED })).not.toBeNull()
+    expect(bad({ nextStep: 'scheduling_next', receipt: null })).toBeNull()
+    expect(bad({ nextStep: null, receipt: { ...ISSUED, state: 'sent' } })).toBeNull()
+    expect(
+      bad({ nextStep: null, receipt: { state: 'preparing', issuedAt: null, byteSize: null, url: ISSUED.url } }),
+    ).toBeNull()
+    expect(bad({ nextStep: null, receipt: { ...ISSUED, byteSize: null } })).toBeNull()
+  })
+
+  it("[HH-PORT-10] the Documents tab marks the approved version's receipt", async () => {
+    documentsReceipt = 'issued'
+    try {
+      open(api().fetchImpl, `/portal/p/${REF}/documents`)
+      expect((await screen.findByTestId('documents-receipt')).textContent).toBe(
+        'Approval receipt (PDF): open the estimate to download it.',
+      )
+    } finally {
+      documentsReceipt = null
+    }
   })
 })

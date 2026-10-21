@@ -189,7 +189,16 @@ export type EstimateListItem = {
   publishedAt: string
   validUntil: string | null
   totalCents: number
+  /** TSK-0058 (HH-PORT-10): an approved version's approval receipt PDF, issued or being prepared; null otherwise. */
+  receipt: ReceiptState | null
 }
+export const RECEIPT_STATES = ['preparing', 'issued'] as const
+export type ReceiptState = (typeof RECEIPT_STATES)[number]
+/** TSK-0058 (OWN-DEC-105): the step after approval, worded by the portal in the owner's words. */
+export const NEXT_STEPS = ['deposit_due', 'choose_work_appointment'] as const
+export type NextStep = (typeof NEXT_STEPS)[number]
+/** TSK-0058: the approval receipt PDF; once issued, a short-lived link while storage is configured. */
+export type Receipt = { state: ReceiptState; issuedAt: string | null; byteSize: number | null; url: string | null }
 
 /** What each tab holds today: a closed state code, the estimates (Documents) or the photo counts (Photos). */
 export type TabData =
@@ -240,7 +249,21 @@ function listItem(v: unknown): EstimateListItem | null {
   const { number, version, status, publishedAt, validUntil, totalCents } = v
   if (!isStr(number) || !isInt(version) || !oneOf(VERSION_STATUSES)(status) || !isDate(publishedAt)) return null
   if (!isNullableDate(validUntil) || !isCents(totalCents)) return null
-  return { number, version, status, publishedAt, validUntil, totalCents }
+  // The estimate view carries its receipt under approval; a list item names it (null when not approved).
+  const receipt = v['receipt'] === undefined ? null : v['receipt']
+  if (receipt !== null && !oneOf(RECEIPT_STATES)(receipt)) return null
+  return { number, version, status, publishedAt, validUntil, totalCents, receipt }
+}
+
+function parseReceipt(v: unknown): Receipt | null {
+  if (!isObj(v) || !oneOf(RECEIPT_STATES)(v['state'])) return null
+  const { issuedAt, byteSize, url } = v
+  if (!isNullableDate(issuedAt) || !isNullableStr(url) || !(byteSize === null || (isInt(byteSize) && byteSize > 0)))
+    return null
+  // A receipt being prepared has no date, size or link; an issued one has its date and size.
+  if (v['state'] === 'preparing' ? issuedAt !== null || byteSize !== null || url !== null : !issuedAt || !byteSize)
+    return null
+  return { state: v['state'], issuedAt, byteSize, url }
 }
 
 export const TERMS_STATES = ['not_configured', 'not_in_effect', 'in_effect'] as const
@@ -306,6 +329,10 @@ export type EstimateDetail = {
     contentDigest: string
     selection: Selection | null
     approved: Approved | null
+    /** TSK-0058: once approved, the step after approval, or null once the project has moved past it. */
+    nextStep: NextStep | null
+    /** TSK-0058: once approved, the approval receipt PDF. */
+    receipt: Receipt | null
   }
   actions: { requestChanges: boolean; decline: boolean; requestUpdate: boolean }
   freshVerification: boolean
@@ -376,6 +403,10 @@ export function parseEstimate(v: unknown): EstimateDetail | null {
   if (approval['selection'] !== null && !selection) return null
   const approved = approval['approved'] === null ? null : parseApproved(approval['approved'])
   if (approval['approved'] !== null && !approved) return null
+  const nextStep = approval['nextStep']
+  if (nextStep !== null && !oneOf(NEXT_STEPS)(nextStep)) return null
+  const receipt = approval['receipt'] === null ? null : parseReceipt(approval['receipt'])
+  if (approval['receipt'] !== null && !receipt) return null
   const actions = v['actions']
   if (!isObj(actions) || !['requestChanges', 'decline', 'requestUpdate'].every((k) => typeof actions[k] === 'boolean'))
     return null
@@ -406,6 +437,8 @@ export function parseEstimate(v: unknown): EstimateDetail | null {
       contentDigest: approval['contentDigest'],
       selection,
       approved,
+      nextStep,
+      receipt,
     },
     actions: actions as EstimateDetail['actions'],
     freshVerification: v['freshVerification'],
