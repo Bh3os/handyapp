@@ -1,0 +1,151 @@
+/* Customer portal layout (TSK-0038): the shared identity of @handyhub/ui, one column on phones, nothing scrolls
+   sideways. Stale sections are marked by a border and the written stale state, never by colour alone. */
+.portal {
+  min-height: 100vh;
+  background: var(--hh-canvas);
+}
+
+.portal__bar {
+  padding: var(--hh-space-3) var(--hh-gutter);
+  border-bottom: var(--hh-hairline);
+  background: var(--hh-surface);
+}
+
+.portal__brand {
+  margin: 0;
+  font-weight: 600;
+}
+
+.portal__main {
+  max-width: var(--hh-measure);
+  margin: 0 auto;
+  padding: var(--hh-space-8) var(--hh-gutter) var(--hh-space-16);
+  display: grid;
+  gap: var(--hh-space-4);
+}
+
+/* Grid items never grow past the column (TSK-0039, HH-A11Y-02): at 320 px with 200% text the long project
+   reference in the page heading wraps instead of widening the page. */
+.portal__main > * {
+  min-width: 0;
+}
+
+.portal__main h1 {
+  overflow-wrap: anywhere;
+}
+
+.portal-overview > *,
+.portal-tab > *,
+.hh-tabs__panel > * {
+  min-width: 0;
+}
+
+/* A status badge may wrap in the portal's narrow column rather than push the page sideways. */
+.portal .hh-badge {
+  white-space: normal;
+}
+
+.portal-back {
+  margin: 0;
+}
+
+.portal-services {
+  margin: 0;
+}
+
+.portal-refresh__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hh-space-2);
+  margin: 0;
+}
+
+.portal-overview {
+  display: grid;
+  gap: var(--hh-space-4);
+}
+
+.portal-section {
+  padding: var(--hh-space-4) clamp(var(--hh-space-3), 4vw, var(--hh-space-6));
+  border: var(--hh-hairline);
+  border-radius: var(--hh-radius-md);
+  background: var(--hh-surface);
+}
+
+.portal-section > :first-child {
+  margin-top: 0;
+}
+
+.portal-section--stale {
+  border-style: dashed;
+  border-color: var(--hh-line-strong);
+}
+
+.portal-status__label {
+  margin: 0;
+  font-weight: 600;
+}
+
+.portal-next {
+  display: grid;
+  gap: var(--hh-space-2);
+  margin-top: var(--hh-space-3);
+  justify-items: start;
+}
+
+.portal-next p {
+  margin: 0;
+}
+
+.portal-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--hh-space-3);
+}
+
+.portal-timeline__item {
+  padding-left: var(--hh-space-3);
+  border-left: 2px solid var(--hh-accent);
+}
+
+.portal-timeline__item p {
+  margin: 0;
+}
+
+.portal-projects {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--hh-space-4);
+}
+
+.portal-projects__item {
+  padding: var(--hh-space-4) clamp(var(--hh-space-3), 4vw, var(--hh-space-6));
+  border: var(--hh-hairline);
+  border-radius: var(--hh-radius-md);
+  background: var(--hh-surface);
+}
+
+.portal-projects__item > * {
+  margin: 0 0 var(--hh-space-2);
+}
+
+.portal-projects__item a,
+.portal-back a {
+  color: var(--hh-link);
+}
+
+/* The workspace tabs (TSK-0039): the tab list wraps on phones (no sideways scroll), Overview first. */
+.portal-tab {
+  display: grid;
+  gap: var(--hh-space-4);
+}
+
+.portal-photo-counts {
+  margin: 0 0 var(--hh-space-3);
+  padding-left: var(--hh-space-6);
+}

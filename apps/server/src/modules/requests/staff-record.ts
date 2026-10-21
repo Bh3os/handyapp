@@ -6,6 +6,9 @@
 // - The handling record next to it: the responsible staff member and every reassignment, the latest qualification,
 //   internal notes (staff only), each decision with its reason, the work packages, the next step and the follow-up
 //   due time, and which actions this caller may take now.
+// - TSK-0043: the first-response clock as it reads now (an internal target, staff only), the completed customer
+//   conversations staff recorded, and the review holds with what this caller may do to each; a blocking review hold
+//   closes both estimating routes.
 // Read by staff holding request.view (Owner, Office, Estimator PROPOSED); workers are refused by the policy.
 import type { Db, Tx } from '@handyhub/db'
 import {
@@ -22,6 +25,8 @@ import { customerTranslator } from '@handyhub/i18n'
 import { decide, readsVisibility, type Action, type Actor, type DataScope } from '@handyhub/policy'
 import { sql } from 'kysely'
 import { projectInScope } from '../../platform/data-scope.js'
+import { responseClockView } from './clock-view.js'
+import { requestHolds } from './holds.js'
 import { contactBadges } from '../verification/contact-verification.js'
 
 type Reader = Db | Tx
@@ -36,6 +41,7 @@ export type RequestActions = {
   qualify: boolean
   addNote: boolean
   relink: boolean
+  recordConversation: boolean
 }
 
 /** PROPOSED next-step codes (HH-LEAD-01 "the request shows the next step"), labelled by the staff catalogs. */
@@ -78,18 +84,29 @@ function allowed(actor: Actor, action: Action, projectId: string): boolean {
   return decide(actor, action, { projectId }, { now: new Date(), online: true }).effect === 'allow'
 }
 
-/** Which actions the caller may take now: their grants and the request's state (the server checks both again). */
-export function availableActions(actor: Actor, state: RequestState, projectState: string, projectId: string) {
+/**
+ * Which actions the caller may take now: their grants, the request's state and, for the estimate path, no blocking
+ * review hold (TSK-0043). The server checks all of them again.
+ */
+export function availableActions(
+  actor: Actor,
+  state: RequestState,
+  projectState: string,
+  projectId: string,
+  heldForReview = false,
+) {
   const projectOpen = projectState === 'open'
   return {
     askQuestion:
       projectOpen && allowed(actor, 'request.ask_question', projectId) && canSend(state, 'request_information'),
     prepareOnlineEstimate:
       projectOpen &&
+      !heldForReview &&
       allowed(actor, 'request.choose_estimate_approach', projectId) &&
       canSend(state, 'mark_ready_for_estimate'),
     arrangeEstimateVisit:
       projectOpen &&
+      !heldForReview &&
       allowed(actor, 'request.choose_estimate_approach', projectId) &&
       canSend(state, 'require_site_visit'),
     notAFit: projectOpen && allowed(actor, 'request.not_a_fit', projectId) && canSend(state, 'decline_not_a_fit'),
@@ -101,6 +118,7 @@ export function availableActions(actor: Actor, state: RequestState, projectState
     relink:
       decide(actor, 'request.correct_link', { projectId }, { now: new Date(), online: true, reason: 'given' })
         .effect === 'allow',
+    recordConversation: allowed(actor, 'request.record_conversation', projectId),
   } satisfies RequestActions
 }
 
@@ -260,6 +278,20 @@ export async function staffRequestView(db: Reader, scope: DataScope, requestId: 
     .limit(1)
     .executeTakeFirst()
   const catalog = await db.selectFrom('catalog.services').select(['id', 'code']).orderBy('code').execute()
+  const clock = await db
+    .selectFrom('intake.response_clocks')
+    .selectAll()
+    .where('request_id', '=', requestId)
+    .executeTakeFirst()
+  const conversations = await db
+    .selectFrom('intake.request_conversations')
+    .select(['id', 'channel', 'outcome', 'occurred_at', 'recorded_by', 'recorded_at'])
+    .where('request_id', '=', requestId)
+    .orderBy('occurred_at')
+    .orderBy('id')
+    .execute()
+  const holds = await requestHolds(db, requestId, actor)
+  const heldForReview = holds.some((h) => h.kind === 'review' && (h.state === 'open' || h.state === 'under_review'))
 
   const names = await staffNames(db, [
     r.responsible_staff_id,
@@ -267,6 +299,7 @@ export async function staffRequestView(db: Reader, scope: DataScope, requestId: 
     qualification?.recorded_by,
     ...notes.map((n) => n.author_staff_id),
     ...decisions.map((d) => d.decided_by),
+    ...conversations.map((c) => c.recorded_by),
   ])
   const ref = (id: string | null | undefined): StaffRef | null => (id ? (names.get(id) ?? { id, name: null }) : null)
 
@@ -387,7 +420,18 @@ export async function staffRequestView(db: Reader, scope: DataScope, requestId: 
     })),
     nextStep: nextStepOf(state, r.project_state),
     followUpDueAt: item?.due_at ? item.due_at.toISOString() : null,
-    actions: availableActions(actor, state, r.project_state, r.project_id),
+    responseClock: clock ? responseClockView(clock, new Date()) : null,
+    conversations: conversations.map((c) => ({
+      id: c.id,
+      channel: c.channel,
+      outcome: c.outcome,
+      occurredAt: c.occurred_at.toISOString(),
+      recordedBy: ref(c.recorded_by) as StaffRef,
+      recordedAt: c.recorded_at.toISOString(),
+    })),
+    holds,
+    estimateBlockedByHolds: heldForReview,
+    actions: availableActions(actor, state, r.project_state, r.project_id, heldForReview),
     serviceCatalog: catalog,
   }
 }

@@ -1,0 +1,247 @@
+// Publishing, the version lifecycle and the version history in the staff builder, and the Owner's publishing setting
+// (TSK-0055; HH-EST-04, T26, T32, OWN-DEC-118). The API is a synthetic stand-in (RULE-SYNTHETIC-DATA).
+import { staffTranslator } from '@handyhub/i18n'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { EstimateLifecycle, EstimatePublishingSetting, type Lifecycle } from '../src/EstimateLifecycle'
+
+afterEach(cleanup)
+
+const V1 = '11111111-1111-4111-8111-111111111111'
+const V2 = '22222222-2222-4222-8222-222222222222'
+const json = (status: number, body: unknown) =>
+  new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
+
+const NONE = {
+  publish: false,
+  requestReview: false,
+  returnToDraft: false,
+  withdraw: false,
+  expire: false,
+  recordDecline: false,
+  revise: false,
+}
+const ESTIMATOR = { id: 'staff-1', name: 'Synthetic Estimator' }
+const OWNER = { id: 'staff-2', name: 'Synthetic Owner' }
+
+function lifecycle(over: Partial<Lifecycle> = {}): Lifecycle {
+  return {
+    effectiveState: 'draft',
+    publishedAt: null,
+    publishedBy: null,
+    validUntil: null,
+    termsVersion: null,
+    firstViewedAt: null,
+    customerPdf: null,
+    revisedFrom: null,
+    current: null,
+    actions: { ...NONE, publish: true, requestReview: true },
+    history: [
+      {
+        versionId: V1,
+        version: 1,
+        state: 'draft',
+        effectiveState: 'draft',
+        stateChangedAt: '2026-10-21T15:00:00.000Z',
+        createdBy: ESTIMATOR,
+        createdAt: '2026-10-21T15:00:00.000Z',
+        revisedFromVersion: null,
+        lastEditedBy: ESTIMATOR,
+        lastEditedAt: '2026-10-21T15:00:00.000Z',
+        publishedBy: null,
+        publishedAt: null,
+        validUntil: null,
+        totalCents: 133_333,
+      },
+    ],
+    ...over,
+  }
+}
+type View = { id: string; version: number; rowVersion: number; readiness: { ready: boolean }; lifecycle: Lifecycle }
+const view = (over: Partial<View> = {}): View => ({
+  id: V1,
+  version: 1,
+  rowVersion: 3,
+  readiness: { ready: true },
+  lifecycle: lifecycle(),
+  ...over,
+})
+
+function renderPanel(v: View, fetchImpl: ReturnType<typeof vi.fn>, locale: 'en' | 'es' = 'en') {
+  const { t } = staffTranslator(locale)
+  const onView = vi.fn()
+  const go = vi.fn()
+  render(
+    <EstimateLifecycle
+      t={t}
+      fetchImpl={fetchImpl as unknown as typeof fetch}
+      view={v}
+      onView={onView}
+      go={go}
+      href={(to) => `/staff${to}`}
+    />,
+  )
+  return { onView, go }
+}
+
+describe('the lifecycle panel (TSK-0055, HH-EST-04)', () => {
+  it('[S04] publishes only after a confirmation, with the version shown, and shows the server answer', async () => {
+    const published = view({
+      rowVersion: 4,
+      lifecycle: lifecycle({
+        effectiveState: 'published',
+        publishedAt: '2026-10-21T15:00:00.000Z',
+        publishedBy: ESTIMATOR,
+        validUntil: '2026-11-04T15:00:00.000Z',
+        termsVersion: 'test-estimate-terms-1',
+        customerPdf: { sha256: 'a'.repeat(64), byteSize: 1234 },
+        actions: { ...NONE, withdraw: true, expire: true, recordDecline: true, revise: true },
+      }),
+    })
+    const fetchImpl = vi.fn(async () => json(200, published))
+    const { onView } = renderPanel(view(), fetchImpl)
+    fireEvent.click(screen.getByRole('button', { name: 'Publish' }))
+    expect(fetchImpl).not.toHaveBeenCalled()
+    const confirm = screen.getByRole('group', { name: 'Publish version 1 to the customer?' })
+    fireEvent.click(within(confirm).getByRole('button', { name: 'Publish now' }))
+    await screen.findByText('Published. The customer notice is queued.')
+    const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toBe(`/api/v1/staff/estimate-versions/${V1}/publish`)
+    expect(init.method).toBe('POST')
+    expect((init.headers as Record<string, string>)['if-match']).toBe('"3"')
+    expect(onView).toHaveBeenCalledWith(published)
+  })
+
+  it('[HH-EST-05] Publish stays inactive with the reason while the readiness check lists something', () => {
+    renderPanel(view({ readiness: { ready: false } }), vi.fn())
+    const button = screen.getByRole('button', { name: 'Publish' }) as HTMLButtonElement
+    expect(button.disabled).toBe(true)
+    expect(screen.getByText('Resolve every reason under “Ready to publish?” first.')).toBeTruthy()
+  })
+
+  it('[T26] a refusal names every reason: the role, a NOT CONFIGURED value, a line and a review hold', async () => {
+    const fetchImpl = vi.fn(async () =>
+      json(409, {
+        error: {
+          code: 'CONFLICT',
+          fieldErrors: [
+            { field: 'readiness.legal.estimate_terms', code: 'NOT_CONFIGURED', message: '' },
+            { field: 'lines[0]', code: 'QUANTITY_UNKNOWN', message: '' },
+            { field: 'holds', code: 'REVIEW_HOLD_OPEN', message: '' },
+          ],
+        },
+      }),
+    )
+    renderPanel(view(), fetchImpl)
+    fireEvent.click(screen.getByRole('button', { name: 'Publish' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Publish now' }))
+    await screen.findByText('Not done. The server refused it:')
+    expect(screen.getByText('Estimate terms version is NOT CONFIGURED')).toBeTruthy()
+    expect(screen.getByText('Line 1: The quantity is still unknown.')).toBeTruthy()
+    expect(screen.getByText('A review hold on the request must be resolved before publishing.')).toBeTruthy()
+  })
+
+  it('withdrawing needs a written reason before anything is sent; the reason is sent with the version', async () => {
+    const fetchImpl = vi.fn(async () => json(200, view()))
+    renderPanel(
+      view({ lifecycle: lifecycle({ effectiveState: 'published', actions: { ...NONE, withdraw: true } }) }),
+      fetchImpl,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Withdraw' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Withdraw this version' }))
+    expect(await screen.findByText('Write the reason first.')).toBeTruthy()
+    expect(fetchImpl).not.toHaveBeenCalled()
+    fireEvent.change(screen.getByLabelText('Reason'), { target: { value: 'Synthetic: wrong project.' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Withdraw this version' }))
+    await screen.findByText('Withdrawn. The version is kept.')
+    const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toBe(`/api/v1/staff/estimate-versions/${V1}/withdraw`)
+    expect(JSON.parse(String(init.body))).toEqual({ reason: 'Synthetic: wrong project.' })
+  })
+
+  it('[T32] revising opens the new version; the history shows creator, reviser and publisher', async () => {
+    const fetchImpl = vi.fn(async () => json(201, { versionId: V2, version: 2 }))
+    const history = [
+      {
+        ...lifecycle().history[0],
+        state: 'superseded',
+        effectiveState: 'superseded',
+        publishedBy: ESTIMATOR,
+        publishedAt: '2026-10-21T15:00:00.000Z',
+        validUntil: '2026-11-04T15:00:00.000Z',
+      },
+      {
+        ...lifecycle().history[0],
+        versionId: V2,
+        version: 2,
+        state: 'published',
+        effectiveState: 'published',
+        createdBy: OWNER,
+        revisedFromVersion: 1,
+        publishedBy: OWNER,
+        publishedAt: '2026-10-22T15:00:00.000Z',
+        validUntil: '2026-11-05T15:00:00.000Z',
+        totalCents: 107_333,
+      },
+    ] as Lifecycle['history']
+    const { go } = renderPanel(
+      view({
+        lifecycle: lifecycle({
+          effectiveState: 'superseded',
+          current: { versionId: V2, version: 2 },
+          actions: { ...NONE, revise: true },
+          history,
+        }),
+      }),
+      fetchImpl,
+    )
+    expect(screen.getByText('The current version of this estimate is')).toBeTruthy()
+    const table = screen.getByRole('table', { name: 'Version history' })
+    const rows = within(table).getAllByRole('row')
+    expect(within(rows[1] as HTMLElement).getByText('Superseded')).toBeTruthy()
+    expect(within(rows[1] as HTMLElement).getByText(/^Created by Synthetic Estimator/)).toBeTruthy()
+    expect(within(rows[2] as HTMLElement).getByText(/^Revised from version 1 by Synthetic Owner/)).toBeTruthy()
+    expect(within(rows[2] as HTMLElement).getByText(/^Synthetic Owner,/)).toBeTruthy()
+    expect(within(rows[2] as HTMLElement).getByText('$1,073.33')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Revise as a new version' }))
+    await vi.waitFor(() => expect(go).toHaveBeenCalledWith(`/estimates/${V2}`))
+    const [, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit]
+    expect((init.headers as Record<string, string>)['if-match']).toBeUndefined()
+  })
+
+  it('[HH-LANG-01] reads in Spanish for a Spanish-speaking staff member', () => {
+    renderPanel(view(), vi.fn(), 'es')
+    expect(screen.getByRole('heading', { name: 'Publicación y versiones' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Publicar' })).toBeTruthy()
+  })
+})
+
+describe("the Owner's publishing setting (OWN-DEC-118, T26)", () => {
+  it('saves whether Estimators may publish, with the policy version shown', async () => {
+    const fetchImpl = vi.fn(async (_url: string, init?: RequestInit) =>
+      init?.method === 'PUT'
+        ? json(200, { state: 'CONFIGURED', version: 3, roles: ['owner'], estimatorsMayPublish: false })
+        : json(200, { state: 'CONFIGURED', version: 2, roles: ['owner', 'estimator'], estimatorsMayPublish: true }),
+    )
+    const { t } = staffTranslator('en')
+    render(<EstimatePublishingSetting t={t} fetchImpl={fetchImpl as unknown as typeof fetch} />)
+    const box = await screen.findByLabelText('Estimators may publish estimates')
+    expect((box as HTMLInputElement).checked).toBe(true)
+    expect(screen.getByText('The Owner can always publish.')).toBeTruthy()
+    fireEvent.click(box)
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await screen.findByText('Saved. It applies from the next publish.')
+    const [url, init] = fetchImpl.mock.calls[1] as unknown as [string, RequestInit]
+    expect(url).toBe('/api/v1/staff/settings/estimate-publishing')
+    expect(JSON.parse(String(init.body))).toEqual({ estimatorsMayPublish: false })
+    expect((init.headers as Record<string, string>)['if-match']).toBe('"2"')
+  })
+
+  it('shows nothing to a role the server refuses', async () => {
+    const fetchImpl = vi.fn(async () => json(403, { error: { code: 'FORBIDDEN', fieldErrors: [] } }))
+    const { t } = staffTranslator('en')
+    const { container } = render(<EstimatePublishingSetting t={t} fetchImpl={fetchImpl as unknown as typeof fetch} />)
+    await vi.waitFor(() => expect(fetchImpl).toHaveBeenCalled())
+    expect(container.innerHTML).toBe('')
+  })
+})

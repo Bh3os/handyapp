@@ -3,6 +3,8 @@
 // - The original request, exactly as the customer sent it: read-only, with no edit control anywhere.
 // - The handling beside it: next step, responsible staff member and reassignments, qualification, the four actions,
 //   internal notes (staff only, never shown to customers) and the history of decisions.
+// - TSK-0043: the first-response clock (an internal target in business hours, never a customer promise), recorded
+//   customer conversations, the hazard flag on the risk flags and the review holds it opens.
 // The server decides every action (role, state, version); this screen only offers the ones it says are open now,
 // sends the version it showed (If-Match) and an idempotency key, and shows a refusal's reasons or the conflict banner.
 import { customerTranslator, type StaffKey, type StaffLocale } from '@handyhub/i18n'
@@ -10,7 +12,9 @@ import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
 import { ConflictBanner, conflictOf, type Conflict } from './ConflictBanner'
+import { ProjectEstimates } from './Estimates'
 import { codeLabel } from './Requests'
+import { clockText, clockTime, type ResponseClock } from './ResponseClock'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
 type StaffRef = { id: string; name: string | null }
@@ -28,6 +32,30 @@ type Check = (typeof CHECKS)[number]
 const OUTCOMES = ['ok', 'attention', 'not_checked'] as const
 type Outcome = (typeof OUTCOMES)[number]
 const CATEGORIES = ['coverage', 'outside_scope', 'specialist_assessment', 'other'] as const
+const HAZARDS = ['hazardous_material', 'licensed_trade', 'structural', 'permit_licensing', 'other'] as const
+type Hazard = (typeof HAZARDS)[number]
+const CHANNELS = ['phone', 'in_person'] as const
+
+export type Hold = {
+  id: string
+  kind: string
+  category: string
+  note: string
+  state: 'open' | 'under_review' | 'resolved' | 'canceled_as_error'
+  version: number
+  raisedBy: StaffRef
+  raisedAt: string
+  reviewStartedBy: StaffRef | null
+  reviewStartedAt: string | null
+  resolutionNote: string | null
+  reviewer: string | null
+  resolvedBy: StaffRef | null
+  resolvedAt: string | null
+  cancelReason: string | null
+  canceledBy: StaffRef | null
+  canceledAt: string | null
+  actions: { startReview: boolean; resolve: boolean; cancel: boolean }
+}
 /** The classes a staff note may have (TSK-0044, HH-STAFF-05): never customer-shared. */
 const NOTE_CLASSES = ['internal_operational', 'restricted_incident', 'restricted_financial'] as const
 
@@ -70,7 +98,7 @@ export type RequestDetail = {
   assignments: { staff: StaffRef; previous: StaffRef | null; by: StaffRef; at: string }[]
   qualification: {
     revision: number
-    checks: Partial<Record<Check, { outcome: Outcome; note?: string | null }>>
+    checks: Partial<Record<Check, { outcome: Outcome; note?: string | null; hazards?: Hazard[] | null }>>
     recordedBy: StaffRef
     recordedAt: string
   } | null
@@ -101,6 +129,17 @@ export type RequestDetail = {
   workPackages: { id: string; serviceId: string; code: string; position: number; state: string }[]
   nextStep: string
   followUpDueAt: string | null
+  responseClock: ResponseClock | null
+  conversations: {
+    id: string
+    channel: string
+    outcome: string
+    occurredAt: string
+    recordedBy: StaffRef
+    recordedAt: string
+  }[]
+  holds: Hold[]
+  estimateBlockedByHolds: boolean
   actions: {
     askQuestion: boolean
     prepareOnlineEstimate: boolean
@@ -111,6 +150,7 @@ export type RequestDetail = {
     addNote: boolean
     /** TSK-0046: link the request to another customer or correct its link (with a preview and a reason). */
     relink?: boolean
+    recordConversation: boolean
   }
   serviceCatalog: { id: string; code: string }[]
 }
@@ -254,6 +294,15 @@ export function RequestRecord({
         <dd>{name(t, view.responsibleStaff)}</dd>
         <dt>{t('request.followUpDue')}</dt>
         <dd>{view.followUpDueAt ? when(view.followUpDueAt) : t('request.followUpNone')}</dd>
+        {view.responseClock ? (
+          <>
+            <dt>{t('request.responseTarget')}</dt>
+            <dd data-testid="response-clock">
+              {clockText(t, view.responseClock, (iso) => clockTime(locale, view.responseClock as ResponseClock, iso))}{' '}
+              <span className="staff-request__hint">({t('queue.responseTarget')})</span>
+            </dd>
+          </>
+        ) : null}
         <dt>{t('record.request.submitted')}</dt>
         <dd>{when(view.submittedAt)}</dd>
       </dl>
@@ -264,8 +313,19 @@ export function RequestRecord({
       ) : null}
       <Original t={t} view={view} photos={photos} />
       <Responsible t={t} fetchImpl={fetchImpl} view={view} onChanged={load} when={when} />
+      <FirstResponse t={t} locale={locale} fetchImpl={fetchImpl} view={view} onChanged={load} when={when} />
       <Qualification t={t} fetchImpl={fetchImpl} view={view} onChanged={load} when={when} />
+      <Holds t={t} fetchImpl={fetchImpl} view={view} onChanged={load} when={when} />
       <Actions t={t} fetchImpl={fetchImpl} view={view} onChanged={load} />
+      {/* TSK-0053: the project's estimates and Write an Estimate, for the roles that write estimates. */}
+      <ProjectEstimates
+        key={`${view.project.id}-${view.version}`}
+        t={t}
+        fetchImpl={fetchImpl}
+        projectId={view.project.id}
+        go={go}
+        href={href}
+      />
       <Notes t={t} fetchImpl={fetchImpl} view={view} onChanged={load} when={when} />
       <History t={t} view={view} when={when} />
       <p>{back}</p>
@@ -513,9 +573,10 @@ function Qualification({ t, fetchImpl, view, onChanged, when }: Props & { when: 
         {
           outcome: view.qualification?.checks[c]?.outcome ?? 'not_checked',
           note: view.qualification?.checks[c]?.note ?? '',
+          hazards: view.qualification?.checks[c]?.hazards ?? [],
         },
       ]),
-    ) as Record<Check, { outcome: Outcome; note: string }>
+    ) as Record<Check, { outcome: Outcome; note: string; hazards: Hazard[] }>
   const [checks, setChecks] = useState(initial)
   const [pending, setPending] = useState(false)
   const [problem, setProblem] = useState<Problem | null>(null)
@@ -527,7 +588,14 @@ function Qualification({ t, fetchImpl, view, onChanged, when }: Props & { when: 
       checks: Object.fromEntries(
         CHECKS.map((c) => [
           c,
-          { outcome: checks[c].outcome, ...(checks[c].note.trim() ? { note: checks[c].note } : {}) },
+          {
+            outcome: checks[c].outcome,
+            ...(checks[c].note.trim() ? { note: checks[c].note } : {}),
+            // The hazard flag (HH-LEAD-04): only risk flags needing attention name hazards.
+            ...(c === 'risk_flags' && checks[c].outcome === 'attention' && checks[c].hazards.length
+              ? { hazards: checks[c].hazards }
+              : {}),
+          },
         ]),
       ),
     }
@@ -574,6 +642,27 @@ function Qualification({ t, fetchImpl, view, onChanged, when }: Props & { when: 
               readOnly={!view.actions.qualify}
               onChange={(e) => setChecks({ ...checks, [c]: { ...checks[c], note: e.target.value } })}
             />
+            {c === 'risk_flags' && checks[c].outcome === 'attention' ? (
+              <fieldset className="staff-request__check">
+                <legend>{t('request.hazards')}</legend>
+                <p className="staff-request__hint">{t('request.hazardsHint')}</p>
+                {HAZARDS.map((h) => (
+                  <label key={h} className="staff-request__package">
+                    <input
+                      type="checkbox"
+                      checked={checks[c].hazards.includes(h)}
+                      disabled={!view.actions.qualify}
+                      onChange={(e) => {
+                        const on = e.target.checked
+                        const hazards = on ? [...checks[c].hazards, h] : checks[c].hazards.filter((x) => x !== h)
+                        setChecks({ ...checks, [c]: { ...checks[c], hazards } })
+                      }}
+                    />{' '}
+                    {codeLabel(t, 'hazardCategory', h)}
+                  </label>
+                ))}
+              </fieldset>
+            ) : null}
           </fieldset>
         ))}
         {view.actions.qualify ? (
@@ -663,7 +752,15 @@ function Actions({ t, fetchImpl, view, onChanged }: Props) {
             key={name}
             variant={open === name ? 'primary' : 'secondary'}
             aria-expanded={open === name}
-            {...(available[name] ? {} : { disabledReason: t('request.actionUnavailable') })}
+            {...(available[name]
+              ? {}
+              : {
+                  disabledReason:
+                    view.estimateBlockedByHolds &&
+                    (name === 'prepare_online_estimate' || name === 'arrange_estimate_visit')
+                      ? t('request.estimateBlocked')
+                      : t('request.actionUnavailable'),
+                })}
             onClick={() => {
               setOpen(open === name ? null : name)
               setProblem(null)
@@ -790,6 +887,281 @@ function Actions({ t, fetchImpl, view, onChanged }: Props) {
       ) : null}
       <ProblemView t={t} problem={problem} onReload={() => void onChanged().then(() => setProblem(null))} />
     </Section>
+  )
+}
+
+function FirstResponse({
+  t,
+  locale,
+  fetchImpl,
+  view,
+  onChanged,
+  when,
+}: Props & { locale: StaffLocale; when: (iso: string) => string }) {
+  const ids = useId()
+  const write = useWrite(fetchImpl)
+  const [channel, setChannel] = useState('')
+  const [outcome, setOutcome] = useState('')
+  const [pending, setPending] = useState(false)
+  const [problem, setProblem] = useState<Problem | null>(null)
+  const [saved, setSaved] = useState(false)
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    if (!channel || !outcome.trim()) return
+    setPending(true)
+    const r = await write(`/staff/requests/${view.id}/conversations`, 'POST', { channel, outcome })
+    setPending(false)
+    if (!r.ok) return setProblem(problemOf(r.error))
+    setProblem(null)
+    setSaved(true)
+    setChannel('')
+    setOutcome('')
+    await onChanged()
+  }
+  return (
+    <Section id={`${ids}-first-response`} title={t('request.firstResponse')}>
+      <p className="staff-request__hint">{t('request.firstResponseHint')}</p>
+      {view.responseClock ? (
+        <p>
+          <StatusBadge
+            tone={
+              view.responseClock.state === 'overdue'
+                ? 'danger'
+                : view.responseClock.state === 'stopped'
+                  ? 'success'
+                  : 'info'
+            }
+          >
+            {codeLabel(t, 'responseClockState', view.responseClock.state)}
+          </StatusBadge>{' '}
+          {clockText(t, view.responseClock, (iso) => clockTime(locale, view.responseClock as ResponseClock, iso))}
+        </p>
+      ) : null}
+      {view.conversations.length ? (
+        <ul className="staff-request__list">
+          {view.conversations.map((c) => (
+            <li key={c.id}>
+              <p className="staff-request__note">{c.outcome}</p>
+              <p className="staff-request__hint">
+                {t('request.conversationEntry', {
+                  channel: codeLabel(t, 'conversationChannel', c.channel),
+                  time: when(c.occurredAt),
+                  name: name(t, c.recordedBy),
+                })}
+              </p>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>{t('request.noConversations')}</p>
+      )}
+      {view.actions.recordConversation ? (
+        <form
+          className="staff-request__form"
+          onSubmit={(e) => void submit(e)}
+          aria-label={t('request.recordConversation')}
+        >
+          <div className="staff-queue__select">
+            <label htmlFor={`${ids}-channel`}>{t('request.conversationChannel')}</label>
+            <select id={`${ids}-channel`} required value={channel} onChange={(e) => setChannel(e.target.value)}>
+              <option value="">{t('request.conversationChannelChoose')}</option>
+              {CHANNELS.map((c) => (
+                <option key={c} value={c}>
+                  {codeLabel(t, 'conversationChannel', c)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Field
+            multiline
+            label={t('request.conversationOutcome')}
+            hint={t('request.conversationOutcomeHint')}
+            required
+            requiredText={t('request.required')}
+            maxLength={1000}
+            value={outcome}
+            onChange={(e) => setOutcome(e.target.value)}
+          />
+          <Button type="submit" variant="secondary" pending={pending}>
+            {t('request.recordConversation')}
+          </Button>
+        </form>
+      ) : null}
+      {saved ? <StateView kind="success" title={t('request.conversationSaved')} /> : null}
+      <ProblemView t={t} problem={problem} onReload={() => void onChanged().then(() => setProblem(null))} />
+    </Section>
+  )
+}
+
+function Holds({ t, fetchImpl, view, onChanged, when }: Props & { when: (iso: string) => string }) {
+  const ids = useId()
+  return (
+    <Section id={`${ids}-holds`} title={t('request.holds')}>
+      <p className="staff-request__hint">{t('request.holdsHint')}</p>
+      {view.estimateBlockedByHolds ? <StateView kind="blocked" title={t('request.estimateBlocked')} /> : null}
+      {view.holds.length === 0 ? (
+        <p>{t('request.noHolds')}</p>
+      ) : (
+        <ol className="staff-request__list">
+          {view.holds.map((h) => (
+            <HoldItem key={h.id} t={t} fetchImpl={fetchImpl} hold={h} onChanged={onChanged} when={when} />
+          ))}
+        </ol>
+      )}
+    </Section>
+  )
+}
+
+function HoldItem({
+  t,
+  fetchImpl,
+  hold,
+  onChanged,
+  when,
+}: {
+  t: T
+  fetchImpl: Fetch
+  hold: Hold
+  onChanged: () => Promise<void>
+  when: (iso: string) => string
+}) {
+  const ids = useId()
+  const write = useWrite(fetchImpl)
+  const [open, setOpen] = useState<'resolve' | 'cancel' | null>(null)
+  const [note, setNote] = useState('')
+  const [reviewer, setReviewer] = useState('')
+  const [reason, setReason] = useState('')
+  const [pending, setPending] = useState(false)
+  const [problem, setProblem] = useState<Problem | null>(null)
+  async function act(path: 'start-review' | 'resolve' | 'cancel', body: unknown) {
+    setPending(true)
+    const r = await write(`/staff/holds/${hold.id}/actions/${path}`, 'POST', body, hold.version)
+    setPending(false)
+    if (!r.ok) return setProblem(problemOf(r.error))
+    setProblem(null)
+    setOpen(null)
+    await onChanged()
+  }
+  const blocking = hold.state === 'open' || hold.state === 'under_review'
+  const headingId = `${ids}-hold`
+  return (
+    <li className="staff-request__decision" aria-labelledby={headingId}>
+      <p id={headingId}>
+        <strong>{codeLabel(t, 'hazardCategory', hold.category)}</strong>{' '}
+        <StatusBadge tone={blocking ? 'danger' : 'neutral'}>{codeLabel(t, 'holdState', hold.state)}</StatusBadge>
+      </p>
+      <p className="staff-request__note">{hold.note}</p>
+      <p className="staff-request__hint">
+        {t('request.holdRaised', { name: name(t, hold.raisedBy), time: when(hold.raisedAt) })}
+      </p>
+      {hold.reviewStartedAt ? (
+        <p className="staff-request__hint">
+          {t('request.holdReviewStarted', { name: name(t, hold.reviewStartedBy), time: when(hold.reviewStartedAt) })}
+        </p>
+      ) : null}
+      {hold.resolvedAt ? (
+        <p>
+          {t('request.holdResolved', {
+            name: name(t, hold.resolvedBy),
+            time: when(hold.resolvedAt),
+            note: hold.resolutionNote ?? '',
+            reviewer: hold.reviewer ?? '',
+          })}
+        </p>
+      ) : null}
+      {hold.canceledAt ? (
+        <p>
+          {t('request.holdCanceled', {
+            name: name(t, hold.canceledBy),
+            time: when(hold.canceledAt),
+            reason: hold.cancelReason ?? '',
+          })}
+        </p>
+      ) : null}
+      {hold.actions.startReview || hold.actions.resolve || hold.actions.cancel ? (
+        <div className="hh-button-row">
+          {hold.actions.startReview ? (
+            <Button variant="secondary" pending={pending} onClick={() => void act('start-review', {})}>
+              {t('request.holdStartReview')}
+            </Button>
+          ) : null}
+          {hold.actions.resolve ? (
+            <Button
+              variant={open === 'resolve' ? 'primary' : 'secondary'}
+              aria-expanded={open === 'resolve'}
+              onClick={() => setOpen(open === 'resolve' ? null : 'resolve')}
+            >
+              {t('request.holdResolve')}
+            </Button>
+          ) : null}
+          {hold.actions.cancel ? (
+            <Button
+              variant={open === 'cancel' ? 'primary' : 'quiet'}
+              aria-expanded={open === 'cancel'}
+              onClick={() => setOpen(open === 'cancel' ? null : 'cancel')}
+            >
+              {t('request.holdCancel')}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+      {open === 'resolve' ? (
+        <form
+          className="staff-request__form"
+          aria-label={t('request.holdResolve')}
+          onSubmit={(e) => {
+            e.preventDefault()
+            void act('resolve', { resolutionNote: note, reviewer })
+          }}
+        >
+          <Field
+            multiline
+            label={t('request.holdResolutionNote')}
+            required
+            requiredText={t('request.required')}
+            maxLength={2000}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
+          <Field
+            label={t('request.holdReviewer')}
+            hint={t('request.holdReviewerHint')}
+            required
+            requiredText={t('request.required')}
+            maxLength={200}
+            value={reviewer}
+            onChange={(e) => setReviewer(e.target.value)}
+          />
+          <Button type="submit" pending={pending}>
+            {t('request.holdConfirmResolve')}
+          </Button>
+        </form>
+      ) : null}
+      {open === 'cancel' ? (
+        <form
+          className="staff-request__form"
+          aria-label={t('request.holdCancel')}
+          onSubmit={(e) => {
+            e.preventDefault()
+            void act('cancel', { reason })
+          }}
+        >
+          <Field
+            multiline
+            label={t('request.holdCancelReason')}
+            required
+            requiredText={t('request.required')}
+            maxLength={1000}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
+          <Button type="submit" pending={pending}>
+            {t('request.holdConfirmCancel')}
+          </Button>
+        </form>
+      ) : null}
+      <ProblemView t={t} problem={problem} onReload={() => void onChanged().then(() => setProblem(null))} />
+    </li>
   )
 }
 
