@@ -184,6 +184,9 @@ export const LABEL_FAMILIES = {
     'coverage.area',
     'request.window_hours',
     'estimate.visit_fee',
+    'legal.privacy_notice',
+    'legal.sms_terms',
+    'legal.website_terms',
     'ai.module',
   ],
 } as const satisfies Record<string, readonly string[]>

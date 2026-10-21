@@ -324,7 +324,7 @@ describe('uploads, the outbox and request-to-intake integrity (TSK-0101, HH-NFR-
       headers: { 'idempotency-key': 'synthetic-system-request-0001', 'x-forwarded-for': '198.51.100.31' },
       payload: {
         formVersion: 'test-1',
-        privacyNoticeVersion: 'draft-test-1',
+        privacyNoticeVersion: 'privacy-notice-1',
         services: [{ serviceId: 'SVC-DW-01' }],
         notSure: false,
         description: 'Synthetic system health description.',

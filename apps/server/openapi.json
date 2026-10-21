@@ -6321,6 +6321,9 @@
                               "coverage.area",
                               "request.window_hours",
                               "estimate.visit_fee",
+                              "legal.privacy_notice",
+                              "legal.sms_terms",
+                              "legal.website_terms",
                               "ai.module"
                             ]
                           },
