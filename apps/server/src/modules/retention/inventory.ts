@@ -148,6 +148,7 @@ const R = 'requests_not_converted'
 const E = 'unaccepted_estimates'
 const C = 'customer_profiles'
 const A = 'accepted_agreements'
+const F = 'financial_records'
 const J = 'job_records'
 const S = 'safety_records'
 const AU = 'audit_log'
@@ -166,8 +167,61 @@ export const TABLES = {
     classes: ['configuration'],
     categories: [NS],
   },
+  'catalog.sop_versions': {
+    holds: 'Imported SOP versions: checklist stages, stop-work section, hazard and quality digests, competent review',
+    classes: ['configuration'],
+    categories: [NS],
+    protectedEvidence: true,
+  },
+  'comms.conversations': {
+    holds: 'One customer and one internal conversation per project',
+    classes: ['request_details'],
+    categories: [R, J],
+  },
+  'comms.message_links': {
+    holds: 'Staff linking corrections of a message, with the staff member and the reason',
+    classes: ['request_details'],
+    categories: [R, J, NS],
+  },
+  'comms.messages': {
+    holds: 'Inbound emails and texts exactly as received, staff replies and internal messages, with their linking',
+    classes: ['contact', 'request_details'],
+    categories: [R, J, NS],
+    vendors: ['bird', 'resend'],
+  },
+  'comms.project_reply_tokens': {
+    holds: "A project's reply token for the plus-addressed reply-to of its emails (grants no access)",
+    classes: ['technical'],
+    categories: [NS],
+    vendors: ['resend'],
+  },
+  'crm.access_code_reveals': {
+    holds: 'Who revealed which access code, when and under which roles (never the code)',
+    classes: ['logs_audit'],
+    categories: [NS],
+  },
+  'crm.access_instruction_secrets': {
+    holds: 'Gate, lockbox, alarm and door codes and key locations, sealed; erased when removed, the row kept',
+    classes: ['access_secret'],
+    categories: ['access_codes'],
+  },
+  'crm.candidate_match_events': {
+    holds: 'Detections and staff reviews of a candidate match',
+    classes: ['contact'],
+    categories: [C, R],
+  },
+  'crm.candidate_matches': {
+    holds: 'Pairs of customers sharing an email, phone or address, for staff review (never a link)',
+    classes: ['contact'],
+    categories: [C, R],
+  },
   'crm.contacts': {
     holds: 'Customer contacts: name, email, phone, verification state, preferred channel',
+    classes: ['contact'],
+    categories: [C, R],
+  },
+  'crm.customer_notes': {
+    holds: 'Staff notes on a customer record, with their visibility class',
     classes: ['contact'],
     categories: [C, R],
   },
@@ -190,6 +244,38 @@ export const TABLES = {
     holds: 'Service addresses and coverage result',
     classes: ['service_address'],
     categories: [C, R],
+  },
+  'crm.property_addresses': {
+    holds: 'Every address a property has had',
+    classes: ['service_address'],
+    categories: [C, R],
+  },
+  'crm.property_changes': {
+    holds: 'Staff changes and confirmations of property details, with the reason and the values before and after',
+    classes: ['service_address'],
+    categories: [C, R],
+  },
+  'crm.property_details': {
+    holds: 'Property details: non-secret access notes, parking, occupants and pets, utilities, site flags, sources',
+    classes: ['service_address'],
+    categories: [C, R],
+  },
+  'crm.record_changes': {
+    holds: 'Staff edits of a customer or contact, with the reason and the values before and after',
+    classes: ['contact'],
+    categories: [C, R],
+  },
+  'crm.record_links': {
+    holds: "Human-reviewed merges and relinks, their access rechecks and the Owner's reversal",
+    classes: ['contact', 'request_details'],
+    categories: [C, R],
+  },
+  'estimating.approval_receipts': {
+    holds: 'Issued approval receipts: the PDF reference, its SHA-256 and size, the terms and TEST mark (files in R2)',
+    classes: ['estimate_approval'],
+    categories: [A],
+    protectedEvidence: true,
+    vendors: ['r2'],
   },
   'estimating.approval_selections': {
     holds: "A customer's option selections before approving",
@@ -239,6 +325,28 @@ export const TABLES = {
     holds: 'Estimates of a project and their number',
     classes: ['estimate_approval'],
     categories: [E, A],
+  },
+  'finance.deposit_requirements': {
+    holds: "A job's deposit obligation in cents, its state and the staff-pasted Square payment link",
+    classes: ['payment_reference'],
+    categories: [F],
+  },
+  'finance.deposit_waivers': {
+    holds: "The Owner's job-specific deposit waivers with their written reason",
+    classes: ['payment_reference'],
+    categories: [F],
+  },
+  'finance.payment_allocations': {
+    holds: "A payment's application to its job's deposit requirement, in cents",
+    classes: ['payment_reference'],
+    categories: [F],
+    protectedEvidence: true,
+  },
+  'finance.payments': {
+    holds: 'Staff-recorded payments: method, amount in cents, date, collector, transaction reference, check payer',
+    classes: ['payment_reference'],
+    categories: [F],
+    protectedEvidence: true,
   },
   'identity.auth_identities': {
     holds: 'Staff password hashes',
@@ -315,6 +423,21 @@ export const TABLES = {
     classes: ['photos'],
     categories: [R, J],
     vendors: ['r2'],
+  },
+  'intake.question_replies': {
+    holds: "Customers' replies to staff questions, exactly as written",
+    classes: ['request_details'],
+    categories: [R, J],
+  },
+  'intake.question_reply_photos': {
+    holds: 'The photos a reply attached (the photos are in intake.photos and R2)',
+    classes: ['photos'],
+    categories: [R, J],
+  },
+  'intake.questions': {
+    holds: 'Questions staff published in a project, with their notice and reminder sends',
+    classes: ['request_details'],
+    categories: [R, J],
   },
   'intake.receipt_capabilities': {
     holds: 'Request receipt links (token hashes)',
@@ -506,6 +629,21 @@ export const TABLES = {
     classes: ['scheduling', 'service_address'],
     categories: [R, J],
   },
+  'work.window_offer_options': {
+    holds: 'The windows of an offer and their reserved ranges',
+    classes: ['scheduling'],
+    categories: [R, J],
+  },
+  'work.window_offers': {
+    holds: 'Window offers of a tentative visit: hold expiry, policy version, outcome',
+    classes: ['scheduling'],
+    categories: [R, J],
+  },
+  'work.work_package_sop_pins': {
+    holds: 'The SOP version and digests pinned on each work package of a job, or NOT CONFIGURED',
+    classes: ['request_details'],
+    categories: [J, A],
+  },
   'work.work_packages': {
     holds: 'Work packages of a project, one per service',
     classes: ['request_details'],
@@ -527,6 +665,8 @@ export function endOfLife(a: TableAnnotation): string {
   if (typeof a.protectedEvidence === 'string') return `${review}. ${a.protectedEvidence}: ${evidence}`
   if (a.categories.some((c) => CATEGORY_DEFINITIONS[c].configKey !== null)) return review
   if (a.categories.includes(SL)) return 'Expires per its security settings; keeping expired rows NOT CONFIGURED'
+  if (a.categories.includes('access_codes'))
+    return 'Staff remove it when no longer needed (the sealed value erased at once, the row kept); nothing automatic'
   return 'NOT CONFIGURED: kept, never deleted automatically'
 }
 
@@ -613,8 +753,10 @@ export function renderDataInventory(): string {
     '  erasure the software does not perform; checks the software cannot run are confirmed by the Owner first. A blocked',
     '  deletion offers Archive; Keep longer brings the entry back later. Deletion needs a fresh sign-in and a reason.',
     '- Erasure performed today: estimates never accepted (versions, lines, internal costs and notes, documents, the',
-    "  customer's responses and selections, and their stored files after the commit) and login accounts (closed: sign-in",
-    '  values cleared, sessions and project links revoked). Requests that never became jobs keep their history',
+    "  customer's responses and selections, reminder drafts nobody released, and their stored files after the commit)",
+    '  and login accounts (closed: sign-in values cleared, sessions and project links revoked). Messages sent about an',
+    '  erased estimate keep only its reference. Signed approvals, approval receipts, jobs, deposit records and recorded',
+    '  payments are protected evidence and block it. Requests that never became jobs keep their history',
     '  (OQ-RECORD-ERASURE); audit entries are append-only for every role (OQ-AUDIT-ENTRY-DELETION).',
     '- The deletion log (`privacy.deletions`, append-only) keeps actor, time, record reference, reason and counts, never',
     '  the deleted content. Account deletion is separate from business records (OWN-DEC-71).',

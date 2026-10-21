@@ -115,6 +115,7 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
   it('[HH-OPS-01][T26] office never sees Owner Decisions items, in either list', async () => {
     const office = await list('office')
     expect(office.sections).toEqual(['queue'])
+    // TSK-0044 added duplicate suggestions (customer.view_duplicates) to the queue.
     expect(office.types).toEqual([
       'new_request',
       'review_hold',
@@ -122,6 +123,17 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       'visit_change_request',
       'delivery_failed',
       'case_open',
+      // TSK-0063: answers to offered windows that need new ones.
+      'window_offer_response',
+      'candidate_match',
+      // TSK-0049: the private Needs Linking list (message.view_unmatched) and customer replies.
+      'inbox_needs_linking',
+      'customer_replied',
+      // TSK-0051: replies to staff questions and question reminders to release.
+      'question_replied',
+      'question_reminder',
+      // TSK-0059: deposits to collect (payment.record: the Owner and Office).
+      'deposit_due',
       // TSK-0097: appointments flagged for review (reassignment) are seen by the roles that reassign visits.
       'visit_flagged',
     ])
@@ -159,8 +171,11 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
   it('[HH-OPS-01][T26] an estimator sees requests and safety holds, but no cases and no Owner Decisions', async () => {
     const est = await list('estimator')
     expect(est.sections).toEqual(['queue'])
-    // Pending estimates (estimate_to_write, TSK-0053) and the customer's responses to estimates (estimate_response,
-    // TSK-0056) are the Estimator's too.
+    // Pending estimates (estimate_to_write, TSK-0053), the customer's responses to estimates (estimate_response,
+    // TSK-0056) and answers to offered windows that need new ones (window_offer_response, TSK-0063: Estimators offer
+    // estimate-visit windows) are the Estimator's too, as are estimate reminder drafts to send (estimate_reminder,
+    // TSK-0060); TSK-0044: duplicate suggestions, by the Estimator's PROPOSED customer.view_duplicates cell. TSK-0049:
+    // customer replies on own threads; never the private Needs Linking list.
     expect(est.types).toEqual([
       'new_request',
       'review_hold',
@@ -168,6 +183,13 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       'delivery_failed',
       'estimate_to_write',
       'estimate_response',
+      'window_offer_response',
+      'estimate_reminder',
+      'candidate_match',
+      'customer_replied',
+      // TSK-0051: replies to staff questions (request.view) and reminders on their own requests (own threads).
+      'question_replied',
+      'question_reminder',
     ])
     expect(est.items.map((i) => i.type)).not.toContain('case_open')
     expect((await get('estimator', '/api/v1/staff/queue/owner-decisions')).statusCode).toBe(403)

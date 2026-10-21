@@ -129,12 +129,19 @@ describe('navigation by role (TSK-0040, HH-STAFF-06)', () => {
   it('[HH-STAFF-06] menu links move between screens with the keyboard-reachable links, in place', async () => {
     const navigate = vi.fn()
     render(<App path="/staff/" base="/staff/" fetchImpl={api(session('owner'))} navigate={navigate} />)
-    const link = await screen.findByRole('link', { name: 'Customers' })
-    expect(link.getAttribute('href')).toBe('/staff/customers')
+    // TSK-0044 built the Customers screen; the Scheduling board is still an unbuilt screen of the menu.
+    const link = await screen.findByRole('link', { name: 'Scheduling board' })
+    expect(link.getAttribute('href')).toBe('/staff/schedule')
     fireEvent.click(link)
+    expect(navigate).toHaveBeenCalledWith('/staff/schedule')
+    expect(screen.getByRole('heading', { level: 1, name: 'Scheduling board' })).toBeTruthy()
+    expect(screen.getByText('This screen is not available yet.')).toBeTruthy()
+    const customers = screen.getByRole('link', { name: 'Customers' })
+    expect(customers.getAttribute('href')).toBe('/staff/customers')
+    fireEvent.click(customers)
     expect(navigate).toHaveBeenCalledWith('/staff/customers')
     expect(screen.getByRole('heading', { level: 1, name: 'Customers' })).toBeTruthy()
-    expect(screen.getByText('This screen is not available yet.')).toBeTruthy()
+    expect(screen.getByRole('searchbox', { name: 'Search customers' })).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Skip to main content' }).getAttribute('href')).toBe('#staff-main')
   })
 })
@@ -153,7 +160,8 @@ describe('staff language switch (TSK-0040, HH-OPS-04, HH-LANG-02)', () => {
     expect(JSON.parse(String(init.body))).toEqual({ locale: 'es' })
     expect((init.headers as Record<string, string>)['x-csrf-token']).toBe('synthetic-csrf-token')
     expect((screen.getByRole('searchbox', { name: 'Buscar' }) as HTMLInputElement).value).toBe('unsent synthetic draft')
-    expect(document.documentElement.lang).toBe('es')
+    // The page language is set by an effect after the Spanish render commits: wait for it.
+    await waitFor(() => expect(document.documentElement.lang).toBe('es'))
     expect(menu()[0]).toBe('Acciones pendientes')
   })
 

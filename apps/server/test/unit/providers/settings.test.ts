@@ -18,7 +18,11 @@ describe('provider settings (TSK-0013, HH-AUD-05, RULE-SYNTHETIC-DATA)', () => {
         'not_configured',
         'not_configured',
       ])
-      expect(providerStatus(s).inbound).toEqual({ bird: 'not_configured', resend: 'not_configured' })
+      expect(providerStatus(s).inbound).toEqual({
+        bird: 'not_configured',
+        resend: 'not_configured',
+        replyAddress: 'not_configured',
+      })
     }
   })
 

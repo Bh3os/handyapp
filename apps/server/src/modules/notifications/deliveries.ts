@@ -5,7 +5,9 @@
 //   one delivery row per destination.
 // - Every other message is a draft (`createDraft`) that a staff member releases (`releaseDraft`); the release is
 //   audited and scheduled as a job of the `notify.release` automation. Reminders whose cadence is held to contact
-//   hours wait for the next opening; unanswered-estimate reminders and replies send at once.
+//   hours wait for the next opening; unanswered-estimate reminders send at once. TSK-0050: a staff reply (Send is its
+//   release) waits for the opening too while replies.contact_hours says so (PROPOSED), and its failed delivery opens
+//   a delivery issue with Retry like an automatic message's.
 // - A delivery row is metadata only (template version, audience, channel, destination, permission, event, record,
 //   attempts, provider message ID, state, error code): the rendered text is never stored or logged.
 // - The provider idempotency key is derived from the delivery's unique tuple (message type, channel, subject,
@@ -15,6 +17,9 @@
 //   staff queue item per failed delivery (its one action is Retry, retry.ts) and resolves it once a send is handed
 //   over or suppressed. A temporary provider failure on the job's last attempt is recorded as a failed delivery, so it
 //   reaches staff as a delivery issue with Retry instead of only as a failed job.
+// - TSK-0049 (HH-COM-07, OWN-DEC-120): a delivery records its project. A customer email of a project replies to the
+//   project's plus-addressed reply token while a receiving address is configured, so the customer's reply threads back
+//   to that project; without one it keeps the configured reply-to.
 // - TSK-0032 review (HH-ARC-09, HH-INT-20, HH-COM-02, HH-SEC-06):
 //   - every delivery a job handles records its own audit event with what truly happened (notification.sent,
 //     notification.failed, notification.suppressed or notification.outcome_unknown); the job itself is audited as
@@ -38,6 +43,7 @@ import { scheduleJob } from '../../platform/jobs.js'
 import { outbox } from '../../platform/outbox.js'
 import { currentContext } from '../../platform/request-context.js'
 import type { EmailSender, SmsSender } from '../../providers/index.js'
+import { projectReplyToken, replyAddress, type InboundAddress } from '../inbox/threading.js'
 import { openQueueItem, resolveQueueItem } from '../queue/items.js'
 import { nextContactTime } from './contact-hours.js'
 import { messageType, type Channel } from './message-types.js'
@@ -75,9 +81,16 @@ export type Resolved = {
   values: Readonly<Record<string, string>>
   /** When set, a failed delivery opens one `delivery_failed` queue item with these facts (TSK-0032). */
   failureItem?: FailureItem
+  /** TSK-0049: the project the message belongs to; default the failure item's project. */
+  projectId?: string | null
 }
 
-export type NotificationProviders = { email: EmailSender | null; sms: SmsSender | null }
+export type NotificationProviders = {
+  email: EmailSender | null
+  sms: SmsSender | null
+  /** TSK-0049: the receiving address of inbound email (INBOUND_EMAIL_ADDRESS); null or unset: no reply tokens. */
+  replyAddress?: InboundAddress | null
+}
 
 export class RetryableDeliveryError extends Error {
   override name = 'RetryableDeliveryError'
@@ -132,6 +145,7 @@ type DeliveryRow = {
   destination: string
   variables: unknown
   provider_message_id: string | null
+  project_id: string | null
 }
 
 /** What a send recorded on the delivery row. */
@@ -236,6 +250,11 @@ async function send(
     return update({ state: 'failed', error_code: 'template_values_missing', template_version: template.version })
   }
   const idempotencyKey = deliveryIdempotencyKey(row.message_key, channel, row.subject_key, row.destination)
+  // A customer email of a project replies to the project's token address (TSK-0049).
+  const replyTo =
+    channel === 'email' && row.audience === 'customer' && row.project_id && providers.replyAddress
+      ? replyAddress(providers.replyAddress, await projectReplyToken(tx, row.project_id))
+      : undefined
   const outcome =
     channel === 'email'
       ? await (sender as EmailSender).send({
@@ -243,6 +262,7 @@ async function send(
           subject: rendered.subject ?? '',
           text: rendered.body,
           idempotencyKey,
+          ...(replyTo ? { replyTo } : {}),
         })
       : await (sender as SmsSender).send({
           to: row.destination,
@@ -320,6 +340,7 @@ async function upsertDelivery(
     state: 'queued' | 'draft'
     outboxEventId?: string | null
     variables?: Record<string, string>
+    projectId?: string | null
   },
 ): Promise<DeliveryRow> {
   const type = messageType(input.messageKey)
@@ -342,6 +363,7 @@ async function upsertDelivery(
       destination: input.destination.destination,
       channel_permission: input.destination.permission,
       variables: JSON.stringify(input.variables ?? {}),
+      project_id: input.projectId ?? null,
       queued_at: input.state === 'queued' ? sql<Date>`now()` : null,
     })
     .onConflict((oc) => oc.doNothing())
@@ -499,6 +521,7 @@ export function notificationAutomation(o: NotificationAutomationOptions): Automa
             release: 'automatic',
             state: 'queued',
             outboxEventId: ctx.job.eventId,
+            projectId: resolved.projectId ?? resolved.failureItem?.projectId ?? null,
           })
           handled.push(row.id)
           // Already handed to the provider, suppressed or failed for this subject: a replay sends nothing. A failed
@@ -531,6 +554,8 @@ export async function createDraft(
     subjectKey: string
     record: { type: string; id: string }
     values: Record<string, string>
+    /** TSK-0049: the project the message belongs to (its reply address and conversation). */
+    projectId?: string | null
   },
 ): Promise<{ id: string }> {
   const type = messageType(input.messageKey)
@@ -552,6 +577,7 @@ export async function createDraft(
     release: 'staff_released',
     state: 'draft',
     variables: input.values,
+    projectId: input.projectId ?? null,
   })
   return { id: row.id }
 }
@@ -566,16 +592,37 @@ const REMINDER_CADENCE: Record<string, string> = {
   'reminder.repeat_service': 'repeatService',
 }
 
-/** When a released draft may send: now, or the next contact-hours opening for reminders held to those hours. */
-export function releaseTime(config: Config, messageKey: string, now: Date): Date {
+/** The staff reply (TSK-0050, HH-COM-08): Send is its release. */
+export const STAFF_REPLY_MESSAGE_KEY = 'staff.reply'
+
+/**
+ * Whether a released message of this type is held to the daily contact hours (HH-COM-09): a reminder whose cadence
+ * says so (reminders.cadences; unanswered-estimate reminders are not, OWN-DEC-132), and the staff reply while
+ * replies.contact_hours says so (TSK-0050, PROPOSED). Unknown while that configuration is NOT CONFIGURED.
+ */
+export function heldToContactHours(config: Config, messageKey: string): boolean | 'not_configured' {
+  if (messageKey === STAFF_REPLY_MESSAGE_KEY) {
+    const replies = config.get('replies.contact_hours')
+    return replies.state === 'CONFIGURED' ? replies.value.contactHoursOnly : 'not_configured'
+  }
   const cadenceKey = REMINDER_CADENCE[messageKey]
-  if (!cadenceKey) return now
+  if (!cadenceKey) return false
   const cadences = config.get('reminders.cadences')
+  if (cadences.state !== 'CONFIGURED') return 'not_configured'
+  const cadence = (cadences.value as Record<string, { contactHoursOnly: boolean }>)[cadenceKey]
+  return cadence?.contactHoursOnly ?? false
+}
+
+/**
+ * When a released draft may send: now, or the next contact-hours opening for messages held to those hours (reminders
+ * whose cadence says so; staff replies while replies.contact_hours says so). While the rule, the hours or the zone
+ * is NOT CONFIGURED no window is guessed and it sends now.
+ */
+export function releaseTime(config: Config, messageKey: string, now: Date): Date {
+  if (heldToContactHours(config, messageKey) !== true) return now
   const hours = config.get('contact.hours')
   const zone = config.get('business.timezone')
-  if (cadences.state !== 'CONFIGURED' || hours.state !== 'CONFIGURED' || zone.state !== 'CONFIGURED') return now
-  const cadence = (cadences.value as Record<string, { contactHoursOnly: boolean }>)[cadenceKey]
-  if (!cadence?.contactHoursOnly) return now
+  if (hours.state !== 'CONFIGURED' || zone.state !== 'CONFIGURED') return now
   return nextContactTime(now, hours.value, zone.value.zone)
 }
 
@@ -585,21 +632,38 @@ export function releaseTime(config: Config, messageKey: string, now: Date): Date
  * - 'current': send;
  * - 'stale': the record changed (approved, declined, expired, cancelled, rescheduled, paid, replied, ...): nothing is
  *   sent and the delivery is cancelled;
+ * - { stale: reason }: the same, with the reason the check names (TSK-0060: why an estimate reminder stopped), recorded
+ *   as the cancelled delivery's error code;
  * - { hold }: send later (for example a review or satisfaction request while a case is active): the delivery goes
  *   back to a draft marked held, for staff to release again once the reason has cleared.
  * A record type without a registered check is sent as released.
  */
-export type RecordCheckResult = 'current' | 'stale' | { hold: string }
+export type RecordCheckResult = 'current' | 'stale' | { stale: string } | { hold: string }
 export type RecordCheck = (
   tx: Tx,
   input: { recordType: string; recordId: string; messageKey: string; subjectKey: string },
 ) => Promise<RecordCheckResult>
 export type RecordChecks = Readonly<Record<string, RecordCheck>>
 
+/**
+ * TSK-0050: the staff queue facts of a released message whose failed delivery staff should see as a delivery issue
+ * with Retry (HH-COM-02: a failed send becomes a staff exception), or undefined for none. Staff replies have one.
+ */
+export type ReleaseFailureItem = (
+  tx: Tx,
+  row: {
+    id: string
+    message_key: string
+    record_type: string | null
+    record_id: string | null
+    project_id: string | null
+  },
+) => Promise<FailureItem | undefined>
+
 /** The automation that sends released drafts (scheduled per release). */
 export function releaseAutomation(
   providers: NotificationProviders,
-  options: { recordChecks?: RecordChecks } = {},
+  options: { recordChecks?: RecordChecks; failureItem?: ReleaseFailureItem } = {},
 ): Automation {
   return {
     name: 'notify.release',
@@ -632,16 +696,23 @@ export function releaseAutomation(
               subjectKey: row.subject_key,
             })
           : 'current'
-      if (verdict === 'stale') {
+      const item = options.failureItem ? await options.failureItem(ctx.tx, row) : undefined
+      if (verdict === 'stale' || (typeof verdict === 'object' && 'stale' in verdict)) {
+        const errorCode = verdict === 'stale' ? 'record_changed' : verdict.stale.slice(0, 120)
         await ctx.tx
           .updateTable('platform.message_deliveries')
-          .set({ state: 'cancelled', error_code: 'record_changed', updated_at: sql<Date>`now()` })
+          .set({
+            state: 'cancelled',
+            error_code: errorCode,
+            cancelled_by: 'system',
+            cancelled_at: sql<Date>`now()`,
+            updated_at: sql<Date>`now()`,
+          })
           .where('id', '=', row.id)
           .execute()
-        await auditDelivery(ctx.tx, ctx.job, 'system.notifications', row, {
-          state: 'cancelled',
-          errorCode: 'record_changed',
-        })
+        const cancelled = { state: 'cancelled', errorCode }
+        await auditDelivery(ctx.tx, ctx.job, 'system.notifications', row, cancelled)
+        await syncFailureItem(ctx.tx, row.id, cancelled, item)
         return 'cancelled'
       }
       if (verdict !== 'current') {
@@ -658,8 +729,12 @@ export function releaseAutomation(
           .execute()
         return 'cancelled'
       }
-      const result = await send(ctx.tx, row, (row.variables ?? {}) as Record<string, string>, providers)
+      // TSK-0050: a temporary failure on the last attempt is recorded as failed (with its delivery issue, if any) instead
+      // of leaving the delivery queued for good.
+      const final = ctx.job.maxAttempts !== undefined && ctx.job.attempt >= ctx.job.maxAttempts
+      const result = await send(ctx.tx, row, (row.variables ?? {}) as Record<string, string>, providers, final)
       await auditDelivery(ctx.tx, ctx.job, 'system.notifications', row, result)
+      await syncFailureItem(ctx.tx, row.id, result, item)
       return 'done'
     },
   }

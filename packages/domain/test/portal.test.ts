@@ -65,6 +65,19 @@ describe('customer situations from the request and project records (TSK-0038, HH
     })
   })
 
+  it('[HH-LEAD-06][T30] Closed—no response within the reopen period: the reply that reopens it is the one action', () => {
+    expect(status({ requestState: 'closed_no_response', projectState: 'closed', reopenByReply: true })).toEqual({
+      situation: 'closed_no_response',
+      step: 'closed',
+      waitingOn: 'customer',
+      nextAction: 'reply',
+    })
+    expect(status({ requestState: 'closed_no_response', projectState: 'closed', reopenByReply: false })).toMatchObject({
+      waitingOn: 'nobody',
+      nextAction: 'none',
+    })
+  })
+
   it('[HH-PORT-02] every state pair gives one situation, one step, who waits and exactly one action', () => {
     for (const requestState of REQUEST_STATES)
       for (const projectState of PROJECT_STATES) {

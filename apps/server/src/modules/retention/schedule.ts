@@ -106,7 +106,9 @@ export const CATEGORY_DEFINITIONS: Record<RetentionCategory, CategoryDefinition>
       'Invoices, payments, receipts, refunds and reconciliation records: 7 years after the relevant tax return is ' +
       'filed or the tax is paid, whichever is later.',
     decidedYears: 7,
-    scanNote: 'No invoice or payment is recorded yet, and the tax-return filing date is never assumed.',
+    scanNote:
+      'Deposit payments are recorded (finance.payments), but no invoice is yet, and the tax-return filing or tax ' +
+      'payment that starts the period is not recorded and is never assumed.',
     sources: SCHEDULE,
   },
   job_records: {
@@ -148,7 +150,9 @@ export const CATEGORY_DEFINITIONS: Record<RetentionCategory, CategoryDefinition>
     scan: 'no_period',
     decided: 'Property access codes: removed when no longer needed for authorized access.',
     decidedYears: null,
-    scanNote: 'No access code is stored yet (the protected access-code store comes with the property records).',
+    scanNote:
+      'Codes are kept sealed in the protected access-code store (crm.access_instruction_secrets); staff remove one ' +
+      'when it is no longer needed, which erases the sealed value. The job opens no entry.',
     sources: ['OWN-DEC-70', 'FACT-RETENTION-SCHEDULE'],
   },
   sessions_and_links: {

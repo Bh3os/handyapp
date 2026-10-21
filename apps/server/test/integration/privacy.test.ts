@@ -12,6 +12,7 @@ import type { FastifyInstance } from 'fastify'
 import { sql } from 'kysely'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildApp } from '../../src/app.js'
+import { estimateReminderAutomations } from '../../src/modules/estimates/index.js'
 import { createStaffUser, setPasswordHash } from '../../src/modules/identity/accounts.js'
 import { startCustomerSession } from '../../src/modules/identity/customer-sessions.js'
 import { readCodeKey, type CodeKeySettings } from '../../src/modules/identity/index.js'
@@ -25,7 +26,9 @@ import {
 } from '../../src/modules/privacy/index.js'
 import { forbiddenForCustomer } from '../../src/modules/records/index.js'
 import { runRetentionScan } from '../../src/modules/retention/index.js'
+import { createAutomationRegistry } from '../../src/platform/automation.js'
 import { recordPolicyVersion } from '../../src/platform/config/index.js'
+import { createWorker } from '../../src/platform/jobs.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { testConfig } from '../fixtures/env.js'
 
@@ -510,7 +513,37 @@ describe('the Owner Delete action on a review entry (TSK-0100, HH-PRIV-05, HH-DA
     expect(preview.target.blockers).toContain('protected_evidence')
     expect(preview.target.checks).toContainEqual({ check: 'signed_approvals', result: 'found', count: 1 })
     expect(preview.target.checks).toContainEqual({ check: 'jobs', result: 'found', count: 1 })
+    // The job's deposit requirement (TSK-0064) is protected evidence too.
+    expect(preview.target.checks).toContainEqual({ check: 'deposit_records', result: 'found', count: 1 })
     expect(preview.target.checks).toContainEqual({ check: 'issued_invoices', result: 'not_recorded' })
+    // No payment is recorded yet: the Owner still checks for one taken outside the software (never "none found").
+    expect(preview.target.checks).toContainEqual({ check: 'payments', result: 'not_recorded' })
+    // A payment recorded on the job is found.
+    const job = await t.db
+      .selectFrom('work.jobs as j')
+      .innerJoin('estimating.approvals as a', 'a.id', 'j.approval_id')
+      .select(['j.id', 'j.project_id'])
+      .where('a.estimate_id', '=', e.estimateId)
+      .executeTakeFirstOrThrow()
+    await t.db
+      .insertInto('finance.payments')
+      .values({
+        project_id: job.project_id,
+        job_id: job.id,
+        method: 'cash',
+        amount_cents: 5_000,
+        received_on: new Date().toISOString().slice(0, 10),
+        collector_staff_id: ids.office,
+        recorded_by: ids.office,
+        state: 'recorded',
+      })
+      .execute()
+    const withPayment = (await get('owner', `/staff/retention-reviews/${entry.id}/deletion`)).json<{
+      target: { blockers: string[]; checks: { check: string; result: string; count?: number }[]; confirm: string[] }
+    }>()
+    expect(withPayment.target.checks).toContainEqual({ check: 'payments', result: 'found', count: 1 })
+    expect(withPayment.target.blockers).toContain('protected_evidence')
+    expect(withPayment.target.confirm).not.toContain('payments')
 
     const res = await write('owner', `/staff/retention-reviews/${entry.id}/delete`, {
       reason: 'Synthetic: confirm anyway.',
@@ -1131,5 +1164,199 @@ describe('deletions re-applied after a restore (TSK-0100, T72, HH-PRIV-03)', () 
     expect(twice.map((r) => r.outcome)).toEqual(['absent', 'absent', 'blocked'])
     // The export keeps the original identity of a re-applied entry, so it is never applied twice over.
     expect((await exportDeletions(t.db)).filter((x) => x.id === original.id)).toHaveLength(1)
+  })
+})
+
+describe('erasing an estimate whose project has messages, questions and replies (TSK-0100 with TSK-0051, TSK-0060)', () => {
+  const registry = createAutomationRegistry(estimateReminderAutomations({ publicSiteUrl: 'http://127.0.0.1:4610' }))
+  /** Runs the reminder jobs that are due now (the worker knows only the reminder automations). */
+  async function drain() {
+    const w = createWorker({ db: t.db, registry })
+    for (let i = 0; i < 12; i++) {
+      const r = await w.runOnce()
+      if (r.dispatched + r.succeeded + r.retried + r.failed + r.cancelled === 0) return
+    }
+  }
+  const due = async (versionId: string, step: 'first' | 'final') => {
+    await sql`UPDATE platform.jobs SET run_at = now() WHERE automation = 'estimate.reminder_draft'
+              AND job_key = ${`estimate.reminder_draft:${versionId}:${step}`}`.execute(t.db)
+    await drain()
+  }
+  const deliveries = (versionId: string) =>
+    t.db
+      .selectFrom('platform.message_deliveries')
+      .select(['id', 'message_key', 'state', 'released_by'])
+      .where('record_type', '=', 'estimate_version')
+      .where('record_id', '=', versionId)
+      .orderBy('seq')
+      .execute()
+  type Preview = {
+    target: { removes: { kind: string; count: number }[]; keeps: { kind: string; count: number }[]; blockers: string[] }
+  }
+  /** A published estimate on a ready request (not withdrawn yet). */
+  async function publishedEstimate(r?: Project) {
+    const project = r ?? (await readyRequest())
+    const created = await write('estimator', `/staff/projects/${project.projectId}/estimates`, {})
+    expect(created.statusCode, created.body).toBe(201)
+    const ids = created.json<{ estimateId: string; number: string; versionId: string }>()
+    const rowVersion = await publish(ids.versionId)
+    return { ...project, ...ids, rowVersion }
+  }
+  async function withdraw(versionId: string, rowVersion: number) {
+    const res = await write(
+      'estimator',
+      `/staff/estimate-versions/${versionId}/withdraw`,
+      { reason: 'Synthetic: sent to the wrong project.' },
+      rowVersion,
+    )
+    expect(res.statusCode, res.body).toBe(200)
+  }
+
+  it('[HH-PRIV-05][HH-EST-14] reminder drafts nobody released go with the estimate; a sent message keeps only the reference', async () => {
+    const e = await publishedEstimate()
+    await drain()
+    await due(e.versionId, 'first')
+    await due(e.versionId, 'final')
+    // The first draft was replaced by the final one; both are waiting or cancelled drafts nobody released.
+    expect((await deliveries(e.versionId)).map((d) => [d.message_key, d.state])).toEqual([
+      ['reminder.unanswered_estimate', 'cancelled'],
+      ['reminder.unanswered_estimate', 'draft'],
+    ])
+    const drafted = await deliveries(e.versionId)
+    // A message the customer received about the version (synthetic: the estimate-ready notice, sent).
+    const sent = await t.db
+      .insertInto('platform.message_deliveries')
+      .values({
+        message_key: 'estimate.ready',
+        channel: 'email',
+        audience: 'customer',
+        subject_key: `estimate_version:${e.versionId}`,
+        release: 'automatic',
+        state: 'sent',
+        locale: 'en',
+        record_type: 'estimate_version',
+        record_id: e.versionId,
+        recipient_kind: 'customer_contact',
+        recipient_id: e.contactId,
+        destination: 'privacy-sent-notice@example.test',
+        channel_permission: 'preferred',
+        project_id: e.projectId,
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow()
+    await withdraw(e.versionId, e.rowVersion)
+    expect((await deliveries(e.versionId)).filter((d) => d.state === 'draft')).toEqual([])
+    await scan(later(2, 2))
+    const entry = await entryFor(e.estimateId)
+
+    const p = (await get('owner', `/staff/retention-reviews/${entry.id}/deletion`)).json<Preview>()
+    expect(p.target.blockers).toEqual([])
+    expect(p.target.removes).toContainEqual({ kind: 'reminder_drafts', count: 2 })
+    expect(p.target.keeps).toContainEqual({ kind: 'message_records', count: 1 })
+
+    const res = await write('owner', `/staff/retention-reviews/${entry.id}/delete`, {
+      reason: 'Synthetic: past its period.',
+      confirmedChecks: ALL_CHECKS,
+    })
+    expect(res.statusCode, res.body).toBe(200)
+    const { deletionId } = res.json<{ deletionId: string }>()
+    expect(await count('estimating.estimates', 'id', e.estimateId)).toBe(0)
+    // The drafts are gone; the sent notice stays and names the erased version only by its id.
+    expect((await deliveries(e.versionId)).map((d) => d.id)).toEqual([sent.id])
+    const log = await t.db
+      .selectFrom('privacy.deletions')
+      .select('removed')
+      .where('id', '=', deletionId)
+      .executeTakeFirstOrThrow()
+    expect(log.removed).toMatchObject({ reminder_drafts: 2, estimate_versions: 1 })
+    // The audit entries about the drafts stay (append-only); the queue item and the waiting jobs are closed.
+    for (const d of drafted) expect(await count('platform.audit_events', 'target_id', d.id)).toBeGreaterThanOrEqual(1)
+    const items = await t.db
+      .selectFrom('ops.queue_items')
+      .select(['resolved_at'])
+      .where('subject_id', '=', e.versionId)
+      .execute()
+    expect(items.every((i) => i.resolved_at !== null)).toBe(true)
+    const waiting = await t.db
+      .selectFrom('platform.jobs')
+      .select('id')
+      .where('target_id', '=', e.versionId)
+      .where('state', '=', 'queued')
+      .execute()
+    expect(waiting).toEqual([])
+    // Nothing left for the reminder jobs to trip over.
+    await drain()
+    const failed = await t.db
+      .selectFrom('platform.jobs')
+      .select('id')
+      .where('target_id', '=', e.versionId)
+      .where('state', '=', 'failed')
+      .execute()
+    expect(failed).toEqual([])
+  })
+
+  it('[HH-PRIV-05][HH-LEAD-03] a question and the customer’s reply on the project stay; the estimate is erased', async () => {
+    const r = await newRequest('online')
+    const stateVersion = async () =>
+      (
+        await t.db
+          .selectFrom('intake.requests')
+          .select('state_version')
+          .where('id', '=', r.requestId)
+          .executeTakeFirstOrThrow()
+      ).state_version
+    const asked = await write(
+      'office',
+      `/staff/requests/${r.requestId}/questions`,
+      { text: 'Synthetic: how wide is the hole?', kind: 'measurement', noHazardInspection: true },
+      await stateVersion(),
+    )
+    expect(asked.statusCode, asked.body).toBe(201)
+    const questionId = (
+      await t.db
+        .selectFrom('intake.questions')
+        .select('id')
+        .where('request_id', '=', r.requestId)
+        .executeTakeFirstOrThrow()
+    ).id
+    const replied = await customerPost(
+      `/customer/projects/${r.reference}/questions/${questionId}/replies`,
+      await customerCookie(r),
+      { text: 'Synthetic: about a hand wide.' },
+    )
+    expect(replied.statusCode, replied.body).toBe(201)
+    // The reply in hand, staff move the request on to an online estimate and publish it.
+    const qualified = await write('owner', `/staff/requests/${r.requestId}/qualification`, { checks: ALL_OK }, 0, 'PUT')
+    expect(qualified.statusCode, qualified.body).toBe(200)
+    const moved = await write(
+      'owner',
+      `/staff/requests/${r.requestId}/actions/online-estimate`,
+      { workPackages: ['SVC-DW-01'] },
+      await stateVersion(),
+    )
+    expect(moved.statusCode, moved.body).toBe(200)
+    const e = await publishedEstimate(r)
+    await drain()
+    await due(e.versionId, 'first')
+    expect((await deliveries(e.versionId)).map((d) => d.state)).toEqual(['draft'])
+    await withdraw(e.versionId, e.rowVersion)
+    await scan(later(2, 2))
+    const entry = await entryFor(e.estimateId)
+    const p = (await get('owner', `/staff/retention-reviews/${entry.id}/deletion`)).json<Preview>()
+    expect(p.target.blockers).toEqual([])
+    expect(p.target.removes).toContainEqual({ kind: 'reminder_drafts', count: 1 })
+
+    const res = await write('owner', `/staff/retention-reviews/${entry.id}/delete`, {
+      reason: 'Synthetic: past its period.',
+      confirmedChecks: ALL_CHECKS,
+    })
+    expect(res.statusCode, res.body).toBe(200)
+    expect(await count('estimating.estimates', 'id', e.estimateId)).toBe(0)
+    expect(await deliveries(e.versionId)).toEqual([])
+    // The question and the reply belong to the request, which stays with its project.
+    expect(await count('intake.questions', 'id', questionId)).toBe(1)
+    expect(await count('intake.question_replies', 'question_id', questionId)).toBe(1)
+    expect(await count('intake.requests', 'id', e.requestId)).toBe(1)
+    expect(await count('crm.projects', 'id', e.projectId)).toBe(1)
   })
 })

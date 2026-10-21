@@ -3,9 +3,12 @@
 // - A target is one record the confirmation names: its reference, the attachments and linked rows removed with it,
 //   the linked records that stay, whether the deletion is permanent, every check, and every reason it is blocked.
 // - Checks: open holds on the record's project (found or none found), the protected evidence the software records
-//   (signed approvals and the jobs they created), and the kinds it does not record yet (complaints, warranties,
-//   disputes, claims, investigations, unfiled tax returns, legal and insurance holds, issued invoices and payments).
-//   A check that is not recorded is never "none found": the Owner confirms each one before anything is deleted.
+//   (signed approvals, their approval receipts, the jobs they created, the deposit records of those jobs: deposit
+//   requirements, waivers and payment allocations, and recorded payments), and the kinds it does not record yet
+//   (complaints, warranties, disputes, claims, investigations, unfiled tax returns, legal and insurance holds, issued
+//   invoices). A check that is not recorded is never "none found": the Owner confirms each one before anything is
+//   deleted. Payments: a recorded payment is found and blocks; none recorded is not "none found" (a payment taken
+//   outside the software cannot be ruled out), so the Owner still confirms it.
 // - Blockers: a hold found, protected evidence found (Archive, Void or an audited correction instead), a record still
 //   in use, and a record type whose erasure this software does not perform: requests that never became jobs keep
 //   their history until OQ-RECORD-ERASURE is answered, and audit entries are append-only for every role (ROLE-MATRIX
@@ -13,8 +16,12 @@
 // - Erasure of an estimate never accepted: its versions, lines, internal costs and notes, documents, the customer's
 //   responses and selections are removed in the transaction that writes the deletion log entry (the database lets
 //   only that transaction remove them, migration 0058); the stored files are removed after the commit by the
-//   privacy.object_erasure job. The project, its request, the review entry and the audit entries stay and keep only
-//   references.
+//   privacy.object_erasure job. So are its reminder drafts that nobody released (TSK-0060: waiting or cancelled,
+//   never sent, no delivery event): they are the estimate's own data, not a message anyone received. The project, its
+//   request (with its questions and replies, visits and window offers, messages and their links), the review entry,
+//   the messages sent about the versions (the estimate-ready notice, a released reminder) and the audit entries stay
+//   and keep only references; open queue items about the versions are resolved and their waiting jobs cancelled, and a
+//   job or delivery that still names a version finds it gone and stops as stale.
 import type { Db, Tx } from '@handyhub/db'
 import { sql } from 'kysely'
 import { HOLD_CHECKS, NOT_RECORDED_CHECKS } from '../retention/schedule.js'
@@ -25,7 +32,15 @@ export const TARGET_TYPES = ['estimate', 'request', 'audit_event', 'customer_acc
 export type TargetType = (typeof TARGET_TYPES)[number]
 
 /** The checks a deletion runs or lists: the review's hold checks, then the protected evidence. */
-export const DELETION_CHECKS = [...HOLD_CHECKS, 'signed_approvals', 'jobs', 'issued_invoices', 'payments'] as const
+export const DELETION_CHECKS = [
+  ...HOLD_CHECKS,
+  'signed_approvals',
+  'approval_receipts',
+  'jobs',
+  'deposit_records',
+  'issued_invoices',
+  'payments',
+] as const
 export type DeletionCheck = (typeof DELETION_CHECKS)[number]
 export type CheckResult = 'found' | 'none_found' | 'not_applicable' | 'not_recorded'
 export type CheckOutcome = { check: DeletionCheck; result: CheckResult; count?: number }
@@ -33,7 +48,9 @@ export type CheckOutcome = { check: DeletionCheck; result: CheckResult; count?: 
 /** Checks the software cannot run yet: the Owner confirms each before a deletion (never treated as none found). */
 export const UNRECORDED_DELETION_CHECKS: readonly DeletionCheck[] = [
   ...NOT_RECORDED_CHECKS,
-  // No invoice or payment is recorded by this software yet (TSK-0085, TSK-0086): checked by the Owner.
+  // No invoice is recorded by this software yet (TSK-0085): checked by the Owner. Payments are recorded
+  // (finance.payments, TSK-0064); one found blocks, and while none is recorded the Owner still checks for any taken
+  // outside the software.
   'issued_invoices',
   'payments',
 ]
@@ -93,10 +110,69 @@ function holdChecks(open: number | null): CheckOutcome[] {
 const counted = (check: DeletionCheck, count: number): CheckOutcome =>
   count > 0 ? { check, result: 'found', count } : { check, result: 'none_found' }
 
-const unrecordedEvidence = (): CheckOutcome[] => [
+/** Invoices are not recorded; a recorded payment is found, none recorded is still the Owner's check. */
+const invoiceAndPaymentChecks = (payments: number): CheckOutcome[] => [
   { check: 'issued_invoices', result: 'not_recorded' },
-  { check: 'payments', result: 'not_recorded' },
+  payments > 0
+    ? { check: 'payments', result: 'found', count: payments }
+    : { check: 'payments', result: 'not_recorded' },
 ]
+
+export type FinancialEvidence = { receipts: number; deposits: number; payments: number }
+
+/**
+ * The approval receipts, deposit records (requirements, waivers, payment allocations) and recorded payments that
+ * belong to the approvals of these estimate versions, or to a project: protected evidence (HH-DATA-09), never
+ * deleted (Archive, Void or an audited correction instead).
+ */
+export async function financialEvidence(
+  db: Reader,
+  of: { versionIds: readonly string[] } | { projectId: string },
+): Promise<FinancialEvidence> {
+  if ('versionIds' in of && of.versionIds.length === 0) return { receipts: 0, deposits: 0, payments: 0 }
+  const approvals =
+    'versionIds' in of
+      ? sql`SELECT a.id FROM estimating.approvals a WHERE a.version_id = ANY(${sql.val([...of.versionIds])}::uuid[])`
+      : sql`SELECT a.id FROM estimating.approvals a WHERE a.project_id = ${of.projectId}`
+  const { rows } = await sql<{ receipts: string; deposits: string; payments: string }>`
+    WITH a AS (${approvals}),
+         d AS (SELECT d.id FROM finance.deposit_requirements d WHERE d.approval_id IN (SELECT id FROM a)),
+         j AS (SELECT j.id FROM work.jobs j WHERE j.approval_id IN (SELECT id FROM a))
+    SELECT
+      (SELECT count(*) FROM estimating.approval_receipts r WHERE r.approval_id IN (SELECT id FROM a))::text AS receipts,
+      ((SELECT count(*) FROM d)
+        + (SELECT count(*) FROM finance.deposit_waivers w WHERE w.deposit_requirement_id IN (SELECT id FROM d))
+        + (SELECT count(*) FROM finance.payment_allocations pa WHERE pa.deposit_requirement_id IN (SELECT id FROM d))
+      )::text AS deposits,
+      (SELECT count(*) FROM finance.payments p
+        WHERE p.job_id IN (SELECT id FROM j)
+           OR p.id IN (SELECT pa.payment_id FROM finance.payment_allocations pa
+                        WHERE pa.deposit_requirement_id IN (SELECT id FROM d))
+           ${'projectId' in of ? sql`OR p.project_id = ${of.projectId}` : sql``})::text AS payments`.execute(db)
+  return { receipts: n(rows[0]?.receipts), deposits: n(rows[0]?.deposits), payments: n(rows[0]?.payments) }
+}
+
+/**
+ * The reminder drafts of these versions that nobody released (TSK-0060): waiting or cancelled, never sent, with no
+ * delivery event and no message: the estimate's own data, removed with it. A released reminder or a sent notice is a
+ * message record and stays.
+ */
+const unreleasedDrafts = (ids: readonly string[]) => sql`
+  FROM platform.message_deliveries d
+  WHERE d.record_type = 'estimate_version' AND d.record_id = ANY(${sql.val([...ids])}::text[])
+    AND d.release = 'staff_released' AND d.released_by IS NULL AND d.state IN ('draft', 'cancelled')
+    AND NOT EXISTS (SELECT 1 FROM platform.message_delivery_events e WHERE e.delivery_id = d.id)
+    AND NOT EXISTS (SELECT 1 FROM comms.messages m WHERE m.delivery_id = d.id)`
+
+async function versionMessages(db: Reader, ids: readonly string[]): Promise<{ drafts: number; kept: number }> {
+  if (ids.length === 0) return { drafts: 0, kept: 0 }
+  const { rows } = await sql<{ drafts: string; total: string }>`
+    SELECT (SELECT count(*) ${unreleasedDrafts(ids)})::text AS drafts,
+           (SELECT count(*) FROM platform.message_deliveries d WHERE d.record_type = 'estimate_version'
+              AND d.record_id = ANY(${sql.val([...ids])}::text[]))::text AS total`.execute(db)
+  const drafts = n(rows[0]?.drafts)
+  return { drafts, kept: n(rows[0]?.total) - drafts }
+}
 
 function finish(p: Omit<TargetPreview, 'confirm'>): TargetPreview {
   const blockers = [...new Set(p.blockers)]
@@ -169,6 +245,8 @@ export async function estimateTarget(
             )
           ).rows[0]?.n,
         )
+  const evidence = await financialEvidence(db, { versionIds: ids })
+  const messages = await versionMessages(db, ids)
   const accepted = versions.filter((v) => v.state === 'accepted').length
   const active = versions.filter((v) => ['draft', 'in_review', 'published'].includes(v.effective)).length
   const holds = await openHolds(db, e.project_id)
@@ -189,7 +267,16 @@ export async function estimateTarget(
   )
   const blockers: Blocker[] = []
   if ((holds ?? 0) > 0) blockers.push('hold_found')
-  if (accepted > 0 || approvals > 0 || snapshots > 0 || jobs > 0) blockers.push('protected_evidence')
+  if (
+    accepted > 0 ||
+    approvals > 0 ||
+    snapshots > 0 ||
+    jobs > 0 ||
+    evidence.receipts > 0 ||
+    evidence.deposits > 0 ||
+    evidence.payments > 0
+  )
+    blockers.push('protected_evidence')
   if (active > 0) blockers.push('record_active')
   return finish({
     record: { type: 'estimate', id: e.id, reference: e.number, projectId: e.project_id },
@@ -203,17 +290,21 @@ export async function estimateTarget(
       { kind: 'estimate_documents', count: documents.length },
       { kind: 'customer_responses', count: await count('estimating.customer_responses', 'version_id') },
       { kind: 'saved_selections', count: await count('estimating.approval_selections', 'version_id') },
+      { kind: 'reminder_drafts', count: messages.drafts },
       { kind: 'stored_files', count: objects },
     ],
     keeps: [
       { kind: 'project_and_request', count: 1 },
+      { kind: 'message_records', count: messages.kept },
       { kind: 'audit_entries', count: audits },
     ],
     checks: [
       ...holdChecks(holds),
       counted('signed_approvals', Math.max(approvals, accepted)),
+      counted('approval_receipts', evidence.receipts),
       counted('jobs', jobs),
-      ...unrecordedEvidence(),
+      counted('deposit_records', evidence.deposits),
+      ...invoiceAndPaymentChecks(evidence.payments),
     ],
     blockers,
   })
@@ -255,9 +346,11 @@ export async function requestTarget(db: Reader, requestId: string): Promise<Targ
         .executeTakeFirstOrThrow()
     ).n,
   )
+  const evidence = await financialEvidence(db, { projectId: r.project_id })
   const blockers: Blocker[] = ['erasure_not_available']
   if ((holds ?? 0) > 0) blockers.push('hold_found')
-  if (approvals > 0 || jobs > 0) blockers.push('protected_evidence')
+  if (approvals > 0 || jobs > 0 || evidence.receipts > 0 || evidence.deposits > 0 || evidence.payments > 0)
+    blockers.push('protected_evidence')
   return finish({
     record: { type: 'request', id: r.id, reference: r.reference, projectId: r.project_id },
     exists: true,
@@ -267,8 +360,10 @@ export async function requestTarget(db: Reader, requestId: string): Promise<Targ
     checks: [
       ...holdChecks(holds),
       counted('signed_approvals', approvals),
+      counted('approval_receipts', evidence.receipts),
       counted('jobs', jobs),
-      ...unrecordedEvidence(),
+      counted('deposit_records', evidence.deposits),
+      ...invoiceAndPaymentChecks(evidence.payments),
     ],
     blockers,
   })
@@ -363,6 +458,10 @@ export async function eraseEstimate(tx: Tx, input: { estimateId: string; deletio
   await del('estimate_line_costs', 'estimating.estimate_line_costs', 'version_id')
   await del('estimate_internals', 'estimating.estimate_version_internals', 'version_id')
   await del('estimate_lines', 'estimating.estimate_lines', 'version_id')
+  // The reminder drafts nobody released (TSK-0060), in this same transaction; released or sent messages stay.
+  removed['reminder_drafts'] = ids.length
+    ? Number((await sql`DELETE ${unreleasedDrafts(ids)}`.execute(tx)).numAffectedRows ?? 0)
+    : 0
   // Versions and documents name each other (the agreement document, the version a document belongs to): one statement.
   if (ids.length) {
     const { rows } = await sql<{ documents: string; versions: string }>`

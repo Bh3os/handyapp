@@ -31,6 +31,18 @@ export const HOLD_KINDS = ['review', 'job_requirement', 'critical_safety', 'task
 export type HoldKind = (typeof HOLD_KINDS)[number]
 
 /**
+ * The kinds of hold that block confirming a visit while they block (TSK-0064; HH-SCH-06, T40): an unresolved critical
+ * safety hold and an explicit blocking job-level Hold. PROPOSED (OQ-CONFIRMATION-PRECONDITIONS): an intake review hold
+ * blocks too, since the potential hazard or restricted scope it names is unresolved. Task blocks (critical resource
+ * shortages) never block a planning appointment (HH-PKT-06). Migration 0057 counts the same kinds.
+ */
+export const CONFIRMATION_BLOCKING_HOLD_KINDS = [
+  'review',
+  'job_requirement',
+  'critical_safety',
+] as const satisfies readonly HoldKind[]
+
+/**
  * PROPOSED: what a potential hazard or restricted scope found at intake is about, from the human-review areas of
  * RULE-HUMAN-REVIEW. HandyHub never performs licensed gas, electrical, plumbing, HVAC or structural work and never
  * removes hazardous materials; these categories name who must review, never what HandyHub will do.

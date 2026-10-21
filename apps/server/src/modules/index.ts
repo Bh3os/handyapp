@@ -7,8 +7,12 @@ import type { ObjectStorage } from '../providers/index.js'
 import { COVERAGE_MODULE } from './coverage/index.js'
 import type { EnvironmentName } from '../config.js'
 import { estimatesModule } from './estimates/index.js'
+import { CUSTOMERS_MODULE } from './customers/index.js'
+import { inboxModule } from './inbox/index.js'
+import { FINANCE_MODULE } from './finance/index.js'
 import { NOTIFICATIONS_MODULE } from './notifications/index.js'
 import { photosModule } from './photos/index.js'
+import { propertiesModule } from './properties/index.js'
 import { QUEUE_MODULE } from './queue/index.js'
 import { requestsModule } from './requests/index.js'
 import { accessModule } from './access/index.js'
@@ -16,7 +20,9 @@ import { accountsModule } from './accounts/index.js'
 import { auditModule } from './audit/index.js'
 import { capacityModule } from './capacity/index.js'
 import { portalModule } from './portal/index.js'
+import { questionsModule } from './questions/index.js'
 import { SITE_MODULE } from './site/index.js'
+import { sopsModule } from './sops/index.js'
 import { staffModule } from './staff/index.js'
 import { systemModule, type SystemDeps } from './system/index.js'
 import { verificationModule } from './verification/index.js'
@@ -43,6 +49,8 @@ export type ModuleDeps = {
    * and the receipt's code limits (TSK-0033) count the client network behind them.
    */
   trustProxyHops?: number
+  /** Seals property access codes (TSK-0045); unset or null: the access-code store is NOT CONFIGURED. */
+  accessCodeKey?: Secret | null
 }
 
 const NO_CODE_KEY: CodeKeySettings = { state: 'not_configured', missing: ['CODE_HASH_KEY'] }
@@ -62,6 +70,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     QUEUE_MODULE,
     // TSK-0053: Write an Estimate and the staff builder; TSK-0054: Upload an Estimate and the customer PDF.
     estimatesModule({ storage: deps.storage ?? null, testMark: deps.environment !== 'production' }),
+    // TSK-0059: the deposit requirement, recorded deposit payments, the Owner's waiver (the gate is called by visits).
+    FINANCE_MODULE,
     NOTIFICATIONS_MODULE,
     systemModule(deps.system ?? {}),
     // TSK-0033: the receipt's contact verification and its account-offer answer.
@@ -78,10 +88,20 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
       codeKey: deps.codeKey ?? NO_CODE_KEY,
       trustProxyHops: deps.trustProxyHops ?? 0,
     }),
+    // TSK-0044: staff customer and contact records, notes with visibility classes and duplicate suggestions.
+    CUSTOMERS_MODULE,
+    // TSK-0049: the unified inbox, Needs Linking and the inbound channel states (from this process's settings).
+    inboxModule({ providers: deps.system?.providers ?? null }),
+    // TSK-0045: property records and the protected access-code store.
+    propertiesModule({ accessCodeKey: deps.accessCodeKey ?? null }),
+    // TSK-0051: staff questions, customer replies and portal messages, reminders and "Closed—no response".
+    questionsModule(),
     // TSK-0061: the visit model (tentative estimate and work visits, local windows in an IANA zone, window history).
     visitsModule(),
     // TSK-0062: working hours, time off, equipment and the capacity of a day (reservations: the visits module).
     capacityModule(),
+    // TSK-0068: the SOP version pinned on each work package of a job, and the Owner's competent-review sign-off.
+    sopsModule(deps.environment ? { environment: deps.environment } : {}),
     // TSK-0097: staff management (the staff list, role and capability grants, offboarding and re-enabling).
     staffModule(),
     // TSK-0098: the audit-log screen (Owner every entry, Office their own actions; retention shown, never deleted).

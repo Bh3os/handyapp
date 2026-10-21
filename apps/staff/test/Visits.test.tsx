@@ -249,3 +249,58 @@ describe('[HH-SCH-02][T41] entering a window in the visit zone', () => {
     expect(screen.queryByTestId('project-visits')).toBeNull()
   })
 })
+
+describe('[HH-SCH-06][HH-SCH-05][T36][T40] a tentative visit says what stops its confirmation (TSK-0064)', () => {
+  it('[HH-SCH-06][T36][T40] lists the unmet preconditions in English and Spanish and offers no Confirm', async () => {
+    const blocked = visit({
+      purpose: 'service',
+      jobId: JOB,
+      history: [],
+      window: window({ withinVisitHours: true }),
+      confirmationBlockers: [
+        { field: 'deposit', code: 'DEPOSIT_REQUIRED' },
+        { field: 'holds.66666666-6666-4666-8666-666666666666', code: 'REVIEW_HOLD_OPEN' },
+        { field: 'holds.77777777-7777-4777-8777-777777777777', code: 'REVIEW_HOLD_OPEN' },
+      ],
+      actions: { changeWindow: true, confirm: false, offerWindows: false },
+    })
+    const body = data({ projectState: 'approved', job: { id: JOB, scopeVersion: 1 }, visits: [blocked] })
+    renderSection(vi.fn(async () => json(200, body)))
+    const list = await screen.findByTestId('visit-blockers')
+    expect(within(list).getByText('Not ready to confirm')).toBeTruthy()
+    // Every reason once, however many holds share it.
+    expect(
+      within(list)
+        .getAllByRole('listitem')
+        .map((li) => li.textContent),
+    ).toEqual([
+      "The job's required deposit is not covered by verified money or waived by the Owner yet, so no work visit can be planned.",
+      'A review hold on this project is open or under review. No visit can be confirmed until the Owner resolves it.',
+    ])
+    expect(screen.queryByRole('button', { name: 'Confirm with workers' })).toBeNull()
+    cleanup()
+    renderSection(
+      vi.fn(async () => json(200, body)),
+      'es',
+    )
+    expect(within(await screen.findByTestId('visit-blockers')).getByText('Aún no se puede confirmar')).toBeTruthy()
+  })
+
+  it('[HH-SCH-06] shows nothing when nothing stops it, and nothing for a confirmed visit', async () => {
+    renderSection(
+      vi.fn(async () =>
+        json(
+          200,
+          data({
+            visits: [
+              visit({ confirmationBlockers: [] }),
+              visit({ id: '88888888-8888-4888-8888-888888888888', state: 'confirmed', confirmationBlockers: null }),
+            ],
+          }),
+        ),
+      ),
+    )
+    expect(await screen.findAllByTestId('visit')).toHaveLength(2)
+    expect(screen.queryByTestId('visit-blockers')).toBeNull()
+  })
+})

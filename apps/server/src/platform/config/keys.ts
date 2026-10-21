@@ -106,6 +106,11 @@ export const CONFIG_KEYS = {
     surcharge: exactly(false),
   }),
   'payment.instructions': shape({ placeholder: bool, zelle: text, cashApp: text, chime: text, checkPayee: text }),
+  // TSK-0059 (INT-Square): the hosts a staff-pasted Square payment link may use (https only; the host itself or a
+  // subdomain of it). The graph says "on a Square domain" without naming them: the list is PROPOSED (proposed = true).
+  'payment.square_link_hosts': shape({
+    hosts: listOf(matching(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/, 'a host name')),
+  }),
   'cancellation.rules': shape({ rescheduleFree: bool, noticeHours: hours, lateCancellationCents: int() }),
   'contact.hours': shape({ days: exactly('every_day'), open: clock, close: clock }),
   'business.timezone': shape({ zone: text }),
@@ -123,6 +128,9 @@ export const CONFIG_KEYS = {
     repeatService: shape({ schedule: exactly('customer_agreed'), ...contactHoursOnly }),
   }),
   'request.reopen_period': shape({ days: int(0, 3660) }),
+  // TSK-0050 (HH-COM-09, FACT-HOURS, OWN-DEC-120): whether a staff reply's email or text waits for contact.hours when
+  // Send is pressed outside them. PROPOSED (migration 0046): no decision names replies explicitly.
+  'replies.contact_hours': shape({ ...contactHoursOnly }),
   'response.target': shape({ minutes: int(1, 24 * 60), countedWithin: exactly('contact_hours') }),
   'session.timings': shape({
     staffInviteLinkHours: hours,
@@ -220,6 +228,10 @@ export const CONFIG_KEYS = {
   'retention.financial_records': retentionPeriod('tax_return_filed_or_tax_paid', 7),
   'retention.job_records': retentionPeriod('job_closeout', 7),
   'retention.safety_records': retentionPeriod('closure', 10),
+  // TSK-0063 (OWN-DEC-144; OWN-DEC-99, OWN-DEC-105): offered appointment windows hold their workers and equipment for
+  // holdHours from the offer; staff offer minWindows to maxWindows windows at a time. Decided values, seeded active by
+  // migration 0053.
+  'scheduling.window_offers': shape({ holdHours: int(1, 24 * 366), minWindows: int(1, 10), maxWindows: int(1, 10) }),
   // RULE-AI-WAVE2: only `false` is a valid value; the database refuses anything else as well.
   'ai.module': shape({ enabled: exactly(false) }),
 } as const satisfies Record<string, Parser<unknown>>

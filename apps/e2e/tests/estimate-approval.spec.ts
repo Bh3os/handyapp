@@ -371,7 +371,8 @@ test.describe('Approve Estimate: exact version, fresh verification, one job (TSK
       const sent = await answer
       expect(sent.status()).toBe(201)
       const body = sent.request().postDataJSON() as Record<string, unknown>
-      await expect(view.getByText('Estimate approved—scheduling is next.')).toBeVisible()
+      // TSK-0058 (OWN-DEC-105): $1,295.00 is over $1,000.00, so the deposit is the next step.
+      await expect(view.getByText('Estimate approved—pay your deposit to proceed with scheduling.')).toBeVisible()
       await expect(view.getByText('Version 1: Approved')).toBeVisible()
       await expect(view.getByRole('button', { name: 'Approve Estimate' })).toHaveCount(0)
       await axe(page)
@@ -425,7 +426,7 @@ test.describe('Approve Estimate: exact version, fresh verification, one job (TSK
 
       // On a phone nothing scrolls sideways.
       await page.setViewportSize({ width: 375, height: 740 })
-      await expect(view.getByText('Estimate approved—scheduling is next.')).toBeVisible()
+      await expect(view.getByText('Estimate approved—pay your deposit to proceed with scheduling.')).toBeVisible()
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
     } finally {
       await estimator.close()

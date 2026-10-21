@@ -11,15 +11,17 @@
 //   consent records (evidence of permission), audit entries (7 years each, OWN-DEC-142) and the privacy requests.
 // - exclude: other contacts of the same customer (third-party data, PROPOSED: neither exported nor deleted here). The
 //   search covers the requester's own projects: those of their requests and of their login accounts' links.
-// - not recorded: invoices and payments (no such record yet); with the complaint, dispute, claim and other hold
-//   checks the software cannot run, the Owner confirms them before any deletion (never treated as none found).
+// - financial records: the deposit records and recorded payments of the requester's projects (TSK-0064) are
+//   protected evidence and retained; invoices are not recorded yet, and a payment taken outside the software cannot be
+//   ruled out: with the complaint, dispute, claim and other hold checks the software cannot run, the Owner confirms
+//   them before any deletion (never treated as none found).
 // An unpaid balance never blocks closing login access (OWN-DEC-113): no balance is read here.
 import type { Db, Tx } from '@handyhub/db'
 import { REQUEST_CLOSED_STATES } from '@handyhub/domain'
 import { sql } from 'kysely'
 import { loadConfig } from '../../platform/config/index.js'
 import { CATEGORY_DEFINITIONS, NOT_RECORDED_CHECKS, type RetentionCategory } from '../retention/schedule.js'
-import { estimateTarget, type CheckOutcome, type DeletionCheck } from './targets.js'
+import { estimateTarget, financialEvidence, type CheckOutcome, type DeletionCheck } from './targets.js'
 
 type Reader = Db | Tx
 
@@ -358,7 +360,16 @@ export async function customerPlan(db: Reader, subject: PlanSubject, now = new D
     ).n,
   )
   add('privacy_requests', 'retain', privacyRequests, 'request_record', 'not_scheduled')
-  // No invoice or payment is recorded by this software yet (TSK-0085, TSK-0086): the Owner checks them.
+  // Deposit records and recorded payments (TSK-0064) are protected evidence; no invoice is recorded yet (TSK-0085)
+  // and a payment taken outside the software cannot be ruled out: the Owner checks those.
+  let payments = 0
+  let deposits = 0
+  for (const projectId of projectIds) {
+    const f = await financialEvidence(db, { projectId })
+    payments += f.payments
+    deposits += f.deposits
+  }
+  add('financial_records', 'retain', payments + deposits, 'protected_evidence', 'financial_records')
   add('financial_records', 'not_recorded', 0, null, 'financial_records')
 
   const checks: CheckOutcome[] = [
@@ -367,7 +378,9 @@ export async function customerPlan(db: Reader, subject: PlanSubject, now = new D
       : { check: 'open_holds', result: 'none_found' },
     ...NOT_RECORDED_CHECKS.map((check) => ({ check: check as DeletionCheck, result: 'not_recorded' as const })),
     { check: 'issued_invoices', result: 'not_recorded' },
-    { check: 'payments', result: 'not_recorded' },
+    payments > 0
+      ? { check: 'payments', result: 'found', count: payments }
+      : { check: 'payments', result: 'not_recorded' },
   ]
   return {
     items,

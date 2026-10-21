@@ -15,6 +15,7 @@ import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
 import { currentContext } from '../../platform/request-context.js'
 import { readSessionToken, resolveCustomerSession, sessionCookie, type CodeKeySettings } from '../identity/index.js'
 import { startReceiptSession } from '../access/landing.js'
+import { contactChanged } from '../customers/matching.js'
 import {
   CONTACT_CHANNELS,
   contactStatus,
@@ -272,6 +273,15 @@ export function verificationModule(deps: VerificationDeps): ApiModule {
             fieldErrors: [{ field: 'body.code', code: 'invalid_code', message: '' }],
           }),
         }
+      }
+      // TSK-0044 (HH-ID-02): a verified new email is checked for duplicate suggestions for staff review only.
+      if (out.changed) {
+        const r = await ctx.tx
+          .selectFrom('intake.requests')
+          .select('contact_id')
+          .where('id', '=', cap.requestId)
+          .executeTakeFirstOrThrow()
+        await contactChanged(ctx.tx, r.contact_id, currentContext()?.requestId ?? ctx.req.id)
       }
       // TSK-0034 (HH-ID-05, HH-INT-21): the entered code is the verified exchange, so it starts this browser's
       // session for the request's one project (View My Request); a verified email change first revokes the
