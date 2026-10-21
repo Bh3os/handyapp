@@ -15,6 +15,7 @@ import { PROJECT_MACHINE } from './project.js'
 import { REQUEST_MACHINE } from './request.js'
 import { VISIT_MACHINE } from './visit.js'
 import { SOP_VERSION_MACHINE } from './sop.js'
+import { WINDOW_OFFER_MACHINE } from './window-offer.js'
 
 export const PACKAGE_NAME = '@handyhub/domain'
 
@@ -145,6 +146,17 @@ export {
 export type { VisitEvent, VisitFacts, VisitPurpose, VisitState } from './visit.js'
 export * from './local-time.js'
 export * from './capacity.js'
+export {
+  holdExpiresAt,
+  offerProblems,
+  WINDOW_OFFER_MACHINE,
+  WINDOW_OFFER_STATES,
+  type OfferProblem,
+  type WindowOfferEvent,
+  type WindowOfferFacts,
+  type WindowOfferPolicy,
+  type WindowOfferState,
+} from './window-offer.js'
 
 export {
   hazardControls,
@@ -179,6 +191,7 @@ export const MACHINES = {
   'hold.lifecycle': HOLD_MACHINE,
   'estimate_version.lifecycle': ESTIMATE_VERSION_MACHINE,
   'visit.lifecycle': VISIT_MACHINE,
+  'window_offer.lifecycle': WINDOW_OFFER_MACHINE,
   'sop_version.review': SOP_VERSION_MACHINE,
 } as const
 export type MachineKey = keyof typeof MACHINES

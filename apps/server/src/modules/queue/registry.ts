@@ -26,6 +26,7 @@ export const QUEUE_ACTIONS = [
   'decide',
   'write_estimate',
   'review_estimate',
+  'offer_windows',
   // TSK-0060 estimate reminders; TSK-0051: also the drafted reminders of an unanswered question (or close the request).
   'release_reminder',
   'review_match',
@@ -158,6 +159,20 @@ export const QUEUE_ITEM_TYPES = [
     reasons: ['estimate_changes_requested', 'estimate_declined', 'estimate_update_requested'],
     action: 'review_estimate',
     screen: 'estimates',
+  },
+  // TSK-0063 (HH-SCH-11, OWN-DEC-144): the customer asked for other times, or an offer's hold ended with no window
+  // selected; staff offer new windows. One item per request (the request record lists the visits and their offers),
+  // opened with the answer or the expiry and resolved when a new offer is made or a window is selected. Band, view
+  // action and screen are PROPOSED.
+  {
+    id: 'window_offer_response',
+    section: 'queue',
+    subject: 'request',
+    band: 'time_sensitive',
+    view: 'visit.offer_windows',
+    reasons: ['window_other_times_requested', 'window_offer_expired'],
+    action: 'offer_windows',
+    screen: 'requests',
   },
   // A reminder draft waiting for staff release (S01 "message drafts awaiting release"; HH-EST-14, TSK-0060): one item
   // per estimate version while a first or final unanswered-estimate reminder is a draft; it resolves once the draft is

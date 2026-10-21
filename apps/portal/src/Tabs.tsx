@@ -7,14 +7,16 @@
 //   writes to HandyHub here too (text only). Documents (TSK-0056, HH-PORT-10): the estimate versions the customer
 //   received, each with its status, each opening the estimate view, and for an approved version its approval receipt
 //   PDF (TSK-0058: ready in the estimate view, or being prepared); nothing yet, with what will appear, while there is
-//   none. Appointments, Payments: nothing exists yet. Photos: how many photos the project has by state, the same
-//   counts as the receipt, and that viewing them here is not available yet.
+//   none. Appointments (TSK-0063): the windows offered to choose from and the confirmed visits (Appointments.tsx);
+//   nothing yet while there is neither. Payments: nothing exists yet. Photos: how many photos the project has by
+//   state, the same counts as the receipt, and that viewing them here is not available yet.
 // - A tab once opened stays mounted while another is shown, so anything typed in it survives a tab switch.
 // English only, from the customer catalog; the wording no decision gives is PROPOSED (OQ-PORTAL-WORDING).
 import type { CustomerKey } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useEffect, useState, type FormEvent } from 'react'
 import { cents, formatUsd } from '@handyhub/money'
+import { AppointmentsList } from './Appointments'
 import {
   newKey,
   portalApi,
@@ -267,7 +269,17 @@ function Content({
         <Empty title="portal.documents.none.title" text="portal.documents.none.text" />
       )
     case 'appointments':
-      return <Empty title="portal.appointment.none.title" text="portal.appointment.none.text" />
+      return data.state === 'listed' ? (
+        <AppointmentsList
+          reference={data.reference}
+          offers={data.offers}
+          appointments={data.appointments}
+          fetchImpl={fetchImpl}
+          onChanged={onChanged}
+        />
+      ) : (
+        <Empty title="portal.appointment.none.title" text="portal.appointment.none.text" />
+      )
     case 'payments':
       return <Empty title="portal.payment.none.title" text="portal.payment.none.text" more="portal.payments.recorded" />
     case 'photos': {

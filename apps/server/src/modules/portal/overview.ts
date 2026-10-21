@@ -11,6 +11,9 @@
 //   visit needed" with its customer explanation (OWN-DEC-99), and the Not a Fit decision in the owner's wording
 //   (OWN-DEC-100). Internal notes, qualification, assignment, the Owner routing and every staff name stay on the
 //   server: this module never selects them (HH-PORT-03, T24).
+// - TSK-0063: the visits feed the status (windows offered for the customer to choose, a confirmed visit) and the
+//   appointment beside it: the next confirmed visit with its date, arrival window, address, purpose and preparation
+//   instructions (visits/offers.ts appointmentsOf, the same customer view as the Appointments tab).
 import type { Db, Tx } from '@handyhub/db'
 import {
   customerStatus,
@@ -27,6 +30,7 @@ import { customerDeposit, type CustomerDeposit } from '../finance/index.js'
 import { findProject } from '../records/repository.js'
 import { replyWindow } from '../questions/model.js'
 import { notAFitCustomerMessage } from '../requests/staff-record.js'
+import { appointmentsOf, overviewVisitFacts, type CustomerAppointment } from '../visits/offers.js'
 
 type Reader = Db | Tx
 
@@ -55,8 +59,8 @@ export type ProjectOverview = {
    * (or once verified money covers it); no invoice exists yet.
    */
   payment: CustomerDeposit
-  /** The confirmed appointment: none until visits exist (TSK-0061). */
-  appointment: null
+  /** The next confirmed visit (TSK-0063), or none. */
+  appointment: CustomerAppointment | null
   refreshedAt: Date
   /** portal.refresh.pollSeconds; 0 while NOT CONFIGURED (the page then refreshes only when asked). */
   refreshSeconds: number
@@ -126,6 +130,7 @@ async function overviewFor(db: Reader, project: { id: string; reference: string 
   }
   // TSK-0059: the job's deposit for the payment summary (the amount due, verified and pending money, the Square link).
   const payment = await customerDeposit(db, project.id)
+  const visits = overviewVisitFacts(await appointmentsOf(db, project.id, now), p.state === 'approved')
   const facts: PortalFacts = {
     requestState: r.state as RequestState,
     projectState: p.state as ProjectState,
@@ -133,6 +138,10 @@ async function overviewFor(db: Reader, project: { id: string; reference: string 
     // TSK-0058 (HH-EST-12, OWN-DEC-105) with TSK-0059's deposit: an approved project waits on the customer's deposit
     // while it is due; received or waived, the next step is choosing the work appointment.
     ...(await approvalFacts(db, project.id)),
+    // TSK-0063: the windows offered to choose from and the next confirmed visit.
+    visitWindowsOffered: visits.visitWindowsOffered,
+    workWindowsOffered: visits.workWindowsOffered,
+    ...(visits.visit ? { visit: visits.visit } : {}),
   }
   const status = customerStatus(facts)
   // The entry that put the project where it is now dates the status and carries its customer text.
@@ -147,7 +156,7 @@ async function overviewFor(db: Reader, project: { id: string; reference: string 
     // Newest first: the latest update leads.
     timeline: entries.reverse(),
     payment,
-    appointment: null,
+    appointment: visits.appointment,
     refreshedAt: now,
   }
 }

@@ -123,6 +123,8 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       'visit_change_request',
       'delivery_failed',
       'case_open',
+      // TSK-0063: answers to offered windows that need new ones.
+      'window_offer_response',
       'candidate_match',
       // TSK-0049: the private Needs Linking list (message.view_unmatched) and customer replies.
       'inbox_needs_linking',
@@ -168,9 +170,10 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
     const est = await list('estimator')
     expect(est.sections).toEqual(['queue'])
     // Pending estimates (estimate_to_write, TSK-0053), the customer's responses to estimates (estimate_response,
-    // TSK-0056) and estimate reminder drafts to send (estimate_reminder, TSK-0060) are the Estimator's too; TSK-0044:
-    // duplicate suggestions, by the Estimator's PROPOSED customer.view_duplicates cell. TSK-0049: customer replies on
-    // own threads; never the private Needs Linking list.
+    // TSK-0056) and answers to offered windows that need new ones (window_offer_response, TSK-0063: Estimators offer
+    // estimate-visit windows) are the Estimator's too, as are estimate reminder drafts to send (estimate_reminder,
+    // TSK-0060); TSK-0044: duplicate suggestions, by the Estimator's PROPOSED customer.view_duplicates cell. TSK-0049:
+    // customer replies on own threads; never the private Needs Linking list.
     expect(est.types).toEqual([
       'new_request',
       'review_hold',
@@ -178,6 +181,7 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       'delivery_failed',
       'estimate_to_write',
       'estimate_response',
+      'window_offer_response',
       'estimate_reminder',
       'candidate_match',
       'customer_replied',
