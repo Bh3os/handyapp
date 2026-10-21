@@ -1,0 +1,36 @@
+---
+// The account page, /account (TSK-0036; HH-ID-10, HH-ID-11, OWN-DEC-63). One static page: sign-in with a one-time
+// code, and the signed-in account (its projects, Sign Out and the sign-in email change), all from the server's answers
+// under this browser's HttpOnly session cookie (src/account/AccountPage.tsx). Private: never indexed, never cached, and
+// no referrer leaves it (hosts.ts, app.ts).
+import '@handyhub/ui/styles.css'
+import '../request/request.css'
+import { customerTranslator } from '@handyhub/i18n'
+import AccountPage from '../account/AccountPage.tsx'
+import LegalLinks from '../components/LegalLinks.astro'
+
+const t = customerTranslator()
+const title = t.t('account.title')
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="no-referrer" />
+    <title>{title} | HandyHub</title>
+  </head>
+  <body>
+    <main class="hh-request-page">
+      <h1 class="hh-h1">{title}</h1>
+      <AccountPage client:only="react" />
+    </main>
+    <footer class="hh-request-legal">
+      <nav aria-label={t.t('site.footer.legalHeading')}>
+        <LegalLinks />
+      </nav>
+    </footer>
+  </body>
+</html>

@@ -9,6 +9,7 @@ import { call, setCsrfToken, type ApiErrorBody, type Fetch } from './api'
 import { EstimatePublishingSetting } from './EstimateLifecycle'
 import { EstimateBuilder, EstimatesScreen } from './Estimates'
 import { CustomerRecord, CustomersScreen } from './Customers'
+import { PropertyRecord } from './Property'
 import { QueueHome } from './Queue'
 import { MergeReview, RelinkRequest } from './RecordLinks'
 import { RequestRecord } from './Record'
@@ -188,7 +189,10 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
       route.page === 'screen'
         ? route.id
         : route.page === 'record' || route.page === 'record-step'
-          ? route.screen
+          ? // A property record sits below the customer records (TSK-0045): the same menu entry and permission.
+            route.screen === 'properties'
+            ? 'customers'
+            : route.screen
           : route.page === 'home'
             ? (nav?.home ?? 'home')
             : route.page
@@ -271,6 +275,16 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
               locale={locale}
               fetchImpl={doFetch}
               requestId={route.id}
+              go={go}
+              href={href}
+            />
+          ) : route.page === 'record' && route.screen === 'properties' && allowed ? (
+            <PropertyRecord
+              key={route.id}
+              t={t}
+              locale={locale}
+              fetchImpl={doFetch}
+              id={route.id}
               go={go}
               href={href}
             />

@@ -9,6 +9,9 @@
 //   cross-site form cannot send, and SameSite=Lax keeps the cookie off cross-site POSTs.
 // - The session becomes the policy's CustomerActor: the verified contact, its project accesses (each limited by the
 //   session's own expiry) and whether the verification is still fresh for approvals (HH-ID-07).
+// - TSK-0036 (HH-ID-10, HH-ID-11): an account session names its account and the contact value it signed in with. The
+//   projects it opens are read from the account's active identity links on every request, so a revoked link or a
+//   closed account opens nothing from then on; a closed account's sessions resolve to nothing.
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import type { Db, Tx } from '@handyhub/db'
 import type { CustomerActor } from '@handyhub/policy'
@@ -29,6 +32,8 @@ export type StartSessionInput = {
   replaces?: string
   /** TSK-0034: the project access grant a guest session is started from (revoking the grant ends the session). */
   grantId?: string
+  /** TSK-0036: the customer account an account session signs in to, and the contact it signed in with. */
+  account?: { id: string; signInChannel: 'email' | 'phone' }
   now?: Date
 }
 
@@ -42,7 +47,15 @@ export type CustomerSession = {
   verifiedAt: Date
   freshUntil: Date
   expiresAt: Date
+  /** TSK-0036: the account of an account session (null for a guest-link session). */
+  accountId: string | null
+  signInChannel: 'email' | 'phone' | null
+  /** TSK-0034: the project access grant a guest-link session was started from (null for an account session). */
+  grantId: string | null
 }
+
+/** Why a session ended (the stored revoke_reason). */
+export type SessionEndReason = 'signed_out' | 'rotated' | 'access_revoked' | 'contact_changed' | 'account_closed'
 
 export class SessionConfigError extends Error {
   override name = 'SessionConfigError'
@@ -81,6 +94,8 @@ export async function startCustomerSession(tx: Tx, input: StartSessionInput): Pr
       last_seen_at: now,
       expires_at: expiresAt,
       grant_id: input.grantId ?? null,
+      account_id: input.account?.id ?? null,
+      sign_in_channel: input.account?.signInChannel ?? null,
     })
     .execute()
   return { sessionId, token, expiresAt, idleMinutes }
@@ -100,17 +115,50 @@ export async function resolveCustomerSession(
     .where('revoked_at', 'is', null)
     .where('expires_at', '>', now)
     .where(sql<boolean>`last_seen_at + make_interval(mins => idle_minutes) > ${now}`)
-    .returning(['id', 'contact_ref', 'via', 'project_ids', 'verified_at', 'fresh_until', 'expires_at'])
+    .returning([
+      'id',
+      'contact_ref',
+      'via',
+      'project_ids',
+      'verified_at',
+      'fresh_until',
+      'expires_at',
+      'account_id',
+      'sign_in_channel',
+      'grant_id',
+    ])
     .executeTakeFirst()
   if (!row) return null
+  let projectIds = row.project_ids
+  if (row.via === 'account') {
+    // TSK-0036: an account opens only what its active links name, read now; a closed account opens nothing.
+    if (!row.account_id) return null
+    const account = await db
+      .selectFrom('identity.customer_accounts')
+      .select('state')
+      .where('id', '=', row.account_id)
+      .executeTakeFirst()
+    if (account?.state !== 'active') return null
+    const links = await db
+      .selectFrom('identity.customer_identity_links')
+      .select('project_id')
+      .where('account_id', '=', row.account_id)
+      .where('state', '=', 'active')
+      .orderBy('decided_at')
+      .execute()
+    projectIds = links.map((l) => l.project_id)
+  }
   return {
     id: row.id,
     contactRef: row.contact_ref,
     via: row.via as 'grant' | 'account',
-    projectIds: row.project_ids,
+    projectIds,
     verifiedAt: row.verified_at,
     freshUntil: row.fresh_until,
     expiresAt: row.expires_at,
+    accountId: row.account_id,
+    signInChannel: row.sign_in_channel as 'email' | 'phone' | null,
+    grantId: row.grant_id,
   }
 }
 
@@ -118,7 +166,7 @@ export async function resolveCustomerSession(
 export async function revokeCustomerSession(
   db: Db | Tx,
   sessionId: string,
-  reason: 'signed_out' | 'rotated' | 'access_revoked',
+  reason: SessionEndReason,
   now: Date = new Date(),
 ): Promise<boolean> {
   const r = await db
@@ -143,6 +191,26 @@ export async function revokeGrantSessions(
     .where('grant_id', 'in', [...grantIds])
     .where('revoked_at', 'is', null)
     .executeTakeFirst()
+  return Number(r.numUpdatedRows)
+}
+
+/**
+ * Ends every live session of an account except `keep` (TSK-0036, HH-ID-11): after a sign-in value change the other
+ * devices sign in again; when the account closes, all of them end.
+ */
+export async function revokeAccountSessions(
+  tx: Tx,
+  accountId: string,
+  reason: Extract<SessionEndReason, 'contact_changed' | 'account_closed'>,
+  options: { keep?: string; now?: Date } = {},
+): Promise<number> {
+  let q = tx
+    .updateTable('identity.customer_sessions')
+    .set({ revoked_at: options.now ?? new Date(), revoke_reason: reason })
+    .where('account_id', '=', accountId)
+    .where('revoked_at', 'is', null)
+  if (options.keep) q = q.where('id', '<>', options.keep)
+  const r = await q.executeTakeFirst()
   return Number(r.numUpdatedRows)
 }
 

@@ -65,6 +65,14 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
         'listCustomerRequestPhotos',
         'listCustomerProjects',
         'getCustomerProjectOverview',
+        // TSK-0036: optional customer accounts.
+        'getAccountEnrollment',
+        'sendLinkAccountCode',
+        'enrollFromProjectLink',
+        'getCustomerAccount',
+        'sendAccountEmailCode',
+        'changeAccountEmail',
+        'customerSignOut',
         // TSK-0039: the workspace tabs beside the Overview.
         'getCustomerProjectMessages',
         'getCustomerProjectDocuments',
@@ -74,6 +82,11 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
       ].sort(),
     )
     for (const r of customerRoutes) {
+      // A route that answers with no body at all (Sign Out: 204) sends no record, so it names no view.
+      if (success(r).every((s) => s['type'] === 'null')) {
+        expect(r.projection, r.operationId).toBeUndefined()
+        continue
+      }
       const view = r.projection ? CUSTOMER_VIEWS.get(r.projection.name) : undefined
       expect(view, r.operationId).toBeDefined()
       if (!view) continue

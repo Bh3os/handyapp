@@ -148,13 +148,14 @@ describe('the optional account offer (TSK-0033, HH-INT-14, OWN-DEC-94)', () => {
     expect(offerAccount(status('verified'), true)).toBe(false)
   })
 
-  it('[HH-INT-14][OWN-DEC-94] the action is the owner’s "Create an Account"; it is optional and says accounts are not available yet', () => {
+  it('[HH-INT-14][OWN-DEC-94][HH-ID-10] the action is the owner’s "Create an Account"; it is optional and needs a one-time code (TSK-0036)', () => {
     expect(t('request.continue.account')).toBe('Create an Account')
     expect(readFileSync(new URL('../../../kg/decisions/OWN-DEC-94.md', import.meta.url), 'utf8')).toContain(
       'Create an Account',
     )
-    expect(t('request.continue.accountsUnavailable')).toBe('Accounts are not available yet.')
     expect(t('request.account.optional')).toMatch(/optional/)
+    expect(t('account.enroll.choose')).toMatch(/one-time code/)
+    expect(t('account.enroll.choose')).toMatch(/only after you enter it/)
   })
 })
 
