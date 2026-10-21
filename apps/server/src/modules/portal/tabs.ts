@@ -1,7 +1,11 @@
 // The workspace tabs beside the Overview, read from the shared records (TSK-0039; HH-PORT-09, HH-PORT-01, HH-ARC-04,
 // OWN-DEC-106, RULE-SERVER-AUTHZ). Every read goes through the caller's scope (TSK-0037): a project outside it is null,
 // answered NOT_FOUND like a missing one. What each tab may say today (records/projections.ts):
-// - Messages: the conversation is not shown in the portal yet (TSK-0050, TSK-0051); nothing is claimed absent.
+// - Messages (TSK-0050): the project's customer conversation: the customer's email and texts that are on the project
+//   and come from one of the customer's own contacts (a message staff linked from another sender is never shown to
+//   the customer), and HandyHub's replies, at once when staff press Send (their email or text may still wait for the
+//   contact hours). Never an internal message, a staff name, an address or a delivery detail. TSK-0051: the customer
+//   writes in it from the portal too (channel 'portal').
 // - Documents: the estimate versions the customer received, each with its status (TSK-0056, HH-PORT-10); "none" while
 //   there is none. Appointments, Payments: no visit or payment record exists yet, so none is shown.
 // - Photos: the counts of the customer-visible photos (the customer's uploads, and photos staff shared) by state, the
@@ -9,7 +13,7 @@
 import type { Db, Tx } from '@handyhub/db'
 import type { DataScope } from '@handyhub/policy'
 import { customerEstimateList, type CustomerEstimateListItem } from '../estimates/customer.js'
-import { findProject, requestPhotos, type PhotoCounts } from '../records/index.js'
+import { findProject, requestPhotos, type ConversationMessageRecord, type PhotoCounts } from '../records/index.js'
 import { refreshSeconds } from './overview.js'
 
 type Reader = Db | Tx
@@ -19,7 +23,7 @@ export type WorkspaceTab = (typeof WORKSPACE_TABS)[number]
 
 type Head = { reference: string; refreshedAt: Date; refreshSeconds: number }
 export type TabAnswer =
-  | (Head & { tab: 'messages'; state: 'not_shown' })
+  | (Head & { tab: 'messages'; messages: ConversationMessageRecord[] })
   | (Head & { tab: 'documents'; state: 'none' })
   | (Head & { tab: 'documents'; state: 'listed'; estimates: CustomerEstimateListItem[] })
   | (Head & { tab: 'appointments' | 'payments'; state: 'none' })
@@ -36,6 +40,46 @@ async function photoCounts(db: Reader, scope: DataScope, projectId: string): Pro
   }
 }
 
+/** PROPOSED: the most messages one read lists (the newest ones, shown oldest first). */
+export const CONVERSATION_LIMIT = 500
+
+/** The project's customer conversation as the customer sees it (the project is already in the caller's scope). */
+async function conversation(db: Reader, projectId: string): Promise<ConversationMessageRecord[]> {
+  const rows = await db
+    .selectFrom('comms.messages as m')
+    .innerJoin('comms.conversations as cv', 'cv.id', 'm.conversation_id')
+    .select(['m.direction', 'm.channel', 'm.received_at', 'm.body_text', 'm.body_state', 'm.attachments', 'm.seq'])
+    .where('cv.project_id', '=', projectId)
+    .where('cv.audience', '=', 'customer')
+    .where('m.project_id', '=', projectId)
+    .where((eb) =>
+      eb.or([
+        eb('m.direction', '=', 'outbound'),
+        eb.and([
+          eb('m.direction', '=', 'inbound'),
+          eb('m.link_state', 'in', ['matched', 'linked']),
+          eb('m.contact_id', 'is not', null),
+        ]),
+      ]),
+    )
+    .orderBy('m.received_at', 'desc')
+    .orderBy('m.seq', 'desc')
+    .limit(CONVERSATION_LIMIT)
+    .execute()
+  return rows.reverse().map((m) => {
+    const readable = m.body_state === 'received' || m.body_state === 'html_converted'
+    const text = readable && m.body_text !== null && m.body_text.trim() !== '' ? m.body_text : null
+    return {
+      from: m.direction === 'outbound' ? 'handyhub' : 'you',
+      channel: m.channel === 'sms' ? 'sms' : m.channel === 'portal' ? 'portal' : 'email',
+      at: m.received_at,
+      text,
+      textState: text !== null ? 'shown' : readable || m.body_state === 'empty' ? 'empty' : 'not_available',
+      attachments: Array.isArray(m.attachments) ? m.attachments.length : 0,
+    }
+  })
+}
+
 /** One tab of a project in the caller's scope; null for any other or unknown project. */
 export async function projectTab(
   db: Reader,
@@ -49,7 +93,7 @@ export async function projectTab(
   const head: Head = { reference: project.reference, refreshedAt: now, refreshSeconds: await refreshSeconds(db) }
   switch (tab) {
     case 'messages':
-      return { ...head, tab, state: 'not_shown' }
+      return { ...head, tab, messages: await conversation(db, project.id) }
     case 'photos':
       return { ...head, tab, photos: await photoCounts(db, scope, project.id) }
     case 'documents': {

@@ -4080,7 +4080,7 @@
       "get": {
         "operationId": "getCustomerProjectMessages",
         "summary": "The project Messages tab",
-        "description": "The Messages tab. state \"not_shown\": the project conversation is not shown in the portal yet (TSK-0050); it never claims that no message exists. With the server time of the read and the refresh interval (portal.refresh; 0 while NOT CONFIGURED). Any other project, an unknown or a malformed reference is the same NOT_FOUND (T19).",
+        "description": "The Messages tab (TSK-0050): the project’s customer conversation, oldest first: the customer’s own email and texts on the project (from the customer’s contacts only) and HandyHub’s replies (shown when staff press Send), each with who wrote it (you or HandyHub), the channel, the time and the text exactly as written, or why there is no text; attachments as a count (they are not imported). Never an internal message, a staff name, an address or a delivery detail. An empty list: no message yet. Authorized by message.reply (ROLE-MATRIX \"V project thread\"). With the server time of the read and the refresh interval (portal.refresh; 0 while NOT CONFIGURED). Any other project, an unknown or a malformed reference is the same NOT_FOUND (T19).",
         "tags": [
           "portal"
         ],
@@ -4108,7 +4108,7 @@
                     "reference",
                     "refreshedAt",
                     "refreshSeconds",
-                    "state"
+                    "messages"
                   ],
                   "properties": {
                     "reference": {
@@ -4122,11 +4122,59 @@
                       "type": "integer",
                       "minimum": 0
                     },
-                    "state": {
-                      "type": "string",
-                      "enum": [
-                        "not_shown"
-                      ]
+                    "messages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "from",
+                          "channel",
+                          "at",
+                          "text",
+                          "textState",
+                          "attachments"
+                        ],
+                        "properties": {
+                          "from": {
+                            "type": "string",
+                            "enum": [
+                              "you",
+                              "handyhub"
+                            ]
+                          },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "email",
+                              "sms",
+                              "portal"
+                            ]
+                          },
+                          "at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "text": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "textState": {
+                            "type": "string",
+                            "enum": [
+                              "shown",
+                              "empty",
+                              "not_available"
+                            ]
+                          },
+                          "attachments": {
+                            "type": "integer",
+                            "minimum": 0
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -4198,7 +4246,7 @@
           "actors": [
             "customer"
           ],
-          "permission": "request.view",
+          "permission": "message.reply",
           "kind": "read",
           "idempotency": "none",
           "expectedVersion": "none",
@@ -4210,6 +4258,203 @@
           "cache": "private, no-store",
           "test": "test/integration/portal-tabs.test.ts",
           "projection": "project.messages"
+        }
+      },
+      "post": {
+        "operationId": "sendPortalMessage",
+        "summary": "Write to HandyHub in the project",
+        "description": "For the verified customer of the project (message.reply, ROLE-MATRIX \"V project thread\"), while the project is open (CONFLICT PROJECT_CLOSED otherwise). The message is added to the project’s customer conversation exactly as written (HH-PORT-09), from the session’s verified contact; staff see it in the unified inbox, where the conversation’s \"customer replied\" item opens or refreshes. Text only. Card numbers are refused. With the same Idempotency-Key a retried message returns the first answer and adds nothing. The audit event never holds the text.",
+        "tags": [
+          "questions"
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "text"
+                ],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 5000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "from",
+                    "channel",
+                    "at"
+                  ],
+                  "properties": {
+                    "from": {
+                      "type": "string",
+                      "enum": [
+                        "you"
+                      ]
+                    },
+                    "channel": {
+                      "type": "string",
+                      "enum": [
+                        "portal"
+                      ]
+                    },
+                    "at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "message.reply",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "customer-portal-message",
+            "limit": 60,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "portal.message_sent",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/questions.test.ts",
+          "projection": "project.message_sent"
         }
       }
     },
@@ -4377,7 +4622,8 @@
                               "received",
                               "more_information",
                               "site_visit",
-                              "not_a_fit"
+                              "not_a_fit",
+                              "closed_no_response"
                             ]
                           },
                           "at": {
@@ -4792,6 +5038,669 @@
           "cache": "private, no-store",
           "test": "test/integration/portal-tabs.test.ts",
           "projection": "project.photos"
+        }
+      }
+    },
+    "/api/v1/customer/projects/{reference}/questions": {
+      "get": {
+        "operationId": "listCustomerQuestions",
+        "summary": "Questions from HandyHub",
+        "description": "The questions HandyHub published in a project the caller’s session opens (HH-LEAD-03), oldest first: each text exactly as staff wrote it, whether it is a measurement (a reply may say \"I’m not sure\"), when it was asked, whether it waits on the customer and whether a reply can be sent now, and the customer’s own reply (text as written, \"I’m not sure\", attached photos counted by state). replyWindow says whether replies are open, reopen a \"Closed—no response\" request (until reopenUntil), or are no longer possible. Never an author, a delivery or a reminder. Authorized by request.reply (ROLE-MATRIX \"Reply to a question\"). Any other project, an unknown or a malformed reference is the same NOT_FOUND (T19).",
+        "tags": [
+          "questions"
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reference",
+                    "refreshedAt",
+                    "refreshSeconds",
+                    "questions",
+                    "replyWindow",
+                    "reopenUntil",
+                    "maxLength"
+                  ],
+                  "properties": {
+                    "reference": {
+                      "type": "string"
+                    },
+                    "refreshedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "refreshSeconds": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "questions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "kind",
+                          "text",
+                          "askedAt",
+                          "state",
+                          "canReply",
+                          "reply"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "general",
+                              "measurement"
+                            ]
+                          },
+                          "text": {
+                            "type": "string"
+                          },
+                          "askedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "waiting",
+                              "answered"
+                            ]
+                          },
+                          "canReply": {
+                            "type": "boolean"
+                          },
+                          "reply": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "text",
+                                  "notSure",
+                                  "at",
+                                  "photos"
+                                ],
+                                "properties": {
+                                  "text": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "notSure": {
+                                    "type": "boolean"
+                                  },
+                                  "at": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  },
+                                  "photos": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "received",
+                                      "processing",
+                                      "failed"
+                                    ],
+                                    "properties": {
+                                      "received": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                      },
+                                      "processing": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                      },
+                                      "failed": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "replyWindow": {
+                      "type": "string",
+                      "enum": [
+                        "open",
+                        "reopen",
+                        "period_ended",
+                        "closed"
+                      ]
+                    },
+                    "reopenUntil": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "maxLength": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "request.reply",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/questions.test.ts",
+          "projection": "project.questions"
+        }
+      }
+    },
+    "/api/v1/customer/projects/{reference}/questions/{questionId}/replies": {
+      "post": {
+        "operationId": "replyToQuestion",
+        "summary": "Reply to a question",
+        "description": "For the verified customer of the project (request.reply). The reply to one open question: text exactly as written, \"I’m not sure\" (measurement questions only), and the photos uploaded under this reply’s capability (Upload-Capability header; received or still processing; a rejected or unknown photo is refused). At least one of them. Card numbers are refused. The question is answered and its reminders stop; other questions stay open. The last open question answered moves a request waiting on the customer back to HandyHub’s review; a \"Closed—no response\" request within the reopen period (request.reopen_period) is reopened, keeping its history and restoring nothing else. The responsible staff member is notified (queue item and automatic staff notification). With the same Idempotency-Key a retried reply returns the first answer and records nothing more. CONFLICT ALREADY_ANSWERED, REQUEST_CLOSED, REOPEN_PERIOD_ENDED. The audit event never holds the text.",
+        "tags": [
+          "questions"
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          },
+          {
+            "name": "questionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "maxLength": 5000
+                  },
+                  "notSure": {
+                    "type": "boolean"
+                  },
+                  "photoIds": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[0-9a-fA-F-]{36}$"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "questionId",
+                    "state",
+                    "at",
+                    "photos",
+                    "reopened"
+                  ],
+                  "properties": {
+                    "questionId": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "answered"
+                      ]
+                    },
+                    "at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "photos": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "reopened": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "request.reply",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "question.reply",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/questions.test.ts",
+          "projection": "question.reply_received"
+        }
+      }
+    },
+    "/api/v1/customer/projects/{reference}/questions/{questionId}/uploads": {
+      "post": {
+        "operationId": "createQuestionReplyUpload",
+        "summary": "Start the photos of a reply",
+        "description": "For the verified customer of the project (request.reply), while the question can be answered: a new upload capability for this one reply’s photos, valid for the configured draft period (session.timings.requestDraftDays), with the photo limits (uploads.limits). The token is returned once; the server keeps only its hash. Photos are then sent to the photo upload route under the Upload-Capability header and checked like request photos (content, type, size, and the request’s total photo count, HH-SEC-05); they reach nothing until the reply is sent. UNAVAILABLE while the limits or storage are NOT CONFIGURED. CONFLICT ALREADY_ANSWERED, REQUEST_CLOSED or REOPEN_PERIOD_ENDED.",
+        "tags": [
+          "questions"
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          },
+          {
+            "name": "questionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "capability",
+                    "expiresAt",
+                    "limits"
+                  ],
+                  "properties": {
+                    "capability": {
+                      "type": "string"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "limits": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "maxFileBytes",
+                        "maxPhotos",
+                        "types"
+                      ],
+                      "properties": {
+                        "maxFileBytes": {
+                          "type": "integer"
+                        },
+                        "maxPhotos": {
+                          "type": "integer"
+                        },
+                        "types": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "request.reply",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "customer-reply-upload",
+            "limit": 30,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "question.reply_upload_start",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/questions.test.ts",
+          "projection": "question.upload"
         }
       }
     },
@@ -17715,6 +18624,7 @@
                                   "business.timezone",
                                   "reminders.cadences",
                                   "request.reopen_period",
+                                  "replies.contact_hours",
                                   "response.target",
                                   "session.timings",
                                   "uploads.limits",
@@ -19193,6 +20103,7 @@
                                   "business.timezone",
                                   "reminders.cadences",
                                   "request.reopen_period",
+                                  "replies.contact_hours",
                                   "response.target",
                                   "session.timings",
                                   "uploads.limits",
@@ -20949,6 +21860,7 @@
                                   "business.timezone",
                                   "reminders.cadences",
                                   "request.reopen_period",
+                                  "replies.contact_hours",
                                   "response.target",
                                   "session.timings",
                                   "uploads.limits",
@@ -22281,6 +23193,7 @@
                                   "business.timezone",
                                   "reminders.cadences",
                                   "request.reopen_period",
+                                  "replies.contact_hours",
                                   "response.target",
                                   "session.timings",
                                   "uploads.limits",
@@ -23788,6 +24701,7 @@
                                   "business.timezone",
                                   "reminders.cadences",
                                   "request.reopen_period",
+                                  "replies.contact_hours",
                                   "response.target",
                                   "session.timings",
                                   "uploads.limits",
@@ -25120,6 +26034,7 @@
                                   "business.timezone",
                                   "reminders.cadences",
                                   "request.reopen_period",
+                                  "replies.contact_hours",
                                   "response.target",
                                   "session.timings",
                                   "uploads.limits",
@@ -26818,6 +27733,7 @@
                                   "business.timezone",
                                   "reminders.cadences",
                                   "request.reopen_period",
+                                  "replies.contact_hours",
                                   "response.target",
                                   "session.timings",
                                   "uploads.limits",
@@ -28338,6 +29254,7 @@
                                   "business.timezone",
                                   "reminders.cadences",
                                   "request.reopen_period",
+                                  "replies.contact_hours",
                                   "response.target",
                                   "session.timings",
                                   "uploads.limits",
@@ -29849,6 +30766,7 @@
                                   "business.timezone",
                                   "reminders.cadences",
                                   "request.reopen_period",
+                                  "replies.contact_hours",
                                   "response.target",
                                   "session.timings",
                                   "uploads.limits",
@@ -31365,6 +32283,7 @@
                                   "business.timezone",
                                   "reminders.cadences",
                                   "request.reopen_period",
+                                  "replies.contact_hours",
                                   "response.target",
                                   "session.timings",
                                   "uploads.limits",
@@ -33215,6 +34134,7 @@
                                   "business.timezone",
                                   "reminders.cadences",
                                   "request.reopen_period",
+                                  "replies.contact_hours",
                                   "response.target",
                                   "session.timings",
                                   "uploads.limits",
@@ -34726,6 +35646,7 @@
                                   "business.timezone",
                                   "reminders.cadences",
                                   "request.reopen_period",
+                                  "replies.contact_hours",
                                   "response.target",
                                   "session.timings",
                                   "uploads.limits",
@@ -36441,6 +37362,7 @@
                                   "business.timezone",
                                   "reminders.cadences",
                                   "request.reopen_period",
+                                  "replies.contact_hours",
                                   "response.target",
                                   "session.timings",
                                   "uploads.limits",
@@ -38597,7 +39519,8 @@
                           "receivedAt",
                           "linkState",
                           "matchRule",
-                          "author"
+                          "author",
+                          "delivery"
                         ],
                         "properties": {
                           "id": {
@@ -38709,6 +39632,43 @@
                                 ]
                               }
                             }
+                          },
+                          "delivery": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "state",
+                              "errorCode",
+                              "sendAt",
+                              "retry"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "state": {
+                                "type": "string"
+                              },
+                              "errorCode": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "sendAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "retry": {
+                                "type": "boolean"
+                              }
+                            }
                           }
                         }
                       }
@@ -38778,7 +39738,8 @@
                               "receivedAt",
                               "linkState",
                               "matchRule",
-                              "author"
+                              "author",
+                              "delivery"
                             ],
                             "properties": {
                               "id": {
@@ -38888,6 +39849,43 @@
                                       "string",
                                       "null"
                                     ]
+                                  }
+                                }
+                              },
+                              "delivery": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "state",
+                                  "errorCode",
+                                  "sendAt",
+                                  "retry"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "state": {
+                                    "type": "string"
+                                  },
+                                  "errorCode": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "sendAt": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "retry": {
+                                    "type": "boolean"
                                   }
                                 }
                               }
@@ -40026,6 +41024,175 @@
         }
       }
     },
+    "/api/v1/staff/inbox/projects/{projectId}/conversation": {
+      "get": {
+        "operationId": "getProjectConversation",
+        "summary": "The customer conversation of a project",
+        "description": "Staff with message.reply on the project, inside the caller’s scope (otherwise NOT_FOUND). The project, its customer and the id of its customer conversation, or null while no message has been received or sent yet: the reply composer of the project starts it with the first reply. Nothing is created by this read.",
+        "tags": [
+          "inbox"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "conversationId",
+                    "project",
+                    "customer"
+                  ],
+                  "properties": {
+                    "conversationId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "project": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "reference",
+                        "state"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "reference": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "customer": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "displayName"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "displayName": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.reply",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/replies.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/inbox/projects/{projectId}/internal-messages": {
       "post": {
         "operationId": "postInternalMessage",
@@ -40216,6 +41383,519 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/inbox.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/inbox/projects/{projectId}/replies": {
+      "post": {
+        "operationId": "sendStaffReply",
+        "summary": "Send a reply to the customer from the project",
+        "description": "Staff with message.reply on the project, inside the caller’s scope (otherwise NOT_FOUND). Pressing Send is the release; there is no second approval (OWN-DEC-120). The reply is added to the project’s customer conversation exactly as written (the customer reads it in the portal’s Messages tab) and its one email or text is released through the chosen channel: the preferred channel while it is permitted, otherwise one of the permitted channels staff chose (CONFLICT PREFERRED_CHANNEL_AVAILABLE, CHANNEL_UNAVAILABLE or NO_PERMITTED_CHANNEL otherwise; never switched silently). Inside the daily contact hours it goes at once; outside them it waits for the next opening (replies.contact_hours). The consent, the contact and the English template are rechecked at send time; the delivery records what truly happened, and a failure becomes a delivery issue with Retry. With the same Idempotency-Key a retried submission returns the first answer and sends nothing more. Card numbers are refused; never write passwords or access codes in a reply. The audit event records the project, channel and send time, never the text.",
+        "tags": [
+          "inbox"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "body",
+                  "channel"
+                ],
+                "properties": {
+                  "body": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "pattern": "\\S"
+                  },
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "email",
+                      "sms"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "conversationId",
+                    "delivery"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "conversationId": {
+                      "type": "string"
+                    },
+                    "delivery": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "channel",
+                        "state",
+                        "sendAt",
+                        "heldForContactHours"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "channel": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "type": "string"
+                        },
+                        "sendAt": {
+                          "type": "string"
+                        },
+                        "heldForContactHours": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.reply",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "inbox.reply_sent",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/replies.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/inbox/projects/{projectId}/reply-options": {
+      "get": {
+        "operationId": "getReplyOptions",
+        "summary": "How a reply on this project can be sent",
+        "description": "Staff with message.reply on the project, inside the caller’s scope (otherwise NOT_FOUND). The contact a reply goes to (the contact of the project’s request), the customer’s preferred channel, and for email and text whether each is permitted now (email: the address verified and service messages not withdrawn; text: the number verified and a current SMS opt-in, which a STOP withdraws), the channel Send uses without a choice (the preferred one while it is permitted; null: staff choose among the permitted ones, never switched silently), the daily contact hours as they apply to a reply sent now (open or closed, and when its email or text would go out), whether released reply wording exists per channel, and the longest reply.",
+        "tags": [
+          "inbox"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "contact",
+                    "preferred",
+                    "options",
+                    "defaultChannel",
+                    "contactHours",
+                    "templates",
+                    "maxLength"
+                  ],
+                  "properties": {
+                    "contact": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "preferred": {
+                      "type": "string",
+                      "enum": [
+                        "email",
+                        "text",
+                        "call"
+                      ]
+                    },
+                    "options": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "channel",
+                          "destination",
+                          "preferred",
+                          "available",
+                          "reason"
+                        ],
+                        "properties": {
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "email",
+                              "sms"
+                            ]
+                          },
+                          "destination": {
+                            "type": "string"
+                          },
+                          "preferred": {
+                            "type": "boolean"
+                          },
+                          "available": {
+                            "type": "boolean"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "enum": [
+                              "available",
+                              "unverified",
+                              "no_opt_in",
+                              "opted_out"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "defaultChannel": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "email",
+                        "sms",
+                        null
+                      ]
+                    },
+                    "contactHours": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state",
+                        "applies",
+                        "open",
+                        "close",
+                        "zone",
+                        "sendAt"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "open",
+                            "closed",
+                            "not_configured"
+                          ]
+                        },
+                        "applies": {
+                          "type": "boolean"
+                        },
+                        "open": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "close": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "zone": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "sendAt": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "templates": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "email",
+                        "sms"
+                      ],
+                      "properties": {
+                        "email": {
+                          "type": "string",
+                          "enum": [
+                            "configured",
+                            "not_configured"
+                          ]
+                        },
+                        "sms": {
+                          "type": "string",
+                          "enum": [
+                            "configured",
+                            "not_configured"
+                          ]
+                        }
+                      }
+                    },
+                    "maxLength": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.reply",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/replies.test.ts"
         }
       }
     },
@@ -40642,7 +42322,7 @@
       "post": {
         "operationId": "retryMessageDelivery",
         "summary": "Retry a failed message",
-        "description": "The Retry action of a delivery_failed queue item (HH-INT-20, HH-COM-02). Queues a failed delivery of an automatic message again, only when it never reached the provider: a new job of the message’s own automation sends it, rechecking the automatic list, the template, consent and the record, under the same provider idempotency key, so a retry sends at most one message. A delivery that is not failed (queued, sent, suppressed), a staff-released draft, a message no longer on the automatic list or a delivery without an open delivery issue is a CONFLICT; so is an uncertain provider outcome (fieldErrors code OUTCOME_UNKNOWN), which is reconciled against the provider instead (HH-ARC-09). A re-run that sends nothing leaves the delivery failed with its reason. Staff with message.release_draft; an Estimator only for deliveries of records they are responsible for. The queue item resolves once the send is handed over.",
+        "description": "The Retry action of a delivery_failed queue item (HH-INT-20, HH-COM-02). Queues a failed delivery of an automatic message again, only when it never reached the provider: a new job of the message’s own automation sends it, rechecking the automatic list, the template, consent and the record, under the same provider idempotency key, so a retry sends at most one message. A failed staff reply (TSK-0050) is released again the same way, at its release time (inside the contact hours while replies.contact_hours holds replies to them), and so is a failed released question reminder (TSK-0051, inside the contact hours). A delivery that is not failed (queued, sent, suppressed), any other staff-released draft, a message no longer on the automatic list or a delivery without an open delivery issue is a CONFLICT; so is an uncertain provider outcome (fieldErrors code OUTCOME_UNKNOWN), which is reconciled against the provider instead (HH-ARC-09). A re-run that sends nothing leaves the delivery failed with its reason. Staff with message.release_draft; an Estimator only for deliveries of records they are responsible for. The queue item resolves once the send is handed over.",
         "tags": [
           "notifications"
         ],
@@ -44241,6 +45921,8 @@
                 "candidate_match",
                 "inbox_needs_linking",
                 "customer_replied",
+                "question_replied",
+                "question_reminder",
                 "deposit_waiver",
                 "start_work_exception",
                 "refund_request",
@@ -44362,6 +46044,8 @@
                               "candidate_match",
                               "inbox_needs_linking",
                               "customer_replied",
+                              "question_replied",
+                              "question_reminder",
                               "deposit_waiver",
                               "start_work_exception",
                               "refund_request",
@@ -44627,6 +46311,8 @@
                           "candidate_match",
                           "inbox_needs_linking",
                           "customer_replied",
+                          "question_replied",
+                          "question_reminder",
                           "deposit_waiver",
                           "start_work_exception",
                           "refund_request",
@@ -44767,6 +46453,8 @@
                 "candidate_match",
                 "inbox_needs_linking",
                 "customer_replied",
+                "question_replied",
+                "question_reminder",
                 "deposit_waiver",
                 "start_work_exception",
                 "refund_request",
@@ -44888,6 +46576,8 @@
                               "candidate_match",
                               "inbox_needs_linking",
                               "customer_replied",
+                              "question_replied",
+                              "question_reminder",
                               "deposit_waiver",
                               "start_work_exception",
                               "refund_request",
@@ -45153,6 +46843,8 @@
                           "candidate_match",
                           "inbox_needs_linking",
                           "customer_replied",
+                          "question_replied",
+                          "question_reminder",
                           "deposit_waiver",
                           "start_work_exception",
                           "refund_request",
@@ -47608,6 +49300,228 @@
         }
       }
     },
+    "/api/v1/staff/requests/{requestId}/actions/close-no-response": {
+      "post": {
+        "operationId": "closeRequestNoResponse",
+        "summary": "Close the request \"Closed—no response\"",
+        "description": "Staff with request.close_no_response (PROPOSED: the request-handling row), inside the caller’s scope (otherwise NOT_FOUND), with the request’s version (If-Match). Only an unbooked request waiting on the customer (\"needs information\") whose unanswered questions all had their final reminder actually sent (and still standing), at least the configured hours ago (reminders.cadences.unansweredQuestion.closeAfterFinalHours, 24, OWN-DEC-101). With accepted work, an appointment or money received it is refused (OWNER_REVIEW_REQUIRED): this rule never cancels accepted, scheduled or paid work. The request and project close with their history; open reminders are cancelled; a customer reply within the reopen period (request.reopen_period) reopens the same request. CONFLICT codes: INVALID_TRANSITION, NO_OPEN_QUESTION, FACTS_MISSING (a final reminder not sent), TOO_EARLY, CONFIG_MISSING, OWNER_REVIEW_REQUIRED.",
+        "tags": [
+          "questions"
+        ],
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "internalNote": {
+                    "type": "string",
+                    "maxLength": 5000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "requestId",
+                    "outcome",
+                    "state",
+                    "version",
+                    "projectState"
+                  ],
+                  "properties": {
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "moved"
+                      ]
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "projectState": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "request.close_no_response",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "request.close_no_response",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/questions.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/requests/{requestId}/actions/estimate-visit": {
       "post": {
         "operationId": "arrangeEstimateVisit",
@@ -49581,6 +51495,1130 @@
         }
       }
     },
+    "/api/v1/staff/requests/{requestId}/questions": {
+      "get": {
+        "operationId": "listRequestQuestions",
+        "summary": "Questions to the customer",
+        "description": "Staff with request.view, inside the caller’s scope (otherwise NOT_FOUND). The questions published in the request’s project, oldest first, each exactly as written with its author and time, its automatic notice (pending, sent, failed, with each delivery and Retry for a definite failure: a failed notice never starts the reminders), its two reminder stages (not scheduled, scheduled with the due time measured from the notice’s successful send, draft, released and waiting, sent, failed or cancelled, and whether this caller may release it) and the customer’s reply exactly as written (\"I’m not sure\", the attached photos and their states, and whether it reopened the request). Also whether this caller may publish, whether replies wait for review, the configured cadence, whether \"Closed—no response\" is possible now (with the unmet requirements and when it becomes possible) and the reopen period.",
+        "tags": [
+          "questions"
+        ],
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "requestId",
+                    "reference",
+                    "state",
+                    "version",
+                    "projectState",
+                    "questions",
+                    "canPublish",
+                    "repliesWaiting",
+                    "canMarkReviewed",
+                    "cadence",
+                    "close",
+                    "reopen",
+                    "maxLength"
+                  ],
+                  "properties": {
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "projectState": {
+                      "type": "string"
+                    },
+                    "questions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "kind",
+                          "text",
+                          "author",
+                          "publishedAt",
+                          "state",
+                          "answeredAt",
+                          "notice",
+                          "reminders",
+                          "reply"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "general",
+                              "measurement"
+                            ]
+                          },
+                          "text": {
+                            "type": "string"
+                          },
+                          "author": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "publishedAt": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "published",
+                              "answered"
+                            ]
+                          },
+                          "answeredAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "notice": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "state",
+                              "sentAt",
+                              "deliveries"
+                            ],
+                            "properties": {
+                              "state": {
+                                "type": "string",
+                                "enum": [
+                                  "pending",
+                                  "sent",
+                                  "failed"
+                                ]
+                              },
+                              "sentAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "deliveries": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "channel",
+                                    "state",
+                                    "errorCode",
+                                    "sendAt",
+                                    "retry"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "channel": {
+                                      "type": "string"
+                                    },
+                                    "state": {
+                                      "type": "string"
+                                    },
+                                    "errorCode": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "sendAt": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "retry": {
+                                      "type": "boolean"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "reminders": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "stage",
+                                "state",
+                                "dueAt",
+                                "sentAt",
+                                "canRelease",
+                                "deliveries"
+                              ],
+                              "properties": {
+                                "stage": {
+                                  "type": "string",
+                                  "enum": [
+                                    "first",
+                                    "final"
+                                  ]
+                                },
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "not_scheduled",
+                                    "scheduled",
+                                    "draft",
+                                    "queued",
+                                    "sent",
+                                    "failed",
+                                    "cancelled"
+                                  ]
+                                },
+                                "dueAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "sentAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "canRelease": {
+                                  "type": "boolean"
+                                },
+                                "deliveries": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "id",
+                                      "channel",
+                                      "state",
+                                      "errorCode",
+                                      "sendAt",
+                                      "retry"
+                                    ],
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "channel": {
+                                        "type": "string"
+                                      },
+                                      "state": {
+                                        "type": "string"
+                                      },
+                                      "errorCode": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "sendAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "retry": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "reply": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "additionalProperties": false,
+                            "required": [
+                              "text",
+                              "notSure",
+                              "at",
+                              "reopenedRequest",
+                              "photos"
+                            ],
+                            "properties": {
+                              "text": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "notSure": {
+                                "type": "boolean"
+                              },
+                              "at": {
+                                "type": "string"
+                              },
+                              "reopenedRequest": {
+                                "type": "boolean"
+                              },
+                              "photos": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "state"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "state": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "canPublish": {
+                      "type": "boolean"
+                    },
+                    "repliesWaiting": {
+                      "type": "boolean"
+                    },
+                    "canMarkReviewed": {
+                      "type": "boolean"
+                    },
+                    "cadence": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "firstHours",
+                        "finalHours",
+                        "closeAfterFinalHours",
+                        "contactHoursOnly"
+                      ],
+                      "properties": {
+                        "firstHours": {
+                          "type": "integer"
+                        },
+                        "finalHours": {
+                          "type": "integer"
+                        },
+                        "closeAfterFinalHours": {
+                          "type": "integer"
+                        },
+                        "contactHoursOnly": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "close": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "allowed",
+                        "available",
+                        "reasons",
+                        "availableAt"
+                      ],
+                      "properties": {
+                        "allowed": {
+                          "type": "boolean"
+                        },
+                        "available": {
+                          "type": "boolean"
+                        },
+                        "reasons": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "availableAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "reopen": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "days",
+                        "closedAt",
+                        "until"
+                      ],
+                      "properties": {
+                        "days": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "closedAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "until": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "maxLength": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "request.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/questions.test.ts"
+        }
+      },
+      "post": {
+        "operationId": "publishRequestQuestion",
+        "summary": "Publish a question to the customer",
+        "description": "Staff with request.ask_question on the request, inside the caller’s scope (otherwise NOT_FOUND), with the request’s version (If-Match). Publishing is the release (OWN-DEC-98): the question is kept exactly as written (general, or a measurement the customer may answer \"I’m not sure\"), the request moves to \"needs information\" (a received request is moved to review first) or stays there, and question.published is recorded in the same transaction for the automatic notice \"HandyHub has a question about your request. View and reply securely.\", which links to the question through the project’s verified access. The staff member confirms the question never asks the customer to inspect a hazardous area (noHazardInspection). Card numbers are refused. Refused from any other state (CONFLICT INVALID_TRANSITION) or for a project that is not open (PROJECT_NOT_OPEN). The audit event never holds the text.",
+        "tags": [
+          "questions"
+        ],
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "text",
+                  "kind",
+                  "noHazardInspection"
+                ],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "pattern": "\\S"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "general",
+                      "measurement"
+                    ]
+                  },
+                  "noHazardInspection": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "questionId",
+                    "requestId",
+                    "state",
+                    "version",
+                    "moved"
+                  ],
+                  "properties": {
+                    "questionId": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "moved": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "request.ask_question",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "question.publish",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/questions.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/requests/{requestId}/questions/{questionId}/reminders/{stage}/release": {
+      "post": {
+        "operationId": "releaseQuestionReminder",
+        "summary": "Release a question reminder",
+        "description": "Staff with message.release_draft on the request (an Estimator only for requests they are responsible for), inside the caller’s scope (otherwise NOT_FOUND). Releases the drafted reminder of one stage (first or final) of an unanswered question: each draft (email, and text with the SMS opt-in) is sent by a notify.release job at its release time, inside the daily contact hours (HH-COM-09; released outside them it waits for the opening), after the send-time recheck (an answered question or a closed request cancels it, HH-COM-05). Without released reminder wording the send is recorded as not configured with a delivery issue, never as sent. CONFLICT QUESTION_ANSWERED (the drafts are cancelled), REQUEST_CLOSED or NO_DRAFT.",
+        "tags": [
+          "questions"
+        ],
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "questionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "stage",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "first",
+                "final"
+              ]
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "released",
+                    "sendAt",
+                    "heldForContactHours"
+                  ],
+                  "properties": {
+                    "released": {
+                      "type": "integer"
+                    },
+                    "sendAt": {
+                      "type": "string"
+                    },
+                    "heldForContactHours": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.release_draft",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "question.reminder_release",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/questions.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/requests/{requestId}/questions/replies-reviewed": {
+      "post": {
+        "operationId": "markQuestionRepliesReviewed",
+        "summary": "Mark the customer’s replies reviewed",
+        "description": "Staff with request.ask_question on the request, inside the caller’s scope (otherwise NOT_FOUND). Resolves the request’s \"question replied\" queue item (publishing another question, a request action or closing does the same). Nothing about the replies changes.",
+        "tags": [
+          "questions"
+        ],
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reviewed"
+                  ],
+                  "properties": {
+                    "reviewed": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "request.ask_question",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "question.replies_reviewed",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/questions.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/requests/{requestId}/relink": {
       "post": {
         "operationId": "relinkRequest",
@@ -51446,6 +54484,7 @@
                               "business.timezone",
                               "reminders.cadences",
                               "request.reopen_period",
+                              "replies.contact_hours",
                               "response.target",
                               "session.timings",
                               "uploads.limits",

@@ -17,6 +17,7 @@ import { requestsModule } from './requests/index.js'
 import { accessModule } from './access/index.js'
 import { accountsModule } from './accounts/index.js'
 import { portalModule } from './portal/index.js'
+import { questionsModule } from './questions/index.js'
 import { SITE_MODULE } from './site/index.js'
 import { systemModule, type SystemDeps } from './system/index.js'
 import { verificationModule } from './verification/index.js'
@@ -83,6 +84,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     inboxModule({ providers: deps.system?.providers ?? null }),
     // TSK-0045: property records and the protected access-code store.
     propertiesModule({ accessCodeKey: deps.accessCodeKey ?? null }),
+    // TSK-0051: staff questions, customer replies and portal messages, reminders and "Closed—no response".
+    questionsModule(),
   ]
 }
 

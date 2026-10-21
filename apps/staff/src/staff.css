@@ -570,3 +570,44 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* A staff reply's email or text (TSK-0050): its delivery state, send time and Retry. */
+.staff-inbox__delivery {
+  display: grid;
+  gap: var(--hh-space-1);
+  justify-items: start;
+}
+
+/* TSK-0051: questions to the customer on the request record. */
+.staff-questions {
+  list-style: none;
+  margin: 0 0 var(--hh-space-4);
+  padding: 0;
+  display: grid;
+  gap: var(--hh-space-3);
+}
+.staff-questions__item {
+  border: var(--hh-hairline);
+  border-radius: var(--hh-radius-sm);
+  padding: var(--hh-space-3);
+}
+.staff-questions__text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.staff-questions__reminders,
+.staff-questions__deliveries {
+  list-style: none;
+  margin: var(--hh-space-1) 0;
+  padding: 0;
+}
+.staff-questions__reply {
+  border-left: 3px solid var(--hh-line-strong);
+  padding-left: var(--hh-space-3);
+}
+.staff-questions__guard {
+  border: 1px solid var(--hh-line-strong);
+  background: var(--hh-tint);
+  border-radius: var(--hh-radius-sm);
+  padding: var(--hh-space-3);
+}

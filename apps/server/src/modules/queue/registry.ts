@@ -26,6 +26,7 @@ export const QUEUE_ACTIONS = [
   'decide',
   'write_estimate',
   'review_estimate',
+  // TSK-0060 estimate reminders; TSK-0051: also the drafted reminders of an unanswered question (or close the request).
   'release_reminder',
   'review_match',
   'link_message',
@@ -206,6 +207,32 @@ export const QUEUE_ITEM_TYPES = [
     reasons: ['customer_replied'],
     action: 'open_conversation',
     screen: 'inbox',
+  },
+  // TSK-0051 (HH-LEAD-03, OWN-DEC-98): a customer replied to a question, or the reply reopened a "Closed—no response"
+  // request; one item per request until staff review it (or act on the request). Assigned to the responsible staff
+  // member, so it is the reply's notice in the queue.
+  {
+    id: 'question_replied',
+    section: 'queue',
+    subject: 'request',
+    band: 'time_sensitive',
+    view: 'request.view',
+    reasons: ['question_replied', 'reopened_by_reply'],
+    action: 'review_request',
+    screen: 'requests',
+  },
+  // TSK-0051 (HH-LEAD-06, OWN-DEC-101): the reminder drafts of an unanswered question wait for release, prominently;
+  // after the final one was actually sent and the configured hours passed, the item says the request may be closed.
+  // Seen by the roles that release drafts (ROLE-MATRIX "Reply from a project, release drafts").
+  {
+    id: 'question_reminder',
+    section: 'queue',
+    subject: 'request',
+    band: 'time_sensitive',
+    view: 'message.release_draft',
+    reasons: ['question_reminder_first', 'question_reminder_final', 'no_response_close_available'],
+    action: 'release_reminder',
+    screen: 'requests',
   },
   // Owner Decisions (HH-OPS-01 "Owner, additionally"): each decision is owner-only in the matrix.
   {

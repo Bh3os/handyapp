@@ -67,6 +67,12 @@ export const THREAD_MESSAGE = obj({
   linkState: S,
   matchRule: NS,
   author: obj({ kind: state(['contact', 'unknown_sender', 'staff']), id: NS, name: NS }),
+  /**
+   * TSK-0050: a staff reply's email or text, as its delivery records it (queued, also while it waits for the contact
+   * hours until sendAt; sent; delivered where reported; failed; suppressed; cancelled), and whether Retry is offered.
+   * Null for every other message.
+   */
+  delivery: nobj({ id: S, state: S, errorCode: NS, sendAt: NS, retry: B }),
 })
 
 export const CONVERSATION = obj({
@@ -151,3 +157,52 @@ export const INTERNAL_BODY = obj({ body: { type: 'string', minLength: 1, maxLeng
 export const CREATED = obj({ id: S, conversationId: S })
 export const HANDLED_BODY = obj({}, [])
 export const HANDLED_RESULT = obj({ resolved: B, handledAt: S })
+
+// Staff replies (TSK-0050; HH-COM-08, HH-COM-09).
+export const REPLY_CHANNELS = ['email', 'sms'] as const
+export const CHANNEL_REASONS = ['available', 'unverified', 'no_opt_in', 'opted_out'] as const
+/** PROPOSED: the longest reply, for email and text alike. */
+export const REPLY_MAX_LENGTH = 2000
+
+export const PROJECT_CONVERSATION = obj({ conversationId: NS, project: PROJECT, customer: CUSTOMER })
+
+export const REPLY_OPTIONS = obj({
+  /** The contact a reply goes to (the contact of the project's request); null when the project has none. */
+  contact: nobj({ id: S, name: S }),
+  /** The customer's preferred channel as recorded: email, text or call (call: no messaging channel preferred). */
+  preferred: state(['email', 'text', 'call']),
+  options: arr(
+    obj({
+      channel: state(REPLY_CHANNELS),
+      destination: S,
+      preferred: B,
+      available: B,
+      reason: state(CHANNEL_REASONS),
+    }),
+  ),
+  /** The channel Send uses without a choice: the preferred one while it is available; null: staff choose. */
+  defaultChannel: { type: ['string', 'null'], enum: [...REPLY_CHANNELS, null] },
+  contactHours: obj({
+    /** open / closed now, or not_configured (the hours, zone or reply rule); applies: replies wait for them. */
+    state: state(['open', 'closed', 'not_configured']),
+    applies: B,
+    open: NS,
+    close: NS,
+    zone: NS,
+    /** When an email or text sent now would go out. */
+    sendAt: S,
+  }),
+  /** Whether released wording exists for a reply by each channel (message type staff.reply). */
+  templates: obj({ email: state(['configured', 'not_configured']), sms: state(['configured', 'not_configured']) }),
+  maxLength: I,
+})
+
+export const REPLY_BODY = obj({
+  body: { type: 'string', minLength: 1, maxLength: REPLY_MAX_LENGTH, pattern: '\\S' },
+  channel: state(REPLY_CHANNELS),
+})
+export const REPLY_RESULT = obj({
+  id: S,
+  conversationId: S,
+  delivery: obj({ id: S, channel: S, state: S, sendAt: S, heldForContactHours: B }),
+})

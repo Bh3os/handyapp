@@ -10,8 +10,10 @@
 // signed-in account's own view (masked sign-in values and linked project references) and its code notices. (The
 // workspace tabs of TSK-0039 name Document and Invoice only for their "none yet" states; no record field is sent.)
 // TSK-0044: contacts, notes (every class: notes are never customer-shared) and candidate matches have no customer
-// view either. TSK-0049: inbound messages, conversations and Needs Linking have none yet (the portal Messages tab is
-// TSK-0050); internal messages never get one.
+// view either. TSK-0049: conversations and Needs Linking have none; internal messages never get one. TSK-0050: the
+// portal Messages tab (PROJECT_MESSAGES) shows the project's customer conversation: the customer's own email and
+// texts on the project and HandyHub's replies, each as who, how, when and the text as written; never a staff name,
+// an address, a delivery detail, an internal message or a message from a sender who is not the customer's contact.
 import {
   CUSTOMER_NEXT_ACTIONS,
   CUSTOMER_SITUATIONS,
@@ -40,6 +42,8 @@ export const ENTITIES = [
   'Note',
   'CandidateMatch',
   'Message',
+  // TSK-0051: staff questions to the customer and the customer's replies.
+  'Question',
 ] as const
 export type Entity = (typeof ENTITIES)[number]
 
@@ -298,8 +302,7 @@ export const PROJECT_OVERVIEW = customerView(
 // The workspace tabs (TSK-0039; HH-PORT-09, OWN-DEC-106). Each tab answers with its own view: the project reference,
 // what the tab holds as the records stand, the server time of the read and the refresh interval. A tab whose records
 // later tasks build says so with an explicit state code, so an empty section is never a guess:
-// - messages 'not_shown': the project conversation is not shown in the portal yet (TSK-0050, TSK-0051); messages that
-//   exist are never claimed absent;
+// - messages (TSK-0050): the project's customer conversation, its messages listed (an empty list: none yet);
 // - documents, appointments, payments 'none': no customer document, visit or payment record exists for any project
 //   yet (estimates TSK-0054/0058, visits TSK-0061, payments TSK-0087), so there is truthfully nothing to show;
 // - photos: the counts of the customer-visible photos by state (received, processing, failed); viewing them in the
@@ -318,8 +321,47 @@ function tabView<S extends string>(name: string, entity: Entity, states: readonl
   }))
 }
 
-/** The Messages tab: the conversation is not shown in the portal yet (TSK-0050). */
-export const PROJECT_MESSAGES = tabView('project.messages', 'Project', ['not_shown'] as const)
+/**
+ * One message of the project conversation as the customer sees it (TSK-0050; C06, HH-PORT-08): from the customer
+ * ('you') or HandyHub, by email or text, when, and the text exactly as written (customer free text is never
+ * translated); textState says when there is no text to show (an empty message, or an email whose text HandyHub could
+ * not read). Attachments are a count only: they are not imported (TSK-0049), so none is shown.
+ */
+export type ConversationMessageRecord = {
+  from: 'you' | 'handyhub'
+  /** TSK-0051: 'portal' is a message the customer wrote in the portal's Messages tab. */
+  channel: 'email' | 'sms' | 'portal'
+  at: Date
+  text: string | null
+  textState: 'shown' | 'empty' | 'not_available'
+  attachments: number
+}
+const CONVERSATION_MESSAGE = object({
+  from: enumOf(['you', 'handyhub']),
+  channel: enumOf(['email', 'sms', 'portal']),
+  at: DATE,
+  text: { type: ['string', 'null'] },
+  textState: enumOf(['shown', 'empty', 'not_available']),
+  attachments: { type: 'integer', minimum: 0 },
+})
+
+/** The Messages tab (TSK-0050): the project's customer conversation, oldest first; empty: nothing yet. */
+export const PROJECT_MESSAGES = customerView(
+  'project.messages',
+  'Message',
+  { ...TAB_FIELDS, messages: { type: 'array', items: CONVERSATION_MESSAGE } },
+  (r: TabRecord & { messages: readonly ConversationMessageRecord[] }) => ({
+    ...tabHead(r),
+    messages: r.messages.map((m) => ({
+      from: m.from,
+      channel: m.channel,
+      at: m.at.toISOString(),
+      text: m.text,
+      textState: m.textState,
+      attachments: m.attachments,
+    })),
+  }),
+)
 /**
  * The Documents tab (TSK-0039; TSK-0056, HH-PORT-10): "none" while the project has no customer document, or "listed"
  * with the estimate versions the customer received, newest first, each with its status (current, approved, declined,
@@ -742,6 +784,140 @@ export const SESSION_VERIFICATION = customerView(
   }),
 )
 
+/**
+ * TSK-0051 (HH-LEAD-03, OWN-DEC-98, OWN-DEC-101): the questions HandyHub published in the project, oldest first, as
+ * the customer sees them: the text exactly as staff wrote it, whether it is a measurement (the reply may say "I'm not
+ * sure"), when it was asked, whether it waits on the customer, whether a reply can be sent now, and the customer's own
+ * reply (text as written, "I'm not sure", the attached photos counted by state). Never the author, a delivery, a
+ * reminder or anything internal. replyWindow: open; reopen (the request is "Closed—no response" and a reply within the
+ * period until reopenUntil reopens it); period_ended (a new request is the way); closed.
+ */
+export type QuestionRecord = {
+  id: string
+  kind: 'general' | 'measurement'
+  text: string
+  askedAt: Date
+  state: 'waiting' | 'answered'
+  canReply: boolean
+  reply: { text: string | null; notSure: boolean; at: Date; photos: PhotoCountsRecord } | null
+}
+type PhotoCountsRecord = { received: number; processing: number; failed: number }
+const PHOTO_COUNTS = object({
+  received: { type: 'integer', minimum: 0 },
+  processing: { type: 'integer', minimum: 0 },
+  failed: { type: 'integer', minimum: 0 },
+})
+const QUESTION_ITEM = object({
+  id: STRING,
+  kind: enumOf(['general', 'measurement']),
+  text: STRING,
+  askedAt: DATE,
+  state: enumOf(['waiting', 'answered']),
+  canReply: { type: 'boolean' },
+  reply: {
+    anyOf: [
+      { type: 'null' },
+      object({ text: { type: ['string', 'null'] }, notSure: { type: 'boolean' }, at: DATE, photos: PHOTO_COUNTS }),
+    ],
+  },
+})
+export const PROJECT_QUESTIONS = customerView(
+  'project.questions',
+  'Question',
+  {
+    ...TAB_FIELDS,
+    questions: { type: 'array', items: QUESTION_ITEM },
+    replyWindow: enumOf(['open', 'reopen', 'period_ended', 'closed']),
+    reopenUntil: { type: ['string', 'null'] },
+    maxLength: { type: 'integer', minimum: 1 },
+  },
+  (
+    r: TabRecord & {
+      questions: readonly QuestionRecord[]
+      replyWindow: 'open' | 'reopen' | 'period_ended' | 'closed'
+      reopenUntil: Date | null
+      maxLength: number
+    },
+  ) => ({
+    ...tabHead(r),
+    questions: r.questions.map((q) => ({
+      id: q.id,
+      kind: q.kind,
+      text: q.text,
+      askedAt: q.askedAt.toISOString(),
+      state: q.state,
+      canReply: q.canReply,
+      reply: q.reply
+        ? {
+            text: q.reply.text,
+            notSure: q.reply.notSure,
+            at: q.reply.at.toISOString(),
+            photos: {
+              received: q.reply.photos.received,
+              processing: q.reply.photos.processing,
+              failed: q.reply.photos.failed,
+            },
+          }
+        : null,
+    })),
+    replyWindow: r.replyWindow,
+    reopenUntil: r.reopenUntil ? r.reopenUntil.toISOString() : null,
+    maxLength: r.maxLength,
+  }),
+)
+
+/** A reply's upload capability (TSK-0051): returned once; the photo limits come from uploads.limits. */
+export const QUESTION_UPLOAD = customerView(
+  'question.upload',
+  'Photo',
+  {
+    capability: STRING,
+    expiresAt: DATE,
+    limits: object({
+      maxFileBytes: { type: 'integer' },
+      maxPhotos: { type: 'integer' },
+      types: { type: 'array', items: STRING },
+    }),
+  },
+  (r: {
+    capability: string
+    expiresAt: Date
+    limits: { maxFileBytes: number; maxPhotos: number; types: readonly string[] }
+  }) => ({
+    capability: r.capability,
+    expiresAt: r.expiresAt.toISOString(),
+    limits: { maxFileBytes: r.limits.maxFileBytes, maxPhotos: r.limits.maxPhotos, types: [...r.limits.types] },
+  }),
+)
+
+/** "Reply received—HandyHub will review it" (OWN-DEC-98): what the customer's reply did. */
+export const QUESTION_REPLY_RESULT = customerView(
+  'question.reply_received',
+  'Question',
+  {
+    questionId: STRING,
+    state: enumOf(['answered']),
+    at: DATE,
+    photos: { type: 'integer', minimum: 0 },
+    reopened: { type: 'boolean' },
+  },
+  (r: { questionId: string; at: Date; photos: number; reopened: boolean }) => ({
+    questionId: r.questionId,
+    state: 'answered',
+    at: r.at.toISOString(),
+    photos: r.photos,
+    reopened: r.reopened,
+  }),
+)
+
+/** A message the customer wrote in the portal (TSK-0051, HH-PORT-09): it is on the project's conversation now. */
+export const PORTAL_MESSAGE_SENT = customerView(
+  'project.message_sent',
+  'Message',
+  { from: enumOf(['you']), channel: enumOf(['portal']), at: DATE },
+  (r: { at: Date }) => ({ from: 'you', channel: 'portal', at: r.at.toISOString() }),
+)
+
 /** Every customer view, by name. */
 export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
   [
@@ -765,5 +941,9 @@ export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
     CUSTOMER_ESTIMATE_SELECTION,
     CUSTOMER_ESTIMATE_APPROVAL,
     SESSION_VERIFICATION,
+    PROJECT_QUESTIONS,
+    QUESTION_UPLOAD,
+    QUESTION_REPLY_RESULT,
+    PORTAL_MESSAGE_SENT,
   ].map((v) => [v.name, v as CustomerView<never>]),
 )

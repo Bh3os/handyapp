@@ -15,8 +15,14 @@ import { queueAutomations } from './modules/queue/index.js'
 import { receiptEmailAutomation } from './modules/requests/receipt-email.js'
 import { responseClockAutomation } from './modules/requests/response-clock.js'
 import { accessLinkAutomation } from './modules/access/link-message.js'
+import { questionAutomations, questionRecordCheck, questionReminderFailureItem } from './modules/questions/index.js'
 import { customerAutomations } from './modules/customers/index.js'
-import { inboxIntakeAutomation, type InboundAddress } from './modules/inbox/index.js'
+import {
+  inboxIntakeAutomation,
+  replyFailureItem,
+  replyRecordCheck,
+  type InboundAddress,
+} from './modules/inbox/index.js'
 import { contactChangedNoticeAutomation } from './modules/accounts/notice.js'
 import type { CodeKeySettings } from './modules/identity/index.js'
 import type { Automation } from './platform/automation.js'
@@ -55,9 +61,23 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     // TSK-0060: unanswered-estimate reminder drafts at the configured cadence (staff-released, never automatic), and
     // the send job of every released draft with its send-time record checks (HH-COM-05).
     ...estimateReminderAutomations({ publicSiteUrl: deps.publicSiteUrl }),
+    // TSK-0050: staff-released messages (a staff reply's Send; released reminders), each at its release time: inside
+    // the daily contact hours for those held to them. A reply is rechecked against its contact at send time, and its
+    // failed delivery opens a delivery issue with Retry.
+    // TSK-0051: released question reminders are rechecked against their question (answered or closed: cancelled) and
+    // their failed delivery opens a delivery issue on the request.
+    // The one `notify.release` registration: every record type's send-time check is listed here.
     releaseAutomation(
-      { email: deps.providers.email, sms: deps.providers.sms },
-      { recordChecks: { estimate_version: estimateReminderRecordCheck } },
+      { email: deps.providers.email, sms: deps.providers.sms, replyAddress: deps.replyAddress ?? null },
+      {
+        recordChecks: {
+          estimate_version: estimateReminderRecordCheck,
+          project: replyRecordCheck,
+          question: questionRecordCheck,
+        },
+        failureItem: async (tx, row) =>
+          (await replyFailureItem(tx, row)) ?? (await questionReminderFailureItem(tx, row)),
+      },
     ),
     // TSK-0041: action queue items from the modules' committed events.
     ...queueAutomations(),
@@ -83,5 +103,12 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     // TSK-0036: the notice to the old email after an account's sign-in email changed (HH-ID-11); sends only once the
     // owner lists it as automatic and approves its wording (OQ-ACCOUNT-CONTACT-NOTICE).
     contactChangedNoticeAutomation({ providers: { email: deps.providers.email, sms: null } }),
+    // TSK-0051: the automatic question notice and staff reply notice, the reminder clock from the notice's successful
+    // send, the reminder drafts and the "may close" queue item.
+    ...questionAutomations({
+      providers: { email: deps.providers.email, sms: deps.providers.sms, replyAddress: deps.replyAddress ?? null },
+      publicSiteUrl: deps.publicSiteUrl,
+      staffAppUrl: deps.staffAppUrl,
+    }),
   ]
 }
