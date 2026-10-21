@@ -12,6 +12,7 @@ import {
   nextStepsText,
   parseReceipt,
   receiptGlance,
+  receiptRecord,
   referenceFromPath,
   RECEIPT_STORAGE_KEY,
   saveReceipt,
@@ -214,5 +215,59 @@ describe('photo outcomes are reported as the server recorded them (TSK-0032, HH-
     expect(t('request.receipt.photos.received', { count: 2 })).toBe('Received: 2')
     expect(t('request.receipt.photos.processing', { count: 1 })).toBe('Processing: 1')
     expect(t('request.receipt.photos.failed', { count: 2 })).toBe('Failed: 2')
+  })
+})
+
+describe('the receipt record holds only what the save confirmed (TSK-0032 with TSK-0030, HH-INT-12, HH-INT-10)', () => {
+  const saved = {
+    reference: 'HH-7K3QABCD',
+    submittedAt: '2026-10-21T12:00:00.000Z',
+    glance: receiptGlance(values, services, offeredWindows(null, null)),
+    facts: { visitHours: HOURS, responseMinutes: 60 },
+  }
+
+  it('[HH-INT-12][T13] a fresh save: the glance as sent, the server counts plus the photos that never arrived', () => {
+    expect(
+      receiptRecord({ ...saved, kind: 'sent', photos: { received: 1, processing: 1, failed: 0 }, notStored: 1 }),
+    ).toEqual({
+      v: 1,
+      reference: 'HH-7K3QABCD',
+      submittedAt: '2026-10-21T12:00:00.000Z',
+      glance: saved.glance,
+      photos: { received: 1, processing: 1, failed: 1 },
+      facts: saved.facts,
+    })
+    expect(receiptRecord({ ...saved, kind: 'sent', photos: null, notStored: 0 }).photos).toBeNull()
+    expect(receiptRecord({ ...saved, kind: 'sent', photos: null, notStored: 2 }).photos).toEqual({
+      received: 0,
+      processing: 0,
+      failed: 2,
+    })
+  })
+
+  it('[HH-INT-10][HH-INT-12][RULE-NO-INVENTED-FACTS] a key that already created a request: its reference only, no glance and no photo count invented', () => {
+    const already = receiptRecord({
+      ...saved,
+      submittedAt: null,
+      kind: 'already',
+      photos: { received: 3, processing: 0, failed: 0 },
+      notStored: 1,
+    })
+    expect(already).toEqual({
+      v: 1,
+      reference: 'HH-7K3QABCD',
+      submittedAt: null,
+      glance: [],
+      photos: null,
+      already: true,
+      facts: saved.facts,
+    })
+    // Kept for the tab like any receipt, so a reload of its page shows it again.
+    const s = storage()
+    saveReceipt(s, already)
+    expect(loadReceipt(s, 'HH-7K3QABCD')).toEqual(already)
+    expect(t('request.receipt.already')).toBe(
+      'We had already received this request from this browser. Anything you changed after you first sent it was not included.',
+    )
   })
 })

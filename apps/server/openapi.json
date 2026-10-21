@@ -1143,7 +1143,7 @@
       "post": {
         "operationId": "submitRequest",
         "summary": "Send Estimate Request",
-        "description": "Guest or customer submission. One transaction creates a new customer, contact, property, project (not a job or appointment) and the request with its services and answers, plus one request.submitted outbox event. Never matched to existing customers. The same Idempotency-Key returns the same request; a changed body is a 409. Rate limited per client network with a neutral 429. Spam signals only flag the request for review. TSK-0032: when the draft’s photos were bound, the Upload-Capability response header carries a new capability scoped to this request’s photos only (token returned once, never stored with the replayable response), so the receipt can show their states and retry a failed photo without a new request (HH-INT-07, HH-INT-12).",
+        "description": "Guest or customer submission. One transaction creates a new customer, contact, property, project (not a job or appointment) and the request with its services and answers, plus one request.submitted outbox event. Never matched to existing customers. The same Idempotency-Key returns the same request; a changed body is a 409. A key that already created a request, also after its idempotency record expired, is a 409 whose error names that request's reference (existing.reference) and writes nothing. Rate limited per client network with a neutral 429. Spam signals only flag the request for review. TSK-0032: when the draft’s photos were bound, the Upload-Capability response header carries a new capability scoped to this request’s photos only (token returned once, never stored with the replayable response), so the receipt can show their states and retry a failed photo without a new request (HH-INT-07, HH-INT-12).",
         "tags": [
           "requests"
         ],
@@ -10692,6 +10692,18 @@
                   "values": {
                     "type": "object",
                     "additionalProperties": true
+                  }
+                }
+              },
+              "existing": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reference"
+                ],
+                "properties": {
+                  "reference": {
+                    "type": "string"
                   }
                 }
               }

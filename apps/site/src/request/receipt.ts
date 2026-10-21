@@ -9,6 +9,9 @@
 // - "Your project at a glance" is the customer's own submission (services, description, property address, preferred
 //   timing, contact details); it never shows existing customer history, an account or earlier projects.
 // - "What happens next?" comes from configuration through the same lines as the receipt email (nextStepsLines).
+// - A key that had already created a request (TSK-0030: a 409 naming its reference) gets a receipt with that reference
+//   and the "already received" sentence only: what that request holds is not known here, so neither the project at a
+//   glance nor any photo count is shown for it.
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { nextStepsLines, REFERENCE_PATTERN, type VisitHours } from '@handyhub/domain/request-form'
 import type { FormService, FormValues, OfferedWindow } from './form.js'
@@ -28,10 +31,14 @@ export type ResponseFacts = { visitHours: VisitHours | null; responseMinutes: nu
 export type ReceiptRecord = {
   v: 1
   reference: string
-  submittedAt: string
+  /** When the server saved the request; null when the answer did not say (a key that had already created it). */
+  submittedAt: string | null
+  /** Empty for a request received earlier under the same key: what it holds is not known here. */
   glance: GlanceEntry[]
-  /** Null when the request was sent without photos. */
+  /** Null when the request was sent without photos, or when its photos are not known here. */
   photos: PhotoCounts | null
+  /** The key had already created this request with other details (TSK-0030): changes since were not included. */
+  already?: boolean
   facts: ResponseFacts
 }
 
@@ -83,6 +90,35 @@ export function receiptGlance(
   return entries.map((e) => ({ ...e, lines: e.lines.filter((l) => l !== '') })).filter((e) => e.lines.length > 0)
 }
 
+/** What the wizard knows when the server confirms a save, from which the receipt record is built. */
+export type SavedSend = {
+  reference: string
+  /** 'already': the key had already created this request (a 409 naming it); nothing of this send was saved. */
+  kind: 'sent' | 'already'
+  submittedAt: string | null
+  /** The server's counts of the photos it bound to the request; null when none were bound or not known. */
+  photos: PhotoCounts | null
+  /** Photos that failed in the browser and never reached the server. */
+  notStored: number
+  glance: GlanceEntry[]
+  facts: ResponseFacts
+}
+
+/**
+ * The receipt record for a confirmed save. Only what is known is recorded: for a request received earlier under the
+ * same key there is no glance and no photo count (nothing is invented, HH-INT-12, RULE-NO-INVENTED-FACTS).
+ */
+export function receiptRecord(saved: SavedSend): ReceiptRecord {
+  const base = { v: 1 as const, reference: saved.reference, submittedAt: saved.submittedAt, facts: saved.facts }
+  if (saved.kind === 'already') return { ...base, glance: [], photos: null, already: true }
+  const photos = saved.photos
+    ? { ...saved.photos, failed: saved.photos.failed + saved.notStored }
+    : saved.notStored
+      ? { received: 0, processing: 0, failed: saved.notStored }
+      : null
+  return { ...base, glance: saved.glance, photos }
+}
+
 /** The response sentences of "What happens next?", as one paragraph; only the first while the facts are unknown. */
 export function nextStepsText(facts: ResponseFacts): string {
   return nextStepsLines(facts)
@@ -111,7 +147,8 @@ export function parseReceipt(raw: unknown): ReceiptRecord | null {
   if (typeof raw !== 'object' || raw === null) return null
   const r = raw as Record<string, unknown>
   if (r['v'] !== 1 || typeof r['reference'] !== 'string' || !REFERENCE_PATTERN.test(r['reference'])) return null
-  if (typeof r['submittedAt'] !== 'string') return null
+  if (r['submittedAt'] !== null && typeof r['submittedAt'] !== 'string') return null
+  if (r['already'] !== undefined && typeof r['already'] !== 'boolean') return null
   const glance = r['glance']
   if (
     !Array.isArray(glance) ||

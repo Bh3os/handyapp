@@ -5,6 +5,8 @@
 // no new request is needed), "What happens next?" from configuration, and Return Home. English only.
 // The contact-verification panel, View My Request and Create an Account arrive with their flows (TSK-0033, TSK-0034);
 // no action is shown before it works.
+// - A request the key had already created (TSK-0030) shows its reference and says so; nothing else about it is known
+//   here, so no glance and no photo count is shown for it.
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { Button, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useRef, useState, type Ref } from 'react'
@@ -190,31 +192,34 @@ export function Receipt({
         </p>
         <CopyReference reference={record.reference} />
       </div>
+      {record.already ? <p>{t('request.receipt.already')}</p> : null}
 
-      <section className="hh-receipt__section" aria-labelledby="hh-receipt-glance">
-        <h3 id="hh-receipt-glance" className="hh-h3">
-          {t('request.receipt.glance')}
-        </h3>
-        <dl>
-          {record.glance.map((e) => (
-            <div key={e.id}>
-              <dt>{e.label}</dt>
-              <dd>
-                {e.lines.length > 1 ? (
-                  <ul className="hh-request__review-lines">
-                    {e.lines.map((l, i) => (
-                      <li key={i}>{l}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  e.lines[0]
-                )}
-              </dd>
-            </div>
-          ))}
-        </dl>
-        {timing ? <p className="hh-field__hint">{t('request.timing.note')}</p> : null}
-      </section>
+      {record.glance.length ? (
+        <section className="hh-receipt__section" aria-labelledby="hh-receipt-glance">
+          <h3 id="hh-receipt-glance" className="hh-h3">
+            {t('request.receipt.glance')}
+          </h3>
+          <dl>
+            {record.glance.map((e) => (
+              <div key={e.id}>
+                <dt>{e.label}</dt>
+                <dd>
+                  {e.lines.length > 1 ? (
+                    <ul className="hh-request__review-lines">
+                      {e.lines.map((l, i) => (
+                        <li key={i}>{l}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    e.lines[0]
+                  )}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          {timing ? <p className="hh-field__hint">{t('request.timing.note')}</p> : null}
+        </section>
+      ) : null}
 
       {counts && counts.received + counts.processing + counts.failed > 0 ? (
         <Photos counts={counts} photos={photos} limits={limits} />
