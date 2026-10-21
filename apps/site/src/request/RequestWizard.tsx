@@ -9,6 +9,7 @@ import { Button, Dialog, Field, StateView } from '@handyhub/ui'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { checkZip, takeRememberedZip, type CoverageCheck } from '../coverage/coverage.js'
 import { zip5 } from '@handyhub/domain/coverage'
+import { PRIVACY_NOTICE } from '@handyhub/domain/legal'
 import { DraftStore } from './draft.js'
 import { PhotoUploader, usePhotos, type PhotoLimits } from './photos.js'
 import {
@@ -76,9 +77,10 @@ const ESTIMATE_LABEL: Record<(typeof ESTIMATE_PREFERENCES)[number], CustomerKey>
 const label = <T extends string>(map: Record<T, CustomerKey>, code: string): string =>
   Object.hasOwn(map, code) ? t(map[code as T]) : ''
 
-/** PROPOSED: the form and privacy-notice versions until the notice exists (TSK-0024). */
+/** PROPOSED: the form version. */
 const FORM_VERSION = 'wizard-1'
-const PRIVACY_NOTICE_VERSION = 'none-yet'
+/** The privacy policy version this page presents, saved with the request (TSK-0024; HH-PRIV-04, OWN-DEC-72). */
+const PRIVACY_NOTICE_VERSION = PRIVACY_NOTICE.documentId
 const IDENTITY = 'guest'
 
 const STEP_LABEL: Record<StepId, CustomerKey> = {

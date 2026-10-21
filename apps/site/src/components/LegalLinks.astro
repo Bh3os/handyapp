@@ -1,0 +1,22 @@
+---
+// Links to the privacy policy, the SMS terms and the website terms (TSK-0024; HH-COM-12, HH-CUS-05, OWN-DEC-147):
+// from the footer of every page and from the request form.
+import { customerTranslator } from '@handyhub/i18n'
+import { legalLinks } from '../site/legal'
+
+interface Props {
+  class?: string
+}
+const { class: className } = Astro.props
+const t = customerTranslator()
+---
+
+<ul class:list={['hh-legal-links', className]} data-legal-links>
+  {
+    legalLinks().map((l) => (
+      <li>
+        <a href={l.href}>{t.t(l.label)}</a>
+      </li>
+    ))
+  }
+</ul>

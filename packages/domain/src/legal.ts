@@ -3,7 +3,7 @@
 //
 // - Three documents: the privacy policy with its SMS section (/privacy), the SMS terms (/sms-terms) and the website
 //   terms (/terms). Each has a document ID and version that are seeded as policy versions (legal.* keys, migration
-//   0016) with the SHA-256 of their exact content, and the privacy policy's ID is saved with every request.
+//   0021) with the SHA-256 of their exact content, and the privacy policy's ID is saved with every request.
 // - The wording is English customer text in the customer catalog (packages/i18n customer.en.json); this manifest only
 //   orders the catalog keys into sections. `legalContent` is the canonical text the content hash covers: the document
 //   ID, its values and every catalog key with its wording. Changing a sentence or a value without a new version fails

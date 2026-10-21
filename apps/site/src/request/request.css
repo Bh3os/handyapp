@@ -174,3 +174,23 @@
   gap: var(--hh-space-2);
   min-width: 0;
 }
+
+/* Links to the legal pages below the form (TSK-0024; HH-COM-12). */
+.hh-request-legal {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 0 var(--hh-gutter) var(--hh-space-8);
+}
+.hh-request-legal .hh-legal-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hh-space-2) var(--hh-space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hh-request-legal a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--hh-target-dense);
+}

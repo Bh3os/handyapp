@@ -58,6 +58,19 @@ const messageCode: Parser<string> = (v, p) =>
   typeof v === 'string' && /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/.test(v) ? v : fail(p, 'expected a message type code')
 const contactHoursOnly = { contactHoursOnly: bool }
 
+const matching =
+  (pattern: RegExp, what: string): Parser<string> =>
+  (v, p) =>
+    typeof v === 'string' && pattern.test(v) ? v : fail(p, `expected ${what}`)
+/** One version of a public legal document (TSK-0024). */
+const legalDocument = shape({
+  documentId: matching(/^[a-z][a-z0-9-]{0,38}[0-9]$/, 'a document ID such as privacy-notice-1'),
+  status: oneOf(['draft', 'owner_review_pending', 'approved']),
+  attorneyReviewed: bool,
+  preparedOn: matching(/^\d{4}-\d{2}-\d{2}$/, 'a date YYYY-MM-DD'),
+  contentSha256: matching(/^[0-9a-f]{64}$/, 'a SHA-256 hex digest'),
+})
+
 /** Every configuration key with the parser of its value. Adding a key needs a migration that seeds it. */
 export const CONFIG_KEYS = {
   'deposit.rule': shape({
@@ -148,6 +161,12 @@ export const CONFIG_KEYS = {
       }),
     ),
   }),
+  // TSK-0024: the public legal documents (ENT-PolicyVersion; HH-PRIV-04, HH-COM-12, OWN-DEC-72). Each version names
+  // the document ID saved with requests and the SHA-256 of its exact wording (@handyhub/domain/legal). Drafts stay
+  // marked until an attorney has reviewed them (OQ-ATTORNEY-PRIVACY).
+  'legal.privacy_notice': legalDocument,
+  'legal.sms_terms': legalDocument,
+  'legal.website_terms': legalDocument,
   // RULE-AI-WAVE2: only `false` is a valid value; the database refuses anything else as well.
   'ai.module': shape({ enabled: exactly(false) }),
 } as const satisfies Record<string, Parser<unknown>>
