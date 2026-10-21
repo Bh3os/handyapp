@@ -508,6 +508,37 @@ export const LABEL_FAMILIES = {
    * deliveryState and deliveryError families above.
    */
   deliveryChannel: ['email', 'sms'],
+  /** Visit purposes (TSK-0061, ENT-Visit; migration 0049): the Estimate visit and the three work visits. */
+  visitPurpose: ['site_estimate', 'service', 'follow_up', 'return_work'],
+  /** Visit states (ENT-Visit): tentative -> confirmed -> en_route -> arrived -> completed; expired, canceled, no_access. */
+  visitState: ['tentative', 'confirmed', 'en_route', 'arrived', 'completed', 'expired', 'canceled', 'no_access'],
+  /**
+   * Why the server refused a visit window or plan (TSK-0061; apps/server/src/modules/visits/visits.ts and
+   * @handyhub/domain/local-time WindowProblem), and the error codes shown when no field is named.
+   */
+  visitProblem: [
+    'DATE_INVALID',
+    'TIME_INVALID',
+    'WINDOW_ORDER',
+    'LOCAL_TIME_GAP',
+    'LOCAL_TIME_REPEATED',
+    'OFFSET_INVALID',
+    'WINDOW_IN_PAST',
+    'WINDOW_UNCHANGED',
+    'WINDOW_LOCKED',
+    'PROJECT_NOT_OPEN',
+    'PROJECT_NOT_ACTIVE',
+    'NO_JOB',
+    'PROPERTY_ZONE_UNKNOWN',
+    'BUSINESS_TIMEZONE_NOT_CONFIGURED',
+    'FORBIDDEN',
+    'NOT_FOUND',
+    'VALIDATION_FAILED',
+    'CONFLICT',
+    'NOT_CONFIGURED',
+    'INTERNAL',
+    'UNAVAILABLE',
+  ],
   /** How an estimate version was authored (HH-EST-11): written in the staff app, or an uploaded document. */
   authoringMethod: ['written', 'uploaded'],
   /** Estimate document states (TSK-0054; migration 0030, apps/server/src/modules/estimates/documents.ts). */

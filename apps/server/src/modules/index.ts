@@ -22,6 +22,7 @@ import { questionsModule } from './questions/index.js'
 import { SITE_MODULE } from './site/index.js'
 import { systemModule, type SystemDeps } from './system/index.js'
 import { verificationModule } from './verification/index.js'
+import { visitsModule } from './visits/index.js'
 import type { CodeKeySettings } from './identity/index.js'
 
 export type ModuleDeps = {
@@ -89,6 +90,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     propertiesModule({ accessCodeKey: deps.accessCodeKey ?? null }),
     // TSK-0051: staff questions, customer replies and portal messages, reminders and "Closed—no response".
     questionsModule(),
+    // TSK-0061: the visit model (tentative estimate and work visits, local windows in an IANA zone, window history).
+    visitsModule(),
   ]
 }
 

@@ -13,6 +13,7 @@ import { ESTIMATE_VERSION_MACHINE } from './estimate.js'
 import { HOLD_MACHINE } from './hold.js'
 import { PROJECT_MACHINE } from './project.js'
 import { REQUEST_MACHINE } from './request.js'
+import { VISIT_MACHINE } from './visit.js'
 
 export const PACKAGE_NAME = '@handyhub/domain'
 
@@ -129,6 +130,19 @@ export {
   isEditableEstimateState,
 } from './estimate.js'
 export type { EstimateVersionEvent, EstimateVersionFacts, EstimateVersionState } from './estimate.js'
+// TSK-0061: the visit model and local schedules in an explicit IANA zone.
+export {
+  canChangeWindow,
+  COMMITTED_VISIT_STATES,
+  isWorkVisitPurpose,
+  VISIT_MACHINE,
+  VISIT_PURPOSES,
+  VISIT_STATES,
+  WINDOW_CHANGE_STATES,
+  WORK_VISIT_PURPOSES,
+} from './visit.js'
+export type { VisitEvent, VisitFacts, VisitPurpose, VisitState } from './visit.js'
+export * from './local-time.js'
 
 /** Every machine, keyed `<entity>.<dimension>`. One key per state dimension, so dimensions never share a state. */
 export const MACHINES = {
@@ -136,6 +150,7 @@ export const MACHINES = {
   'project.lifecycle': PROJECT_MACHINE,
   'hold.lifecycle': HOLD_MACHINE,
   'estimate_version.lifecycle': ESTIMATE_VERSION_MACHINE,
+  'visit.lifecycle': VISIT_MACHINE,
 } as const
 export type MachineKey = keyof typeof MACHINES
 type M<K extends MachineKey> = (typeof MACHINES)[K]

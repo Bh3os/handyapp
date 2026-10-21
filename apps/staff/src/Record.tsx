@@ -17,6 +17,7 @@ import { ProjectEstimates } from './Estimates'
 import { RequestQuestions } from './Questions'
 import { codeLabel } from './Requests'
 import { clockText, clockTime, type ResponseClock } from './ResponseClock'
+import { ProjectVisitsSection } from './Visits'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
 type StaffRef = { id: string; name: string | null }
@@ -351,6 +352,14 @@ export function RequestRecord({
         projectId={view.project.id}
         go={go}
         href={href}
+      />
+      {/* TSK-0061: the project's visits (tentative estimate and work visits), for the roles that see the schedule. */}
+      <ProjectVisitsSection
+        key={`visits-${view.project.id}-${view.version}`}
+        t={t}
+        locale={locale}
+        fetchImpl={fetchImpl}
+        projectId={view.project.id}
       />
       <Notes t={t} fetchImpl={fetchImpl} view={view} onChanged={load} when={when} />
       <History t={t} view={view} when={when} />
