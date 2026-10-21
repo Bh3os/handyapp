@@ -25,6 +25,7 @@ import {
   requireConfirmationDepositGate,
 } from '../../src/modules/finance/index.js'
 import { squareLinkProblem } from '../../src/modules/finance/deposits.js'
+import { approvalFacts } from '../../src/modules/estimates/receipt.js'
 import { apiModules } from '../../src/modules/index.js'
 import { DEPOSIT_GATE, visitsModule, WORK_VISIT_GATES } from '../../src/modules/visits/index.js'
 import { loadConfig, recordPolicyVersion, type ConfigKey } from '../../src/platform/config/index.js'
@@ -1000,5 +1001,68 @@ describe('[HH-SCH-06][HH-SCH-11][HH-FIN-02][T36] planning or changing a work-vis
     expect((await pay('office', job.jobId, { method: 'cash', amountCents: 30_000 })).statusCode).toBe(201)
     const moved = await move(v.version)
     expect(moved.statusCode, moved.body).toBe(200)
+  })
+})
+
+describe('[HH-EST-12][OWN-DEC-105][C05] the step after approval reads the job’s deposit (TSK-0058, TSK-0059)', () => {
+  const overview = async (job: { reference: string; customerCookie: string }) =>
+    (
+      await app.inject({
+        method: 'GET',
+        url: `/api/v1/customer/projects/${job.reference}/overview`,
+        headers: { cookie: job.customerCookie },
+      })
+    ).json<{ status: { step: string; nextAction: string } }>()
+  const estimateNextStep = async (job: { reference: string; customerCookie: string; projectId: string }) => {
+    const v = await t.db
+      .selectFrom('estimating.estimate_versions as v')
+      .innerJoin('estimating.estimates as e', 'e.id', 'v.estimate_id')
+      .select(['e.number', 'v.version'])
+      .where('v.project_id', '=', job.projectId)
+      .executeTakeFirstOrThrow()
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/v1/customer/projects/${job.reference}/estimates/${v.number}/versions/${v.version}`,
+      headers: { cookie: job.customerCookie },
+    })
+    expect(res.statusCode, res.body).toBe(200)
+    return res.json<{ approval: { nextStep: string | null } }>().approval.nextStep
+  }
+
+  it('deposit due: the deposit wording; verified money or the Owner’s waiver: choose your work appointment', async () => {
+    const due = await approvedJob([{ kind: 'base', cents: 150_000 }])
+    expect(await approvalFacts(t.db, due.projectId)).toEqual({ estimateApproved: true, depositDue: true })
+    expect((await overview(due)).status).toMatchObject({ step: 'deposit_due', nextAction: 'pay_deposit' })
+    expect(await estimateNextStep(due)).toBe('deposit_due')
+    // A pending check does not change it.
+    await pay('office', due.jobId, {
+      method: 'check',
+      amountCents: 30_000,
+      reference: ref('CHECK'),
+      payerName: 'Synthetic Payer',
+    })
+    expect((await overview(due)).status.step).toBe('deposit_due')
+
+    const paid = await approvedJob([{ kind: 'base', cents: 150_000 }])
+    await pay('office', paid.jobId, { method: 'square_payment_link', amountCents: 30_000, reference: ref('SQ') })
+    expect(await approvalFacts(t.db, paid.projectId)).toEqual({ estimateApproved: true, depositDue: false })
+    expect((await overview(paid)).status.step).toBe('choose_work_appointment')
+    expect(await estimateNextStep(paid)).toBe('choose_work_appointment')
+
+    const waived = await approvedJob([{ kind: 'base', cents: 150_000 }])
+    expect(
+      (await staffWrite('owner', 'POST', `/api/v1/staff/jobs/${waived.jobId}/deposit/waiver`, { reason: 'Synthetic' }))
+        .statusCode,
+    ).toBe(200)
+    expect(await approvalFacts(t.db, waived.projectId)).toEqual({ estimateApproved: true, depositDue: false })
+    expect((await overview(waived)).status.step).toBe('choose_work_appointment')
+    expect(await estimateNextStep(waived)).toBe('choose_work_appointment')
+
+    const none = await approvedJob([{ kind: 'base', cents: 100_000 }])
+    expect(await approvalFacts(t.db, none.projectId)).toEqual({ estimateApproved: true, depositDue: false })
+    expect((await overview(none)).status.step).toBe('choose_work_appointment')
+    // Not approved: no approval facts.
+    const open = await readyRequest()
+    expect(await approvalFacts(t.db, open.projectId)).toEqual({ estimateApproved: false, depositDue: false })
   })
 })

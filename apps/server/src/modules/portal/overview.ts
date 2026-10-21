@@ -124,15 +124,15 @@ async function overviewFor(db: Reader, project: { id: string; reference: string 
       .executeTakeFirst()
     reopenByReply = w.window === 'reopen' && open !== undefined
   }
+  // TSK-0059: the job's deposit for the payment summary (the amount due, verified and pending money, the Square link).
   const payment = await customerDeposit(db, project.id)
   const facts: PortalFacts = {
     requestState: r.state as RequestState,
     projectState: p.state as ProjectState,
     ...(reopenByReply ? { reopenByReply } : {}),
-    // TSK-0058 (HH-EST-12, OWN-DEC-105): an approval and whether its required deposit is still due name the next step.
+    // TSK-0058 (HH-EST-12, OWN-DEC-105) with TSK-0059's deposit: an approved project waits on the customer's deposit
+    // while it is due; received or waived, the next step is choosing the work appointment.
     ...(await approvalFacts(db, project.id)),
-    // TSK-0059 (OWN-DEC-105): an approved project waits on the customer's deposit while it is due.
-    depositDue: payment.state === 'deposit_due',
   }
   const status = customerStatus(facts)
   // The entry that put the project where it is now dates the status and carries its customer text.

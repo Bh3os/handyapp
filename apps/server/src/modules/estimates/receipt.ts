@@ -23,7 +23,8 @@
 //   access (PROPOSED, OQ-APPROVAL-RECEIPT-MESSAGE).
 // - The next step (OWN-DEC-105, HH-EST-12): deposit required and not satisfied: "Estimate approved—pay your deposit to
 //   proceed with scheduling."; otherwise "Estimate approved—choose your work appointment." A deposit is satisfied or
-//   waived only by records TSK-0059 builds; until they exist a required deposit stays due (never assumed paid).
+//   waived only by TSK-0059's records (finance.deposit_requirements, its verified payments and the Owner's waiver),
+//   read through customerDeposit: a required deposit stays due until they say otherwise (never assumed paid).
 import { createHash, randomUUID } from 'node:crypto'
 import type { Db, Tx } from '@handyhub/db'
 import { customerStatus, type CustomerStep, type ProjectState, type RequestState } from '@handyhub/domain'
@@ -33,6 +34,7 @@ import { cents, formatUsd } from '@handyhub/money'
 import type { Automation } from '../../platform/automation.js'
 import { loadConfig } from '../../platform/config/index.js'
 import type { ObjectStorage } from '../../providers/index.js'
+import { customerDeposit } from '../finance/deposits.js'
 import { notificationAutomation, type Destination, type NotificationProviders } from '../notifications/index.js'
 import { ESTIMATE_APPROVED_EVENT } from './approval.js'
 import { discountRowLabel, renderPdfModel, type CustomerPdfModel, type PdfBlock } from './customer-pdf.js'
@@ -531,7 +533,9 @@ export type ApprovalNextStep = Extract<CustomerStep, 'deposit_due' | 'choose_wor
 
 /**
  * The approval facts of a project for the customer status (HH-PORT-02): approved, and whether its required deposit is
- * still due. TSK-0059 records deposit payments and the owner's waiver; until then a required deposit is due.
+ * still due. The deposit is TSK-0059's job deposit (customerDeposit): due while verified money does not cover it and
+ * the Owner has not waived it; received or waived, the next step is choosing the work appointment. A required deposit
+ * without its requirement record (never written apart from the approval) stays due: it is never assumed paid.
  */
 export async function approvalFacts(
   db: Reader,
@@ -544,7 +548,17 @@ export async function approvalFacts(
     .orderBy('created_at', 'desc')
     .limit(1)
     .executeTakeFirst()
-  return { estimateApproved: a !== undefined, depositDue: a?.deposit_state === 'required' }
+  if (!a) return { estimateApproved: false, depositDue: false }
+  const deposit = await customerDeposit(db, projectId)
+  if (deposit.state !== 'none') return { estimateApproved: true, depositDue: deposit.state === 'deposit_due' }
+  // 'none': not required, waived, or no requirement record yet.
+  if (a.deposit_state !== 'required') return { estimateApproved: true, depositDue: false }
+  const requirement = await db
+    .selectFrom('finance.deposit_requirements')
+    .select('id')
+    .where('project_id', '=', projectId)
+    .executeTakeFirst()
+  return { estimateApproved: true, depositDue: requirement === undefined }
 }
 
 /**
