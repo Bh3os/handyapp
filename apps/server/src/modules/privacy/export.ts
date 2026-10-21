@@ -5,7 +5,8 @@
 // own contact values, the privacy requests they made, the Request to Reschedule / Request Cancellation they made of
 // their appointments (TSK-0066: their own words and preferred times, the appointment's number and the request's
 // state; the staff decision reason and the cancellation outcome are staff handling) and photo counts. Other contacts of the customer (third parties),
-// staff-only notes and handling, staff details and audit entries are excluded and named so (PROPOSED; the attorney
+// staff-only notes and handling (the job packets of TSK-0069 are staff work records; the appointment reminders of
+// TSK-0067, like every message record, are not in the export), staff details and audit entries are excluded and named so (PROPOSED; the attorney
 // reviews what an export must hold). The answer is the PRIVACY_EXPORT customer view (allow-listed fields only).
 import type { Db, Tx } from '@handyhub/db'
 import { CUSTOMER_STATES } from '../estimates/model.js'

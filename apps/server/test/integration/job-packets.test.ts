@@ -23,6 +23,7 @@ import { createStaffUser, setPasswordHash } from '../../src/modules/identity/acc
 import { startCustomerSession } from '../../src/modules/identity/customer-sessions.js'
 import { readCodeKey, type CodeKeySettings } from '../../src/modules/identity/index.js'
 import { hashPassword } from '../../src/modules/identity/passwords.js'
+import { customerPlan, reapplyDeletions } from '../../src/modules/privacy/index.js'
 import {
   packetPdfModel,
   propertyVisitFacts,
@@ -871,5 +872,150 @@ describe('[HH-PKT-01][HH-PKT-02][HH-PKT-07] the versioned job packet', () => {
       expect(
         packetChanges(rows[i - 1]?.content as unknown as PacketContent, rows[i]?.content as unknown as PacketContent),
       ).toEqual(rows[i]?.changes)
+  })
+})
+
+describe('[HH-PRIV-03][HH-PKT-02] job packets in a privacy request (TSK-0100 x TSK-0069)', () => {
+  it("[HH-PRIV-03][HH-PKT-02] the search keeps the packet versions, views and exports with the job records; deleting the project's estimate never accepted leaves them", async () => {
+    const p = await project()
+    // An estimate published and withdrawn on the same project (never accepted, nothing blocks its deletion).
+    const created = await staffWrite('estimator', 'POST', `/api/v1/staff/projects/${p.projectId}/estimates`, {})
+    expect(created.statusCode, created.body).toBe(201)
+    const lost = created.json<{ estimateId: string; number: string; versionId: string }>()
+    const draft = (await staffGet('estimator', `/api/v1/staff/estimate-versions/${lost.versionId}`)).json<{
+      rowVersion: number
+      workPackages: { id: string }[]
+    }>()
+    const saved = await staffWrite(
+      'estimator',
+      'PUT',
+      `/api/v1/staff/estimate-versions/${lost.versionId}/draft`,
+      {
+        lines: [
+          {
+            kind: 'base',
+            workPackageId: draft.workPackages[0]?.id,
+            description: 'Synthetic: the withdrawn patch',
+            quantity: '1',
+            unit: 'patch',
+            unitPriceCents: 900,
+          },
+        ],
+        texts: {},
+      },
+      draft.rowVersion,
+    )
+    expect(saved.statusCode, saved.body).toBe(200)
+    const published = await staffWrite(
+      'estimator',
+      'POST',
+      `/api/v1/staff/estimate-versions/${lost.versionId}/publish`,
+      {},
+      saved.json<{ rowVersion: number }>().rowVersion,
+    )
+    expect(published.statusCode, published.body).toBe(200)
+    const withdrawn = await staffWrite(
+      'estimator',
+      'POST',
+      `/api/v1/staff/estimate-versions/${lost.versionId}/withdraw`,
+      { reason: 'Synthetic: sent by mistake.' },
+      published.json<{ rowVersion: number }>().rowVersion,
+    )
+    expect(withdrawn.statusCode, withdrawn.body).toBe(200)
+
+    const job = await approve(p)
+    await bookedVisit(p, day(9), 'ann')
+    const first = await packet('ann', job)
+    expect((await viewed('ann', job, first.packet.version)).statusCode).toBe(200)
+    const exported = await staffWrite('ann', 'POST', `/api/v1/staff/jobs/${job}/packet/exports`, {
+      version: first.packet.version,
+      format: 'print',
+    })
+    expect(exported.statusCode, exported.body).toBe(201)
+    const count = async (table: 'work.job_packets' | 'work.job_packet_views' | 'work.job_packet_exports') =>
+      Number(
+        (
+          await t.db
+            .selectFrom(table)
+            .select(sql<string>`count(*)::text`.as('n'))
+            .where('job_id', '=', job)
+            .executeTakeFirstOrThrow()
+        ).n,
+      )
+    const rows = async () => [
+      await count('work.job_packets'),
+      await count('work.job_packet_views'),
+      await count('work.job_packet_exports'),
+    ]
+    const before = await rows()
+    expect(before).toEqual([first.packet.version, 1, 1])
+
+    const owner = await t.db
+      .selectFrom('intake.requests as r')
+      .innerJoin('crm.projects as p', 'p.id', 'r.project_id')
+      .select(['p.customer_id', 'r.contact_id'])
+      .where('r.id', '=', p.requestId)
+      .executeTakeFirstOrThrow()
+    const plan = await customerPlan(t.db, {
+      customerId: owner.customer_id,
+      contactId: owner.contact_id,
+      accountIds: [],
+    })
+    const visits = await t.db.selectFrom('work.visits').select('id').where('project_id', '=', p.projectId).execute()
+    const changes = Number(
+      (
+        await t.db
+          .selectFrom('work.visit_changes')
+          .select(sql<string>`count(*)::text`.as('n'))
+          .where('project_id', '=', p.projectId)
+          .executeTakeFirstOrThrow()
+      ).n,
+    )
+    // The job, its visit and change history, and every packet version, view and export: retained job records.
+    expect(plan.items).toContainEqual(
+      expect.objectContaining({
+        category: 'job_records',
+        disposition: 'retain',
+        count: 1 + visits.length + changes + before.reduce((a, b) => a + b, 0),
+        reason: 'active_record',
+      }),
+    )
+    // The audit entries of the packet (they name the job) are counted with the rest.
+    const jobAudits = await t.db
+      .selectFrom('platform.audit_events')
+      .select('action')
+      .where('target_id', '=', job)
+      .execute()
+    expect(jobAudits.map((a) => a.action)).toContain('job_packet.export')
+    const audits = plan.items.find((i) => i.category === 'audit_log')
+    expect(audits?.count ?? 0).toBeGreaterThanOrEqual(jobAudits.length)
+    // The estimate never accepted is deletable; the accepted one is protected evidence.
+    expect(plan.deletable.estimates).toEqual([expect.objectContaining({ id: lost.estimateId })])
+
+    // Deleting it (the same erasure as Confirm Delete) leaves every packet record and the packet as it was.
+    const done = await withTx(t.db, (tx) =>
+      reapplyDeletions(
+        tx,
+        [
+          {
+            id: randomUUID(),
+            recordType: 'estimate',
+            recordId: lost.estimateId,
+            recordRef: lost.number,
+            reason: 'Synthetic: never accepted.',
+            decidedAt: new Date().toISOString(),
+          },
+        ],
+        { requestId: `req-${key('erase')}` },
+      ),
+    )
+    expect(done).toEqual([expect.objectContaining({ outcome: 'reapplied', blockers: [] })])
+    expect(
+      await t.db.selectFrom('estimating.estimates').select('id').where('id', '=', lost.estimateId).execute(),
+    ).toEqual([])
+    expect(await rows()).toEqual(before)
+    const after = await packet('ann', job)
+    expect(after.packet.version).toBe(first.packet.version)
+    expect(after.review.lastViewed?.version).toBe(first.packet.version)
   })
 })

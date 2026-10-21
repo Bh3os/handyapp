@@ -15,6 +15,14 @@
 //   Reschedule / Request Cancellation rows (work.visit_change_requests) are counted with their requests, retained as
 //   the record of what they asked (append-only, migration 0059; PROPOSED). Neither names an estimate version, so
 //   neither blocks nor is removed with an estimate never accepted.
+// - job packets (TSK-0069, migration 0061): the packet versions of the requester's jobs, what staff viewed and every
+//   print or PDF export are job records, retained with them (append-only; the packet holds no access code and no
+//   price). They name a job, never an estimate version: an estimate never accepted has no job (a job is protected
+//   evidence that blocks the estimate's deletion), so they are never removed with one.
+// - appointment reminders (TSK-0067, migration 0060): the reminder deliveries of the requester's visits (drafts,
+//   released, sent or cancelled; record 'visit') stay with the visits in the job records. They name a visit, never an
+//   estimate version, so an estimate deleted from the same project leaves them as they are (targets.ts removes only
+//   the unreleased reminder drafts of the estimate's own versions).
 // - exclude: other contacts of the same customer (third-party data, PROPOSED: neither exported nor deleted here). The
 //   search covers the requester's own projects: those of their requests and of their login accounts' links.
 // - financial records: the deposit records and recorded payments of the requester's projects (TSK-0064) are
@@ -300,7 +308,34 @@ export async function customerPlan(db: Reader, subject: PlanSubject, now = new D
         .executeTakeFirstOrThrow()
     ).n,
   )
-  add('job_records', 'retain', jobs + visits + visitChanges, 'active_record', 'job_records')
+  // The packet versions, views and exports of those jobs (TSK-0069) stay with the job records.
+  const packets = n(
+    (
+      await sql<{ n: string }>`SELECT (
+          (SELECT count(*) FROM work.job_packets k JOIN work.jobs j ON j.id = k.job_id
+            WHERE j.project_id = ANY(${sql.val(inProjects)}::uuid[]))
+        + (SELECT count(*) FROM work.job_packet_views k JOIN work.jobs j ON j.id = k.job_id
+            WHERE j.project_id = ANY(${sql.val(inProjects)}::uuid[]))
+        + (SELECT count(*) FROM work.job_packet_exports k JOIN work.jobs j ON j.id = k.job_id
+            WHERE j.project_id = ANY(${sql.val(inProjects)}::uuid[])))::text AS n`.execute(db)
+    ).rows[0]?.n,
+  )
+  // The appointment reminders of those visits (TSK-0067: message deliveries of the visit record) stay with them.
+  const visitReminders = await db
+    .selectFrom('platform.message_deliveries as d')
+    .innerJoin('work.visits as v', (j) => j.on(sql<boolean>`v.id::text = d.record_id`))
+    .select('d.id')
+    .where('d.record_type', '=', 'visit')
+    .where('d.message_key', '=', 'reminder.appointment')
+    .where('v.project_id', 'in', inProjects)
+    .execute()
+  add(
+    'job_records',
+    'retain',
+    jobs + visits + visitChanges + packets + visitReminders.length,
+    'active_record',
+    'job_records',
+  )
   // The requester's own change requests of their visits (TSK-0066, HH-PORT-04): the record of what they asked.
   const changeRequests = n(
     (
@@ -364,7 +399,8 @@ export async function customerPlan(db: Reader, subject: PlanSubject, now = new D
           .execute()
       ).map((v) => v.id)
     : []
-  // The audit entries of the projects' visits and change requests (TSK-0065, TSK-0066) are counted with the rest.
+  // The audit entries of the projects' visits and change requests (TSK-0065, TSK-0066), of their jobs (the job packet
+  // entries name the job, TSK-0069) and of the visits' appointment reminders (TSK-0067) are counted with the rest.
   const visitTargets = projectIds.length
     ? [
         ...(await db.selectFrom('work.visits').select('id').where('project_id', 'in', projectIds).execute()),
@@ -373,6 +409,8 @@ export async function customerPlan(db: Reader, subject: PlanSubject, now = new D
           .select('id')
           .where('project_id', 'in', projectIds)
           .execute()),
+        ...(await db.selectFrom('work.jobs').select('id').where('project_id', 'in', projectIds).execute()),
+        ...visitReminders,
       ].map((v) => v.id)
     : []
   const targets = [...projectIds, ...requestIds, ...versionIds, ...estimates.map((e) => e.id), ...visitTargets]

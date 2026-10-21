@@ -11,6 +11,7 @@ import { randomUUID } from 'node:crypto'
 import { createDb, loadServiceSeed, syncServices, withTx, type Db } from '@handyhub/db'
 import { createTestDatabase, type TestDatabase } from '@handyhub/db/testing'
 import { addLocalDays, localDateOf } from '@handyhub/domain'
+import { ESTIMATE_TERMS } from '@handyhub/domain/legal'
 import type { FastifyInstance } from 'fastify'
 import { sql } from 'kysely'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -21,6 +22,7 @@ import { startCustomerSession } from '../../src/modules/identity/customer-sessio
 import { readCodeKey, type CodeKeySettings } from '../../src/modules/identity/index.js'
 import { hashPassword } from '../../src/modules/identity/passwords.js'
 import { nextContactTime, releaseAutomation } from '../../src/modules/notifications/index.js'
+import { customerPlan, reapplyDeletions } from '../../src/modules/privacy/index.js'
 import {
   appointmentReminderAutomations,
   appointmentReminderRecordCheck,
@@ -746,5 +748,107 @@ describe('[HH-COM-11][RULE-SERVER-AUTHZ] who reviews, sends and dismisses', () =
     expect((await reminders(v.id))[0]?.state).toBe('draft')
     // Another message's delivery is not an appointment reminder.
     expect((await releaseIt(randomUUID())).statusCode).toBe(404)
+  })
+})
+
+describe('[HH-PRIV-03][HH-COM-11] appointment reminders in a privacy request (TSK-0100 x TSK-0067)', () => {
+  it("[HH-PRIV-03][HH-COM-11] the search keeps a visit's reminders with the job records; deleting the project's estimate never accepted leaves the draft and its queue item", async () => {
+    // The estimate terms version is a fixture of this throwaway database (publishing names it).
+    await recordPolicyVersion(t.db, {
+      key: 'legal.estimate_terms',
+      value: {
+        documentId: ESTIMATE_TERMS.documentId,
+        status: 'approved',
+        attorneyReviewed: true,
+        preparedOn: ESTIMATE_TERMS.preparedOn,
+        contentSha256: ESTIMATE_TERMS.contentSha256,
+      },
+      sourceIds: ['TEST-SYNTHETIC'],
+      changedBy: 'test',
+      reason: 'synthetic test configuration',
+    })
+    const { pr, v, row } = await drafted()
+    const created = await staffWrite('estimator', `/api/v1/staff/projects/${pr.projectId}/estimates`)
+    expect(created.statusCode, created.body).toBe(201)
+    const lost = created.json<{ estimateId: string; number: string; versionId: string }>()
+    const draft = (await staffGet('estimator', `/api/v1/staff/estimate-versions/${lost.versionId}`)).json<{
+      rowVersion: number
+      workPackages: { id: string }[]
+    }>()
+    const saved = await staffWrite(
+      'estimator',
+      `/api/v1/staff/estimate-versions/${lost.versionId}/draft`,
+      {
+        lines: [
+          {
+            kind: 'base',
+            workPackageId: draft.workPackages[0]?.id,
+            description: 'Synthetic: the withdrawn ceiling patch',
+            quantity: '1',
+            unit: 'patch',
+            unitPriceCents: 900,
+          },
+        ],
+        texts: {},
+      },
+      draft.rowVersion,
+      'PUT',
+    )
+    expect(saved.statusCode, saved.body).toBe(200)
+    const published = await staffWrite(
+      'estimator',
+      `/api/v1/staff/estimate-versions/${lost.versionId}/publish`,
+      {},
+      saved.json<{ rowVersion: number }>().rowVersion,
+    )
+    expect(published.statusCode, published.body).toBe(200)
+    const withdrawn = await staffWrite(
+      'estimator',
+      `/api/v1/staff/estimate-versions/${lost.versionId}/withdraw`,
+      { reason: 'Synthetic: sent by mistake.' },
+      published.json<{ rowVersion: number }>().rowVersion,
+    )
+    expect(withdrawn.statusCode, withdrawn.body).toBe(200)
+
+    const owner = await t.db
+      .selectFrom('intake.requests as r')
+      .innerJoin('crm.projects as p', 'p.id', 'r.project_id')
+      .select(['p.customer_id', 'r.contact_id'])
+      .where('r.id', '=', pr.requestId)
+      .executeTakeFirstOrThrow()
+    const plan = await customerPlan(t.db, {
+      customerId: owner.customer_id,
+      contactId: owner.contact_id,
+      accountIds: [],
+    })
+    // The visit and its one reminder draft: retained job records; the estimate never accepted is deletable.
+    expect(plan.items).toContainEqual(
+      expect.objectContaining({ category: 'job_records', disposition: 'retain', count: 2, reason: 'active_record' }),
+    )
+    expect(plan.deletable.estimates).toEqual([expect.objectContaining({ id: lost.estimateId })])
+
+    const done = await withTx(t.db, (tx) =>
+      reapplyDeletions(
+        tx,
+        [
+          {
+            id: randomUUID(),
+            recordType: 'estimate',
+            recordId: lost.estimateId,
+            recordRef: lost.number,
+            reason: 'Synthetic: never accepted.',
+            decidedAt: new Date().toISOString(),
+          },
+        ],
+        { requestId: `req-${key('erase')}` },
+      ),
+    )
+    expect(done).toEqual([expect.objectContaining({ outcome: 'reapplied', blockers: [] })])
+    // The visit's reminder is not the estimate's data: the draft, its content and its open queue item stay.
+    const [still] = await reminders(v.id)
+    expect(still).toMatchObject({ id: row.id, state: 'draft', record_type: 'visit', record_id: v.id })
+    expect(still?.updated_at).toEqual(row.updated_at)
+    expect((await itemsOf('appointment_reminder', v.id)).map((i) => i.resolved_at)).toEqual([null])
+    expect((await view(v.id)).reminders[0]).toMatchObject({ id: row.id, state: 'draft', current: true })
   })
 })
