@@ -8,6 +8,7 @@ import { LABEL_FAMILIES, type StaffKey, type StaffLocale } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
+import { LinkHistory, type RecordLink } from './RecordLinks'
 import { codeLabel } from './Requests'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
@@ -32,12 +33,16 @@ export type CustomerDetail = {
   displayName: string
   status: string
   mergedIntoId: string | null
+  /** TSK-0046: the survivor this record was merged into. */
+  mergedInto: { id: string; displayName: string } | null
   provenance: string
   language: string
   createdAt: string
   version: number
   contacts: {
     id: string
+    /** The record the contact belongs to: this one, or a record merged into it (TSK-0046). */
+    customerId: string
     fullName: string
     email: string
     phone: string
@@ -66,12 +71,16 @@ export type CustomerDetail = {
     propertyType: string
     coverage: string
     relationship: string
+    customerId: string
   }[]
   projects: {
     id: string
     reference: string
     state: string
     createdAt: string
+    /** The customer the project was created for, and the one staff see it under now (TSK-0046). */
+    customerId: string
+    currentCustomerId: string
     requests: { id: string; reference: string; state: string; submittedAt: string }[]
   }[]
   documents: { state: 'not_available' }
@@ -108,11 +117,15 @@ export type CustomerDetail = {
     state: string | null
   }[]
   timelineTruncated: boolean
+  links: RecordLink[]
   actions: {
     edit: boolean
     addNote: boolean
     recordWithdrawal: boolean
     reviewCandidates: boolean
+    merge: boolean
+    relink: boolean
+    reverseLinks: boolean
     noteVisibilities: string[]
   }
 }
@@ -365,7 +378,17 @@ export function CustomerRecord({
           <code>{view.id}</code>
         </dd>
       </dl>
-      {view.status === 'merged' ? <StateView kind="blocked" title={t('customer.merged')} /> : null}
+      {view.status === 'merged' ? (
+        <>
+          <StateView kind="blocked" title={t('customer.merged')} />
+          {view.mergedInto ? (
+            <p>
+              {t('customer.mergedInto')}{' '}
+              <a {...link(`/customers/${view.mergedInto.id}`)}>{view.mergedInto.displayName}</a>
+            </p>
+          ) : null}
+        </>
+      ) : null}
       {view.actions.edit ? <EditName ctx={ctx} /> : null}
       <Contacts ctx={ctx} />
       <Properties ctx={ctx} />
@@ -377,6 +400,15 @@ export function CustomerRecord({
         <p>{t('customer.notAvailable')}</p>
       </Section>
       {view.candidates.visible ? <Candidates ctx={ctx} /> : null}
+      <LinkHistory
+        t={t}
+        links={view.links}
+        when={ctx.when}
+        link={link}
+        canReverse={view.actions.reverseLinks}
+        fetchImpl={fetchImpl}
+        reload={reload}
+      />
       <Notes ctx={ctx} />
       <Timeline ctx={ctx} />
       <p>{back}</p>
@@ -513,8 +545,14 @@ function Contacts({ ctx }: { ctx: Ctx }) {
           ) : (
             <p>{t('customer.noConsent')}</p>
           )}
-          {view.actions.edit ? <EditContact ctx={ctx} contact={c} /> : null}
-          {view.actions.recordWithdrawal ? <Withdrawal ctx={ctx} contact={c} /> : null}
+          {c.customerId !== view.id ? (
+            <p className="staff-request__hint">
+              {t('customer.fromMergedRecord')}{' '}
+              <a {...ctx.link(`/customers/${c.customerId}`)}>{t('customer.openRecord')}</a>
+            </p>
+          ) : null}
+          {view.actions.edit && c.customerId === view.id ? <EditContact ctx={ctx} contact={c} /> : null}
+          {view.actions.recordWithdrawal && c.customerId === view.id ? <Withdrawal ctx={ctx} contact={c} /> : null}
         </article>
       ))}
     </Section>
@@ -660,7 +698,7 @@ function Withdrawal({ ctx, contact }: { ctx: Ctx; contact: Contact }) {
 }
 
 function Properties({ ctx }: { ctx: Ctx }) {
-  const { t, view } = ctx
+  const { t, view, link } = ctx
   return (
     <Section id="customer-properties" title={t('customer.properties')}>
       {view.properties.length ? (
@@ -668,7 +706,9 @@ function Properties({ ctx }: { ctx: Ctx }) {
           {view.properties.map((p) => (
             <li key={p.id}>
               {[p.street, p.unit].filter(Boolean).join(', ')}, {p.city}, {p.state} {p.zip} —{' '}
-              {codeLabel(t, 'propertyType', p.propertyType)} · {codeLabel(t, 'coverageResult', p.coverage)}
+              {codeLabel(t, 'propertyType', p.propertyType)} · {codeLabel(t, 'coverageResult', p.coverage)}{' '}
+              {/* The property record: details, address history and access codes (TSK-0045). */}
+              <a {...link(`/properties/${p.id}`)}>{t('customer.openProperty')}</a>
             </li>
           ))}
         </ul>
@@ -691,6 +731,18 @@ function Projects({ ctx }: { ctx: Ctx }) {
                 {t('customer.project', { reference: p.reference })}{' '}
                 <StatusBadge>{codeLabel(t, 'projectState', p.state)}</StatusBadge>
               </p>
+              {p.customerId !== view.id ? (
+                <p className="staff-request__hint">
+                  {t('customer.projectLinkedHere')}{' '}
+                  <a {...link(`/customers/${p.customerId}`)}>{t('customer.openRecord')}</a>
+                </p>
+              ) : null}
+              {p.currentCustomerId !== view.id ? (
+                <p className="staff-request__hint">
+                  {t('customer.projectNowUnder')}{' '}
+                  <a {...link(`/customers/${p.currentCustomerId}`)}>{t('customer.openRecord')}</a>
+                </p>
+              ) : null}
               <ul>
                 {p.requests.map((r) => (
                   <li key={r.id}>
@@ -737,6 +789,14 @@ function Candidates({ ctx }: { ctx: Ctx }) {
                     time: when(m.lastReview.at),
                     reason: m.lastReview.reason,
                   })}
+                </p>
+              ) : null}
+              {m.status === 'open' &&
+              view.actions.reviewCandidates &&
+              view.actions.merge &&
+              m.customer.status !== 'merged' ? (
+                <p>
+                  <a {...link(`/customers/${view.id}/merge?into=${m.customer.id}`)}>{t('customer.reviewMerge')}</a>
                 </p>
               ) : null}
               {m.status === 'open' && view.actions.reviewCandidates ? <Dismiss ctx={ctx} match={m} /> : null}

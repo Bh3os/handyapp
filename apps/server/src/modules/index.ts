@@ -11,9 +11,11 @@ import { CUSTOMERS_MODULE } from './customers/index.js'
 import { inboxModule } from './inbox/index.js'
 import { NOTIFICATIONS_MODULE } from './notifications/index.js'
 import { photosModule } from './photos/index.js'
+import { propertiesModule } from './properties/index.js'
 import { QUEUE_MODULE } from './queue/index.js'
 import { requestsModule } from './requests/index.js'
 import { accessModule } from './access/index.js'
+import { accountsModule } from './accounts/index.js'
 import { portalModule } from './portal/index.js'
 import { SITE_MODULE } from './site/index.js'
 import { systemModule, type SystemDeps } from './system/index.js'
@@ -38,6 +40,8 @@ export type ModuleDeps = {
    * and the receipt's code limits (TSK-0033) count the client network behind them.
    */
   trustProxyHops?: number
+  /** Seals property access codes (TSK-0045); unset or null: the access-code store is NOT CONFIGURED. */
+  accessCodeKey?: Secret | null
 }
 
 const NO_CODE_KEY: CodeKeySettings = { state: 'not_configured', missing: ['CODE_HASH_KEY'] }
@@ -63,12 +67,16 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     verificationModule({ codeKey: deps.codeKey ?? NO_CODE_KEY, trustProxyHops: deps.trustProxyHops ?? 0 }),
     // TSK-0034: the project access link landing and the opened project.
     accessModule({ codeKey: deps.codeKey ?? NO_CODE_KEY, trustProxyHops: deps.trustProxyHops ?? 0 }),
+    // TSK-0036: optional customer accounts with one-time-code sign-in, Sign Out and sign-in email changes.
+    accountsModule({ codeKey: deps.codeKey ?? NO_CODE_KEY, trustProxyHops: deps.trustProxyHops ?? 0 }),
     // TSK-0038: the customer project workspace frame (projects list and Overview); TSK-0039: the other five tabs.
     portalModule(),
     // TSK-0044: staff customer and contact records, notes with visibility classes and duplicate suggestions.
     CUSTOMERS_MODULE,
     // TSK-0049: the unified inbox, Needs Linking and the inbound channel states (from this process's settings).
     inboxModule({ providers: deps.system?.providers ?? null }),
+    // TSK-0045: property records and the protected access-code store.
+    propertiesModule({ accessCodeKey: deps.accessCodeKey ?? null }),
   ]
 }
 

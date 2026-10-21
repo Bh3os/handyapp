@@ -109,6 +109,33 @@ export interface CommsProjectReplyTokensTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface CrmAccessCodeRevealsTable {
+  id: Generated<string>
+  secret_id: string
+  property_id: string
+  staff_id: string
+  roles: string[]
+  request_id: string
+  revealed_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CrmAccessInstructionSecretsTable {
+  id: string
+  property_id: string
+  kind: string
+  label: string | null
+  sealed_value: string | null
+  source: string
+  confirmed_at: ColumnType<Date, Date | string | undefined, Date | string>
+  confirmed_by: string
+  created_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  removed_at: Timestamp | null
+  removed_by: string | null
+  removal_reason: string | null
+  version: Generated<number>
+}
+
 export interface CrmCandidateMatchEventsTable {
   id: Generated<string>
   match_id: string
@@ -203,6 +230,44 @@ export interface CrmPropertiesTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   version: Generated<number>
   coverage_rule_set: number | null
+  address_version: Generated<number>
+}
+
+export interface CrmPropertyAddressesTable {
+  property_id: string
+  address_version: number
+  street: string
+  unit: string | null
+  city: string
+  state: string
+  zip: string
+  source: string
+  reason: string | null
+  recorded_by: string | null
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CrmPropertyChangesTable {
+  id: Generated<string>
+  property_id: string
+  detail: string
+  action: string
+  previous: Json
+  current: Json
+  source: string
+  reason: string
+  changed_by: string
+  changed_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CrmPropertyDetailsTable {
+  property_id: string
+  detail: string
+  value: string | null
+  source: string
+  confirmed_at: Timestamp
+  confirmed_by: string | null
+  version: Generated<number>
 }
 
 export interface CrmRecordChangesTable {
@@ -216,6 +281,28 @@ export interface CrmRecordChangesTable {
   reason: string
   changed_by: string
   changed_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CrmRecordLinksTable {
+  id: Generated<string>
+  seq: ColumnType<string, bigint | number | string | undefined, bigint | number | string>
+  kind: string
+  source_customer_id: string
+  target_customer_id: string
+  source_status: string | null
+  request_id: string | null
+  project_id: string | null
+  candidate_match_id: string | null
+  reason: string
+  preview: Json
+  correction: boolean
+  access_recheck: Json
+  performed_by: string
+  performed_at: ColumnType<Date, Date | string | undefined, Date | string>
+  reversed_at: Timestamp | null
+  reversed_by: string | null
+  reverse_reason: string | null
+  reversal_recheck: Json | null
 }
 
 export interface EstimatingEstimateDocumentsTable {
@@ -338,6 +425,53 @@ export interface IdentityAuthIdentitiesTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface IdentityCustomerAccountChangesTable {
+  id: string
+  account_id: string
+  kind: string
+  authority: string
+  old_value: string | null
+  session_id: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface IdentityCustomerAccountsTable {
+  id: string
+  credential_type: Generated<string>
+  state: Generated<string>
+  sign_in_email: string | null
+  email_verified_at: Timestamp | null
+  sign_in_phone: string | null
+  phone_verified_at: Timestamp | null
+  customer_id: string
+  contact_id: string
+  enrolled_via: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  closed_at: Timestamp | null
+  close_reason: string | null
+  closed_by: string | null
+  version: Generated<number>
+}
+
+export interface IdentityCustomerIdentityLinksTable {
+  id: string
+  account_id: string
+  customer_id: string
+  contact_id: string
+  project_id: string
+  request_id: string
+  authority: string
+  evidence: string
+  evidence_channel: string
+  evidence_code_id: string
+  state: string
+  decided_by: string
+  decided_at: Timestamp
+  revoked_at: Timestamp | null
+  revoke_reason: string | null
+  revoked_by: string | null
+}
+
 export interface IdentityCustomerSessionsTable {
   id: string
   token_hash: string
@@ -353,6 +487,8 @@ export interface IdentityCustomerSessionsTable {
   revoked_at: Timestamp | null
   revoke_reason: string | null
   grant_id: string | null
+  account_id: string | null
+  sign_in_channel: string | null
 }
 
 export interface IdentityProjectAccessGrantsTable {
@@ -932,6 +1068,8 @@ export interface Database {
   'comms.message_links': CommsMessageLinksTable
   'comms.messages': CommsMessagesTable
   'comms.project_reply_tokens': CommsProjectReplyTokensTable
+  'crm.access_code_reveals': CrmAccessCodeRevealsTable
+  'crm.access_instruction_secrets': CrmAccessInstructionSecretsTable
   'crm.candidate_match_events': CrmCandidateMatchEventsTable
   'crm.candidate_matches': CrmCandidateMatchesTable
   'crm.contacts': CrmContactsTable
@@ -940,7 +1078,11 @@ export interface Database {
   'crm.customers': CrmCustomersTable
   'crm.projects': CrmProjectsTable
   'crm.properties': CrmPropertiesTable
+  'crm.property_addresses': CrmPropertyAddressesTable
+  'crm.property_changes': CrmPropertyChangesTable
+  'crm.property_details': CrmPropertyDetailsTable
   'crm.record_changes': CrmRecordChangesTable
+  'crm.record_links': CrmRecordLinksTable
   'estimating.estimate_documents': EstimatingEstimateDocumentsTable
   'estimating.estimate_line_costs': EstimatingEstimateLineCostsTable
   'estimating.estimate_lines': EstimatingEstimateLinesTable
@@ -948,6 +1090,9 @@ export interface Database {
   'estimating.estimate_versions': EstimatingEstimateVersionsTable
   'estimating.estimates': EstimatingEstimatesTable
   'identity.auth_identities': IdentityAuthIdentitiesTable
+  'identity.customer_account_changes': IdentityCustomerAccountChangesTable
+  'identity.customer_accounts': IdentityCustomerAccountsTable
+  'identity.customer_identity_links': IdentityCustomerIdentityLinksTable
   'identity.customer_sessions': IdentityCustomerSessionsTable
   'identity.project_access_grants': IdentityProjectAccessGrantsTable
   'identity.rate_limits': IdentityRateLimitsTable

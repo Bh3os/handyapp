@@ -1,8 +1,9 @@
 // Customers module (TSK-0044; HH-CRM-01, HH-ID-02, HH-STAFF-05, HH-STAFF-04, OWN-DEC-117, RULE-SERVER-AUTHZ): the
 // staff customer list and record, staff edits of customer and contact details with a reason, notes with a visibility
 // class, staff-recorded opt-outs, and the review of candidate matches. Every read and write is inside the caller's
-// scope (TSK-0037); an altered ID finds nothing. Nothing here merges or links customers (HH-CRM-04, TSK-0046), and
-// no route here answers a customer: customer and contact records have no customer projection (records/projections).
+// scope (TSK-0037); an altered ID finds nothing. The human-reviewed merges, relinks and the Owner's reversal are in
+// link-routes.ts and links.ts (TSK-0046, HH-CRM-04); nothing is ever merged or linked automatically. No route here
+// answers a customer: customer and contact records have no customer projection (records/projections).
 import type { Tx } from '@handyhub/db'
 import { looksLikeCardNumber, type NoteVisibility } from '@handyhub/domain'
 import { normalizeUsPhone } from '@handyhub/domain/request-form'
@@ -11,9 +12,11 @@ import { sql } from 'kysely'
 import { ApiError } from '../../api/errors.js'
 import { pageSchema, toPage } from '../../api/pagination.js'
 import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
-import { customerInScope } from '../../platform/data-scope.js'
+import { customerInScope, projectInScope } from '../../platform/data-scope.js'
 import { currentContext } from '../../platform/request-context.js'
 import { currentConsent, recordConsent } from '../notifications/index.js'
+import { LINK_ROUTES } from './link-routes.js'
+import { projectRoots } from './links.js'
 import { candidateMatchAutomation, contactChanged, syncCandidateItem } from './matching.js'
 import { staffCustomerView } from './record.js'
 import {
@@ -39,6 +42,18 @@ export {
   syncCandidateItem,
 } from './matching.js'
 export { staffCustomerView } from './record.js'
+export {
+  customerRoot,
+  linkHistory,
+  mergeCustomers,
+  mergePreview,
+  projectCustomers,
+  projectsUnder,
+  recheckAccess,
+  relinkPreview,
+  relinkRequest,
+  reverseLink,
+} from './links.js'
 
 const TEST = 'test/integration/customers.test.ts'
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -178,8 +193,15 @@ const list: RouteDef = {
             eb
               .selectFrom('crm.projects as p')
               .select('p.id')
-              .whereRef('p.customer_id', '=', 'cu.id')
-              .where('p.reference', '=', q.toUpperCase()),
+              .where('p.reference', '=', q.toUpperCase())
+              .where(projectInScope('p.id', ctx.scope))
+              // The customer it was created for, and the one staff see it under now (TSK-0046).
+              .where((e) =>
+                e.or([
+                  e('p.customer_id', '=', e.ref('cu.id')),
+                  e(sql<string>`crm.project_customer(p.id)`, '=', e.ref('cu.id')),
+                ]),
+              ),
           ),
         ]),
       )
@@ -216,14 +238,22 @@ const list: RouteDef = {
           .orderBy('cp.created_at')
           .execute()
       : []
-    const projects = ids.length
-      ? await ctx.db
-          .selectFrom('crm.projects')
-          .select(['customer_id', ({ fn }) => fn.countAll<string>().as('n')])
-          .where('customer_id', 'in', ids)
-          .groupBy('customer_id')
-          .execute()
-      : []
+    // Projects as staff see them (TSK-0046): a customer's own, its merged records' and those linked to it; a merged
+    // record counts the projects it was created with.
+    const merged = out.items.filter((r) => r.status === 'merged').map((r) => r.id)
+    const live = ids.filter((i) => !merged.includes(i))
+    const counts = new Map<string, number>()
+    for (const root of (await projectRoots(ctx.db, live, ctx.scope)).values())
+      counts.set(root, (counts.get(root) ?? 0) + 1)
+    if (merged.length)
+      for (const p of await ctx.db
+        .selectFrom('crm.projects')
+        .select(['customer_id', ({ fn }) => fn.countAll<string>().as('n')])
+        .where('customer_id', 'in', merged)
+        .where(projectInScope('id', ctx.scope))
+        .groupBy('customer_id')
+        .execute())
+        counts.set(p.customer_id, Number(p.n))
     const mayViewDuplicates =
       ctx.actor.kind === 'staff' &&
       listingScope(ctx.actor.roles, ctx.actor.capabilities, 'customer.view_duplicates') === 'all'
@@ -249,7 +279,7 @@ const list: RouteDef = {
             email: c?.email ?? null,
             phone: c?.phone_e164 ?? null,
             city: cities.find((x) => x.customer_id === r.id)?.city ?? null,
-            projects: Number(projects.find((x) => x.customer_id === r.id)?.n ?? 0),
+            projects: counts.get(r.id) ?? 0,
             possibleDuplicates: mayViewDuplicates
               ? open.filter((m) => m.customer_id === r.id || m.candidate_customer_id === r.id).length
               : null,
@@ -663,6 +693,7 @@ export const CUSTOMERS_ROUTES: readonly RouteDef[] = [
   addNote,
   recordWithdrawal,
   dismissCandidate,
+  ...LINK_ROUTES,
 ]
 
 export const CUSTOMERS_MODULE: ApiModule = { name: 'customers', routes: CUSTOMERS_ROUTES }

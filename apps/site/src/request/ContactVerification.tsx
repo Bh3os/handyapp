@@ -6,13 +6,16 @@
 // - Change Contact (email): the code goes to the new address, and the email changes only when that code is entered.
 // - Everything shown comes from the server's answer about this request's own contact, under this tab's receipt
 //   capability; nothing about any other request, customer or account is ever asked for or shown.
-// - After a contact is verified, Create an Account is offered as optional. Accounts are not available yet (TSK-0036),
-//   so the button says so; "No thanks" hides the offer and changes nothing else.
+// - After a contact is verified, Create an Account is offered as optional; "No thanks" hides the offer and changes
+//   nothing else. TSK-0036: Create an Account sends a one-time code to a verified value and creates the account (or
+//   signs in to the one that value has) with this request's project in it (account/AccountEnrollment.tsx).
 // - TSK-0034: a verified code also starts this browser's session for the request's one project; the receipt then
 //   offers View My Request.
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { Button, Field, StatusBadge } from '@handyhub/ui'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { AccountEnrollment } from '../account/AccountEnrollment.js'
+import type { EnrollChannel } from '../account/account.js'
 import {
   api,
   CHANNEL_LABEL,
@@ -213,24 +216,16 @@ function ChannelRow({ channel, status, capability, fetchImpl, onStatus, onProjec
   )
 }
 
-function AccountOffer({ onDecline, pending }: { onDecline: () => void; pending: boolean }) {
-  return (
-    <section className="hh-receipt__section" aria-labelledby="hh-account-offer">
-      <h3 id="hh-account-offer" className="hh-h3">
-        {t('request.account.title')}
-      </h3>
-      <p>{t('request.continue.accountText')}</p>
-      <p>{t('request.account.optional')}</p>
-      <div className="hh-request__actions">
-        <Button variant="secondary" disabledReason={t('request.continue.accountsUnavailable')}>
-          {t('request.continue.account')}
-        </Button>
-        <Button variant="quiet" pending={pending} onClick={onDecline}>
-          {t('request.account.decline')}
-        </Button>
-      </div>
-    </section>
-  )
+/** TSK-0036: the values an account can be created with: the verified ones (the phone only when it can be texted). */
+export function enrollChannels(status: ContactStatus): EnrollChannel[] {
+  return [
+    ...(status.email.state === 'verified'
+      ? [{ channel: 'email' as const, destination: status.email.destination }]
+      : []),
+    ...(status.phone.state === 'verified' && status.phone.available
+      ? [{ channel: 'phone' as const, destination: status.phone.destination }]
+      : []),
+  ]
 }
 
 export function ContactVerification({
@@ -311,8 +306,15 @@ export function ContactVerification({
           </>
         )}
       </section>
-      {offerAccount(status, declined) ? (
-        <AccountOffer onDecline={() => void decline()} pending={declining} />
+      {offerAccount(status, declined) && capability && status ? (
+        <AccountEnrollment
+          from={{ kind: 'receipt', capability }}
+          channels={enrollChannels(status)}
+          onDecline={() => void decline()}
+          declining={declining}
+          onEnrolled={onProjectAccess}
+          fetchImpl={fetchImpl}
+        />
       ) : justDeclined ? (
         <p role="status">{t('request.account.declined')}</p>
       ) : null}

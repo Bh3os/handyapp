@@ -31,6 +31,28 @@ const STAFF_REF = {
 }
 const PERMISSION = obj({ state: { type: 'string', enum: ['granted', 'withdrawn', 'none'] }, since: NS })
 
+const LINK_ACCESS = obj({ grantsRevoked: I, sessionsRevoked: I, projectsAdded: I })
+const CUSTOMER_REF = obj({ id: S, displayName: S })
+const LINK = obj({
+  id: S,
+  kind: { type: 'string', enum: ['merge', 'request_relink'] },
+  state: { type: 'string', enum: ['current', 'reversed', 'replaced'] },
+  from: CUSTOMER_REF,
+  to: CUSTOMER_REF,
+  requestReference: NS,
+  reason: S,
+  by: obj({ id: S, name: NS }),
+  at: S,
+  correction: B,
+  access: LINK_ACCESS,
+  reversal: {
+    type: ['object', 'null'],
+    additionalProperties: false,
+    required: ['by', 'at', 'reason', 'access'],
+    properties: { by: obj({ id: S, name: NS }), at: S, reason: S, access: LINK_ACCESS },
+  },
+})
+
 export const LIST_ITEM = obj({
   id: S,
   displayName: S,
@@ -50,6 +72,13 @@ export const RECORD = obj({
   displayName: S,
   status: S,
   mergedIntoId: NS,
+  /** TSK-0046: the survivor this record was merged into. */
+  mergedInto: {
+    type: ['object', 'null'],
+    additionalProperties: false,
+    required: ['id', 'displayName'],
+    properties: { id: S, displayName: S },
+  },
   provenance: S,
   language: S,
   createdAt: S,
@@ -57,6 +86,8 @@ export const RECORD = obj({
   contacts: arr(
     obj({
       id: S,
+      /** The record the contact belongs to (a merged record's contacts stay on it, TSK-0046). */
+      customerId: S,
       fullName: S,
       email: S,
       phone: S,
@@ -89,6 +120,7 @@ export const RECORD = obj({
       propertyType: S,
       coverage: S,
       relationship: S,
+      customerId: S,
     }),
   ),
   projects: arr(
@@ -97,6 +129,8 @@ export const RECORD = obj({
       reference: S,
       state: S,
       createdAt: S,
+      customerId: S,
+      currentCustomerId: S,
       requests: arr(obj({ id: S, reference: S, state: S, submittedAt: S })),
     }),
   ),
@@ -133,6 +167,8 @@ export const RECORD = obj({
       }),
     ),
   }),
+  /** Merges and relinks of this record, newest first (TSK-0046). */
+  links: arr(LINK),
   timeline: arr(
     obj({
       at: S,
@@ -150,6 +186,9 @@ export const RECORD = obj({
     addNote: B,
     recordWithdrawal: B,
     reviewCandidates: B,
+    merge: B,
+    relink: B,
+    reverseLinks: B,
     noteVisibilities: arr(S),
   }),
 })

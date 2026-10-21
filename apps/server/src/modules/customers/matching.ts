@@ -86,6 +86,9 @@ const overlaps = (a: Set<string>, b: Set<string>) => [...a].some((x) => b.has(x)
 
 /** The other customers that share an email, phone or address with `customerId`, with what they share. */
 export async function findCandidates(tx: Tx, customerId: string): Promise<Map<string, MatchReason[]>> {
+  // A merged record is represented by its survivor (TSK-0046, HH-CRM-04): it makes no suggestions of its own.
+  const self = await tx.selectFrom('crm.customers').select('status').where('id', '=', customerId).executeTakeFirst()
+  if (!self || self.status === 'merged') return new Map()
   const own = (await signalsOf(tx, [customerId])).get(customerId)
   if (!own) return new Map()
   const ids = new Set<string>()

@@ -23,6 +23,7 @@ import {
 import { serviceQuestions } from '@handyhub/domain/request-form'
 import { customerTranslator } from '@handyhub/i18n'
 import { decide, readsVisibility, type Action, type Actor, type DataScope } from '@handyhub/policy'
+import { sql } from 'kysely'
 import { projectInScope } from '../../platform/data-scope.js'
 import { responseClockView } from './clock-view.js'
 import { requestHolds } from './holds.js'
@@ -39,6 +40,7 @@ export type RequestActions = {
   assign: boolean
   qualify: boolean
   addNote: boolean
+  relink: boolean
   recordConversation: boolean
 }
 
@@ -111,6 +113,11 @@ export function availableActions(
     assign: allowed(actor, 'request.assign', projectId),
     qualify: allowed(actor, 'request.qualify', projectId),
     addNote: allowed(actor, 'request.add_note', projectId),
+    // TSK-0046 (HH-CRM-04): link the request to another customer, or correct a wrong link (preview and reason).
+    // Its required reason is given with the change itself, so availability is decided as if it were.
+    relink:
+      decide(actor, 'request.correct_link', { projectId }, { now: new Date(), online: true, reason: 'given' })
+        .effect === 'allow',
     recordConversation: allowed(actor, 'request.record_conversation', projectId),
   } satisfies RequestActions
 }
@@ -156,7 +163,9 @@ export async function staffRequestView(db: Reader, scope: DataScope, requestId: 
     .selectFrom('intake.requests as r')
     .innerJoin('crm.projects as p', 'p.id', 'r.project_id')
     .innerJoin('crm.contacts as c', 'c.id', 'r.contact_id')
-    .innerJoin('crm.customers as cu', 'cu.id', 'r.customer_id')
+    // The customer record staff see the request under: its own, or the one a reviewed merge or relink linked it to
+    // (TSK-0046, HH-CRM-04); the request itself keeps its original customer.
+    .innerJoin('crm.customers as cu', (j) => j.on('cu.id', '=', sql<string>`crm.project_customer(r.project_id)`))
     .select([
       'cu.id as customer_id',
       'cu.display_name as customer_display_name',

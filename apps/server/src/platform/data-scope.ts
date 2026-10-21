@@ -47,3 +47,26 @@ export function customerInScope(column: string, scope: DataScope): Expression<Sq
       return sql<SqlBool>`false`
   }
 }
+
+/**
+ * `column` (a property ID column, for example `p.id`) lies inside the scope (TSK-0045, HH-CRM-02): staff with an `all`
+ * scope reach every property; a list of projects reaches only the properties of those projects; anything else
+ * (including a worker's `assigned` scope, while no visit assignment is recorded) reaches none.
+ */
+export function propertyInScope(column: string, scope: DataScope): Expression<SqlBool> {
+  switch (scope.kind) {
+    case 'all':
+      return sql<SqlBool>`true`
+    case 'projects': {
+      const ids = scope.projectIds.filter((id) => UUID.test(id))
+      return ids.length === 0
+        ? sql<SqlBool>`false`
+        : sql<SqlBool>`EXISTS (SELECT 1 FROM crm.projects sp WHERE sp.property_id = ${sql.ref(column)}
+            AND sp.id = ANY(${sql.val(ids)}::uuid[]))`
+    }
+    case 'assigned':
+    case 'own':
+    case 'none':
+      return sql<SqlBool>`false`
+  }
+}
