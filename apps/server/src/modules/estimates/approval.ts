@@ -19,13 +19,16 @@
 // - One transaction under the estimate's row lock, then the version's (the lifecycle's lock order): the version's move
 //   to accepted, the approval, the project's move to approved, one job, its scope snapshot version 1, one scheduling
 //   task, the work packages' job link and the committed event estimate.approved (the approval receipt, TSK-0058,
-//   reads it). Unique constraints back each "one" (one approval per version, one job per project and approval, one
+//   reads it). TSK-0060 (HH-EST-14): the same transaction cancels the version's waiting reminder drafts with the reason
+//   'accepted' (stopEstimateReminders), so no unanswered-estimate reminder is left to release after an approval; a
+//   released one not yet sent is stopped by its send-time check. TSK-0068: each work package also pins its service's
+//   current SOP version (or records NOT CONFIGURED). Unique constraints back each "one" (one approval per version, one job per project and approval, one
 //   scheduling task per job). A second call that finds the version already approved by the same verified contact
 //   with the same options and total answers with that first approval (two tabs, a retry under a new key); anything
 //   else is a CONFLICT. The same idempotency key is answered by the API's stored response (claim/store).
 // - Approval never confirms an appointment, reserves capacity or marks a deposit paid (OWN-DEC-103, HH-EST-08).
 import { createHash } from 'node:crypto'
-import type { Db, Tx } from '@handyhub/db'
+import { pinJobSops, type Db, type Tx } from '@handyhub/db'
 import { apply, type EstimateVersionState, type ProjectState } from '@handyhub/domain'
 import { estimateTermsDocument, estimateTermsInEffect } from '@handyhub/domain/legal'
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
@@ -39,6 +42,7 @@ import { currentContext } from '../../platform/request-context.js'
 import type { CustomerSession } from '../identity/index.js'
 import { currentVersion } from './lifecycle.js'
 import { customerVersionContent, type CustomerVersionContent } from './projections.js'
+import { stopEstimateReminders } from './reminders.js'
 import { customerVersionRow, customerVersionStatus, type CustomerVersionRef } from './responses.js'
 
 type Reader = Db | Tx
@@ -378,6 +382,18 @@ const PAYMENT_TERM_TEXT: Record<string, CustomerKey> = { due_on_receipt: 'estima
 
 /** The access a session came through, read again at the moment of the write (HH-ID-07). */
 async function accessStillValid(tx: Tx, session: CustomerSession, projectId: string, now: Date): Promise<boolean> {
+  if (!session.projectIds.includes(projectId)) return false
+  if (session.via === 'grant' && !session.grantId) return false
+  // The guest grant before the session: TSK-0046's access recheck locks grants, then sessions.
+  const grant =
+    session.via === 'grant' && session.grantId
+      ? await tx
+          .selectFrom('identity.project_access_grants')
+          .select(['project_id', 'revoked_at'])
+          .where('id', '=', session.grantId)
+          .forShare()
+          .executeTakeFirst()
+      : undefined
   const live = await tx
     .selectFrom('identity.customer_sessions')
     .select(['revoked_at', 'expires_at', 'fresh_until'])
@@ -385,17 +401,7 @@ async function accessStillValid(tx: Tx, session: CustomerSession, projectId: str
     .forShare()
     .executeTakeFirst()
   if (!live || live.revoked_at !== null || live.expires_at <= now) return false
-  if (!session.projectIds.includes(projectId)) return false
-  if (session.via === 'grant') {
-    if (!session.grantId) return false
-    const grant = await tx
-      .selectFrom('identity.project_access_grants')
-      .select(['project_id', 'revoked_at'])
-      .where('id', '=', session.grantId)
-      .forShare()
-      .executeTakeFirst()
-    return grant?.project_id === projectId && grant.revoked_at === null
-  }
+  if (session.via === 'grant') return grant?.project_id === projectId && grant.revoked_at === null
   if (!session.accountId) return false
   const link = await tx
     .selectFrom('identity.customer_identity_links as l')
@@ -503,6 +509,16 @@ export async function approveVersion(
   if (totals.totalCents !== input.totalCents || totals.deposit.amountCents !== input.depositCents)
     throw new ApiError('VALIDATION_FAILED', { fieldErrors: [field('body.totalCents', 'TOTAL_MISMATCH')] })
 
+  // The project row is locked before the access is read again: a customer merge or a request relink (TSK-0046)
+  // locks the project, then its guest grants, then the sessions, so the approval takes the same order and the two
+  // serialize instead of deadlocking; whichever commits first decides what the other sees.
+  const project = await tx
+    .selectFrom('crm.projects')
+    .select(['id', 'state', 'state_version'])
+    .where('id', '=', v.project_id)
+    .forUpdate()
+    .executeTakeFirstOrThrow()
+
   // Fresh verification and the access used, read again at the moment of the write.
   if (!(await stillFresh(tx, input.session.id, now)))
     throw new ApiError('FORBIDDEN', { fieldErrors: [field('verification', 'FRESH_VERIFICATION_REQUIRED')] })
@@ -510,12 +526,6 @@ export async function approveVersion(
     throw new ApiError('FORBIDDEN', { fieldErrors: [field('access', 'ACCESS_REVOKED')] })
 
   // The project: open, with no job yet (one job per approved project).
-  const project = await tx
-    .selectFrom('crm.projects')
-    .select(['id', 'state', 'state_version'])
-    .where('id', '=', v.project_id)
-    .forUpdate()
-    .executeTakeFirstOrThrow()
   const hasJob = await tx.selectFrom('work.jobs').select('id').where('project_id', '=', v.project_id).executeTakeFirst()
   const projectMove = apply(
     { machine: 'project.lifecycle', state: project.state as ProjectState, version: project.state_version },
@@ -549,6 +559,8 @@ export async function approveVersion(
     .set({ state: accepted.to, state_changed_at: now, row_version: accepted.version })
     .where('id', '=', v.id)
     .execute()
+  // TSK-0060 (HH-EST-14): the approval stops the version's waiting reminder drafts at once, in this transaction.
+  await stopEstimateReminders(tx, v.id)
 
   const config = await loadConfig(tx)
   const privacy = config.get('legal.privacy_notice')
@@ -661,6 +673,9 @@ export async function approveVersion(
     .where('project_id', '=', v.project_id)
     .where('job_id', 'is', null)
     .execute()
+  // TSK-0068 (HH-PKT-03): each work package of the job pins the current SOP version of its service, or records that
+  // none exists (NOT CONFIGURED: the package cannot become ready until one is pinned).
+  await pinJobSops(tx, { jobId: job.id, source: 'approval', at: now })
   // The selection was working data for this approval; the approval now holds it.
   await tx.deleteFrom('estimating.approval_selections').where('version_id', '=', v.id).execute()
 

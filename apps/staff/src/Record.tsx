@@ -5,6 +5,8 @@
 //   internal notes (staff only, never shown to customers) and the history of decisions.
 // - TSK-0043: the first-response clock (an internal target in business hours, never a customer promise), recorded
 //   customer conversations, the hazard flag on the risk flags and the review holds it opens.
+// - TSK-0051: questions to the customer (Questions.tsx).
+// - TSK-0068: the SOP version pinned on each work package (WorkPackageSop.tsx), opened on demand.
 // The server decides every action (role, state, version); this screen only offers the ones it says are open now,
 // sends the version it showed (If-Match) and an idempotency key, and shows a refusal's reasons or the conflict banner.
 import { customerTranslator, type StaffKey, type StaffLocale } from '@handyhub/i18n'
@@ -13,9 +15,11 @@ import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type M
 import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
 import { ConflictBanner, conflictOf, type Conflict } from './ConflictBanner'
 import { ProjectEstimates } from './Estimates'
+import { RequestQuestions } from './Questions'
 import { codeLabel } from './Requests'
 import { clockText, clockTime, type ResponseClock } from './ResponseClock'
 import { ProjectVisitsSection } from './Visits'
+import { WorkPackageSop } from './WorkPackageSop'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
 type StaffRef = { id: string; name: string | null }
@@ -57,6 +61,8 @@ export type Hold = {
   canceledAt: string | null
   actions: { startReview: boolean; resolve: boolean; cancel: boolean }
 }
+/** The classes a staff note may have (TSK-0044, HH-STAFF-05): never customer-shared. */
+const NOTE_CLASSES = ['internal_operational', 'restricted_incident', 'restricted_financial'] as const
 
 export type RequestDetail = {
   id: string
@@ -102,7 +108,16 @@ export type RequestDetail = {
     recordedAt: string
   } | null
   missingChecks: string[]
-  notes: { id: string; body: string; author: StaffRef; createdAt: string }[]
+  /** TSK-0044 (HH-STAFF-05): each note's visibility class; a restricted note the role may not read arrives masked. */
+  notes: {
+    id: string
+    visibility: string
+    masked: boolean
+    body: string | null
+    author: StaffRef | null
+    createdAt: string
+  }[]
+  customer: { id: string; displayName: string }
   decisions: {
     id: string
     action: string
@@ -138,6 +153,8 @@ export type RequestDetail = {
     assign: boolean
     qualify: boolean
     addNote: boolean
+    /** TSK-0046: link the request to another customer or correct its link (with a preview and a reason). */
+    relink?: boolean
     recordConversation: boolean
   }
   serviceCatalog: { id: string; code: string }[]
@@ -246,8 +263,50 @@ export function RequestRecord({
         <dd>
           <StatusBadge>{codeLabel(t, 'requestState', view.state)}</StatusBadge>
         </dd>
+        <dt>{t('customer.record')}</dt>
+        <dd>
+          <a
+            href={href(`/customers/${view.customer.id}`)}
+            onClick={(e: MouseEvent<HTMLAnchorElement>) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
+              e.preventDefault()
+              go(`/customers/${view.customer.id}`)
+            }}
+          >
+            {view.customer.displayName}
+          </a>
+          {view.actions.relink ? (
+            <>
+              {' · '}
+              <a
+                href={href(`/requests/${view.id}/relink`)}
+                onClick={(e: MouseEvent<HTMLAnchorElement>) => {
+                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
+                  e.preventDefault()
+                  go(`/requests/${view.id}/relink`)
+                }}
+              >
+                {t('customer.relinkRequest')}
+              </a>
+            </>
+          ) : null}
+        </dd>
         <dt>{t('request.project')}</dt>
-        <dd>{codeLabel(t, 'projectState', view.project.state)}</dd>
+        <dd>
+          {codeLabel(t, 'projectState', view.project.state)}
+          {/* TSK-0050: the project's customer conversation and its reply composer. */}
+          {' · '}
+          <a
+            href={href(`/inbox/${view.project.id}`)}
+            onClick={(e: MouseEvent<HTMLAnchorElement>) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
+              e.preventDefault()
+              go(`/inbox/${view.project.id}`)
+            }}
+          >
+            {t('inbox.openProjectConversation')}
+          </a>
+        </dd>
         <dt>{t('request.nextStep')}</dt>
         <dd>{codeLabel(t, 'requestNextStep', view.nextStep)}</dd>
         <dt>{t('record.request.responsible')}</dt>
@@ -277,6 +336,16 @@ export function RequestRecord({
       <Qualification t={t} fetchImpl={fetchImpl} view={view} onChanged={load} when={when} />
       <Holds t={t} fetchImpl={fetchImpl} view={view} onChanged={load} when={when} />
       <Actions t={t} fetchImpl={fetchImpl} view={view} onChanged={load} />
+      {/* TSK-0051: questions to the customer, their replies and reminders, and "Closed—no response". */}
+      <RequestQuestions
+        key={view.id}
+        t={t}
+        locale={locale}
+        fetchImpl={fetchImpl}
+        requestId={view.id}
+        requestVersion={view.version}
+        onChanged={load}
+      />
       {/* TSK-0053: the project's estimates and Write an Estimate, for the roles that write estimates. */}
       <ProjectEstimates
         key={`${view.project.id}-${view.version}`}
@@ -296,8 +365,39 @@ export function RequestRecord({
       />
       <Notes t={t} fetchImpl={fetchImpl} view={view} onChanged={load} when={when} />
       <History t={t} view={view} when={when} />
+      <SopChecklists t={t} locale={locale} fetchImpl={fetchImpl} view={view} when={when} />
       <p>{back}</p>
     </section>
+  )
+}
+
+/** TSK-0068 (HH-PKT-03): the SOP version pinned on each work package, opened on demand. */
+function SopChecklists({
+  t,
+  locale,
+  fetchImpl,
+  view,
+  when,
+}: {
+  t: T
+  locale: StaffLocale
+  fetchImpl: Fetch
+  view: RequestDetail
+  when: (iso: string) => string
+}) {
+  const ids = useId()
+  if (view.workPackages.length === 0) return null
+  return (
+    <Section id={`${ids}-sops`} title={t('sop.title')}>
+      <ol className="staff-request__list">
+        {view.workPackages.map((w) => (
+          <li key={w.id} data-work-package={w.code}>
+            <h3>{codeLabel(t, 'service', w.code)}</h3>
+            <WorkPackageSop t={t} locale={locale} fetchImpl={fetchImpl} workPackageId={w.id} when={when} />
+          </li>
+        ))}
+      </ol>
+    </Section>
   )
 }
 
@@ -1137,17 +1237,23 @@ function Notes({ t, fetchImpl, view, onChanged, when }: Props & { when: (iso: st
   const ids = useId()
   const write = useWrite(fetchImpl)
   const [body, setBody] = useState('')
+  const [visibility, setVisibility] = useState('internal_operational')
   const [pending, setPending] = useState(false)
   const [problem, setProblem] = useState<Problem | null>(null)
+  const [sensitive, setSensitive] = useState(false)
   async function submit(e: FormEvent) {
     e.preventDefault()
     if (!body.trim()) return
     setPending(true)
-    const r = await write(`/staff/requests/${view.id}/notes`, 'POST', { body })
+    const r = await write(`/staff/requests/${view.id}/notes`, 'POST', { body, visibility })
     setPending(false)
-    if (!r.ok) return setProblem(problemOf(r.error))
+    // TSK-0044 (HH-CRM-01): a card number is refused; the note stays in the box to be corrected.
+    setSensitive(!r.ok && r.error.fieldErrors.some((f) => f.code === 'sensitive_content'))
+    if (!r.ok)
+      return setProblem(r.error.fieldErrors.some((f) => f.code === 'sensitive_content') ? null : problemOf(r.error))
     setProblem(null)
     setBody('')
+    setVisibility('internal_operational')
     await onChanged()
   }
   return (
@@ -1157,9 +1263,14 @@ function Notes({ t, fetchImpl, view, onChanged, when }: Props & { when: (iso: st
         <ul className="staff-request__list">
           {view.notes.map((n) => (
             <li key={n.id}>
-              <p className="staff-request__note">{n.body}</p>
+              <StatusBadge tone={n.visibility === 'internal_operational' ? 'neutral' : 'warning'}>
+                {codeLabel(t, 'visibilityClass', n.visibility)}
+              </StatusBadge>
+              <p className="staff-request__note">{n.masked ? t('customer.noteMasked') : n.body}</p>
               <p className="staff-request__hint">
-                {t('request.noteBy', { name: name(t, n.author), time: when(n.createdAt) })}
+                {n.masked
+                  ? when(n.createdAt)
+                  : t('request.noteBy', { name: name(t, n.author), time: when(n.createdAt) })}
               </p>
             </li>
           ))}
@@ -1174,8 +1285,20 @@ function Notes({ t, fetchImpl, view, onChanged, when }: Props & { when: (iso: st
             label={t('request.newNote')}
             maxLength={5000}
             value={body}
+            hint={t('customer.noteHint')}
+            {...(sensitive ? { error: t('customer.noteSensitive') } : {})}
             onChange={(e) => setBody(e.target.value)}
           />
+          <div className="staff-queue__select">
+            <label htmlFor={`${ids}-visibility`}>{t('customer.noteVisibility')}</label>
+            <select id={`${ids}-visibility`} value={visibility} onChange={(e) => setVisibility(e.target.value)}>
+              {NOTE_CLASSES.map((v) => (
+                <option key={v} value={v}>
+                  {codeLabel(t, 'visibilityClass', v)}
+                </option>
+              ))}
+            </select>
+          </div>
           <Button type="submit" variant="secondary" pending={pending}>
             {t('request.addNote')}
           </Button>

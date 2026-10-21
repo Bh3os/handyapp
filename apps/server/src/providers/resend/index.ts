@@ -50,7 +50,7 @@ export class ResendEmailSender implements EmailSender {
           subject: message.subject,
           text: message.text,
           ...(message.html ? { html: message.html } : {}),
-          ...(this.settings.replyTo ? { reply_to: this.settings.replyTo } : {}),
+          ...((message.replyTo ?? this.settings.replyTo) ? { reply_to: message.replyTo ?? this.settings.replyTo } : {}),
           ...(message.tags?.length ? { tags: message.tags } : {}),
         }),
         signal: AbortSignal.timeout(this.timeoutMs),

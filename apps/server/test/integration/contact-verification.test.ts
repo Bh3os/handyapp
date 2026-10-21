@@ -710,6 +710,15 @@ describe('an existing email reveals nothing and links nothing (TSK-0033, T16, T2
       'contact_verification.send_code',
       'contact_verification.verify',
     ])
+    // TSK-0044 (HH-ID-02, T21): the verified change is queued for the duplicate check (a suggestion for staff review
+    // by the records automation), and links nothing here.
+    const changed = await t.db
+      .selectFrom('platform.outbox_events')
+      .select(['aggregate_type', 'aggregate_id'])
+      .where('type', '=', 'customer.contact_changed')
+      .where('aggregate_id', '=', s.customerId)
+      .execute()
+    expect(changed).toEqual([{ aggregate_type: 'customer', aggregate_id: s.customerId }])
   })
 })
 

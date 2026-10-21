@@ -233,7 +233,7 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
   return { name: 'visits', routes: [list, plan, move, confirm] }
 }
 
-export { WORK_VISIT_GATES, unmetGates, type WorkVisitGate, type WorkVisitJob } from './gates.js'
+export { DEPOSIT_GATE, WORK_VISIT_GATES, unmetGates, type WorkVisitGate, type WorkVisitJob } from './gates.js'
 export {
   businessZone,
   ESTIMATE_VISIT_PROJECT_STATES,

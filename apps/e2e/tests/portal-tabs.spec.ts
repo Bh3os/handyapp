@@ -27,7 +27,7 @@ const pw = ['synthetic', 'staff', 'tabs', 'passphrase', '39'].join(' ')
 
 const TABS = [
   { name: 'Overview', path: '', text: 'Request received' },
-  { name: 'Messages', path: '/messages', text: "Messages aren't shown here yet" },
+  { name: 'Messages', path: '/messages', text: 'No messages yet' },
   { name: 'Documents', path: '/documents', text: 'No documents yet' },
   { name: 'Photos', path: '/photos', text: 'No photos yet' },
   { name: 'Appointments', path: '/appointments', text: 'No appointment yet' },

@@ -13,7 +13,8 @@
 // - The issuer name, mailing address, validity and terms come from configuration. A missing value is shown as NOT
 //   CONFIGURED, never filled in; the mailing-address line is left out while it is missing. The publish readiness lists
 //   every reason the version cannot be published yet. Publishing, the lifecycle actions and the version history are
-//   the lifecycle panel (EstimateLifecycle.tsx, TSK-0055).
+//   the lifecycle panel (EstimateLifecycle.tsx, TSK-0055); the reminders of a published version are the reminders panel
+//   (EstimateReminders.tsx, TSK-0060).
 // - Upload an Estimate (TSK-0054; HH-EST-11): the estimator uploads the PDF or Word document, opens it, enters the
 //   amounts the document states as lines (the same record and server totals as a written estimate; nothing is read
 //   from the document) and ticks that the document and the amounts agree. A Word document needs the PDF of the same
@@ -26,6 +27,7 @@ import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type M
 import { call, idempotencyKey, upload, type ApiErrorBody, type Fetch } from './api'
 import { ConflictBanner, conflictOf, type Conflict } from './ConflictBanner'
 import { EstimateLifecycle, type Lifecycle } from './EstimateLifecycle'
+import { EstimateReminders } from './EstimateReminders'
 import { codeLabel } from './Requests'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
@@ -1233,6 +1235,10 @@ export function EstimateBuilder({ t, fetchImpl, id, go, href }: { t: TD; fetchIm
         go={go}
         href={href}
       />
+      {/* TSK-0060: the unanswered-estimate reminders of a version that was published. */}
+      {view.lifecycle?.publishedAt ? (
+        <EstimateReminders t={t} fetchImpl={fetchImpl} versionId={view.id} refreshKey={view.rowVersion} />
+      ) : null}
       <p>
         <a href={href('/estimates')} onClick={linkClick(go, '/estimates')}>
           {t('estimate.back')}

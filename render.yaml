@@ -51,6 +51,10 @@ services:
       # Seals optional staff authenticator secrets (at least 32 random characters); unset: MFA NOT CONFIGURED (TSK-0015).
       - key: MFA_ENCRYPTION_KEY
         sync: false
+      # Seals property access codes (at least 32 random characters, not the MFA key); unset: the access-code store is
+      # NOT CONFIGURED (codes cannot be entered or revealed) (TSK-0045, HH-CRM-03).
+      - key: ACCESS_CODE_ENCRYPTION_KEY
+        sync: false
       # Proxies that append to X-Forwarded-For in front of the service; set once measured on Render (default 0).
       - key: TRUST_PROXY_HOPS
         sync: false

@@ -14,6 +14,7 @@ import type { FastifyInstance } from 'fastify'
 import { sql } from 'kysely'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildApp } from '../../src/app.js'
+import { estimateReminderAutomations } from '../../src/modules/estimates/index.js'
 import { createStaffUser, setPasswordHash } from '../../src/modules/identity/accounts.js'
 import { startCustomerSession } from '../../src/modules/identity/customer-sessions.js'
 import { readCodeKey, type CodeKeySettings } from '../../src/modules/identity/index.js'
@@ -21,7 +22,9 @@ import { deriveCode } from '../../src/modules/identity/keys.js'
 import { hashPassword } from '../../src/modules/identity/passwords.js'
 import { MODULES } from '../../src/modules/index.js'
 import { forbiddenForCustomer } from '../../src/modules/records/index.js'
+import { createAutomationRegistry } from '../../src/platform/automation.js'
 import { loadConfig, recordPolicyVersion, type ConfigKey } from '../../src/platform/config/index.js'
+import { createWorker } from '../../src/platform/jobs.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { testConfig } from '../fixtures/env.js'
 
@@ -418,7 +421,8 @@ describe('[HH-EST-06][HH-EST-08][T33] approving the exact published version crea
         totalCents: 133_497,
         deposit: { state: 'required', amountCents: 26_699 },
       },
-      nextStep: 'scheduling_next',
+      // TSK-0058 (OWN-DEC-105): a required deposit that is not satisfied is the next step.
+      nextStep: 'deposit_due',
     })
     // T24: no internal ID, name or security detail reaches the answer.
     expect(JSON.stringify(answer)).not.toContain('Synthetic Approval Customer')
@@ -555,8 +559,12 @@ describe('[HH-EST-06][HH-EST-08][T33] approving the exact published version crea
       depositCents: 26_699,
       termsVersion: ESTIMATE_TERMS.documentId,
       testMark: true,
+      jobId: expect.any(String),
       jobState: 'pending_preparation',
       schedulingTaskState: 'open',
+      // TSK-0058: no worker runs here, so the receipt is still being prepared and no message is recorded yet.
+      receipt: { state: 'preparing', issuedAt: null, byteSize: null },
+      receiptDeliveries: [],
     })
   })
 
@@ -1005,5 +1013,80 @@ describe('[T17][T19][RULE-SERVER-AUTHZ] only an explicit POST of the verified cu
     expect(routes.map((r) => [r.method, r.operationId, r.idempotency])).toEqual([
       ['POST', 'approveEstimate', 'required'],
     ])
+  })
+})
+
+/** TSK-0060's reminder automations: publishing schedules the drafts; a due job prepares one (nothing is sent). */
+const reminderRegistry = createAutomationRegistry(estimateReminderAutomations())
+async function drainReminders() {
+  const w = createWorker({ db: t.db, registry: reminderRegistry })
+  for (let i = 0; i < 12; i++) {
+    const r = await w.runOnce()
+    if (r.dispatched + r.succeeded + r.retried + r.failed + r.cancelled === 0) return
+  }
+}
+async function reminderDue(versionId: string, step: 'first' | 'final') {
+  await sql`UPDATE platform.jobs SET run_at = now() WHERE automation = 'estimate.reminder_draft'
+            AND job_key = ${`estimate.reminder_draft:${versionId}:${step}`}`.execute(t.db)
+  await drainReminders()
+}
+const reminderRows = (versionId: string) =>
+  t.db
+    .selectFrom('platform.message_deliveries')
+    .selectAll()
+    .where('record_type', '=', 'estimate_version')
+    .where('record_id', '=', versionId)
+    .where('message_key', '=', 'reminder.unanswered_estimate')
+    .orderBy('seq')
+    .execute()
+const reminderItem = (versionId: string) =>
+  t.db
+    .selectFrom('ops.queue_items')
+    .selectAll()
+    .where('type', '=', 'estimate_reminder')
+    .where('subject_id', '=', versionId)
+    .execute()
+
+describe('[HH-EST-14][HH-EST-06][T65] the approval stops waiting reminder drafts in its own transaction (TSK-0060)', () => {
+  it('a first reminder waiting for release is cancelled as accepted by the approval; the final one is never drafted', async () => {
+    const e = await published()
+    await drainReminders()
+    await reminderDue(e.versionId, 'first')
+    const [draft] = await reminderRows(e.versionId)
+    expect(draft).toMatchObject({ state: 'draft', release: 'staff_released', project_id: e.projectId })
+    expect((await reminderItem(e.versionId)).map((i) => i.resolution)).toEqual([null])
+
+    const cookie = await customerCookie(e)
+    const d = await detail(e, cookie)
+    // A refused approval writes nothing: the draft is still waiting.
+    const refused = await customerPost(`${base(e)}/approve`, cookie, approvalBody(d, { totalCents: 100 }))
+    expect(refused.statusCode).toBe(400)
+    expect((await reminderRows(e.versionId)).map((r) => r.state)).toEqual(['draft'])
+
+    const approved = await customerPost(`${base(e)}/approve`, cookie, approvalBody(d))
+    expect(approved.statusCode, approved.body).toBe(201)
+    const approval = await t.db
+      .selectFrom('estimating.approvals')
+      .select(['created_at'])
+      .where('version_id', '=', e.versionId)
+      .executeTakeFirstOrThrow()
+    const [stopped] = await reminderRows(e.versionId)
+    expect(stopped).toMatchObject({ state: 'cancelled', error_code: 'accepted', cancelled_by: 'system' })
+    // The same transaction: the cancellation carries the approval's own database time (now() of that transaction).
+    expect(stopped?.cancelled_at?.getTime()).toBe(approval.created_at.getTime())
+    expect((await reminderItem(e.versionId)).map((i) => i.resolution)).toEqual(['stopped'])
+    const audit = await t.db
+      .selectFrom('platform.audit_events')
+      .select(['summary', 'actor_kind'])
+      .where('action', '=', 'estimate_reminder.stop')
+      .where('target_id', '=', draft?.id as string)
+      .execute()
+    expect(audit.map((a) => a.summary)).toEqual([
+      { messageKey: 'reminder.unanswered_estimate', step: 'first', channel: 'email', reason: 'accepted' },
+    ])
+
+    // The final reminder finds the version accepted: nothing more is drafted.
+    await reminderDue(e.versionId, 'final')
+    expect((await reminderRows(e.versionId)).map((r) => [r.state, r.error_code])).toEqual([['cancelled', 'accepted']])
   })
 })

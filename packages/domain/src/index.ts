@@ -14,6 +14,7 @@ import { HOLD_MACHINE } from './hold.js'
 import { PROJECT_MACHINE } from './project.js'
 import { REQUEST_MACHINE } from './request.js'
 import { VISIT_MACHINE } from './visit.js'
+import { SOP_VERSION_MACHINE } from './sop.js'
 
 export const PACKAGE_NAME = '@handyhub/domain'
 
@@ -33,7 +34,33 @@ export type {
   TransitionResult,
 } from './engine.js'
 export { NOT_A_FIT_CATEGORIES, REQUEST_CLOSED_STATES, REQUEST_MACHINE, REQUEST_STATES } from './request.js'
+export {
+  addressKey,
+  DEFAULT_VISIBILITY,
+  isRestricted,
+  looksLikeCardNumber,
+  MATCH_REASONS,
+  nameKey,
+  normalizeEmail,
+  normalizePhone,
+  NOTE_VISIBILITIES,
+  sortReasons,
+  suggests,
+  SUGGESTING_REASONS,
+  VISIBILITY_CLASSES,
+} from './records.js'
+export type { MatchReason, NoteVisibility, VisibilityClass } from './records.js'
 export type { NotAFitCategory, RequestFacts, RequestState } from './request.js'
+export {
+  ACCESS_SECRET_KINDS,
+  DETAIL_SOURCES,
+  looksLikeAccessCode,
+  PROPERTY_DETAILS,
+  PROPERTY_TEXT_DETAILS,
+  sameAddress,
+  STAFF_DETAIL_SOURCES,
+} from './property.js'
+export type { AccessSecretKind, DetailSource, PropertyAddress, PropertyDetail, PropertyTextDetail } from './property.js'
 export {
   ACTION_EVENTS,
   flaggedHazards,
@@ -119,6 +146,32 @@ export type { VisitEvent, VisitFacts, VisitPurpose, VisitState } from './visit.j
 export * from './local-time.js'
 export * from './capacity.js'
 
+export {
+  hazardControls,
+  itemText,
+  SOP_EVIDENCE_KINDS,
+  SOP_REVIEW_STATES,
+  SOP_STAGES,
+  SOP_VERSION_MACHINE,
+  sopReadiness,
+  tableRows,
+} from './sop.js'
+export type {
+  SopContent,
+  SopControl,
+  SopEvidenceKind,
+  SopItem,
+  SopNote,
+  SopPinFacts,
+  SopReadiness,
+  SopReadinessBlocker,
+  SopReviewState,
+  SopSignOffFacts,
+  SopStage,
+  SopStageContent,
+  SopStep,
+} from './sop.js'
+
 /** Every machine, keyed `<entity>.<dimension>`. One key per state dimension, so dimensions never share a state. */
 export const MACHINES = {
   'request.lifecycle': REQUEST_MACHINE,
@@ -126,6 +179,7 @@ export const MACHINES = {
   'hold.lifecycle': HOLD_MACHINE,
   'estimate_version.lifecycle': ESTIMATE_VERSION_MACHINE,
   'visit.lifecycle': VISIT_MACHINE,
+  'sop_version.review': SOP_VERSION_MACHINE,
 } as const
 export type MachineKey = keyof typeof MACHINES
 type M<K extends MachineKey> = (typeof MACHINES)[K]
