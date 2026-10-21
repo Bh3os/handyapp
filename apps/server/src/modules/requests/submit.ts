@@ -1,4 +1,5 @@
-// Request submission (TSK-0025; HH-INT-10, HH-INT-11, HH-ID-01, HH-INT-21, HH-ARC-08, OWN-DEC-93, OWN-DEC-97).
+// Request submission (TSK-0025, TSK-0029; HH-INT-10, HH-INT-11, HH-ID-01, HH-INT-21, HH-INT-22, HH-ARC-08, OWN-DEC-93,
+// OWN-DEC-97).
 // One transaction creates the customer, contact, property, project and request with its services and answers, and
 // writes the request.submitted outbox event (staff intake item, receipt, access instructions consume it). The API
 // framework's idempotency record commits in the same transaction, so a double tap or a retry returns this same result.
@@ -16,6 +17,7 @@ import { loadConfig, requireConfigured, type Config } from '../../platform/confi
 import { outbox } from '../../platform/outbox.js'
 import { lookupCoverage, type CoverageResult } from '../coverage/coverage.js'
 import { isLegalVersion } from '../legal/index.js'
+import { recordConsent } from '../notifications/index.js'
 import { bindDraftPhotos, type PhotoSummary } from '../photos/photos.js'
 import {
   localDate,
@@ -76,6 +78,44 @@ export function spamSignals(body: SubmitBody, now: number): string[] {
   return signals
 }
 
+/**
+ * The consents the request form gives, each its own append-only record in the submission's transaction (TSK-0029;
+ * HH-INT-18, HH-INT-22, HH-COM-05, ENT-ConsentPreference, OWN-DEC-147):
+ * - the SMS opt-in: purpose transactional texts, channel SMS, the number, the disclosure version shown beside the box,
+ *   source request form and the time;
+ * - the marketing permission: purpose marketing on email and on SMS, with the privacy policy version presented as the
+ *   notice version (it describes marketing use). A marketing text still needs the SMS opt-in as well at send time.
+ * Neither implies the other, and submitting implies neither. PROPOSED: an unchecked box records nothing, so it is never
+ * read as a withdrawal of an earlier choice made for the same email or number; the request keeps both answers.
+ */
+export async function recordFormConsents(
+  tx: Tx,
+  body: SubmitBody,
+  ctx: { contactId: string; phone: string; requestId: string; reference: string; at: Date },
+): Promise<void> {
+  const common = {
+    granted: true,
+    source: 'request_form' as const,
+    recordedBy: `customer:${ctx.contactId}`,
+    subject: { kind: 'customer_contact' as const, id: ctx.contactId },
+    evidence: { requestId: ctx.requestId, reference: ctx.reference },
+    at: ctx.at,
+  }
+  if (body.smsOptIn)
+    await recordConsent(tx, {
+      ...common,
+      purpose: 'transactional_sms',
+      channel: 'sms',
+      destination: ctx.phone,
+      disclosureVersion: body.smsDisclosureVersion as string,
+    })
+  if (body.marketingOptIn) {
+    const notice = { purpose: 'marketing' as const, disclosureVersion: body.privacyNoticeVersion }
+    await recordConsent(tx, { ...common, ...notice, channel: 'email', destination: body.contact.email })
+    await recordConsent(tx, { ...common, ...notice, channel: 'sms', destination: ctx.phone })
+  }
+}
+
 export type Submitted = { requestId: string; projectId: string; reference: string; submittedAt: Date }
 
 export async function submitRequest(
@@ -105,6 +145,12 @@ export async function submitRequest(
   // The privacy policy version the page presented must be a published version (TSK-0024; HH-PRIV-04, HH-INT-19).
   if (!(await isLegalVersion(tx, 'legal.privacy_notice', body.privacyNoticeVersion)))
     problems.push({ field: 'body.privacyNoticeVersion', code: 'unknown_version', message: '' })
+  // The SMS disclosure beside the box must be a published version too (TSK-0029; HH-INT-22, ENT-ConsentPreference).
+  if (
+    body.smsDisclosureVersion !== undefined &&
+    !(await isLegalVersion(tx, 'legal.sms_disclosure', body.smsDisclosureVersion))
+  )
+    problems.push({ field: 'body.smsDisclosureVersion', code: 'unknown_version', message: '' })
   if (problems.length) throw new ApiError('VALIDATION_FAILED', { fieldErrors: problems })
 
   const signals = spamSignals(body, now.getTime())
@@ -236,6 +282,14 @@ export async function submitRequest(
 
   // The draft's photos, bound by the server to this request and project; a bad token binds nothing (TSK-0031).
   const photos = await bindDraftPhotos(tx, { token: body.photoDraft, requestId: request.id, projectId: project.id })
+
+  await recordFormConsents(tx, body, {
+    contactId: contact.id,
+    phone: normalizeUsPhone(c.phone) as string,
+    requestId: request.id,
+    reference,
+    at: now,
+  })
 
   // One event per request (unique key): the staff intake item, the receipt and the access instructions consume it,
   // so a retry never sends a second receipt (HH-INT-20). Identifiers only, no personal data.

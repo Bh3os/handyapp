@@ -194,3 +194,43 @@
   align-items: center;
   min-height: var(--hh-target-dense);
 }
+
+/* The SMS opt-in disclosure and the marketing permission (TSK-0029; HH-INT-22, HH-INT-18): each its own group, the
+   disclosure text right below its checkbox. */
+.hh-request__disclosure {
+  display: grid;
+  gap: var(--hh-space-2);
+  margin: var(--hh-space-2) 0 0;
+  padding-left: var(--hh-space-6);
+  font-size: var(--hh-text-small);
+  line-height: 1.5;
+}
+.hh-request__disclosure p {
+  margin: 0;
+}
+.hh-request__disclosure dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hh-space-1) var(--hh-space-4);
+  margin: 0;
+}
+.hh-request__disclosure dl div {
+  display: flex;
+  gap: var(--hh-space-2);
+}
+.hh-request__disclosure dd {
+  margin: 0;
+}
+.hh-request__disclosure ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hh-space-2) var(--hh-space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hh-request__disclosure a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--hh-target-dense);
+}

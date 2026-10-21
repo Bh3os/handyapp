@@ -1,4 +1,5 @@
-// The request form contract (TSK-0025, TSK-0026; C02, HH-INT-09, OWN-DEC-90..93, OWN-DEC-56, OWN-DEC-61, OWN-DEC-139).
+// The request form contract (TSK-0025, TSK-0026, TSK-0029; C02, HH-INT-09, HH-INT-18, HH-INT-22, OWN-DEC-90..93,
+// OWN-DEC-56, OWN-DEC-61, OWN-DEC-139, OWN-DEC-147).
 // One definition for both sides: the server validates submissions with this JSON schema and these checks, and the
 // request wizard validates the same way before sending, so the two never disagree (manipulated data is still
 // rejected by the server). Codes, never labels: the wizard shows the English wording from the i18n catalog.
@@ -97,7 +98,11 @@ export const REQUEST_FORM_SCHEMA = {
         preferredChannel: { type: 'string', enum: CONTACT_CHANNELS },
       },
     },
+    // The SMS opt-in and the separate marketing permission (TSK-0029; HH-INT-18, HH-INT-22, OWN-DEC-147): two
+    // independent choices, both false unless the customer checks the box. The SMS disclosure version is the text shown
+    // beside the SMS box (SMS_DISCLOSURE of @handyhub/domain/legal); it is required with an opt-in.
     smsOptIn: { type: 'boolean' },
+    smsDisclosureVersion: { type: 'string', pattern: '^[A-Za-z0-9._-]{1,40}$' },
     marketingOptIn: { type: 'boolean' },
     // Quiet spam controls (HH-INT-11): a field people never see, and when the form was opened (ms since epoch).
     website: { type: 'string', maxLength: 500 },
@@ -165,6 +170,7 @@ export type SubmitBody = {
   estimatePreference: (typeof ESTIMATE_PREFERENCES)[number]
   contact: { fullName: string; email: string; phone: string; preferredChannel: (typeof CONTACT_CHANNELS)[number] }
   smsOptIn: boolean
+  smsDisclosureVersion?: string
   marketingOptIn: boolean
   website?: string
   startedAt?: number
@@ -369,5 +375,10 @@ export function semanticProblems(
   )
     p.push(field('timing.windows', 'weekendDate'))
   if (!normalizeUsPhone(body.contact.phone)) p.push(field('contact.phone', 'format'))
+  // An SMS opt-in records the disclosure the customer saw (HH-INT-22). Choosing text as the preferred contact method
+  // needs the opt-in; the choice is refused with a reason, never changed silently. Submitting is never SMS consent.
+  if (body.smsOptIn && body.smsDisclosureVersion === undefined) p.push(field('smsDisclosureVersion', 'required'))
+  if (body.contact.preferredChannel === 'text' && !body.smsOptIn)
+    p.push(field('contact.preferredChannel', 'smsOptInRequired'))
   return p
 }

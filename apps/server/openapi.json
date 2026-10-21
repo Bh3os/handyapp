@@ -1390,6 +1390,10 @@
                   "smsOptIn": {
                     "type": "boolean"
                   },
+                  "smsDisclosureVersion": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9._-]{1,40}$"
+                  },
                   "marketingOptIn": {
                     "type": "boolean"
                   },

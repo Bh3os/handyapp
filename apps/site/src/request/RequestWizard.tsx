@@ -9,7 +9,8 @@ import { Button, Dialog, Field, StateView } from '@handyhub/ui'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { checkZip, takeRememberedZip, type CoverageCheck } from '../coverage/coverage.js'
 import { zip5 } from '@handyhub/domain/coverage'
-import { PRIVACY_NOTICE } from '@handyhub/domain/legal'
+import { legalDocument, PRIVACY_NOTICE, SMS_DISCLOSURE } from '@handyhub/domain/legal'
+import { contactDetails, parseSiteFacts, type ContactDetail } from '../site/facts.js'
 import { DraftStore } from './draft.js'
 import { PhotoUploader, usePhotos, type PhotoLimits } from './photos.js'
 import {
@@ -86,6 +87,8 @@ const label = <T extends string>(map: Record<T, CustomerKey>, code: string): str
 const FORM_VERSION = 'wizard-1'
 /** The privacy policy version this page presents, saved with the request (TSK-0024; HH-PRIV-04, OWN-DEC-72). */
 const PRIVACY_NOTICE_VERSION = PRIVACY_NOTICE.documentId
+/** The SMS disclosure shown beside the SMS box, recorded with an opt-in (TSK-0029; HH-INT-22, OWN-DEC-147). */
+const SMS_DISCLOSURE_VERSION = SMS_DISCLOSURE.documentId
 const IDENTITY = 'guest'
 
 const STEP_LABEL: Record<StepId, CustomerKey> = {
@@ -115,6 +118,9 @@ const FIELD_LABEL: Record<string, CustomerKey> = {
   'contact.email': 'request.contact.email',
   'contact.phone': 'request.contact.phone',
   'contact.preferredChannel': 'request.contact.channel',
+  smsOptIn: 'request.sms.title',
+  smsDisclosureVersion: 'request.sms.title',
+  marketingOptIn: 'request.marketing.title',
 }
 
 function fieldOf(path: string): string {
@@ -147,6 +153,8 @@ const NO_SETTINGS: Settings = {
 /** Day windows that, with Weekends, are explained as weekend times (HH-INT-02). */
 const DAY_WINDOW_CODES: readonly string[] = ['mornings', 'afternoons', 'evenings']
 type PhotoSummary = { received: number; processing: number; failed: number }
+/** The support contact of the SMS disclosure, from configuration (GET /api/v1/public/site); null while unknown. */
+type SupportContact = { phone: ContactDetail; email: ContactDetail } | null
 type Banner = { kind: 'error'; message: string } | { kind: 'success'; message: string } | null
 
 function browserStorage(): Storage | null {
@@ -181,6 +189,7 @@ export default function RequestWizard() {
   const [sending, setSending] = useState(false)
   const [reference, setReference] = useState<string | null>(null)
   const [website, setWebsite] = useState('')
+  const [support, setSupport] = useState<SupportContact | 'loading'>('loading')
   // The ZIP checked before arriving (HH-INT-16) and the coverage of the ZIP in the form, rechecked as it changes.
   const checkedZip = useRef<string | null>(null)
   const [coverage, setCoverage] = useState<CoverageCheck | null>(null)
@@ -206,8 +215,12 @@ export default function RequestWizard() {
     void Promise.all([
       json<Settings>('/api/v1/public/request-form', NO_SETTINGS),
       json<{ services: FormService[] }>('/api/v1/public/services', { services: [] }),
-    ]).then(([s, offered]) => {
+      json<unknown>('/api/v1/public/site', null),
+    ]).then(([s, offered, site]) => {
       if (!live) return
+      // Unknown is not safe: while the facts cannot be read, the disclosure says so instead of guessing a contact.
+      const facts = parseSiteFacts(site)
+      setSupport(facts ? contactDetails(facts.contact) : null)
       setSettings({ ...NO_SETTINGS, ...s })
       setServices(offered.services)
       checkedZip.current = takeRememberedZip()
@@ -274,6 +287,7 @@ export default function RequestWizard() {
   const meta: FormMeta = {
     formVersion: FORM_VERSION,
     privacyNoticeVersion: PRIVACY_NOTICE_VERSION,
+    smsDisclosureVersion: SMS_DISCLOSURE_VERSION,
     startedAt: started.current,
     ...(website ? { website } : {}),
   }
@@ -715,6 +729,7 @@ export default function RequestWizard() {
     ),
     contact: (
       <>
+        <p className="hh-muted">{t('request.contact.usage')}</p>
         {text('contact.fullName', 'fullName', 'request.contact.fullName', { required: true, autoComplete: 'name' })}
         {text('contact.email', 'email', 'request.contact.email', {
           required: true,
@@ -725,12 +740,63 @@ export default function RequestWizard() {
         {group(
           'contact.preferredChannel',
           'request.contact.channel',
-          CONTACT_CHANNELS.map((c) =>
-            radio('preferredChannel', c, t(CHANNEL_LABEL[c]), values.preferredChannel, (v) =>
-              set('preferredChannel', v),
-            ),
-          ),
+          <>
+            {CONTACT_CHANNELS.map((c) =>
+              radio('preferredChannel', c, t(CHANNEL_LABEL[c]), values.preferredChannel, (v) =>
+                set('preferredChannel', v),
+              ),
+            )}
+            {/* Text needs the SMS opt-in: the form says so and never changes the choice (HH-INT-22). */}
+            {values.preferredChannel === 'text' && !values.smsOptIn && !errorFor('contact.preferredChannel') ? (
+              <p className="hh-field__hint" role="status">
+                {t('request.contact.textNeedsOptIn')}
+              </p>
+            ) : null}
+          </>,
         )}
+        {/* The SMS opt-in: unchecked by default, its own choice, the exact versioned disclosure next to it (HH-INT-22,
+            OWN-DEC-147). Not required to send a request. */}
+        <fieldset
+          className="hh-request__group"
+          data-field="smsOptIn"
+          data-sms-disclosure={SMS_DISCLOSURE.documentId}
+          aria-invalid={errorFor('smsOptIn') || errorFor('smsDisclosureVersion') ? true : undefined}
+        >
+          <legend className="hh-field__label">{t('request.sms.title')}</legend>
+          <label className="hh-request__option">
+            <input
+              type="checkbox"
+              name="smsOptIn"
+              aria-describedby="hh-sms-disclosure"
+              checked={values.smsOptIn}
+              onChange={(e) => set('smsOptIn', e.currentTarget.checked)}
+            />
+            <span>{t(SMS_DISCLOSURE.label as CustomerKey)}</span>
+          </label>
+          <div id="hh-sms-disclosure" className="hh-request__disclosure" data-testid="sms-disclosure">
+            {disclosure(support)}
+          </div>
+          {errorFor('smsOptIn') || errorFor('smsDisclosureVersion') ? (
+            <p className="hh-field__error">{errorFor('smsOptIn') ?? errorFor('smsDisclosureVersion')}</p>
+          ) : null}
+        </fieldset>
+        {/* Marketing permission: a separate choice with its own consent record, never implied (HH-INT-18). */}
+        <fieldset className="hh-request__group" data-field="marketingOptIn">
+          <legend className="hh-field__label">{t('request.marketing.title')}</legend>
+          <label className="hh-request__option">
+            <input
+              type="checkbox"
+              name="marketingOptIn"
+              aria-describedby="hh-marketing-note"
+              checked={values.marketingOptIn}
+              onChange={(e) => set('marketingOptIn', e.currentTarget.checked)}
+            />
+            <span>{t('request.marketing.label')}</span>
+          </label>
+          <p id="hh-marketing-note" className="hh-field__hint">
+            {t('request.marketing.note')}
+          </p>
+        </fieldset>
         {group(
           'estimatePreference',
           'request.estimate.title',
@@ -913,7 +979,61 @@ function reviewLines(step: StepId, v: FormValues, services: FormService[], saved
         line('request.contact.email', v.email),
         line('request.contact.phone', v.phone),
         line('request.contact.channel', label(CHANNEL_LABEL, v.preferredChannel)),
+        line('request.review.sms', t(v.smsOptIn ? 'request.review.yes' : 'request.review.no')),
+        line('request.review.marketing', t(v.marketingOptIn ? 'request.review.yes' : 'request.review.no')),
         line('request.estimate.title', label(ESTIMATE_LABEL, v.estimatePreference)),
       ]
   }
+}
+
+/**
+ * The SMS disclosure's blocks as the box shows them (TSK-0029; HH-INT-22, HH-COM-12): every sentence is a catalog key
+ * of the versioned text; the support contact is the configured public phone and email, a labelled placeholder while
+ * not provided (OWN-DEC-131), never a guessed value; the links open the SMS terms and the privacy policy.
+ */
+function disclosure(support: SupportContact | 'loading'): ReactNode {
+  const detail = (d: ContactDetail | undefined) => {
+    if (support === 'loading') return t('site.footer.loading')
+    if (!d) return t('error.UNAVAILABLE')
+    if (d.kind === 'placeholder') return <span className="hh-badge">{t('site.footer.contactPlaceholder')}</span>
+    return <a href={d.href}>{d.value}</a>
+  }
+  const contact = support === 'loading' ? undefined : (support ?? undefined)
+  const links = SMS_DISCLOSURE.blocks.flatMap((b) => (b.kind === 'link' ? [b] : []))
+  return (
+    <>
+      {SMS_DISCLOSURE.blocks.map((b, i) => {
+        if (b.kind === 'p')
+          return (
+            <p key={i} data-key={b.key}>
+              {t(b.key as CustomerKey)}
+            </p>
+          )
+        if (b.kind === 'contact')
+          return (
+            <dl key={i} data-pending={b.waitsOn.join(' ')}>
+              <div>
+                <dt>{t('site.footer.phone')}</dt>
+                <dd data-contact="phone">{detail(contact?.phone)}</dd>
+              </div>
+              <div>
+                <dt>{t('site.footer.email')}</dt>
+                <dd data-contact="email">{detail(contact?.email)}</dd>
+              </div>
+            </dl>
+          )
+        return null
+      })}
+      <ul>
+        {links.map((b) => (
+          <li key={b.key}>
+            <a href={legalDocument(b.to).path} target="_blank" rel="noopener">
+              {t(b.key as CustomerKey)}
+              <span className="hh-visually-hidden"> {t('request.newTab')}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </>
+  )
 }
