@@ -25,11 +25,12 @@ export const QUEUE_ACTIONS = [
   'open_case',
   'decide',
   'write_estimate',
+  'review_estimate',
 ] as const
 export type QueueAction = (typeof QUEUE_ACTIONS)[number]
 
 /** Staff app screens a deep link may open (packages/policy NAV_ITEMS ids). */
-export type QueueScreen = 'requests' | 'schedule' | 'inbox' | 'cases' | 'payments' | 'customers'
+export type QueueScreen = 'requests' | 'schedule' | 'inbox' | 'cases' | 'payments' | 'customers' | 'estimates'
 
 export type QueueItemType = {
   readonly id: string
@@ -137,6 +138,20 @@ export const QUEUE_ITEM_TYPES = [
     reasons: ['ready_for_estimate', 'estimate_draft'],
     action: 'write_estimate',
     screen: 'requests',
+  },
+  // The customer's answer to a published estimate (HH-EST-09, TSK-0056): Request Changes, Decline or Request an Updated
+  // Estimate. One item per estimate version, opened in the same transaction as the response and resolved when a newer
+  // version of the estimate is published. Seen by the roles that revise estimates; the link opens the version, whose
+  // lifecycle panel lists the customer's words. Band, view action and resolution are PROPOSED.
+  {
+    id: 'estimate_response',
+    section: 'queue',
+    subject: 'estimate_version',
+    band: 'time_sensitive',
+    view: 'estimate.revise',
+    reasons: ['estimate_changes_requested', 'estimate_declined', 'estimate_update_requested'],
+    action: 'review_estimate',
+    screen: 'estimates',
   },
   // Owner Decisions (HH-OPS-01 "Owner, additionally"): each decision is owner-only in the matrix.
   {

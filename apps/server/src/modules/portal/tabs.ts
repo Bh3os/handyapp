@@ -2,11 +2,13 @@
 // OWN-DEC-106, RULE-SERVER-AUTHZ). Every read goes through the caller's scope (TSK-0037): a project outside it is null,
 // answered NOT_FOUND like a missing one. What each tab may say today (records/projections.ts):
 // - Messages: the conversation is not shown in the portal yet (TSK-0050, TSK-0051); nothing is claimed absent.
-// - Documents, Appointments, Payments: no customer document, visit or payment record exists yet, so none is shown.
+// - Documents: the estimate versions the customer received, each with its status (TSK-0056, HH-PORT-10); "none" while
+//   there is none. Appointments, Payments: no visit or payment record exists yet, so none is shown.
 // - Photos: the counts of the customer-visible photos (the customer's uploads, and photos staff shared) by state, the
 //   same counts the receipt shows; the photos themselves, their URLs and IDs are not sent (viewing: TSK-0076).
 import type { Db, Tx } from '@handyhub/db'
 import type { DataScope } from '@handyhub/policy'
+import { customerEstimateList, type CustomerEstimateListItem } from '../estimates/customer.js'
 import { findProject, requestPhotos, type PhotoCounts } from '../records/index.js'
 import { refreshSeconds } from './overview.js'
 
@@ -18,7 +20,9 @@ export type WorkspaceTab = (typeof WORKSPACE_TABS)[number]
 type Head = { reference: string; refreshedAt: Date; refreshSeconds: number }
 export type TabAnswer =
   | (Head & { tab: 'messages'; state: 'not_shown' })
-  | (Head & { tab: 'documents' | 'appointments' | 'payments'; state: 'none' })
+  | (Head & { tab: 'documents'; state: 'none' })
+  | (Head & { tab: 'documents'; state: 'listed'; estimates: CustomerEstimateListItem[] })
+  | (Head & { tab: 'appointments' | 'payments'; state: 'none' })
   | (Head & { tab: 'photos'; photos: PhotoCounts })
 
 /** The customer-visible photos of the project's request, counted by state (removed ones never). */
@@ -48,6 +52,10 @@ export async function projectTab(
       return { ...head, tab, state: 'not_shown' }
     case 'photos':
       return { ...head, tab, photos: await photoCounts(db, scope, project.id) }
+    case 'documents': {
+      const estimates = (await customerEstimateList(db, scope, project.reference, now)) ?? []
+      return estimates.length ? { ...head, tab, state: 'listed', estimates } : { ...head, tab, state: 'none' }
+    }
     default:
       return { ...head, tab, state: 'none' }
   }

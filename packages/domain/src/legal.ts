@@ -16,7 +16,8 @@
 //   never written; a `pending` block shows openly what still waits on review, citing the open question.
 
 export type LegalDocumentCode = 'privacy_notice' | 'sms_terms' | 'website_terms'
-export type LegalConfigKey = 'legal.privacy_notice' | 'legal.sms_terms' | 'legal.website_terms' | 'legal.sms_disclosure'
+export type LegalConfigKey =
+  'legal.privacy_notice' | 'legal.sms_terms' | 'legal.website_terms' | 'legal.sms_disclosure' | 'legal.estimate_terms'
 export type LegalStatus = 'draft' | 'owner_review_pending' | 'approved'
 
 /** One block of a section. Every string is a customer catalog key. */
@@ -402,8 +403,14 @@ export function legalDocument(code: LegalDocumentCode): LegalDocument {
   return doc
 }
 
+/** What the content hash of a document covers: its ID, version, values and catalog keys (all document kinds). */
+export type LegalContentSource = Pick<
+  LegalDocument,
+  'documentId' | 'version' | 'values' | 'title' | 'summary' | 'sections'
+>
+
 /** Every catalog key of a document, in reading order (title, summary, then each section). */
-export function legalKeys(doc: LegalDocument): string[] {
+export function legalKeys(doc: LegalContentSource): string[] {
   const keys = [doc.title, doc.summary]
   for (const s of doc.sections) {
     keys.push(s.heading)
@@ -444,7 +451,7 @@ function canonical(
  * The canonical content the hash covers: the document ID and version, its values, and every catalog key with its
  * wording in reading order (a missing key is null, so it cannot hash like a present one).
  */
-export function legalContent(doc: LegalDocument, catalog: Readonly<Record<string, string>>): string {
+export function legalContent(doc: LegalContentSource, catalog: Readonly<Record<string, string>>): string {
   return canonical(doc.documentId, doc.version, doc.values, legalKeys(doc), catalog)
 }
 
@@ -515,4 +522,161 @@ export function legalTextKeys(text: LegalText): string[] {
 /** The canonical content of a legal text that its hash covers (the same form as legalContent). */
 export function legalTextContent(text: LegalText, catalog: Readonly<Record<string, string>>): string {
   return canonical(text.documentId, text.version, {}, legalTextKeys(text), catalog)
+}
+
+/**
+ * Estimate terms v1.0 (TSK-0056; HH-EST-13, OWN-DEC-127, OWN-DEC-103, OWN-DEC-104, ENT-PolicyVersion,
+ * RULE-NO-INVENTED-FACTS, RULE-HUMAN-REVIEW). The terms every published estimate version carries, as a versioned legal
+ * document of the same form as the public ones: catalog keys in reading order, the decided values they state and the
+ * SHA-256 of the exact content.
+ * - Written in plain, numbered English sections from the owner's agreed policies only (OWN-DEC-127): validity,
+ *   individual pricing, no tax line, no minimum, nothing extra for paying by card, the deposit rule and its credit, the
+ *   scheduling gate, "Payment does not guarantee a particular date." (OWN-DEC-104), payment due on receipt after the
+ *   quality review, the payment methods, scope and exclusions, change orders, appointments and reschedule or cancel
+ *   requests, safety pauses and the work HandyHub does not do, the walkthrough and quality review, the reopen period,
+ *   messages, photos, privacy by reference, the electronic approval record and the business name. A sentence the
+ *   public terms already publish is the same catalog key, so the two never differ.
+ * - Left out on purpose (HH-EST-13): the cancellation and refund rules and the 90-day warranty (the next version, in
+ *   attorney-reviewed wording, OQ-ATTORNEY-TERMS), and every clause no owner decided: no other guarantee, limitation of
+ *   liability, indemnity, arbitration or venue, late fees or interest, forfeiture, damage-claim procedure, licensing
+ *   or insurance statement. A negative-list test checks the text.
+ * - `values` are the decided numbers the wording states, as the active configuration holds them (estimate.validity,
+ *   deposit.rule, request.reopen_period); an integration test keeps them equal, so a changed policy needs a new version.
+ * - Status "owner review pending" and not attorney-reviewed: the wording is not in effect for real customers until the
+ *   owner approves it through the legal-document sign-off (OQ-TERMS-OWNER-APPROVAL). The customer view shows it as a
+ *   draft and refuses approval while it is not approved (estimateTermsInEffect).
+ */
+export type EstimateTermsDocument = Omit<LegalDocument, 'code' | 'configKey'> & {
+  readonly code: 'estimate_terms'
+  readonly configKey: 'legal.estimate_terms'
+  /** How the version is named to the customer ("1.0"). */
+  readonly label: string
+}
+
+/** The banner every view of terms that are not approved for real customers carries (HH-EST-13, OWN-DEC-127). */
+export const ESTIMATE_TERMS_TEST_BANNER = 'legal.estimateTerms.testBanner'
+
+export const ESTIMATE_TERMS: EstimateTermsDocument = {
+  code: 'estimate_terms',
+  configKey: 'legal.estimate_terms',
+  documentId: 'estimate-terms-1',
+  version: 1,
+  label: '1.0',
+  status: 'owner_review_pending',
+  attorneyReviewed: false,
+  preparedOn: '2026-10-21',
+  path: '/portal/terms/estimate-terms-1',
+  title: 'legal.estimateTerms.title',
+  summary: 'legal.estimateTerms.summary',
+  sections: [
+    {
+      id: 'validity',
+      heading: 'legal.estimateTerms.validity.heading',
+      blocks: [p('legal.estimateTerms.validity.text')],
+    },
+    {
+      id: 'price',
+      heading: 'legal.estimateTerms.price.heading',
+      blocks: [
+        p('legal.estimateTerms.price.individual'),
+        p('legal.estimateTerms.price.noTaxLine'),
+        p('legal.terms.estimates.noMinimum'),
+        p('legal.estimateTerms.price.sameForEveryMethod'),
+      ],
+    },
+    {
+      id: 'deposit',
+      heading: 'legal.estimateTerms.deposit.heading',
+      blocks: [
+        p('legal.terms.payment.deposit'),
+        p('legal.estimateTerms.deposit.scheduling'),
+        p('legal.estimateTerms.deposit.noDate'),
+      ],
+    },
+    {
+      id: 'payment',
+      heading: 'legal.estimateTerms.payment.heading',
+      blocks: [p('legal.terms.payment.invoice'), p('legal.terms.payment.methods'), p('legal.terms.payment.recorded')],
+    },
+    {
+      id: 'scope',
+      heading: 'legal.estimateTerms.scope.heading',
+      blocks: [
+        p('legal.estimateTerms.scope.approvedVersion'),
+        p('legal.estimateTerms.scope.exclusions'),
+        p('legal.terms.scope.text'),
+      ],
+    },
+    {
+      id: 'appointments',
+      heading: 'legal.estimateTerms.appointments.heading',
+      blocks: [p('legal.estimateTerms.appointments.separate'), p('legal.estimateTerms.appointments.requests')],
+    },
+    {
+      id: 'safety',
+      heading: 'legal.estimateTerms.safety.heading',
+      blocks: [p('legal.estimateTerms.safety.pause'), p('service.limits.excluded')],
+    },
+    {
+      id: 'completion',
+      heading: 'legal.estimateTerms.completion.heading',
+      blocks: [p('legal.estimateTerms.completion.walkthrough'), p('legal.estimateTerms.completion.review')],
+    },
+    { id: 'reopen', heading: 'legal.estimateTerms.reopen.heading', blocks: [p('legal.estimateTerms.reopen.text')] },
+    { id: 'messages', heading: 'legal.terms.messages.heading', blocks: [p('legal.terms.messages.text')] },
+    { id: 'photos', heading: 'legal.estimateTerms.photos.heading', blocks: [p('legal.estimateTerms.photos.text')] },
+    {
+      id: 'privacy',
+      heading: 'legal.terms.privacy.heading',
+      blocks: [p('legal.terms.privacy.text'), link('legal.terms.privacy.link', 'privacy_notice')],
+    },
+    {
+      id: 'approval-record',
+      heading: 'legal.estimateTerms.record.heading',
+      blocks: [p('legal.estimateTerms.record.how'), p('legal.estimateTerms.record.what')],
+    },
+    {
+      id: 'business',
+      heading: 'legal.estimateTerms.business.heading',
+      blocks: [p('legal.estimateTerms.business.name')],
+    },
+  ],
+  values: { estimateValidityDays: 14, depositThresholdCents: 100000, depositPercent: 20, reopenDays: 30 },
+  contentSha256: 'c4103d986b8131af92e3733de2d69fefda1a49f57c3665f2faa05b445b8827e3',
+  sources: [
+    'HH-EST-13',
+    'OWN-DEC-127',
+    'OWN-DEC-103',
+    'OWN-DEC-104',
+    'FACT-ESTIMATE-VALIDITY',
+    'FACT-DEPOSIT-RULE',
+    'FACT-PAYMENT-DUE',
+    'FACT-PAYMENT-METHODS',
+    'FACT-TAX-NO-LINE',
+    'FACT-NO-MINIMUM',
+    'FACT-NO-SURCHARGE',
+    'FACT-REOPEN-PERIOD',
+    'FACT-BUSINESS-NAME',
+    'OWN-DEC-51',
+    'OWN-DEC-108',
+    'OWN-DEC-109',
+    'HH-PRIV-02',
+    'FACT-AUTOMATIC-MESSAGES',
+  ],
+}
+
+/** The estimate terms documents this software holds, by document ID (a pinned ID it does not know has no wording). */
+export const ESTIMATE_TERMS_DOCUMENTS: readonly EstimateTermsDocument[] = [ESTIMATE_TERMS]
+
+export function estimateTermsDocument(documentId: string | null | undefined): EstimateTermsDocument | null {
+  return ESTIMATE_TERMS_DOCUMENTS.find((d) => d.documentId === documentId) ?? null
+}
+
+/**
+ * Whether a recorded terms version is in effect for real customer approvals (PROPOSED rule, OQ-TERMS-OWNER-APPROVAL,
+ * OQ-ATTORNEY-TERMS): only a version recorded as approved and attorney-reviewed. Every other status (draft, owner
+ * review pending) is shown as a draft that is not in effect, and approval is refused.
+ */
+export function estimateTermsInEffect(recorded: { status: string; attorneyReviewed: boolean }): boolean {
+  return recorded.status === 'approved' && recorded.attorneyReviewed
 }

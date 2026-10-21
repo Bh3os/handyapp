@@ -62,7 +62,7 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     // TSK-0034: the project access link landing and the opened project.
     accessModule({ codeKey: deps.codeKey ?? NO_CODE_KEY, trustProxyHops: deps.trustProxyHops ?? 0 }),
     // TSK-0038: the customer project workspace frame (projects list and Overview); TSK-0039: the other five tabs.
-    portalModule(),
+    portalModule({ storage: deps.storage ?? null, testMark: deps.environment !== 'production' }),
   ]
 }
 

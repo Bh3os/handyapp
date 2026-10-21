@@ -42,6 +42,7 @@ export const LIFECYCLE = {
     'customerPdf',
     'revisedFrom',
     'current',
+    'customerResponses',
     'actions',
     'history',
   ],
@@ -65,6 +66,21 @@ export const LIFECYCLE = {
     },
     revisedFrom: VERSION_REF,
     current: VERSION_REF,
+    // TSK-0056 (HH-EST-09): the customer's responses on the estimate, newest first, with their own words.
+    customerResponses: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['kind', 'version', 'at', 'message'],
+        properties: {
+          kind: { type: 'string', enum: ['changes_requested', 'declined', 'update_requested'] },
+          version: { type: 'integer' },
+          at: DATE_TIME,
+          message: NULLABLE_STRING,
+        },
+      },
+    },
     actions: {
       type: 'object',
       additionalProperties: false,

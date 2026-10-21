@@ -30,6 +30,15 @@ function parameters(route: RouteDef): Parameter[] {
   return out
 }
 
+/** Customer actions the matrix gives only with a fresh verification (ROLE-MATRIX "V (fresh verification)"). */
+const FRESH_CUSTOMER_ACTIONS: ReadonlySet<string> = new Set([
+  'estimate.approve',
+  'estimate.decline',
+  'estimate.request_changes',
+  'change_order.approve',
+  'customer.edit',
+])
+
 /** The error statuses an operation can answer, from what it declares. */
 function errorStatuses(route: RouteDef): number[] {
   const codes = new Set<keyof typeof ERROR_CODES>([
@@ -40,6 +49,8 @@ function errorStatuses(route: RouteDef): number[] {
     'UNAVAILABLE',
   ])
   if (route.actors.includes('staff')) codes.add('FORBIDDEN')
+  // TSK-0056 (HH-ID-07): customer actions that need a fresh verification answer FORBIDDEN, FRESH_VERIFICATION_REQUIRED.
+  if (route.actors.includes('customer') && FRESH_CUSTOMER_ACTIONS.has(String(route.permission))) codes.add('FORBIDDEN')
   if (!route.actors.includes('guest')) codes.add('UNAUTHENTICATED')
   if (route.kind === 'write') codes.add('CONFLICT').add('PAYLOAD_TOO_LARGE').add('UNSUPPORTED_MEDIA_TYPE')
   if (route.idempotency === 'required') codes.add('IDEMPOTENCY_KEY_REQUIRED').add('IDEMPOTENCY_CONFLICT')

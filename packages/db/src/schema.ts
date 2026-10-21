@@ -107,6 +107,19 @@ export interface CrmPropertiesTable {
   coverage_rule_set: number | null
 }
 
+export interface EstimatingCustomerResponsesTable {
+  id: Generated<string>
+  project_id: string
+  estimate_id: string
+  version_id: string
+  kind: string
+  message: string | null
+  version_state: string
+  contact_ref: string
+  customer_session_id: string | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface EstimatingEstimateDocumentsTable {
   id: string
   version_id: string
@@ -821,6 +834,7 @@ export interface Database {
   'crm.customers': CrmCustomersTable
   'crm.projects': CrmProjectsTable
   'crm.properties': CrmPropertiesTable
+  'estimating.customer_responses': EstimatingCustomerResponsesTable
   'estimating.estimate_documents': EstimatingEstimateDocumentsTable
   'estimating.estimate_line_costs': EstimatingEstimateLineCostsTable
   'estimating.estimate_lines': EstimatingEstimateLinesTable

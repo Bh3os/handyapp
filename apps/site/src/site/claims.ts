@@ -92,6 +92,16 @@ export const CLAIMS: readonly Claim[] = [
       decision: 'OWN-DEC-134',
     },
   ])
+  // Estimate terms v1.0 state the owner's deposit sentence word for word (TSK-0056; OWN-DEC-104, HH-EST-13): it says
+  // that payment does not reserve a date, which is not a guarantee claim.
+  .concat([
+    {
+      key: 'legal.estimateTerms.deposit.noDate',
+      text: 'Payment does not guarantee a particular date.',
+      source: 'owner, 2026-10-12',
+      decision: 'OWN-DEC-104',
+    },
+  ])
   // The customer estimate PDF shows the job's one discount as a totals row in the owner's own format, "Discount
   // (military) -10%" (TSK-0054; OWN-DEC-145, FACT-PRICING-DISCOUNTS): a stored totals row, not a price claim.
   .concat([

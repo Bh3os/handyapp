@@ -245,3 +245,37 @@ describe("the Owner's publishing setting (OWN-DEC-118, T26)", () => {
     expect(container.innerHTML).toBe('')
   })
 })
+
+describe('the customer responses (TSK-0056, HH-EST-09)', () => {
+  it("[HH-EST-09][RULE-LANGUAGES] lists the customer's answers newest first, in their own words, in the staff locale", () => {
+    const message = 'Synthetic: please quote the trim without paint.'
+    const v = view({
+      lifecycle: lifecycle({
+        effectiveState: 'declined',
+        customerResponses: [
+          { kind: 'declined', version: 1, at: '2026-10-22T15:00:00.000Z', message: null },
+          { kind: 'changes_requested', version: 1, at: '2026-10-21T16:00:00.000Z', message },
+        ],
+      }),
+    })
+    renderPanel(v, vi.fn())
+    const list = screen.getByRole('list', { name: 'Customer responses' })
+    const items = within(list).getAllByRole('listitem')
+    expect(items).toHaveLength(2)
+    expect(items[0]?.textContent).toMatch(/^Declined, version 1, /)
+    expect(items[0]?.textContent).toContain('No message or reason given.')
+    expect(items[1]?.textContent).toMatch(/^Changes requested, version 1, /)
+    expect(items[1]?.textContent).toContain(message)
+    cleanup()
+    // Spanish staff labels; the customer's words stay exactly as written.
+    renderPanel(v, vi.fn(), 'es')
+    const es = screen.getByRole('list', { name: 'Respuestas del cliente' })
+    expect(within(es).getAllByRole('listitem')[1]?.textContent).toMatch(/^Cambios solicitados, versión 1, /)
+    expect(es.textContent).toContain(message)
+  })
+
+  it('[HH-EST-09] says so when the customer has not answered', () => {
+    renderPanel(view(), vi.fn())
+    expect(screen.getByText('The customer has not responded to this estimate.')).toBeTruthy()
+  })
+})

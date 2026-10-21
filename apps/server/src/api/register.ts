@@ -242,6 +242,12 @@ async function runRoute(
     })
     if (d.effect === 'deny') {
       req.log.warn({ action: d.action, reason: d.reason }, 'AUTHZ_DENIED')
+      // TSK-0056 (HH-ID-07): a customer acting on their own project with a verification older than the freshness
+      // window is told so; the record is in their scope (scope is checked first), so this reveals nothing.
+      if (actor.kind === 'customer' && d.reason === 'FRESH_VERIFICATION_REQUIRED')
+        throw new ApiError('FORBIDDEN', {
+          fieldErrors: [{ field: 'verification', code: 'FRESH_VERIFICATION_REQUIRED', message: '' }],
+        })
       if (actor.kind !== 'staff' || d.reason === 'NOT_FOUND') {
         if (actor.kind !== 'staff') await recordScopeDenial(db, req, actor, route, resource)
         throw new ApiError('NOT_FOUND')

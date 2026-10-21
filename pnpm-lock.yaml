@@ -38,6 +38,9 @@ importers:
       '@handyhub/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@handyhub/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
     devDependencies:
       '@axe-core/playwright':
         specifier: 4.13.0
@@ -48,9 +51,15 @@ importers:
 
   apps/portal:
     dependencies:
+      '@handyhub/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@handyhub/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@handyhub/money':
+        specifier: workspace:*
+        version: link:../../packages/money
       '@handyhub/ui':
         specifier: workspace:*
         version: link:../../packages/ui

@@ -4,7 +4,8 @@
 // Upload an Estimate (documents.ts, document-content.ts, document-routes.ts) and the customer PDF (customer-pdf.ts).
 // TSK-0055 (HH-EST-04) adds the lifecycle: publishing under the Owner's publishing policy, revising as a new version,
 // withdrawing, expiring and recording a decline, the validity expiry job, the estimate-ready notice and the version
-// history (lifecycle.ts, lifecycle-routes.ts, notify.ts). The customer view (TSK-0056) builds on these functions.
+// history (lifecycle.ts, lifecycle-routes.ts, notify.ts). TSK-0056 (HH-EST-09, HH-EST-13) adds the customer view and the
+// customer's responses (customer.ts, responses.ts; the routes are the portal module's).
 import type { ApiModule } from '../../api/route.js'
 import { estimateDocumentRoutes, type EstimateDocumentDeps } from './document-routes.js'
 import { lifecycleRoutes } from './lifecycle-routes.js'
@@ -36,6 +37,33 @@ export {
   type StaffEvent,
 } from './lifecycle.js'
 export { estimateReadyAutomation, ESTIMATE_READY_MESSAGE_KEY, type EstimateReadyDeps } from './notify.js'
+// TSK-0056: the customer estimate view and the customer's responses (Request Changes, Decline, Request an Update).
+export {
+  customerEstimateDetail,
+  customerEstimateList,
+  pinnedTerms,
+  type ApprovalReason,
+  type CustomerEstimateDetail,
+  type CustomerEstimateListItem,
+  type TermsState,
+} from './customer.js'
+export {
+  customerVersionRow,
+  customerVersionStatus,
+  ESTIMATE_CHANGES_REQUESTED_EVENT,
+  ESTIMATE_DECLINED_EVENT,
+  ESTIMATE_RESPONSE_ITEM,
+  estimateResponseNoticeAutomations,
+  estimateResponses,
+  recordCustomerResponse,
+  RESPONSE_KINDS,
+  RESPONSE_LIMITS,
+  STAFF_NOTICE_OF,
+  type CustomerVersionStatus,
+  type RecordedResponse,
+  type ResponseKind,
+  type ResponseNoticeDeps,
+} from './responses.js'
 export type { EstimateDocumentDeps } from './document-routes.js'
 export {
   customerPdfInput,

@@ -6,7 +6,16 @@ import type { Db, Tx } from '@handyhub/db'
 import type { LegalConfigKey } from '@handyhub/domain/legal'
 import { parseValue } from '../../platform/config/keys.js'
 
-export type LegalVersion = { key: LegalConfigKey; version: number; documentId: string; status: string; active: boolean }
+export type LegalVersion = {
+  key: LegalConfigKey
+  version: number
+  documentId: string
+  status: string
+  active: boolean
+  /** TSK-0056: whether an attorney reviewed the version, and the SHA-256 of the exact wording it records. */
+  attorneyReviewed: boolean
+  contentSha256: string
+}
 
 /** Every published version of a legal document, newest first. */
 export async function legalVersions(db: Db | Tx, key: LegalConfigKey): Promise<LegalVersion[]> {
@@ -25,6 +34,8 @@ export async function legalVersions(db: Db | Tx, key: LegalConfigKey): Promise<L
       documentId: value.documentId,
       status: value.status,
       active: r.status === 'active',
+      attorneyReviewed: value.attorneyReviewed,
+      contentSha256: value.contentSha256,
     }
   })
 }

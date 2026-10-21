@@ -52,6 +52,7 @@ import { PDF_TYPE } from './document-content.js'
 import { isUuid, saveDraft, TEXT_LISTS, type DraftInput } from './model.js'
 import { discountFor, pricingPolicies } from './pricing.js'
 import { publishReadiness, type PublishProblem } from './readiness.js'
+import { estimateResponses, resolveResponsesOnRevision } from './responses.js'
 
 type Reader = Db | Tx
 
@@ -292,6 +293,9 @@ export async function publishVersion(
     })
     .where('id', '=', versionId)
     .execute()
+
+  // TSK-0056: a newer version answers the customer's responses to the earlier ones (their follow-up items resolve).
+  await resolveResponsesOnRevision(tx, row.estimate_id, row.version)
 
   // The project's request moves on to estimated when it was ready for its estimate (the request machine's own event).
   const requests = await tx
@@ -738,6 +742,14 @@ export async function lifecycleView(
       ? { versionId: v.revised_from_id, version: numberOf.get(v.revised_from_id) ?? 0 }
       : null,
     current: current ? { versionId: current.id, version: current.version } : null,
+    // TSK-0056 (HH-EST-09): the customer's Request Changes, Decline and Request an Updated Estimate on any version of
+    // this estimate, newest first, with their own words: the append-only history staff answer.
+    customerResponses: (await estimateResponses(db, v.estimate_id)).map((r) => ({
+      kind: r.kind,
+      version: r.version,
+      at: r.at.toISOString(),
+      message: r.message,
+    })),
     actions: {
       publish: can('publish') && open && allowed(actor, 'estimate.publish', v.project_id, config),
       requestReview: can('request_review') && allowed(actor, 'estimate.draft', v.project_id),

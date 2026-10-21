@@ -74,6 +74,7 @@ export const LABEL_FAMILIES = {
     'delivery_failed',
     'case_open',
     'estimate_to_write',
+    'estimate_response',
     'deposit_waiver',
     'start_work_exception',
     'refund_request',
@@ -108,6 +109,9 @@ export const LABEL_FAMILIES = {
     'not_a_fit_with_obligations',
     'ready_for_estimate',
     'estimate_draft',
+    'estimate_changes_requested',
+    'estimate_declined',
+    'estimate_update_requested',
   ],
   /** The one action button of a queue item (HH-OPS-02); it opens the record's screen. */
   queueAction: [
@@ -118,6 +122,7 @@ export const LABEL_FAMILIES = {
     'open_case',
     'decide',
     'write_estimate',
+    'review_estimate',
   ],
   /**
    * System health (TSK-0101; HH-NFR-02): the checks, their states, metrics and notes, as the server's health report
@@ -352,6 +357,11 @@ export const LABEL_FAMILIES = {
     'NO_NEWER_VERSION',
     'FACTS_MISSING',
   ],
+  /**
+   * The customer's responses to an estimate version (TSK-0056, HH-EST-09; migration 0043,
+   * apps/server/src/modules/estimates/responses.ts).
+   */
+  estimateResponseKind: ['changes_requested', 'declined', 'update_requested'],
   /** How an estimate version was authored (HH-EST-11): written in the staff app, or an uploaded document. */
   authoringMethod: ['written', 'uploaded'],
   /** Estimate document states (TSK-0054; migration 0030, apps/server/src/modules/estimates/documents.ts). */
