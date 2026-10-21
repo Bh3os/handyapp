@@ -39,6 +39,7 @@ export type MyDayVisit = {
     lastViewedVersion: number | null
     changedSinceViewed: boolean
     criticalSinceViewed: boolean
+    acknowledgment: 'acknowledged' | 'required' | 'invalidated' | 'not_assigned'
     blockers: { code: string; count: number }[]
   } | null
   mine: { departedAt: string | null; arrivedAt: string | null; finishedAt: string | null }
@@ -77,6 +78,13 @@ const BLOCKER: Readonly<Record<string, StaffKey>> = {
   packet_not_viewed: 'myday.blocker.packet_not_viewed',
   packet_changed: 'myday.blocker.packet_changed',
   packet_critical_change: 'myday.blocker.packet_critical_change',
+  // TSK-0072: the worker's own packet acknowledgment.
+  packet_not_acknowledged: 'myday.blocker.packet_not_acknowledged',
+  packet_acknowledgment_ended: 'myday.blocker.packet_acknowledgment_ended',
+  // TSK-0071: the loadout of the job's work packages.
+  loadout_blocked: 'myday.blocker.loadout_blocked',
+  loadout_not_confirmed: 'myday.blocker.loadout_not_confirmed',
+  loadout_not_configured: 'myday.blocker.loadout_not_configured',
 }
 
 /** A moment in the visit's own zone, in the staff member's language. */
@@ -311,6 +319,12 @@ function VisitCard({
           {v.jobId && v.readiness ? (
             <p>
               <a href={href(`/packets/${v.jobId}`)}>{t('myday.openPacket')}</a>
+              {v.readiness.blockers.some((b) => b.code.startsWith('loadout_')) ? (
+                <>
+                  {' · '}
+                  <a href={href(`/loadouts/${v.jobId}`)}>{t('myday.openLoadout')}</a>
+                </>
+              ) : null}
             </p>
           ) : null}
           {mine.length > 0 ? <p data-testid="myday-mine">{mine.join(' · ')}</p> : null}

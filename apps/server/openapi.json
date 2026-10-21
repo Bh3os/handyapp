@@ -58061,7 +58061,7 @@
       "get": {
         "operationId": "getMyDay",
         "summary": "The caller's My Day",
-        "description": "Staff with schedule.view_my_day: only the caller's own active reservations (a worker's own assignments; a tentative hold shows no address and no actions). Lists the visits of today in each visit's zone, and any visit still on the way or arrived, in arrival-window order: the window, the address and a plain directions link (confirmed and live only, OWN-DEC-40), the access notes (never a code), the preparation, the readiness blockers the records show (blocking holds, a deposit not yet covered, a work package without an SOP, a packet not viewed or changed since; this is not the Start Work check), the caller's own taps and the one next action. No ETA anywhere.",
+        "description": "Staff with schedule.view_my_day: only the caller's own active reservations (a worker's own assignments; a tentative hold shows no address and no actions). Lists the visits of today in each visit's zone, and any visit still on the way or arrived, in arrival-window order: the window, the address and a plain directions link (confirmed and live only, OWN-DEC-40), the access notes (never a code), the preparation, the readiness blockers the records show (blocking holds, a deposit not yet covered, a work package without an SOP, a packet not viewed or changed since, the caller's own packet acknowledgment missing or ended, a loadout task block, required loadout items not confirmed or a loadout NOT CONFIGURED; this is not the Start Work check and never refuses a tap), the caller's own taps and the one next action. No ETA anywhere.",
         "tags": [
           "field"
         ],
@@ -58329,6 +58329,7 @@
                               "lastViewedVersion",
                               "changedSinceViewed",
                               "criticalSinceViewed",
+                              "acknowledgment",
                               "blockers"
                             ],
                             "properties": {
@@ -58346,6 +58347,15 @@
                               },
                               "criticalSinceViewed": {
                                 "type": "boolean"
+                              },
+                              "acknowledgment": {
+                                "type": "string",
+                                "enum": [
+                                  "acknowledged",
+                                  "required",
+                                  "invalidated",
+                                  "not_assigned"
+                                ]
                               },
                               "blockers": {
                                 "type": "array",
@@ -79610,6 +79620,7 @@
                             "lastViewedVersion",
                             "changedSinceViewed",
                             "criticalSinceViewed",
+                            "acknowledgment",
                             "blockers"
                           ],
                           "properties": {
@@ -79627,6 +79638,15 @@
                             },
                             "criticalSinceViewed": {
                               "type": "boolean"
+                            },
+                            "acknowledgment": {
+                              "type": "string",
+                              "enum": [
+                                "acknowledged",
+                                "required",
+                                "invalidated",
+                                "not_assigned"
+                              ]
                             },
                             "blockers": {
                               "type": "array",
@@ -83378,6 +83398,7 @@
                             "lastViewedVersion",
                             "changedSinceViewed",
                             "criticalSinceViewed",
+                            "acknowledgment",
                             "blockers"
                           ],
                           "properties": {
@@ -83395,6 +83416,15 @@
                             },
                             "criticalSinceViewed": {
                               "type": "boolean"
+                            },
+                            "acknowledgment": {
+                              "type": "string",
+                              "enum": [
+                                "acknowledged",
+                                "required",
+                                "invalidated",
+                                "not_assigned"
+                              ]
                             },
                             "blockers": {
                               "type": "array",
@@ -85570,6 +85600,7 @@
                             "lastViewedVersion",
                             "changedSinceViewed",
                             "criticalSinceViewed",
+                            "acknowledgment",
                             "blockers"
                           ],
                           "properties": {
@@ -85587,6 +85618,15 @@
                             },
                             "criticalSinceViewed": {
                               "type": "boolean"
+                            },
+                            "acknowledgment": {
+                              "type": "string",
+                              "enum": [
+                                "acknowledged",
+                                "required",
+                                "invalidated",
+                                "not_assigned"
+                              ]
                             },
                             "blockers": {
                               "type": "array",

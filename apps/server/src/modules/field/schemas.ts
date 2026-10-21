@@ -1,6 +1,6 @@
 // JSON schemas of the My Day, tap and timestamp routes (TSK-0070; HH-API-01, HH-ARC-04). Input objects refuse unknown
 // fields; response objects list every field, so nothing else (an access code above all) can reach a response.
-import { MY_DAY_NEXT, STAMP_STATUSES, TIME_STAMP_KINDS } from '@handyhub/domain'
+import { ACKNOWLEDGMENT_STATES, MY_DAY_NEXT, STAMP_STATUSES, TIME_STAMP_KINDS } from '@handyhub/domain'
 
 const UUID = {
   type: 'string',
@@ -60,6 +60,8 @@ export const MY_DAY_ITEM = obj({
       lastViewedVersion: INT_OR_NULL,
       changedSinceViewed: BOOL,
       criticalSinceViewed: BOOL,
+      // TSK-0072: the caller's own packet acknowledgment.
+      acknowledgment: { type: 'string', enum: [...ACKNOWLEDGMENT_STATES] },
       blockers: arr(obj({ code: STR, count: INT })),
     },
     true,

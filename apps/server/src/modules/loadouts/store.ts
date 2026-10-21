@@ -4,10 +4,18 @@
 //   so the first read of a job's packet or loadout after a version exists pins it; a service without a version stays
 //   NOT CONFIGURED (no row) and nothing is made up for it.
 // - jobLoadout() reads a job's packages with their pinned list, every item's latest statement and the task blocks.
+// - packageLoadoutReadiness() and jobLoadoutReadiness() say where each package's loadout stands (@handyhub/domain
+//   loadoutReadiness): the loadout page, My Day (TSK-0070) and the Start Work gate (TSK-0073) read the same answer.
 // - syncShortageItem() keeps the job's one loadout_shortage queue item in line with its blocking task blocks, in the
 //   same transaction as whatever opened or ended one.
 import type { Db, Tx } from '@handyhub/db'
-import { BLOCKING_HOLD_STATES, type LoadoutContent, type LoadoutStatus } from '@handyhub/domain'
+import {
+  BLOCKING_HOLD_STATES,
+  loadoutReadiness,
+  type LoadoutContent,
+  type LoadoutReadiness,
+  type LoadoutStatus,
+} from '@handyhub/domain'
 import { sql } from 'kysely'
 import { openQueueItem, resolveQueueItem } from '../queue/index.js'
 
@@ -216,6 +224,39 @@ export async function taskBlocks(db: Reader, jobId: string): Promise<TaskBlock[]
 }
 
 export const isBlocking = (b: { state: string }) => (BLOCKING_HOLD_STATES as readonly string[]).includes(b.state)
+
+const latestMap = (checks: readonly LatestCheck[], workPackageId: string) =>
+  new Map(checks.filter((c) => c.workPackageId === workPackageId).map((c) => [c.itemKey, c.status]))
+
+/** Where one work package's loadout stands, from its pinned list, the latest statements and its task blocks. */
+export function packageLoadoutReadiness(
+  p: LoadoutPackage,
+  checks: readonly LatestCheck[],
+  blocks: readonly TaskBlock[],
+): LoadoutReadiness {
+  return loadoutReadiness({
+    content: p.pin?.content ?? null,
+    latest: latestMap(checks, p.workPackageId),
+    blockingHolds: blocks.filter((b) => b.workPackageId === p.workPackageId && isBlocking(b)).map((b) => b.id),
+  })
+}
+
+/** Where the loadout of each of the job's work packages stands (in the caller's transaction when given one). */
+export async function jobLoadoutReadiness(
+  db: Reader,
+  jobId: string,
+): Promise<{ workPackageId: string; serviceCode: string; readiness: LoadoutReadiness }[]> {
+  const [packages, checks, blocks] = [
+    await loadoutPackages(db, jobId),
+    await latestChecks(db, jobId),
+    await taskBlocks(db, jobId),
+  ]
+  return packages.map((p) => ({
+    workPackageId: p.workPackageId,
+    serviceCode: p.serviceCode,
+    readiness: packageLoadoutReadiness(p, checks, blocks),
+  }))
+}
 
 /** One loadout_shortage queue item per job while any of its task blocks blocks; resolved when none does. */
 export async function syncShortageItem(tx: Tx, jobId: string): Promise<'open' | 'resolved'> {

@@ -54,6 +54,7 @@ const visit = (over: Partial<MyDayVisit> = {}): MyDayVisit => ({
     lastViewedVersion: null,
     changedSinceViewed: false,
     criticalSinceViewed: false,
+    acknowledgment: 'required',
     blockers: [{ code: 'packet_not_viewed', count: 1 }],
   },
   mine: { departedAt: null, arrivedAt: null, finishedAt: null },
@@ -104,6 +105,51 @@ describe('My Day (TSK-0070)', () => {
     expect(button.className).toContain('staff-myday__action')
     expect(within(actions).getAllByRole('button')).toHaveLength(1)
     expect(document.body.textContent).not.toMatch(/\bETA\b|estimated arrival|minutes away/i)
+  })
+
+  it('[HH-OFF-09][HH-DATA-08][HH-PKT-06] readiness lists the worker’s own acknowledgment and the loadout, links the loadout, and never takes away the tap', async () => {
+    const { t } = staffTranslator('en')
+    const blocked = visit({
+      readiness: {
+        packetVersion: 4,
+        lastViewedVersion: 3,
+        changedSinceViewed: true,
+        criticalSinceViewed: true,
+        acknowledgment: 'invalidated',
+        blockers: [
+          { code: 'packet_critical_change', count: 1 },
+          { code: 'packet_acknowledgment_ended', count: 1 },
+          { code: 'loadout_blocked', count: 2 },
+          { code: 'loadout_not_confirmed', count: 1 },
+        ],
+      },
+    })
+    const fetchImpl = api({ 'GET /staff/my/day': () => json(200, day([blocked])) })
+    render(<MyDay t={t} locale="en" fetchImpl={fetchImpl as unknown as typeof fetch} href={href} />)
+    const card = await screen.findByTestId('myday-visit')
+    const readiness = within(card).getByTestId('myday-readiness').textContent
+    expect(readiness).toContain('Your acknowledgment of the job packet no longer counts: review the current version.')
+    expect(readiness).toContain('2 loadout shortages block services')
+    expect(readiness).toContain('1 loadout not confirmed loaded yet')
+    expect(within(card).getByRole('link', { name: 'Open the loadout' }).getAttribute('href')).toBe(
+      `/staff/loadouts/${JOB}`,
+    )
+    // Readiness is not the Start Work check and never gates On my way (HH-SCH-08).
+    expect(within(within(card).getByTestId('myday-actions')).getByRole('button', { name: 'On my way' })).toBeTruthy()
+    cleanup()
+    const es = staffTranslator('es').t
+    render(
+      <MyDay
+        t={es}
+        locale="es"
+        fetchImpl={api({ 'GET /staff/my/day': () => json(200, day([blocked])) }) as unknown as typeof fetch}
+        href={href}
+      />,
+    )
+    expect((await screen.findByTestId('myday-readiness')).textContent).toContain(
+      'Su confirmación del paquete de trabajo ya no cuenta',
+    )
+    expect(screen.getByRole('link', { name: 'Abrir la carga' })).toBeTruthy()
   })
 
   it('[HH-SCH-08][HH-WORK-06][OWN-DEC-149] the taps: On my way, then Arrived, then Finished, each the server’s answer; no check-in between', async () => {

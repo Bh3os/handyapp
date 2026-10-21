@@ -10,13 +10,25 @@
 //   detail and the instructions given to the customer), the readiness blockers the records show and the one next
 //   action (the same rule the taps are decided with, @handyhub/domain myDayActions).
 // - Readiness here lists what the records show (a blocking hold, a deposit not yet covered, a work package without an
-//   SOP, a packet not viewed or changed since); it is not the Start Work check, which stays the start route's, online
-//   (RULE-SAFETY-GATES). No ETA is computed, shown or sent anywhere (HH-PORT-07).
+//   SOP, a packet not viewed or changed since, the worker's own packet acknowledgment missing or ended (TSK-0072), a
+//   loadout task block, required loadout items not yet confirmed loaded or a loadout NOT CONFIGURED (TSK-0071)); it is
+//   not the Start Work check, which stays the start route's, online (RULE-SAFETY-GATES), and it never refuses a tap:
+//   On my way, Arrived and Finished never depend on it (HH-SCH-08, HH-WORK-06). No ETA is computed, shown or sent
+//   anywhere (HH-PORT-07).
 import type { Db, Tx } from '@handyhub/db'
-import { myDayActions, onMyWayOpensAt, packetChanges, SITE_ACCESS_DETAILS, type PacketContent } from '@handyhub/domain'
+import {
+  myDayActions,
+  onMyWayOpensAt,
+  packetChanges,
+  SITE_ACCESS_DETAILS,
+  type AcknowledgmentState,
+  type PacketContent,
+} from '@handyhub/domain'
 import type { StaffActor } from '@handyhub/policy'
 import { sql } from 'kysely'
 import { loadConfig } from '../../platform/config/index.js'
+import { jobLoadoutReadiness } from '../loadouts/store.js'
+import { acknowledgmentStatus, assignedNow } from '../packets/acknowledgments.js'
 import { packetVersion, refreshJobPacket } from '../packets/content.js'
 import { directionsUrl, lastViewed } from '../packets/view.js'
 
@@ -63,11 +75,13 @@ type Readiness = {
   lastViewedVersion: number | null
   changedSinceViewed: boolean
   criticalSinceViewed: boolean
+  /** The caller's own packet acknowledgment (TSK-0072): acknowledged, required, invalidated or not_assigned. */
+  acknowledgment: AcknowledgmentState
   blockers: { code: string; count: number }[]
 }
 
 /** What the records show before the visit (see the header); null when the visit has no job or is not live. */
-async function readinessOf(db: Reader, jobId: string, staffUserId: string): Promise<Readiness | null> {
+async function readinessOf(db: Reader, jobId: string, staffUserId: string, now: Date): Promise<Readiness | null> {
   const row = await refreshJobPacket(db, jobId)
   if (!row) return null
   const seen = await lastViewed(db, jobId, staffUserId)
@@ -78,7 +92,9 @@ async function readinessOf(db: Reader, jobId: string, staffUserId: string): Prom
   }
   const c = row.content
   const blockers: { code: string; count: number }[] = []
-  if (c.holds.holds.length > 0) blockers.push({ code: 'blocking_hold', count: c.holds.holds.length })
+  // A loadout task block is a hold on one work package (TSK-0071): listed as a loadout shortage, not twice.
+  const jobHolds = c.holds.holds.filter((h) => h.kind !== 'task_block').length
+  if (jobHolds > 0) blockers.push({ code: 'blocking_hold', count: jobHolds })
   const deposit = c.dependencies.deposit
   if (deposit && deposit.required && deposit.state !== 'satisfied' && deposit.state !== 'waived')
     blockers.push({ code: 'deposit_not_covered', count: 1 })
@@ -87,11 +103,25 @@ async function readinessOf(db: Reader, jobId: string, staffUserId: string): Prom
   if (!seen) blockers.push({ code: 'packet_not_viewed', count: 1 })
   else if (seen.version !== row.version)
     blockers.push({ code: critical ? 'packet_critical_change' : 'packet_changed', count: 1 })
+  // TSK-0072: the worker's own acknowledgment of the current packet (never a teammate's).
+  const assigned = (await assignedNow(db, jobId, now)).includes(staffUserId)
+  const ack = await acknowledgmentStatus(db, row, staffUserId, assigned)
+  if (ack.state === 'required') blockers.push({ code: 'packet_not_acknowledged', count: 1 })
+  else if (ack.state === 'invalidated') blockers.push({ code: 'packet_acknowledgment_ended', count: 1 })
+  // TSK-0071: each work package's loadout (the same answer the loadout page and the Start Work gate read).
+  const loadout = await jobLoadoutReadiness(db, jobId)
+  const shortages = loadout.reduce((n, p) => n + p.readiness.blocks.length, 0)
+  if (shortages > 0) blockers.push({ code: 'loadout_blocked', count: shortages })
+  const unconfirmed = loadout.filter((p) => p.readiness.state === 'not_confirmed').length
+  if (unconfirmed > 0) blockers.push({ code: 'loadout_not_confirmed', count: unconfirmed })
+  const noLoadout = loadout.filter((p) => p.readiness.state === 'not_configured').length
+  if (noLoadout > 0) blockers.push({ code: 'loadout_not_configured', count: noLoadout })
   return {
     packetVersion: row.version,
     lastViewedVersion: seen?.version ?? null,
     changedSinceViewed: seen !== null && seen.version !== row.version,
     criticalSinceViewed: critical,
+    acknowledgment: ack.state,
     blockers,
   }
 }
@@ -255,7 +285,7 @@ export async function myDayItems(db: Reader, actor: StaffActor, opts: { visitId?
             instructions: offers.find((o) => o.visit_id === v.id)?.preparation_instructions ?? null,
           }
         : { customerPreparation: null, instructions: null },
-      readiness: live && v.job_id ? await readinessOf(db, v.job_id, actor.userId) : null,
+      readiness: live && v.job_id ? await readinessOf(db, v.job_id, actor.userId, now) : null,
       mine: { departedAt: iso(mine.departedAt), arrivedAt: iso(mine.arrivedAt), finishedAt: iso(mine.finishedAt) },
       next: actions.next,
       onMyWayOpensAt: confirmed ? iso(opensAt) : null,

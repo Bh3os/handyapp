@@ -26,9 +26,7 @@ import {
   BLOCKING_HOLD_STATES,
   type HoldState,
   loadoutItems,
-  loadoutReadiness,
   type LoadoutReport,
-  type LoadoutStatus,
   raisesTaskBlock,
   SUBSTITUTE_IMPACTS,
   TASK_BLOCK_OWNER,
@@ -47,14 +45,14 @@ import {
   isBlocking,
   latestChecks,
   loadoutPackages,
+  packageLoadoutReadiness,
   syncShortageItem,
   taskBlocks,
-  type LatestCheck,
   type LoadoutPackage,
   type TaskBlock,
 } from './store.js'
 
-export { ensureLoadoutPins, latestChecks, loadoutPackages, taskBlocks } from './store.js'
+export { ensureLoadoutPins, jobLoadoutReadiness, latestChecks, loadoutPackages, taskBlocks } from './store.js'
 
 const TEST = 'test/integration/loadouts.test.ts'
 const UUID = '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
@@ -236,16 +234,7 @@ async function lockJob(tx: Tx, jobId: string) {
   await tx.selectFrom('work.jobs').select('id').where('id', '=', jobId).forUpdate().execute()
 }
 
-const latestMap = (checks: readonly LatestCheck[], workPackageId: string) =>
-  new Map(checks.filter((c) => c.workPackageId === workPackageId).map((c) => [c.itemKey, c.status as LoadoutStatus]))
-
-function readinessOf(p: LoadoutPackage, checks: readonly LatestCheck[], blocks: readonly TaskBlock[]) {
-  return loadoutReadiness({
-    content: p.pin?.content ?? null,
-    latest: latestMap(checks, p.workPackageId),
-    blockingHolds: blocks.filter((b) => b.workPackageId === p.workPackageId && isBlocking(b)).map((b) => b.id),
-  })
-}
+const readinessOf = packageLoadoutReadiness
 
 const itemNameOf = (p: LoadoutPackage | undefined, key: string) =>
   (p?.pin ? loadoutItems(p.pin.content).find((i) => i.key === key)?.name : null) ?? null

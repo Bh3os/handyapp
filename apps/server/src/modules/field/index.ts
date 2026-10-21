@@ -108,8 +108,9 @@ export function fieldModule(): ApiModule {
       'visit still on the way or arrived, in arrival-window order: the window, the address and a plain directions ' +
       'link (confirmed and live only, OWN-DEC-40), the access notes (never a code), the preparation, the readiness ' +
       'blockers the records show (blocking holds, a deposit not yet covered, a work package without an SOP, a packet ' +
-      "not viewed or changed since; this is not the Start Work check), the caller's own taps and the one next " +
-      'action. No ETA anywhere.',
+      "not viewed or changed since, the caller's own packet acknowledgment missing or ended, a loadout task block, " +
+      'required loadout items not confirmed or a loadout NOT CONFIGURED; this is not the Start Work check and never ' +
+      "refuses a tap), the caller's own taps and the one next action. No ETA anywhere.",
     actors: ['staff'],
     permission: 'schedule.view_my_day',
     kind: 'read',

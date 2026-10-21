@@ -9,7 +9,17 @@
 //   taps the fixture writes in one transaction the way the tap routes write them, shows what the Owner sees after a
 //   service day ended with a forgotten Finished.
 import { randomUUID } from 'node:crypto'
-import { createDb, loadServiceSeed, loadSopSeed, syncServices, syncSops, withTx, type Db } from '@handyhub/db'
+import {
+  createDb,
+  loadLoadoutSeed,
+  loadServiceSeed,
+  loadSopSeed,
+  syncLoadouts,
+  syncServices,
+  syncSops,
+  withTx,
+  type Db,
+} from '@handyhub/db'
 import { createTestDatabase, type TestDatabase } from '@handyhub/db/testing'
 import { addLocalDays, localDateOf, resolveWindow } from '@handyhub/domain'
 import { ESTIMATE_TERMS } from '@handyhub/domain/legal'
@@ -329,8 +339,15 @@ async function bookedVisit(p: Project, date: string, worker: Person): Promise<{ 
 let slot = 0
 /** Each fixture visit gets its own early slot of the day, so one worker's fixtures never overlap. */
 const SLOTS = ['00:05', '01:05', '02:05', '03:05', '04:05', '05:05', '06:05'] as const
-async function fixtureVisit(p: Project, jobId: string, date: string, team: Person[]): Promise<string> {
-  const start = SLOTS[slot++ % SLOTS.length] as string
+async function fixtureVisit(
+  p: Project,
+  jobId: string,
+  date: string,
+  team: Person[],
+  /** A start of the form hh:05 or hh:20 (the window is 30 minutes long); otherwise the next slot. */
+  at?: `${string}:05` | `${string}:20`,
+): Promise<string> {
+  const start = at ?? (SLOTS[slot++ % SLOTS.length] as string)
   const [h, m] = start.split(':').map(Number) as [number, number]
   const end = `${String(h).padStart(2, '0')}:${String(m + 30).padStart(2, '0')}`
   const w = resolveWindow({ date, start, end, zone: ZONE })
@@ -396,7 +413,7 @@ type Item = {
   directionsUrl: string | null
   accessNotes: { detail: string; value: string | null }[]
   preparation: { customerPreparation: string | null; instructions: string | null }
-  readiness: { packetVersion: number; blockers: { code: string; count: number }[] } | null
+  readiness: { packetVersion: number; acknowledgment: string; blockers: { code: string; count: number }[] } | null
   mine: { departedAt: string | null; arrivedAt: string | null; finishedAt: string | null }
   next: string
   onMyWayOpensAt: string | null
@@ -474,8 +491,14 @@ describe('[HH-OFF-09][T43] My Day: today’s assigned visits in order with the n
       actions: { onMyWay: true, arrived: false, finished: false },
     })
     expect(item.directionsUrl).toMatch(/^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&destination=/)
-    // Readiness: what the records show (a packet never viewed); not the Start Work check.
-    expect(item.readiness?.blockers).toEqual([{ code: 'packet_not_viewed', count: 1 }])
+    // Readiness: what the records show (a packet never viewed, nor acknowledged by this worker, TSK-0072; no loadout
+    // list imported in this database, so NOT CONFIGURED, TSK-0071); not the Start Work check.
+    expect(item.readiness?.acknowledgment).toBe('required')
+    expect(item.readiness?.blockers).toEqual([
+      { code: 'packet_not_viewed', count: 1 },
+      { code: 'packet_not_acknowledged', count: 1 },
+      { code: 'loadout_not_configured', count: 1 },
+    ])
     // Only today's visits (the one in five days is not on today's list), and never an access code.
     expect(mine.visits.map((v) => v.visitId)).not.toContain(later.id)
     expect(JSON.stringify(mine)).not.toContain(CODE)
@@ -877,5 +900,106 @@ describe('[HH-SCH-08][HH-WORK-06][RULE-SAFETY-GATES] the database keeps the sequ
     ).rejects.toThrow()
     await expect(sql`DELETE FROM work.time_stamps WHERE visit_id = ${visitId}`.execute(t.db)).rejects.toThrow()
     await expect(sql`DELETE FROM work.visit_departures WHERE visit_id = ${visitId}`.execute(t.db)).rejects.toThrow()
+  })
+})
+
+describe('[HH-DATA-08][HH-PKT-06][HH-OFF-09] the seam of My Day, the packet acknowledgment and the loadout (TSK-0070, TSK-0071, TSK-0072)', () => {
+  it('[HH-DATA-08][T44][HH-PKT-06][T45][HH-SCH-08] a loadout shortage is a critical packet change that ends the acknowledgment; My Day says so; the taps never depend on it and release nothing', async () => {
+    // The real imported lists (business configuration, not synthetic data), before this job's packet first pins them.
+    await syncLoadouts(t.db, loadLoadoutSeed())
+    const p = await project()
+    const jobId = await approve(p)
+    // Its own early slot (Ben's other visit today is later), so On my way is open whenever the suite runs.
+    const visitId = await fixtureVisit(p, jobId, today(), ['ben'], '00:20')
+    const item = async () => {
+      const v = (await myDay('ben')).visits.find((x) => x.visitId === visitId)
+      if (!v?.readiness) throw new Error('the visit and its readiness are on My Day')
+      return v as Item & { readiness: NonNullable<Item['readiness']> }
+    }
+    const before = await item()
+    expect(before.readiness.acknowledgment).toBe('required')
+    expect(before.readiness.blockers).toEqual([
+      { code: 'packet_not_viewed', count: 1 },
+      { code: 'packet_not_acknowledged', count: 1 },
+      { code: 'loadout_not_confirmed', count: 1 },
+    ])
+
+    // Ben acknowledges the current version himself (which also records his view).
+    type Packet = { packet: { version: number; contentSha256: string }; acknowledgments: { mine: { state: string } } }
+    const packet = async () => (await staffGet('ben', `/api/v1/staff/jobs/${jobId}/packet`)).json<Packet>()
+    const first = await packet()
+    const acked = await staffWrite('ben', 'POST', `/api/v1/staff/jobs/${jobId}/packet/acknowledgments`, {
+      version: first.packet.version,
+      contentSha256: first.packet.contentSha256,
+    })
+    expect(acked.statusCode, acked.body).toBe(201)
+    const ready = await item()
+    expect(ready.readiness.acknowledgment).toBe('acknowledged')
+    expect(ready.readiness.blockers).toEqual([{ code: 'loadout_not_confirmed', count: 1 }])
+
+    // A required item is missing: the task block and the critical packet version commit together, ending his review.
+    const loadout = (await staffGet('ben', `/api/v1/staff/jobs/${jobId}/loadout`)).json<{
+      packages: { workPackageId: string; groups: { items: { key: string }[] }[] }[]
+    }>()
+    const pkg = loadout.packages[0]
+    const itemKey = pkg?.groups.flatMap((g) => g.items)[0]?.key
+    if (!pkg || !itemKey) throw new Error('the DW-01 loadout lists items')
+    const short = await staffWrite('ben', 'POST', `/api/v1/staff/jobs/${jobId}/loadout/checks`, {
+      workPackageId: pkg.workPackageId,
+      items: [{ key: itemKey, status: 'missing', note: 'Synthetic: left at the shop' }],
+    })
+    expect(short.statusCode, short.body).toBe(201)
+    const after = await packet()
+    expect(after.packet.version).toBeGreaterThan(first.packet.version)
+    expect(after.acknowledgments.mine.state).toBe('invalidated')
+    expect(
+      await t.db
+        .selectFrom('work.job_packet_acknowledgment_invalidations')
+        .select(['reason', 'version'])
+        .where('job_id', '=', jobId)
+        .execute(),
+    ).toEqual([{ reason: 'critical_change', version: after.packet.version }])
+    const blocked = await item()
+    expect(blocked.readiness.acknowledgment).toBe('invalidated')
+    // The task block is listed once, as a loadout shortage, never also as a job-level hold; a blocked package is
+    // blocked, not also "not confirmed" (@handyhub/domain loadoutReadiness).
+    expect(blocked.readiness.blockers).toEqual([
+      { code: 'packet_critical_change', count: 1 },
+      { code: 'packet_acknowledgment_ended', count: 1 },
+      { code: 'loadout_blocked', count: 1 },
+    ])
+
+    // Readiness is not the Start Work check: On my way and Arrived are still the worker's own taps (HH-SCH-08,
+    // HH-WORK-06), and they neither restore the acknowledgment nor release the block.
+    expect(blocked.actions.onMyWay).toBe(true)
+    expect((await tap('ben', visitId, 'on-my-way')).statusCode).toBe(200)
+    expect((await tap('ben', visitId, 'arrived')).statusCode).toBe(200)
+    expect((await visitState(visitId)).state).toBe('arrived')
+    const arrived = await item()
+    expect(arrived.readiness.acknowledgment).toBe('invalidated')
+    expect(arrived.readiness.blockers.map((b) => b.code)).toContain('loadout_blocked')
+
+    // Reviewing the current version again (the taps made a new, non-critical one: the visit's state) restores the
+    // acknowledgment; it never releases the block (RULE-SAFETY-GATES).
+    const current = await packet()
+    expect(current.packet.version).toBeGreaterThan(after.packet.version)
+    const again = await staffWrite('ben', 'POST', `/api/v1/staff/jobs/${jobId}/packet/acknowledgments`, {
+      version: current.packet.version,
+      contentSha256: current.packet.contentSha256,
+    })
+    expect(again.statusCode, again.body).toBe(201)
+    const reviewed = await item()
+    expect(reviewed.readiness.acknowledgment).toBe('acknowledged')
+    expect(reviewed.readiness.blockers).toEqual([{ code: 'loadout_blocked', count: 1 }])
+    expect(
+      (
+        await t.db
+          .selectFrom('work.holds')
+          .select('state')
+          .where('kind', '=', 'task_block')
+          .where('project_id', '=', p.projectId)
+          .executeTakeFirstOrThrow()
+      ).state,
+    ).toBe('open')
   })
 })
