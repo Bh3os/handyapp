@@ -138,7 +138,17 @@ test.describe('the first-response clock and review holds (TSK-0043)', () => {
     await expect(first.getByText('Synthetic: talked through the job; photos to follow.')).toBeVisible()
     await expect(page.getByTestId('response-clock')).toContainText('a conversation was recorded')
 
-    // Answered: the new-request item leaves the queue.
+    // Answered but still received: it stays a new request, shown as answered, until one of the four actions takes it.
+    await page.getByRole('link', { name: 'Back to the action queue' }).click()
+    await queue.getByLabel('Reference').fill(reference)
+    await queue.getByRole('button', { name: 'Apply filters' }).click()
+    await expect(item.getByText(/Answered (within|after) the target/)).toBeVisible()
+    await item.getByRole('link', { name: 'Review request' }).click()
+    await page.getByRole('button', { name: 'Ask a Question', exact: true }).click()
+    await page.getByRole('button', { name: 'Confirm: Ask a Question' }).click()
+    await expect(page.getByText('Done. The request has moved on.')).toBeVisible()
+
+    // Answered and handled: the new-request item leaves the queue.
     await page.getByRole('link', { name: 'Back to the action queue' }).click()
     await queue.getByLabel('Reference').fill(reference)
     await queue.getByRole('button', { name: 'Apply filters' }).click()
