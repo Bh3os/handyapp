@@ -8,7 +8,15 @@
 export const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const
 export type PhotoType = (typeof PHOTO_TYPES)[number]
 
-export type ContentProblem = 'unsupported_type' | 'type_mismatch' | 'malformed' | 'trailing_data' | 'unsafe_content'
+/** Why a photo is refused; the staff catalogs label each code (label family photoRejection, TSK-0101). */
+export const CONTENT_PROBLEMS = [
+  'unsupported_type',
+  'type_mismatch',
+  'malformed',
+  'trailing_data',
+  'unsafe_content',
+] as const
+export type ContentProblem = (typeof CONTENT_PROBLEMS)[number]
 
 /** The image type the bytes start with, or null. */
 export function sniff(b: Uint8Array): PhotoType | null {
