@@ -138,7 +138,7 @@ test.describe('property, timing and estimate approach (TSK-0028)', () => {
     await expect(page.getByRole('heading', { name: 'Step 5 of 5: Review and send' })).toBeVisible()
     const review = page.locator('main')
     await expect(review).toContainText(`${STREET}, Apt 7`)
-    await expect(review).toContainText('Testville KY 40000')
+    await expect(review).toContainText('Testville, KY 40000')
     await expect(review).toContainText('Townhouse')
     await expect(review).toContainText("I'm flexible")
     await expect(review).toContainText('Any time')

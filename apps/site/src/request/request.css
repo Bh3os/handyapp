@@ -84,6 +84,35 @@
   margin: 0;
   overflow-wrap: anywhere;
 }
+/* Final review (TSK-0030): each section's heading with its Edit action, sub-headings per service, multi-line values. */
+.hh-request__review-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hh-space-2);
+  margin-bottom: var(--hh-space-3);
+}
+.hh-request__review-head .hh-h3 {
+  margin: 0;
+}
+.hh-request__review-sub {
+  margin: var(--hh-space-3) 0 var(--hh-space-2);
+  font-size: 1rem;
+  font-weight: 600;
+}
+.hh-request__review-lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hh-request__privacy {
+  display: grid;
+  gap: var(--hh-space-1);
+}
+.hh-request__privacy p {
+  margin: 0;
+}
 /* Services step (TSK-0027): four equal category cards that stack on phones; full-width checkbox rows. */
 .hh-request__cards {
   display: grid;
