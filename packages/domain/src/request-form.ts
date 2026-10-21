@@ -101,9 +101,11 @@ export const REQUEST_FORM_SCHEMA = {
     // The SMS opt-in and the separate marketing permission (TSK-0029; HH-INT-18, HH-INT-22, OWN-DEC-147): two
     // independent choices, both false unless the customer checks the box. The SMS disclosure version is the text shown
     // beside the SMS box (SMS_DISCLOSURE of @handyhub/domain/legal); it is required with an opt-in.
-    smsOptIn: { type: 'boolean' },
+    // Consent is never inferred: `enum` instead of `type: 'boolean'`, because the server's validator coerces typed
+    // scalars (1, "true" -> true) and a coerced value would record an opt-in nobody checked. Only true or false pass.
+    smsOptIn: { enum: [true, false] },
     smsDisclosureVersion: { type: 'string', pattern: '^[A-Za-z0-9._-]{1,40}$' },
-    marketingOptIn: { type: 'boolean' },
+    marketingOptIn: { enum: [true, false] },
     // Quiet spam controls (HH-INT-11): a field people never see, and when the form was opened (ms since epoch).
     website: { type: 'string', maxLength: 500 },
     startedAt: { type: 'integer', minimum: 0 },

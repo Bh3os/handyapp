@@ -238,10 +238,21 @@ describe('the server rejects manipulated consent fields and creates nothing (TSK
     expect(res.statusCode).toBe(400)
     expect(fields(res)).toEqual(
       expect.arrayContaining([
-        ['body.smsOptIn', 'type'],
-        ['body.marketingOptIn', 'type'],
+        ['body.smsOptIn', 'enum'],
+        ['body.marketingOptIn', 'enum'],
       ]),
     )
+    // Values a validator could coerce to true are refused too: only a literal true is an opt-in.
+    for (const truthy of [1, 'true']) {
+      res = await submit(body({ smsOptIn: truthy, marketingOptIn: truthy }))
+      expect(res.statusCode, String(truthy)).toBe(400)
+      expect(fields(res)).toEqual(
+        expect.arrayContaining([
+          ['body.smsOptIn', 'enum'],
+          ['body.marketingOptIn', 'enum'],
+        ]),
+      )
+    }
     // The opt-in and the marketing choice cannot be left out (a missing box is never read as either answer).
     const missing = body() as Partial<Body>
     delete missing.smsOptIn
