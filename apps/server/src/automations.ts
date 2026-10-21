@@ -14,6 +14,7 @@ import { receiptEmailAutomation } from './modules/requests/receipt-email.js'
 import { responseClockAutomation } from './modules/requests/response-clock.js'
 import { accessLinkAutomation } from './modules/access/link-message.js'
 import { contactChangedNoticeAutomation } from './modules/accounts/notice.js'
+import { retentionReviewAutomation } from './modules/retention/index.js'
 import type { CodeKeySettings } from './modules/identity/index.js'
 import type { Automation } from './platform/automation.js'
 import type { Providers } from './providers/index.js'
@@ -59,5 +60,7 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     // TSK-0036: the notice to the old email after an account's sign-in email changed (HH-ID-11); sends only once the
     // owner lists it as automatic and approves its wording (OQ-ACCOUNT-CONTACT-NOTICE).
     contactChangedNoticeAutomation({ providers: { email: deps.providers.email, sms: null } }),
+    // TSK-0099: the daily retention scan opens Owner deletion-review entries; it never deletes anything.
+    retentionReviewAutomation(),
   ]
 }

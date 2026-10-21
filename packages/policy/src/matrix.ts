@@ -153,6 +153,9 @@ export const ACTIONS = [
   'privacy.request_correction',
   'privacy.request_deletion',
   'privacy.decide',
+  // PROPOSED (TSK-0099): opening the deletion-review queue (records past their retention period) is part of the
+  // Owner's deletion review, so it sits in the row of the Delete action (ENT-RetentionReview: the Owner).
+  'retention.view',
   'records.delete',
   'account.delete',
   'export.bulk',
@@ -625,7 +628,7 @@ export const MATRIX: readonly MatrixRow[] = [
   row(
     STAFF,
     'Decide privacy requests; Delete action; delete a login account',
-    ['privacy.decide', 'records.delete', 'account.delete'],
+    ['privacy.decide', 'retention.view', 'records.delete', 'account.delete'],
     { owner: Y('Y', { audit: true }) },
   ),
   row(STAFF, 'Bulk export', ['export.bulk'], { owner: Y('F', F) }),
