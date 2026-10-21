@@ -18,6 +18,7 @@ import { mapBirdEvent } from '../../providers/bird/index.js'
 import { mapResendEvent } from '../../providers/resend/index.js'
 import type { DeliveryStatus } from '../../providers/types.js'
 import { currentConsent, recordConsent } from './consent.js'
+import { recordDeliveryOutcome } from './deliveries.js'
 
 /** US keyword sets, as carriers (CTIA) and Bird's default US catalog treat them. Matched on the whole message. */
 export const SMS_KEYWORDS = {
@@ -84,7 +85,7 @@ async function applyStatus(tx: Tx, r: Receipt, status: DeliveryStatus): Promise<
   if (!r.provider_message_id) return 'ignored'
   const delivery = await tx
     .selectFrom('platform.message_deliveries')
-    .select(['id', 'state', 'status_at'])
+    .select(['id', 'state', 'status_at', 'audience'])
     // The local and ci fakes stand in for the provider; their IDs never collide with a real provider's.
     .where('provider', 'in', [r.provider, 'fake'])
     .where('channel', '=', r.provider === 'bird' ? 'sms' : 'email')
@@ -115,6 +116,24 @@ async function applyStatus(tx: Tx, r: Receipt, status: DeliveryStatus): Promise<
       occurred_at: r.event_occurred_at,
     })
     .execute()
+  // A delivery that first reaches sent or delivered succeeded; one that fails failed (TSK-0043: the response clock).
+  const success = (s: string) => s === 'sent' || s === 'delivered'
+  if (success(to) && !success(delivery.state))
+    await recordDeliveryOutcome(tx, {
+      deliveryId: delivery.id,
+      audience: delivery.audience,
+      outcome: 'succeeded',
+      at: r.event_occurred_at ?? new Date(),
+      cause: r.id,
+    })
+  else if (to === 'failed')
+    await recordDeliveryOutcome(tx, {
+      deliveryId: delivery.id,
+      audience: delivery.audience,
+      outcome: 'failed',
+      at: r.event_occurred_at ?? new Date(),
+      cause: r.id,
+    })
   return 'applied'
 }
 

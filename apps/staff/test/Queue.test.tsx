@@ -63,6 +63,51 @@ const props = (fetchImpl: typeof fetch, go = vi.fn()) => ({
   now: () => NOW,
 })
 
+describe('the first-response clock on queue items (TSK-0043, HH-LEAD-05, OWN-DEC-115)', () => {
+  it('[HH-LEAD-05] shows business minutes left or overdue, paused outside the daily hours, as an internal target', async () => {
+    const clock = {
+      state: 'paused' as const,
+      startedAt: '2026-10-20T01:40:00.000Z',
+      targetMinutes: 60,
+      dueAt: '2026-10-20T12:40:00.000Z',
+      remainingMinutes: 40,
+      overdueMinutes: null,
+      resumesAt: '2026-10-20T12:00:00.000Z',
+      timeZone: 'America/Kentucky/Louisville',
+      stoppedAt: null,
+      stopKind: null,
+      businessMinutes: null,
+      withinTarget: null,
+    }
+    const overdue = { ...clock, state: 'overdue' as const, remainingMinutes: null, overdueMinutes: 75, resumesAt: null }
+    const fetchImpl = vi.fn(async () =>
+      json(
+        200,
+        page([
+          item({ dueAt: clock.dueAt, responseClock: clock }),
+          item({
+            id: '00000000-0000-4000-8000-000000000002',
+            reference: 'HH-8K2M9Q4D',
+            dueAt: clock.dueAt,
+            responseClock: overdue,
+            reason: 'awaiting_first_response',
+            status: 'needs_information',
+          }),
+        ]),
+      ),
+    )
+    render(<QueueHome {...props(fetchImpl as unknown as typeof fetch)} />)
+    expect(
+      await screen.findByText(
+        /40 minutes left; paused outside daily hours until Tue,? 8:00\sAM · Internal response target, not a customer promise/,
+      ),
+    ).toBeTruthy()
+    const late = screen.getByText(/Overdue by 1 hour in daily hours/)
+    expect(late.className).toBe('staff-queue__overdue')
+    expect(screen.getByText('Waiting for a first meaningful response')).toBeTruthy()
+  })
+})
+
 describe('the action queue screen (TSK-0041, HH-OPS-01, HH-OPS-02)', () => {
   it('[HH-OPS-02][HH-OPS-01] each item shows reference, status, assignee, due time, reason and one action that deep-links the record', async () => {
     const items = [

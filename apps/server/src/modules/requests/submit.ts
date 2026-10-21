@@ -16,6 +16,7 @@ import { loadConfig, requireConfigured, type Config } from '../../platform/confi
 import { outbox } from '../../platform/outbox.js'
 import { lookupCoverage, type CoverageResult } from '../coverage/coverage.js'
 import { bindDraftPhotos, type PhotoSummary } from '../photos/photos.js'
+import { startResponseClock } from './response-clock.js'
 import {
   localDate,
   normalizeUsPhone,
@@ -229,6 +230,14 @@ export async function submitRequest(
         })),
       )
       .execute()
+
+  // The first-response clock starts with the request (TSK-0043, HH-LEAD-05): an internal target, never shown to the
+  // customer, counted only within the configured daily hours.
+  await startResponseClock(
+    tx,
+    { requestId: request.id, projectId: project.id, receivedAt: request.submitted_at },
+    config,
+  )
 
   // The draft's photos, bound by the server to this request and project; a bad token binds nothing (TSK-0031).
   const photos = await bindDraftPhotos(tx, { token: body.photoDraft, requestId: request.id, projectId: project.id })

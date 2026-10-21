@@ -8,10 +8,13 @@ import { openQueueItem, resolveQueueItem } from './items.js'
 export const REQUEST_SUBMITTED = 'request.submitted'
 
 /**
- * Brings a request's new_request item in line with the request as it is now: a received request has its one open item
- * (with the current responsible staff member); a request past received has none (resolved as handled). The provider
- * below runs it from the outbox; the requests module runs it in the same transaction as an assignment or an action
- * (TSK-0042), so the queue never shows a handled request or a stale assignee.
+ * Brings a request's new_request item in line with the request and its first-response clock as they are now
+ * (TSK-0043; HH-LEAD-05, OWN-DEC-116): the item stays open, due at the clock's internal target, until a meaningful
+ * response stops the clock, whatever staff did meanwhile (opening, assigning, qualifying, the four actions, drafting).
+ * While received it reads "new request"; afterwards "awaiting a first response". A request without a clock (none
+ * since TSK-0043) keeps the earlier rule: open while received. The provider below runs it from the outbox; the
+ * requests module runs it in the same transaction as an assignment, an action or a clock change, so the queue never
+ * shows a stale assignee or an answered request.
  */
 export async function syncNewRequestItem(tx: Tx, requestId: string): Promise<'open' | 'resolved' | 'missing'> {
   const request = await tx
@@ -20,19 +23,35 @@ export async function syncNewRequestItem(tx: Tx, requestId: string): Promise<'op
     .where('id', '=', requestId)
     .executeTakeFirst()
   if (!request) return 'missing'
-  if (request.state !== 'received') {
-    // Already handled: an open item from an earlier event is resolved, and none is opened.
-    await resolveQueueItem(tx, { type: 'new_request', subjectId: request.id, resolution: 'handled' })
+  const clock = await tx
+    .selectFrom('intake.response_clocks')
+    .select(['due_at', 'stopped_at'])
+    .where('request_id', '=', requestId)
+    .executeTakeFirst()
+  const awaiting = clock ? clock.stopped_at === null : request.state === 'received'
+  if (!awaiting) {
+    // Answered (or, without a clock, already handled): an open item from an earlier event is resolved.
+    await resolveQueueItem(tx, {
+      type: 'new_request',
+      subjectId: request.id,
+      resolution: clock ? 'responded' : 'handled',
+    })
     return 'resolved'
   }
   await openQueueItem(tx, {
     type: 'new_request',
     subjectId: request.id,
-    reason: request.spam_suspected ? 'new_request_flagged' : 'new_request',
+    reason:
+      request.state !== 'received'
+        ? 'awaiting_first_response'
+        : request.spam_suspected
+          ? 'new_request_flagged'
+          : 'new_request',
     projectId: request.project_id,
     reference: request.reference,
     status: request.state,
     assignedStaffId: request.responsible_staff_id,
+    dueAt: clock?.due_at ?? null,
     openedAt: request.submitted_at,
   })
   return 'open'
@@ -41,7 +60,8 @@ export async function syncNewRequestItem(tx: Tx, requestId: string): Promise<'op
 /**
  * New requests (HH-OPS-01 "new requests (with the 1-hour response clock)"): a received request opens its
  * new_request item, flagged for review when the quiet spam controls flagged it (HH-INT-11). The item's due time is
- * the first-response clock's (HH-LEAD-05), which that clock sets; until then the item shows its age.
+ * the first-response clock's internal target (HH-LEAD-05, TSK-0043); a clock whose values are NOT CONFIGURED has
+ * none, and the item shows its age.
  */
 export function newRequestQueueAutomation(): Automation {
   return {
@@ -49,8 +69,8 @@ export function newRequestQueueAutomation(): Automation {
     trigger: { kind: 'event', eventTypes: [REQUEST_SUBMITTED] },
     identity: 'system.queue',
     inputs: { description: 'the request id of the request.submitted event; the request as it is now', version: 1 },
-    idempotency: 'one open new_request item per request; a replay updates it, and a request past received opens none',
-    effect: 'opens or updates the new_request queue item of a received request',
+    idempotency: 'one open new_request item per request; a replay updates it, and an answered request opens none',
+    effect: 'opens or updates the new_request queue item of a request awaiting its first meaningful response',
     retry: { maxAttempts: 5, baseDelayMs: 1_000, maxDelayMs: 60_000 },
     timeoutMs: 10_000,
     exceptionOwner: 'office',
