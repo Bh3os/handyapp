@@ -4397,19 +4397,76 @@
                       "type": "null"
                     },
                     "payment": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "state"
-                      ],
-                      "properties": {
-                        "state": {
-                          "type": "string",
-                          "enum": [
-                            "none"
-                          ]
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state"
+                          ],
+                          "properties": {
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "none"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state",
+                            "amountCents",
+                            "verifiedCents",
+                            "pendingCents",
+                            "payByCardUrl"
+                          ],
+                          "properties": {
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "deposit_due"
+                              ]
+                            },
+                            "amountCents": {
+                              "type": "integer"
+                            },
+                            "verifiedCents": {
+                              "type": "integer"
+                            },
+                            "pendingCents": {
+                              "type": "integer"
+                            },
+                            "payByCardUrl": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state",
+                            "amountCents"
+                          ],
+                          "properties": {
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "deposit_received"
+                              ]
+                            },
+                            "amountCents": {
+                              "type": "integer"
+                            }
+                          }
                         }
-                      }
+                      ]
                     },
                     "refreshedAt": {
                       "type": "string",
@@ -13513,6 +13570,7 @@
                                   "payment.term_default",
                                   "payment.methods",
                                   "payment.instructions",
+                                  "payment.square_link_hosts",
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
@@ -14076,6 +14134,7 @@
                                 "depositCents",
                                 "termsVersion",
                                 "testMark",
+                                "jobId",
                                 "jobState",
                                 "schedulingTaskState"
                               ],
@@ -14110,6 +14169,9 @@
                                 },
                                 "testMark": {
                                   "type": "boolean"
+                                },
+                                "jobId": {
+                                  "type": "string"
                                 },
                                 "jobState": {
                                   "type": "string"
@@ -14991,6 +15053,7 @@
                                   "payment.term_default",
                                   "payment.methods",
                                   "payment.instructions",
+                                  "payment.square_link_hosts",
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
@@ -15554,6 +15617,7 @@
                                 "depositCents",
                                 "termsVersion",
                                 "testMark",
+                                "jobId",
                                 "jobState",
                                 "schedulingTaskState"
                               ],
@@ -15588,6 +15652,9 @@
                                 },
                                 "testMark": {
                                   "type": "boolean"
+                                },
+                                "jobId": {
+                                  "type": "string"
                                 },
                                 "jobState": {
                                   "type": "string"
@@ -16747,6 +16814,7 @@
                                   "payment.term_default",
                                   "payment.methods",
                                   "payment.instructions",
+                                  "payment.square_link_hosts",
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
@@ -17310,6 +17378,7 @@
                                 "depositCents",
                                 "termsVersion",
                                 "testMark",
+                                "jobId",
                                 "jobState",
                                 "schedulingTaskState"
                               ],
@@ -17344,6 +17413,9 @@
                                 },
                                 "testMark": {
                                   "type": "boolean"
+                                },
+                                "jobId": {
+                                  "type": "string"
                                 },
                                 "jobState": {
                                   "type": "string"
@@ -18079,6 +18151,7 @@
                                   "payment.term_default",
                                   "payment.methods",
                                   "payment.instructions",
+                                  "payment.square_link_hosts",
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
@@ -18642,6 +18715,7 @@
                                 "depositCents",
                                 "termsVersion",
                                 "testMark",
+                                "jobId",
                                 "jobState",
                                 "schedulingTaskState"
                               ],
@@ -18676,6 +18750,9 @@
                                 },
                                 "testMark": {
                                   "type": "boolean"
+                                },
+                                "jobId": {
+                                  "type": "string"
                                 },
                                 "jobState": {
                                   "type": "string"
@@ -19586,6 +19663,7 @@
                                   "payment.term_default",
                                   "payment.methods",
                                   "payment.instructions",
+                                  "payment.square_link_hosts",
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
@@ -20149,6 +20227,7 @@
                                 "depositCents",
                                 "termsVersion",
                                 "testMark",
+                                "jobId",
                                 "jobState",
                                 "schedulingTaskState"
                               ],
@@ -20183,6 +20262,9 @@
                                 },
                                 "testMark": {
                                   "type": "boolean"
+                                },
+                                "jobId": {
+                                  "type": "string"
                                 },
                                 "jobState": {
                                   "type": "string"
@@ -20918,6 +21000,7 @@
                                   "payment.term_default",
                                   "payment.methods",
                                   "payment.instructions",
+                                  "payment.square_link_hosts",
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
@@ -21481,6 +21564,7 @@
                                 "depositCents",
                                 "termsVersion",
                                 "testMark",
+                                "jobId",
                                 "jobState",
                                 "schedulingTaskState"
                               ],
@@ -21515,6 +21599,9 @@
                                 },
                                 "testMark": {
                                   "type": "boolean"
+                                },
+                                "jobId": {
+                                  "type": "string"
                                 },
                                 "jobState": {
                                   "type": "string"
@@ -22616,6 +22703,7 @@
                                   "payment.term_default",
                                   "payment.methods",
                                   "payment.instructions",
+                                  "payment.square_link_hosts",
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
@@ -23179,6 +23267,7 @@
                                 "depositCents",
                                 "termsVersion",
                                 "testMark",
+                                "jobId",
                                 "jobState",
                                 "schedulingTaskState"
                               ],
@@ -23213,6 +23302,9 @@
                                 },
                                 "testMark": {
                                   "type": "boolean"
+                                },
+                                "jobId": {
+                                  "type": "string"
                                 },
                                 "jobState": {
                                   "type": "string"
@@ -24136,6 +24228,7 @@
                                   "payment.term_default",
                                   "payment.methods",
                                   "payment.instructions",
+                                  "payment.square_link_hosts",
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
@@ -24699,6 +24792,7 @@
                                 "depositCents",
                                 "termsVersion",
                                 "testMark",
+                                "jobId",
                                 "jobState",
                                 "schedulingTaskState"
                               ],
@@ -24733,6 +24827,9 @@
                                 },
                                 "testMark": {
                                   "type": "boolean"
+                                },
+                                "jobId": {
+                                  "type": "string"
                                 },
                                 "jobState": {
                                   "type": "string"
@@ -25647,6 +25744,7 @@
                                   "payment.term_default",
                                   "payment.methods",
                                   "payment.instructions",
+                                  "payment.square_link_hosts",
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
@@ -26210,6 +26308,7 @@
                                 "depositCents",
                                 "termsVersion",
                                 "testMark",
+                                "jobId",
                                 "jobState",
                                 "schedulingTaskState"
                               ],
@@ -26244,6 +26343,9 @@
                                 },
                                 "testMark": {
                                   "type": "boolean"
+                                },
+                                "jobId": {
+                                  "type": "string"
                                 },
                                 "jobState": {
                                   "type": "string"
@@ -27163,6 +27265,7 @@
                                   "payment.term_default",
                                   "payment.methods",
                                   "payment.instructions",
+                                  "payment.square_link_hosts",
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
@@ -27726,6 +27829,7 @@
                                 "depositCents",
                                 "termsVersion",
                                 "testMark",
+                                "jobId",
                                 "jobState",
                                 "schedulingTaskState"
                               ],
@@ -27760,6 +27864,9 @@
                                 },
                                 "testMark": {
                                   "type": "boolean"
+                                },
+                                "jobId": {
+                                  "type": "string"
                                 },
                                 "jobState": {
                                   "type": "string"
@@ -28674,6 +28781,7 @@
                                   "payment.term_default",
                                   "payment.methods",
                                   "payment.instructions",
+                                  "payment.square_link_hosts",
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
@@ -29237,6 +29345,7 @@
                                 "depositCents",
                                 "termsVersion",
                                 "testMark",
+                                "jobId",
                                 "jobState",
                                 "schedulingTaskState"
                               ],
@@ -29271,6 +29380,9 @@
                                 },
                                 "testMark": {
                                   "type": "boolean"
+                                },
+                                "jobId": {
+                                  "type": "string"
                                 },
                                 "jobState": {
                                   "type": "string"
@@ -30185,6 +30297,7 @@
                                   "payment.term_default",
                                   "payment.methods",
                                   "payment.instructions",
+                                  "payment.square_link_hosts",
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
@@ -30748,6 +30861,7 @@
                                 "depositCents",
                                 "termsVersion",
                                 "testMark",
+                                "jobId",
                                 "jobState",
                                 "schedulingTaskState"
                               ],
@@ -30782,6 +30896,9 @@
                                 },
                                 "testMark": {
                                   "type": "boolean"
+                                },
+                                "jobId": {
+                                  "type": "string"
                                 },
                                 "jobState": {
                                   "type": "string"
@@ -31900,6 +32017,7 @@
                                   "payment.term_default",
                                   "payment.methods",
                                   "payment.instructions",
+                                  "payment.square_link_hosts",
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
@@ -32463,6 +32581,7 @@
                                 "depositCents",
                                 "termsVersion",
                                 "testMark",
+                                "jobId",
                                 "jobState",
                                 "schedulingTaskState"
                               ],
@@ -32497,6 +32616,9 @@
                                 },
                                 "testMark": {
                                   "type": "boolean"
+                                },
+                                "jobId": {
+                                  "type": "string"
                                 },
                                 "jobState": {
                                   "type": "string"
@@ -33922,6 +34044,2120 @@
         }
       }
     },
+    "/api/v1/staff/jobs/{jobId}/deposit": {
+      "get": {
+        "operationId": "getJobDeposit",
+        "summary": "A job's deposit requirement, its payments and the waiver",
+        "description": "Staff with payment.view (the Owner, Office). The deposit the approval pinned (required with its amount in cents, or not required; the rule version and the approved total after any discount it was computed on), its state, the verified and pending (uncleared check) amounts applied, what it still needs, whether work visits may be confirmed as it stands, the Square payment link of the deposit request, the waiver with its reason, every payment recorded on the job and the actions the server would allow the caller now.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "required",
+                    "state",
+                    "amountCents",
+                    "baseTotalCents",
+                    "ruleVersion",
+                    "verifiedCents",
+                    "pendingCents",
+                    "remainingCents",
+                    "workScheduling",
+                    "paymentLink",
+                    "waiver",
+                    "payments",
+                    "version",
+                    "actions"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "not_required",
+                        "required",
+                        "partly_satisfied",
+                        "satisfied",
+                        "applied",
+                        "waived"
+                      ]
+                    },
+                    "amountCents": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "baseTotalCents": {
+                      "type": "integer"
+                    },
+                    "ruleVersion": {
+                      "type": "integer"
+                    },
+                    "verifiedCents": {
+                      "type": "integer"
+                    },
+                    "pendingCents": {
+                      "type": "integer"
+                    },
+                    "remainingCents": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "workScheduling": {
+                      "type": "string",
+                      "enum": [
+                        "open",
+                        "blocked"
+                      ]
+                    },
+                    "paymentLink": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "url",
+                            "setBy",
+                            "setAt"
+                          ],
+                          "properties": {
+                            "url": {
+                              "type": "string"
+                            },
+                            "setBy": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "setAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "waiver": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "by",
+                            "at",
+                            "reason"
+                          ],
+                          "properties": {
+                            "by": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            },
+                            "at": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "reason": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "payments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "method",
+                          "amountCents",
+                          "appliedCents",
+                          "unappliedCents",
+                          "receivedOn",
+                          "reference",
+                          "payerName",
+                          "state",
+                          "verified",
+                          "collector",
+                          "recordedBy",
+                          "recordedAt",
+                          "clearedBy",
+                          "clearedAt",
+                          "canMarkCleared"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string",
+                            "enum": [
+                              "square_payment_link",
+                              "square_tap_to_pay",
+                              "cash",
+                              "check",
+                              "zelle",
+                              "cash_app",
+                              "chime"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": "integer"
+                          },
+                          "appliedCents": {
+                            "type": "integer"
+                          },
+                          "unappliedCents": {
+                            "type": "integer"
+                          },
+                          "receivedOn": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "payerName": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "recorded",
+                              "reconciled",
+                              "received",
+                              "deposited",
+                              "cleared",
+                              "returned",
+                              "voided"
+                            ]
+                          },
+                          "verified": {
+                            "type": "boolean"
+                          },
+                          "collector": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "recordedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "recordedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "clearedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "clearedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "canMarkCleared": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "enterPaymentLink",
+                        "recordPayment",
+                        "waive"
+                      ],
+                      "properties": {
+                        "enterPaymentLink": {
+                          "type": "boolean"
+                        },
+                        "recordPayment": {
+                          "type": "boolean"
+                        },
+                        "waive": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "payment.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/deposits.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/jobs/{jobId}/deposit/payment-link": {
+      "put": {
+        "operationId": "setDepositPaymentLink",
+        "summary": "Enter the deposit request's Square payment link",
+        "description": "Staff with invoice.enter_payment_link (the Owner, Office; OWN-DEC-138). With If-Match: the deposit version shown. The deposit-specific link staff created in the Square app: https on a host of payment.square_link_hosts (PROPOSED list; NOT CONFIGURED refuses). Only while the deposit is still due. Nothing is charged here and nothing returns from Square: a redirect or a customer claim never marks the deposit paid. Returns the deposit view.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "url"
+                ],
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "required",
+                    "state",
+                    "amountCents",
+                    "baseTotalCents",
+                    "ruleVersion",
+                    "verifiedCents",
+                    "pendingCents",
+                    "remainingCents",
+                    "workScheduling",
+                    "paymentLink",
+                    "waiver",
+                    "payments",
+                    "version",
+                    "actions"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "not_required",
+                        "required",
+                        "partly_satisfied",
+                        "satisfied",
+                        "applied",
+                        "waived"
+                      ]
+                    },
+                    "amountCents": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "baseTotalCents": {
+                      "type": "integer"
+                    },
+                    "ruleVersion": {
+                      "type": "integer"
+                    },
+                    "verifiedCents": {
+                      "type": "integer"
+                    },
+                    "pendingCents": {
+                      "type": "integer"
+                    },
+                    "remainingCents": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "workScheduling": {
+                      "type": "string",
+                      "enum": [
+                        "open",
+                        "blocked"
+                      ]
+                    },
+                    "paymentLink": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "url",
+                            "setBy",
+                            "setAt"
+                          ],
+                          "properties": {
+                            "url": {
+                              "type": "string"
+                            },
+                            "setBy": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "setAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "waiver": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "by",
+                            "at",
+                            "reason"
+                          ],
+                          "properties": {
+                            "by": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            },
+                            "at": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "reason": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "payments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "method",
+                          "amountCents",
+                          "appliedCents",
+                          "unappliedCents",
+                          "receivedOn",
+                          "reference",
+                          "payerName",
+                          "state",
+                          "verified",
+                          "collector",
+                          "recordedBy",
+                          "recordedAt",
+                          "clearedBy",
+                          "clearedAt",
+                          "canMarkCleared"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string",
+                            "enum": [
+                              "square_payment_link",
+                              "square_tap_to_pay",
+                              "cash",
+                              "check",
+                              "zelle",
+                              "cash_app",
+                              "chime"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": "integer"
+                          },
+                          "appliedCents": {
+                            "type": "integer"
+                          },
+                          "unappliedCents": {
+                            "type": "integer"
+                          },
+                          "receivedOn": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "payerName": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "recorded",
+                              "reconciled",
+                              "received",
+                              "deposited",
+                              "cleared",
+                              "returned",
+                              "voided"
+                            ]
+                          },
+                          "verified": {
+                            "type": "boolean"
+                          },
+                          "collector": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "recordedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "recordedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "clearedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "clearedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "canMarkCleared": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "enterPaymentLink",
+                        "recordPayment",
+                        "waive"
+                      ],
+                      "properties": {
+                        "enterPaymentLink": {
+                          "type": "boolean"
+                        },
+                        "recordPayment": {
+                          "type": "boolean"
+                        },
+                        "waive": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "invoice.enter_payment_link",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "deposit.payment_link_set",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/deposits.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/jobs/{jobId}/deposit/payments": {
+      "post": {
+        "operationId": "recordDepositPayment",
+        "summary": "Record a verified deposit payment",
+        "description": "Staff with payment.record (the Owner, Office; a Worker only for their own on-site collection with the collect capability on an assigned job). After staff verified the payment: method (one of payment.methods), amount in cents, the date received (not after today), the collector (default: the caller), the transaction reference (required for Square card payments and checks) and the payer for a check. The same method and reference are refused twice (CONFLICT DUPLICATE_PAYMENT). Applied, under the deposit lock, to what the deposit still needs; a remainder stays unapplied for the Owner. A check is received and pending: it satisfies nothing until cleared. Returns the deposit view.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "method",
+                  "amountCents",
+                  "receivedOn"
+                ],
+                "properties": {
+                  "method": {
+                    "type": "string",
+                    "enum": [
+                      "square_payment_link",
+                      "square_tap_to_pay",
+                      "cash",
+                      "check",
+                      "zelle",
+                      "cash_app",
+                      "chime"
+                    ]
+                  },
+                  "amountCents": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10000000000
+                  },
+                  "receivedOn": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  },
+                  "reference": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 140
+                  },
+                  "payerName": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 220
+                  },
+                  "collectorStaffId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "required",
+                    "state",
+                    "amountCents",
+                    "baseTotalCents",
+                    "ruleVersion",
+                    "verifiedCents",
+                    "pendingCents",
+                    "remainingCents",
+                    "workScheduling",
+                    "paymentLink",
+                    "waiver",
+                    "payments",
+                    "version",
+                    "actions"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "not_required",
+                        "required",
+                        "partly_satisfied",
+                        "satisfied",
+                        "applied",
+                        "waived"
+                      ]
+                    },
+                    "amountCents": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "baseTotalCents": {
+                      "type": "integer"
+                    },
+                    "ruleVersion": {
+                      "type": "integer"
+                    },
+                    "verifiedCents": {
+                      "type": "integer"
+                    },
+                    "pendingCents": {
+                      "type": "integer"
+                    },
+                    "remainingCents": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "workScheduling": {
+                      "type": "string",
+                      "enum": [
+                        "open",
+                        "blocked"
+                      ]
+                    },
+                    "paymentLink": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "url",
+                            "setBy",
+                            "setAt"
+                          ],
+                          "properties": {
+                            "url": {
+                              "type": "string"
+                            },
+                            "setBy": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "setAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "waiver": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "by",
+                            "at",
+                            "reason"
+                          ],
+                          "properties": {
+                            "by": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            },
+                            "at": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "reason": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "payments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "method",
+                          "amountCents",
+                          "appliedCents",
+                          "unappliedCents",
+                          "receivedOn",
+                          "reference",
+                          "payerName",
+                          "state",
+                          "verified",
+                          "collector",
+                          "recordedBy",
+                          "recordedAt",
+                          "clearedBy",
+                          "clearedAt",
+                          "canMarkCleared"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string",
+                            "enum": [
+                              "square_payment_link",
+                              "square_tap_to_pay",
+                              "cash",
+                              "check",
+                              "zelle",
+                              "cash_app",
+                              "chime"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": "integer"
+                          },
+                          "appliedCents": {
+                            "type": "integer"
+                          },
+                          "unappliedCents": {
+                            "type": "integer"
+                          },
+                          "receivedOn": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "payerName": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "recorded",
+                              "reconciled",
+                              "received",
+                              "deposited",
+                              "cleared",
+                              "returned",
+                              "voided"
+                            ]
+                          },
+                          "verified": {
+                            "type": "boolean"
+                          },
+                          "collector": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "recordedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "recordedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "clearedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "clearedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "canMarkCleared": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "enterPaymentLink",
+                        "recordPayment",
+                        "waive"
+                      ],
+                      "properties": {
+                        "enterPaymentLink": {
+                          "type": "boolean"
+                        },
+                        "recordPayment": {
+                          "type": "boolean"
+                        },
+                        "waive": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "payment.record",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "payment.record",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/deposits.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/jobs/{jobId}/deposit/waiver": {
+      "post": {
+        "operationId": "waiveJobDeposit",
+        "summary": "Waive this job's required deposit (Owner only)",
+        "description": "The Owner only (deposit.waive; OWN-DEC-76): a fresh sign-in (password or authenticator code within 5 minutes, read again at the write) and a written reason. Every other role, including another administrator, is refused. Job-specific; only while the deposit is still due. It never marks the deposit paid and never changes the price; work visits of the job may then be confirmed. Append-only and audited. Returns the deposit view.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2100
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "required",
+                    "state",
+                    "amountCents",
+                    "baseTotalCents",
+                    "ruleVersion",
+                    "verifiedCents",
+                    "pendingCents",
+                    "remainingCents",
+                    "workScheduling",
+                    "paymentLink",
+                    "waiver",
+                    "payments",
+                    "version",
+                    "actions"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "not_required",
+                        "required",
+                        "partly_satisfied",
+                        "satisfied",
+                        "applied",
+                        "waived"
+                      ]
+                    },
+                    "amountCents": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "baseTotalCents": {
+                      "type": "integer"
+                    },
+                    "ruleVersion": {
+                      "type": "integer"
+                    },
+                    "verifiedCents": {
+                      "type": "integer"
+                    },
+                    "pendingCents": {
+                      "type": "integer"
+                    },
+                    "remainingCents": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "workScheduling": {
+                      "type": "string",
+                      "enum": [
+                        "open",
+                        "blocked"
+                      ]
+                    },
+                    "paymentLink": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "url",
+                            "setBy",
+                            "setAt"
+                          ],
+                          "properties": {
+                            "url": {
+                              "type": "string"
+                            },
+                            "setBy": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "setAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "waiver": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "by",
+                            "at",
+                            "reason"
+                          ],
+                          "properties": {
+                            "by": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            },
+                            "at": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "reason": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "payments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "method",
+                          "amountCents",
+                          "appliedCents",
+                          "unappliedCents",
+                          "receivedOn",
+                          "reference",
+                          "payerName",
+                          "state",
+                          "verified",
+                          "collector",
+                          "recordedBy",
+                          "recordedAt",
+                          "clearedBy",
+                          "clearedAt",
+                          "canMarkCleared"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string",
+                            "enum": [
+                              "square_payment_link",
+                              "square_tap_to_pay",
+                              "cash",
+                              "check",
+                              "zelle",
+                              "cash_app",
+                              "chime"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": "integer"
+                          },
+                          "appliedCents": {
+                            "type": "integer"
+                          },
+                          "unappliedCents": {
+                            "type": "integer"
+                          },
+                          "receivedOn": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "payerName": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "recorded",
+                              "reconciled",
+                              "received",
+                              "deposited",
+                              "cleared",
+                              "returned",
+                              "voided"
+                            ]
+                          },
+                          "verified": {
+                            "type": "boolean"
+                          },
+                          "collector": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "recordedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "recordedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "clearedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "clearedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "canMarkCleared": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "enterPaymentLink",
+                        "recordPayment",
+                        "waive"
+                      ],
+                      "properties": {
+                        "enterPaymentLink": {
+                          "type": "boolean"
+                        },
+                        "recordPayment": {
+                          "type": "boolean"
+                        },
+                        "waive": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "deposit.waive",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": 5,
+          "csrf": "required_with_staff_session",
+          "audit": "deposit.waive",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/deposits.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/message-deliveries/{deliveryId}/retry": {
       "post": {
         "operationId": "retryMessageDelivery",
@@ -34094,6 +36330,525 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/request-receipt.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/payments/{paymentId}/clear": {
+      "post": {
+        "operationId": "markCheckCleared",
+        "summary": "Mark a received check cleared",
+        "description": "The Owner only (check.mark_cleared; OWN-DEC-138), never for a check they collected. A received or deposited check becomes cleared; the deposit it was applied to counts it from now on. Any other payment or state is a CONFLICT. Returns the deposit view of the check's job.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "required",
+                    "state",
+                    "amountCents",
+                    "baseTotalCents",
+                    "ruleVersion",
+                    "verifiedCents",
+                    "pendingCents",
+                    "remainingCents",
+                    "workScheduling",
+                    "paymentLink",
+                    "waiver",
+                    "payments",
+                    "version",
+                    "actions"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "not_required",
+                        "required",
+                        "partly_satisfied",
+                        "satisfied",
+                        "applied",
+                        "waived"
+                      ]
+                    },
+                    "amountCents": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "baseTotalCents": {
+                      "type": "integer"
+                    },
+                    "ruleVersion": {
+                      "type": "integer"
+                    },
+                    "verifiedCents": {
+                      "type": "integer"
+                    },
+                    "pendingCents": {
+                      "type": "integer"
+                    },
+                    "remainingCents": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "workScheduling": {
+                      "type": "string",
+                      "enum": [
+                        "open",
+                        "blocked"
+                      ]
+                    },
+                    "paymentLink": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "url",
+                            "setBy",
+                            "setAt"
+                          ],
+                          "properties": {
+                            "url": {
+                              "type": "string"
+                            },
+                            "setBy": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "setAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "waiver": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "by",
+                            "at",
+                            "reason"
+                          ],
+                          "properties": {
+                            "by": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            },
+                            "at": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "reason": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "payments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "method",
+                          "amountCents",
+                          "appliedCents",
+                          "unappliedCents",
+                          "receivedOn",
+                          "reference",
+                          "payerName",
+                          "state",
+                          "verified",
+                          "collector",
+                          "recordedBy",
+                          "recordedAt",
+                          "clearedBy",
+                          "clearedAt",
+                          "canMarkCleared"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string",
+                            "enum": [
+                              "square_payment_link",
+                              "square_tap_to_pay",
+                              "cash",
+                              "check",
+                              "zelle",
+                              "cash_app",
+                              "chime"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": "integer"
+                          },
+                          "appliedCents": {
+                            "type": "integer"
+                          },
+                          "unappliedCents": {
+                            "type": "integer"
+                          },
+                          "receivedOn": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "payerName": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "recorded",
+                              "reconciled",
+                              "received",
+                              "deposited",
+                              "cleared",
+                              "returned",
+                              "voided"
+                            ]
+                          },
+                          "verified": {
+                            "type": "boolean"
+                          },
+                          "collector": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "recordedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "recordedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "clearedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "clearedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "canMarkCleared": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "enterPaymentLink",
+                        "recordPayment",
+                        "waive"
+                      ],
+                      "properties": {
+                        "enterPaymentLink": {
+                          "type": "boolean"
+                        },
+                        "recordPayment": {
+                          "type": "boolean"
+                        },
+                        "waive": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "check.mark_cleared",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "check.mark_cleared",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/deposits.test.ts"
         }
       }
     },
@@ -34697,6 +37452,7 @@
                 "case_open",
                 "estimate_to_write",
                 "estimate_response",
+                "deposit_due",
                 "deposit_waiver",
                 "start_work_exception",
                 "refund_request",
@@ -34814,6 +37570,7 @@
                               "case_open",
                               "estimate_to_write",
                               "estimate_response",
+                              "deposit_due",
                               "deposit_waiver",
                               "start_work_exception",
                               "refund_request",
@@ -35023,7 +37780,8 @@
                               "open_case",
                               "decide",
                               "write_estimate",
-                              "review_estimate"
+                              "review_estimate",
+                              "review_deposit"
                             ]
                           },
                           "link": {
@@ -35071,6 +37829,7 @@
                           "case_open",
                           "estimate_to_write",
                           "estimate_response",
+                          "deposit_due",
                           "deposit_waiver",
                           "start_work_exception",
                           "refund_request",
@@ -35207,6 +37966,7 @@
                 "case_open",
                 "estimate_to_write",
                 "estimate_response",
+                "deposit_due",
                 "deposit_waiver",
                 "start_work_exception",
                 "refund_request",
@@ -35324,6 +38084,7 @@
                               "case_open",
                               "estimate_to_write",
                               "estimate_response",
+                              "deposit_due",
                               "deposit_waiver",
                               "start_work_exception",
                               "refund_request",
@@ -35533,7 +38294,8 @@
                               "open_case",
                               "decide",
                               "write_estimate",
-                              "review_estimate"
+                              "review_estimate",
+                              "review_deposit"
                             ]
                           },
                           "link": {
@@ -35581,6 +38343,7 @@
                           "case_open",
                           "estimate_to_write",
                           "estimate_response",
+                          "deposit_due",
                           "deposit_waiver",
                           "start_work_exception",
                           "refund_request",
@@ -40924,6 +43687,7 @@
                               "payment.term_default",
                               "payment.methods",
                               "payment.instructions",
+                              "payment.square_link_hosts",
                               "cancellation.rules",
                               "contact.hours",
                               "business.timezone",

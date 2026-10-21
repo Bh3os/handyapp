@@ -122,6 +122,8 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       'visit_change_request',
       'delivery_failed',
       'case_open',
+      // TSK-0059: deposits to collect (payment.record: the Owner and Office).
+      'deposit_due',
     ])
     expect(office.items.map((i) => i.type)).not.toContain('deposit_waiver')
     expect(office.items.map((i) => i.id)).not.toContain(ownerOnly)

@@ -9,12 +9,15 @@
 //   in the shared ARIA tabs pattern (one tab stop, arrow keys, Home and End). Each tab has its own page
 //   (/portal/p/<reference>/<tab>), so a link, Back and a reload open the same tab. The frame reads the Overview first:
 //   a project this session cannot open shows its one neutral state and no tab at all.
+import { cents, formatUsd } from '@handyhub/money'
 import { Button, StateView, StatusBadge, Tabs, type StatusTone } from '@handyhub/ui'
 import { portalApi, type Fetch, type NextAction, type ProjectOverview, type Waiting } from './api'
 import { ACTION_LABEL, SITUATION_LABEL, STEP_TEXT, t, TIMELINE_LABEL, WAITING_LABEL, when } from './labels'
 import { useLive } from './live'
 import { NotShown, RefreshLine } from './States'
 import { TAB_LABEL, TAB_ORDER, TabPanel, tabPath, type EstimateRoute, type Tab } from './Tabs'
+
+const usd = (c: number) => formatUsd(cents(c))
 
 const WAITING_TONE: Record<Waiting, StatusTone> = { customer: 'warning', handyhub: 'info', nobody: 'neutral' }
 
@@ -24,6 +27,8 @@ const WAITING_TONE: Record<Waiting, StatusTone> = { customer: 'warning', handyhu
  */
 const ACTION_SCREENS: Partial<Record<NextAction, (reference: string) => string>> = {
   review_estimate: (reference) => tabPath(reference, 'documents'),
+  // TSK-0059: Pay your deposit goes to the payment summary, where the amount due and Pay by Card are.
+  pay_deposit: () => '#portal-payment',
 }
 
 function NextStep({ o }: { o: ProjectOverview }) {
@@ -45,6 +50,40 @@ function NextStep({ o }: { o: ProjectOverview }) {
         <Button disabledReason={t('portal.action.notYet')}>{t(ACTION_LABEL[action])}</Button>
       )}
     </div>
+  )
+}
+
+/**
+ * The payment summary (TSK-0059; HH-FIN-02, OWN-DEC-104): the deposit due in the owner's words with Pay by Card when
+ * HandyHub entered the Square link, any check still pending, or the deposit received. Paying opens Square; nothing
+ * here marks anything paid.
+ */
+function PaymentSummary({ payment }: { payment: ProjectOverview['payment'] }) {
+  if (payment.state === 'deposit_due')
+    return (
+      <div className="portal-deposit" data-testid="portal-deposit">
+        <p className="portal-deposit__due">{t('portal.payment.deposit.due', { amount: usd(payment.amountCents) })}</p>
+        {payment.verifiedCents > 0 ? (
+          <p>{t('portal.payment.deposit.receivedSoFar', { amount: usd(payment.verifiedCents) })}</p>
+        ) : null}
+        {payment.pendingCents > 0 ? (
+          <p>{t('portal.payment.deposit.pending', { amount: usd(payment.pendingCents) })}</p>
+        ) : null}
+        {payment.payByCardUrl ? (
+          <p>
+            <a className="hh-button" href={payment.payByCardUrl} target="_blank" rel="noopener noreferrer">
+              {t('portal.payment.deposit.payByCard')}
+            </a>
+          </p>
+        ) : null}
+      </div>
+    )
+  if (payment.state === 'deposit_received')
+    return <p data-testid="portal-deposit">{t('portal.payment.deposit.paid', { amount: usd(payment.amountCents) })}</p>
+  return (
+    <StateView kind="empty" title={t('portal.payment.none.title')}>
+      <p>{t('portal.payment.none.text')}</p>
+    </StateView>
   )
 }
 
@@ -91,9 +130,7 @@ function Overview({ o, stale }: { o: ProjectOverview; stale: boolean }) {
         <h3 id="portal-payment" className="hh-h3">
           {t('portal.payment.title')}
         </h3>
-        <StateView kind="empty" title={t('portal.payment.none.title')}>
-          <p>{t('portal.payment.none.text')}</p>
-        </StateView>
+        <PaymentSummary payment={o.payment} />
       </section>
 
       <section {...section('portal-timeline')}>

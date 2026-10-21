@@ -555,6 +555,7 @@ describe('[HH-EST-06][HH-EST-08][T33] approving the exact published version crea
       depositCents: 26_699,
       termsVersion: ESTIMATE_TERMS.documentId,
       testMark: true,
+      jobId: expect.any(String),
       jobState: 'pending_preparation',
       schedulingTaskState: 'open',
     })

@@ -278,6 +278,62 @@ export interface EstimatingEstimatesTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface FinanceDepositRequirementsTable {
+  id: Generated<string>
+  job_id: string
+  project_id: string
+  approval_id: string
+  rule_version: number
+  base_total_cents: Int8
+  required: boolean
+  amount_cents: Int8 | null
+  state: string
+  payment_link: string | null
+  payment_link_set_by: string | null
+  payment_link_set_at: Timestamp | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
+}
+
+export interface FinanceDepositWaiversTable {
+  id: Generated<string>
+  deposit_requirement_id: string
+  job_id: string
+  waived_by: string
+  reason: string
+  staff_session_id: string
+  authenticated_at: Timestamp
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface FinancePaymentAllocationsTable {
+  id: Generated<string>
+  payment_id: string
+  deposit_requirement_id: string
+  amount_cents: Int8
+  allocated_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface FinancePaymentsTable {
+  id: Generated<string>
+  project_id: string
+  job_id: string
+  method: string
+  amount_cents: Int8
+  currency: Generated<string>
+  received_on: string
+  collector_staff_id: string
+  recorded_by: string
+  reference: string | null
+  payer_name: string | null
+  state: string
+  cleared_by: string | null
+  cleared_at: Timestamp | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
+}
+
 export interface IdentityAuthIdentitiesTable {
   id: Generated<string>
   staff_user_id: string
@@ -978,6 +1034,10 @@ export interface Database {
   'estimating.estimate_version_internals': EstimatingEstimateVersionInternalsTable
   'estimating.estimate_versions': EstimatingEstimateVersionsTable
   'estimating.estimates': EstimatingEstimatesTable
+  'finance.deposit_requirements': FinanceDepositRequirementsTable
+  'finance.deposit_waivers': FinanceDepositWaiversTable
+  'finance.payment_allocations': FinancePaymentAllocationsTable
+  'finance.payments': FinancePaymentsTable
   'identity.auth_identities': IdentityAuthIdentitiesTable
   'identity.customer_account_changes': IdentityCustomerAccountChangesTable
   'identity.customer_accounts': IdentityCustomerAccountsTable

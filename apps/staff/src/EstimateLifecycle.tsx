@@ -12,11 +12,13 @@
 // - TSK-0057 (HH-EST-06, HH-EST-08): the customer's approval: the version, the typed name, the time, the selected
 //   options, the approved total and deposit, the terms accepted, the TEST mark, and the job and scheduling task it
 //   created. Nothing here confirms an appointment or marks a deposit paid.
+// - TSK-0059: the job's deposit panel (JobDeposit.tsx) under the approval, for the roles that may see payments.
 import type { StaffKey } from '@handyhub/i18n'
 import { cents, formatUsd } from '@handyhub/money'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useEffect, useId, useRef, useState, type MouseEvent } from 'react'
 import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
+import { JobDeposit } from './JobDeposit'
 import { codeLabel } from './Requests'
 
 type T = (key: StaffKey, values?: Record<string, string | number | Date>) => string
@@ -45,6 +47,8 @@ export type Lifecycle = {
     depositCents: number | null
     termsVersion: string
     testMark: boolean
+    /** TSK-0059: the job its deposit panel reads. */
+    jobId?: string
     jobState: string
     schedulingTaskState: string
   } | null
@@ -509,6 +513,9 @@ export function EstimateLifecycle<V extends VersionLike>({
             <dt>{t('estimate.approval.task')}</dt>
             <dd>{codeLabel(t, 'schedulingTaskState', lc.customerApproval.schedulingTaskState)}</dd>
           </dl>
+          {lc.customerApproval.jobId ? (
+            <JobDeposit t={t} fetchImpl={fetchImpl} jobId={lc.customerApproval.jobId} />
+          ) : null}
         </div>
       ) : (
         <p>{t('estimate.approval.none')}</p>
