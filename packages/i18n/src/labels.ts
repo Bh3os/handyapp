@@ -394,7 +394,76 @@ export const LABEL_FAMILIES = {
     'NOT_CONFIGURED',
     'INTERNAL',
     'UNAVAILABLE',
+    // TSK-0062: confirming a visit and moving a confirmed one (apps/server/src/modules/visits/visits.ts confirmVisit,
+    // apps/server/src/modules/capacity/resources.ts evaluate).
+    'VISIT_NOT_TENTATIVE',
+    'DURATION_NOT_ENTERED',
+    'WORKERS_NOT_ENTERED',
+    'WORKER_COUNT_MISMATCH',
+    'WORKER_REPEATED',
+    'EQUIPMENT_NOT_ASSIGNED',
+    'EQUIPMENT_REPEATED',
+    'OUTSIDE_VISIT_HOURS',
+    'VISIT_HOURS_NOT_CONFIGURED',
+    'WORKER_UNKNOWN',
+    'WORKER_NOT_ACTIVE',
+    'WORKER_NOT_ELIGIBLE',
+    'WORKING_HOURS_NOT_SET',
+    'OUTSIDE_WORKING_HOURS',
+    'TIME_OFF',
+    'WORKER_BOOKED',
+    'EQUIPMENT_UNKNOWN',
+    'EQUIPMENT_RETIRED',
+    'EQUIPMENT_BOOKED',
+    'CAPACITY_TAKEN',
+    'STALE_VERSION',
   ],
+  /**
+   * Why the server refused a working-hours, time-off or equipment change (TSK-0062;
+   * apps/server/src/modules/capacity/availability.ts, @handyhub/domain/capacity HoursProblem), and the error codes
+   * shown when no field is named.
+   */
+  availabilityProblem: [
+    'WEEKDAY_INVALID',
+    'TIME_INVALID',
+    'DATE_INVALID',
+    'PERIOD_ORDER',
+    'PERIOD_OVERLAP',
+    'TIME_OFF_ORDER',
+    'TIME_OFF_IN_PAST',
+    'TIME_OFF_TOO_LONG',
+    'TIME_OFF_WITHDRAWN',
+    'ACCOUNT_DISABLED',
+    'EQUIPMENT_NAME_TAKEN',
+    'EQUIPMENT_RETIRED',
+    'BUSINESS_TIMEZONE_NOT_CONFIGURED',
+    'required',
+    'STALE_VERSION',
+    'FORBIDDEN',
+    'NOT_FOUND',
+    'VALIDATION_FAILED',
+    'CONFLICT',
+    'NOT_CONFIGURED',
+    'INTERNAL',
+    'UNAVAILABLE',
+  ],
+  /** Why an upcoming reservation was flagged for review (TSK-0062, OWN-DEC-123; migration 0052 reservation_flags). */
+  reservationFlag: ['working_hours_changed', 'time_off_recorded', 'account_disabled', 'equipment_retired'],
+  /** Why a reservation ended (ENT-Reservation; migration 0052). */
+  reservationEnd: [
+    'rescheduled',
+    'reassigned',
+    'released',
+    'hold_expired',
+    'hold_released',
+    'visit_expired',
+    'visit_canceled',
+    'visit_no_access',
+  ],
+  /** Reservation kinds (ENT-Reservation): a hold of an offered window (OWN-DEC-144) or a confirmed reservation. */
+  reservationKind: ['hold', 'confirmed'],
+  /** A worker's role on a visit (ENT-Reservation). */
+  reservationRole: ['lead', 'member'],
   /** How an estimate version was authored (HH-EST-11): written in the staff app, or an uploaded document. */
   authoringMethod: ['written', 'uploaded'],
   /** Estimate document states (TSK-0054; migration 0030, apps/server/src/modules/estimates/documents.ts). */

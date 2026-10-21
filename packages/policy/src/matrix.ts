@@ -63,6 +63,9 @@ export const ACTIONS = [
   'visit.request_cancellation',
   'work.cancel_with_financial_review',
   'staff.set_availability',
+  // PROPOSED (TSK-0062): registering and retiring the equipment items that visits reserve (HH-SCH-03) is capacity
+  // the Owner sets, so it sits in the availability row with the same cells.
+  'equipment.manage',
   'visit.tap_on_my_way',
   'visit.tap_arrived',
   'visit.tap_finished',
@@ -389,7 +392,9 @@ export const MATRIX: readonly MatrixRow[] = [
   row(SCHEDULING, 'Cancel accepted, scheduled or paid work (financial review)', ['work.cancel_with_financial_review'], {
     owner: Y(),
   }),
-  row(SCHEDULING, 'Set working days, hours and time off', ['staff.set_availability'], { owner: Y() }),
+  row(SCHEDULING, 'Set working days, hours and time off', ['staff.set_availability', 'equipment.manage'], {
+    owner: Y(),
+  }),
   row(
     SCHEDULING,
     'Tap On my way, Arrived, Finished',

@@ -2,18 +2,31 @@
 //   GET  /staff/projects/:projectId/visits     the project's visits, its job and scheduling task (schedule.view_board)
 //   POST /staff/projects/:projectId/visits     plan a tentative visit (visit.offer_windows; an Estimator: estimate
 //                                              visits only)
-//   POST /staff/visits/:visitId/window         change a visit's window as its next window version (If-Match)
+//   POST /staff/visits/:visitId/window         change a visit's window as its next window version (If-Match); for a
+//                                              confirmed visit (visit.reschedule) its reservations move with it
+//   POST /staff/visits/:visitId/confirm        confirm a tentative visit, reserving every worker and item it needs
+//                                              (visit.confirm, If-Match; TSK-0062)
 // Every write takes an idempotency key and records its audit event with the local window, zone, offsets and instants.
-// Nothing here confirms a visit, reserves capacity, shows a visit to the customer or sends a notice: those are the
-// window-offer, reservation and confirmation tasks' (TSK-0062, TSK-0063, TSK-0064).
+// Nothing here offers windows to the customer, shows a visit to the customer or sends a notice: those are the
+// window-offer and confirmation tasks' (TSK-0063, TSK-0064, TSK-0066).
 import type { Tx } from '@handyhub/db'
 import { ApiError } from '../../api/errors.js'
 import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
 import { WORK_VISIT_GATES, type WorkVisitGate } from './gates.js'
-import { NEW_VISIT_BODY, PROJECT_PARAMS, PROJECT_VISITS, VISIT_PARAMS, WINDOW_BODY } from './schemas.js'
-import { changeWindow, planVisit, projectVisits, windowSummary, type NewVisit, type WindowEntry } from './visits.js'
+import { CONFIRM_BODY, NEW_VISIT_BODY, PROJECT_PARAMS, PROJECT_VISITS, VISIT_PARAMS, WINDOW_BODY } from './schemas.js'
+import {
+  changeWindow,
+  confirmVisit,
+  planVisit,
+  projectVisits,
+  windowSummary,
+  type ConfirmInput,
+  type NewVisit,
+  type WindowEntry,
+} from './visits.js'
 
 const TEST = 'test/integration/visits.test.ts'
+const CAPACITY_TEST = 'test/integration/capacity.test.ts'
 
 export type VisitsDeps = {
   /** The gates every work-visit window passes (WORK_VISIT_GATES); tests may add their own. */
@@ -121,7 +134,10 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
       'the earlier windows stay in its history. The local times are kept as entered and the instants follow the ' +
       "zone on the chosen date, so a window moved across a daylight-saving change keeps its local times. The visit's " +
       'zone does not change. Same window rules and refusals as planning; an unchanged window is refused ' +
-      "(WINDOW_UNCHANGED). An optional reason is kept in the history. Returns the project's visits.",
+      '(WINDOW_UNCHANGED). An optional reason is kept in the history. Moving a confirmed visit needs visit.reschedule ' +
+      '(Owner, Office): its workers and items are checked and reserved for the new range in the same transaction ' +
+      '(the old reservations are kept, ended "rescheduled"); a capacity conflict refuses with every problem and the ' +
+      "alternatives, and the booking stays exactly as it was. Returns the project's visits.",
     actors: ['staff'],
     permission: 'visit.offer_windows',
     kind: 'write',
@@ -159,7 +175,62 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
     },
   }
 
-  return { name: 'visits', routes: [list, plan, move] }
+  const confirm: RouteDef = {
+    method: 'POST',
+    path: '/staff/visits/:visitId/confirm',
+    operationId: 'confirmVisit',
+    summary: 'Confirm a tentative visit with its workers and equipment',
+    description:
+      'Staff with visit.confirm (Owner, Office), with If-Match: the visit version shown. Names every worker the visit ' +
+      'needs (exactly its number of workers; the first is the lead) and an equipment item for each equipment entry. ' +
+      'In one transaction the server checks the visit (tentative, in the future, expected work and workers entered, the ' +
+      "job's scheduling gates for a work visit, the on-site part inside the daily visit hours of contact.hours) and " +
+      'each worker (active, PROPOSED eligible role, working hours set and covering the reserved range, no approved ' +
+      'time off, no overlapping reservation or hold) and item (registered, not retired, not reserved), reserves them ' +
+      'all for the reserved range (PROPOSED: travel buffer before the arrival window, preparation and expected work ' +
+      'after it) and confirms the visit. The database refuses overlapping reservations, so of two concurrent ' +
+      'confirmations of the same capacity exactly one succeeds; the other gets CONFLICT naming every unmet ' +
+      'requirement with alternatives (other free workers and items, and free periods of that day), and nothing ' +
+      'partial is written. PROPOSED: a confirmed work visit fulfils the scheduling task. NOT CONFIGURED while ' +
+      "business.timezone or contact.hours is unset. No notice is sent here. Returns the project's visits.",
+    actors: ['staff'],
+    permission: 'visit.confirm',
+    kind: 'write',
+    idempotency: 'required',
+    expectedVersion: 'required',
+    rateLimit: 'none',
+    audit: 'visit.confirm',
+    pagination: false,
+    test: CAPACITY_TEST,
+    resource: visitProjectOf,
+    schema: { params: VISIT_PARAMS, body: CONFIRM_BODY, response: { 200: PROJECT_VISITS } },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const actor = staffActor(ctx)
+      const { visitId } = ctx.req.params as { visitId: string }
+      const body = ctx.req.body as ConfirmInput
+      const out = await confirmVisit(tx, actor, ctx.scope, visitId, body, {
+        gates,
+        now: new Date(),
+        expectedVersion: ctx.expectedVersion(),
+      })
+      const reason = body.reason?.trim()
+      await ctx.audit({
+        target: { type: 'visit', id: out.id, version: out.version },
+        summary: {
+          projectId: out.projectId,
+          purpose: out.purpose,
+          workers: [...out.workerIds],
+          equipment: [...out.equipmentIds],
+          reserved: out.range,
+        },
+        ...(reason ? { reason } : {}),
+      })
+      return { body: await projectVisits(tx, actor, ctx.scope, out.projectId), version: out.version }
+    },
+  }
+
+  return { name: 'visits', routes: [list, plan, move, confirm] }
 }
 
 export { WORK_VISIT_GATES, unmetGates, type WorkVisitGate, type WorkVisitJob } from './gates.js'

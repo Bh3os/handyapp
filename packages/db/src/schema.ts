@@ -882,6 +882,15 @@ export interface PlatformWebhookReceiptsTable {
   processed_at: Timestamp | null
 }
 
+export interface WorkEquipmentTable {
+  id: Generated<string>
+  name: string
+  created_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  retired_at: Timestamp | null
+  retired_by: string | null
+}
+
 export interface WorkHoldsTable {
   id: Generated<string>
   kind: string
@@ -937,6 +946,35 @@ export interface WorkJobsTable {
   version: Generated<number>
 }
 
+export interface WorkReservationFlagsTable {
+  id: Generated<string>
+  reservation_id: string
+  visit_id: string
+  cause: string
+  cause_ref: string
+  flagged_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface WorkReservationsTable {
+  id: Generated<string>
+  visit_id: string
+  resource: string
+  staff_user_id: string | null
+  equipment_id: string | null
+  role: string | null
+  kind: string
+  hold_expires_at: Timestamp | null
+  starts_at: Timestamp
+  ends_at: Timestamp
+  time_zone: string
+  assigned_by: string
+  reason: string | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  ended_at: Timestamp | null
+  ended_by: string | null
+  ended_reason: string | null
+}
+
 export interface WorkSchedulingTasksTable {
   id: Generated<string>
   job_id: string
@@ -945,6 +983,18 @@ export interface WorkSchedulingTasksTable {
   state: Generated<string>
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   version: Generated<number>
+}
+
+export interface WorkTimeOffTable {
+  id: Generated<string>
+  staff_user_id: string
+  starts_at: Timestamp
+  ends_at: Timestamp
+  time_zone: string
+  recorded_by: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+  withdrawn_at: Timestamp | null
+  withdrawn_by: string | null
 }
 
 export interface WorkVisitWindowsTable {
@@ -1005,6 +1055,23 @@ export interface WorkWorkPackagesTable {
   created_by: string
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   version: Generated<number>
+}
+
+export interface WorkWorkerSchedulesTable {
+  staff_user_id: string
+  version: number
+  time_zone: string
+  set_by: string
+  reason: string | null
+  set_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface WorkWorkingHoursTable {
+  staff_user_id: string
+  version: number
+  weekday: number
+  start_minute: number
+  end_minute: number
 }
 
 export interface Database {
@@ -1068,11 +1135,17 @@ export interface Database {
   'platform.rate_counters': PlatformRateCountersTable
   'platform.schema_migration': PlatformSchemaMigrationTable
   'platform.webhook_receipts': PlatformWebhookReceiptsTable
+  'work.equipment': WorkEquipmentTable
   'work.holds': WorkHoldsTable
   'work.job_scope_snapshots': WorkJobScopeSnapshotsTable
   'work.jobs': WorkJobsTable
+  'work.reservation_flags': WorkReservationFlagsTable
+  'work.reservations': WorkReservationsTable
   'work.scheduling_tasks': WorkSchedulingTasksTable
+  'work.time_off': WorkTimeOffTable
   'work.visit_windows': WorkVisitWindowsTable
   'work.visits': WorkVisitsTable
   'work.work_packages': WorkWorkPackagesTable
+  'work.worker_schedules': WorkWorkerSchedulesTable
+  'work.working_hours': WorkWorkingHoursTable
 }

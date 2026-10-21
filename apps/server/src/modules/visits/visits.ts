@@ -13,12 +13,21 @@
 //   Moving a window to another date keeps its local times; the instants follow the zone on the new date.
 // - Whether the window lies inside the daily visit hours (FACT-HOURS, contact.hours in the business zone) is shown
 //   to staff; it is a confirmation precondition (HH-SCH-06), checked when visits are confirmed, so planning never
-//   relies on it. Nothing here confirms a visit, reserves capacity, offers a window to the customer or sends a notice.
+//   relies on it. Planning reserves nothing; nothing here offers a window to the customer or sends a notice.
 // - Work visits pass the gates of WORK_VISIT_GATES (gates.ts) whenever a window is planned or changed. PROPOSED: the
 //   first planned work visit moves the job's scheduling task from open to planning.
+// - TSK-0062 (HH-SCH-03, HH-SCH-04, T38, T39, T42): staff confirm a tentative visit by naming every worker it needs
+//   (the lead first) and an item for every equipment entry; the capacity module checks and reserves all of them in the
+//   same transaction (one success, one conflict with alternatives, nothing partial). A confirmed visit's window
+//   change moves its reservations in the same transaction, after checking the new range for the same team; a change
+//   that fails keeps the booking exactly as it was. PROPOSED: confirming a work visit fulfils the job's scheduling
+//   task. The other confirmation preconditions (HH-SCH-06: deposit gate, blocking holds) come with TSK-0064; the
+//   deposit gate plugs into WORK_VISIT_GATES.
 import type { Db, Tx } from '@handyhub/db'
 import {
   canChangeWindow,
+  onSiteRange,
+  reservedRange,
   formatOffset,
   isTimeZone,
   isWorkVisitPurpose,
@@ -32,6 +41,13 @@ import { rowFor, scopeIncludesProject, type DataScope, type StaffActor } from '@
 import { sql } from 'kysely'
 import { ApiError, type FieldError } from '../../api/errors.js'
 import { loadConfig, type Config } from '../../platform/config/index.js'
+import {
+  capacitySettings,
+  evaluate,
+  insertReservations,
+  refuse,
+  type ReservationRequest,
+} from '../capacity/resources.js'
 import { unmetGates, type WorkVisitGate } from './gates.js'
 
 type Reader = Db | Tx
@@ -86,6 +102,15 @@ export function mayPlanVisits(actor: StaffActor): boolean {
   const row = rowFor('visit.offer_windows')
   return actor.roles.some((role) => row?.cells[role].rules['visit.offer_windows'] !== undefined)
 }
+
+/** Whether one of the actor's roles holds the scheduling action (the matrix row's cell has a rule for it). */
+function holds(actor: StaffActor, action: 'visit.confirm' | 'visit.reschedule'): boolean {
+  const row = rowFor(action)
+  return actor.roles.some((role) => row?.cells[role].rules[action] !== undefined)
+}
+
+/** PROPOSED input bounds of a confirmation (no owner value). */
+export const CONFIRM_LIMITS = { workers: VISIT_LIMITS.workers, equipment: VISIT_LIMITS.equipmentItems } as const
 
 const offsetMinutes = (s: string | null | undefined): number | null => {
   if (s === null || s === undefined) return null
@@ -307,13 +332,17 @@ export async function changeWindow(
       },
     })
   if (!canChangeWindow(v.state)) throw new ApiError('CONFLICT', { fieldErrors: [field('state', 'WINDOW_LOCKED')] })
-  businessZone(await loadConfig(tx))
+  // Moving a confirmed visit is a reschedule (visit.reschedule: Owner and Office).
+  if (v.state === 'confirmed' && !holds(actor, 'visit.reschedule')) throw new ApiError('FORBIDDEN')
+  const config = await loadConfig(tx)
+  businessZone(config)
   if (v.job_id !== null) await passGates(tx, { id: v.job_id, project_id: v.project_id }, deps.gates)
   // The visit keeps the zone it was planned in: the property's zone at planning time.
   const to = resolveEntry(entry, v.time_zone, deps.now)
   const from = storedWindow(v)
   if (from.startsAt.getTime() === to.startsAt.getTime() && from.endsAt.getTime() === to.endsAt.getTime())
     throw new ApiError('CONFLICT', { fieldErrors: [field('body', 'WINDOW_UNCHANGED')] })
+  if (v.state === 'confirmed') await moveReservations(tx, actor, v, to, config, entry.reason?.trim() || null, deps.now)
   const updated = await tx
     .updateTable('work.visits')
     .set({
@@ -335,6 +364,178 @@ export async function changeWindow(
     from,
     to,
     windowVersion: updated.window_version,
+  }
+}
+
+type VisitRow = {
+  id: string
+  purpose: string
+  time_zone: string
+  expected_duration_minutes: number | null
+  preparation_buffer_minutes: number | null
+  travel_buffer_minutes: number | null
+}
+
+function factsOf(v: VisitRow) {
+  return {
+    expectedDurationMinutes: v.expected_duration_minutes ?? 0,
+    preparationBufferMinutes: v.preparation_buffer_minutes,
+    travelBufferMinutes: v.travel_buffer_minutes,
+  }
+}
+
+/**
+ * A confirmed visit's new window: the same workers (with their roles) and items, checked and reserved for the new
+ * range in this transaction, replacing the current reservations (kept as history, ended "rescheduled"). A refusal
+ * names every problem with alternatives, and nothing changes.
+ */
+async function moveReservations(
+  tx: Tx,
+  actor: StaffActor,
+  v: VisitRow,
+  to: LocalWindow,
+  config: Config,
+  reason: string | null,
+  now: Date,
+) {
+  const own = await tx
+    .selectFrom('work.reservations')
+    .select(['resource', 'staff_user_id', 'equipment_id', 'role'])
+    .where('visit_id', '=', v.id)
+    .where('ended_at', 'is', null)
+    .where('kind', '=', 'confirmed')
+    .execute()
+  const workers = own.filter((r) => r.staff_user_id !== null)
+  const facts = factsOf(v)
+  const req: ReservationRequest = {
+    visitId: v.id,
+    purpose: v.purpose,
+    visitZone: v.time_zone,
+    range: reservedRange(to, facts),
+    onSite: onSiteRange(to, facts),
+    travelMinutes: v.travel_buffer_minutes ?? 0,
+    workerIds: workers.map((r) => r.staff_user_id as string),
+    equipmentIds: own.filter((r) => r.equipment_id !== null).map((r) => r.equipment_id as string),
+    actorId: actor.userId,
+    reason,
+    replaceOwn: true,
+    settings: capacitySettings(config),
+    now,
+  }
+  const problems = await evaluate(tx, req)
+  if (problems.length > 0) await refuse(tx, req, problems)
+  await insertReservations(
+    tx,
+    req,
+    new Map(workers.map((r) => [r.staff_user_id as string, r.role === 'lead' ? 'lead' : 'member'])),
+  )
+}
+
+export type ConfirmInput = {
+  /** Every worker the visit needs, the lead first. */
+  readonly workerIds: readonly string[]
+  /** One item for every equipment entry of the visit. */
+  readonly equipmentIds?: readonly string[]
+  readonly reason?: string
+}
+
+export type ConfirmedVisit = {
+  readonly id: string
+  readonly version: number
+  readonly projectId: string
+  readonly purpose: string
+  readonly range: { startsAt: string; endsAt: string }
+  readonly workerIds: readonly string[]
+  readonly equipmentIds: readonly string[]
+}
+
+/**
+ * Confirms a tentative visit with the version the caller saw: reserves every required worker (the lead first) and an
+ * item for each equipment entry for the visit's reserved range, then confirms it, all in this transaction. Refusals:
+ * NOT_FOUND, FORBIDDEN, STALE_VERSION, NOT_CONFIGURED (business.timezone, contact.hours), CONFLICT naming every unmet
+ * requirement (VISIT_NOT_TENTATIVE, WINDOW_IN_PAST, DURATION_NOT_ENTERED, WORKERS_NOT_ENTERED, WORKER_COUNT_MISMATCH,
+ * WORKER_REPEATED, EQUIPMENT_NOT_ASSIGNED, EQUIPMENT_REPEATED, a gate's codes, OUTSIDE_VISIT_HOURS and the per-worker
+ * and per-item codes of the capacity module) with the alternatives once the range is known. Nothing partial is written.
+ */
+export async function confirmVisit(
+  tx: Tx,
+  actor: StaffActor,
+  scope: DataScope,
+  visitId: string,
+  input: ConfirmInput,
+  deps: { gates: readonly WorkVisitGate[]; now: Date; expectedVersion: number },
+): Promise<ConfirmedVisit> {
+  const v = await tx.selectFrom('work.visits').selectAll().where('id', '=', visitId).forUpdate().executeTakeFirst()
+  if (!v || !scopeIncludesProject(scope, v.project_id)) throw new ApiError('NOT_FOUND')
+  if (!holds(actor, 'visit.confirm')) throw new ApiError('FORBIDDEN')
+  if (v.version !== deps.expectedVersion)
+    throw new ApiError('STALE_VERSION', { current: { version: v.version, values: { state: v.state } } })
+  if (v.state !== 'tentative') throw new ApiError('CONFLICT', { fieldErrors: [field('state', 'VISIT_NOT_TENTATIVE')] })
+  const config = await loadConfig(tx)
+  businessZone(config)
+  const settings = capacitySettings(config)
+  const workerIds = [...input.workerIds]
+  const equipmentIds = [...(input.equipmentIds ?? [])]
+  const problems: FieldError[] = []
+  if (new Date(v.starts_at).getTime() <= deps.now.getTime()) problems.push(field('window', 'WINDOW_IN_PAST'))
+  if (v.expected_duration_minutes === null)
+    problems.push(field('visit.expectedDurationMinutes', 'DURATION_NOT_ENTERED'))
+  if (v.required_workers === null) problems.push(field('visit.requiredWorkers', 'WORKERS_NOT_ENTERED'))
+  if (new Set(workerIds).size !== workerIds.length) problems.push(field('body.workerIds', 'WORKER_REPEATED'))
+  else if (v.required_workers !== null && workerIds.length !== v.required_workers)
+    problems.push(field('body.workerIds', 'WORKER_COUNT_MISMATCH'))
+  if (new Set(equipmentIds).size !== equipmentIds.length)
+    problems.push(field('body.equipmentIds', 'EQUIPMENT_REPEATED'))
+  else if (equipmentIds.length < v.equipment.length) problems.push(field('body.equipmentIds', 'EQUIPMENT_NOT_ASSIGNED'))
+  if (v.job_id !== null)
+    for (const code of await unmetGates(tx, { jobId: v.job_id, projectId: v.project_id }, deps.gates))
+      problems.push(field('job', code))
+  // Without the expected work there is no range to check or offer alternatives for.
+  if (v.expected_duration_minutes === null || v.required_workers === null)
+    throw new ApiError('CONFLICT', { fieldErrors: problems })
+  const window = storedWindow(v)
+  const facts = factsOf(v)
+  const req: ReservationRequest = {
+    visitId: v.id,
+    purpose: v.purpose,
+    visitZone: v.time_zone,
+    range: reservedRange(window, facts),
+    onSite: onSiteRange(window, facts),
+    travelMinutes: v.travel_buffer_minutes ?? 0,
+    workerIds,
+    equipmentIds,
+    actorId: actor.userId,
+    reason: input.reason?.trim() || null,
+    replaceOwn: false,
+    settings,
+    now: deps.now,
+  }
+  problems.push(...(await evaluate(tx, req)))
+  if (problems.length > 0) await refuse(tx, req, problems)
+  const lead = workerIds[0] as string
+  await insertReservations(tx, req, new Map(workerIds.map((id) => [id, id === lead ? 'lead' : 'member'])))
+  const updated = await tx
+    .updateTable('work.visits')
+    .set({ state: 'confirmed', version: v.version + 1, updated_at: sql<Date>`now()` })
+    .where('id', '=', v.id)
+    .returning('version')
+    .executeTakeFirstOrThrow()
+  // PROPOSED: the job's scheduling task is fulfilled by its first confirmed work visit (HH-SCH-05).
+  if (v.job_id !== null)
+    await tx
+      .updateTable('work.scheduling_tasks')
+      .set((eb) => ({ state: 'fulfilled', version: eb('version', '+', 1) }))
+      .where('job_id', '=', v.job_id)
+      .where('state', 'in', ['open', 'planning'])
+      .execute()
+  return {
+    id: v.id,
+    version: updated.version,
+    projectId: v.project_id,
+    purpose: v.purpose,
+    range: { startsAt: new Date(req.range.start).toISOString(), endsAt: new Date(req.range.end).toISOString() },
+    workerIds,
+    equipmentIds,
   }
 }
 
@@ -429,14 +630,49 @@ export async function projectVisits(db: Reader, actor: StaffActor, scope: DataSc
         .orderBy('window_version', 'desc')
         .execute()
     : []
+  const reservations = visits.length
+    ? await db
+        .selectFrom('work.reservations as r')
+        .leftJoin('work.equipment as e', 'e.id', 'r.equipment_id')
+        .selectAll('r')
+        .select('e.name as equipment_name')
+        .where(
+          'r.visit_id',
+          'in',
+          visits.map((v) => v.id),
+        )
+        .orderBy('r.created_at')
+        .orderBy('r.role')
+        .execute()
+    : []
+  const flags = reservations.length
+    ? await db
+        .selectFrom('work.reservation_flags')
+        .select(['reservation_id', 'cause'])
+        .where(
+          'reservation_id',
+          'in',
+          reservations.map((r) => r.id),
+        )
+        .execute()
+    : []
   const names = await staffNames(db, [
     ...visits.flatMap((v) => [v.created_by, v.window_set_by]),
     ...history.map((h) => h.set_by),
+    ...reservations.flatMap((r) => (r.staff_user_id ? [r.staff_user_id] : [])),
   ])
   const ref = (id: string) => names.get(id) ?? { id, name: null }
   const businessTz = business ? business.value.zone : null
   const canPlan = mayPlanVisits(actor) && business !== null && isTimeZone(project.time_zone)
   const work = mayPlanWorkVisits(actor)
+  const canConfirm = holds(actor, 'visit.confirm') && business !== null && hours !== null
+  const range = (v: (typeof visits)[number]) =>
+    v.expected_duration_minutes === null
+      ? null
+      : (() => {
+          const r = reservedRange(storedWindow(v), factsOf(v))
+          return { startsAt: new Date(r.start).toISOString(), endsAt: new Date(r.end).toISOString() }
+        })()
   return {
     projectId: project.id,
     projectState: project.state,
@@ -466,6 +702,23 @@ export async function projectVisits(db: Reader, actor: StaffActor, scope: DataSc
       travelBufferMinutes: v.travel_buffer_minutes,
       requiredWorkers: v.required_workers,
       equipment: v.equipment,
+      reservedRange: range(v),
+      assignments: reservations
+        .filter((r) => r.visit_id === v.id)
+        .map((r) => ({
+          id: r.id,
+          resource: r.resource,
+          worker: r.staff_user_id ? ref(r.staff_user_id) : null,
+          equipment: r.equipment_id ? { id: r.equipment_id, name: r.equipment_name ?? '' } : null,
+          role: r.role,
+          kind: r.kind,
+          startsAt: new Date(r.starts_at).toISOString(),
+          endsAt: new Date(r.ends_at).toISOString(),
+          holdExpiresAt: r.hold_expires_at ? new Date(r.hold_expires_at).toISOString() : null,
+          endedAt: r.ended_at ? new Date(r.ended_at).toISOString() : null,
+          endedReason: r.ended_reason,
+          flags: [...new Set(flags.filter((f) => f.reservation_id === r.id).map((f) => f.cause))],
+        })),
       createdBy: ref(v.created_by),
       createdAt: new Date(v.created_at).toISOString(),
       history: history
@@ -480,7 +733,13 @@ export async function projectVisits(db: Reader, actor: StaffActor, scope: DataSc
         })),
       actions: {
         changeWindow:
-          canPlan && canChangeWindow(v.state) && (v.purpose === 'site_estimate' || work) && business !== null,
+          canPlan &&
+          canChangeWindow(v.state) &&
+          (v.purpose === 'site_estimate' || work) &&
+          business !== null &&
+          (v.state !== 'confirmed' || holds(actor, 'visit.reschedule')),
+        confirm:
+          canConfirm && v.state === 'tentative' && v.expected_duration_minutes !== null && v.required_workers !== null,
       },
     })),
   }

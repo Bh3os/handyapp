@@ -5,6 +5,12 @@ export type ApiErrorBody = {
   fieldErrors: { field: string; code: string }[]
   /** STALE_VERSION only: the current version and values (HH-API-04), for the conflict banner. */
   current?: { version: number; values?: Record<string, unknown> }
+  /** CONFLICT of a reservation (TSK-0062): other free workers and items, and the free periods of that day. */
+  alternatives?: {
+    workers: { id: string; name: string | null }[]
+    equipment: { id: string; name: string }[]
+    periods: { startsAt: string; endsAt: string }[]
+  }
 }
 export type ApiResponse<T> = { ok: true; status: number; data: T } | { ok: false; status: number; error: ApiErrorBody }
 

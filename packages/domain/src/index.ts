@@ -117,6 +117,7 @@ export {
 } from './visit.js'
 export type { VisitEvent, VisitFacts, VisitPurpose, VisitState } from './visit.js'
 export * from './local-time.js'
+export * from './capacity.js'
 
 /** Every machine, keyed `<entity>.<dimension>`. One key per state dimension, so dimensions never share a state. */
 export const MACHINES = {

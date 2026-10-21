@@ -13,6 +13,7 @@ import { QUEUE_MODULE } from './queue/index.js'
 import { requestsModule } from './requests/index.js'
 import { accessModule } from './access/index.js'
 import { accountsModule } from './accounts/index.js'
+import { capacityModule } from './capacity/index.js'
 import { portalModule } from './portal/index.js'
 import { SITE_MODULE } from './site/index.js'
 import { systemModule, type SystemDeps } from './system/index.js'
@@ -75,6 +76,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     }),
     // TSK-0061: the visit model (tentative estimate and work visits, local windows in an IANA zone, window history).
     visitsModule(),
+    // TSK-0062: working hours, time off, equipment and the capacity of a day (reservations: the visits module).
+    capacityModule(),
   ]
 }
 

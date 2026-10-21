@@ -111,6 +111,7 @@ export function envelope(error: ApiError, audience: Audience, requestId: string)
       retryable: error.retryable,
       ...(error.options.current ? { current: error.options.current } : {}),
       ...(error.options.existing ? { existing: error.options.existing } : {}),
+      ...(error.options.alternatives ? { alternatives: error.options.alternatives } : {}),
     },
   }
 }
