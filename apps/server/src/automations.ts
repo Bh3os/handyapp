@@ -4,6 +4,7 @@ import { staffLinkEmailAutomation, type LinkEmailDeps } from './modules/identity
 import { deliveryStatusAutomation } from './modules/notifications/index.js'
 import { photoProcessAutomation } from './modules/photos/index.js'
 import { queueAutomations } from './modules/queue/index.js'
+import { receiptEmailAutomation } from './modules/requests/receipt-email.js'
 import type { Automation } from './platform/automation.js'
 import type { Providers } from './providers/index.js'
 
@@ -18,5 +19,7 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     photoProcessAutomation(deps.providers.storage),
     // TSK-0041: action queue items from the modules' committed events.
     ...queueAutomations(),
+    // TSK-0032: the automatic receipt email, once per saved request (HH-INT-20); email only.
+    receiptEmailAutomation({ providers: { email: deps.providers.email, sms: null } }),
   ]
 }

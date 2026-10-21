@@ -218,6 +218,7 @@ export function createWorker(options: WorkerOptions): Worker {
     key: j.job_key,
     automation: j.automation,
     attempt: j.attempts,
+    maxAttempts: j.max_attempts,
     payload: (j.payload ?? {}) as JobPayload,
     eventId: j.outbox_event_id,
     eventType: j.event_type,
@@ -431,6 +432,59 @@ export async function retryFailedJob(
     ...(input.reason ? { reason: input.reason } : {}),
     ...(input.requestId ? { requestId: input.requestId } : {}),
   })
+}
+
+/**
+ * Staff retry of a finished job's effect (for example a failed delivery's send, TSK-0032): a new job of the same
+ * automation for the same event, target and payload, keyed `<job key>:<key>` (idempotent by key, so a repeated retry
+ * of the same failure creates one job). Its effect stays the automation's own, so its idempotency and rechecks apply.
+ * Authorization and the audit event are the caller's.
+ */
+export async function rerunJob(
+  tx: Tx,
+  input: { jobId: string; key: string; requestId: string },
+): Promise<{ id: string; created: boolean }> {
+  if (!tx.isTransaction) throw new Error('rerunJob must run inside the business transaction (withTx)')
+  const job = await tx
+    .selectFrom('platform.jobs')
+    .select([
+      'automation',
+      'job_key',
+      'outbox_event_id',
+      'event_type',
+      'target_type',
+      'target_id',
+      'payload',
+      'max_attempts',
+    ])
+    .where('id', '=', input.jobId)
+    .where('state', 'in', ['succeeded', 'cancelled', 'failed'])
+    .executeTakeFirst()
+  if (!job) throw new Error(`Job ${input.jobId} has not finished`)
+  const jobKey = `${job.job_key}:${input.key}`
+  const row = await tx
+    .insertInto('platform.jobs')
+    .values({
+      automation: job.automation,
+      job_key: jobKey,
+      outbox_event_id: job.outbox_event_id,
+      event_type: job.event_type,
+      target_type: job.target_type,
+      target_id: job.target_id,
+      payload: JSON.stringify(job.payload ?? {}),
+      request_id: input.requestId,
+      max_attempts: job.max_attempts,
+    })
+    .onConflict((oc) => oc.column('job_key').doNothing())
+    .returning('id')
+    .executeTakeFirst()
+  if (row) return { id: row.id, created: true }
+  const existing = await tx
+    .selectFrom('platform.jobs')
+    .select('id')
+    .where('job_key', '=', jobKey)
+    .executeTakeFirstOrThrow()
+  return { id: existing.id, created: false }
 }
 
 export type QueueStats = {

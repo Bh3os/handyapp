@@ -5,10 +5,12 @@
 // and a stale state when refreshing fails. A refresh never replaces the list under the person: existing items update
 // in place (same keys, so nothing remounts and focus and typed filter text stay), and new items wait behind an
 // "N new items — refresh" button.
+// TSK-0032 (HH-INT-20, HH-COM-02, T12): a delivery failure's one action is Retry, done here: it queues the message
+// again on the server (which decides whether it may) and the list reloads; the item resolves once the message is sent.
 import { labelKey, type StaffKey, type StaffLocale } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge, type StatusTone } from '@handyhub/ui'
 import { useCallback, useEffect, useRef, useState, type FormEvent, type MouseEvent } from 'react'
-import { call, type Fetch } from './api'
+import { call, idempotencyKey, type Fetch } from './api'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
 
@@ -354,7 +356,16 @@ function QueueList({ t, locale, fetchImpl, go, href, staffUserId, now = () => ne
       ) : (
         <ol className="staff-queue__items">
           {items.map((item) => (
-            <QueueRow key={item.id} t={t} item={item} now={now()} go={go} href={href} />
+            <QueueRow
+              key={item.id}
+              t={t}
+              item={item}
+              now={now()}
+              go={go}
+              href={href}
+              fetchImpl={fetchImpl}
+              onRetried={() => void load(filters)}
+            />
           ))}
         </ol>
       )}
@@ -367,18 +378,66 @@ function QueueList({ t, locale, fetchImpl, go, href, staffUserId, now = () => ne
   )
 }
 
+/** Retry of a failed message (TSK-0032): the server queues it again only while it is failed and never handed over. */
+function RetryDelivery({
+  t,
+  item,
+  label: text,
+  fetchImpl,
+  onRetried,
+}: {
+  t: T
+  item: QueueItem
+  label: string
+  fetchImpl: Fetch
+  onRetried: () => void
+}) {
+  const [pending, setPending] = useState(false)
+  const [outcome, setOutcome] = useState<'queued' | 'conflict' | 'failed' | null>(null)
+  const retry = async () => {
+    setPending(true)
+    const r = await call<unknown>(fetchImpl, `/staff/message-deliveries/${encodeURIComponent(item.subjectId)}/retry`, {
+      method: 'POST',
+      headers: { 'idempotency-key': idempotencyKey() },
+    })
+    setPending(false)
+    setOutcome(r.ok ? 'queued' : r.error.code === 'CONFLICT' ? 'conflict' : 'failed')
+    if (r.ok) onRetried()
+  }
+  return (
+    <>
+      <Button className="staff-queue__action" pending={pending} onClick={() => void retry()}>
+        {text}
+      </Button>
+      <p role="status" className="staff-queue__retry-status">
+        {outcome === 'queued'
+          ? t('queue.retryQueued')
+          : outcome === 'conflict'
+            ? t('queue.retryConflict')
+            : outcome === 'failed'
+              ? t('queue.retryFailed')
+              : ''}
+      </p>
+    </>
+  )
+}
+
 function QueueRow({
   t,
   item,
   now,
   go,
   href,
+  fetchImpl,
+  onRetried,
 }: {
   t: T
   item: QueueItem
   now: Date
   go: (to: string) => void
   href: (to: string) => string
+  fetchImpl: Fetch
+  onRetried: () => void
 }) {
   const type = label(t, labelKey('queueItemType', item.type))
   const reason = label(t, labelKey('queueReason', item.reason))
@@ -427,9 +486,13 @@ function QueueRow({
         ) : null}
         <li>{t('queue.opened', { age: duration(t, age) })}</li>
       </ul>
-      <a className="hh-button staff-queue__action" href={href(item.link)} onClick={open}>
-        {action}
-      </a>
+      {item.action === 'retry_delivery' && item.subjectType === 'message_delivery' ? (
+        <RetryDelivery t={t} item={item} label={action} fetchImpl={fetchImpl} onRetried={onRetried} />
+      ) : (
+        <a className="hh-button staff-queue__action" href={href(item.link)} onClick={open}>
+          {action}
+        </a>
+      )}
     </li>
   )
 }

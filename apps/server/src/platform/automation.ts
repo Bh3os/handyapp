@@ -17,6 +17,8 @@ export type JobView = {
   automation: string
   /** 1 on the first run. */
   attempt: number
+  /** The job's attempt budget (the automation's retry.maxAttempts when it was created); unset in hand-built views. */
+  maxAttempts?: number
   payload: JobPayload
   eventId: string | null
   eventType: string | null

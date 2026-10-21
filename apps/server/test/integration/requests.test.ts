@@ -493,7 +493,32 @@ describe('request form settings (TSK-0026, HH-INT-08)', () => {
         { code: 'any_time' },
       ],
       freeEstimates: true,
+      // TSK-0032 (HH-INT-12): the response target the receipt states with the visit hours (FACT-RESPONSE-TARGET).
+      responseMinutes: 60,
     })
+  })
+
+  it('[HH-INT-12] a response target that is NOT CONFIGURED is null, so the receipt states no response time', async () => {
+    await recordPolicyVersion(t.db, {
+      key: 'response.target',
+      value: null,
+      sourceIds: ['FACT-RESPONSE-TARGET'],
+      changedBy: 'test:synthetic',
+      reason: 'synthetic NOT CONFIGURED for a test',
+    })
+    try {
+      expect(
+        (await app.inject({ method: 'GET', url: '/api/v1/public/request-form' })).json().responseMinutes,
+      ).toBeNull()
+    } finally {
+      await recordPolicyVersion(t.db, {
+        key: 'response.target',
+        value: { minutes: 60, countedWithin: 'contact_hours' },
+        sourceIds: ['FACT-RESPONSE-TARGET'],
+        changedBy: 'test:synthetic',
+        reason: 'back to the decided value',
+      })
+    }
   })
 
   it('[HH-INT-02] configured window hours are served, and a window outside the visit hours is neither offered nor accepted', async () => {

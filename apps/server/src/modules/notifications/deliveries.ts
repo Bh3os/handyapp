@@ -11,6 +11,10 @@
 // - The provider idempotency key is derived from the delivery's unique tuple (message type, channel, subject,
 //   destination), so a retried job or a double submission reaches the provider with the same key and sends once.
 // - Every send goes through the providers' destination guard: outside production, approved test destinations only.
+// - TSK-0032 (HH-COM-02, HH-INT-20, T12): a message whose resolver names a failure item opens one `delivery_failed`
+//   staff queue item per failed delivery (its one action is Retry, retry.ts) and resolves it once a send is handed
+//   over or suppressed. A temporary provider failure on the job's last attempt is recorded as a failed delivery, so it
+//   reaches staff as a delivery issue with Retry instead of only as a failed job.
 import { createHash } from 'node:crypto'
 import type { Tx } from '@handyhub/db'
 import type { StaffLocale } from '@handyhub/i18n'
@@ -20,6 +24,7 @@ import type { Automation, JobContext, JobOutcome } from '../../platform/automati
 import { loadConfig, type Config } from '../../platform/config/index.js'
 import { scheduleJob } from '../../platform/jobs.js'
 import type { EmailSender, SmsSender } from '../../providers/index.js'
+import { openQueueItem, resolveQueueItem } from '../queue/items.js'
 import { nextContactTime } from './contact-hours.js'
 import { messageType, type Channel } from './message-types.js'
 import { sendPermission } from './consent.js'
@@ -42,12 +47,20 @@ export type Recipient = {
   destinations: readonly Destination[]
 }
 
+/**
+ * The staff queue facts of a failed delivery (HH-OPS-02): the record's reference and project, and its owner (the
+ * staff member responsible for the record, or none: then the item is unassigned and Office and the Owner see it).
+ */
+export type FailureItem = { reference: string | null; projectId: string | null; assignedStaffId: string | null }
+
 export type Resolved = {
   /** The subject the message is about (for example the request ID): one notification per type, channel and subject. */
   subjectKey: string
   record: { type: string; id: string }
   recipients: readonly Recipient[]
   values: Readonly<Record<string, string>>
+  /** When set, a failed delivery opens one `delivery_failed` queue item with these facts (TSK-0032). */
+  failureItem?: FailureItem
 }
 
 export type NotificationProviders = { email: EmailSender | null; sms: SmsSender | null }
@@ -84,32 +97,40 @@ type DeliveryRow = {
   locale: string
   destination: string
   variables: unknown
+  provider_message_id: string | null
 }
 
-/** Renders and sends one delivery row, recording what happened. Retryable outcomes throw so the job retries. */
+/** What a send recorded on the delivery row. */
+export type SendResult = { state: string; errorCode: string | null }
+
+/** Error codes of a message that cannot be sent until something is configured (a template, a channel). */
+export const NOT_CONFIGURED_ERRORS: ReadonlySet<string> = new Set(['template_not_configured', 'channel_not_configured'])
+
+/**
+ * Renders and sends one delivery row, recording what happened. Temporary outcomes throw so the job retries, except
+ * on the job's last attempt (`final`), where the failure is recorded on the row instead (TSK-0032).
+ */
 async function send(
   tx: Tx,
   row: DeliveryRow,
   values: Readonly<Record<string, string>>,
   providers: NotificationProviders,
-): Promise<void> {
+  final = false,
+): Promise<SendResult> {
   const channel = row.channel as Channel
-  const update = (set: Record<string, unknown>) =>
-    tx
+  const update = async (set: { state: string; error_code: string | null } & Record<string, unknown>) => {
+    await tx
       .updateTable('platform.message_deliveries')
       .set({ ...set, attempts: sql<number>`attempts + 1`, updated_at: sql<Date>`now()` })
       .where('id', '=', row.id)
       .execute()
+    return { state: set.state, errorCode: set.error_code }
+  }
   const template = await currentTemplate(tx, row.message_key, channel, row.locale as 'en' | 'es')
-  if (!template) {
-    await update({ state: 'failed', error_code: 'template_not_configured' })
-    return
-  }
+  if (!template) return update({ state: 'failed', error_code: 'template_not_configured' })
   const sender = channel === 'email' ? providers.email : providers.sms
-  if (!sender) {
-    await update({ state: 'failed', error_code: 'channel_not_configured', template_version: template.version })
-    return
-  }
+  if (!sender)
+    return update({ state: 'failed', error_code: 'channel_not_configured', template_version: template.version })
   // Send-time recheck of channel permission and consent (HH-COM-05, TSK-0048): a STOP, a missing SMS opt-in or a
   // missing marketing permission suppresses the message instead of sending it.
   const permission = await sendPermission(tx, {
@@ -118,16 +139,13 @@ async function send(
     audience: row.audience as 'customer' | 'staff',
     messageKey: row.message_key,
   })
-  if (!permission.allowed) {
-    await update({ state: 'suppressed', error_code: permission.reason, template_version: template.version })
-    return
-  }
+  if (!permission.allowed)
+    return update({ state: 'suppressed', error_code: permission.reason, template_version: template.version })
   let rendered: { subject: string | null; body: string }
   try {
     rendered = renderTemplate(template, values)
   } catch {
-    await update({ state: 'failed', error_code: 'template_values_missing', template_version: template.version })
-    return
+    return update({ state: 'failed', error_code: 'template_values_missing', template_version: template.version })
   }
   const idempotencyKey = deliveryIdempotencyKey(row.message_key, channel, row.subject_key, row.destination)
   const outcome =
@@ -147,19 +165,44 @@ async function send(
   const base = { template_version: template.version, provider: sender.provider }
   switch (outcome.outcome) {
     case 'accepted':
-      await update({ ...base, state: outcome.status, provider_message_id: outcome.providerMessageId, error_code: null })
-      return
+      return update({
+        ...base,
+        state: outcome.status,
+        provider_message_id: outcome.providerMessageId,
+        error_code: null,
+      })
     case 'suppressed':
-      await update({ ...base, state: 'suppressed', error_code: outcome.reason })
-      return
+      return update({ ...base, state: 'suppressed', error_code: outcome.reason })
     case 'rejected':
-      await update({ ...base, state: 'failed', error_code: outcome.errorCode })
-      return
+      return update({ ...base, state: 'failed', error_code: outcome.errorCode })
     case 'retryable_error':
     case 'outcome_unknown':
+      // The last attempt: the failure is recorded, never shown as sent; a staff retry presents the same key again.
+      if (final) return update({ ...base, state: 'failed', error_code: outcome.errorCode })
       // The transaction rolls back; the job retries with the same idempotency key.
       throw new RetryableDeliveryError(outcome.errorCode)
   }
+}
+
+/**
+ * The staff side of a send's result (HH-COM-02, HH-INT-20): a failed delivery opens (or updates) its one
+ * delivery_failed item; a send handed over or suppressed resolves an open one. Nothing for messages without one.
+ */
+async function syncFailureItem(tx: Tx, deliveryId: string, result: SendResult, item: FailureItem | undefined) {
+  if (!item) return
+  if (result.state === 'failed') {
+    await openQueueItem(tx, {
+      type: 'delivery_failed',
+      subjectId: deliveryId,
+      reason: NOT_CONFIGURED_ERRORS.has(result.errorCode ?? '') ? 'delivery_not_configured' : 'delivery_failed',
+      projectId: item.projectId,
+      reference: item.reference,
+      status: 'failed',
+      assignedStaffId: item.assignedStaffId,
+    })
+    return
+  }
+  await resolveQueueItem(tx, { type: 'delivery_failed', subjectId: deliveryId, resolution: result.state })
 }
 
 async function upsertDelivery(
@@ -261,8 +304,12 @@ export function notificationAutomation(o: NotificationAutomationOptions): Automa
             state: 'queued',
             outboxEventId: ctx.job.eventId,
           })
-          if (row.state !== 'queued') continue // already sent, suppressed or failed for this subject
-          await send(ctx.tx, row, resolved.values, o.providers)
+          // Already handed to the provider, suppressed or failed for this subject: a replay sends nothing. A failed
+          // delivery is queued again only by a staff retry (retry.ts).
+          if (row.state !== 'queued' || row.provider_message_id !== null) continue
+          const final = ctx.job.maxAttempts !== undefined && ctx.job.attempt >= ctx.job.maxAttempts
+          const result = await send(ctx.tx, row, resolved.values, o.providers, final)
+          await syncFailureItem(ctx.tx, row.id, result, resolved.failureItem)
         }
       }
       return 'done'
