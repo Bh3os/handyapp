@@ -1,10 +1,13 @@
-// Publish readiness of an estimate version (TSK-0053; HH-EST-01, HH-EST-05, T31, T58, RULE-NO-INVENTED-FACTS). The
+// Publish readiness of an estimate version (TSK-0053; HH-EST-01, HH-EST-05, T31, T58, RULE-NO-INVENTED-FACTS) and the
+// documents an uploaded version needs (TSK-0054; HH-EST-11). The
 // configuration carries the decided values the way loadConfig returns them; the terms document and every amount are
 // synthetic (RULE-SYNTHETIC-DATA).
 import { LABEL_FAMILIES } from '@handyhub/i18n'
 import { describe, expect, it } from 'vitest'
 import {
   documentDetails,
+  DOCX_TYPE,
+  PDF_TYPE,
   PUBLISH_PROBLEM_CODES,
   PUBLISH_REQUIRED_KEYS,
   readinessOf,
@@ -62,6 +65,9 @@ const LINES: LineSnapshot[] = [
 // The totals the active configuration gives for LINES: 2.5 x $33.33 = $83.325 -> $83.33; no deposit at or below $1,000.
 const SAVED: VersionSnapshot = {
   state: 'draft',
+  authoringMethod: 'written',
+  agreementDocumentId: null,
+  documents: null,
   discountCategory: null,
   discountRuleVersion: null,
   subtotalCents: 8333,
@@ -137,5 +143,54 @@ describe('[HH-EST-05][HH-EST-01] publish readiness', () => {
     expect(readinessOf({ ...SAVED, discountCategory: 'unknown_group' }, LINES, config).problems).toEqual([
       { code: 'DISCOUNT_CATEGORY_UNKNOWN' },
     ])
+  })
+})
+
+describe('[HH-EST-11][T31] an uploaded version also needs its documents and the agree-confirmation', () => {
+  const config = fakeConfig(DECIDED)
+  const uploaded = (documents: VersionSnapshot['documents'], agreementDocumentId: string | null = null) =>
+    readinessOf({ ...SAVED, authoringMethod: 'uploaded', documents, agreementDocumentId }, LINES, config)
+  const pdf = { id: 'original-1', contentType: PDF_TYPE, state: 'ready' }
+  const word = { id: 'original-2', contentType: DOCX_TYPE, state: 'ready' }
+  const copy = { id: 'customer-1', state: 'ready' }
+
+  it('the same structured amounts with no document: the document is missing and nothing is confirmed', () => {
+    expect(uploaded({ original: null, customerPdf: null }).problems).toEqual([
+      { code: 'DOCUMENT_MISSING' },
+      { code: 'AGREEMENT_NOT_CONFIRMED' },
+    ])
+  })
+
+  it('a document still in quarantine or refused by processing is named', () => {
+    expect(
+      uploaded({ original: { ...pdf, state: 'quarantined' }, customerPdf: { ...copy, state: 'quarantined' } }).problems,
+    ).toEqual([{ code: 'DOCUMENT_PROCESSING' }, { code: 'AGREEMENT_NOT_CONFIRMED' }])
+    expect(
+      uploaded({ original: { ...pdf, state: 'rejected' }, customerPdf: { ...copy, state: 'rejected' } }).problems,
+    ).toEqual([{ code: 'DOCUMENT_REJECTED' }, { code: 'AGREEMENT_NOT_CONFIRMED' }])
+  })
+
+  it('[OWN-DEC-102] a Word original without a PDF for the customer: "PDF required", never a fake conversion', () => {
+    expect(uploaded({ original: word, customerPdf: null }).problems).toEqual([
+      { code: 'PDF_REQUIRED' },
+      { code: 'AGREEMENT_NOT_CONFIRMED' },
+    ])
+    expect(uploaded({ original: word, customerPdf: { ...copy, state: 'rejected' } }).problems).toEqual([
+      { code: 'DOCUMENT_REJECTED' },
+      { code: 'PDF_REQUIRED' },
+      { code: 'AGREEMENT_NOT_CONFIRMED' },
+    ])
+    expect(uploaded({ original: word, customerPdf: copy }, copy.id)).toEqual({ ready: true, problems: [] })
+  })
+
+  it('the confirmation counts only for the current customer PDF', () => {
+    expect(uploaded({ original: pdf, customerPdf: copy }, copy.id)).toEqual({ ready: true, problems: [] })
+    expect(uploaded({ original: pdf, customerPdf: copy }, 'an-older-customer-pdf').problems).toEqual([
+      { code: 'AGREEMENT_NOT_CONFIRMED' },
+    ])
+  })
+
+  it('a written version needs no document (the same lines and totals are ready)', () => {
+    expect(readinessOf(SAVED, LINES, config)).toEqual({ ready: true, problems: [] })
   })
 })

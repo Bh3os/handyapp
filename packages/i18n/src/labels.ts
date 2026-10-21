@@ -297,6 +297,12 @@ export const LABEL_FAMILIES = {
     'DISCOUNT_NOT_CONFIGURED',
     'DISCOUNT_CATEGORY_UNKNOWN',
     'TOTALS_OUTDATED',
+    // TSK-0054: an uploaded version's documents and agree-confirmation (readiness.ts DOCUMENT_PROBLEM_CODES).
+    'DOCUMENT_MISSING',
+    'DOCUMENT_PROCESSING',
+    'DOCUMENT_REJECTED',
+    'PDF_REQUIRED',
+    'AGREEMENT_NOT_CONFIRMED',
   ],
   /** Field errors of a refused estimate draft save (apps/server/src/modules/estimates/model.ts). */
   estimateFieldError: [
@@ -319,6 +325,29 @@ export const LABEL_FAMILIES = {
     'PROJECT_NOT_OPEN',
     'AMOUNT_TOO_LARGE',
     'TOTAL_TOO_LARGE',
+    // TSK-0054: refused document uploads and agree-confirmations (apps/server/src/modules/estimates/documents.ts).
+    'NOT_UPLOADED_METHOD',
+    'DOCUMENT_MISSING',
+    'PDF_NOT_NEEDED',
+    'DOCUMENT_NOT_READY',
+    'TOTALS_INCOMPLETE',
+  ],
+  /** How an estimate version was authored (HH-EST-11): written in the staff app, or an uploaded document. */
+  authoringMethod: ['written', 'uploaded'],
+  /** Estimate document states (TSK-0054; migration 0030, apps/server/src/modules/estimates/documents.ts). */
+  estimateDocumentState: ['quarantined', 'ready', 'rejected', 'replaced'],
+  /**
+   * Why the server refused an estimate document (apps/server/src/modules/estimates/document-content.ts
+   * DOCUMENT_PROBLEMS, and an empty upload).
+   */
+  estimateDocumentRejection: [
+    'unsupported_type',
+    'type_mismatch',
+    'malformed',
+    'trailing_data',
+    'encrypted',
+    'active_content',
+    'empty',
   ],
   /** Potential hazards or restricted scope found at intake (TSK-0043, HH-LEAD-04; PROPOSED categories). */
   hazardCategory: ['hazardous_material', 'licensed_trade', 'structural', 'permit_licensing', 'other'],

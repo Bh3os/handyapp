@@ -123,6 +123,11 @@ export interface RouteDef {
    * count) are checked by the handler from configuration.
    */
   binaryBody?: { contentTypes: readonly string[]; maxBytes: number }
+  /**
+   * A read that answers with file bytes (for example a PDF) instead of JSON: the content types its success response
+   * may have. The handler returns a Buffer with its content type; errors keep the JSON envelope.
+   */
+  binaryResponse?: { contentTypes: readonly string[] }
   /** The record facts the policy needs; null answers NOT_FOUND. Default: no facts. */
   resource?: (ctx: Pick<ApiContext, 'req' | 'actor' | 'db'>) => Promise<Resource | null>
   handler: (ctx: ApiContext) => Promise<ApiResult>
@@ -197,6 +202,8 @@ export function routeProblems(route: RouteDef): string[] {
       p.push(`${id}: a binary body names its content types and a positive size ceiling`)
     if (route.idempotency === 'required') p.push(`${id}: binary uploads deduplicate by content, not by idempotency key`)
   }
+  if (route.binaryResponse && (route.kind !== 'read' || route.binaryResponse.contentTypes.length === 0))
+    p.push(`${id}: a binary response is a read naming its content types`)
   for (const part of ['params', 'querystring', 'body'] as const)
     checkObjects(route.schema[part], `${id} ${part}`, 'input', p)
   for (const [status, s] of Object.entries(route.schema.response))

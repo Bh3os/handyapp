@@ -5,7 +5,8 @@ import type { Secret } from '../providers/types.js'
 import { identityModule } from './identity/index.js'
 import type { ObjectStorage } from '../providers/index.js'
 import { COVERAGE_MODULE } from './coverage/index.js'
-import { ESTIMATES_MODULE } from './estimates/index.js'
+import type { EnvironmentName } from '../config.js'
+import { estimatesModule } from './estimates/index.js'
 import { NOTIFICATIONS_MODULE } from './notifications/index.js'
 import { photosModule } from './photos/index.js'
 import { QUEUE_MODULE } from './queue/index.js'
@@ -20,8 +21,10 @@ export type ModuleDeps = {
   secureCookies: boolean
   /** Seals staff TOTP secrets (optional MFA, TSK-0015); null while MFA_ENCRYPTION_KEY is unset. */
   mfaKey: Secret | null
-  /** The private object storage for photos (R2, or the fake in local and ci); null while NOT CONFIGURED. */
+  /** The private object storage for photos and documents (R2, or the fake in local and ci); null while NOT CONFIGURED. */
   storage?: ObjectStorage | null
+  /** The environment: outside production customer documents carry the TEST mark (OWN-DEC-126). Unset: marked. */
+  environment?: EnvironmentName
   /** What the system health and configuration views report about this process (TSK-0101); unset: unknown. */
   system?: SystemDeps
   /** The one-time-code key (TSK-0016, readCodeKey); unset: codes are NOT CONFIGURED for the receipt (TSK-0033). */
@@ -47,8 +50,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     photosModule({ storage: deps.storage ?? null }),
     SITE_MODULE,
     QUEUE_MODULE,
-    // TSK-0053: Write an Estimate and the staff builder.
-    ESTIMATES_MODULE,
+    // TSK-0053: Write an Estimate and the staff builder; TSK-0054: Upload an Estimate and the customer PDF.
+    estimatesModule({ storage: deps.storage ?? null, testMark: deps.environment !== 'production' }),
     NOTIFICATIONS_MODULE,
     systemModule(deps.system ?? {}),
     // TSK-0033: the receipt's contact verification and its account-offer answer.

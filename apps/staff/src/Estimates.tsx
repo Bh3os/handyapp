@@ -13,15 +13,22 @@
 // - The issuer name, mailing address, validity and terms come from configuration. A missing value is shown as NOT
 //   CONFIGURED, never filled in; the mailing-address line is left out while it is missing. The publish readiness lists
 //   every reason the version cannot be published yet. Publishing itself is a later step (TSK-0055).
+// - Upload an Estimate (TSK-0054; HH-EST-11): the estimator uploads the PDF or Word document, opens it, enters the
+//   amounts the document states as lines (the same record and server totals as a written estimate; nothing is read
+//   from the document) and ticks that the document and the amounts agree. A Word document needs the PDF of the same
+//   document ("PDF required"): no converter pretends to make one. Every version has a customer PDF preview, generated
+//   on the server.
 import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { cents, centsFromDecimal, formatUsd, MoneyError, toDecimalString } from '@handyhub/money'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
-import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
+import { call, idempotencyKey, upload, type ApiErrorBody, type Fetch } from './api'
 import { ConflictBanner, conflictOf, type Conflict } from './ConflictBanner'
 import { codeLabel } from './Requests'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
+/** The builder's translator also formats dates (the staff translator's ICU date and time arguments). */
+type TD = (key: StaffKey, values?: Record<string, string | number | Date>) => string
 type Nav = { go: (to: string) => void; href: (to: string) => string }
 
 const LINE_KINDS = ['base', 'alternate', 'add_on'] as const
@@ -51,6 +58,34 @@ type VersionSummary = {
 }
 type Problem = { code: string; line?: number; key?: string; sourceIds?: string[] }
 
+const PDF = 'application/pdf'
+const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+type EstimateDocument = {
+  id: string
+  role: 'original' | 'customer_pdf'
+  source: string
+  contentType: string
+  byteSize: number
+  sha256: string
+  state: 'quarantined' | 'ready' | 'rejected' | 'replaced'
+  rejectionReason: string | null
+  uploadedAt: string
+}
+/** An uploaded version's documents (TSK-0054): the private original, the customer PDF and the agree-confirmation. */
+export type DocumentsView = {
+  original: EstimateDocument | null
+  customerPdf: EstimateDocument | null
+  pdfRequired: boolean
+  agreement: {
+    confirmedBy: { id: string; name: string | null }
+    confirmedAt: string
+    documentId: string
+    current: boolean
+  } | null
+  maxFileBytes: number | null
+  types: string[]
+}
+
 export type BuilderView = {
   id: string
   estimateId: string
@@ -58,6 +93,7 @@ export type BuilderView = {
   version: number
   state: string
   rowVersion: number
+  authoringMethod: 'written' | 'uploaded'
   project: { id: string; reference: string; state: string }
   customer: { name: string }
   property: { street: string; unit: string | null; city: string; state: string; zip: string }
@@ -101,6 +137,7 @@ export type BuilderView = {
     markupAssumptions: string | null
     estimatorNotes: string | null
   } | null
+  documents: DocumentsView | null
   canEdit: boolean
 }
 
@@ -242,12 +279,12 @@ export function ProjectEstimates({
     )
   }, [fetchImpl, projectId])
   if (!data) return null
-  async function writeEstimate() {
+  async function startEstimate(method: 'written' | 'uploaded') {
     setPending(true)
     key.current = key.current ?? idempotencyKey()
     const r = await call<{ versionId: string }>(
       fetchImpl,
-      `/staff/projects/${encodeURIComponent(projectId)}/estimates`,
+      `/staff/projects/${encodeURIComponent(projectId)}/${method === 'written' ? 'estimates' : 'uploaded-estimates'}`,
       {
         method: 'POST',
         body: {},
@@ -291,9 +328,14 @@ export function ProjectEstimates({
       {data.canWrite ? (
         <>
           <p className="staff-request__hint">{t('estimates.writeHint')}</p>
-          <Button pending={pending} onClick={() => void writeEstimate()}>
-            {t('estimates.write')}
-          </Button>
+          <div className="hh-button-row">
+            <Button pending={pending} onClick={() => void startEstimate('written')}>
+              {t('estimates.write')}
+            </Button>
+            <Button variant="secondary" pending={pending} onClick={() => void startEstimate('uploaded')}>
+              {t('estimates.upload')}
+            </Button>
+          </div>
         </>
       ) : null}
       {failed ? <StateView kind="error" title={t('estimate.saveFailed')} /> : null}
@@ -509,7 +551,7 @@ function unsavedItems(t: T, view: BuilderView, { base, mine }: Unsaved): Unsaved
 }
 
 /** The staff builder of one estimate version. */
-export function EstimateBuilder({ t, fetchImpl, id, go, href }: { t: T; fetchImpl: Fetch; id: string } & Nav) {
+export function EstimateBuilder({ t, fetchImpl, id, go, href }: { t: TD; fetchImpl: Fetch; id: string } & Nav) {
   const ids = useId()
   const [view, setView] = useState<BuilderView | null | undefined>(undefined)
   const [form, setForm] = useState<FormState | null>(null)
@@ -533,15 +575,30 @@ export function EstimateBuilder({ t, fetchImpl, id, go, href }: { t: T; fetchImp
     setForm(f)
     setBase(f)
   }, [])
-  const load = useCallback(async () => {
-    const r = await call<BuilderView>(fetchImpl, `/staff/estimate-versions/${encodeURIComponent(id)}`)
-    const next = r.ok && typeof r.data?.estimateNumber === 'string' ? r.data : null
-    if (next) show(next)
-    else setView(null)
-  }, [fetchImpl, id, show])
+  /**
+   * Loads the version. keepForm (the document poll, TSK-0054) refreshes the view only and keeps the form as typed;
+   * every other load rebuilds the form from the server.
+   */
+  const load = useCallback(
+    async (keepForm = false) => {
+      const r = await call<BuilderView>(fetchImpl, `/staff/estimate-versions/${encodeURIComponent(id)}`)
+      const next = r.ok && typeof r.data?.estimateNumber === 'string' ? r.data : null
+      if (!next) setView(null)
+      else if (keepForm) setView(next)
+      else show(next)
+    },
+    [fetchImpl, id, show],
+  )
   useEffect(() => {
     void load()
   }, [load])
+  // A document in quarantine is checked by the server's job worker: look again shortly, keeping the form as typed.
+  const processing = [view?.documents?.original, view?.documents?.customerPdf].some((d) => d?.state === 'quarantined')
+  useEffect(() => {
+    if (!processing) return
+    const timer = setTimeout(() => void load(true), 1500)
+    return () => clearTimeout(timer)
+  }, [processing, load, view])
 
   if (view === undefined) return <StateView kind="loading" title={t('common.loading')} />
   if (view === null || form === null || base === null)
@@ -735,7 +792,7 @@ export function EstimateBuilder({ t, fetchImpl, id, go, href }: { t: T; fetchImp
         <dt>{t('estimate.preparedBy')}</dt>
         <dd>{view.preparedBy.name ?? t('queue.unnamed')}</dd>
         <dt>{t('estimate.method')}</dt>
-        <dd>{t('estimate.methodWritten')}</dd>
+        <dd>{codeLabel(t, 'authoringMethod', view.authoringMethod)}</dd>
       </dl>
 
       <Panel id={`${ids}-document`} title={t('estimate.document')}>
@@ -761,7 +818,27 @@ export function EstimateBuilder({ t, fetchImpl, id, go, href }: { t: T; fetchImp
           <dt>{t('estimate.terms')}</dt>
           <dd>{view.document.termsDocumentId ?? <NotConfigured t={t} />}</dd>
         </dl>
+        <p>
+          <a
+            href={`/api/v1/staff/estimate-versions/${encodeURIComponent(view.id)}/customer-pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t('estimate.customerPdf')}
+          </a>
+        </p>
+        <p className="staff-request__hint">{t('estimate.customerPdfHint')}</p>
       </Panel>
+
+      {view.documents ? (
+        <DocumentsPanel
+          t={t}
+          fetchImpl={fetchImpl}
+          view={view}
+          documents={view.documents}
+          onView={(next) => (setView(next), setSaved(false))}
+        />
+      ) : null}
 
       {!editable ? <StateView kind="blocked" title={t('estimate.notEditable')} /> : null}
 
@@ -795,7 +872,9 @@ export function EstimateBuilder({ t, fetchImpl, id, go, href }: { t: T; fetchImp
 
       <form className="staff-request__form" onSubmit={(e) => void submit(e)} aria-label={t('estimate.form')} noValidate>
         <Panel id={`${ids}-lines`} title={t('estimate.lines')}>
-          <p className="staff-request__hint">{t('estimate.linesHint')}</p>
+          <p className="staff-request__hint">
+            {t(view.authoringMethod === 'uploaded' ? 'estimate.linesHintUploaded' : 'estimate.linesHint')}
+          </p>
           {fieldErrors['lines'] ? <p className="hh-field__error">{fieldErrors['lines']}</p> : null}
           {groups.map((g) => (
             <fieldset key={g.id || 'general'} className="staff-request__check">
@@ -1148,6 +1227,240 @@ export function EstimateBuilder({ t, fetchImpl, id, go, href }: { t: T; fetchImp
         </a>
       </p>
     </section>
+  )
+}
+
+/** The type a file declares: what the browser says, or its extension; the server checks the real content anyway. */
+function declaredType(file: File): string {
+  if (file.type === PDF || file.type === DOCX) return file.type
+  const name = file.name.toLowerCase()
+  if (name.endsWith('.pdf')) return PDF
+  if (name.endsWith('.docx')) return DOCX
+  return file.type || 'application/octet-stream'
+}
+
+/** A refused upload or confirmation in words: the content problem, the field problem, or the error itself. */
+function documentErrorText(t: T, err: ApiErrorBody): string {
+  const f = err.fieldErrors[0]
+  if (f) return codeLabel(t, f.field === 'body' ? 'estimateDocumentRejection' : 'estimateFieldError', f.code)
+  return errorTitle(t, err.code)
+}
+
+const megabytes = (bytes: number) => String(Math.floor(bytes / (1024 * 1024)))
+const kilobytes = (bytes: number) => String(Math.max(1, Math.round(bytes / 1024)))
+
+function DocumentFacts({ t, versionId, doc }: { t: T; versionId: string; doc: EstimateDocument }) {
+  const tone = doc.state === 'ready' ? 'success' : doc.state === 'rejected' ? 'danger' : 'info'
+  return (
+    <dl className="staff-record" data-testid={`estimate-${doc.role === 'original' ? 'original' : 'customer-pdf'}`}>
+      <dt>{t('estimate.upload.type')}</dt>
+      <dd>
+        {t(doc.contentType === DOCX ? 'estimate.upload.word' : 'estimate.upload.pdf')},{' '}
+        {t('estimate.upload.size', { kb: kilobytes(doc.byteSize) })}
+      </dd>
+      <dt>{t('estimate.upload.state')}</dt>
+      <dd>
+        <StatusBadge tone={tone}>{codeLabel(t, 'estimateDocumentState', doc.state)}</StatusBadge>
+        {doc.rejectionReason ? ` ${codeLabel(t, 'estimateDocumentRejection', doc.rejectionReason)}` : null}
+      </dd>
+      <dt>{t('estimate.upload.hash')}</dt>
+      <dd>
+        <code className="staff-estimate__hash">{doc.sha256}</code>
+      </dd>
+      {doc.state === 'ready' ? (
+        <>
+          <dt>{t('estimate.upload.file')}</dt>
+          <dd>
+            <a
+              href={`/api/v1/staff/estimate-versions/${encodeURIComponent(versionId)}/documents/${encodeURIComponent(doc.id)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t(doc.role === 'original' ? 'estimate.upload.openOriginal' : 'estimate.upload.openCustomerPdf')}
+            </a>
+          </dd>
+        </>
+      ) : null}
+    </dl>
+  )
+}
+
+/**
+ * Upload an Estimate (TSK-0054; HH-EST-11): the document, the PDF a Word document needs, and the confirmation that the
+ * document and the structured amounts agree. Every change answers with the builder view.
+ */
+function DocumentsPanel({
+  t,
+  fetchImpl,
+  view,
+  documents: docs,
+  onView,
+}: {
+  t: TD
+  fetchImpl: Fetch
+  view: BuilderView
+  documents: DocumentsView
+  onView: (next: BuilderView) => void
+}) {
+  const ids = useId()
+  const [pending, setPending] = useState<'original' | 'customer_pdf' | 'agreement' | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  /** The box as the person just set it, while the server records it; then the server's answer shows again. */
+  const [intended, setIntended] = useState<boolean | null>(null)
+  const original = useRef<HTMLInputElement>(null)
+  const pdf = useRef<HTMLInputElement>(null)
+  const agreementKey = useRef<string | null>(null)
+  const editable = view.canEdit
+  const base = `/staff/estimate-versions/${encodeURIComponent(view.id)}`
+
+  async function send(role: 'original' | 'customer_pdf', input: HTMLInputElement | null) {
+    const file = input?.files?.[0]
+    if (!file) return setError(t('estimate.upload.chooseFile'))
+    setPending(role)
+    setError(null)
+    const r = await upload<BuilderView>(
+      fetchImpl,
+      `${base}/documents/${role === 'original' ? 'original' : 'customer-pdf'}`,
+      file,
+      declaredType(file),
+      { 'if-match': `"${view.rowVersion}"` },
+    )
+    setPending(null)
+    if (!r.ok) return setError(documentErrorText(t, r.error))
+    if (input) input.value = ''
+    onView(r.data)
+  }
+
+  async function agree(confirmed: boolean) {
+    setPending('agreement')
+    setIntended(confirmed)
+    setError(null)
+    agreementKey.current = agreementKey.current ?? idempotencyKey()
+    const r = await call<BuilderView>(fetchImpl, `${base}/agreement`, {
+      method: 'PUT',
+      body: { confirmed },
+      headers: { 'idempotency-key': agreementKey.current, 'if-match': `"${view.rowVersion}"` },
+    })
+    setPending(null)
+    setIntended(null)
+    if (r.ok || r.status < 500) agreementKey.current = null
+    if (!r.ok) return setError(documentErrorText(t, r.error))
+    onView(r.data)
+  }
+
+  const confirmed = docs.agreement?.current === true
+  const canConfirm =
+    docs.original?.state === 'ready' && docs.customerPdf?.state === 'ready' && view.totals !== null && editable
+  const totals = view.totals
+  return (
+    <Panel id={`${ids}-upload`} title={t('estimate.upload.title')}>
+      <p className="staff-request__hint">
+        {docs.maxFileBytes === null ? (
+          <NotConfigured t={t} />
+        ) : (
+          t('estimate.upload.hint', { mb: megabytes(docs.maxFileBytes) })
+        )}
+      </p>
+      <h3>{t('estimate.upload.original')}</h3>
+      {docs.original ? (
+        <DocumentFacts t={t} versionId={view.id} doc={docs.original} />
+      ) : (
+        <p>{t('estimate.upload.none')}</p>
+      )}
+      {editable ? (
+        <div className="staff-estimate__upload">
+          <label htmlFor={`${ids}-original`}>{t('estimate.upload.chooseOriginal')}</label>
+          <input
+            id={`${ids}-original`}
+            ref={original}
+            type="file"
+            accept={`.pdf,.docx,${PDF},${DOCX}`}
+            disabled={pending !== null}
+          />
+          <Button
+            variant="secondary"
+            pending={pending === 'original'}
+            onClick={() => void send('original', original.current)}
+          >
+            {t('estimate.upload.send')}
+          </Button>
+        </div>
+      ) : null}
+
+      {docs.pdfRequired ? (
+        <StateView kind="blocked" title={t('estimate.upload.pdfRequired')}>
+          <p>{t('estimate.upload.pdfRequiredText')}</p>
+        </StateView>
+      ) : null}
+      {docs.original?.contentType === DOCX || (docs.customerPdf && docs.customerPdf.source === 'supplied') ? (
+        <>
+          <h3>{t('estimate.upload.customerPdf')}</h3>
+          {docs.customerPdf ? (
+            <DocumentFacts t={t} versionId={view.id} doc={docs.customerPdf} />
+          ) : (
+            <p>{t('estimate.upload.noPdf')}</p>
+          )}
+          {editable ? (
+            <div className="staff-estimate__upload">
+              <label htmlFor={`${ids}-pdf`}>{t('estimate.upload.choosePdf')}</label>
+              <input id={`${ids}-pdf`} ref={pdf} type="file" accept={`.pdf,${PDF}`} disabled={pending !== null} />
+              <Button
+                variant="secondary"
+                pending={pending === 'customer_pdf'}
+                onClick={() => void send('customer_pdf', pdf.current)}
+              >
+                {t('estimate.upload.sendPdf')}
+              </Button>
+            </div>
+          ) : null}
+        </>
+      ) : docs.customerPdf ? (
+        <>
+          <h3>{t('estimate.upload.customerPdf')}</h3>
+          <p className="staff-request__hint">{t('estimate.upload.copyHint')}</p>
+          <DocumentFacts t={t} versionId={view.id} doc={docs.customerPdf} />
+        </>
+      ) : null}
+
+      <h3>{t('estimate.agreement.title')}</h3>
+      <p>
+        {totals === null
+          ? t('estimate.agreement.amountsPending')
+          : t('estimate.agreement.amounts', {
+              total: usd(totals.totalCents),
+              deposit:
+                totals.depositState === 'required' && totals.depositCents !== null
+                  ? usd(totals.depositCents)
+                  : totals.depositState === 'not_required'
+                    ? t('estimate.depositNotRequired')
+                    : t('estimate.notConfigured'),
+              validity:
+                view.document.validityDays === null
+                  ? t('estimate.notConfigured')
+                  : t('estimate.validityDays', { days: view.document.validityDays }),
+            })}
+      </p>
+      <div className="staff-estimate__agree">
+        <input
+          id={`${ids}-agree`}
+          type="checkbox"
+          checked={intended ?? confirmed}
+          disabled={pending !== null || !(confirmed ? editable : canConfirm)}
+          onChange={(e) => void agree(e.target.checked)}
+        />
+        <label htmlFor={`${ids}-agree`}>{t('estimate.agreement.label')}</label>
+      </div>
+      {confirmed && docs.agreement ? (
+        <p>
+          {t('estimate.agreement.confirmedBy', {
+            name: docs.agreement.confirmedBy.name ?? t('queue.unnamed'),
+            time: new Date(docs.agreement.confirmedAt),
+          })}
+        </p>
+      ) : null}
+      <p className="staff-request__hint">{t('estimate.agreement.hint')}</p>
+      {error ? <StateView kind="error" title={error} /> : null}
+    </Panel>
   )
 }
 

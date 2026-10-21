@@ -1,9 +1,10 @@
 // The estimate builder and the request record's estimates panel (TSK-0053; HH-EST-01, HH-EST-05, T31, T58,
-// RULE-MONEY-CENTS, RULE-NO-INVENTED-FACTS). The API is a synthetic stand-in (RULE-SYNTHETIC-DATA).
+// RULE-MONEY-CENTS, RULE-NO-INVENTED-FACTS) and Upload an Estimate (TSK-0054; HH-EST-11, T31). The API is a synthetic
+// stand-in (RULE-SYNTHETIC-DATA).
 import { staffTranslator } from '@handyhub/i18n'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { EstimateBuilder, ProjectEstimates, type BuilderView } from '../src/Estimates'
+import { EstimateBuilder, ProjectEstimates, type BuilderView, type DocumentsView } from '../src/Estimates'
 
 afterEach(cleanup)
 
@@ -20,6 +21,7 @@ function builderView(over: Partial<BuilderView> = {}): BuilderView {
     version: 1,
     state: 'draft',
     rowVersion: 1,
+    authoringMethod: 'written',
     project: { id: '44444444-4444-4444-8444-444444444444', reference: 'HH-7K2M9Q4D', state: 'open' },
     customer: { name: 'Synthetic Customer' },
     property: { street: '100 Synthetic Way', unit: null, city: 'Testville', state: 'KY', zip: '40000' },
@@ -46,6 +48,7 @@ function builderView(over: Partial<BuilderView> = {}): BuilderView {
       ],
     },
     internal: { lines: [], baseMargin: null, markupAssumptions: null, estimatorNotes: null },
+    documents: null,
     canEdit: true,
     ...over,
   }
@@ -510,5 +513,180 @@ describe("the request record's estimates panel (TSK-0053)", () => {
     )
     await waitFor(() => expect(fetchImpl).toHaveBeenCalled())
     expect(container.textContent).toBe('')
+  })
+})
+
+const PDF = 'application/pdf'
+const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+const doc = (over: Partial<NonNullable<DocumentsView['original']>> = {}): NonNullable<DocumentsView['original']> => ({
+  id: '77777777-7777-4777-8777-777777777777',
+  role: 'original',
+  source: 'uploaded',
+  contentType: PDF,
+  byteSize: 20480,
+  sha256: 'a'.repeat(64),
+  state: 'ready',
+  rejectionReason: null,
+  uploadedAt: '2026-10-21T12:00:00.000Z',
+  ...over,
+})
+const documents = (over: Partial<DocumentsView> = {}): DocumentsView => ({
+  original: null,
+  customerPdf: null,
+  pdfRequired: false,
+  agreement: null,
+  maxFileBytes: 15 * 1024 * 1024,
+  types: [PDF, DOCX],
+  ...over,
+})
+const TOTALS = {
+  subtotalCents: 132_500,
+  discount: null,
+  totalCents: 132_500,
+  depositState: 'required' as const,
+  depositCents: 26_500,
+}
+
+describe('Upload an Estimate in the builder (TSK-0054, HH-EST-11)', () => {
+  it('uploads the chosen document as raw bytes with its type and the version shown, then shows its state', async () => {
+    const uploaded = builderView({
+      authoringMethod: 'uploaded',
+      rowVersion: 2,
+      documents: documents({ original: doc({ state: 'quarantined' }) }),
+    })
+    const write = vi.fn<Handler>(() => json(201, uploaded))
+    renderBuilder(api(builderView({ authoringMethod: 'uploaded', documents: documents() }), write))
+    expect(await screen.findByText('Uploaded document with structured amounts')).toBeTruthy()
+    expect(screen.getByText('No document uploaded yet.')).toBeTruthy()
+    expect(screen.getByText(/A PDF or Word \(\.docx\) file of up to 15 MB\./)).toBeTruthy()
+    const file = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46])], 'estimate.docx', { type: '' })
+    fireEvent.change(screen.getByLabelText('Estimate document (PDF or Word)'), { target: { files: [file] } })
+    fireEvent.click(screen.getByRole('button', { name: 'Upload the document' }))
+    expect(await screen.findByText('Checking')).toBeTruthy()
+    const [url, init] = write.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe(`/api/v1/staff/estimate-versions/${VERSION_ID}/documents/original`)
+    expect(init.method).toBe('POST')
+    expect(init.body).toBe(file)
+    // The browser gave no type: the extension decides what is declared; the server checks the real content.
+    expect((init.headers as Record<string, string>)['content-type']).toBe(DOCX)
+    expect((init.headers as Record<string, string>)['if-match']).toBe('"1"')
+    expect(screen.getByText('a'.repeat(64))).toBeTruthy()
+  })
+
+  it('shows a refused document with its reason', async () => {
+    const write = vi.fn<Handler>(() =>
+      json(400, { error: { code: 'VALIDATION_FAILED', fieldErrors: [{ field: 'body', code: 'active_content' }] } }),
+    )
+    renderBuilder(api(builderView({ authoringMethod: 'uploaded', documents: documents() }), write))
+    const file = new File([new Uint8Array([1])], 'estimate.pdf', { type: PDF })
+    fireEvent.change(await screen.findByLabelText('Estimate document (PDF or Word)'), { target: { files: [file] } })
+    fireEvent.click(screen.getByRole('button', { name: 'Upload the document' }))
+    expect(
+      await screen.findByText(
+        'The file contains scripts, macros, embedded files or external links that are not allowed.',
+      ),
+    ).toBeTruthy()
+  })
+
+  it('[OWN-DEC-102] a Word original asks for the PDF of the same document: "PDF required"', async () => {
+    renderBuilder(
+      api(
+        builderView({
+          authoringMethod: 'uploaded',
+          documents: documents({ original: doc({ contentType: DOCX }), pdfRequired: true }),
+          readiness: { ready: false, problems: [{ code: 'PDF_REQUIRED' }, { code: 'AGREEMENT_NOT_CONFIRMED' }] },
+        }),
+      ),
+    )
+    expect(await screen.findByText('PDF required')).toBeTruthy()
+    expect(screen.getByLabelText('PDF of the same document')).toBeTruthy()
+    expect(screen.getByText('PDF required: upload the PDF of the Word document.')).toBeTruthy()
+    expect(screen.getByText('Confirm that the document and the structured amounts agree.')).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Open the uploaded document' }).getAttribute('href')).toBe(
+      `/api/v1/staff/estimate-versions/${VERSION_ID}/documents/77777777-7777-4777-8777-777777777777`,
+    )
+    // Nothing to confirm yet: the PDF is missing.
+    expect((screen.getByRole('checkbox') as HTMLInputElement).disabled).toBe(true)
+  })
+
+  it('[T31] the agree-confirmation is sent with the version shown once the documents are ready and the totals exist', async () => {
+    const ready = documents({
+      original: doc(),
+      customerPdf: doc({
+        id: '88888888-8888-4888-8888-888888888888',
+        role: 'customer_pdf',
+        source: 'copy_of_original',
+      }),
+    })
+    const confirmed = builderView({
+      authoringMethod: 'uploaded',
+      rowVersion: 4,
+      totals: TOTALS,
+      documents: {
+        ...ready,
+        agreement: {
+          confirmedBy: { id: 'staff-1', name: 'Synthetic Estimator' },
+          confirmedAt: '2026-10-21T12:00:00.000Z',
+          documentId: '88888888-8888-4888-8888-888888888888',
+          current: true,
+        },
+      },
+    })
+    const write = vi.fn<Handler>(() => json(200, confirmed))
+    renderBuilder(
+      api(builderView({ authoringMethod: 'uploaded', rowVersion: 3, totals: TOTALS, documents: ready }), write),
+    )
+    expect(
+      await screen.findByText(
+        'Structured amounts: total $1,325.00; deposit $265.00; valid for 14 days from publishing.',
+      ),
+    ).toBeTruthy()
+    expect(screen.getByText('A copy of the uploaded PDF, byte for byte; the original stays private.')).toBeTruthy()
+    const box = screen.getByRole('checkbox', {
+      name: 'I checked that the document and the structured amounts agree (total, options, deposit and validity).',
+    }) as HTMLInputElement
+    expect(box.disabled).toBe(false)
+    fireEvent.click(box)
+    expect(await screen.findByText(/^Confirmed by Synthetic Estimator, /)).toBeTruthy()
+    const [url, init] = write.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe(`/api/v1/staff/estimate-versions/${VERSION_ID}/agreement`)
+    expect(init.method).toBe('PUT')
+    expect(JSON.parse(String(init.body))).toEqual({ confirmed: true })
+    expect((init.headers as Record<string, string>)['if-match']).toBe('"3"')
+    expect((screen.getByRole('checkbox') as HTMLInputElement).checked).toBe(true)
+  })
+
+  it('every version links to its customer PDF preview; a written one has no document panel', async () => {
+    renderBuilder(api(builderView()))
+    const link = await screen.findByRole('link', { name: 'Preview the customer PDF' })
+    expect(link.getAttribute('href')).toBe(`/api/v1/staff/estimate-versions/${VERSION_ID}/customer-pdf`)
+    expect(link.getAttribute('target')).toBe('_blank')
+    expect(screen.getByText('Written in the staff app')).toBeTruthy()
+    expect(screen.queryByText('Estimate document')).toBeNull()
+  })
+})
+
+describe("the request record's estimates panel: Upload an Estimate (TSK-0054)", () => {
+  it('creates an uploaded draft and opens the builder', async () => {
+    const go = vi.fn()
+    const fetchImpl = vi.fn(async (_url: string, init?: RequestInit) =>
+      init?.method === 'POST'
+        ? json(201, { estimateId: 'e', number: 'HH-7K2M9Q4D-E1', versionId: VERSION_ID, version: 1, rowVersion: 1 })
+        : json(200, { projectId: 'p', canWrite: true, estimates: [] }),
+    )
+    const { t } = staffTranslator('en')
+    render(
+      <ProjectEstimates
+        t={t}
+        fetchImpl={fetchImpl as unknown as typeof fetch}
+        projectId="44444444-4444-4444-8444-444444444444"
+        go={go}
+        href={(to) => `/staff${to}`}
+      />,
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'Upload an Estimate' }))
+    await waitFor(() => expect(go).toHaveBeenCalledWith(`/estimates/${VERSION_ID}`))
+    const post = fetchImpl.mock.calls.find((c) => (c[1] as RequestInit | undefined)?.method === 'POST')
+    expect(post?.[0]).toBe('/api/v1/staff/projects/44444444-4444-4444-8444-444444444444/uploaded-estimates')
   })
 })

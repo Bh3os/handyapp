@@ -107,6 +107,26 @@ export interface CrmPropertiesTable {
   coverage_rule_set: number | null
 }
 
+export interface EstimatingEstimateDocumentsTable {
+  id: string
+  version_id: string
+  project_id: string
+  role: string
+  source: string
+  derived_from: string | null
+  object_key: string
+  content_type: string
+  byte_size: number
+  sha256: string
+  visibility: string
+  state: Generated<string>
+  rejection_reason: string | null
+  uploaded_by: string
+  uploaded_at: ColumnType<Date, Date | string | undefined, Date | string>
+  processed_at: Timestamp | null
+  replaced_at: Timestamp | null
+}
+
 export interface EstimatingEstimateLineCostsTable {
   line_id: string
   version_id: string
@@ -180,6 +200,9 @@ export interface EstimatingEstimateVersionsTable {
   published_at: Timestamp | null
   first_viewed_at: Timestamp | null
   row_version: Generated<number>
+  agreement_document_id: string | null
+  agreement_confirmed_by: string | null
+  agreement_confirmed_at: Timestamp | null
 }
 
 export interface EstimatingEstimatesTable {
@@ -774,6 +797,7 @@ export interface Database {
   'crm.customers': CrmCustomersTable
   'crm.projects': CrmProjectsTable
   'crm.properties': CrmPropertiesTable
+  'estimating.estimate_documents': EstimatingEstimateDocumentsTable
   'estimating.estimate_line_costs': EstimatingEstimateLineCostsTable
   'estimating.estimate_lines': EstimatingEstimateLinesTable
   'estimating.estimate_version_internals': EstimatingEstimateVersionInternalsTable
