@@ -543,3 +543,85 @@
 .staff-estimate__history tr[aria-current='true'] {
   font-weight: 600;
 }
+
+/* The SOP checklist pinned on a work package (TSK-0068): verbatim items, read-only, with their vault lines. */
+.staff-sop {
+  display: grid;
+  gap: var(--hh-space-3);
+  min-width: 0;
+}
+
+.staff-sop__facts {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+  gap: var(--hh-space-1) var(--hh-space-3);
+  margin: 0;
+}
+
+.staff-sop__facts dt {
+  font-weight: 600;
+}
+
+.staff-sop__facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.staff-sop__stages,
+.staff-sop__items {
+  display: grid;
+  gap: var(--hh-space-2);
+  margin: 0;
+  padding-left: var(--hh-space-6);
+  min-width: 0;
+}
+
+.staff-sop summary {
+  min-height: var(--hh-target);
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.staff-sop__section {
+  margin: var(--hh-space-3) 0 var(--hh-space-1);
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.staff-sop__item p {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.staff-sop__item--control {
+  padding: var(--hh-space-2) var(--hh-space-3);
+  border-left: 4px solid var(--hh-line-strong);
+  background: var(--hh-surface);
+}
+
+.staff-sop__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hh-space-1) var(--hh-space-3);
+  color: var(--hh-muted);
+}
+
+.staff-sop__table {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.staff-sop__table table {
+  border-collapse: collapse;
+}
+
+.staff-sop__table th,
+.staff-sop__table td {
+  padding: var(--hh-space-1) var(--hh-space-2);
+  border: var(--hh-hairline);
+  text-align: left;
+  vertical-align: top;
+}
