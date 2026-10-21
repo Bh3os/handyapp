@@ -62,7 +62,8 @@ test.describe('the staff home: action queue and Owner Decisions (TSK-0041, HH-OP
       headers: { 'idempotency-key': `e2e-queue-request-${Date.now()}` },
       data: {
         formVersion: 'e2e-1',
-        privacyNoticeVersion: 'draft-e2e-1',
+        // A published privacy policy version (TSK-0024, migration 0021); an unknown version is refused.
+        privacyNoticeVersion: 'privacy-notice-1',
         services: [{ serviceId: 'SVC-DW-01' }],
         notSure: false,
         description: 'Synthetic e2e queue request.',
