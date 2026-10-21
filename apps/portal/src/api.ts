@@ -170,6 +170,41 @@ export function parseOverview(v: unknown): ProjectOverview | null {
   }
 }
 
+// The workspace tabs beside the Overview (TSK-0039; HH-PORT-09): each answers with its own declared view.
+export const WORKSPACE_TABS = ['messages', 'documents', 'photos', 'appointments', 'payments'] as const
+export type WorkspaceTab = (typeof WORKSPACE_TABS)[number]
+type TabHead = { reference: string; refreshedAt: string; refreshSeconds: number }
+export type PhotoCounts = { received: number; processing: number; failed: number }
+/** What each tab holds today: a closed state code, or (Photos) the counts of the customer-visible photos. */
+export type TabData =
+  | (TabHead & { tab: 'messages'; state: 'not_shown' })
+  | (TabHead & { tab: 'documents' | 'appointments' | 'payments'; state: 'none' })
+  | (TabHead & { tab: 'photos'; photos: PhotoCounts })
+
+const TAB_STATE: Record<Exclude<WorkspaceTab, 'photos'>, string> = {
+  messages: 'not_shown',
+  documents: 'none',
+  appointments: 'none',
+  payments: 'none',
+}
+
+export function parseTab(tab: WorkspaceTab, v: unknown): TabData | null {
+  if (!isObj(v) || !isStr(v['reference']) || !isDate(v['refreshedAt']) || !isSeconds(v['refreshSeconds'])) return null
+  const head: TabHead = {
+    reference: v['reference'],
+    refreshedAt: v['refreshedAt'],
+    refreshSeconds: v['refreshSeconds'],
+  }
+  if (tab === 'photos') {
+    const p = v['photos']
+    if (!isObj(p) || !isSeconds(p['received']) || !isSeconds(p['processing']) || !isSeconds(p['failed'])) return null
+    return { ...head, tab, photos: { received: p['received'], processing: p['processing'], failed: p['failed'] } }
+  }
+  // Any other state (for example "paid" or "read") is not what the view declares: a failure, never shown as data.
+  if (v['state'] !== TAB_STATE[tab]) return null
+  return tab === 'messages' ? { ...head, tab, state: 'not_shown' } : { ...head, tab, state: 'none' }
+}
+
 async function read<T>(fetchImpl: Fetch, path: string, parse: (v: unknown) => T | null): Promise<Result<T>> {
   let res: Response
   try {
@@ -193,4 +228,6 @@ export const portalApi = {
   projects: (f: Fetch) => read(f, '/customer/projects', parseList),
   overview: (f: Fetch, reference: string) =>
     read(f, `/customer/projects/${encodeURIComponent(reference)}/overview`, parseOverview),
+  tab: (f: Fetch, reference: string, tab: WorkspaceTab) =>
+    read(f, `/customer/projects/${encodeURIComponent(reference)}/${tab}`, (v) => parseTab(tab, v)),
 }

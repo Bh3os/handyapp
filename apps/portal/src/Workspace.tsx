@@ -5,11 +5,16 @@
 // - An action whose screen a later task builds (Reply with TSK-0051, the estimate, deposit, appointment, invoice...)
 //   is shown inactive with its reason written out: a placeholder never looks usable (HH-FIN-10).
 // - While stale, every section is marked so and the refresh line says from when it is.
-import { Button, StateView, StatusBadge, type StatusTone } from '@handyhub/ui'
+// - The six tabs (TSK-0039; HH-PORT-09): Overview first, then Messages, Documents, Photos, Appointments and Payments,
+//   in the shared ARIA tabs pattern (one tab stop, arrow keys, Home and End). Each tab has its own page
+//   (/portal/p/<reference>/<tab>), so a link, Back and a reload open the same tab. The frame reads the Overview first:
+//   a project this session cannot open shows its one neutral state and no tab at all.
+import { Button, StateView, StatusBadge, Tabs, type StatusTone } from '@handyhub/ui'
 import { portalApi, type Fetch, type NextAction, type ProjectOverview, type Waiting } from './api'
 import { ACTION_LABEL, SITUATION_LABEL, STEP_TEXT, t, TIMELINE_LABEL, WAITING_LABEL, when } from './labels'
 import { useLive } from './live'
 import { NotShown, RefreshLine } from './States'
+import { TAB_LABEL, TAB_ORDER, TabPanel, tabPath, type Tab } from './Tabs'
 
 const WAITING_TONE: Record<Waiting, StatusTone> = { customer: 'warning', handyhub: 'info', nobody: 'neutral' }
 
@@ -108,7 +113,18 @@ function Overview({ o, stale }: { o: ProjectOverview; stale: boolean }) {
   )
 }
 
-export function Workspace({ reference, fetchImpl }: { reference: string; fetchImpl: Fetch }) {
+export function Workspace({
+  reference,
+  tab = 'overview',
+  onNavigate,
+  fetchImpl,
+}: {
+  reference: string
+  tab?: Tab
+  /** Opens another page of the portal (a tab's own path); the App keeps the address bar in step. */
+  onNavigate?: (path: string) => void
+  fetchImpl: Fetch
+}) {
   const { live, refresh } = useLive(() => portalApi.overview(fetchImpl, reference), reference)
   return (
     <>
@@ -125,14 +141,30 @@ export function Workspace({ reference, fetchImpl }: { reference: string; fetchIm
             {[...live.data.services, ...(live.data.notSure ? [t('request.services.notSure')] : [])].join(', ')}
           </p>
           <p className="hh-small hh-muted">{t('access.project.sent', { date: when(live.data.submittedAt) })}</p>
-          <RefreshLine
-            refreshedAt={live.refreshedAt}
-            stale={live.stale}
-            refreshing={live.refreshing}
-            onRefresh={() => void refresh()}
+          <Tabs
+            label={t('portal.tabs.label')}
+            selectedId={tab}
+            onSelect={(id) => onNavigate?.(tabPath(reference, id as Tab))}
+            tabs={TAB_ORDER.map((id) => ({
+              id,
+              label: t(TAB_LABEL[id]),
+              content:
+                id === 'overview' ? (
+                  <>
+                    <RefreshLine
+                      refreshedAt={live.refreshedAt}
+                      stale={live.stale}
+                      refreshing={live.refreshing}
+                      onRefresh={() => void refresh()}
+                    />
+                    <h2 className="hh-visually-hidden">{t('portal.overview.title')}</h2>
+                    <Overview o={live.data} stale={live.stale} />
+                  </>
+                ) : (
+                  <TabPanel reference={reference} tab={id} active={tab === id} fetchImpl={fetchImpl} />
+                ),
+            }))}
           />
-          <h2 className="hh-visually-hidden">{t('portal.overview.title')}</h2>
-          <Overview o={live.data} stale={live.stale} />
         </>
       )}
     </>
