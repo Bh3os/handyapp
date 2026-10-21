@@ -9,6 +9,7 @@ import { photosModule } from './photos/index.js'
 import { QUEUE_MODULE } from './queue/index.js'
 import { REQUESTS_MODULE } from './requests/index.js'
 import { SITE_MODULE } from './site/index.js'
+import { systemModule, type SystemDeps } from './system/index.js'
 
 export type ModuleDeps = {
   /** Secure, `__Host-` session cookies (staging and production); plain cookies over http in local and ci. */
@@ -17,6 +18,8 @@ export type ModuleDeps = {
   mfaKey: Secret | null
   /** The private object storage for photos (R2, or the fake in local and ci); null while NOT CONFIGURED. */
   storage?: ObjectStorage | null
+  /** What the system health and configuration views report about this process (TSK-0101); unset: unknown. */
+  system?: SystemDeps
 }
 
 export function apiModules(deps: ModuleDeps): ApiModule[] {
@@ -27,6 +30,7 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     photosModule({ storage: deps.storage ?? null }),
     SITE_MODULE,
     QUEUE_MODULE,
+    systemModule(deps.system ?? {}),
   ]
 }
 
