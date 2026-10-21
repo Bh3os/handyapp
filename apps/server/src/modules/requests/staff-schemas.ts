@@ -410,6 +410,7 @@ export const DETAIL = {
         'assign',
         'qualify',
         'addNote',
+        'relink',
         'recordConversation',
       ],
       properties: {
@@ -420,6 +421,7 @@ export const DETAIL = {
         assign: { type: 'boolean' },
         qualify: { type: 'boolean' },
         addNote: { type: 'boolean' },
+        relink: { type: 'boolean' },
         recordConversation: { type: 'boolean' },
       },
     },

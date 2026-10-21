@@ -264,7 +264,9 @@ export const LABEL_FAMILIES = {
   visibilityClass: ['internal_operational', 'restricted_incident', 'restricted_financial', 'customer_shared'],
   /** What two customers share in a duplicate suggestion (HH-ID-02; @handyhub/domain MATCH_REASONS). */
   matchReason: ['email', 'phone', 'address', 'name'],
-  candidateStatus: ['open', 'dismissed'],
+  candidateStatus: ['open', 'dismissed', 'merged'],
+  /** A merge or relink (crm.record_links, TSK-0046): in effect, reversed by the Owner, or replaced by a later relink. */
+  recordLinkState: ['current', 'reversed', 'replaced'],
   /** Consent records (ENT-ConsentPreference; apps/server/src/modules/notifications/consent.ts). */
   consentPurpose: ['service_communication', 'transactional_sms', 'marketing'],
   consentChannel: ['email', 'sms'],
@@ -308,6 +310,11 @@ export const LABEL_FAMILIES = {
     'candidate_reasons_added',
     'candidate_reopened',
     'candidate_dismissed',
+    'customer_merged',
+    'request_relinked',
+    'link_reversed',
+    'candidate_merged',
+    'candidate_merge_reversed',
   ],
   timelineActor: ['staff', 'customer', 'system'],
   /** Why the server refused a request action (the problem codes of @handyhub/domain and the requests module). */

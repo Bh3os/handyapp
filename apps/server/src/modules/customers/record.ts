@@ -11,12 +11,18 @@
 //   role that may not read it (it exists, its class and time; never its text or author) (HH-STAFF-05, OWN-DEC-143);
 // - possible duplicates, for the roles holding customer.view_duplicates only, labelled as suggestions (HH-ID-02);
 // - the activity history: submissions, handling, notes, record changes, consent records and messages, newest first,
-//   with the same masking.
+//   with the same masking;
+// - TSK-0046 (HH-CRM-04): a record that is not merged also shows the contacts, properties, notes and projects of the
+//   customers merged into it and the projects linked to it (each item names the record it belongs to, which never
+//   changes), and every merge and relink of the record with its reason, access recheck and reversal. A merged record
+//   shows its own records, the survivor it was merged into and where each project is seen now.
 import type { Db, Tx } from '@handyhub/db'
 import { NOTE_VISIBILITIES } from '@handyhub/domain'
 import { decide, readsVisibility, type Action, type Actor, type DataScope } from '@handyhub/policy'
-import { customerInScope } from '../../platform/data-scope.js'
+import { sql } from 'kysely'
+import { customerInScope, projectInScope } from '../../platform/data-scope.js'
 import { contactBadges } from '../verification/contact-verification.js'
+import { groupMembers, linkHistory, projectCustomers, projectsUnder } from './links.js'
 
 type Reader = Db | Tx
 export type StaffRef = { id: string; name: string | null }
@@ -34,7 +40,7 @@ function allowed(actor: Actor, action: Action): boolean {
   return decide(actor, action, {}, { now: new Date(), online: true, reason: 'given' }).effect === 'allow'
 }
 
-async function staffNames(db: Reader, ids: (string | null | undefined)[]): Promise<Map<string, StaffRef>> {
+export async function staffNames(db: Reader, ids: (string | null | undefined)[]): Promise<Map<string, StaffRef>> {
   const wanted = [...new Set(ids.filter((i): i is string => typeof i === 'string' && UUID.test(i)))]
   if (wanted.length === 0) return new Map()
   const rows = await db
@@ -96,20 +102,25 @@ export async function findCustomer(db: Reader, scope: DataScope, customerId: str
 export async function staffCustomerView(db: Reader, scope: DataScope, customerId: string, actor: Actor) {
   const id = await findCustomer(db, scope, customerId)
   if (!id) return null
-  return buildView(db, id, actor)
+  return buildView(db, id, actor, scope)
 }
 
-async function buildView(db: Reader, id: string, actor: Actor) {
+async function buildView(db: Reader, id: string, actor: Actor, scope: DataScope) {
   const now = new Date()
   const customer = await db
     .selectFrom('crm.customers')
     .select(['id', 'display_name', 'status', 'merged_into_id', 'provenance', 'language', 'created_at', 'version'])
     .where('id', '=', id)
     .executeTakeFirstOrThrow()
+  // TSK-0046 (HH-CRM-04): a customer that is not merged shows its own records and those of the customers merged into
+  // it (each still on its own record, never moved), and the projects linked to it; a merged record shows its own.
+  const merged = customer.status === 'merged'
+  const members = merged ? [id] : await groupMembers(db, [id])
   const contacts = await db
     .selectFrom('crm.contacts')
     .select([
       'id',
+      'customer_id',
       'full_name',
       'email',
       'phone_e164',
@@ -120,7 +131,8 @@ async function buildView(db: Reader, id: string, actor: Actor) {
       'created_at',
       'version',
     ])
-    .where('customer_id', '=', id)
+    .where('customer_id', 'in', members)
+    .orderBy(sql<number>`(customer_id = ${id}::uuid)::int`, 'desc')
     .orderBy('is_primary', 'desc')
     .orderBy('created_at')
     .orderBy('id')
@@ -163,6 +175,7 @@ async function buildView(db: Reader, id: string, actor: Actor) {
       }))
     contactViews.push({
       id: c.id,
+      customerId: c.customer_id,
       fullName: c.full_name,
       email: c.email,
       phone: c.phone_e164,
@@ -192,23 +205,41 @@ async function buildView(db: Reader, id: string, actor: Actor) {
       'p.property_type',
       'p.coverage_result',
       'cp.relationship',
+      'cp.customer_id',
     ])
-    .where('cp.customer_id', '=', id)
+    .where('cp.customer_id', 'in', members)
     .orderBy('cp.created_at')
     .execute()
 
-  const projects = await db
-    .selectFrom('crm.projects')
-    .select(['id', 'reference', 'state', 'created_at', 'property_id'])
-    .where('customer_id', '=', id)
-    .orderBy('created_at', 'desc')
-    .execute()
-  const requests = await db
-    .selectFrom('intake.requests')
-    .select(['id', 'reference', 'state', 'project_id', 'submitted_at', 'contact_id'])
-    .where('customer_id', '=', id)
-    .orderBy('submitted_at', 'desc')
-    .execute()
+  // Only the projects inside the caller's scope (TSK-0037): a merge or a relink never shows one outside it.
+  const projectIds = merged
+    ? (
+        await db
+          .selectFrom('crm.projects')
+          .select('id')
+          .where('customer_id', '=', id)
+          .where(projectInScope('id', scope))
+          .execute()
+      ).map((p) => p.id)
+    : await projectsUnder(db, id, scope)
+  const projects = projectIds.length
+    ? await db
+        .selectFrom('crm.projects')
+        .select(['id', 'reference', 'state', 'created_at', 'property_id', 'customer_id'])
+        .where('id', 'in', projectIds)
+        .orderBy('created_at', 'desc')
+        .orderBy('id')
+        .execute()
+    : []
+  const currentOf = await projectCustomers(db, projectIds)
+  const requests = projectIds.length
+    ? await db
+        .selectFrom('intake.requests')
+        .select(['id', 'reference', 'state', 'project_id', 'submitted_at', 'contact_id'])
+        .where('project_id', 'in', projectIds)
+        .orderBy('submitted_at', 'desc')
+        .execute()
+    : []
   const requestIds = requests.map((r) => r.id)
   const refOf = new Map(requests.map((r) => [r.id, r.reference]))
 
@@ -216,7 +247,7 @@ async function buildView(db: Reader, id: string, actor: Actor) {
   const customerNotes = await db
     .selectFrom('crm.customer_notes')
     .select(['id', 'author_staff_id', 'visibility', 'body', 'created_at'])
-    .where('customer_id', '=', id)
+    .where('customer_id', 'in', members)
     .execute()
   const requestNotes = requestIds.length
     ? await db
@@ -242,7 +273,7 @@ async function buildView(db: Reader, id: string, actor: Actor) {
   const changes = await db
     .selectFrom('crm.record_changes')
     .select(['record_type', 'fields', 'changed_by', 'changed_at'])
-    .where('customer_id', '=', id)
+    .where('customer_id', 'in', members)
     .execute()
   const messages = contactIds.length
     ? await db
@@ -291,6 +322,17 @@ async function buildView(db: Reader, id: string, actor: Actor) {
         .execute()
     : []
   const otherOf = new Map(others.map((o) => [o.id, o]))
+
+  const links = await linkHistory(db, members, projectIds)
+  const linkNames = new Map(
+    (
+      await db
+        .selectFrom('crm.customers')
+        .select(['id', 'display_name', 'merged_into_id'])
+        .where('id', 'in', [id, ...(customer.merged_into_id ? [customer.merged_into_id] : [])])
+        .execute()
+    ).map((c) => [c.id, c.display_name]),
+  )
 
   const names = await staffNames(db, [
     ...customerNotes.map((n) => n.author_staff_id),
@@ -416,6 +458,21 @@ async function buildView(db: Reader, id: string, actor: Actor) {
       channel: m.channel,
       state: m.state,
     })
+  for (const l of links) {
+    entry({
+      at: l.at,
+      kind: l.kind === 'merge' ? 'customer_merged' : 'request_relinked',
+      actor: { kind: 'staff', name: l.by.name },
+      reference: l.requestReference,
+    })
+    if (l.reversal)
+      entry({
+        at: l.reversal.at,
+        kind: 'link_reversed',
+        actor: { kind: 'staff', name: l.reversal.by.name },
+        reference: l.requestReference,
+      })
+  }
   for (const e of matchEvents)
     entry({
       at: e.recorded_at.toISOString(),
@@ -428,7 +485,9 @@ async function buildView(db: Reader, id: string, actor: Actor) {
   const candidates = matches.map((m) => {
     const otherId = m.customer_id === id ? m.candidate_customer_id : m.customer_id
     const other = otherOf.get(otherId)
-    const review = [...matchEvents].reverse().find((e) => e.match_id === m.id && e.event === 'dismissed')
+    const review = [...matchEvents]
+      .reverse()
+      .find((e) => e.match_id === m.id && (e.event === 'dismissed' || e.event === 'merge_reversed'))
     return {
       id: m.id,
       version: m.version,
@@ -449,6 +508,9 @@ async function buildView(db: Reader, id: string, actor: Actor) {
     displayName: customer.display_name,
     status: customer.status,
     mergedIntoId: customer.merged_into_id,
+    mergedInto: customer.merged_into_id
+      ? { id: customer.merged_into_id, displayName: linkNames.get(customer.merged_into_id) ?? '' }
+      : null,
     provenance: customer.provenance,
     language: customer.language,
     createdAt: customer.created_at.toISOString(),
@@ -464,12 +526,16 @@ async function buildView(db: Reader, id: string, actor: Actor) {
       propertyType: p.property_type,
       coverage: p.coverage_result,
       relationship: p.relationship,
+      customerId: p.customer_id,
     })),
     projects: projects.map((p) => ({
       id: p.id,
       reference: p.reference,
       state: p.state,
       createdAt: p.created_at.toISOString(),
+      // The customer the project was created for, and the one staff see it under now (TSK-0046).
+      customerId: p.customer_id,
+      currentCustomerId: currentOf.get(p.id) ?? p.customer_id,
       requests: requests
         .filter((r) => r.project_id === p.id)
         .map((r) => ({ id: r.id, reference: r.reference, state: r.state, submittedAt: r.submitted_at.toISOString() })),
@@ -479,6 +545,7 @@ async function buildView(db: Reader, id: string, actor: Actor) {
     payments: { state: 'not_available' as const },
     notes: noteViews,
     candidates: { visible: mayViewDuplicates, items: candidates },
+    links,
     timeline: timeline.slice(0, TIMELINE_LIMIT),
     timelineTruncated: timeline.length > TIMELINE_LIMIT,
     actions: {
@@ -486,6 +553,9 @@ async function buildView(db: Reader, id: string, actor: Actor) {
       addNote: editable && allowed(actor, 'request.add_note'),
       recordWithdrawal: allowed(actor, 'customer.edit'),
       reviewCandidates: mayViewDuplicates && allowed(actor, 'customer.merge'),
+      merge: editable && allowed(actor, 'customer.merge'),
+      relink: allowed(actor, 'request.correct_link'),
+      reverseLinks: allowed(actor, 'customer.reverse_link_change'),
       noteVisibilities: [...NOTE_VISIBILITIES],
     },
     revealedIncidents,
