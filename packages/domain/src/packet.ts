@@ -353,3 +353,39 @@ export function changedSections(changes: readonly PacketChange[]): PacketSection
   const set = new Set(changes.map((c) => c.section))
   return PACKET_SECTIONS.filter((s) => set.has(s))
 }
+
+// Acknowledgments (TSK-0072; HH-DATA-08, HH-WORK-10, HH-PKT-02, HH-CHG-03, T44, ENT-Acknowledgment,
+// RULE-SAFETY-GATES): a worker's own confirmation of one packet version. It stands while the worker stays assigned and
+// no later version is critical; a critical version, the end of the worker's assignment or a disabled account ends it
+// (recorded once by the database, migration 0064). Nobody inherits one, and it never releases a hold: the Start Job
+// gate (TSK-0073) reads it next to every other check.
+
+/** Where one worker's acknowledgment of a job's packet stands. */
+export const ACKNOWLEDGMENT_STATES = ['acknowledged', 'required', 'invalidated', 'not_assigned'] as const
+export type AcknowledgmentState = (typeof ACKNOWLEDGMENT_STATES)[number]
+
+/** Why an acknowledgment stopped counting. */
+export const ACKNOWLEDGMENT_INVALIDATIONS = ['critical_change', 'assignment_removed', 'account_disabled'] as const
+export type AcknowledgmentInvalidation = (typeof ACKNOWLEDGMENT_INVALIDATIONS)[number]
+
+export type AcknowledgmentFacts = {
+  /** The person is assigned to the job now (an active confirmed reservation on a live visit, inside its window). */
+  readonly assigned: boolean
+  /** The person's latest acknowledgment of the job: its version and whether the database recorded its end. */
+  readonly latest: { readonly version: number; readonly invalidated: boolean } | null
+  /** The job's packet versions marked critical. */
+  readonly criticalVersions: readonly number[]
+}
+
+/**
+ * Where a worker's acknowledgment stands: not assigned (nothing to acknowledge, nothing counts), never given
+ * (required), ended (invalidated: its end was recorded, or a later version is critical even before that is recorded),
+ * or standing (acknowledged). Only `acknowledged` satisfies the review part of the Start Job gate.
+ */
+export function acknowledgmentState(f: AcknowledgmentFacts): AcknowledgmentState {
+  if (!f.assigned) return 'not_assigned'
+  if (!f.latest) return 'required'
+  const { version, invalidated } = f.latest
+  if (invalidated || f.criticalVersions.some((v) => v > version)) return 'invalidated'
+  return 'acknowledged'
+}

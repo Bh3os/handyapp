@@ -140,7 +140,11 @@ function view(over: Partial<JobPacketView> = {}): JobPacketView {
         },
       ],
     },
-    actions: { revealAccessCodes: false },
+    acknowledgments: {
+      mine: { state: 'not_assigned', assigned: false, acknowledgment: null, invalidation: null, changesSince: [] },
+      team: [],
+    },
+    actions: { revealAccessCodes: false, acknowledge: false },
     ...over,
   }
 }
@@ -225,7 +229,7 @@ describe('job packet screen (TSK-0069)', () => {
     expect(screen.queryByRole('button', { name: 'Reveal code' })).toBeNull()
     expect(document.body.textContent).not.toContain(CODE)
     cleanup()
-    const fetchImpl = api(view({ actions: { revealAccessCodes: true } }), (url) =>
+    const fetchImpl = api(view({ actions: { revealAccessCodes: true, acknowledge: false } }), (url) =>
       url.endsWith(`/access-codes/${CODE_ID}/reveal`)
         ? json(200, {
             id: CODE_ID,
@@ -332,6 +336,8 @@ describe('your job packets on My Day (TSK-0069)', () => {
             lastViewedVersion: 4,
             changedSinceViewed: true,
             criticalSinceViewed: true,
+            acknowledgment: 'invalidated',
+            acknowledgedVersion: 4,
             visits: [
               {
                 visitId: 'v1',
@@ -351,6 +357,160 @@ describe('your job packets on My Day (TSK-0069)', () => {
     const link = await screen.findByRole('link', { name: 'Job packet: project HH-SYNTH-69' })
     expect(link.getAttribute('href')).toBe(`/staff/packets/${JOB}`)
     expect(screen.getByText('Critical change since you viewed it')).toBeTruthy()
+    // TSK-0072: where the worker's own acknowledgment stands.
+    expect(screen.getByText('Review again')).toBeTruthy()
     expect(screen.getByRole('heading', { level: 1, name: 'My Day' })).toBeTruthy()
+  })
+})
+
+describe('your review of the packet (TSK-0072)', () => {
+  const ANN = '88888888-8888-4888-8888-888888888888'
+  const required = (): Partial<JobPacketView> => ({
+    acknowledgments: {
+      mine: { state: 'required', assigned: true, acknowledgment: null, invalidation: null, changesSince: [] },
+      team: [
+        {
+          staffUserId: ANN,
+          name: 'Synthetic Ann',
+          state: 'required',
+          version: null,
+          acknowledgedAt: null,
+          invalidation: null,
+        },
+      ],
+    },
+    actions: { revealAccessCodes: false, acknowledge: true },
+  })
+
+  it('[HH-WORK-10][T44] the assigned worker acknowledges this exact version personally, only after ticking the box', async () => {
+    let acknowledged = false
+    const after: Partial<JobPacketView> = {
+      acknowledgments: {
+        mine: {
+          state: 'acknowledged',
+          assigned: true,
+          acknowledgment: { version: 3, acknowledgedAt: '2026-10-21T16:10:00.000Z' },
+          invalidation: null,
+          changesSince: [],
+        },
+        team: [
+          {
+            staffUserId: ANN,
+            name: 'Synthetic Ann',
+            state: 'acknowledged',
+            version: 3,
+            acknowledgedAt: '2026-10-21T16:10:00.000Z',
+            invalidation: null,
+          },
+        ],
+      },
+      actions: { revealAccessCodes: false, acknowledge: false },
+    }
+    const fetchImpl = api(view(required()), (url, init) => {
+      if (url === `/api/v1/staff/jobs/${JOB}/packet/acknowledgments` && init?.method === 'POST') {
+        acknowledged = true
+        return json(201, {
+          acknowledgmentId: 'a1',
+          version: 3,
+          acknowledgedAt: 'x',
+          created: true,
+          state: 'acknowledged',
+        })
+      }
+      if (url === `/api/v1/staff/jobs/${JOB}/packet` && acknowledged) return json(200, view(after))
+      return undefined
+    })
+    renderPacket(fetchImpl)
+    const review = await screen.findByTestId('packet-review')
+    expect(within(review).getByText('You have not acknowledged this packet yet')).toBeTruthy()
+    expect(review.textContent).toContain("another worker's review does not count for you")
+    const button = within(review).getByRole('button', { name: 'Acknowledge version 3' })
+    expect(button.hasAttribute('disabled') || button.getAttribute('aria-disabled') === 'true').toBe(true)
+    fireEvent.click(within(review).getByLabelText(/I reviewed this packet myself/))
+    fireEvent.click(within(review).getByRole('button', { name: 'Acknowledge version 3' }))
+    await screen.findByTestId('packet-acknowledged')
+    const [, init] = fetchImpl.mock.calls.find(([u]) => u === `/api/v1/staff/jobs/${JOB}/packet/acknowledgments`) as [
+      string,
+      RequestInit,
+    ]
+    // The exact version and content the worker read; never another person's ID.
+    expect(JSON.parse(String(init.body))).toEqual({ version: 3, contentSha256: 'a'.repeat(64) })
+    expect(screen.getByTestId('packet-review-team').textContent).toContain('Synthetic Ann: Acknowledged, version 3')
+    expect(screen.getByText('An acknowledgment never releases a hold and never starts work by itself.')).toBeTruthy()
+  })
+
+  it('[HH-DATA-08][T44] a critical change says the old acknowledgment no longer counts, with what changed', async () => {
+    renderPacket(
+      api(
+        view({
+          acknowledgments: {
+            mine: {
+              state: 'invalidated',
+              assigned: true,
+              acknowledgment: { version: 2, acknowledgedAt: '2026-10-21T14:00:00.000Z' },
+              invalidation: { reason: 'critical_change', version: 3, invalidatedAt: '2026-10-21T15:00:00.000Z' },
+              changesSince: [
+                { section: 'holds', code: 'hold_added', critical: true, ref: 'structural', from: null, to: 'open' },
+              ],
+            },
+            team: [],
+          },
+          actions: { revealAccessCodes: false, acknowledge: true },
+        }),
+      ),
+    )
+    const review = await screen.findByTestId('packet-review')
+    expect(within(review).getByText('Your acknowledgment of version 2 no longer counts')).toBeTruthy()
+    expect(review.textContent).toContain('Version 3 has a critical change.')
+    expect(review.textContent).toContain('hold raised: Structural (Open)')
+    expect(within(review).getByRole('button', { name: 'Acknowledge version 3' })).toBeTruthy()
+  })
+
+  it('[HH-WORK-10] a packet that changed meanwhile is reloaded and said; Spanish words; the office only reads the team', async () => {
+    const fetchImpl = api(view(required()), (url, init) =>
+      url.endsWith('/packet/acknowledgments') && init?.method === 'POST'
+        ? json(409, { error: { code: 'CONFLICT', fieldErrors: [{ field: 'body.version', code: 'PACKET_CHANGED' }] } })
+        : undefined,
+    )
+    renderPacket(fetchImpl, 'es')
+    const review = await screen.findByTestId('packet-review')
+    fireEvent.click(within(review).getByLabelText(/Revisé este paquete yo mismo/))
+    fireEvent.click(within(review).getByRole('button', { name: 'Confirmar la versión 3' }))
+    await screen.findByText('El paquete cambió mientras lo revisaba. Revise la versión nueva.')
+    await waitFor(() =>
+      expect(fetchImpl.mock.calls.filter(([u]) => u === `/api/v1/staff/jobs/${JOB}/packet`).length).toBe(2),
+    )
+    cleanup()
+    renderPacket(
+      api(
+        view({
+          acknowledgments: {
+            mine: {
+              state: 'not_assigned',
+              assigned: false,
+              acknowledgment: null,
+              invalidation: null,
+              changesSince: [],
+            },
+            team: [
+              {
+                staffUserId: ANN,
+                name: 'Synthetic Ann',
+                state: 'invalidated',
+                version: 2,
+                acknowledgedAt: 'x',
+                invalidation: 'account_disabled',
+              },
+            ],
+          },
+        }),
+      ),
+    )
+    const office = await screen.findByTestId('packet-review')
+    expect(office.textContent).toContain(
+      'Only the workers assigned to this job acknowledge its packet, each personally.',
+    )
+    expect(within(office).queryByRole('button', { name: /Acknowledge/ })).toBeNull()
+    expect(screen.getByTestId('packet-review-team').textContent).toContain('Synthetic Ann: Review again')
   })
 })

@@ -936,6 +936,9 @@ export const LABEL_FAMILIES = {
     'resources',
     'dependencies',
   ],
+  /** Where a worker's own packet acknowledgment stands, and why one stopped counting (TSK-0072). */
+  acknowledgmentState: ['acknowledged', 'required', 'invalidated', 'not_assigned'],
+  acknowledgmentInvalidation: ['critical_change', 'assignment_removed', 'account_disabled'],
   /** Why the Owner's record of a competent-review sign-off was refused (TSK-0068). */
   sopSignOffProblem: ['REVIEWER_REQUIRED', 'QUALIFICATION_REQUIRED', 'REASON_REQUIRED', 'INVALID_TRANSITION'],
 } as const satisfies Record<string, readonly string[]>

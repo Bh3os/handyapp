@@ -49918,7 +49918,7 @@
       "get": {
         "operationId": "getJobPacket",
         "summary": "The current job packet",
-        "description": "Staff with job.view_packet inside their scope: the Owner and Office; the Estimator (PROPOSED cell); a worker only while assigned to a live visit of the job (an active confirmed reservation, until the end of the service day; a removed worker is refused on the next request). The server first brings the packet up to date (a new version when its records changed). Answers the version, its first-generated, last-updated and checked times, whether it is the latest, \"What changed since you reviewed this?\" against the version the caller last viewed, and every section of HH-PKT-01 from stored records only (no price, never an access code: a code is revealed separately, online, on the visit date). What no record holds is marked, never filled in.",
+        "description": "Staff with job.view_packet inside their scope: the Owner and Office; the Estimator (PROPOSED cell); a worker only while assigned to a live visit of the job (an active confirmed reservation, until the end of the service day; a removed worker is refused on the next request). The server first brings the packet up to date (a new version when its records changed). Answers the version, its first-generated, last-updated and checked times, whether it is the latest, \"What changed since you reviewed this?\" against the version the caller last viewed, and every section of HH-PKT-01 from stored records only (no price, never an access code: a code is revealed separately, online, on the visit date). What no record holds is marked, never filled in. Also where the caller's own acknowledgment stands (acknowledged, required, invalidated by a critical change, a removed assignment or a disabled account, or not assigned) with what changed since the acknowledged version, and each assigned worker's state. Nobody inherits another person's acknowledgment.",
         "tags": [
           "packets"
         ],
@@ -49958,6 +49958,7 @@
                     "materials",
                     "careNotes",
                     "communication",
+                    "acknowledgments",
                     "actions"
                   ],
                   "properties": {
@@ -51107,14 +51108,224 @@
                         }
                       }
                     },
+                    "acknowledgments": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "mine",
+                        "team"
+                      ],
+                      "properties": {
+                        "mine": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state",
+                            "assigned",
+                            "acknowledgment",
+                            "invalidation",
+                            "changesSince"
+                          ],
+                          "properties": {
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "acknowledged",
+                                "required",
+                                "invalidated",
+                                "not_assigned"
+                              ]
+                            },
+                            "assigned": {
+                              "type": "boolean"
+                            },
+                            "acknowledgment": {
+                              "type": [
+                                "object",
+                                "null"
+                              ],
+                              "additionalProperties": false,
+                              "required": [
+                                "version",
+                                "acknowledgedAt"
+                              ],
+                              "properties": {
+                                "version": {
+                                  "type": "integer"
+                                },
+                                "acknowledgedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            },
+                            "invalidation": {
+                              "type": [
+                                "object",
+                                "null"
+                              ],
+                              "additionalProperties": false,
+                              "required": [
+                                "reason",
+                                "version",
+                                "invalidatedAt"
+                              ],
+                              "properties": {
+                                "reason": {
+                                  "type": "string",
+                                  "enum": [
+                                    "critical_change",
+                                    "assignment_removed",
+                                    "account_disabled"
+                                  ]
+                                },
+                                "version": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "invalidatedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            },
+                            "changesSince": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "section",
+                                  "code",
+                                  "critical",
+                                  "ref",
+                                  "from",
+                                  "to"
+                                ],
+                                "properties": {
+                                  "section": {
+                                    "type": "string",
+                                    "enum": [
+                                      "identity",
+                                      "schedule",
+                                      "assignment",
+                                      "site_access",
+                                      "occupants",
+                                      "scope",
+                                      "evidence",
+                                      "sop",
+                                      "holds",
+                                      "resources",
+                                      "dependencies"
+                                    ]
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "critical": {
+                                    "type": "boolean"
+                                  },
+                                  "ref": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "from": {
+                                    "type": [
+                                      "string",
+                                      "integer",
+                                      "null"
+                                    ]
+                                  },
+                                  "to": {
+                                    "type": [
+                                      "string",
+                                      "integer",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "team": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "staffUserId",
+                              "name",
+                              "state",
+                              "version",
+                              "acknowledgedAt",
+                              "invalidation"
+                            ],
+                            "properties": {
+                              "staffUserId": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "state": {
+                                "type": "string",
+                                "enum": [
+                                  "acknowledged",
+                                  "required",
+                                  "invalidated",
+                                  "not_assigned"
+                                ]
+                              },
+                              "version": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              },
+                              "acknowledgedAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              },
+                              "invalidation": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "enum": [
+                                  "critical_change",
+                                  "assignment_removed",
+                                  "account_disabled",
+                                  null
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
                     "actions": {
                       "type": "object",
                       "additionalProperties": false,
                       "required": [
-                        "revealAccessCodes"
+                        "revealAccessCodes",
+                        "acknowledge"
                       ],
                       "properties": {
                         "revealAccessCodes": {
+                          "type": "boolean"
+                        },
+                        "acknowledge": {
                           "type": "boolean"
                         }
                       }
@@ -51210,6 +51421,254 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/job-packets.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/jobs/{jobId}/packet/acknowledgments": {
+      "post": {
+        "operationId": "acknowledgeJobPacket",
+        "summary": "Record the caller's own acknowledgment of the latest packet version",
+        "description": "Staff with job.view_packet who are themselves assigned to the job right now (an active confirmed reservation on a live visit, inside its access window; PROPOSED: the matrix has no acknowledgment row). Records that the caller personally reviewed the given version: it must be the latest one with the exact content digest the caller read (else CONFLICT PACKET_CHANGED: review the new version). Personal: nobody acknowledges for another person and nobody inherits one (CONFLICT NOT_ASSIGNED for anyone not assigned). Acknowledging the standing version again adds nothing (200). Also records the view of that version. A critical change, the end of the caller's assignment or a disabled account later ends it, once. It never releases a hold and is not the Start Job gate by itself. Audited.",
+        "tags": [
+          "packets"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "version",
+                  "contentSha256"
+                ],
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "contentSha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "acknowledgmentId",
+                    "version",
+                    "acknowledgedAt",
+                    "created",
+                    "state"
+                  ],
+                  "properties": {
+                    "acknowledgmentId": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "acknowledgedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "created": {
+                      "type": "boolean"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "acknowledged",
+                        "required",
+                        "invalidated",
+                        "not_assigned"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "acknowledgmentId",
+                    "version",
+                    "acknowledgedAt",
+                    "created",
+                    "state"
+                  ],
+                  "properties": {
+                    "acknowledgmentId": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "acknowledgedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "created": {
+                      "type": "boolean"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "acknowledged",
+                        "required",
+                        "invalidated",
+                        "not_assigned"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job.view_packet",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "job_packet.acknowledge",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/packet-acknowledgments.test.ts"
         }
       }
     },
@@ -55962,7 +56421,7 @@
       "get": {
         "operationId": "listMyJobPackets",
         "summary": "The caller's assigned jobs and their packets",
-        "description": "Staff with schedule.view_my_day: only the caller's own assignments (active confirmed reservations on live work visits whose service day has not ended), grouped by job, with the packet's current version (brought up to date first), the version the caller last viewed and whether it changed since then, critically or not. Nothing about another person's assignments.",
+        "description": "Staff with schedule.view_my_day: only the caller's own assignments (active confirmed reservations on live work visits whose service day has not ended), grouped by job, with the packet's current version (brought up to date first), the version the caller last viewed and whether it changed since then, critically or not, and where the caller's own acknowledgment stands. Nothing about another person's assignments.",
         "tags": [
           "packets"
         ],
@@ -55991,6 +56450,8 @@
                           "lastViewedVersion",
                           "changedSinceViewed",
                           "criticalSinceViewed",
+                          "acknowledgment",
+                          "acknowledgedVersion",
                           "visits"
                         ],
                         "properties": {
@@ -56014,6 +56475,21 @@
                           },
                           "criticalSinceViewed": {
                             "type": "boolean"
+                          },
+                          "acknowledgment": {
+                            "type": "string",
+                            "enum": [
+                              "acknowledged",
+                              "required",
+                              "invalidated",
+                              "not_assigned"
+                            ]
+                          },
+                          "acknowledgedVersion": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
                           },
                           "visits": {
                             "type": "array",

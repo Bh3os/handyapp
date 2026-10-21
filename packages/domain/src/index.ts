@@ -161,6 +161,9 @@ export {
 } from './cancellation.js'
 export * from './capacity.js'
 export {
+  ACKNOWLEDGMENT_INVALIDATIONS,
+  ACKNOWLEDGMENT_STATES,
+  acknowledgmentState,
   changedSections,
   hasCriticalChange,
   OCCUPANT_DETAILS,
@@ -168,6 +171,9 @@ export {
   PACKET_VISIT_STATES,
   packetChanges,
   SITE_ACCESS_DETAILS,
+  type AcknowledgmentFacts,
+  type AcknowledgmentInvalidation,
+  type AcknowledgmentState,
   type PacketAccessCode,
   type PacketChange,
   type PacketContent,

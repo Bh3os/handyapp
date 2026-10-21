@@ -1281,6 +1281,32 @@ export interface WorkHoldsTable {
   version: Generated<number>
 }
 
+export interface WorkJobPacketAcknowledgmentInvalidationsTable {
+  id: Generated<string>
+  acknowledgment_id: string
+  job_id: string
+  staff_user_id: string
+  reason: string
+  packet_id: string | null
+  version: number | null
+  reservation_id: string | null
+  invalidated_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface WorkJobPacketAcknowledgmentsTable {
+  id: Generated<string>
+  packet_id: string
+  job_id: string
+  version: number
+  staff_user_id: string
+  kind: string
+  content_sha256: string
+  scope_version: number | null
+  sop_version_ids: Json
+  request_id: string
+  acknowledged_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface WorkJobPacketExportsTable {
   id: Generated<string>
   packet_id: string
@@ -1660,6 +1686,8 @@ export interface Database {
   'privacy.retention_reviews': PrivacyRetentionReviewsTable
   'work.equipment': WorkEquipmentTable
   'work.holds': WorkHoldsTable
+  'work.job_packet_acknowledgment_invalidations': WorkJobPacketAcknowledgmentInvalidationsTable
+  'work.job_packet_acknowledgments': WorkJobPacketAcknowledgmentsTable
   'work.job_packet_exports': WorkJobPacketExportsTable
   'work.job_packet_views': WorkJobPacketViewsTable
   'work.job_packets': WorkJobPacketsTable

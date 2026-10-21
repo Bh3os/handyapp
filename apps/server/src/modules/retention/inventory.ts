@@ -583,6 +583,20 @@ export const TABLES = {
     classes: ['request_details'],
     categories: [R, J, S],
   },
+  'work.job_packet_acknowledgment_invalidations': {
+    holds:
+      "Why and when a packet acknowledgment stopped counting: a critical packet version, the end of the worker's " +
+      'assignment or a disabled account (once each)',
+    classes: ['scheduling'],
+    categories: [J, S],
+  },
+  'work.job_packet_acknowledgments': {
+    holds:
+      "A worker's own acknowledgment of one job packet version: who, when, the version, its content digest, the " +
+      'scope version and the SOP versions it covered',
+    classes: ['scheduling'],
+    categories: [J, S],
+  },
   'work.job_packet_exports': {
     holds: 'Every print and PDF export of a job packet: who, when, which version, the latest version then',
     classes: ['logs_audit'],
