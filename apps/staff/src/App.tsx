@@ -6,6 +6,8 @@ import { staffTranslator, type StaffKey, type StaffLocale } from '@handyhub/i18n
 import { Button, Card, Field, StateView } from '@handyhub/ui'
 import { useEffect, useState, type FormEvent } from 'react'
 import { call, setCsrfToken, type ApiErrorBody, type Fetch } from './api'
+import { QueueHome } from './Queue'
+import { RequestRecord } from './Record'
 import { SearchScreen, Screen, Shell, type Navigation } from './Shell'
 
 type Session = {
@@ -31,6 +33,8 @@ export type Route =
   | { page: 'account' }
   | { page: 'search'; query: string }
   | { page: 'screen'; id: string }
+  /** A record below a screen, as the action queue's deep links open it (TSK-0041): `/<screen>/<record id>`. */
+  | { page: 'record'; screen: string; id: string }
 
 /** The page for a path (with its query) below the app's base (/staff/ when served by the server). */
 export function routeOf(path: string, base = '/'): Route {
@@ -41,6 +45,8 @@ export function routeOf(path: string, base = '/'): Route {
   if (/^\/sign-in\/?$/.test(rest)) return { page: 'sign-in' }
   if (/^\/account\/?$/.test(rest)) return { page: 'account' }
   if (/^\/search\/?$/.test(rest)) return { page: 'search', query: new URLSearchParams(search).get('q') ?? '' }
+  const record = /^\/([a-z-]{1,40})\/([0-9a-fA-F-]{36})\/?$/.exec(rest)
+  if (record) return { page: 'record', screen: record[1] as string, id: (record[2] as string).toLowerCase() }
   const screen = /^\/([a-z-]{1,40})\/?$/.exec(rest)
   if (screen) return { page: 'screen', id: screen[1] as string }
   return { page: 'home' }
@@ -161,7 +167,15 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
 
   if (needsSession && session) {
     const nav = session.navigation
-    const shown = route.page === 'screen' ? route.id : route.page === 'home' ? (nav?.home ?? 'home') : route.page
+    const shown =
+      route.page === 'screen'
+        ? route.id
+        : route.page === 'record'
+          ? route.screen
+          : route.page === 'home'
+            ? (nav?.home ?? 'home')
+            : route.page
+    const allowed = (nav?.items ?? []).includes(shown)
     return (
       <div className="staff-app" lang={locale}>
         <Shell
@@ -188,8 +202,19 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
             <SearchScreen t={t} query={route.query} />
           ) : route.page === 'home' && !nav?.home ? (
             <StateView kind="blocked" title={t('shell.noNavigation')} />
+          ) : shown === 'queue' && allowed && route.page !== 'record' ? (
+            <QueueHome
+              t={t}
+              locale={locale}
+              fetchImpl={doFetch}
+              go={go}
+              href={href}
+              staffUserId={session.staffUserId}
+            />
+          ) : route.page === 'record' && route.screen === 'requests' && allowed ? (
+            <RequestRecord key={route.id} t={t} locale={locale} fetchImpl={doFetch} id={route.id} go={go} href={href} />
           ) : (
-            <Screen t={t} id={shown} allowed={(nav?.items ?? []).includes(shown)} />
+            <Screen t={t} id={shown} allowed={allowed} />
           )}
         </Shell>
       </div>
