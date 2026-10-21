@@ -44,11 +44,15 @@ const openOffer = {
   windows: [window1, window2],
 }
 const confirmed = {
+  number: 1,
   purpose: 'estimate_visit',
   status: 'confirmed',
   window: { ...window2, position: undefined },
   address: { street: '12 Synthetic Lane', unit: null, city: 'Testville', state: 'KY', zip: '40000' },
   preparationInstructions: 'Synthetic: clear the hallway.',
+  // TSK-0066: the customer's request of the appointment and what they may ask for now.
+  request: null,
+  actions: { requestReschedule: true, requestCancellation: true },
 }
 const tab = (offers: unknown[], appointments: unknown[]) => ({ ...head, state: 'listed', offers, appointments })
 const overview = (appointment: unknown) => ({

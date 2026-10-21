@@ -255,7 +255,10 @@ export const PROJECT_LIST = customerView(
 // the property address and the preparation instructions staff wrote for the customer. Never a hold, a worker, a staff
 // detail or an ID: an offer is named by its number inside the project.
 export const CUSTOMER_VISIT_PURPOSES = ['estimate_visit', 'work_visit'] as const
-export const CUSTOMER_APPOINTMENT_STATUSES = ['confirmed', 'en_route', 'arrived', 'completed'] as const
+export const CUSTOMER_APPOINTMENT_STATUSES = ['confirmed', 'en_route', 'arrived', 'completed', 'canceled'] as const
+/** TSK-0066 (HH-PORT-04): the customer's own request of an appointment, as the Appointments tab shows it. */
+export const CUSTOMER_REQUEST_KINDS = ['reschedule', 'cancellation'] as const
+export const CUSTOMER_REQUEST_STATUSES = ['awaiting_confirmation', 'declined'] as const
 export const CUSTOMER_OFFER_STATUSES = ['open', 'expired', 'other_times_requested'] as const
 const WINDOW_FIELDS = {
   localDate: STRING,
@@ -282,20 +285,32 @@ const windowOf = (w: WindowRecord) => ({
   endsAt: w.endsAt,
 })
 const APPOINTMENT_ITEM = object({
+  number: { type: 'integer', minimum: 1 },
   purpose: enumOf(CUSTOMER_VISIT_PURPOSES),
   status: enumOf(CUSTOMER_APPOINTMENT_STATUSES),
   window: object(WINDOW_FIELDS),
   address: object({ street: STRING, unit: { type: ['string', 'null'] }, city: STRING, state: STRING, zip: STRING }),
   preparationInstructions: { type: ['string', 'null'] },
+  request: {
+    anyOf: [
+      object({ kind: enumOf(CUSTOMER_REQUEST_KINDS), status: enumOf(CUSTOMER_REQUEST_STATUSES) }),
+      { type: 'null' },
+    ],
+  },
+  actions: object({ requestReschedule: { type: 'boolean' }, requestCancellation: { type: 'boolean' } }),
 })
 type AppointmentRecord = {
+  number: number
   purpose: string
   status: string
   window: WindowRecord
   address: { street: string; unit: string | null; city: string; state: string; zip: string }
   preparationInstructions: string | null
+  request: { kind: string; status: string } | null
+  actions: { requestReschedule: boolean; requestCancellation: boolean }
 }
 const appointmentOf = (a: AppointmentRecord) => ({
+  number: a.number,
   purpose: a.purpose,
   status: a.status,
   window: windowOf(a.window),
@@ -307,6 +322,8 @@ const appointmentOf = (a: AppointmentRecord) => ({
     zip: a.address.zip,
   },
   preparationInstructions: a.preparationInstructions,
+  request: a.request ? { kind: a.request.kind, status: a.request.status } : null,
+  actions: { requestReschedule: a.actions.requestReschedule, requestCancellation: a.actions.requestCancellation },
 })
 const OFFER_ITEM = object({
   number: { type: 'integer', minimum: 1 },

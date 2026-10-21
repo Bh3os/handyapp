@@ -262,6 +262,8 @@ test.describe('Scheduling board: by worker, stale edits and small screens (TSK-0
       const form = panel.getByRole('form', { name: 'Move this visit' })
       await form.getByLabel('Arrival window starts').fill('10:00')
       await form.getByLabel('Arrival window ends').fill('11:00')
+      // TSK-0066: a booked visit's reschedule records its reason.
+      await form.getByLabel('Reason (required)').fill('Synthetic: the customer asked for later')
 
       // Meanwhile someone else moves it first, from another screen.
       const current = await withDb((db) =>

@@ -1363,6 +1363,51 @@ export interface WorkTimeOffTable {
   withdrawn_by: string | null
 }
 
+export interface WorkVisitChangeRequestsTable {
+  id: Generated<string>
+  visit_id: string
+  project_id: string
+  kind: string
+  state: Generated<string>
+  version: Generated<number>
+  requested_by_contact: string
+  reason: string | null
+  preferred_times: string | null
+  requested_at: ColumnType<Date, Date | string | undefined, Date | string>
+  decided_by: string | null
+  decided_at: Timestamp | null
+  decision_reason: string | null
+  closed_reason: string | null
+}
+
+export interface WorkVisitChangesTable {
+  id: Generated<string>
+  visit_id: string
+  project_id: string
+  kind: string
+  from_version: number
+  to_version: number
+  from_window_version: number
+  to_window_version: number
+  from_workers: string[]
+  to_workers: string[]
+  initiator: string | null
+  handyhub_cause: string | null
+  reason: string
+  change_request_id: string | null
+  changed_by: string
+  changed_at: ColumnType<Date, Date | string | undefined, Date | string>
+  notice_minutes: number | null
+  work_started: boolean | null
+  deposit_paid_cents: Int8 | null
+  deposit_pending_cents: Int8 | null
+  outcome: string | null
+  kept_cents: Int8 | null
+  refund_cents: Int8 | null
+  invoice_cents: Int8 | null
+  rules_version: number | null
+}
+
 export interface WorkVisitWindowsTable {
   visit_id: string
   window_version: number
@@ -1407,6 +1452,7 @@ export interface WorkVisitsTable {
   created_by: string
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+  number: Generated<number>
 }
 
 export interface WorkWindowOfferOptionsTable {
@@ -1587,6 +1633,8 @@ export interface Database {
   'work.reservations': WorkReservationsTable
   'work.scheduling_tasks': WorkSchedulingTasksTable
   'work.time_off': WorkTimeOffTable
+  'work.visit_change_requests': WorkVisitChangeRequestsTable
+  'work.visit_changes': WorkVisitChangesTable
   'work.visit_windows': WorkVisitWindowsTable
   'work.visits': WorkVisitsTable
   'work.window_offer_options': WorkWindowOfferOptionsTable

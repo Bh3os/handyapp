@@ -33,6 +33,7 @@ import { ApiError, type FieldError } from '../../api/errors.js'
 import { loadConfig } from '../../platform/config/index.js'
 import { eligibility } from '../capacity/availability.js'
 import { freeOfWorker, rolesOf, schedulesOf, timeOffOf } from '../capacity/resources.js'
+import { changeFacts } from './changes.js'
 import { WORK_VISIT_GATES, type WorkVisitGate } from './gates.js'
 import { windowOfferPolicy } from './offers.js'
 import {
@@ -225,6 +226,8 @@ export async function scheduleBoard(
     offerPolicy: offerPolicy !== null,
     zoneKnown: isTimeZone(propertyZone),
   })
+  // TSK-0066: each visit's open change request and, for a confirmed visit the caller may cancel, the outcome preview.
+  const change = await changeFacts(db, actor, visits, (ids) => staffNames(db, ids), now)
   const boardVisits = []
   for (const v of visits) {
     const blockers =
@@ -232,6 +235,7 @@ export async function scheduleBoard(
     const mine = reservations.filter((r) => r.visit_id === v.id)
     boardVisits.push({
       id: v.id,
+      number: v.number,
       projectId: v.project_id,
       projectReference: v.project_reference,
       requestId: requestOf.get(v.project_id) ?? null,
@@ -262,6 +266,8 @@ export async function scheduleBoard(
         .filter((r) => r.equipment_id !== null)
         .map((r) => ({ id: r.equipment_id as string, name: r.equipment_name ?? '', kind: r.kind })),
       openOffer: openOffers.has(v.id),
+      changeRequest: change.requests.get(v.id) ?? null,
+      cancellationPreview: change.previews.get(v.id) ?? null,
       confirmationBlockers: v.state === 'tentative' ? blockers.map((b) => ({ field: b.field, code: b.code })) : null,
       actions: visitActions(actionContext(v.property_zone), v, openOffers.has(v.id), blockers),
     })

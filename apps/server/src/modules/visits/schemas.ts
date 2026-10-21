@@ -1,7 +1,14 @@
 // JSON schemas of the staff visit routes (TSK-0061; HH-API-01, HH-ARC-04). Input objects refuse unknown fields;
 // response objects list every field.
-import { VISIT_PURPOSES, VISIT_STATES } from '@handyhub/domain'
+import {
+  CANCELLATION_INITIATORS,
+  CANCELLATION_OUTCOMES,
+  HANDYHUB_CAUSES,
+  VISIT_PURPOSES,
+  VISIT_STATES,
+} from '@handyhub/domain'
 import { BOARD_VIEWS } from './board.js'
+import { CHANGE_KINDS, CHANGE_LIMITS, REQUEST_KINDS } from './changes.js'
 import { OFFER_LIMITS } from './offers.js'
 import { CONFIRM_LIMITS, VISIT_LIMITS } from './visits.js'
 
@@ -58,14 +65,59 @@ export const NEW_VISIT_BODY = {
   },
 } as const
 
+// TSK-0066 (HH-SCH-07): who initiated a change of a booked visit, and HandyHub's cause.
+const INITIATION_FIELDS = {
+  initiator: { type: 'string', enum: [...CANCELLATION_INITIATORS] },
+  handyhubCause: { type: 'string', enum: [...HANDYHUB_CAUSES] },
+} as const
+
 export const WINDOW_BODY = {
   type: 'object',
   additionalProperties: false,
   required: ['localDate', 'windowStart', 'windowEnd'],
   properties: {
     ...WINDOW_FIELDS,
+    // Required (REASON_REQUIRED) when the visit is confirmed: a reschedule records its reason (TSK-0066).
     reason: { type: 'string', maxLength: VISIT_LIMITS.reasonLength },
+    ...INITIATION_FIELDS,
+    changeRequestId: UUID,
   },
+} as const
+
+export const REASSIGN_BODY = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['workerIds', 'reason'],
+  properties: {
+    workerIds: { type: 'array', minItems: 1, maxItems: CONFIRM_LIMITS.workers, items: UUID },
+    equipmentIds: { type: 'array', maxItems: CONFIRM_LIMITS.equipment, items: UUID },
+    reason: { type: 'string', maxLength: CHANGE_LIMITS.reason },
+  },
+} as const
+
+export const CANCEL_BODY = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['reason'],
+  properties: {
+    reason: { type: 'string', maxLength: CHANGE_LIMITS.reason },
+    ...INITIATION_FIELDS,
+    changeRequestId: UUID,
+  },
+} as const
+
+export const REQUEST_PARAMS = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['requestId'],
+  properties: { requestId: UUID },
+} as const
+
+export const DECLINE_BODY = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['reason'],
+  properties: { reason: { type: 'string', maxLength: CHANGE_LIMITS.reason } },
 } as const
 
 export const CONFIRM_BODY = {
@@ -246,11 +298,139 @@ const OFFER = {
   },
 } as const
 
+const OUTCOME = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['kind', 'noticeMinutes', 'keptCents', 'refundCents', 'invoiceCents'],
+  properties: {
+    kind: { type: 'string', enum: [...CANCELLATION_OUTCOMES] },
+    noticeMinutes: { type: 'integer' },
+    keptCents: NULLABLE_INT,
+    refundCents: NULLABLE_INT,
+    invoiceCents: NULLABLE_INT,
+  },
+} as const
+
+const CHANGE_REQUEST = {
+  anyOf: [
+    {
+      type: 'object',
+      additionalProperties: false,
+      required: ['id', 'kind', 'state', 'version', 'requestedAt', 'reason', 'preferredTimes', 'outcome', 'actions'],
+      properties: {
+        id: { type: 'string' },
+        kind: { type: 'string', enum: [...REQUEST_KINDS] },
+        state: { type: 'string', enum: ['open'] },
+        version: { type: 'integer' },
+        requestedAt: { type: 'string', format: 'date-time' },
+        reason: NULLABLE_STRING,
+        preferredTimes: NULLABLE_STRING,
+        outcome: { anyOf: [OUTCOME, { type: 'null' }] },
+        actions: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['confirm', 'decline'],
+          properties: { confirm: { type: 'boolean' }, decline: { type: 'boolean' } },
+        },
+      },
+    },
+    { type: 'null' },
+  ],
+} as const
+
+const CANCELLATION_PREVIEW = {
+  anyOf: [
+    {
+      type: 'object',
+      additionalProperties: false,
+      required: ['depositPaidCents', 'depositPendingCents', 'workStarted', 'customer', 'handyhub', 'rulesProposed'],
+      properties: {
+        depositPaidCents: { type: 'integer' },
+        depositPendingCents: { type: 'integer' },
+        workStarted: { type: 'boolean' },
+        customer: OUTCOME,
+        handyhub: OUTCOME,
+        rulesProposed: { type: 'boolean' },
+      },
+    },
+    { type: 'null' },
+  ],
+} as const
+
+const CHANGE = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'id',
+    'kind',
+    'fromVersion',
+    'toVersion',
+    'fromWindowVersion',
+    'toWindowVersion',
+    'fromWorkers',
+    'toWorkers',
+    'initiator',
+    'handyhubCause',
+    'reason',
+    'changeRequestId',
+    'changedBy',
+    'changedAt',
+    'cancellation',
+  ],
+  properties: {
+    id: { type: 'string' },
+    kind: { type: 'string', enum: [...CHANGE_KINDS] },
+    fromVersion: { type: 'integer' },
+    toVersion: { type: 'integer' },
+    fromWindowVersion: { type: 'integer' },
+    toWindowVersion: { type: 'integer' },
+    fromWorkers: { type: 'array', items: STAFF_REF },
+    toWorkers: { type: 'array', items: STAFF_REF },
+    initiator: NULLABLE_STRING,
+    handyhubCause: NULLABLE_STRING,
+    reason: { type: 'string' },
+    changeRequestId: NULLABLE_STRING,
+    changedBy: STAFF_REF,
+    changedAt: { type: 'string', format: 'date-time' },
+    cancellation: {
+      anyOf: [
+        {
+          type: 'object',
+          additionalProperties: false,
+          required: ['outcome', 'workStarted', 'depositPaidCents', 'depositPendingCents', 'rulesVersion'],
+          properties: {
+            outcome: OUTCOME,
+            workStarted: { type: 'boolean' },
+            depositPaidCents: { type: 'integer' },
+            depositPendingCents: { type: 'integer' },
+            rulesVersion: { type: 'integer' },
+          },
+        },
+        { type: 'null' },
+      ],
+    },
+  },
+} as const
+
+const VISIT_ACTIONS = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['changeWindow', 'confirm', 'reassign', 'cancel', 'offerWindows'],
+  properties: {
+    changeWindow: { type: 'boolean' },
+    confirm: { type: 'boolean' },
+    reassign: { type: 'boolean' },
+    cancel: { type: 'boolean' },
+    offerWindows: { type: 'boolean' },
+  },
+} as const
+
 const VISIT = {
   type: 'object',
   additionalProperties: false,
   required: [
     'id',
+    'number',
     'purpose',
     'state',
     'version',
@@ -270,10 +450,14 @@ const VISIT = {
     'offers',
     'notices',
     'confirmationBlockers',
+    'changeRequest',
+    'cancellationPreview',
+    'changes',
     'actions',
   ],
   properties: {
     id: { type: 'string' },
+    number: { type: 'integer' },
     purpose: { type: 'string', enum: [...VISIT_PURPOSES] },
     state: { type: 'string', enum: [...VISIT_STATES] },
     version: { type: 'integer' },
@@ -384,16 +568,12 @@ const VISIT = {
         { type: 'null' },
       ],
     },
-    actions: {
-      type: 'object',
-      additionalProperties: false,
-      required: ['changeWindow', 'confirm', 'offerWindows'],
-      properties: {
-        changeWindow: { type: 'boolean' },
-        confirm: { type: 'boolean' },
-        offerWindows: { type: 'boolean' },
-      },
-    },
+    // TSK-0066 (HH-SCH-07, HH-PORT-04): the open customer request, the cancellation outcome preview of a confirmed
+    // visit the caller may cancel, and the committed changes, newest first.
+    changeRequest: CHANGE_REQUEST,
+    cancellationPreview: CANCELLATION_PREVIEW,
+    changes: { type: 'array', items: CHANGE },
+    actions: VISIT_ACTIONS,
   },
 } as const
 
@@ -509,6 +689,7 @@ const BOARD_VISIT = {
   additionalProperties: false,
   required: [
     'id',
+    'number',
     'projectId',
     'projectReference',
     'requestId',
@@ -526,11 +707,14 @@ const BOARD_VISIT = {
     'team',
     'items',
     'openOffer',
+    'changeRequest',
+    'cancellationPreview',
     'confirmationBlockers',
     'actions',
   ],
   properties: {
     id: { type: 'string' },
+    number: { type: 'integer' },
     projectId: { type: 'string' },
     projectReference: { type: 'string' },
     requestId: NULLABLE_STRING,
@@ -576,17 +760,10 @@ const BOARD_VISIT = {
       },
     },
     openOffer: { type: 'boolean' },
+    changeRequest: CHANGE_REQUEST,
+    cancellationPreview: CANCELLATION_PREVIEW,
     confirmationBlockers: { anyOf: [{ type: 'array', items: BLOCKER }, { type: 'null' }] },
-    actions: {
-      type: 'object',
-      additionalProperties: false,
-      required: ['changeWindow', 'confirm', 'offerWindows'],
-      properties: {
-        changeWindow: { type: 'boolean' },
-        confirm: { type: 'boolean' },
-        offerWindows: { type: 'boolean' },
-      },
-    },
+    actions: VISIT_ACTIONS,
   },
 } as const
 

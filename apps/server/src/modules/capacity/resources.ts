@@ -227,6 +227,8 @@ export type ReservationRequest = {
   readonly reason: string | null
   /** A reschedule: the visit's own active reservations are replaced, so they never count against it. */
   readonly replaceOwn: boolean
+  /** Why the replaced reservations end (TSK-0066): a reschedule (the default) or a reassignment. */
+  readonly endedReason?: 'rescheduled' | 'reassigned'
   readonly settings: { zone: string; hours: { open: string; close: string } }
   readonly now: Date
 }
@@ -457,7 +459,7 @@ export async function insertReservations(
     if (req.replaceOwn)
       await tx
         .updateTable('work.reservations')
-        .set({ ended_at: sql<Date>`now()`, ended_by: req.actorId, ended_reason: 'rescheduled' })
+        .set({ ended_at: sql<Date>`now()`, ended_by: req.actorId, ended_reason: req.endedReason ?? 'rescheduled' })
         .where('visit_id', '=', req.visitId)
         .where('ended_at', 'is', null)
         .execute()

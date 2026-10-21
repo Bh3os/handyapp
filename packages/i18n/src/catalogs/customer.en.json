@@ -946,5 +946,19 @@
   "portal.appointment.offer.closed": "These times were already answered or are no longer offered. The page now shows what is current.",
   "portal.appointment.offer.failed": "Your answer couldn't be saved. Please try again.",
   "portal.appointment.offer.depositDue": "This time can't be confirmed until your deposit is received, so nothing is booked yet. Please pay your deposit so we can confirm your work appointment. Payment does not guarantee a particular date.",
-  "portal.appointment.offer.notReady": "This time can't be confirmed yet, so nothing is booked. HandyHub needs to finish reviewing your project first."
+  "portal.appointment.offer.notReady": "This time can't be confirmed yet, so nothing is booked. HandyHub needs to finish reviewing your project first.",
+  "portal.appointment.status.canceled": "Canceled",
+  "portal.appointment.requestReschedule": "Request to Reschedule",
+  "portal.appointment.requestCancellation": "Request Cancellation",
+  "portal.appointment.request.received": "Request received—awaiting staff confirmation.",
+  "portal.appointment.request.kept": "Your appointment stays as shown until HandyHub confirms a change.",
+  "portal.appointment.request.declined": "HandyHub could not make the change you asked for. Your appointment stays as shown.",
+  "portal.appointment.request.reason": "Reason (optional)",
+  "portal.appointment.request.times": "Times that work better for you (optional)",
+  "portal.appointment.request.submit.reschedule": "Send request to reschedule",
+  "portal.appointment.request.submit.cancellation": "Send cancellation request",
+  "portal.appointment.request.back": "Keep my appointment",
+  "portal.appointment.request.failed": "Your request couldn't be sent. Please try again.",
+  "portal.appointment.request.notChangeable": "This appointment can no longer be changed here. The page now shows what is current.",
+  "portal.appointment.request.otherOpen": "Another request for this appointment is already waiting for HandyHub."
 }

@@ -29,9 +29,11 @@ import {
 import { contactChangedNoticeAutomation } from './modules/accounts/notice.js'
 import { retentionReviewAutomation } from './modules/retention/index.js'
 import {
+  appointmentChangedAutomation,
   appointmentConfirmedAutomation,
   estimateVisitConfirmedAutomation,
   estimateVisitOptionsAutomation,
+  scheduleChangeStaffAutomation,
   windowOfferExpiryAutomation,
 } from './modules/visits/index.js'
 import type { CodeKeySettings } from './modules/identity/index.js'
@@ -139,6 +141,13 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     estimateVisitOptionsAutomation({ providers: { email: deps.providers.email, sms: deps.providers.sms } }),
     estimateVisitConfirmedAutomation({ providers: { email: deps.providers.email, sms: deps.providers.sms } }),
     appointmentConfirmedAutomation({ providers: { email: deps.providers.email, sms: deps.providers.sms } }),
+    // TSK-0066: a committed reschedule or reassignment notifies the customer once (#11, wording NOT CONFIGURED); every
+    // committed change notifies the affected workers (staff notice, wording NOT CONFIGURED).
+    appointmentChangedAutomation({ providers: { email: deps.providers.email, sms: deps.providers.sms } }),
+    scheduleChangeStaffAutomation({
+      providers: { email: deps.providers.email, sms: null },
+      staffAppUrl: deps.staffAppUrl,
+    }),
     // TSK-0051: the automatic question notice and staff reply notice, the reminder clock from the notice's successful
     // send, the reminder drafts and the "may close" queue item.
     ...questionAutomations({

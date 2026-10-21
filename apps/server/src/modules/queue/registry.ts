@@ -98,6 +98,10 @@ export const QUEUE_ITEM_TYPES = [
     action: 'review_hold',
     screen: 'schedule',
   },
+  // TSK-0066 (HH-PORT-04, OWN-DEC-107): a customer's Request to Reschedule or Request Cancellation, prominently, one item
+  // per visit while the request is open; due when the visit's reserved range starts, in the today_change band on the
+  // visit's own date (PROPOSED). Resolved when staff confirm or decline it, or by the database when the visit leaves
+  // 'confirmed' another way (migration 0059).
   {
     id: 'visit_change_request',
     section: 'queue',
@@ -353,6 +357,18 @@ export const QUEUE_ITEM_TYPES = [
     reasons: ['not_a_fit_with_obligations'],
     action: 'decide',
     screen: 'requests',
+  },
+  // TSK-0066 (HH-SCH-07): a customer's cancellation request of a work visit (accepted, scheduled work) routes to the
+  // Owner for cancellation and financial review, beside the visit_change_request item; resolved with it.
+  {
+    id: 'visit_cancellation_review',
+    section: 'owner_decisions',
+    subject: 'visit',
+    band: 'time_sensitive',
+    view: 'work.cancel_with_financial_review',
+    reasons: ['work_cancellation_requested'],
+    action: 'decide',
+    screen: 'schedule',
   },
   {
     id: 'incident_notification',

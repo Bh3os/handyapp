@@ -49,7 +49,7 @@ import {
   type VisitPurpose,
   type WindowProblem,
 } from '@handyhub/domain'
-import { rowFor, scopeIncludesProject, type DataScope, type StaffActor } from '@handyhub/policy'
+import { rowFor, scopeIncludesProject, type Action, type DataScope, type StaffActor } from '@handyhub/policy'
 import { sql } from 'kysely'
 import { ApiError, type FieldError } from '../../api/errors.js'
 import { loadConfig, type Config } from '../../platform/config/index.js'
@@ -60,6 +60,14 @@ import {
   refuse,
   type ReservationRequest,
 } from '../capacity/resources.js'
+import {
+  changeFacts,
+  finishReschedule,
+  holdsAction,
+  mayCancel,
+  prepareReschedule,
+  type RescheduleMeta,
+} from './changes.js'
 import { unmetGates, WORK_VISIT_GATES, type WorkVisitGate } from './gates.js'
 import { noticesOf, recordReserved, staffOffers, windowOfferPolicy } from './offers.js'
 import { confirmationPreconditions, WORK_VISIT_PROJECT_STATES } from './preconditions.js'
@@ -128,7 +136,7 @@ export function mayPlanVisits(actor: StaffActor): boolean {
 }
 
 /** Whether one of the actor's roles holds the scheduling action (the matrix row's cell has a rule for it). */
-export function holds(actor: StaffActor, action: 'visit.confirm' | 'visit.reschedule'): boolean {
+export function holds(actor: StaffActor, action: Action): boolean {
   const row = rowFor(action)
   return actor.roles.some((role) => row?.cells[role].rules[action] !== undefined)
 }
@@ -337,9 +345,13 @@ export async function changeWindow(
   actor: StaffActor,
   scope: DataScope,
   visitId: string,
-  entry: WindowEntry & { readonly reason?: string | undefined },
+  entry: WindowEntry & RescheduleMeta,
   deps: { gates: readonly WorkVisitGate[]; now: Date; expectedVersion: number },
-): Promise<{ id: string; version: number; projectId: string; purpose: string } & WindowChange> {
+): Promise<
+  { id: string; version: number; projectId: string; purpose: string; changeId: string | null } & WindowChange & {
+      reschedule: Awaited<ReturnType<typeof prepareReschedule>> | null
+    }
+> {
   const v = await tx.selectFrom('work.visits').selectAll().where('id', '=', visitId).forUpdate().executeTakeFirst()
   if (!v || !scopeIncludesProject(scope, v.project_id)) throw new ApiError('NOT_FOUND')
   if (isWorkVisitPurpose(v.purpose) && !mayPlanWorkVisits(actor)) throw new ApiError('FORBIDDEN')
@@ -360,6 +372,11 @@ export async function changeWindow(
   if (await openOfferOf(tx, v.id)) throw new ApiError('CONFLICT', { fieldErrors: [field('offer', 'OFFER_OPEN')] })
   // Moving a confirmed visit is a reschedule (visit.reschedule: Owner and Office).
   if (v.state === 'confirmed' && !holds(actor, 'visit.reschedule')) throw new ApiError('FORBIDDEN')
+  // TSK-0066 (HH-SCH-07): a reschedule of a confirmed visit records its reason (required), who initiated it and the
+  // customer request it confirms; a tentative visit has no request to confirm.
+  const reschedule = v.state === 'confirmed' ? await prepareReschedule(tx, v.id, entry) : null
+  if (!reschedule && entry.changeRequestId)
+    throw new ApiError('CONFLICT', { fieldErrors: [field('body.changeRequestId', 'REQUEST_NOT_FOR_VISIT')] })
   const config = await loadConfig(tx)
   businessZone(config)
   // TSK-0064: moving a confirmed visit commits a new booking version, so every confirmation precondition must still
@@ -387,6 +404,15 @@ export async function changeWindow(
     .where('id', '=', v.id)
     .returning(['version', 'window_version'])
     .executeTakeFirstOrThrow()
+  const changeId = reschedule
+    ? await finishReschedule(
+        tx,
+        actor,
+        v,
+        { version: updated.version, windowVersion: updated.window_version },
+        reschedule,
+      )
+    : null
   return {
     id: v.id,
     version: updated.version,
@@ -395,6 +421,8 @@ export async function changeWindow(
     from,
     to,
     windowVersion: updated.window_version,
+    changeId,
+    reschedule,
   }
 }
 
@@ -685,6 +713,9 @@ export function visitActions(
       (v.purpose === 'site_estimate' || work) &&
       (v.state !== 'confirmed' || holds(c.actor, 'visit.reschedule')),
     confirm: canConfirm && v.state === 'tentative' && facts && blockers.length === 0 && !openOffer,
+    // TSK-0066: reassign a confirmed visit to another team; cancel it (a work visit: the Owner).
+    reassign: holdsAction(c.actor, 'visit.reassign') && c.business && c.hours && v.state === 'confirmed',
+    cancel: v.state === 'confirmed' && mayCancel(c.actor, v.purpose),
     offerWindows:
       canPlan &&
       v.state === 'tentative' &&
@@ -833,6 +864,7 @@ export async function projectVisits(
   const blockers = new Map<string, FieldError[]>()
   for (const v of visits)
     if (v.state === 'tentative') blockers.set(v.id, await confirmationBlockers(db, v, hours, businessTz, gates, now))
+  const change = await changeFacts(db, actor, visits, (ids) => staffNames(db, ids), now)
   const blockerView = (id: string) =>
     blockers.has(id) ? (blockers.get(id) ?? []).map((b) => ({ field: b.field, code: b.code })) : null
   const range = (v: (typeof visits)[number]) =>
@@ -868,6 +900,7 @@ export async function projectVisits(
     },
     visits: visits.map((v) => ({
       id: v.id,
+      number: v.number,
       purpose: v.purpose,
       state: v.state,
       version: v.version,
@@ -901,6 +934,9 @@ export async function projectVisits(
       offers: offers.get(v.id) ?? [],
       notices: visitNotices.get(v.id) ?? [],
       confirmationBlockers: blockerView(v.id),
+      changeRequest: change.requests.get(v.id) ?? null,
+      cancellationPreview: change.previews.get(v.id) ?? null,
+      changes: change.changes.get(v.id) ?? [],
       createdBy: ref(v.created_by),
       createdAt: new Date(v.created_at).toISOString(),
       history: history

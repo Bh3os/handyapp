@@ -274,7 +274,8 @@ const move = (who: Person, v: { id: string }, version: number, date: string, sta
     who,
     'POST',
     `/api/v1/staff/visits/${v.id}/window`,
-    { localDate: date, windowStart: start, windowEnd: end },
+    // TSK-0066: a reschedule of a confirmed visit records its reason.
+    { localDate: date, windowStart: start, windowEnd: end, reason: 'Synthetic: moved on the board.' },
     version,
   )
 const projectVisit = async (p: Project, id: string) =>
@@ -330,7 +331,13 @@ describe('[HH-SCH-13] the board: a day and a week by worker', () => {
     expect(pending.confirmationBlockers).toEqual([])
     expect(pending.actions).toEqual((await projectVisit(b, open.id)).actions)
     expect(pending.actions.confirm).toBe(true)
-    expect(shown.actions).toEqual({ changeWindow: true, confirm: false, offerWindows: false })
+    expect(shown.actions).toEqual({
+      changeWindow: true,
+      confirm: false,
+      reassign: true,
+      cancel: true,
+      offerWindows: false,
+    })
     expect(shown.actions).toEqual((await projectVisit(a, two.id)).actions)
   })
 
@@ -379,7 +386,13 @@ describe('[HH-SCH-13] the board: a day and a week by worker', () => {
     const shown = visitIn(d, v.id)
     expect(shown.state).toBe('tentative')
     expect(shown.openOffer).toBe(true)
-    expect(shown.actions).toEqual({ changeWindow: false, confirm: false, offerWindows: false })
+    expect(shown.actions).toEqual({
+      changeWindow: false,
+      confirm: false,
+      reassign: false,
+      cancel: false,
+      offerWindows: false,
+    })
     expect(shown.actions).toEqual((await projectVisit(p, v.id)).actions)
     expect(d.unassigned[0]?.visitIds).not.toContain(v.id)
   })

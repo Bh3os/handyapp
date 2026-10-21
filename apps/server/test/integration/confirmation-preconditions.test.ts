@@ -610,7 +610,7 @@ describe('[HH-SCH-06][T40] an open hold blocks confirmation with its reason', ()
       'office',
       'POST',
       `/api/v1/staff/visits/${v.id}/window`,
-      win(day(15), '13:00', '14:00'),
+      { ...win(day(15), '13:00', '14:00'), reason: 'Synthetic: a reschedule (TSK-0066).' },
       booked.version,
     )
     expect(moved.statusCode, moved.body).toBe(409)
@@ -730,7 +730,7 @@ describe('[HH-SCH-06][HH-STAFF-02][HH-STAFF-07] a disabled assignee is never con
       'office',
       'POST',
       `/api/v1/staff/visits/${planned.id}/window`,
-      win(day(21), '13:00', '14:00'),
+      { ...win(day(21), '13:00', '14:00'), reason: 'Synthetic: a reschedule (TSK-0066).' },
       bookedView.version,
     )
     expect(moved.statusCode, moved.body).toBe(409)
