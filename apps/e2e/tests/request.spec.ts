@@ -1,7 +1,8 @@
-// The request wizard shell in a real browser (TSK-0026; HH-INT-01, HH-INT-08, HH-INT-09, T01, T10, T69). The server
-// runs with the migrated E2E_DATABASE_URL database (the draft period comes from its configuration and requests are
-// saved there); every visitor and value is synthetic.
+// The request wizard shell in a real browser (TSK-0026; HH-INT-01, HH-INT-08, HH-INT-09, T01, T10, T69; TSK-0024,
+// HH-PRIV-04: the saved privacy policy version). The server runs with the migrated E2E_DATABASE_URL database (the
+// draft period comes from its configuration and requests are saved there); every visitor and value is synthetic.
 import { AxeBuilder } from '@axe-core/playwright'
+import { createDb } from '@handyhub/db'
 import { expect, test, type Page } from '@playwright/test'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
@@ -174,6 +175,22 @@ test.describe('request wizard shell (TSK-0026)', () => {
       await page.evaluate(() => Object.keys(window.localStorage).filter((k) => k.startsWith('hh.request-draft'))),
     ).toEqual([])
     await axe(page)
+    // The privacy policy version the page presented is saved with the request (TSK-0024; HH-PRIV-04, HH-INT-19).
+    const reference = ((await page.getByText(/^Request reference: /).textContent()) ?? '').replace(
+      'Request reference: ',
+      '',
+    )
+    const db = createDb(databaseUrl as string, { max: 1 })
+    try {
+      const saved = await db
+        .selectFrom('intake.requests')
+        .select('privacy_notice_version')
+        .where('reference', '=', reference)
+        .executeTakeFirstOrThrow()
+      expect(saved.privacy_notice_version).toBe('privacy-notice-1')
+    } finally {
+      await db.destroy()
+    }
   })
 
   test('[T69] the form works at 320 px wide without horizontal scrolling', async ({ page }) => {

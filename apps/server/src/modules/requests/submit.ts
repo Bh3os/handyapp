@@ -15,6 +15,7 @@ import { ApiError } from '../../api/errors.js'
 import { loadConfig, requireConfigured, type Config } from '../../platform/config/index.js'
 import { outbox } from '../../platform/outbox.js'
 import { lookupCoverage, type CoverageResult } from '../coverage/coverage.js'
+import { isLegalVersion } from '../legal/index.js'
 import { bindDraftPhotos, type PhotoSummary } from '../photos/photos.js'
 import {
   localDate,
@@ -101,6 +102,9 @@ export async function submitRequest(
     questions,
     windows: formWindows(config).map((w) => w.code),
   })
+  // The privacy policy version the page presented must be a published version (TSK-0024; HH-PRIV-04, HH-INT-19).
+  if (!(await isLegalVersion(tx, 'legal.privacy_notice', body.privacyNoticeVersion)))
+    problems.push({ field: 'body.privacyNoticeVersion', code: 'unknown_version', message: '' })
   if (problems.length) throw new ApiError('VALIDATION_FAILED', { fieldErrors: problems })
 
   const signals = spamSignals(body, now.getTime())

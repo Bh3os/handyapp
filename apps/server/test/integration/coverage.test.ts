@@ -11,6 +11,7 @@ import { coverageOrUnknown } from '../../src/modules/requests/submit.js'
 import { runWithContext } from '../../src/platform/request-context.js'
 import { SYNTHETIC_RELATIONSHIP_FILE, SYNTHETIC_ZIPS } from '../fixtures/coverage.js'
 import { basic, GATE_USERS, gatePassword, testConfig } from '../fixtures/env.js'
+import { PRIVACY_NOTICE } from '@handyhub/domain/legal'
 
 const MESSAGES = {
   in_coverage: 'We serve your area. Tell us about your project.',
@@ -46,7 +47,7 @@ const submit = (zip: string, key: string) =>
     headers: { 'idempotency-key': key, 'x-forwarded-for': `198.51.100.${++ip}` },
     payload: {
       formVersion: 'test-1',
-      privacyNoticeVersion: 'draft-test-1',
+      privacyNoticeVersion: PRIVACY_NOTICE.documentId,
       services: [],
       notSure: true,
       description: 'Synthetic project description.',
