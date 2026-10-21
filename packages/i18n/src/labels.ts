@@ -200,6 +200,7 @@ export const LABEL_FAMILIES = {
     'legal.privacy_notice',
     'legal.sms_terms',
     'legal.website_terms',
+    'legal.sms_disclosure',
     'legal.estimate_terms',
     'ai.module',
   ],
