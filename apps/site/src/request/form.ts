@@ -209,14 +209,15 @@ export function validate(
   // An empty value is "required", not "too short", "wrong format" or "choose one of the options".
   for (const p of problems)
     if (['enum', 'minLength', 'pattern'].includes(p.code) && valueAt(body, p.field) === '') p.code = 'required'
-  if (problems.length === 0) {
-    const today = localDate(opts.now, opts.zone)
-    const knownServices = new Set(opts.services.map((x) => x.id))
-    const questions = new Map(opts.services.map((x) => [x.id, x.questions.map((q) => q.key)]))
-    const windows = opts.windows ? { windows: opts.windows } : {}
-    for (const p of semanticProblems(body, { today, knownServices, questions, ...windows }))
-      problems.push({ field: p.field.replace(/^body\./, ''), code: p.code })
-  }
+  // The semantic checks run on every step, not only once the whole form passes the schema, so a step's own
+  // problems (a date before tomorrow, Weekends with a weekday date) show when leaving that step (TSK-0028). The
+  // body always has the schema's types, only possibly empty values; a schema problem wins for the same field.
+  const today = localDate(opts.now, opts.zone)
+  const knownServices = new Set(opts.services.map((x) => x.id))
+  const questions = new Map(opts.services.map((x) => [x.id, x.questions.map((q) => q.key)]))
+  const windows = opts.windows ? { windows: opts.windows } : {}
+  for (const p of semanticProblems(body, { today, knownServices, questions, ...windows }))
+    problems.push({ field: p.field.replace(/^body\./, ''), code: p.code })
   const seen = new Set<string>()
   return problems.filter((p) => (seen.has(p.field) ? false : (seen.add(p.field), true)))
 }

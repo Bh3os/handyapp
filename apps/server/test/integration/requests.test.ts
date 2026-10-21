@@ -6,6 +6,7 @@ import type { FastifyInstance } from 'fastify'
 import { sql } from 'kysely'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildApp } from '../../src/app.js'
+import { localDate } from '../../src/modules/requests/submit.js'
 import { recordPolicyVersion } from '../../src/platform/config/index.js'
 import { testConfig } from '../fixtures/env.js'
 
@@ -237,7 +238,8 @@ describe('submission creates one request and its records (TSK-0025, HH-INT-10, H
 describe('validation keeps every field and reports each problem (TSK-0025, HH-INT-09)', () => {
   it('reports field errors and writes nothing', async () => {
     const before = await count('intake.requests')
-    const today = new Date().toISOString().slice(0, 10)
+    // Today in the business time zone (the rule's own zone); a UTC date is already tomorrow there in the evening.
+    const today = localDate(new Date(), 'America/Kentucky/Louisville')
     const res = await submit(
       body({
         services: [{ serviceId: 'SVC-DW-01' }, { serviceId: 'SVC-ZZ-99' }],
@@ -437,7 +439,11 @@ describe('property, timing and estimate preferences (TSK-0028, HH-INT-16, HH-INT
       property_type: 'rental_short_term',
     })
     // Nothing but the request event: no visit, appointment, reservation or confirmation is created (HH-SCH-01).
-    const events = await t.db.selectFrom('platform.outbox_events').select('type').where('aggregate_id', '=', r.id).execute()
+    const events = await t.db
+      .selectFrom('platform.outbox_events')
+      .select('type')
+      .where('aggregate_id', '=', r.id)
+      .execute()
     expect(events.map((e) => e.type)).toEqual(['request.submitted'])
     const tables = await sql<{ name: string }>`
       SELECT table_schema || '.' || table_name AS name FROM information_schema.tables

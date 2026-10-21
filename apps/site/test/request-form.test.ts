@@ -95,8 +95,15 @@ describe('request form validation shared with the server (TSK-0026, HH-INT-09)',
         { field: 'property.propertyType', code: 'required' },
       ]),
     )
-    expect(problems.map((p) => stepOf(p.field))).toEqual(problems.map(() => 'property'))
-    // Semantic checks run once the schema passes: the phone, the date in the property's time zone.
+    // Each problem belongs to its step; the semantic checks run on every step (TSK-0028), so the phone's format
+    // problem is reported for the contact step at the same time.
+    expect(problems.map((p) => [p.field, stepOf(p.field)])).toEqual([
+      ['property.street', 'property'],
+      ['property.zip', 'property'],
+      ['property.propertyType', 'property'],
+      ['contact.phone', 'contact'],
+    ])
+    // The semantic checks: the phone, the date in the property's time zone.
     expect(validate({ ...complete, phone: '555 1234', preferredDate: '2026-10-20' }, meta, opts)).toEqual([
       { field: 'timing.preferredDate', code: 'minimum' },
       { field: 'contact.phone', code: 'format' },
@@ -160,6 +167,11 @@ describe('property and timing preferences (TSK-0028, HH-INT-02, HH-INT-16, HH-IN
     expect(problemKey('weekendDate')).toBe('request.timing.weekendDate')
     expect(timing({ windows: ['mornings', 'weekends'], preferredDate: '2026-10-24' })).toEqual([])
     expect(timing({ windows: ['weekends'], flexible: true })).toEqual([])
+    // Reported when leaving the property step, before the later steps are filled in.
+    expect(timing({ windows: ['weekends'], fullName: '', email: '', phone: '', preferredChannel: '' })).toContainEqual({
+      field: 'timing.windows',
+      code: 'weekendDate',
+    })
     expect(timing({ windows: ['any_time', 'mornings'] })).toEqual([{ field: 'timing.windows', code: 'invalid' }])
     // A window the form does not offer is refused, as the server does.
     expect(validate({ ...complete, windows: ['evenings'] }, meta, { ...opts, windows: ['mornings'] })).toEqual([
