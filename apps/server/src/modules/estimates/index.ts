@@ -2,15 +2,40 @@
 // totals and the customer and staff projections. TSK-0053 (HH-EST-01, HH-EST-05) adds the staff builder's routes
 // (routes.ts) and the publish readiness check (readiness.ts) that publishing (TSK-0055) runs. TSK-0054 (HH-EST-11) adds
 // Upload an Estimate (documents.ts, document-content.ts, document-routes.ts) and the customer PDF (customer-pdf.ts).
-// The lifecycle and publishing (TSK-0055) and the customer view (TSK-0056) build on these functions.
+// TSK-0055 (HH-EST-04) adds the lifecycle: publishing under the Owner's publishing policy, revising as a new version,
+// withdrawing, expiring and recording a decline, the validity expiry job, the estimate-ready notice and the version
+// history (lifecycle.ts, lifecycle-routes.ts, notify.ts). The customer view (TSK-0056) builds on these functions.
 import type { ApiModule } from '../../api/route.js'
 import { estimateDocumentRoutes, type EstimateDocumentDeps } from './document-routes.js'
+import { lifecycleRoutes } from './lifecycle-routes.js'
 import { ESTIMATE_ROUTES } from './routes.js'
 
 export function estimatesModule(deps: EstimateDocumentDeps): ApiModule {
-  return { name: 'estimates', routes: [...ESTIMATE_ROUTES, ...estimateDocumentRoutes(deps)] }
+  return {
+    name: 'estimates',
+    routes: [...ESTIMATE_ROUTES, ...estimateDocumentRoutes(deps), ...lifecycleRoutes(deps)],
+  }
 }
 export { builderView } from './routes.js'
+export {
+  acceptanceCheck,
+  changeVersionState,
+  currentVersion,
+  ESTIMATE_PUBLISHED_EVENT,
+  estimateExpiryAutomation,
+  expireIfDue,
+  lifecycleView,
+  publishingRoles,
+  publishVersion,
+  reviseVersion,
+  STAFF_EVENTS,
+  type AcceptanceCheck,
+  type LifecycleView,
+  type PublishDeps,
+  type PublishResult,
+  type StaffEvent,
+} from './lifecycle.js'
+export { estimateReadyAutomation, ESTIMATE_READY_MESSAGE_KEY, type EstimateReadyDeps } from './notify.js'
 export type { EstimateDocumentDeps } from './document-routes.js'
 export {
   customerPdfInput,

@@ -210,9 +210,11 @@ async function runRoute(
   if (route.permission !== AUTHENTICATION) {
     const body = req.body as { reason?: unknown } | undefined
     const reason = typeof body?.reason === 'string' ? body.reason : undefined
+    const facts = route.decisionContext ? await route.decisionContext({ req, actor, db }) : {}
     const d = decide(actor, route.permission, resource, {
       now: new Date(),
       online: true,
+      ...facts,
       ...(reason ? { reason } : {}),
     })
     if (d.effect === 'deny') {

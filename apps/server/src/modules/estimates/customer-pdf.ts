@@ -390,14 +390,31 @@ export async function renderCustomerPdf(
  * active configuration; null when the version does not exist. The caller authorizes the read. A version past review
  * shows what it pinned (terms version, the customer document it was confirmed for); a version still being edited
  * shows the configured validity and terms as a preview.
+ *
+ * `publishing` (TSK-0055): the input of the version as it is being published, before its row is written: the
+ * publishing time, the valid-until time and the terms version it is about to pin. The result is exactly the input of
+ * the published version read back afterwards (the same bytes), which the publishing step stores with its hash.
  */
 export async function customerPdfInput(
   db: Db | Tx,
   versionId: string,
-  options: { testMark: boolean },
+  options: {
+    testMark: boolean
+    publishing?: { readonly publishedAt: Date; readonly validUntil: Date; readonly termsVersion: string }
+  },
 ): Promise<CustomerPdfInput | null> {
-  const content = await customerVersionContent(db, versionId)
-  if (!content) return null
+  const stored = await customerVersionContent(db, versionId)
+  if (!stored) return null
+  const publishing = options.publishing
+  const content: CustomerVersionContent = publishing
+    ? {
+        ...stored,
+        state: 'published',
+        publishedAt: publishing.publishedAt.toISOString(),
+        validUntil: publishing.validUntil.toISOString(),
+        termsVersion: publishing.termsVersion,
+      }
+    : stored
   const v = await db
     .selectFrom('estimating.estimate_versions as v')
     .innerJoin('crm.projects as p', 'p.id', 'v.project_id')
@@ -450,6 +467,6 @@ export async function customerPdfInput(
     document,
     testMark: options.testMark,
     timeZone: zone.state === 'CONFIGURED' ? zone.value.zone : null,
-    createdAt: v.published_at ?? v.updated_at,
+    createdAt: publishing ? publishing.publishedAt : (v.published_at ?? v.updated_at),
   }
 }

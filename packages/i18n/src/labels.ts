@@ -329,6 +329,23 @@ export const LABEL_FAMILIES = {
     'DOCUMENT_NOT_READY',
     'TOTALS_INCOMPLETE',
   ],
+  /**
+   * Why the server refused an estimate lifecycle action (TSK-0055; apps/server/src/modules/estimates/lifecycle.ts and
+   * the estimate_version.lifecycle machine of @handyhub/domain). Readiness reasons use estimateProblem.
+   */
+  estimateRefusal: [
+    'INVALID_TRANSITION',
+    'ACTOR_NOT_ALLOWED',
+    'REVIEW_HOLD_OPEN',
+    'PROJECT_NOT_OPEN',
+    'STORAGE_NOT_CONFIGURED',
+    'REASON_REQUIRED',
+    'DRAFT_EXISTS',
+    'ESTIMATE_ACCEPTED',
+    'VERSION_EDITABLE',
+    'NO_NEWER_VERSION',
+    'FACTS_MISSING',
+  ],
   /** How an estimate version was authored (HH-EST-11): written in the staff app, or an uploaded document. */
   authoringMethod: ['written', 'uploaded'],
   /** Estimate document states (TSK-0054; migration 0030, apps/server/src/modules/estimates/documents.ts). */
