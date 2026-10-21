@@ -142,6 +142,1148 @@
         }
       }
     },
+    "/api/v1/customer/account": {
+      "get": {
+        "operationId": "getCustomerAccount",
+        "summary": "The signed-in account",
+        "description": "For a live account session: its sign-in email and phone (masked), the references of its linked projects (the customer switches between them, HH-PORT-09), whether the sign-in is fresh enough for a contact change, and whether a sign-in email change is available (not_configured while its notice to the old email cannot be sent, OQ-ACCOUNT-CONTACT-NOTICE). A guest-link session is NOT_FOUND; no session is 401.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "email",
+                    "phone",
+                    "projects",
+                    "freshVerification",
+                    "emailChange"
+                  ],
+                  "properties": {
+                    "email": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "phone": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "projects": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "reference"
+                        ],
+                        "properties": {
+                          "reference": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "freshVerification": {
+                      "type": "boolean"
+                    },
+                    "emailChange": {
+                      "type": "string",
+                      "enum": [
+                        "available",
+                        "not_configured"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-accounts.test.ts",
+          "projection": "account.customer"
+        }
+      }
+    },
+    "/api/v1/customer/account/email": {
+      "post": {
+        "operationId": "changeAccountEmail",
+        "summary": "Change the sign-in email: enter the code",
+        "description": "The code sent to the new email, inside a fresh sign-in (else 403 FRESH_AUTH_REQUIRED). A match makes it the account’s sign-in email, records what proved authority (the old email, or the account’s other verified contact: the recovery path) and sends the notice account.contact_changed to the old email after commit (HH-ID-11). Every other session of the account ends and this one is renewed (Set-Cookie), so the old email keeps no access. The project contact records and their guest links are business records and do not change. A wrong code is a neutral 400 (invalid_code), counted and kept; an email that another account already has is a 409 (email_in_use) once its code proved it is the customer’s; 503 while NOT CONFIGURED as above.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "email",
+                  "code"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 320
+                  },
+                  "code": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "account"
+                  ],
+                  "properties": {
+                    "account": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "email",
+                        "phone",
+                        "projects",
+                        "freshVerification",
+                        "emailChange"
+                      ],
+                      "properties": {
+                        "email": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "phone": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "projects": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "reference"
+                            ],
+                            "properties": {
+                              "reference": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "freshVerification": {
+                          "type": "boolean"
+                        },
+                        "emailChange": {
+                          "type": "string",
+                          "enum": [
+                            "available",
+                            "not_configured"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "account-email-change",
+            "limit": 60,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.email_change",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-accounts.test.ts",
+          "projection": "account.signed_in"
+        }
+      }
+    },
+    "/api/v1/customer/account/email/codes": {
+      "post": {
+        "operationId": "sendAccountEmailCode",
+        "summary": "Change the sign-in email: send a code to the new email",
+        "description": "Needs a fresh sign-in (authority over the account, HH-ID-11: within verification.limits.freshVerificationMinutes of a sign-in through the old email, or through the account’s verified phone, the recovery path); otherwise 403 FRESH_AUTH_REQUIRED and the page asks for a new sign-in code. Sends a one-time code to the new email; whether another account has it is not checked or told here. 400 invalid_email or unchanged; 429 with Retry-After; 503 while the notice to the old email (account.contact_changed) is not on the automatic list or has no released wording, or codes are NOT CONFIGURED: nothing is sent and nothing changes.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "email"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 320
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "sent"
+                  ],
+                  "properties": {
+                    "sent": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "channel",
+                        "destination",
+                        "expiresAt"
+                      ],
+                      "properties": {
+                        "channel": {
+                          "type": "string",
+                          "enum": [
+                            "email",
+                            "phone"
+                          ]
+                        },
+                        "destination": {
+                          "type": "string"
+                        },
+                        "expiresAt": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "account-email-code",
+            "limit": 20,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.email_code",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-accounts.test.ts",
+          "projection": "account.code_sent"
+        }
+      }
+    },
+    "/api/v1/customer/account/enrollment": {
+      "get": {
+        "operationId": "getAccountEnrollment",
+        "summary": "Create an Account from the project link: the usable channels",
+        "description": "For a live guest-link session: the channels an account can be created with, masked: the grant’s contact’s own values that a code already verified (the phone only with its current SMS permission). An account session or no session is NOT_FOUND. Nothing about any other project, contact or account.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "channels"
+                  ],
+                  "properties": {
+                    "channels": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "channel",
+                          "destination"
+                        ],
+                        "properties": {
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "email",
+                              "phone"
+                            ]
+                          },
+                          "destination": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-accounts.test.ts",
+          "projection": "account.enrollment_channel"
+        }
+      },
+      "post": {
+        "operationId": "enrollFromProjectLink",
+        "summary": "Create an Account from the project link: enter the code",
+        "description": "As the receipt’s enrollment: creates (or signs in to) the account and links the guest-link session’s one project once, replacing the guest-link session with the account session (Set-Cookie). Nothing else is linked. A wrong code is a neutral 400 (invalid_code), counted and kept.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "channel",
+                  "code"
+                ],
+                "properties": {
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "email",
+                      "phone"
+                    ]
+                  },
+                  "code": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "account"
+                  ],
+                  "properties": {
+                    "account": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "email",
+                        "phone",
+                        "projects",
+                        "freshVerification",
+                        "emailChange"
+                      ],
+                      "properties": {
+                        "email": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "phone": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "projects": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "reference"
+                            ],
+                            "properties": {
+                              "reference": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "freshVerification": {
+                          "type": "boolean"
+                        },
+                        "emailChange": {
+                          "type": "string",
+                          "enum": [
+                            "available",
+                            "not_configured"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "account-enroll",
+            "limit": 60,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.enroll",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-accounts.test.ts",
+          "projection": "account.signed_in"
+        }
+      }
+    },
+    "/api/v1/customer/account/enrollment/codes": {
+      "post": {
+        "operationId": "sendLinkAccountCode",
+        "summary": "Create an Account from the project link: send the code",
+        "description": "As the receipt’s enrollment code, for the guest-link session’s one project and the grant’s own contact. Refusals: 400 not_verified, 429 with Retry-After, 503 while NOT CONFIGURED.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "channel"
+                ],
+                "properties": {
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "email",
+                      "phone"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "sent"
+                  ],
+                  "properties": {
+                    "sent": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "channel",
+                        "destination",
+                        "expiresAt"
+                      ],
+                      "properties": {
+                        "channel": {
+                          "type": "string",
+                          "enum": [
+                            "email",
+                            "phone"
+                          ]
+                        },
+                        "destination": {
+                          "type": "string"
+                        },
+                        "expiresAt": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "account-enroll-code",
+            "limit": 30,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.enrollment_code",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-accounts.test.ts",
+          "projection": "account.code_sent"
+        }
+      }
+    },
     "/api/v1/customer/projects": {
       "get": {
         "operationId": "listCustomerProjects",
@@ -1668,6 +2810,157 @@
         }
       }
     },
+    "/api/v1/customer/session/sign-out": {
+      "post": {
+        "operationId": "customerSignOut",
+        "summary": "Sign Out",
+        "description": "Ends the caller’s customer session on the server (an account session or a guest-link session) and clears the cookie. Other sessions of the account are not affected. Without a live session, 401.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_session.sign_out",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-accounts.test.ts"
+        }
+      }
+    },
     "/api/v1/public/access/codes": {
       "post": {
         "operationId": "sendAccessCode",
@@ -2443,6 +3736,412 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/access-recovery.test.ts"
+        }
+      }
+    },
+    "/api/v1/public/account/sign-in": {
+      "post": {
+        "operationId": "accountSignIn",
+        "summary": "Sign in: enter the code",
+        "description": "The code last sent to the value. A match starts a new account session (Set-Cookie; any earlier session of this browser ends; other devices keep theirs): 30 minutes idle, 8 hours in total (session.timings), revocable on the server. A wrong, expired or used code and a value without an account are the same neutral 400 (body.code, invalid_code); the attempt is counted and kept. Signing in through the account’s other verified contact is also how access is recovered when one contact is lost (HH-ID-11). 503 while NOT CONFIGURED.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "contact",
+                  "code"
+                ],
+                "properties": {
+                  "contact": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 320
+                  },
+                  "code": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "account"
+                  ],
+                  "properties": {
+                    "account": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "email",
+                        "phone",
+                        "projects",
+                        "freshVerification",
+                        "emailChange"
+                      ],
+                      "properties": {
+                        "email": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "phone": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "projects": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "reference"
+                            ],
+                            "properties": {
+                              "reference": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "freshVerification": {
+                          "type": "boolean"
+                        },
+                        "emailChange": {
+                          "type": "string",
+                          "enum": [
+                            "available",
+                            "not_configured"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "guest",
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "account-sign-in",
+            "limit": 60,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.sign_in",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-accounts.test.ts",
+          "projection": "account.signed_in"
+        }
+      }
+    },
+    "/api/v1/public/account/sign-in/codes": {
+      "post": {
+        "operationId": "sendAccountSignInCode",
+        "summary": "Sign in: send a one-time code",
+        "description": "Sign in without a password (OWN-DEC-63): the body names an email or a mobile phone. When it is an active account’s verified sign-in value, a one-time code (purpose account_sign_in, the automatic message contact.verification_code) goes to it, the phone only by text with its current SMS permission. Every well-formed request gets the same 202 {accepted, codeMinutes} whether or not an account has the value, the phone may be texted, or a per-code limit was reached (HH-ID-03); codeMinutes is the configured code lifetime. A value that is neither an email nor a US phone number is a 400 (invalid_contact); a network over its limit a 429 for everyone; while the code key, session.timings or verification.limits is NOT CONFIGURED, 503 for everyone.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "contact"
+                ],
+                "properties": {
+                  "contact": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 320
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "accepted",
+                    "codeMinutes"
+                  ],
+                  "properties": {
+                    "accepted": {
+                      "type": "boolean"
+                    },
+                    "codeMinutes": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "guest",
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "account-sign-in-code",
+            "limit": 20,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.sign_in_code",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-accounts.test.ts"
         }
       }
     },
@@ -3422,6 +5121,236 @@
         }
       }
     },
+    "/api/v1/public/request-receipt/account": {
+      "post": {
+        "operationId": "enrollFromReceipt",
+        "summary": "Create an Account: enter the code",
+        "description": "The code of the channel’s latest enrollment send. A match creates the account for that verified value (with the contact’s other verified value too, when no other account has it), or signs in to the account the value already belongs to, and links this request’s one project to it once: the request, project and every other record keep their IDs, nothing is duplicated, and no other project, customer or contact with the same email or phone is read or linked (HH-ID-03, T20). It starts the account session (Set-Cookie; any earlier session of this browser ends). A wrong, expired, replaced or used code is a neutral 400 (body.code, invalid_code); the attempt is counted and kept.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "channel",
+                  "code"
+                ],
+                "properties": {
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "email",
+                      "phone"
+                    ]
+                  },
+                  "code": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "account"
+                  ],
+                  "properties": {
+                    "account": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "email",
+                        "phone",
+                        "projects",
+                        "freshVerification",
+                        "emailChange"
+                      ],
+                      "properties": {
+                        "email": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "phone": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "projects": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "reference"
+                            ],
+                            "properties": {
+                              "reference": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "freshVerification": {
+                          "type": "boolean"
+                        },
+                        "emailChange": {
+                          "type": "string",
+                          "enum": [
+                            "available",
+                            "not_configured"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "guest",
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "account-enroll",
+            "limit": 60,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.enroll",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-accounts.test.ts",
+          "projection": "account.signed_in"
+        }
+      }
+    },
     "/api/v1/public/request-receipt/account-offer/decline": {
       "post": {
         "operationId": "declineAccountOffer",
@@ -3555,6 +5484,204 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/contact-verification.test.ts"
+        }
+      }
+    },
+    "/api/v1/public/request-receipt/account/codes": {
+      "post": {
+        "operationId": "sendReceiptAccountCode",
+        "summary": "Create an Account: send the code",
+        "description": "Under the Receipt-Capability header, after the guest chose Create an Account (HH-INT-14, OWN-DEC-63): a one-time code (purpose account_sign_in, the automatic message contact.verification_code) to the request’s own email or phone, which must already be verified for that exact value (the phone only by text, with that request’s current SMS opt-in). Nothing is created yet. A channel that is not verified is a 400 (not_verified); a resend inside the cooldown or over a limit is a neutral 429 with Retry-After; while the code key, session.timings or verification.limits is NOT CONFIGURED, 503 and nothing is sent.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "channel"
+                ],
+                "properties": {
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "email",
+                      "phone"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "sent"
+                  ],
+                  "properties": {
+                    "sent": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "channel",
+                        "destination",
+                        "expiresAt"
+                      ],
+                      "properties": {
+                        "channel": {
+                          "type": "string",
+                          "enum": [
+                            "email",
+                            "phone"
+                          ]
+                        },
+                        "destination": {
+                          "type": "string"
+                        },
+                        "expiresAt": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "guest",
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "account-enroll-code",
+            "limit": 30,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.enrollment_code",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-accounts.test.ts",
+          "projection": "account.code_sent"
         }
       }
     },
