@@ -299,9 +299,18 @@ test.describe('final review and Send Estimate Request (TSK-0030)', () => {
     expect(await referenceOnReceipt(page)).toBe(first[0]?.reference)
     await expect(page.getByText(ALREADY)).toBeVisible()
     await expect(page.getByText(/start a new request/i)).toHaveCount(0)
+    // What that request holds is not known here (TSK-0032): no project at a glance with the changed details and no
+    // photo count; the receipt is kept for this tab at its own address like any other.
+    expect(new URL(page.url()).pathname).toBe(`/request/received/${first[0]?.reference}`)
+    await expect(page.getByRole('region', { name: 'Your project at a glance' })).toHaveCount(0)
+    await expect(page.getByRole('region', { name: 'Your photos' })).toHaveCount(0)
+    await expect(page.locator('main')).not.toContainText('Test Customer Changed')
     await axe(page)
     expect(await saved(email)).toEqual(first)
     expect(await stored(page)).toEqual({ sends: [], drafts: [] })
+    await page.reload()
+    expect(await referenceOnReceipt(page)).toBe(first[0]?.reference)
+    await expect(page.getByText(ALREADY)).toBeVisible()
   })
 
   test('[HH-INT-07][HH-INT-19] nothing is sent while a photo is still uploading; the review says so', async ({

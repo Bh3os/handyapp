@@ -33,6 +33,7 @@ import { instantIdCursor, pageSchema, toPage } from '../../api/pagination.js'
 import type { ApiContext, RouteDef } from '../../api/route.js'
 import { outbox } from '../../platform/outbox.js'
 import { currentContext } from '../../platform/request-context.js'
+import { syncDeliveryFailureOwner } from '../notifications/index.js'
 import { openQueueItem, syncEstimateItem, syncNewRequestItem } from '../queue/index.js'
 import { DEFAULT_OBLIGATION_CHECKS, obligationFacts, type ObligationCheck } from './obligations.js'
 import { latestQualification, staffRequestView } from './staff-record.js'
@@ -616,6 +617,8 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
       await syncNewRequestItem(tx, current.id)
       await syncReviewHoldItem(tx, current.id)
       await syncEstimateItem(tx, current.id)
+      // The request's open delivery issues (a failed receipt) follow its new owner (TSK-0032, HH-OPS-02).
+      await syncDeliveryFailureOwner(tx, { recordType: 'request', recordId: current.id, assignedStaffId: target })
       await ctx.audit({
         target: { type: 'request', id: current.id, version },
         summary: { from: current.responsibleStaffId, to: target },

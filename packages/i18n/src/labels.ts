@@ -93,6 +93,7 @@ export const LABEL_FAMILIES = {
     'reschedule_requested',
     'cancellation_requested',
     'delivery_failed',
+    'delivery_not_configured',
     'case_opened',
     'complaint_recorded',
     'damage_reported',

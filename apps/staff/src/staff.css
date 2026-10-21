@@ -305,6 +305,10 @@
   justify-self: start;
 }
 
+.staff-queue__retry-status {
+  margin: 0;
+}
+
 .staff-record {
   display: grid;
   grid-template-columns: minmax(8rem, max-content) minmax(0, 1fr);

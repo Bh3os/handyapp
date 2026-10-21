@@ -92,7 +92,7 @@ export function addressLines(v: Pick<FormValues, 'street' | 'unit' | 'city' | 's
 }
 
 /** A window as offered: its label, with its configured hours when there are any (HH-INT-02). */
-function windowText(code: string, offered: readonly OfferedWindow[]): string {
+export function windowText(code: string, offered: readonly OfferedWindow[]): string {
   const w = offered.find((x) => x.code === code)
   const name = labelOf(WINDOW_LABEL, code)
   return w?.start && w.end

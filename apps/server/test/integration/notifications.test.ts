@@ -405,6 +405,18 @@ describe('staff-released drafts (TSK-0047, HH-COM-06, HH-COM-09, T65, T66, T04)'
       .where('action', '=', 'message.released')
       .execute()
     expect(audited).toHaveLength(2)
+    // The release job is audited as processed and the delivery as the send it was, never the reverse (HH-SEC-06).
+    const outcome = await t.db
+      .selectFrom('platform.audit_events')
+      .select(['action', 'target_type', 'result'])
+      .where('target_id', '=', e.id)
+      .where('action', 'like', 'notification.%')
+      .orderBy('seq')
+      .execute()
+    expect(outcome).toEqual([
+      { action: 'notification.sent', target_type: 'message_delivery', result: 'succeeded' },
+      { action: 'notification.processed', target_type: 'message_delivery', result: 'succeeded' },
+    ])
   })
 
   it('sends staff notifications in the recipient staff member’s locale (HH-COM-03)', async () => {
