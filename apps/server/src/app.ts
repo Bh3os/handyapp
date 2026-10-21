@@ -131,6 +131,7 @@ export async function buildApp({
       apiModules({
         secureCookies: config.secureCookies,
         mfaKey: config.mfaKey,
+        accessCodeKey: config.accessCodeKey,
         storage: api?.storage ?? null,
         ...(api?.system ? { system: api.system } : {}),
         ...(api?.codeKey ? { codeKey: api.codeKey } : {}),

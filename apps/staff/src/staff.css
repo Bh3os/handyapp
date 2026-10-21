@@ -448,3 +448,23 @@
   margin: 0;
   overflow-wrap: anywhere;
 }
+
+/* Property record (TSK-0045): details and the masked access codes. */
+.staff-property__detail,
+.staff-property__code-item {
+  display: grid;
+  gap: var(--hh-space-2);
+}
+.staff-property__masked {
+  letter-spacing: 0.2em;
+}
+.staff-property__revealed {
+  display: grid;
+  gap: var(--hh-space-2);
+  justify-items: start;
+}
+.staff-property__code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 1.25rem;
+  overflow-wrap: anywhere;
+}

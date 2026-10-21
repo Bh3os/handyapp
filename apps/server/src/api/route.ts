@@ -126,6 +126,11 @@ export interface RouteDef {
    * modules/records/projections.ts). The response schema is that view's allow-list; nothing else reaches the browser.
    */
   projection?: { readonly name: string; readonly entity: string }
+  /**
+   * The policy also needs today's date in the business time zone (a rule that holds only on the visit date, such as
+   * the access-code reveal, T28). Default: no date, so such a rule is refused.
+   */
+  businessDate?: true
   /** The record facts the policy needs; null answers NOT_FOUND. Default: no facts. */
   resource?: (ctx: Pick<ApiContext, 'req' | 'actor' | 'db'>) => Promise<Resource | null>
   handler: (ctx: ApiContext) => Promise<ApiResult>

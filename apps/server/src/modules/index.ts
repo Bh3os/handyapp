@@ -8,6 +8,7 @@ import { COVERAGE_MODULE } from './coverage/index.js'
 import { CUSTOMERS_MODULE } from './customers/index.js'
 import { NOTIFICATIONS_MODULE } from './notifications/index.js'
 import { photosModule } from './photos/index.js'
+import { propertiesModule } from './properties/index.js'
 import { QUEUE_MODULE } from './queue/index.js'
 import { requestsModule } from './requests/index.js'
 import { accessModule } from './access/index.js'
@@ -29,6 +30,8 @@ export type ModuleDeps = {
   codeKey?: CodeKeySettings
   /** Proxies in front of the service (TRUST_PROXY_HOPS), for the client network the code limits count. */
   trustProxyHops?: number
+  /** Seals property access codes (TSK-0045); unset or null: the access-code store is NOT CONFIGURED. */
+  accessCodeKey?: Secret | null
 }
 
 const NO_CODE_KEY: CodeKeySettings = { state: 'not_configured', missing: ['CODE_HASH_KEY'] }
@@ -50,6 +53,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     accessModule({ codeKey: deps.codeKey ?? NO_CODE_KEY, trustProxyHops: deps.trustProxyHops ?? 0 }),
     // TSK-0044: staff customer and contact records, notes with visibility classes and duplicate suggestions.
     CUSTOMERS_MODULE,
+    // TSK-0045: property records and the protected access-code store.
+    propertiesModule({ accessCodeKey: deps.accessCodeKey ?? null }),
   ]
 }
 

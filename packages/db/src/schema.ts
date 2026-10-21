@@ -44,6 +44,33 @@ export interface CatalogServicesTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface CrmAccessCodeRevealsTable {
+  id: Generated<string>
+  secret_id: string
+  property_id: string
+  staff_id: string
+  roles: string[]
+  request_id: string
+  revealed_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CrmAccessInstructionSecretsTable {
+  id: string
+  property_id: string
+  kind: string
+  label: string | null
+  sealed_value: string | null
+  source: string
+  confirmed_at: ColumnType<Date, Date | string | undefined, Date | string>
+  confirmed_by: string
+  created_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  removed_at: Timestamp | null
+  removed_by: string | null
+  removal_reason: string | null
+  version: Generated<number>
+}
+
 export interface CrmCandidateMatchEventsTable {
   id: Generated<string>
   match_id: string
@@ -138,6 +165,44 @@ export interface CrmPropertiesTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   version: Generated<number>
   coverage_rule_set: number | null
+  address_version: Generated<number>
+}
+
+export interface CrmPropertyAddressesTable {
+  property_id: string
+  address_version: number
+  street: string
+  unit: string | null
+  city: string
+  state: string
+  zip: string
+  source: string
+  reason: string | null
+  recorded_by: string | null
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CrmPropertyChangesTable {
+  id: Generated<string>
+  property_id: string
+  detail: string
+  action: string
+  previous: Json
+  current: Json
+  source: string
+  reason: string
+  changed_by: string
+  changed_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CrmPropertyDetailsTable {
+  property_id: string
+  detail: string
+  value: string | null
+  source: string
+  confirmed_at: Timestamp
+  confirmed_by: string | null
+  version: Generated<number>
 }
 
 export interface CrmRecordChangesTable {
@@ -683,6 +748,8 @@ export interface WorkWorkPackagesTable {
 export interface Database {
   'catalog.service_versions': CatalogServiceVersionsTable
   'catalog.services': CatalogServicesTable
+  'crm.access_code_reveals': CrmAccessCodeRevealsTable
+  'crm.access_instruction_secrets': CrmAccessInstructionSecretsTable
   'crm.candidate_match_events': CrmCandidateMatchEventsTable
   'crm.candidate_matches': CrmCandidateMatchesTable
   'crm.contacts': CrmContactsTable
@@ -691,6 +758,9 @@ export interface Database {
   'crm.customers': CrmCustomersTable
   'crm.projects': CrmProjectsTable
   'crm.properties': CrmPropertiesTable
+  'crm.property_addresses': CrmPropertyAddressesTable
+  'crm.property_changes': CrmPropertyChangesTable
+  'crm.property_details': CrmPropertyDetailsTable
   'crm.record_changes': CrmRecordChangesTable
   'identity.auth_identities': IdentityAuthIdentitiesTable
   'identity.customer_sessions': IdentityCustomerSessionsTable

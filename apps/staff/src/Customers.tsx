@@ -660,7 +660,7 @@ function Withdrawal({ ctx, contact }: { ctx: Ctx; contact: Contact }) {
 }
 
 function Properties({ ctx }: { ctx: Ctx }) {
-  const { t, view } = ctx
+  const { t, view, link } = ctx
   return (
     <Section id="customer-properties" title={t('customer.properties')}>
       {view.properties.length ? (
@@ -668,7 +668,9 @@ function Properties({ ctx }: { ctx: Ctx }) {
           {view.properties.map((p) => (
             <li key={p.id}>
               {[p.street, p.unit].filter(Boolean).join(', ')}, {p.city}, {p.state} {p.zip} —{' '}
-              {codeLabel(t, 'propertyType', p.propertyType)} · {codeLabel(t, 'coverageResult', p.coverage)}
+              {codeLabel(t, 'propertyType', p.propertyType)} · {codeLabel(t, 'coverageResult', p.coverage)}{' '}
+              {/* The property record: details, address history and access codes (TSK-0045). */}
+              <a {...link(`/properties/${p.id}`)}>{t('customer.openProperty')}</a>
             </li>
           ))}
         </ul>
