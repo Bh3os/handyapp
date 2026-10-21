@@ -8,6 +8,9 @@ import { expect, test, type Browser, type Page } from '@playwright/test'
 
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const databaseUrl = process.env['E2E_DATABASE_URL']
+// This spec's own synthetic network (RFC 5737): the staff sign-in, reset and link limits count per network, so the
+// suite must not share one address (playwright.config.ts trusts one forwarded hop on the main server).
+const NETWORK = { 'x-forwarded-for': '198.51.100.32' }
 const port = process.env['E2E_PORT'] ?? '4310'
 const cli = fileURLToPath(new URL('../../server/dist/cli/staff-access.js', import.meta.url))
 const OWNER = 'e2e-owner@example.test'
@@ -55,8 +58,10 @@ async function axe(page: Page) {
   expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
 }
 async function fresh(browser: Browser) {
-  return (await browser.newContext()).newPage()
+  return (await browser.newContext({ extraHTTPHeaders: NETWORK })).newPage()
 }
+
+test.use({ extraHTTPHeaders: NETWORK })
 
 test.describe('staff app shell (TSK-0040, HH-STAFF-06, HH-OPS-04)', () => {
   test.describe.configure({ mode: 'serial' })

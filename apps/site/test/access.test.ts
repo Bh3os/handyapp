@@ -9,6 +9,8 @@ import {
   forgetToken,
   parseChannels,
   parseGlance,
+  recoveryNotice,
+  recoveryProblems,
   sentText,
   stateLabel,
   takeToken,
@@ -114,5 +116,71 @@ describe('the opened project in the customer’s words (TSK-0034, HH-INT-21, RUL
       expect(copyProblems(text), key).toEqual([])
       expect(text, key).not.toMatch(/\$|book|guarantee|24\/7|\d/i)
     }
+  })
+})
+
+describe('neutral recovery: ask for a new link (TSK-0035, HH-ID-09, HH-ID-06, HH-ID-08)', () => {
+  it('[HH-ID-09][HH-ID-08] with the old link only the contact is sent, in the POST body; without it the reference', async () => {
+    const { f, calls } = fakeFetch({ status: 202, body: { accepted: true } })
+    expect(await accessApi.reissue(f, { token: TOKEN, reference: 'ignored', contact: ' c@x.test ' })).toEqual({
+      ok: true,
+      data: { accepted: true },
+    })
+    expect(await accessApi.reissue(f, { token: null, reference: ' HH-7K3QABCD ', contact: '(502) 555-0100' })).toEqual({
+      ok: true,
+      data: { accepted: true },
+    })
+    expect(calls.map((c) => [c.url, c.init.method])).toEqual([
+      ['/api/v1/public/access/reissue', 'POST'],
+      ['/api/v1/public/access/reissue', 'POST'],
+    ])
+    for (const c of calls) expect(c.url).not.toContain(TOKEN)
+    expect(calls.map((c) => JSON.parse(String(c.init.body)))).toEqual([
+      { token: TOKEN, contact: 'c@x.test' },
+      { reference: 'HH-7K3QABCD', contact: '(502) 555-0100' },
+    ])
+  })
+
+  it('[HH-ID-09][HH-ID-03] only the form, the network limit or a missing configuration change the words; never a record', async () => {
+    const answer = async (status: number, body: unknown, headers: Record<string, string> = {}) => {
+      const f: Fetch = async () =>
+        new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', ...headers } })
+      const r = await accessApi.reissue(f, { token: null, reference: 'HH-7K3QABCD', contact: 'c@x.test' })
+      if (r.ok) throw new Error('expected a refusal')
+      return recoveryNotice(r)
+    }
+    const field = (code: string, name: string) => ({
+      error: { code: 'VALIDATION_FAILED', fieldErrors: [{ field: name, code }] },
+    })
+    expect(await answer(400, field('invalid_contact', 'body.contact'))).toEqual({ key: 'access.recover.error.contact' })
+    expect(await answer(400, field('required', 'body.reference'))).toEqual({ key: 'access.recover.error.reference' })
+    expect(await answer(503, { error: { code: 'NOT_CONFIGURED' } })).toEqual({ key: 'access.recover.notConfigured' })
+    expect(await answer(429, { error: { code: 'RATE_LIMITED' } }, { 'retry-after': '3600' })).toEqual({
+      key: 'request.verify.error.tooMany',
+    })
+    // An answer that is not the accepted shape is never shown as accepted.
+    const odd: Fetch = async () => new Response('{}', { status: 202 })
+    expect((await accessApi.reissue(odd, { token: TOKEN, reference: '', contact: 'c@x.test' })).ok).toBe(false)
+    expect(recoveryProblems({ contact: ' ', reference: '' }, true)).toEqual(['reference', 'contact'])
+    expect(recoveryProblems({ contact: 'c@x.test', reference: '' }, false)).toEqual([])
+  })
+
+  it('[HH-ID-09][HH-ID-06] a code that can no longer be used is named by the server, so the page offers a new one', async () => {
+    const f: Fetch = async () =>
+      new Response(
+        JSON.stringify({
+          error: { code: 'VALIDATION_FAILED', fieldErrors: [{ field: 'body.code', code: 'code_ended' }] },
+        }),
+        { status: 400, headers: { 'content-type': 'application/json' } },
+      )
+    const r = await accessApi.exchange(f, TOKEN, 'email', '123456')
+    expect(r.ok ? null : [r.status, r.field]).toEqual([400, 'code_ended'])
+  })
+
+  it('[HH-ID-09][RULE-NO-INVENTED-FACTS] the recovery words promise no delivery and name no record', () => {
+    expect(t('access.recover.done')).toMatch(/^Thanks\. If these details match a HandyHub request/)
+    expect(t('access.ended.text')).toContain('No project information is shown here.')
+    for (const key of ['access.recover.text', 'access.recover.done'] as const)
+      expect(t(key)).not.toMatch(/we sent|has been sent|your project is|account/i)
   })
 })

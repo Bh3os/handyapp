@@ -17,6 +17,7 @@ const OK: RequestFacts = {
   reason: 'Synthetic reason',
   customerExplanation: 'Synthetic explanation',
   missingChecks: [],
+  blockingReviewHolds: 0,
   finalReminderSentAt: HOURS(25),
   noResponseCloseHours: 24,
   closedAt: DAYS(10),
@@ -189,5 +190,31 @@ describe('request: typed events and facts (TSK-0009)', () => {
     expect(run('reviewing', 'mark_not_served', { ...OK, reason: 5 }).ok).toBe(false)
     // @ts-expect-error not a state of the request machine
     expect(run('approved', 'start_review').ok).toBe(false)
+  })
+})
+
+describe('request: a review hold blocks the estimate path (TSK-0043, HH-LEAD-04, RULE-SAFETY-GATES)', () => {
+  for (const [state, event] of [
+    ['reviewing', 'mark_ready_for_estimate'],
+    ['reviewing', 'require_site_visit'],
+    ['ready_for_estimate', 'mark_estimated'],
+  ] as const) {
+    it(`[HH-LEAD-04] ${event} is refused while a review hold is open, and when the server did not check`, () => {
+      expect(run(state, event, { ...OK, blockingReviewHolds: 1 })).toMatchObject({
+        ok: false,
+        code: 'GUARD_FAILED',
+        problems: [{ code: 'REVIEW_HOLD_OPEN' }],
+      })
+      expect(run(state, event, without('blockingReviewHolds'))).toMatchObject({
+        ok: false,
+        problems: [{ code: 'FACTS_MISSING' }],
+      })
+      expect(run(state, event, OK)).toMatchObject({ ok: true })
+    })
+  }
+  it('[HH-LEAD-04] Ask a Question and Not a Fit stay open while a review hold is open', () => {
+    const held = { ...OK, blockingReviewHolds: 2 }
+    expect(run('reviewing', 'request_information', held)).toMatchObject({ ok: true, to: 'needs_information' })
+    expect(run('reviewing', 'decline_not_a_fit', held)).toMatchObject({ ok: true, to: 'declined' })
   })
 })

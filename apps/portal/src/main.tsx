@@ -1,4 +1,5 @@
 import '@handyhub/ui/styles.css'
+import './portal.css'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './App'

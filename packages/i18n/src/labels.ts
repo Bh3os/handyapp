@@ -68,10 +68,12 @@ export const LABEL_FAMILIES = {
    */
   queueItemType: [
     'new_request',
+    'review_hold',
     'safety_hold',
     'visit_change_request',
     'delivery_failed',
     'case_open',
+    'estimate_to_write',
     'candidate_match',
     'deposit_waiver',
     'start_work_exception',
@@ -86,6 +88,8 @@ export const LABEL_FAMILIES = {
   queueReason: [
     'new_request',
     'new_request_flagged',
+    'awaiting_first_response',
+    'review_hold',
     'safety_hold',
     'reschedule_requested',
     'cancellation_requested',
@@ -103,6 +107,8 @@ export const LABEL_FAMILIES = {
     'deletion_requested',
     'overdue_owner_decision',
     'not_a_fit_with_obligations',
+    'ready_for_estimate',
+    'estimate_draft',
     'possible_duplicate',
   ],
   /** The one action button of a queue item (HH-OPS-02); it opens the record's screen. */
@@ -113,6 +119,7 @@ export const LABEL_FAMILIES = {
     'retry_delivery',
     'open_case',
     'decide',
+    'write_estimate',
     'review_match',
   ],
   /**
@@ -193,6 +200,8 @@ export const LABEL_FAMILIES = {
     'business.public_contact',
     'verification.limits',
     'access.grants',
+    'access.recovery',
+    'portal.refresh',
     'messages.automatic',
     'sms.help_reply',
     'coverage.area',
@@ -202,6 +211,7 @@ export const LABEL_FAMILIES = {
     'legal.sms_terms',
     'legal.website_terms',
     'legal.sms_disclosure',
+    'legal.estimate_terms',
     'ai.module',
   ],
   /** Staff qualification of a request (TSK-0042; HH-LEAD-02). */
@@ -292,7 +302,121 @@ export const LABEL_FAMILIES = {
     'OWNER_REVIEW_REQUIRED',
     'FACTS_MISSING',
     'ACTOR_NOT_ALLOWED',
+    'REVIEW_HOLD_OPEN',
+    'HAZARD_CATEGORY_REQUIRED',
+    'HAZARD_NOTE_REQUIRED',
+    'HAZARDS_ONLY_ON_RISK_FLAGS',
+    'HAZARDS_NEED_ATTENTION',
+    'REVIEWER_REQUIRED',
+    'OWN_CRITICAL_HOLD',
   ],
+  /** Estimate version states (ENT-EstimateVersion; migration 0026). */
+  estimateState: ['draft', 'in_review', 'published', 'accepted', 'declined', 'expired', 'withdrawn', 'superseded'],
+  /** Estimate line kinds: base scope and the options a customer may select (@handyhub/money LINE_KINDS). */
+  estimateLineKind: ['base', 'alternate', 'add_on'],
+  /** Where a line's quantity came from (HH-EST-01). */
+  quantitySource: ['measured_on_site', 'reported_by_customer'],
+  /** The categories of the discount rule (FACT-PRICING-DISCOUNTS; config discount.rule). */
+  discountCategory: ['military', 'senior', 'returning_customer'],
+  /** Payment terms (FACT-PAYMENT-DUE; config payment.term_default). */
+  paymentTerm: ['due_on_receipt'],
+  /**
+   * Why an estimate version is not ready to publish (TSK-0053; apps/server/src/modules/estimates/readiness.ts
+   * PUBLISH_PROBLEM_CODES, checked by its unit test).
+   */
+  estimateProblem: [
+    'NOT_CONFIGURED',
+    'VERSION_NOT_EDITABLE',
+    'NO_LINES',
+    'QUANTITY_UNKNOWN',
+    'UNIT_PRICE_MISSING',
+    'DESCRIPTION_MISSING',
+    'LINE_NOT_POSITIVE',
+    'NOT_AN_OPTION',
+    'TOTAL_NOT_POSITIVE',
+    'UNSUPPORTED_CURRENCY',
+    'DISCOUNT_NOT_CONFIGURED',
+    'DISCOUNT_CATEGORY_UNKNOWN',
+    'TOTALS_OUTDATED',
+    // TSK-0054: an uploaded version's documents and agree-confirmation (readiness.ts DOCUMENT_PROBLEM_CODES).
+    'DOCUMENT_MISSING',
+    'DOCUMENT_PROCESSING',
+    'DOCUMENT_REJECTED',
+    'PDF_REQUIRED',
+    'AGREEMENT_NOT_CONFIRMED',
+  ],
+  /** Field errors of a refused estimate draft save (apps/server/src/modules/estimates/model.ts). */
+  estimateFieldError: [
+    'INVALID',
+    'NOT_POSITIVE',
+    'INVALID_QUANTITY',
+    'TOO_MANY_DECIMALS',
+    'QUANTITY_UNKNOWN',
+    'TOO_LONG',
+    'TOO_MANY',
+    'NOT_INTEGER_CENTS',
+    'NEGATIVE_AMOUNT',
+    'LINE_NOT_FOUND',
+    'WORK_PACKAGE_NOT_FOUND',
+    'DISCOUNT_NOT_CONFIGURED',
+    'DISCOUNT_CATEGORY_UNKNOWN',
+    'LINE_NOT_POSITIVE',
+    'TOTAL_NOT_POSITIVE',
+    'VERSION_NOT_EDITABLE',
+    'PROJECT_NOT_OPEN',
+    'AMOUNT_TOO_LARGE',
+    'TOTAL_TOO_LARGE',
+    // TSK-0054: refused document uploads and agree-confirmations (apps/server/src/modules/estimates/documents.ts).
+    'NOT_UPLOADED_METHOD',
+    'DOCUMENT_MISSING',
+    'PDF_NOT_NEEDED',
+    'DOCUMENT_NOT_READY',
+    'TOTALS_INCOMPLETE',
+  ],
+  /**
+   * Why the server refused an estimate lifecycle action (TSK-0055; apps/server/src/modules/estimates/lifecycle.ts and
+   * the estimate_version.lifecycle machine of @handyhub/domain). Readiness reasons use estimateProblem.
+   */
+  estimateRefusal: [
+    'INVALID_TRANSITION',
+    'ACTOR_NOT_ALLOWED',
+    'REVIEW_HOLD_OPEN',
+    'PROJECT_NOT_OPEN',
+    'STORAGE_NOT_CONFIGURED',
+    'REASON_REQUIRED',
+    'DRAFT_EXISTS',
+    'ESTIMATE_ACCEPTED',
+    'VERSION_EDITABLE',
+    'NO_NEWER_VERSION',
+    'FACTS_MISSING',
+  ],
+  /** How an estimate version was authored (HH-EST-11): written in the staff app, or an uploaded document. */
+  authoringMethod: ['written', 'uploaded'],
+  /** Estimate document states (TSK-0054; migration 0030, apps/server/src/modules/estimates/documents.ts). */
+  estimateDocumentState: ['quarantined', 'ready', 'rejected', 'replaced'],
+  /**
+   * Why the server refused an estimate document (apps/server/src/modules/estimates/document-content.ts
+   * DOCUMENT_PROBLEMS, and an empty upload).
+   */
+  estimateDocumentRejection: [
+    'unsupported_type',
+    'type_mismatch',
+    'malformed',
+    'trailing_data',
+    'encrypted',
+    'active_content',
+    'empty',
+  ],
+  /** Potential hazards or restricted scope found at intake (TSK-0043, HH-LEAD-04; PROPOSED categories). */
+  hazardCategory: ['hazardous_material', 'licensed_trade', 'structural', 'permit_licensing', 'other'],
+  /** Hold states (ENT-Hold). */
+  holdState: ['open', 'under_review', 'resolved', 'canceled_as_error'],
+  /** The first-response clock as staff read it (TSK-0043, HH-LEAD-05). */
+  responseClockState: ['not_configured', 'running', 'paused', 'overdue', 'stopped'],
+  /** How the first-response clock was stopped (OWN-DEC-116). */
+  responseStop: ['response_sent', 'conversation_recorded'],
+  /** Completed customer conversations staff record (TSK-0043, PROPOSED channels). */
+  conversationChannel: ['phone', 'in_person'],
 } as const satisfies Record<string, readonly string[]>
 
 export type LabelFamily = keyof typeof LABEL_FAMILIES

@@ -9,6 +9,13 @@ import {
   forbiddenForCustomer,
   listOf,
   PROJECT_GLANCE,
+  PROJECT_LIST,
+  PROJECT_APPOINTMENTS,
+  PROJECT_DOCUMENTS,
+  PROJECT_MESSAGES,
+  PROJECT_OVERVIEW,
+  PROJECT_PAYMENTS,
+  PROJECT_PHOTOS,
   ProjectionError,
 } from '../../src/modules/records/index.js'
 
@@ -52,7 +59,19 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
   it('[HH-ARC-04][HH-PORT-01] every customer surface route answers with exactly one declared customer view', () => {
     const customerRoutes = routes.filter((r) => r.path.startsWith('/customer/'))
     expect(customerRoutes.map((r) => r.operationId).sort()).toEqual(
-      ['getCustomerAccess', 'getCustomerProject', 'listCustomerRequestPhotos'].sort(),
+      [
+        'getCustomerAccess',
+        'getCustomerProject',
+        'listCustomerRequestPhotos',
+        'listCustomerProjects',
+        'getCustomerProjectOverview',
+        // TSK-0039: the workspace tabs beside the Overview.
+        'getCustomerProjectMessages',
+        'getCustomerProjectDocuments',
+        'getCustomerProjectPhotos',
+        'getCustomerProjectAppointments',
+        'getCustomerProjectPayments',
+      ].sort(),
     )
     for (const r of customerRoutes) {
       const view = r.projection ? CUSTOMER_VIEWS.get(r.projection.name) : undefined
@@ -110,5 +129,79 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
       )
     for (const field of ['reference', 'submittedAt', 'services', 'url', 'contentType'])
       expect(forbiddenForCustomer(field), field).toBe(false)
+  })
+
+  it('[TSK-0038][HH-ARC-04][HH-PORT-03] the Overview and projects views copy only their allow-listed fields, nested ones too', () => {
+    const at = new Date('2026-10-21T12:00:00Z')
+    const status = { situation: 'site_visit', step: 'visit_windows_pending', waitingOn: 'handyhub', nextAction: 'none' }
+    const record = {
+      reference: 'HH-0000TEST',
+      services: ['Drywall'],
+      notSure: false,
+      submittedAt: at,
+      status: { ...status, since: at, text: 'We need to see the wall.', internalNote: 'staff only' },
+      timeline: [{ kind: 'site_visit', at, text: 'We need to see the wall.', decidedBy: 'staff-1', internalNote: 'x' }],
+      appointment: null,
+      payment: { state: 'none', marginCents: 1 },
+      refreshedAt: at,
+      refreshSeconds: 30,
+      responsibleStaff: 'staff-1',
+    } as unknown as Parameters<typeof PROJECT_OVERVIEW.project>[0]
+    expect(PROJECT_OVERVIEW.project(record)).toEqual({
+      reference: 'HH-0000TEST',
+      services: ['Drywall'],
+      notSure: false,
+      submittedAt: '2026-10-21T12:00:00.000Z',
+      status: { ...status, since: '2026-10-21T12:00:00.000Z', text: 'We need to see the wall.' },
+      timeline: [{ kind: 'site_visit', at: '2026-10-21T12:00:00.000Z', text: 'We need to see the wall.' }],
+      appointment: null,
+      payment: { state: 'none' },
+      refreshedAt: '2026-10-21T12:00:00.000Z',
+      refreshSeconds: 30,
+    })
+    const list = PROJECT_LIST.project({
+      projects: [{ ...record, status: { ...status, since: at } }],
+      refreshedAt: at,
+      refreshSeconds: 30,
+    } as unknown as Parameters<typeof PROJECT_LIST.project>[0])
+    expect(list).toEqual({
+      projects: [
+        {
+          reference: 'HH-0000TEST',
+          services: ['Drywall'],
+          notSure: false,
+          submittedAt: '2026-10-21T12:00:00.000Z',
+          status: { ...status, since: '2026-10-21T12:00:00.000Z' },
+        },
+      ],
+      refreshedAt: '2026-10-21T12:00:00.000Z',
+      refreshSeconds: 30,
+    })
+    for (const schema of [PROJECT_OVERVIEW.schema, PROJECT_LIST.schema])
+      expect(fieldNames(schema).filter(forbiddenForCustomer)).toEqual([])
+  })
+
+  it('[TSK-0039][HH-PORT-09][HH-ARC-04] the tab views send only their state codes or counts, never a record field', () => {
+    const at = new Date('2026-10-21T12:00:00Z')
+    const head = { reference: 'HH-0000TEST', refreshedAt: at, refreshSeconds: 30 }
+    const out = { reference: 'HH-0000TEST', refreshedAt: '2026-10-21T12:00:00.000Z', refreshSeconds: 30 }
+    const extra = { internalNote: 'staff only', objectKey: 'requests/photos/x', id: 'photo-1' }
+    expect(PROJECT_MESSAGES.project({ ...head, ...extra, state: 'not_shown' })).toEqual({ ...out, state: 'not_shown' })
+    for (const view of [PROJECT_DOCUMENTS, PROJECT_APPOINTMENTS, PROJECT_PAYMENTS])
+      expect(view.project({ ...head, ...extra, state: 'none' })).toEqual({ ...out, state: 'none' })
+    expect(
+      PROJECT_PHOTOS.project({
+        ...head,
+        ...extra,
+        photos: { received: 2, processing: 1, failed: 0, ids: ['photo-1'] } as never,
+      }),
+    ).toEqual({ ...out, photos: { received: 2, processing: 1, failed: 0 } })
+    // The states are closed sets: a tab cannot answer "paid", "read" or a list it does not have yet.
+    expect(PROJECT_MESSAGES.schema).toMatchObject({ properties: { state: { enum: ['not_shown'] } } })
+    for (const view of [PROJECT_DOCUMENTS, PROJECT_APPOINTMENTS, PROJECT_PAYMENTS])
+      expect(view.schema).toMatchObject({ additionalProperties: false, properties: { state: { enum: ['none'] } } })
+    expect(PROJECT_PHOTOS.schema).toMatchObject({
+      properties: { photos: { additionalProperties: false, required: ['received', 'processing', 'failed'] } },
+    })
   })
 })
