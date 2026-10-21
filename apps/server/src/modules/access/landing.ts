@@ -25,7 +25,7 @@ import {
   type StartedSession,
 } from '../identity/index.js'
 import { currentConsent } from '../notifications/index.js'
-import { recordChannelVerified, type ContactChannel } from '../verification/contact-verification.js'
+import { codeState, recordChannelVerified, type ContactChannel } from '../verification/contact-verification.js'
 import { issueGrant, liveGrantOfProject, markVerified, revokeProjectGrants, type Grant } from './grants.js'
 
 const PURPOSE = 'project_access' as const
@@ -116,11 +116,33 @@ async function startGrantSession(
   })
 }
 
-export type ExchangeResult = { ok: true; session: StartedSession; projectId: string } | { ok: false }
+export type ExchangeResult =
+  | { ok: true; session: StartedSession; projectId: string }
+  /** `ended`: this grant's latest code for the channel can no longer be used (TSK-0035, HH-ID-09). */
+  | { ok: false; ended: boolean }
 
 /**
- * The verified exchange: the code of the grant's channel, entered by POST. Every failure is the same neutral outcome
- * and its attempt is counted (the caller commits before answering it).
+ * Whether the grant's latest code for a channel can no longer be used: none was sent, it was used, it ran out, it was
+ * replaced, or its attempts are used up (TSK-0035; HH-ID-09 "exhausted verification attempts show a neutral recovery
+ * page"). Only the holder of this grant's own link learns it, about that link's own code; it says nothing about any
+ * contact, project or account.
+ */
+async function codeEnded(tx: Tx, grant: Grant, channel: ContactChannel, now: Date): Promise<boolean> {
+  const row = await tx
+    .selectFrom('identity.verification_codes')
+    .select(['destination', 'consumed_at', 'superseded_at', 'expires_at', 'attempts', 'max_attempts'])
+    .where('purpose', '=', PURPOSE)
+    .where('subject_ref', '=', grantSubject(grant.id, channel))
+    .orderBy('created_at', 'desc')
+    .limit(1)
+    .executeTakeFirst()
+  return !row || codeState(row, now) !== 'pending'
+}
+
+/**
+ * The verified exchange: the code of the grant's channel, entered by POST. Every wrong code is the same neutral
+ * outcome and its attempt is counted (the caller commits before answering it); once the code can no longer be used
+ * (expired, used, replaced or out of attempts) the outcome says so, so the page offers a new code instead.
  */
 export async function exchangeAccessCode(
   tx: Tx,
@@ -138,7 +160,8 @@ export async function exchangeAccessCode(
     ...(input.clientIp ? { clientIp: input.clientIp } : {}),
     now,
   })
-  if (!result.ok || result.destination !== destination) return { ok: false }
+  if (!result.ok || result.destination !== destination)
+    return { ok: false, ended: await codeEnded(tx, input.grant, input.channel, now) }
   await recordChannelVerified(tx, t.contactId, input.channel, destination)
   const session = await startGrantSession(tx, input.grant, now, input.replaces)
   return { ok: true, session, projectId: input.grant.projectId }

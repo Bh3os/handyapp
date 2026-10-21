@@ -2,7 +2,9 @@
 // receipt this browser tab kept when the server confirmed the save (receipt.ts), and nothing else. Without that record
 // (another browser, an old tab, a guessed or shared reference) it says the receipt is not available here: it never
 // shows "Your request is in." on a guess, and it never asks the server about the reference, which grants nothing.
-// The photos keep the counts the receipt recorded; their retry needs the photos this page no longer holds.
+// The photos show the counts as the sending page last wrote them back, with the time they were taken: this page has
+// no upload capability (it is never stored), so it cannot check them again, and their retry needs the photos it no
+// longer holds (T13).
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { StateView } from '@handyhub/ui'
 import { useEffect, useRef, useState } from 'react'

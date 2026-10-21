@@ -9,6 +9,8 @@ import {
   type TransitionContext,
   type TransitionResult,
 } from './engine.js'
+import { ESTIMATE_VERSION_MACHINE } from './estimate.js'
+import { HOLD_MACHINE } from './hold.js'
 import { PROJECT_MACHINE } from './project.js'
 import { REQUEST_MACHINE } from './request.js'
 
@@ -33,12 +35,35 @@ export { NOT_A_FIT_CATEGORIES, REQUEST_CLOSED_STATES, REQUEST_MACHINE, REQUEST_S
 export type { NotAFitCategory, RequestFacts, RequestState } from './request.js'
 export {
   ACTION_EVENTS,
+  flaggedHazards,
+  newlyFlaggedHazards,
   NOT_A_FIT_EVENTS,
   QUALIFICATION_CHECKS,
   QUALIFICATION_OUTCOMES,
+  qualificationProblems,
   REQUEST_ACTIONS,
   unqualifiedChecks,
 } from './qualification.js'
+export {
+  BLOCKING_HOLD_STATES,
+  HAZARD_CATEGORIES,
+  HOLD_KINDS,
+  HOLD_MACHINE,
+  HOLD_STATES,
+  isBlockingHold,
+} from './hold.js'
+export type { HazardCategory, HoldFacts, HoldKind, HoldState } from './hold.js'
+export {
+  addBusinessMinutes,
+  BusinessHoursError,
+  businessMinutesBetween,
+  isWithinHours,
+  nextOpening,
+  readClock,
+  zonedParts,
+  zonedTimeToUtc,
+} from './business-hours.js'
+export type { ClockReading, DailyHours } from './business-hours.js'
 export type {
   Qualification,
   QualificationCheck,
@@ -67,11 +92,24 @@ export type {
   PortalFacts,
   WaitingOn,
 } from './portal.js'
+export {
+  acceptanceProblem,
+  EDITABLE_ESTIMATE_STATES,
+  effectiveEstimateState,
+  ESTIMATE_VERSION_MACHINE,
+  ESTIMATE_VERSION_STATES,
+  estimateValidUntil,
+  FINAL_ESTIMATE_STATES,
+  isEditableEstimateState,
+} from './estimate.js'
+export type { EstimateVersionEvent, EstimateVersionFacts, EstimateVersionState } from './estimate.js'
 
 /** Every machine, keyed `<entity>.<dimension>`. One key per state dimension, so dimensions never share a state. */
 export const MACHINES = {
   'request.lifecycle': REQUEST_MACHINE,
   'project.lifecycle': PROJECT_MACHINE,
+  'hold.lifecycle': HOLD_MACHINE,
+  'estimate_version.lifecycle': ESTIMATE_VERSION_MACHINE,
 } as const
 export type MachineKey = keyof typeof MACHINES
 type M<K extends MachineKey> = (typeof MACHINES)[K]

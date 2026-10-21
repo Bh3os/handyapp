@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { describe, expect, it } from 'vitest'
 import { copyProblems } from '../src/site/claims.js'
-import { parseReceipt, type ReceiptRecord } from '../src/request/receipt.js'
+import { parseReceipt, withAccountDeclined, type ReceiptRecord } from '../src/request/receipt.js'
 import {
   api,
   minutesLeft,
@@ -165,6 +165,16 @@ describe('the receipt keeps its capability in this tab only (TSK-0033)', () => {
     expect((parseReceipt(record({ capability: CAP, accountOffer: 'declined' })) as ReceiptRecord).capability).toBe(CAP)
     expect(parseReceipt(record({ capability: 'short' }))).toBeNull()
     expect(parseReceipt(record({ accountOffer: 'accepted' }))).toBeNull()
+  })
+
+  it('[HH-INT-14][T13] declining keeps the photo counts the tab wrote back since, and only this request’s record', () => {
+    const shown = record({ capability: CAP }) as unknown as ReceiptRecord
+    const counts = { received: 2, processing: 0, failed: 0 }
+    const stored = { ...shown, photos: counts, photosCheckedAt: '2026-01-02T03:04:05.000Z' }
+    expect(withAccountDeclined(stored, shown)).toEqual({ ...stored, accountOffer: 'declined' })
+    expect(withAccountDeclined(null, shown)).toEqual({ ...shown, accountOffer: 'declined' })
+    const other = { ...stored, reference: 'HH-OTHER-0000' }
+    expect(withAccountDeclined(other, shown)).toEqual({ ...shown, accountOffer: 'declined' })
   })
 })
 

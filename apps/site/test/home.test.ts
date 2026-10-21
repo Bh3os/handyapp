@@ -78,6 +78,7 @@ describe('homepage wording (TSK-0020, HH-CUS-06, OWN-DEC-86)', () => {
       'OWN-DEC-51': 'owner, 2026-10-06',
       'OWN-DEC-135': 'owner, 2026-10-20',
       'OWN-DEC-134': 'owner, 2026-10-20',
+      'OWN-DEC-145': 'owner, 2026-10-20',
     }
     for (const claim of CLAIMS) {
       expect(customer[claim.key], claim.key).toBe(claim.text)

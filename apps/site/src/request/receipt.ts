@@ -9,6 +9,12 @@
 // - "Your project at a glance" is the customer's own submission (services, description, property address, preferred
 //   timing, contact details); it never shows existing customer history, an account or earlier projects.
 // - "What happens next?" comes from configuration through the same lines as the receipt email (nextStepsLines).
+// - The photo counts are written back to the tab's record whenever the page learns new ones (a Retry, a processing
+//   photo settling), with the time they were taken. A reload has no upload capability (it is never stored), so it
+//   cannot check again: it shows the counts as of that time instead of presenting them as current (T13).
+// - A key that had already created a request (TSK-0030: a 409 naming its reference) gets a receipt with that reference
+//   and the "already received" sentence only: what that request holds is not known here, so neither the project at a
+//   glance nor any photo count is shown for it.
 // - TSK-0033: the record also keeps the request's receipt capability (contact verification) and whether the guest
 //   declined the optional account offer.
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
@@ -31,10 +37,16 @@ export type ResponseFacts = { visitHours: VisitHours | null; responseMinutes: nu
 export type ReceiptRecord = {
   v: 1
   reference: string
-  submittedAt: string
+  /** When the server saved the request; null when the answer did not say (a key that had already created it). */
+  submittedAt: string | null
+  /** Empty for a request received earlier under the same key: what it holds is not known here. */
   glance: GlanceEntry[]
-  /** Null when the request was sent without photos. */
+  /** Null when the request was sent without photos, or when its photos are not known here. */
   photos: PhotoCounts | null
+  /** When the photo counts were taken (ISO time); set whenever `photos` is. */
+  photosCheckedAt?: string
+  /** The key had already created this request with other details (TSK-0030): changes since were not included. */
+  already?: boolean
   facts: ResponseFacts
   /**
    * TSK-0033: the receipt capability the server returned with the saved request (Receipt-Capability), for this
@@ -95,6 +107,67 @@ export function receiptGlance(
   return entries.map((e) => ({ ...e, lines: e.lines.filter((l) => l !== '') })).filter((e) => e.lines.length > 0)
 }
 
+/** What the wizard knows when the server confirms a save, from which the receipt record is built. */
+export type SavedSend = {
+  reference: string
+  /** 'already': the key had already created this request (a 409 naming it); nothing of this send was saved. */
+  kind: 'sent' | 'already'
+  submittedAt: string | null
+  /** The server's counts of the photos it bound to the request; null when none were bound or not known. */
+  photos: PhotoCounts | null
+  /** Photos that failed in the browser and never reached the server. */
+  notStored: number
+  glance: GlanceEntry[]
+  facts: ResponseFacts
+  now: Date
+}
+
+/**
+ * The receipt record for a confirmed save. Only what is known is recorded: for a request received earlier under the
+ * same key there is no glance and no photo count (nothing is invented, HH-INT-12, RULE-NO-INVENTED-FACTS).
+ */
+export function receiptRecord(saved: SavedSend): ReceiptRecord {
+  const base = { v: 1 as const, reference: saved.reference, submittedAt: saved.submittedAt, facts: saved.facts }
+  if (saved.kind === 'already') return { ...base, glance: [], photos: null, already: true }
+  const photos = saved.photos
+    ? { ...saved.photos, failed: saved.photos.failed + saved.notStored }
+    : saved.notStored
+      ? { received: 0, processing: 0, failed: saved.notStored }
+      : null
+  return {
+    ...base,
+    glance: saved.glance,
+    photos,
+    // The server took its counts when it saved the request.
+    ...(photos ? { photosCheckedAt: saved.submittedAt ?? saved.now.toISOString() } : {}),
+  }
+}
+
+/** The record with the counts this page has just learned, so a reload shows them with the time they were taken. */
+export function withPhotoCounts(record: ReceiptRecord, photos: PhotoCounts, checkedAt: string): ReceiptRecord {
+  return { ...record, photos, photosCheckedAt: checkedAt }
+}
+
+/**
+ * The record after the guest declined the account offer (TSK-0033): on top of the tab's record as last written, when it
+ * is this request's, so photo counts written back since (T13) are kept.
+ */
+export function withAccountDeclined(stored: ReceiptRecord | null, record: ReceiptRecord): ReceiptRecord {
+  const latest = stored?.reference === record.reference ? stored : record
+  return { ...latest, accountOffer: 'declined' }
+}
+
+/** The time photo counts were taken, for "as of" wording; '' when it is not a readable time. */
+export function checkedAtText(iso: string | undefined, zone?: string): string {
+  const at = iso ? new Date(iso) : null
+  if (!at || Number.isNaN(at.getTime())) return ''
+  return new Intl.DateTimeFormat('en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    ...(zone ? { timeZone: zone } : {}),
+  }).format(at)
+}
+
 /** The response sentences of "What happens next?", as one paragraph; only the first while the facts are unknown. */
 export function nextStepsText(facts: ResponseFacts): string {
   return nextStepsLines(facts)
@@ -123,7 +196,9 @@ export function parseReceipt(raw: unknown): ReceiptRecord | null {
   if (typeof raw !== 'object' || raw === null) return null
   const r = raw as Record<string, unknown>
   if (r['v'] !== 1 || typeof r['reference'] !== 'string' || !REFERENCE_PATTERN.test(r['reference'])) return null
-  if (typeof r['submittedAt'] !== 'string') return null
+  if (r['submittedAt'] !== null && typeof r['submittedAt'] !== 'string') return null
+  if (r['photosCheckedAt'] !== undefined && typeof r['photosCheckedAt'] !== 'string') return null
+  if (r['already'] !== undefined && typeof r['already'] !== 'boolean') return null
   const glance = r['glance']
   if (
     !Array.isArray(glance) ||
@@ -144,6 +219,8 @@ export function parseReceipt(raw: unknown): ReceiptRecord | null {
     !(typeof photos === 'object' && ['received', 'processing', 'failed'].every((k) => isCount(photos[k])))
   )
     return null
+  // Counts are always kept with the time they were taken, so a reload never shows them as current.
+  if (photos !== null && typeof r['photosCheckedAt'] !== 'string') return null
   const facts = r['facts'] as Record<string, unknown> | null
   if (typeof facts !== 'object' || facts === null) return null
   const hours = facts['visitHours'] as Record<string, unknown> | null

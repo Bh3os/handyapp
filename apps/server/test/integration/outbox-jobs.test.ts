@@ -246,6 +246,44 @@ describe('job worker (TSK-0012, HH-ARC-09, HH-AUTO-01)', () => {
     ).rejects.toThrow(/not in the failed state/)
   })
 
+  it('[HH-ARC-09] runs the final-failure hook once, after the failure is recorded; an error in it changes nothing', async () => {
+    const seen: { attempt: number; errorClass: string; state: string | undefined }[] = []
+    const hooked = automation('hooked_test.send', {
+      retry: { maxAttempts: 2, baseDelayMs: 1, maxDelayMs: 1 },
+      handle: async () => {
+        throw Object.assign(new Error('rejected'), { name: 'ProviderRejected' })
+      },
+      onFinalFailure: async ({ tx, job, errorClass }) => {
+        const row = await tx.selectFrom('platform.jobs').select('state').where('id', '=', job.id).executeTakeFirst()
+        seen.push({ attempt: job.attempt, errorClass, state: row?.state })
+        await sql`INSERT INTO public.effects VALUES ('hooked_test.send', ${job.key}, 'final-failure')`.execute(tx)
+      },
+    })
+    const failing = automation('failing_hook_test.send', {
+      retry: { maxAttempts: 1, baseDelayMs: 1, maxDelayMs: 1 },
+      handle: async () => {
+        throw new Error('rejected')
+      },
+      onFinalFailure: async ({ tx }) => {
+        await sql`INSERT INTO public.effects VALUES ('failing_hook_test.send', 'x', 'never kept')`.execute(tx)
+        throw new Error('synthetic hook failure')
+      },
+    })
+    const worker = createWorker({ db: t.db, registry: createAutomationRegistry([hooked, failing]) })
+    await submit('r-hooked')
+    for (let i = 0; i < 3; i++) {
+      await worker.runOnce()
+      await tick()
+    }
+    // Called once, after the last attempt, with the job already recorded as failed.
+    expect(seen).toEqual([{ attempt: 2, errorClass: 'ProviderRejected', state: 'failed' }])
+    expect(await effects()).toEqual([{ automation: 'hooked_test.send', target: 'final-failure' }])
+    expect((await jobs()).map((j) => [j.automation, j.state])).toEqual([
+      ['hooked_test.send', 'failed'],
+      ['failing_hook_test.send', 'failed'],
+    ])
+  })
+
   it('records a consumer that finds its effect outdated as cancelled, with no effect', async () => {
     const stale = automation('stale_test.send', { handle: async () => 'cancelled' })
     const worker = createWorker({ db: t.db, registry: createAutomationRegistry([stale]) })

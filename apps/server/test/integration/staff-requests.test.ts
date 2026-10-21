@@ -359,14 +359,25 @@ describe('responsible staff member, qualification and internal notes (TSK-0042, 
     const r = await newRequest()
     const first = await qualify('estimator', r.id, { ...ALL_OK, risk_flags: { outcome: 'not_checked' } })
     expect(first.statusCode).toBe(200)
-    expect(first.json()).toEqual({ revision: 1, missingChecks: ['risk_flags'] })
+    expect(first.json()).toEqual({ revision: 1, missingChecks: ['risk_flags'], holdsOpened: [] })
     expect((await qualify('estimator', r.id, ALL_OK, 0)).statusCode).toBe(409)
-    const flagged = { ...ALL_OK, risk_flags: { outcome: 'attention', note: 'Possible water damage near wiring' } }
-    expect((await qualify('office', r.id, flagged, 1)).json()).toEqual({ revision: 2, missingChecks: [] })
+    // TSK-0043: a flagged risk names what the potential hazard is about; it becomes a review hold (HH-LEAD-04).
+    const vague = { ...ALL_OK, risk_flags: { outcome: 'attention', note: 'Possible water damage near wiring' } }
+    const refusedVague = await qualify('office', r.id, vague, 1)
+    expect(refusedVague.statusCode).toBe(409)
+    expect(codes(refusedVague)).toEqual(['HAZARD_CATEGORY_REQUIRED'])
+    const flagged = {
+      ...ALL_OK,
+      risk_flags: { outcome: 'attention', note: 'Possible water damage near wiring', hazards: ['licensed_trade'] },
+    }
+    const saved = await qualify('office', r.id, flagged, 1)
+    expect(saved.json()).toMatchObject({ revision: 2, missingChecks: [], holdsOpened: [expect.any(String)] })
     const d = await detail('owner', r.id)
     expect(d.qualification).toMatchObject({
       revision: 2,
-      checks: { risk_flags: { outcome: 'attention', note: 'Possible water damage near wiring' } },
+      checks: {
+        risk_flags: { outcome: 'attention', note: 'Possible water damage near wiring', hazards: ['licensed_trade'] },
+      },
     })
     // Every check must be answered; an unknown check is refused.
     const partial = await qualify('office', r.id, { coverage: { outcome: 'ok' } }, 2)
@@ -414,7 +425,7 @@ describe('responsible staff member, qualification and internal notes (TSK-0042, 
 })
 
 describe('the four actions (TSK-0042, HH-LEAD-02, HH-SVC-04, OWN-DEC-99, OWN-DEC-116)', () => {
-  it('[HH-LEAD-02] Ask a Question moves the request to needs information, resolves its queue item, sends nothing', async () => {
+  it('[HH-LEAD-02][HH-LEAD-05] Ask a Question moves the request to needs information, sends nothing and leaves the clock running', async () => {
     const r = await newRequest()
     await runQueueWorker()
     expect((await write('office', 'POST', action(r.id, 'ask-question'), {})).statusCode).toBe(428)
@@ -453,13 +464,14 @@ describe('the four actions (TSK-0042, HH-LEAD-02, HH-SVC-04, OWN-DEC-99, OWN-DEC
         internalNote: 'Need ceiling height',
       }),
     ])
+    // Asking is not yet a response (TSK-0043, OWN-DEC-116): the item stays, awaiting a first meaningful response.
     const item = await t.db
       .selectFrom('ops.queue_items')
-      .select(['resolution'])
+      .select(['resolution', 'reason', 'subject_status'])
       .where('subject_id', '=', r.id)
       .where('type', '=', 'new_request')
       .executeTakeFirstOrThrow()
-    expect(item.resolution).toBe('handled')
+    expect(item).toEqual({ resolution: null, reason: 'awaiting_first_response', subject_status: 'needs_information' })
     const events = await t.db
       .selectFrom('platform.outbox_events')
       .select('type')
