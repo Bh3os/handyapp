@@ -12,8 +12,8 @@
 // - Internal costs and notes are written only by a role the policy allows estimate.view_internal_cost (TSK-0053): a
 //   caller who may not see them cannot send them either, and a save that leaves them out keeps them as they are (an
 //   omitted line cost or internal block is kept; null removes it), so another estimator's save never wipes them.
-// - Only draft and in-review versions are written; the database refuses any change to a published version, its
-//   lines and its internal costs (migration 0026). Lifecycle transitions and publishing are TSK-0055.
+// - Only draft and in-review versions of an open project are written; the database refuses any change to a published
+//   version, its lines and its internal costs (migration 0026). Lifecycle transitions and publishing are TSK-0055.
 import type { Tx } from '@handyhub/db'
 import {
   type BasisPoints,
@@ -329,6 +329,18 @@ export async function saveDraft(
     ).effect !== 'allow'
   )
     throw new ApiError('FORBIDDEN')
+  // Only a draft of an open project is written, as createEstimate requires and the builder's canEdit shows; the
+  // share lock waits for a Not a Fit or Owner routing that is closing the project (RULE-SERVER-AUTHZ).
+  const project = await tx
+    .selectFrom('crm.projects')
+    .select('state')
+    .where('id', '=', current.project_id)
+    .forShare()
+    .executeTakeFirstOrThrow()
+  if (project.state !== 'open')
+    throw new ApiError('CONFLICT', {
+      fieldErrors: [field('projectId', 'PROJECT_NOT_OPEN', 'The project is not open.')],
+    })
   if (!(EDITABLE_STATES as readonly string[]).includes(current.state)) {
     throw new ApiError('CONFLICT', {
       fieldErrors: [field('state', 'VERSION_NOT_EDITABLE', 'A published version is not edited; revise it instead.')],

@@ -92,8 +92,10 @@ export function newRequestQueueAutomation(): Automation {
  * Brings a request's pending-estimate item (estimate_to_write) in line with the request as it is now (HH-OPS-01
  * "pending estimates", TSK-0053): a request ready for its estimate, on an open project, has its one open item, with the
  * reason "estimate draft" once a draft or in-review version of the project exists; any other request has none (resolved
- * as handled). The provider below runs it from request.ready_for_estimate; the estimates module runs it in the same
- * transaction as creating an estimate, so the item never shows a stale reason.
+ * as handled). The provider below runs it from request.ready_for_estimate; the requests module runs it in the same
+ * transaction as every action that moves the request or closes or routes its project (Prepare Online Estimate, Ask a
+ * Question, Arrange Estimate Visit, Not a Fit) and as an assignment, and the estimates module as creating an estimate,
+ * so the item never shows a stale reason, status or assignee, and never outlives the request's readiness.
  */
 export async function syncEstimateItem(tx: Tx, requestId: string): Promise<'open' | 'resolved' | 'missing'> {
   const request = await tx

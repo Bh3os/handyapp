@@ -5688,7 +5688,7 @@
       "put": {
         "operationId": "saveEstimateDraft",
         "summary": "Save the estimate draft",
-        "description": "Staff with estimate.draft, on a draft or in-review version, with If-Match: the row version shown. Replaces the whole content (lines in order, options, texts, discount category; internal costs and notes only with estimate.view_internal_cost, kept when left out). The server computes every line amount half-up and the totals from the active configuration; client amounts are never read. An incomplete draft is saved with its totals empty; an invalid value is refused with field errors and nothing is stored. Returns the builder view.",
+        "description": "Staff with estimate.draft, on a draft or in-review version of an open project (else 409 PROJECT_NOT_OPEN), with If-Match: the row version shown. Replaces the whole content (lines in order, options, texts, discount category; internal costs and notes only with estimate.view_internal_cost, kept when left out). The server computes every line amount half-up and the totals from the active configuration; client amounts are never read. An incomplete draft is saved with its totals empty; an invalid value is refused with field errors and nothing is stored. Returns the builder view.",
         "tags": [
           "estimates"
         ],
