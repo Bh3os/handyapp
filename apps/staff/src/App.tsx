@@ -9,6 +9,7 @@ import { call, setCsrfToken, type ApiErrorBody, type Fetch } from './api'
 import { EstimatePublishingSetting } from './EstimateLifecycle'
 import { EstimateBuilder, EstimatesScreen } from './Estimates'
 import { CustomerRecord, CustomersScreen } from './Customers'
+import { InboxRecord, InboxScreen } from './Inbox'
 import { PropertyRecord } from './Property'
 import { QueueHome } from './Queue'
 import { MergeReview, RelinkRequest } from './RecordLinks'
@@ -257,6 +258,10 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
               go={go}
               href={href}
             />
+          ) : shown === 'inbox' && allowed && route.page === 'screen' ? (
+            <InboxScreen t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
+          ) : route.page === 'record' && route.screen === 'inbox' && allowed ? (
+            <InboxRecord key={route.id} t={t} locale={locale} fetchImpl={doFetch} id={route.id} go={go} href={href} />
           ) : route.page === 'record-step' && route.screen === 'customers' && route.step === 'merge' && allowed ? (
             <MergeReview
               key={`${route.id}-${route.params['into'] ?? ''}`}

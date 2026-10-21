@@ -48,6 +48,9 @@ function coverageCli(...args: string[]): string {
 }
 
 async function check(page: Page, zip: string) {
+  // The checker is a client:load island: a ZIP typed into the server-rendered form before it hydrates is lost (and
+  // a click submits the bare HTML form). Astro removes the island's `ssr` attribute once it has hydrated.
+  await expect(page.locator('astro-island', { has: page.locator('.hh-coverage__form') })).not.toHaveAttribute('ssr')
   await page.getByLabel('ZIP code', { exact: true }).fill(zip)
   await page.getByRole('button', { name: 'Check ZIP' }).click()
 }

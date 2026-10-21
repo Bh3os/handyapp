@@ -8,6 +8,7 @@ import { COVERAGE_MODULE } from './coverage/index.js'
 import type { EnvironmentName } from '../config.js'
 import { estimatesModule } from './estimates/index.js'
 import { CUSTOMERS_MODULE } from './customers/index.js'
+import { inboxModule } from './inbox/index.js'
 import { NOTIFICATIONS_MODULE } from './notifications/index.js'
 import { photosModule } from './photos/index.js'
 import { propertiesModule } from './properties/index.js'
@@ -72,6 +73,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     portalModule(),
     // TSK-0044: staff customer and contact records, notes with visibility classes and duplicate suggestions.
     CUSTOMERS_MODULE,
+    // TSK-0049: the unified inbox, Needs Linking and the inbound channel states (from this process's settings).
+    inboxModule({ providers: deps.system?.providers ?? null }),
     // TSK-0045: property records and the protected access-code store.
     propertiesModule({ accessCodeKey: deps.accessCodeKey ?? null }),
   ]

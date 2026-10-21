@@ -5,6 +5,7 @@ import pino from 'pino'
 import type { Logger } from '../platform/logger.js'
 import { BirdSmsSender, FakeSmsSender } from './bird/index.js'
 import { destinationPolicy, guardEmail, guardSms, type DestinationPolicy } from './destinations.js'
+import { FakeInboundReader, ResendInboundReader, type InboundEmailReader } from './inbound.js'
 import { FakeObjectStorage, R2ObjectStorage, type ObjectStorage } from './r2/index.js'
 import { FakeEmailSender, ResendEmailSender } from './resend/index.js'
 import type { ProviderSettings } from './settings.js'
@@ -14,9 +15,20 @@ export type Providers = {
   email: EmailSender | null
   sms: SmsSender | null
   storage: ObjectStorage | null
+  /**
+   * TSK-0049: reads the body and headers of a received email (Resend's webhook carries metadata only). The Resend
+   * reader needs the e-mail channel's API key; the fake (local and ci) reads only synthetic test payloads; null while
+   * e-mail is NOT CONFIGURED, so an inbound email's body is recorded as not retrieved.
+   */
+  inboundEmail: InboundEmailReader | null
   policy: DestinationPolicy
   /** The unguarded fakes, for tests to read what was "sent"; null when the channel is not a fake. */
-  fakes: { email: FakeEmailSender | null; sms: FakeSmsSender | null; storage: FakeObjectStorage | null }
+  fakes: {
+    email: FakeEmailSender | null
+    sms: FakeSmsSender | null
+    storage: FakeObjectStorage | null
+    inboundEmail: FakeInboundReader | null
+  }
 }
 
 export function createProviders(
@@ -32,12 +44,21 @@ export function createProviders(
     settings.email.adapter === 'resend' ? new ResendEmailSender(settings.email, options.fetchImpl) : fakeEmail
   const sms = settings.sms.adapter === 'bird' ? new BirdSmsSender(settings.sms, options.fetchImpl) : fakeSms
   const storage = settings.storage.adapter === 'r2' ? new R2ObjectStorage(settings.storage) : fakeStorage
+  const fakeInbound = settings.email.adapter === 'fake' ? new FakeInboundReader() : null
+  const inboundEmail =
+    settings.email.adapter === 'resend'
+      ? new ResendInboundReader(
+          { apiKey: settings.email.apiKey, apiBaseUrl: settings.email.apiBaseUrl },
+          options.fetchImpl,
+        )
+      : fakeInbound
   return {
     email: email ? guardEmail(email, policy, log) : null,
     sms: sms ? guardSms(sms, policy, log) : null,
     storage,
+    inboundEmail,
     policy,
-    fakes: { email: fakeEmail, sms: fakeSms, storage: fakeStorage },
+    fakes: { email: fakeEmail, sms: fakeSms, storage: fakeStorage, inboundEmail: fakeInbound },
   }
 }
 
@@ -52,12 +73,14 @@ export function providerStatus(settings: ProviderSettings) {
     inbound: {
       bird: settings.webhookSecrets.bird ? 'configured' : 'not_configured',
       resend: settings.webhookSecrets.resend ? 'configured' : 'not_configured',
+      replyAddress: settings.inbound.emailAddress ? 'configured' : 'not_configured',
     },
     testDestinations: settings.environment === 'production' ? 'off' : 'on',
   }
 }
 
 export type { DestinationPolicy } from './destinations.js'
+export type { InboundEmailReader } from './inbound.js'
 export type { ObjectStorage } from './r2/index.js'
 export type { ProviderSettings } from './settings.js'
 export type { EmailMessage, EmailSender, SendOutcome, SmsMessage, SmsSender } from './types.js'
