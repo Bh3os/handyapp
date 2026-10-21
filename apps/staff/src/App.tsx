@@ -8,6 +8,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { call, setCsrfToken, type ApiErrorBody, type Fetch } from './api'
 import { CustomerRecord, CustomersScreen } from './Customers'
 import { QueueHome } from './Queue'
+import { MergeReview, RelinkRequest } from './RecordLinks'
 import { RequestRecord } from './Record'
 import { RequestsScreen } from './Requests'
 import { SearchScreen, Screen, Shell, type Navigation } from './Shell'
@@ -38,6 +39,8 @@ export type Route =
   | { page: 'screen'; id: string }
   /** A record below a screen, as the action queue's deep links open it (TSK-0041): `/<screen>/<record id>`. */
   | { page: 'record'; screen: string; id: string }
+  /** A step on a record (TSK-0046): `/customers/<id>/merge?into=<id>`, `/requests/<id>/relink`. */
+  | { page: 'record-step'; screen: string; id: string; step: 'merge' | 'relink'; params: Record<string, string> }
 
 /** The page for a path (with its query) below the app's base (/staff/ when served by the server). */
 export function routeOf(path: string, base = '/'): Route {
@@ -48,6 +51,15 @@ export function routeOf(path: string, base = '/'): Route {
   if (/^\/sign-in\/?$/.test(rest)) return { page: 'sign-in' }
   if (/^\/account\/?$/.test(rest)) return { page: 'account' }
   if (/^\/search\/?$/.test(rest)) return { page: 'search', query: new URLSearchParams(search).get('q') ?? '' }
+  const step = /^\/([a-z-]{1,40})\/([0-9a-fA-F-]{36})\/(merge|relink)\/?$/.exec(rest)
+  if (step)
+    return {
+      page: 'record-step',
+      screen: step[1] as string,
+      id: (step[2] as string).toLowerCase(),
+      step: step[3] as 'merge' | 'relink',
+      params: Object.fromEntries(new URLSearchParams(search)),
+    }
   const record = /^\/([a-z-]{1,40})\/([0-9a-fA-F-]{36})\/?$/.exec(rest)
   if (record) return { page: 'record', screen: record[1] as string, id: (record[2] as string).toLowerCase() }
   const screen = /^\/([a-z-]{1,40})\/?$/.exec(rest)
@@ -173,7 +185,7 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
     const shown =
       route.page === 'screen'
         ? route.id
-        : route.page === 'record'
+        : route.page === 'record' || route.page === 'record-step'
           ? route.screen
           : route.page === 'home'
             ? (nav?.home ?? 'home')
@@ -229,6 +241,27 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
               locale={locale}
               fetchImpl={doFetch}
               id={route.id}
+              go={go}
+              href={href}
+            />
+          ) : route.page === 'record-step' && route.screen === 'customers' && route.step === 'merge' && allowed ? (
+            <MergeReview
+              key={`${route.id}-${route.params['into'] ?? ''}`}
+              t={t}
+              locale={locale}
+              fetchImpl={doFetch}
+              id={route.id}
+              into={route.params['into'] ?? ''}
+              go={go}
+              href={href}
+            />
+          ) : route.page === 'record-step' && route.screen === 'requests' && route.step === 'relink' && allowed ? (
+            <RelinkRequest
+              key={route.id}
+              t={t}
+              locale={locale}
+              fetchImpl={doFetch}
+              requestId={route.id}
               go={go}
               href={href}
             />

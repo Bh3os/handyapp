@@ -153,6 +153,28 @@ export interface CrmRecordChangesTable {
   changed_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface CrmRecordLinksTable {
+  id: Generated<string>
+  seq: ColumnType<string, bigint | number | string | undefined, bigint | number | string>
+  kind: string
+  source_customer_id: string
+  target_customer_id: string
+  source_status: string | null
+  request_id: string | null
+  project_id: string | null
+  candidate_match_id: string | null
+  reason: string
+  preview: Json
+  correction: boolean
+  access_recheck: Json
+  performed_by: string
+  performed_at: ColumnType<Date, Date | string | undefined, Date | string>
+  reversed_at: Timestamp | null
+  reversed_by: string | null
+  reverse_reason: string | null
+  reversal_recheck: Json | null
+}
+
 export interface IdentityAuthIdentitiesTable {
   id: Generated<string>
   staff_user_id: string
@@ -692,6 +714,7 @@ export interface Database {
   'crm.projects': CrmProjectsTable
   'crm.properties': CrmPropertiesTable
   'crm.record_changes': CrmRecordChangesTable
+  'crm.record_links': CrmRecordLinksTable
   'identity.auth_identities': IdentityAuthIdentitiesTable
   'identity.customer_sessions': IdentityCustomerSessionsTable
   'identity.project_access_grants': IdentityProjectAccessGrantsTable

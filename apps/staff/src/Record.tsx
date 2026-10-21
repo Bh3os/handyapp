@@ -109,6 +109,8 @@ export type RequestDetail = {
     assign: boolean
     qualify: boolean
     addNote: boolean
+    /** TSK-0046: link the request to another customer or correct its link (with a preview and a reason). */
+    relink?: boolean
   }
   serviceCatalog: { id: string; code: string }[]
 }
@@ -228,6 +230,21 @@ export function RequestRecord({
           >
             {view.customer.displayName}
           </a>
+          {view.actions.relink ? (
+            <>
+              {' · '}
+              <a
+                href={href(`/requests/${view.id}/relink`)}
+                onClick={(e: MouseEvent<HTMLAnchorElement>) => {
+                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
+                  e.preventDefault()
+                  go(`/requests/${view.id}/relink`)
+                }}
+              >
+                {t('customer.relinkRequest')}
+              </a>
+            </>
+          ) : null}
         </dd>
         <dt>{t('request.project')}</dt>
         <dd>{codeLabel(t, 'projectState', view.project.state)}</dd>

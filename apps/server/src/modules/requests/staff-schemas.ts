@@ -370,6 +370,7 @@ export const DETAIL = {
         'assign',
         'qualify',
         'addNote',
+        'relink',
       ],
       properties: {
         askQuestion: { type: 'boolean' },
@@ -379,6 +380,7 @@ export const DETAIL = {
         assign: { type: 'boolean' },
         qualify: { type: 'boolean' },
         addNote: { type: 'boolean' },
+        relink: { type: 'boolean' },
       },
     },
     serviceCatalog: {
