@@ -11,20 +11,25 @@
 //                                              TSK-0063)
 //   POST /staff/window-offers/:offerId/withdraw  withdraw an open offer, releasing its holds (visit.offer_windows,
 //                                              If-Match; TSK-0063)
+//   GET  /staff/schedule                       the scheduling board: a day or a week by worker, with every visit of
+//                                              the range (schedule.view_board; TSK-0065)
 // Every write takes an idempotency key and records its audit event with the local window, zone, offsets and instants.
 // The customer's side of an offer (select a window, ask for other times) is the portal module's (portal/appointments.ts).
 import type { Tx } from '@handyhub/db'
 import { ApiError } from '../../api/errors.js'
 import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
+import { scheduleBoard, type BoardQuery } from './board.js'
 import { WORK_VISIT_GATES, type WorkVisitGate } from './gates.js'
 import { offerWindows, windowOfferExpiryAutomation, withdrawOffer, type OfferInput } from './offers.js'
 import {
+  BOARD_QUERY,
   CONFIRM_BODY,
   NEW_VISIT_BODY,
   OFFER_BODY,
   OFFER_PARAMS,
   PROJECT_PARAMS,
   PROJECT_VISITS,
+  SCHEDULE_BOARD,
   VISIT_PARAMS,
   WINDOW_BODY,
   WITHDRAW_BODY,
@@ -43,6 +48,7 @@ import {
 const TEST = 'test/integration/visits.test.ts'
 const CAPACITY_TEST = 'test/integration/capacity.test.ts'
 const OFFERS_TEST = 'test/integration/window-offers.test.ts'
+const BOARD_TEST = 'test/integration/schedule-board.test.ts'
 
 export type VisitsDeps = {
   /** The gates every work-visit window passes (WORK_VISIT_GATES); tests may add their own. */
@@ -362,9 +368,43 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
     },
   }
 
-  return { name: 'visits', routes: [list, plan, move, confirm, offer, withdraw] }
+  const board: RouteDef = {
+    method: 'GET',
+    path: '/staff/schedule',
+    operationId: 'getScheduleBoard',
+    summary: 'The scheduling board: a day or a week by worker',
+    description:
+      'Staff with schedule.view_board (Owner, Office; Estimator PROPOSED), TSK-0065 (HH-SCH-13). One local day ' +
+      '(view=day, the default) or its week (view=week; PROPOSED: Monday to Sunday) of the business zone (NOT ' +
+      'CONFIGURED while business.timezone is unset); date defaults to today there, and visitId opens the date of that ' +
+      "visit's window (NOT_FOUND outside the caller's data scope). Every active staff member who may be reserved for a " +
+      'visit, with each day of the range: working periods (none while the Owner has not set them), approved time off, ' +
+      'the reservations and holds they carry (a hold is never a booking; a two-person visit is on both workers) and ' +
+      'the free time left (the remaining capacity, in minutes). Visits that reserve no worker yet are listed apart, by ' +
+      'day. Each visit of the range once: purpose (Estimate visits apart from work visits), state, version, arrival ' +
+      'window with its zone, expected work, the staff-entered travel and preparation buffers, workers needed, team, ' +
+      'items, whether its windows are offered, what still stops its confirmation (TSK-0064) and the actions the caller ' +
+      'may take: the same rules as the project visits. The board writes nothing: moving, confirming and offering ' +
+      'windows are the visit routes, each with If-Match, an idempotency key and every server check.',
+    actors: ['staff'],
+    permission: 'schedule.view_board',
+    kind: 'read',
+    idempotency: 'none',
+    expectedVersion: 'none',
+    rateLimit: 'none',
+    audit: 'none',
+    pagination: false,
+    test: BOARD_TEST,
+    schema: { querystring: BOARD_QUERY, response: { 200: SCHEDULE_BOARD } },
+    handler: async (ctx) => ({
+      body: await scheduleBoard(ctx.db, staffActor(ctx), ctx.scope, ctx.req.query as BoardQuery, { gates }),
+    }),
+  }
+
+  return { name: 'visits', routes: [list, plan, move, confirm, offer, withdraw, board] }
 }
 
+export { BOARD_VIEWS, boardDays, scheduleBoard, type ScheduleBoard } from './board.js'
 export { DEPOSIT_GATE, WORK_VISIT_GATES, unmetGates, type WorkVisitGate, type WorkVisitJob } from './gates.js'
 export {
   appointmentConfirmedAutomation,

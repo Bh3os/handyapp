@@ -693,3 +693,169 @@
   text-align: left;
   vertical-align: top;
 }
+
+/* Scheduling board (TSK-0065; HH-SCH-13, HH-A11Y-02, HH-A11Y-03): lanes by worker whose days wrap into as many
+   columns as fit, so the page never scrolls sideways (320 px included); a simple list for phones. An Estimate visit
+   differs from a work visit by its mark, border style and words, never by colour alone; a hold is dotted and says so. */
+.staff-shell__main:has(> .staff-board) {
+  max-width: 90rem;
+}
+
+.staff-board__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--hh-space-3) var(--hh-space-6);
+}
+
+.staff-board__switch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hh-space-2);
+}
+
+.staff-board__goto {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--hh-space-2);
+}
+
+.staff-board__notice {
+  margin: 0;
+  font-weight: 600;
+}
+
+.staff-board__lanes,
+.staff-board__list {
+  display: grid;
+  gap: var(--hh-space-4);
+  min-width: 0;
+}
+
+.staff-board__lane,
+.staff-board__list-day {
+  display: grid;
+  gap: var(--hh-space-2);
+  padding: var(--hh-space-3);
+  border: var(--hh-hairline);
+  border-radius: var(--hh-radius-sm);
+  min-width: 0;
+}
+
+.staff-board__lane--unassigned {
+  border-style: dashed;
+}
+
+.staff-board__lane-title,
+.staff-board__day-title {
+  margin: 0;
+}
+
+.staff-board__days {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 11rem), 1fr));
+  gap: var(--hh-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.staff-board__lanes[data-view='day'] .staff-board__days {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.staff-board__day {
+  display: grid;
+  align-content: start;
+  gap: var(--hh-space-1);
+  padding: var(--hh-space-2);
+  border: var(--hh-hairline);
+  border-radius: var(--hh-radius-sm);
+  background: var(--hh-surface);
+  min-width: 0;
+}
+
+.staff-board__day[data-drop='ok'] {
+  outline: 0.1875rem dashed var(--hh-focus);
+  outline-offset: 0.125rem;
+}
+
+.staff-board__capacity {
+  margin: 0;
+  color: var(--hh-muted);
+  overflow-wrap: anywhere;
+}
+
+.staff-board__entries {
+  display: grid;
+  gap: var(--hh-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.staff-board__item {
+  min-width: 0;
+}
+
+.staff-board__entry {
+  display: grid;
+  gap: var(--hh-space-1);
+  width: 100%;
+  min-height: var(--hh-target);
+  padding: var(--hh-space-2) var(--hh-space-3);
+  border: var(--hh-hairline);
+  border-left: 0.375rem solid var(--hh-line-strong);
+  border-radius: var(--hh-radius-sm);
+  background: var(--hh-surface);
+  color: var(--hh-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.staff-board__entry:hover {
+  background: var(--hh-tint);
+}
+
+.staff-board__entry--work {
+  border-left-color: var(--hh-action);
+}
+
+.staff-board__entry--estimate {
+  border-left-style: double;
+  border-left-color: var(--hh-info);
+  background: var(--hh-info-tint);
+}
+
+.staff-board__entry--hold {
+  border-style: dotted;
+}
+
+.staff-board__purpose {
+  font-weight: 600;
+}
+
+.staff-board__mark {
+  font-family: var(--hh-font-mono);
+}
+
+.staff-board__line {
+  min-width: 0;
+}
+
+.staff-board__selected {
+  scroll-margin-top: var(--hh-space-4);
+}
+
+.staff-board__selected h2:focus {
+  outline: none;
+}
+
+.staff-board__selected h2:focus-visible {
+  outline: 0.1875rem solid var(--hh-focus);
+  outline-offset: 0.125rem;
+}
