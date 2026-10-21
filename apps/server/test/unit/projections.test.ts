@@ -95,7 +95,7 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
       rejectionReason: null,
       url: 'https://storage.example.test/signed',
       objectKey: 'requests/photos/photo-1',
-      visibility: 'internal',
+      visibility: 'internal_operational',
     }
     expect(CUSTOMER_PHOTO.project(record)).toEqual({
       id: 'photo-1',
