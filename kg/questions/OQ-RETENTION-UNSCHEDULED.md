@@ -2,12 +2,15 @@
 id: OQ-RETENTION-UNSCHEDULED
 type: question
 title: Retention of data the schedule does not name
-status: open
+status: superseded
 area: privacy
 links:
   related: ["[[FACT-RETENTION-SCHEDULE]]", "[[OWN-DEC-70]]", "[[OQ-RETENTION-REVIEW]]", "[[HH-PRIV-01]]", "[[RULE-HUMAN-REVIEW]]", "[[TSK-0099]]"]
+  superseded_by: ["[[OWN-DEC-177]]"]
 source: "TSK-0099 data inventory (docs/data-inventory.md)"
 ---
+**Answered by [[OWN-DEC-177]] (2026-10-21).** The kinds still without a period stay NOT CONFIGURED and go to [[OQ-RETENTION-REVIEW]].
+
 **Question:** how long are the kinds of data that [[FACT-RETENTION-SCHEDULE]] has no row for kept, and what happens to them after that?
 
 - **Data without a row:** staff accounts and their history (role grants, status changes, working hours, time off, second factors and recovery codes); consent records; customer accounts and their identity links (account deletion is separate, [[OWN-DEC-71]]); configuration and content versions (policy values, service content, SOP versions, message templates, coverage rules, equipment); the log of access-code reveals; action-queue items; inbound messages still in Needs Linking (no request or job) and their linking corrections; technical records (background jobs, outbox events, idempotency keys, project reply tokens, webhook receipts not linked to a request or job); expired sessions, access links, codes and rate-limit buckets (they expire by their security settings, but how long an expired row is kept is not set); the deletion-review entries themselves; and the copies the vendors keep (Bird, Resend, Cloudflare R2, Render backups).

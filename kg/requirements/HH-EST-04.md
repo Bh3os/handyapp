@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: estimates
 links:
-  decided_by: ["[[OWN-DEC-118]]", "[[OWN-DEC-102]]", "[[OWN-DEC-95]]", "[[OWN-DEC-39]]"]
+  decided_by: ["[[OWN-DEC-118]]", "[[OWN-DEC-102]]", "[[OWN-DEC-95]]", "[[OWN-DEC-39]]", "[[OWN-DEC-173]]", "[[OWN-DEC-169]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[ENT-Estimate]]", "[[ENT-EstimateVersion]]", "[[ENT-AuditEvent]]", "[[FACT-AUTOMATIC-MESSAGES]]", "[[ROLE-MATRIX]]"]
   tested_by: ["[[T32]]", "[[T26]]"]
@@ -24,3 +24,5 @@ Version states: `draft → in_review → published → accepted / declined / exp
 - The first time the customer opens the estimate is recorded with date and time only.
 - An old link to a superseded, expired or withdrawn version shows that state and the route to the current version, or "Request an Updated Estimate" when none is available.
 - An unanswered estimate gets staff-released reminder drafts ([[HH-EST-14]]).
+
+**Changed by [[OWN-DEC-173]], [[OWN-DEC-169]] (2026-10-21):** publishing an estimate over $2,500.00 needs the Owner's approval first ([[HH-EST-16]]); an accepted estimate is never revised, only changed by change order.

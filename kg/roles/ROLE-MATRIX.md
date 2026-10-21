@@ -117,3 +117,5 @@ These are server rules, enforced by one policy point on every read, write, searc
 | Decide privacy requests; Delete action; delete a login account | Y | — | — | — | — | — |
 | Bulk export | F | — | — | — | — | — |
 | Edit or delete audit events | — | — | — | — | — | — |
+
+**Changed by [[OWN-DEC-164]], [[OWN-DEC-195]], [[OWN-DEC-200]] (2026-10-21):** audit editing stays refused for every role, and an owner-only audit-retention action is added by [[TSK-0135]]; routine customer-authorized work-visit cancellations within policy move to Office by [[TSK-0140]]; cash collection needs an explicit Owner grant to a trained Worker by [[TSK-0151]]. Each change updates this table and the policy data in the same pull request.

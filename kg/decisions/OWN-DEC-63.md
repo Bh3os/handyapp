@@ -5,11 +5,13 @@ title: Optional customer accounts sign in with a one-time code, no password
 status: active
 area: identity
 links:
-  related: ["[[HH-ID-02]]", "[[HH-ID-03]]", "[[HH-ID-10]]", "[[HH-ID-11]]", "[[ROLE-CUSTOMER]]"]
+  related: ["[[HH-ID-02]]", "[[HH-ID-03]]", "[[HH-ID-10]]", "[[HH-ID-11]]", "[[ROLE-CUSTOMER]]", "[[OWN-DEC-160]]", "[[OWN-DEC-198]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]"]
   part_of: ["[[C03]]", "[[C06]]"]
 source: "vault-own-decisions.md OWN-DEC-63; project chat 2026-10-12"
 ---
+Partly replaced by [[OWN-DEC-160]], [[OWN-DEC-198]] (2026-10-21): registered customers get a permanent dashboard; security events can revoke every session.
+
 Owner wording (project chat, 2026-10-12): asked how account customers should sign in, the owner chose "One-time code, no password".
 
 Effect:

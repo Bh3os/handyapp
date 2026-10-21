@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: privacy
 links:
-  decided_by: ["[[OWN-DEC-71]]", "[[OWN-DEC-113]]", "[[OWN-DEC-124]]", "[[OWN-DEC-70]]"]
+  decided_by: ["[[OWN-DEC-71]]", "[[OWN-DEC-113]]", "[[OWN-DEC-124]]", "[[OWN-DEC-70]]", "[[OWN-DEC-175]]", "[[OWN-DEC-201]]"]
   constrained_by: ["[[RULE-HUMAN-REVIEW]]"]
   uses: ["[[ENT-PrivacyRequest]]", "[[ENT-RetentionReview]]", "[[ENT-Customer]]", "[[ENT-Case]]", "[[FACT-RETENTION-SCHEDULE]]", "[[ROLE-OWNER]]"]
   tested_by: ["[[T72]]", "[[T22]]"]
@@ -21,3 +21,5 @@ source: "guide 25.2 HH-PRIV-03; OWN-DEC-71, OWN-DEC-113, OWN-DEC-124"
 - A hold blocks deletion of affected records, but account access can still be disabled. An unpaid balance never automatically prevents closing login access.
 - The Owner, time, reason, deleted categories and retained categories are recorded; the customer is notified of the outcome. Retained records enter the review queue when their periods end.
 - Deletions and suppressions are re-applied after any backup restore.
+
+**Changed by [[OWN-DEC-175]], [[OWN-DEC-201]] (2026-10-21):** targets and deadlines of [[HH-PRIV-07]]; risk-based identity checks; exports may include audit-log data where disclosure applies; accounting checks before deletion.

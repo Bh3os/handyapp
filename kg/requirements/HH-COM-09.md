@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: messaging
 links:
-  decided_by: ["[[OWN-DEC-101]]", "[[OWN-DEC-112]]", "[[OWN-DEC-65]]", "[[OWN-DEC-132]]"]
+  decided_by: ["[[OWN-DEC-101]]", "[[OWN-DEC-112]]", "[[OWN-DEC-65]]", "[[OWN-DEC-132]]", "[[OWN-DEC-153]]", "[[OWN-DEC-154]]"]
   depends_on: ["[[HH-COM-05]]"]
   constrained_by: ["[[RULE-DECIDED-VALUES-ACTIVE]]"]
   uses: ["[[FACT-HOURS]]", "[[FACT-TIMEZONE]]", "[[ENT-Message]]"]
@@ -18,3 +18,5 @@ source: "OWN-DEC-101, OWN-DEC-112"
 - A reminder released outside those hours is queued and sent when the hours begin, after the send-time recheck ([[HH-COM-05]]).
 - One-time codes and access links send immediately because they expire.
 - Unanswered-estimate reminders have no contact-hours restriction: a released estimate reminder sends at once, at any hour ([[OWN-DEC-132]], [[HH-EST-14]]).
+
+**Changed by [[OWN-DEC-153]], [[OWN-DEC-154]] (2026-10-21):** reminders are automatic; the contact-hours limit now applies to non-urgent texts, in the recipient's local zone, and no longer to emails ([[HH-COM-15]]).

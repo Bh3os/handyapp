@@ -5,10 +5,12 @@ title: Visits and customer contact every day, 8 AM–10 PM
 status: active
 area: business
 links:
-  decided_by: ["[[OWN-DEC-66]]", "[[OWN-DEC-86]]", "[[OWN-DEC-94]]", "[[OWN-DEC-101]]", "[[OWN-DEC-112]]", "[[OWN-DEC-115]]", "[[OWN-DEC-132]]"]
+  decided_by: ["[[OWN-DEC-66]]", "[[OWN-DEC-86]]", "[[OWN-DEC-94]]", "[[OWN-DEC-101]]", "[[OWN-DEC-112]]", "[[OWN-DEC-115]]", "[[OWN-DEC-132]]", "[[OWN-DEC-154]]", "[[OWN-DEC-170]]"]
   related: ["[[OWN-DEC-02]]", "[[OWN-DEC-65]]", "[[OWN-DEC-92]]", "[[OWN-DEC-107]]"]
 source: "owner-answers-verbatim 2026-10-05T16:22 [Hours], 2026-10-05T16:23 [Text hours], 2026-10-12 steps 1.1, 3.1, 4.4, 10.3, S1"
 ---
+**Changed by [[OWN-DEC-154]], [[OWN-DEC-159]], [[OWN-DEC-170]] (2026-10-21):** transactional emails and released staff replies send at any hour; the 8 AM–10 PM limit applies to non-urgent texts in the recipient's local zone; business hours stay 8 AM–10 PM in America/Kentucky/Louisville; preferred windows are Mornings 8–12, Afternoons 12–5, Evenings 5–10 ([[FACT-WINDOW-HOURS]]).
+
 **Value:** every day, 8 AM–10 PM, in the business time zone ([[FACT-TIMEZONE]]). Never 24/7 ([[OWN-DEC-02]]: "247" in the domain is not a 24/7 promise).
 
 Where it applies:

@@ -2,12 +2,15 @@
 id: OQ-PRODUCTION-HOSTING
 type: question
 title: Production hosting, database and backups
-status: open
+status: superseded
 area: ops
 links:
   related: ["[[OWN-DEC-130]]", "[[OQ-GO-DECISION]]", "[[INT-Render]]"]
+  superseded_by: ["[[OWN-DEC-185]]"]
 source: "OWN-DEC-130; owner-answers-verbatim 2026-10-05T16:31 [Budget], 2026-10-05T18:04 [Recovery] [Test DB]"
 ---
+**Answered by [[OWN-DEC-185]] (2026-10-21).**
+
 **Question:** which paid production setup (Render service and database plan, backups, recovery targets) is used, within the owner's budget?
 
 - **Who answers:** the owner, from priced options Claude brings ("Claude brings priced options", owner answer 2026-10-05T18:04). The monthly limit given was up to $50/month (owner answer 2026-10-05T16:31).

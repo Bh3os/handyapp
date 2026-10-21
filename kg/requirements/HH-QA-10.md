@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: quality
 links:
-  decided_by: ["[[OWN-DEC-109]]", "[[OWN-DEC-113]]", "[[OWN-DEC-78]]", "[[OWN-DEC-124]]"]
+  decided_by: ["[[OWN-DEC-109]]", "[[OWN-DEC-113]]", "[[OWN-DEC-78]]", "[[OWN-DEC-124]]", "[[OWN-DEC-157]]"]
   depends_on: ["[[HH-COM-05]]"]
   uses: ["[[ENT-Message]]", "[[ENT-Case]]", "[[ENT-Customer]]", "[[FACT-REMINDER-CADENCES]]"]
   tested_by: ["[[T67]]"]
@@ -19,3 +19,5 @@ source: "OWN-DEC-109, OWN-DEC-113 (new behaviour; guide 21.2 Follow-up/review)"
 - The same eligibility applies regardless of the satisfaction answer: no positive-review filtering, no incentives, no pressure. Any logic gating review requests on a score is absent (tested).
 - Review invitations pause during an active complaint and are reconsidered after resolution, whatever the outcome.
 - Opt-outs and channel restrictions are checked at execution time.
+
+**Changed by [[OWN-DEC-157]] (2026-10-21):** the satisfaction check is the service-quality follow-up (MESSAGE 18) sent 48 hours after authorized final completion, released by staff, with a secure concern link.

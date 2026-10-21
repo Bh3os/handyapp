@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: site
 links:
-  decided_by: ["[[OWN-DEC-84]]", "[[OWN-DEC-51]]", "[[OWN-DEC-66]]", "[[OWN-DEC-32]]", "[[OWN-DEC-86]]"]
+  decided_by: ["[[OWN-DEC-84]]", "[[OWN-DEC-51]]", "[[OWN-DEC-66]]", "[[OWN-DEC-32]]", "[[OWN-DEC-86]]", "[[OWN-DEC-180]]"]
   depends_on: ["[[HH-SVC-01]]", "[[HH-CUS-01]]"]
   constrained_by: ["[[RULE-NO-INVENTED-FACTS]]", "[[RULE-LANGUAGES]]", "[[RULE-HUMAN-REVIEW]]"]
   uses: ["[[ENT-ServiceDefinition]]", "[[FACT-HOURS]]", "[[FACT-SERVICE-AREA]]", "[[FACT-BRAND-IDENTITY]]"]
@@ -29,3 +29,5 @@ Rules:
 - Content is versioned with history. On staging (and local/CI) the drafted content is shown directly so the owner reviews it on the site; production shows only versions the owner approved and published. One owner review screen lets the owner edit, approve and publish services individually or as a selected batch. The environment rule is explicit and tested.
 - The static build must render the content in the staging environment, so the owner actually sees it after a merge.
 - Customer pages are English only; the premium design is kept.
+
+**Changed by [[OWN-DEC-180]] (2026-10-21):** pages that pass the quality review are published in production without per-service owner approval; uncertain claims stay hidden.

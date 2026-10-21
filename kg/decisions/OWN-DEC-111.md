@@ -6,11 +6,13 @@ status: active
 area: payments
 links:
   supersedes: ["[[OWN-DEC-36]]"]
-  related: ["[[OWN-DEC-67]]", "[[OWN-DEC-110]]", "[[HH-FIN-06]]", "[[HH-FIN-07]]", "[[HH-FIN-10]]", "[[HH-FIN-11]]", "[[HH-FIN-12]]", "[[HH-FIN-15]]", "[[HH-BASE-05]]"]
+  related: ["[[OWN-DEC-67]]", "[[OWN-DEC-110]]", "[[HH-FIN-06]]", "[[HH-FIN-07]]", "[[HH-FIN-10]]", "[[HH-FIN-11]]", "[[HH-FIN-12]]", "[[HH-FIN-15]]", "[[HH-BASE-05]]", "[[OWN-DEC-152]]"]
   uses: ["[[FACT-PAYMENT-DUE]]", "[[FACT-PAYMENT-METHODS]]", "[[FACT-NO-SURCHARGE]]", "[[FACT-AUTOMATIC-MESSAGES]]", "[[INT-Square]]", "[[ENT-Payment]]"]
   constrained_by: ["[[RULE-MONEY-CENTS]]"]
 source: "owner-answers-verbatim 2026-10-12T19:09:51.058Z [10.2 Due]; decision-briefs 2026-10-12T19:10:30"
 ---
+Partly replaced by [[OWN-DEC-152]] (2026-10-21): a payment receipt sends for each confirmed recorded payment (partial payments say so), not only at $0.00.
+
 Owner, 2026-10-12, journey Step 10.2, payment.
 
 Question asked:

@@ -2,12 +2,15 @@
 id: OQ-TERMS-OWNER-APPROVAL
 type: question
 title: Owner approval of the final estimate-terms wording for real customers
-status: open
+status: superseded
 area: approval
 links:
   related: ["[[OWN-DEC-127]]", "[[OQ-ATTORNEY-TERMS]]", "[[OQ-GO-DECISION]]"]
+  superseded_by: ["[[OWN-DEC-187]]"]
 source: "OWN-DEC-127"
 ---
+**Answered by [[OWN-DEC-187]] (2026-10-21).**
+
 **Question:** does the owner approve estimate terms v1.0, as written and shown on staging, for real customer approvals?
 
 - **Who answers:** the owner. It is "the only remaining owner decision for this task" ([[OWN-DEC-127]]).

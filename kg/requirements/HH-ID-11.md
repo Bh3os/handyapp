@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: identity
 links:
-  decided_by: ["[[OWN-DEC-96]]", "[[OWN-DEC-117]]", "[[OWN-DEC-141]]"]
+  decided_by: ["[[OWN-DEC-96]]", "[[OWN-DEC-117]]", "[[OWN-DEC-141]]", "[[OWN-DEC-151]]", "[[OWN-DEC-198]]"]
   depends_on: ["[[HH-ID-10]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[ENT-CustomerAccount]]", "[[ENT-Contact]]", "[[ENT-AuditEvent]]", "[[FACT-SESSION-TIMINGS]]"]
@@ -17,3 +17,5 @@ source: "guide 8.3 HH-ID-11; OWN-DEC-96, OWN-DEC-117"
 - Account sessions have Sign Out, server-side revocation, expiry after 30 minutes idle or 8 hours in total ([[FACT-SESSION-TIMINGS]]), and recovery through a verified contact.
 - A sensitive contact change sends a notice to the old contact value. An email change verifies both the new contact and authority over the old account, or uses a documented, audited recovery process.
 - After a contact change or recovery, sessions are renewed or revoked as designed, and the old contact keeps no unintended access.
+
+**Changed by [[OWN-DEC-151]], [[OWN-DEC-198]] (2026-10-21):** the email change notifies the old and the new verified address (MESSAGE 21); security events can revoke every session; phone recovery only when texting is available.

@@ -2,12 +2,15 @@
 id: OQ-VISIT-NOTICE-WORDING
 type: question
 title: Wording of the automatic visit-options and visit-confirmed notices
-status: open
+status: superseded
 area: messaging
 links:
   related: ["[[FACT-AUTOMATIC-MESSAGES]]", "[[OWN-DEC-99]]", "[[OWN-DEC-105]]", "[[HH-SCH-11]]", "[[HH-LEAD-07]]", "[[TSK-0063]]"]
+  superseded_by: ["[[OWN-DEC-151]]"]
 source: "TSK-0063 (2026-10-21): FACT-AUTOMATIC-MESSAGES #5, #6 and #10 name when the notices send, not their text"
 ---
+**Answered by [[OWN-DEC-151]] (2026-10-21).**
+
 **Question:** which exact subject and body should the automatic "Estimate-visit options available" (#5), "Estimate visit confirmed" (#6) and "Work appointment confirmed" (#10) notices use, by email and by text? The owner decided that they send automatically ([[OWN-DEC-99]], [[OWN-DEC-105]]: "a brief automatic notice") but gave no wording.
 
 - **Who answers:** the owner (approve a wording, as for the question notice of [[OWN-DEC-98]]).

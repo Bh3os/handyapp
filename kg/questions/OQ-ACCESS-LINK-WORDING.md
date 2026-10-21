@@ -2,12 +2,15 @@
 id: OQ-ACCESS-LINK-WORDING
 type: question
 title: Wording of the automatic secure project-access message
-status: open
+status: superseded
 area: messaging
 links:
   related: ["[[OQ-ACCESS-RECOVERY]]", "[[OWN-DEC-97]]", "[[OWN-DEC-95]]", "[[HH-INT-21]]", "[[FACT-AUTOMATIC-MESSAGES]]", "[[OQ-RECEIPT-EMAIL-WORDING]]", "[[TSK-0034]]"]
+  superseded_by: ["[[OWN-DEC-151]]"]
 source: "TSK-0034 (2026-10-21): OWN-DEC-97 says secure project-access instructions are sent automatically, not their text"
 ---
+**Answered by [[OWN-DEC-151]] (2026-10-21).**
+
 **Question:** which exact email subject and body, and which text message, should the automatic secure access message (`project.access_link`, [[FACT-AUTOMATIC-MESSAGES]] #3) use?
 
 - **Who answers:** the owner (approve a wording, as for the code message in [[OWN-DEC-150]]).

@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: messaging
 links:
-  decided_by: ["[[OWN-DEC-147]]", "[[OWN-DEC-129]]"]
+  decided_by: ["[[OWN-DEC-147]]", "[[OWN-DEC-129]]", "[[OWN-DEC-190]]", "[[OWN-DEC-178]]"]
   depends_on: ["[[HH-INT-22]]", "[[HH-PRIV-04]]", "[[HH-COM-05]]"]
   constrained_by: ["[[RULE-NO-INVENTED-FACTS]]", "[[RULE-HUMAN-REVIEW]]"]
   uses: ["[[FACT-LEGAL-ENTITY]]", "[[FACT-BUSINESS-NAME]]", "[[FACT-PUBLIC-CONTACT]]", "[[FACT-AUTOMATIC-MESSAGES]]", "[[FACT-REMINDER-CADENCES]]", "[[INT-Bird]]", "[[ENT-ConsentPreference]]", "[[ENT-PolicyVersion]]"]
@@ -28,3 +28,5 @@ Rules:
 - The privacy policy and SMS terms wording gets attorney review ([[OQ-ATTORNEY-PRIVACY]]); on staging the drafts carry the not-reviewed label of [[HH-PRIV-04]]. The frequency statement describes only the cadences that exist; nothing is invented.
 - RISK: the support contact is still a placeholder ([[FACT-PUBLIC-CONTACT]]) and documents show "Handyhub LLC" while the registration uses ODD JOBS & MORE LLC ([[OQ-LEGAL-ENTITY-NAME]]). Both need the owner's answer before the campaign is submitted, or vetting may fail.
 - Production texting stays off until the registration is approved; staging texts go only to approved test numbers.
+
+**Changed by [[OWN-DEC-190]], [[OWN-DEC-178]] (2026-10-21):** opt-in at the request form and on the receipt with the owner's wording and disclosure; verification, ongoing transactional and marketing consents kept separate; the registration package is prepared now ([[TSK-0133]]).

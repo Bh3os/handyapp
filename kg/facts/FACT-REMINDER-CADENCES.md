@@ -5,10 +5,18 @@ title: Reminder cadences (all staff-released drafts)
 status: active
 area: messaging
 links:
-  decided_by: ["[[OWN-DEC-78]]", "[[OWN-DEC-101]]", "[[OWN-DEC-107]]", "[[OWN-DEC-109]]", "[[OWN-DEC-112]]", "[[OWN-DEC-113]]", "[[OWN-DEC-132]]"]
+  decided_by: ["[[OWN-DEC-78]]", "[[OWN-DEC-101]]", "[[OWN-DEC-107]]", "[[OWN-DEC-109]]", "[[OWN-DEC-112]]", "[[OWN-DEC-113]]", "[[OWN-DEC-132]]", "[[OWN-DEC-153]]", "[[OWN-DEC-157]]"]
   related: ["[[OWN-DEC-124]]", "[[HH-COM-05]]"]
 source: "OWN-DEC-78, 101, 107, 109, 112, 113, 132; owner-answers-verbatim 2026-10-05T18:11 [Reminders]"
 ---
+**Changed by [[OWN-DEC-153]], [[OWN-DEC-157]] (2026-10-21):** routine reminders send automatically; the table below is the earlier configuration until [[TSK-0121]] ships the new version.
+- Unanswered estimate: one automatic reminder 3 days after the estimate version was successfully delivered, while pending; no 24-hour reminder.
+- Unanswered staff question: one automatic reminder 3 days after the notice was delivered, while unanswered; "Closed—no response" 24 hours after it was actually sent (PROPOSED reading, [[OQ-READINGS-2026-10-21]]).
+- Confirmed appointment: automatic, 24 hours before; none for a visit booked less than 24 hours ahead.
+- Service-quality follow-up (the satisfaction check): 48 hours after authorized final completion, released by staff ([[OWN-DEC-157]]).
+- Unpaid invoice and repeat service: unchanged, staff-released ([[OQ-MESSAGES-OUTSIDE-THE-21]]).
+- Emails send at any hour; texts within the recipient's local permitted hours ([[OWN-DEC-154]]).
+
 **Value:** the system prepares these drafts; staff release each one. A released draft sends only within [[FACT-HOURS]] ([[FACT-TIMEZONE]]), except unanswered-estimate reminders, which have no contact-hours restriction ([[OWN-DEC-132]]).
 
 | Reminder | First draft | Final draft | Stops or is suppressed when | Decision |

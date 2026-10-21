@@ -2,12 +2,15 @@
 id: OQ-SERVICE-AREA-ZIPS
 type: question
 title: ZIP codes and boundary ZIPs for the coverage check
-status: open
+status: superseded
 area: site
 links:
   related: ["[[OWN-DEC-37]]", "[[OWN-DEC-54]]", "[[OWN-DEC-88]]", "[[FACT-SERVICE-AREA]]"]
+  superseded_by: ["[[OWN-DEC-179]]"]
 source: "OWN-DEC-37, 54, 88"
 ---
+**Answered by [[OWN-DEC-179]] (2026-10-21).**
+
 **Question:** which ZIP codes count as served, which as near the boundary (needing an address check), for the counties and towns of [[FACT-SERVICE-AREA]]?
 
 - **Who answers:** the owner confirms a ZIP list Claude prepares from the county list (PROPOSED), marking boundary ZIPs that cross county lines.

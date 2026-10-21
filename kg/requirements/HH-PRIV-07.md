@@ -1,0 +1,20 @@
+---
+id: HH-PRIV-07
+type: requirement
+title: "Privacy request acknowledgment, target and deadline tracking"
+status: active
+priority: P1
+area: privacy
+links:
+  decided_by: ["[[OWN-DEC-175]]", "[[OWN-DEC-201]]"]
+  depends_on: ["[[HH-PRIV-03]]"]
+  constrained_by: ["[[RULE-HUMAN-REVIEW]]"]
+  uses: ["[[FACT-PRIVACY-REQUEST-TARGETS]]", "[[ENT-PrivacyRequest]]", "[[ENT-QueueItem]]", "[[ENT-Message]]"]
+  part_of: ["[[C11]]", "[[S11]]"]
+source: "OWN-DEC-175 (new behaviour; no guide id)"
+---
+- Registered customers and guests submit access, export, correction and deletion requests without creating an account.
+- Each request records its receipt time, the automatic acknowledgment, the substantive acknowledgment due date (3 business days), the internal target date (30 days) and, separately, the applicable legal deadline once the attorney defines it ([[FACT-PRIVACY-REQUEST-TARGETS]]).
+- Nothing is rejected or closed automatically when a date passes; an extension is an Owner decision with a recorded reason and a customer notice.
+- The Owner Dashboard lists pending requests with their dates and overdue alerts.
+- Identity is verified in proportion to the request's risk before any disclosure, correction, export or deletion ([[OWN-DEC-201]]).

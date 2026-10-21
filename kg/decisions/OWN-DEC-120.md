@@ -5,10 +5,12 @@ title: Unified inbox with real inbound email and text
 status: active
 area: messaging
 links:
-  related: ["[[OWN-DEC-129]]", "[[OWN-DEC-115]]", "[[HH-COM-01]]", "[[HH-COM-02]]", "[[HH-COM-03]]", "[[HH-COM-04]]", "[[HH-COM-05]]", "[[HH-PRIV-02]]"]
+  related: ["[[OWN-DEC-129]]", "[[OWN-DEC-115]]", "[[HH-COM-01]]", "[[HH-COM-02]]", "[[HH-COM-03]]", "[[HH-COM-04]]", "[[HH-COM-05]]", "[[HH-PRIV-02]]", "[[OWN-DEC-154]]"]
   uses: ["[[INT-Bird]]", "[[INT-Resend]]", "[[ENT-Message]]"]
 source: "owner-answers-verbatim 2026-10-12T19:31:46.613Z [S6 Inbox]; decision-briefs 2026-10-12T19:32:35"
 ---
+Partly replaced by [[OWN-DEC-154]] (2026-10-21): a staff reply shows in the portal and is emailed at once; texts wait for the recipient's permitted hours.
+
 Owner, 2026-10-12, staff journey S6, messages inbox.
 
 Question asked:

@@ -2,12 +2,15 @@
 id: OQ-WORKER-DATA-ACCESS
 type: question
 title: What customer details workers see, and for how long
-status: open
+status: superseded
 area: privacy
 links:
   related: ["[[OWN-DEC-40]]", "[[OWN-DEC-121]]", "[[ROLE-WORKER]]"]
+  superseded_by: ["[[OWN-DEC-171]]"]
 source: "OWN-DEC-40, 121; owner-answers-verbatim 2026-10-05T18:13 [Worker info]"
 ---
+**Answered by [[OWN-DEC-171]] (2026-10-21).**
+
 **Question:** what is the grace period after the service day before the address is hidden, when does the site contact's phone number appear, and do workers see customers' full names?
 
 - **Who answers:** the owner.

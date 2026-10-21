@@ -5,10 +5,12 @@ title: "No zero or negative lines; a discount is a totals row"
 status: active
 area: estimates
 links:
-  related: ["[[OWN-DEC-66]]", "[[OWN-DEC-102]]"]
+  related: ["[[OWN-DEC-66]]", "[[OWN-DEC-102]]", "[[OWN-DEC-165]]", "[[OWN-DEC-169]]"]
   uses: ["[[FACT-PRICING-DISCOUNTS]]"]
 source: "owner answers 2026-10-20 (coordinator session)"
 ---
+Partly replaced by [[OWN-DEC-165]], [[OWN-DEC-169]] (2026-10-21): the discount applies to eligible labor and service charges; a credit change order is shown as a negative adjustment in its totals (PROPOSED reading).
+
 Owner wording (2026-10-20): Q: "Can an estimate line be $0 (for example a free item) or a negative amount (a discount line)?" Answer: "Neither". Q: "Since lines can't be $0 or negative, how is a discount (10% military, senior or returning customer; one per job) applied on the estimate?" Answer: "Separate discount row in totals".
 
 Effect:

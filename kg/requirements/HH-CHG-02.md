@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: approval
 links:
-  decided_by: ["[[OWN-DEC-108]]", "[[OWN-DEC-118]]", "[[OWN-DEC-103]]", "[[OWN-DEC-96]]"]
+  decided_by: ["[[OWN-DEC-108]]", "[[OWN-DEC-118]]", "[[OWN-DEC-103]]", "[[OWN-DEC-96]]", "[[OWN-DEC-168]]", "[[OWN-DEC-173]]"]
   depends_on: ["[[HH-ID-07]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[ENT-ChangeOrder]]", "[[ENT-Approval]]", "[[ENT-Contact]]", "[[ENT-Message]]"]
@@ -22,3 +22,5 @@ source: "guide 18.1 HH-CHG-02; OWN-DEC-108"
 - A signature alone never identifies the authorized customer and is refused as approval.
 - Approval records the version, total, approver identity and method, verified contact and server timestamp. Offline approval is impossible ([[HH-OFF-04]]).
 - A worker's or customer's request is recorded but is never approval.
+
+**Changed by [[OWN-DEC-168]], [[OWN-DEC-173]] (2026-10-21):** publishing needs the Owner's approval when the adjustment or revised total exceeds $2,500.00; expired, withdrawn, rejected and superseded change orders cannot be approved.

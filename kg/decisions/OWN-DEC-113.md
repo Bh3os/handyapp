@@ -5,10 +5,12 @@ title: Afterwards: repeat service, honest review requests, downloads, export and
 status: active
 area: privacy
 links:
-  related: ["[[OWN-DEC-70]]", "[[OWN-DEC-71]]", "[[OWN-DEC-78]]", "[[OWN-DEC-124]]", "[[HH-PRIV-01]]", "[[HH-PRIV-02]]", "[[HH-PRIV-03]]", "[[HH-SCH-10]]", "[[HH-QA-06]]", "[[HH-ID-12]]"]
+  related: ["[[OWN-DEC-70]]", "[[OWN-DEC-71]]", "[[OWN-DEC-78]]", "[[OWN-DEC-124]]", "[[HH-PRIV-01]]", "[[HH-PRIV-02]]", "[[HH-PRIV-03]]", "[[HH-SCH-10]]", "[[HH-QA-06]]", "[[HH-ID-12]]", "[[OWN-DEC-157]]", "[[OWN-DEC-175]]"]
   uses: ["[[FACT-REMINDER-CADENCES]]", "[[FACT-RETENTION-SCHEDULE]]"]
 source: "owner-answers-verbatim 2026-10-12T19:09:51.058Z [11 After]; decision-briefs 2026-10-12T19:10:30"
 ---
+Partly replaced by [[OWN-DEC-157]], [[OWN-DEC-175]] (2026-10-21): the follow-up after completion is the service-quality message of OWN-DEC-157; privacy requests get the acknowledgment and 30-day target of OWN-DEC-175.
+
 Owner, 2026-10-12, journey Step 11, afterwards.
 
 Question asked:

@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: approval
 links:
-  decided_by: ["[[OWN-DEC-127]]", "[[OWN-DEC-72]]", "[[OWN-DEC-134]]", "[[OWN-DEC-135]]"]
+  decided_by: ["[[OWN-DEC-127]]", "[[OWN-DEC-72]]", "[[OWN-DEC-134]]", "[[OWN-DEC-135]]", "[[OWN-DEC-187]]", "[[OWN-DEC-161]]"]
   constrained_by: ["[[RULE-HUMAN-REVIEW]]", "[[RULE-NO-INVENTED-FACTS]]"]
   uses: ["[[ENT-PolicyVersion]]", "[[ENT-Approval]]", "[[ENT-Document]]", "[[FACT-ESTIMATE-VALIDITY]]", "[[FACT-DEPOSIT-RULE]]", "[[FACT-PAYMENT-DUE]]", "[[FACT-PAYMENT-METHODS]]", "[[FACT-REOPEN-PERIOD]]", "[[FACT-BUSINESS-NAME]]", "[[FACT-CANCELLATION-RULES]]", "[[FACT-WARRANTY]]"]
   tested_by: ["[[T33]]"]
@@ -20,3 +20,5 @@ source: "OWN-DEC-127 (new behaviour; no guide id)"
 - The estimate screen (staff preview and customer view) and the approval screen show the full terms readably: an expandable section plus a link to the full page. A terms PDF is rendered with the same content.
 - Every approval stores the terms version ID and content hash ([[HH-EST-06]]).
 - On staging, v1.0 is the current terms version with the banner "TEST — wording pending owner approval for real customer use". Real-customer approvals require the owner's recorded approval of the final wording through the legal-document sign-off.
+
+**Changed by [[OWN-DEC-187]], [[OWN-DEC-161]] (2026-10-21):** the owner approved v1.0 for real customer approvals (sign-off recorded by [[TSK-0144]]); the next version adds the late-cancellation rules after attorney review.

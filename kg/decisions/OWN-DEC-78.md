@@ -2,7 +2,7 @@
 id: OWN-DEC-78
 type: decision
 title: Customer reminder cadence; every reminder is a staff-released draft
-status: active
+status: superseded
 area: messaging
 links:
   supersedes: ["[[OWN-DEC-41]]"]
@@ -10,8 +10,11 @@ links:
   uses: ["[[FACT-REMINDER-CADENCES]]"]
   tested_by: ["[[T65]]", "[[T67]]"]
   part_of: ["[[C05]]", "[[C07]]", "[[C11]]"]
+  superseded_by: ["[[OWN-DEC-153]]", "[[OWN-DEC-157]]"]
 source: "vault-own-decisions.md OWN-DEC-78; owner-answers-verbatim.md 2026-10-12T16:41"
 ---
+**Superseded by [[OWN-DEC-153]], [[OWN-DEC-157]] (2026-10-21).**
+
 Partly replaced by [[OWN-DEC-132]]: unanswered-estimate reminders now +24h and +3 days, no contact-hours restriction (resolves the Open item below).
 
 Owner wording (project chat, 2026-10-12): "Prepare these reminders as drafts for staff to review and release:

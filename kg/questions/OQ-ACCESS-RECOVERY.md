@@ -2,12 +2,15 @@
 id: OQ-ACCESS-RECOVERY
 type: question
 title: Limits and wording of asking for a new project-access link
-status: open
+status: superseded
 area: identity
 links:
   related: ["[[HH-ID-09]]", "[[HH-ID-06]]", "[[HH-INT-11]]", "[[ENT-ProjectAccessGrant]]", "[[OWN-DEC-97]]", "[[OQ-ACCESS-LINK-WORDING]]", "[[TSK-0035]]"]
+  superseded_by: ["[[OWN-DEC-192]]", "[[OWN-DEC-198]]"]
 source: "TSK-0035 (2026-10-21): OWN-DEC-97 says expired links offer a safe way to request new access; HH-ID-09 asks for anti-enumeration wording and rate limits, without numbers or text"
 ---
+**Answered by [[OWN-DEC-192]], [[OWN-DEC-198]] (2026-10-21).**
+
 **Question:** how often may one project be sent a new secure link on request, should a link that staff revoked come back on the customer's request, and which words should the recovery page use?
 
 - **Who answers:** the owner.

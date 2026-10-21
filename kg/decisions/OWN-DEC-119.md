@@ -5,11 +5,13 @@ title: Scheduling board with server-side reservations
 status: active
 area: scheduling
 links:
-  related: ["[[OWN-DEC-82]]", "[[OWN-DEC-99]]", "[[OWN-DEC-104]]", "[[OWN-DEC-105]]", "[[OWN-DEC-123]]", "[[HH-SCH-01]]", "[[HH-SCH-03]]", "[[HH-SCH-04]]", "[[HH-SCH-05]]", "[[HH-SCH-06]]", "[[HH-SCH-07]]", "[[HH-DATA-04]]"]
+  related: ["[[OWN-DEC-82]]", "[[OWN-DEC-99]]", "[[OWN-DEC-104]]", "[[OWN-DEC-105]]", "[[OWN-DEC-123]]", "[[HH-SCH-01]]", "[[HH-SCH-03]]", "[[HH-SCH-04]]", "[[HH-SCH-05]]", "[[HH-SCH-06]]", "[[HH-SCH-07]]", "[[HH-DATA-04]]", "[[OWN-DEC-194]]", "[[OWN-DEC-195]]"]
   uses: ["[[FACT-AUTOMATIC-MESSAGES]]", "[[FACT-DEPOSIT-RULE]]", "[[ENT-Visit]]"]
   constrained_by: ["[[RULE-SAFETY-GATES]]"]
 source: "owner-answers-verbatim 2026-10-12T19:31:46.613Z [S5 Schedule]; decision-briefs 2026-10-12T19:32:10"
 ---
+Partly replaced by [[OWN-DEC-194]], [[OWN-DEC-195]] (2026-10-21): one active offer per visit, replaced only with a reason and a customer notice; reschedules record their initiator.
+
 Owner, 2026-10-12, staff journey S5, scheduling board.
 
 Question asked:

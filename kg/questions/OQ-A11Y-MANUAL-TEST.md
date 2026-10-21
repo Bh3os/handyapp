@@ -2,12 +2,15 @@
 id: OQ-A11Y-MANUAL-TEST
 type: question
 title: A person's screen-reader and physical-device accessibility test
-status: open
+status: superseded
 area: a11y
 links:
   related: ["[[OWN-DEC-85]]", "[[HH-A11Y-01]]"]
+  superseded_by: ["[[OWN-DEC-181]]"]
 source: "OWN-DEC-85"
 ---
+**Answered by [[OWN-DEC-181]] (2026-10-21).**
+
 **Question:** who, if anyone, tests the journeys with a real screen reader and on physical phones before launch?
 
 - **Who answers:** the owner.

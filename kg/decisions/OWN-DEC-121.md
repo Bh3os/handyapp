@@ -5,10 +5,12 @@ title: Worker My Day and offline use
 status: active
 area: field
 links:
-  related: ["[[OWN-DEC-40]]", "[[OWN-DEC-109]]", "[[OWN-DEC-119]]", "[[HH-OFF-01]]", "[[HH-OFF-02]]", "[[HH-OFF-03]]", "[[HH-OFF-04]]", "[[HH-OFF-05]]", "[[HH-OFF-06]]", "[[HH-OFF-07]]", "[[HH-PKT-01]]", "[[HH-PKT-02]]", "[[HH-PKT-07]]", "[[HH-CRM-03]]"]
+  related: ["[[OWN-DEC-40]]", "[[OWN-DEC-109]]", "[[OWN-DEC-119]]", "[[HH-OFF-01]]", "[[HH-OFF-02]]", "[[HH-OFF-03]]", "[[HH-OFF-04]]", "[[HH-OFF-05]]", "[[HH-OFF-06]]", "[[HH-OFF-07]]", "[[HH-PKT-01]]", "[[HH-PKT-02]]", "[[HH-PKT-07]]", "[[HH-CRM-03]]", "[[OWN-DEC-171]]", "[[OWN-DEC-196]]"]
   constrained_by: ["[[RULE-SAFETY-GATES]]"]
 source: "owner-answers-verbatim 2026-10-12T19:31:46.613Z [S7 My Day]; decision-briefs 2026-10-12T19:32:17"
 ---
+Partly replaced by [[OWN-DEC-171]], [[OWN-DEC-196]] (2026-10-21): workers see the address and site contact only on the visit day; prints carry revision, generation time, job reference and an outdated-copy notice.
+
 Owner, 2026-10-12, staff journey S7, My Day and offline use.
 
 Question asked:

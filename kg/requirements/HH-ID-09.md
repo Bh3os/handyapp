@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: identity
 links:
-  decided_by: ["[[OWN-DEC-97]]"]
+  decided_by: ["[[OWN-DEC-97]]", "[[OWN-DEC-198]]"]
   depends_on: ["[[HH-ID-04]]", "[[HH-INT-11]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[ENT-ProjectAccessGrant]]"]
@@ -17,3 +17,5 @@ source: "guide 8.2 HH-ID-09; OWN-DEC-97"
 - A revoked or expired grant, or exhausted verification attempts, show a neutral recovery page with no project information.
 - The page offers a safe way to request new access. Reissue wording never reveals whether a contact, project or account exists, and reissue is rate-limited.
 - A reissued grant is limited to that project, even when other projects share the customer or email.
+
+**Changed by [[OWN-DEC-198]] (2026-10-21):** a secure recovery path exists for legitimate customers who reach the reissue limits; staff-revoked access is never restored on request.

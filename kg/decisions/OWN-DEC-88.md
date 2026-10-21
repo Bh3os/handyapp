@@ -5,10 +5,12 @@ title: ZIP coverage check with four outcomes, always allowing the request
 status: active
 area: site
 links:
-  related: ["[[OWN-DEC-37]]", "[[OWN-DEC-54]]", "[[OWN-DEC-73]]", "[[HH-CUS-03]]", "[[HH-LEAD-02]]"]
+  related: ["[[OWN-DEC-37]]", "[[OWN-DEC-54]]", "[[OWN-DEC-73]]", "[[HH-CUS-03]]", "[[HH-LEAD-02]]", "[[OWN-DEC-179]]"]
   uses: ["[[FACT-SERVICE-AREA]]"]
 source: "owner-answers-verbatim 2026-10-12T18:17:57.722Z [1.3 ZIP check]; decision-briefs 2026-10-12T18:18:58"
 ---
+Partly replaced by [[OWN-DEC-179]] (2026-10-21): coverage comes from the owner's ZIP dataset and the 11 counties with the outcomes SERVED, EDGE, OUTSIDE and UNKNOWN.
+
 Owner, 2026-10-12, journey Step 1.3, service-area check.
 
 Question asked:

@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: scheduling
 links:
-  decided_by: ["[[OWN-DEC-99]]", "[[OWN-DEC-105]]", "[[OWN-DEC-119]]", "[[OWN-DEC-144]]"]
+  decided_by: ["[[OWN-DEC-99]]", "[[OWN-DEC-105]]", "[[OWN-DEC-119]]", "[[OWN-DEC-144]]", "[[OWN-DEC-156]]", "[[OWN-DEC-194]]"]
   depends_on: ["[[HH-SCH-04]]", "[[HH-SCH-06]]"]
   uses: ["[[ENT-Visit]]", "[[ENT-Reservation]]", "[[ENT-Message]]", "[[FACT-AUTOMATIC-MESSAGES]]", "[[FACT-VISIT-FEE]]", "[[FACT-HOURS]]"]
   tested_by: ["[[T38]]", "[[T37]]"]
@@ -21,3 +21,5 @@ source: "OWN-DEC-99, OWN-DEC-105 (new behaviour; no guide id)"
 - On selection the server rechecks availability and reserves every required worker and resource in one transaction ([[HH-SCH-04]]). The visit is confirmed only after the reservation succeeds; otherwise the customer is offered alternatives. Two customers racing for one slot get one confirmation and one alternative offer.
 - The confirmed work visit shows the date, arrival window, property address and preparation instructions, and a confirmation notice sends automatically.
 - Offered windows hold the needed workers and resources for 24 hours from the offer ([[OWN-DEC-144]]); a hold is never a confirmed booking ([[HH-SCH-05]]). Selecting a window turns its hold into the confirmed reservation and releases the other offered windows; unselected holds release automatically after 24 hours. Selection still rechecks availability: if the hold has expired and the slot is gone, the customer is offered alternatives.
+
+**Changed by [[OWN-DEC-156]], [[OWN-DEC-194]] (2026-10-21):** publishing work windows sends an automatic notice; the 24-hour clock starts at publication; one active offer per visit, replaced only with a reason and a customer notice.

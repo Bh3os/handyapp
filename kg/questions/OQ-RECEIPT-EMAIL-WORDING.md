@@ -2,12 +2,15 @@
 id: OQ-RECEIPT-EMAIL-WORDING
 type: question
 title: Wording of the automatic receipt email
-status: open
+status: superseded
 area: messaging
 links:
   related: ["[[OWN-DEC-95]]", "[[OWN-DEC-94]]", "[[HH-INT-20]]", "[[FACT-AUTOMATIC-MESSAGES]]", "[[TSK-0032]]"]
+  superseded_by: ["[[OWN-DEC-151]]"]
 source: "TSK-0032 (2026-10-21): OWN-DEC-95 gives the receipt email's content, not its text"
 ---
+**Answered by [[OWN-DEC-151]] (2026-10-21).**
+
 **Question:** which exact subject and body should the automatic receipt email use? The owner approved what it contains ([[OWN-DEC-95]]: the actual reference, the selected services, a brief summary, next steps, secure instructions for viewing the request, account creation optional, pricing and the appointment confirmed separately, the approved response-hours wording) and the receipt page's sentences ([[OWN-DEC-94]]), but no email subject or body.
 
 - **Who answers:** the owner (approve a wording, as for the code message in [[OWN-DEC-150]]).

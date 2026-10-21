@@ -2,12 +2,15 @@
 id: OQ-WINDOW-OFFER-RULES
 type: question
 title: The window-offer details no decision gives
-status: open
+status: superseded
 area: scheduling
 links:
   related: ["[[OWN-DEC-144]]", "[[OWN-DEC-99]]", "[[OWN-DEC-105]]", "[[HH-SCH-11]]", "[[HH-SCH-05]]", "[[ENT-Reservation]]", "[[ENT-Visit]]", "[[TSK-0063]]"]
+  superseded_by: ["[[OWN-DEC-192]]", "[[OWN-DEC-194]]"]
 source: "TSK-0063 (2026-10-21): OWN-DEC-144 holds offered windows 24 hours; the details below are PROPOSED"
 ---
+**Answered by [[OWN-DEC-192]], [[OWN-DEC-194]] (2026-10-21).**
+
 **Question:** does the owner approve, or change, these PROPOSED details of offering windows?
 
 - **Who answers:** the owner.

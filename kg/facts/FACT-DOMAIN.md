@@ -5,11 +5,13 @@ title: Domain: handyhub247.com
 status: active
 area: site
 links:
-  decided_by: ["[[OWN-DEC-02]]", "[[OWN-DEC-133]]"]
+  decided_by: ["[[OWN-DEC-02]]", "[[OWN-DEC-133]]", "[[OWN-DEC-184]]"]
   uses: ["[[INT-Resend]]"]
   related: ["[[OQ-DOMAIN-OWNERSHIP]]", "[[OQ-GO-DECISION]]"]
 source: "OWN-DEC-02, OWN-DEC-133; owner-answers-verbatim 2026-10-05T16:32 [Domain check], 16:33 [Registrar]"
 ---
+**Changed by [[OWN-DEC-184]] (2026-10-21):** the domain is not purchased yet (owner answer 2026-10-21); the GoDaddy registration noted below is not in place. Buying it is an owner action before production email, the custom origins and the A2P 10DLC submission.
+
 **Value ([[OWN-DEC-133]]):** `handyhub247.com` for the public site and the customer portal; `staff.handyhub247.com` for the staff app. Owner-confirmed spelling (owner answer 2026-10-05T16:32); registered at GoDaddy (16:33).
 
 - Each origin has its own host-only session cookies; customer and staff sessions never share a cookie ([[HH-ARC-06]]).

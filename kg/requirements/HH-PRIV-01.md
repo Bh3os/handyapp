@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: privacy
 links:
-  decided_by: ["[[OWN-DEC-70]]", "[[OWN-DEC-123]]", "[[OWN-DEC-142]]", "[[OWN-DEC-143]]"]
+  decided_by: ["[[OWN-DEC-70]]", "[[OWN-DEC-123]]", "[[OWN-DEC-142]]", "[[OWN-DEC-143]]", "[[OWN-DEC-177]]", "[[OWN-DEC-201]]"]
   depends_on: ["[[HH-DATA-09]]"]
   constrained_by: ["[[RULE-HUMAN-REVIEW]]", "[[RULE-NO-INVENTED-FACTS]]", "[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[FACT-RETENTION-SCHEDULE]]", "[[ENT-RetentionReview]]", "[[ENT-AuditEvent]]", "[[INT-Render]]", "[[INT-R2]]", "[[INT-Bird]]", "[[INT-Resend]]", "[[INT-Square]]"]
@@ -38,3 +38,5 @@ Retention:
 - There is no separate one-year contact-removal rule for lost requests.
 - Regulated employee medical or exposure records are excluded from routine deletion and need a separate reviewed schedule (human review).
 - Durations that are not in the schedule are never invented.
+
+**Changed by [[OWN-DEC-177]], [[OWN-DEC-201]] (2026-10-21):** provisional periods for staff accounts, consent, history, logs and expired links; the table-to-retention mapping is reviewed before any production deletion.
