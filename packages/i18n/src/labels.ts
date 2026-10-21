@@ -73,6 +73,8 @@ export const LABEL_FAMILIES = {
     'delivery_failed',
     'case_open',
     'candidate_match',
+    'inbox_needs_linking',
+    'customer_replied',
     'deposit_waiver',
     'start_work_exception',
     'refund_request',
@@ -104,6 +106,8 @@ export const LABEL_FAMILIES = {
     'overdue_owner_decision',
     'not_a_fit_with_obligations',
     'possible_duplicate',
+    'message_needs_linking',
+    'customer_replied',
   ],
   /** The one action button of a queue item (HH-OPS-02); it opens the record's screen. */
   queueAction: [
@@ -114,6 +118,8 @@ export const LABEL_FAMILIES = {
     'open_case',
     'decide',
     'review_match',
+    'link_message',
+    'open_conversation',
   ],
   /**
    * System health (TSK-0101; HH-NFR-02): the checks, their states, metrics and notes, as the server's health report
@@ -264,6 +270,22 @@ export const LABEL_FAMILIES = {
   recordField: ['displayName', 'fullName', 'email', 'phone', 'preferredChannel'],
   /** Message delivery states (HH-COM-02; platform.message_deliveries). */
   deliveryState: ['draft', 'queued', 'sent', 'delivered', 'failed', 'suppressed', 'cancelled'],
+  /** The unified inbox (TSK-0049; apps/server/src/modules/inbox, comms.messages). */
+  messageChannel: ['email', 'sms', 'internal'],
+  linkState: ['matched', 'needs_linking', 'linked'],
+  matchRule: ['reply_token', 'thread_reference', 'verified_email', 'verified_phone', 'latest_conversation', 'staff'],
+  needsLinkingReason: [
+    'no_match',
+    'shared_contact',
+    'several_projects',
+    'no_open_project',
+    'sender_not_on_project',
+    'conflicting_references',
+    'returned_by_staff',
+  ],
+  bodyState: ['received', 'html_converted', 'not_retrieved', 'retrieval_failed', 'empty'],
+  smsKeyword: ['stop', 'start', 'help'],
+  inboundState: ['configured', 'fake', 'not_configured', 'unknown'],
   /** Entries of a customer's activity history (apps/server/src/modules/customers/record.ts). */
   customerTimeline: [
     'request_submitted',

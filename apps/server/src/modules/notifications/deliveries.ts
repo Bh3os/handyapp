@@ -15,6 +15,9 @@
 //   staff queue item per failed delivery (its one action is Retry, retry.ts) and resolves it once a send is handed
 //   over or suppressed. A temporary provider failure on the job's last attempt is recorded as a failed delivery, so it
 //   reaches staff as a delivery issue with Retry instead of only as a failed job.
+// - TSK-0049 (HH-COM-07, OWN-DEC-120): a delivery records its project. A customer email of a project replies to the
+//   project's plus-addressed reply token while a receiving address is configured, so the customer's reply threads back
+//   to that project; without one it keeps the configured reply-to.
 import { createHash } from 'node:crypto'
 import type { Tx } from '@handyhub/db'
 import type { StaffLocale } from '@handyhub/i18n'
@@ -24,6 +27,7 @@ import type { Automation, JobContext, JobOutcome } from '../../platform/automati
 import { loadConfig, type Config } from '../../platform/config/index.js'
 import { scheduleJob } from '../../platform/jobs.js'
 import type { EmailSender, SmsSender } from '../../providers/index.js'
+import { projectReplyToken, replyAddress, type InboundAddress } from '../inbox/threading.js'
 import { openQueueItem, resolveQueueItem } from '../queue/items.js'
 import { nextContactTime } from './contact-hours.js'
 import { messageType, type Channel } from './message-types.js'
@@ -61,9 +65,16 @@ export type Resolved = {
   values: Readonly<Record<string, string>>
   /** When set, a failed delivery opens one `delivery_failed` queue item with these facts (TSK-0032). */
   failureItem?: FailureItem
+  /** TSK-0049: the project the message belongs to; default the failure item's project. */
+  projectId?: string | null
 }
 
-export type NotificationProviders = { email: EmailSender | null; sms: SmsSender | null }
+export type NotificationProviders = {
+  email: EmailSender | null
+  sms: SmsSender | null
+  /** TSK-0049: the receiving address of inbound email (INBOUND_EMAIL_ADDRESS); null or unset: no reply tokens. */
+  replyAddress?: InboundAddress | null
+}
 
 export class RetryableDeliveryError extends Error {
   override name = 'RetryableDeliveryError'
@@ -98,6 +109,7 @@ type DeliveryRow = {
   destination: string
   variables: unknown
   provider_message_id: string | null
+  project_id: string | null
 }
 
 /** What a send recorded on the delivery row. */
@@ -148,6 +160,11 @@ async function send(
     return update({ state: 'failed', error_code: 'template_values_missing', template_version: template.version })
   }
   const idempotencyKey = deliveryIdempotencyKey(row.message_key, channel, row.subject_key, row.destination)
+  // A customer email of a project replies to the project's token address (TSK-0049).
+  const replyTo =
+    channel === 'email' && row.audience === 'customer' && row.project_id && providers.replyAddress
+      ? replyAddress(providers.replyAddress, await projectReplyToken(tx, row.project_id))
+      : undefined
   const outcome =
     channel === 'email'
       ? await (sender as EmailSender).send({
@@ -155,6 +172,7 @@ async function send(
           subject: rendered.subject ?? '',
           text: rendered.body,
           idempotencyKey,
+          ...(replyTo ? { replyTo } : {}),
         })
       : await (sender as SmsSender).send({
           to: row.destination,
@@ -217,6 +235,7 @@ async function upsertDelivery(
     state: 'queued' | 'draft'
     outboxEventId?: string | null
     variables?: Record<string, string>
+    projectId?: string | null
   },
 ): Promise<DeliveryRow> {
   const type = messageType(input.messageKey)
@@ -239,6 +258,7 @@ async function upsertDelivery(
       destination: input.destination.destination,
       channel_permission: input.destination.permission,
       variables: JSON.stringify(input.variables ?? {}),
+      project_id: input.projectId ?? null,
       queued_at: input.state === 'queued' ? sql<Date>`now()` : null,
     })
     .onConflict((oc) => oc.doNothing())
@@ -303,6 +323,7 @@ export function notificationAutomation(o: NotificationAutomationOptions): Automa
             release: 'automatic',
             state: 'queued',
             outboxEventId: ctx.job.eventId,
+            projectId: resolved.projectId ?? resolved.failureItem?.projectId ?? null,
           })
           // Already handed to the provider, suppressed or failed for this subject: a replay sends nothing. A failed
           // delivery is queued again only by a staff retry (retry.ts).
@@ -331,6 +352,8 @@ export async function createDraft(
     subjectKey: string
     record: { type: string; id: string }
     values: Record<string, string>
+    /** TSK-0049: the project the message belongs to (its reply address and conversation). */
+    projectId?: string | null
   },
 ): Promise<{ id: string }> {
   const type = messageType(input.messageKey)
@@ -352,6 +375,7 @@ export async function createDraft(
     release: 'staff_released',
     state: 'draft',
     variables: input.values,
+    projectId: input.projectId ?? null,
   })
   return { id: row.id }
 }

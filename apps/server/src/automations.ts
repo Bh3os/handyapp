@@ -7,12 +7,15 @@ import { queueAutomations } from './modules/queue/index.js'
 import { receiptEmailAutomation } from './modules/requests/receipt-email.js'
 import { accessLinkAutomation } from './modules/access/link-message.js'
 import { customerAutomations } from './modules/customers/index.js'
+import { inboxIntakeAutomation, type InboundAddress } from './modules/inbox/index.js'
 import type { CodeKeySettings } from './modules/identity/index.js'
 import type { Automation } from './platform/automation.js'
 import type { Providers } from './providers/index.js'
 
 export type AutomationDeps = LinkEmailDeps & {
-  providers: Pick<Providers, 'email' | 'storage'> & Partial<Pick<Providers, 'sms'>>
+  providers: Pick<Providers, 'email' | 'storage'> & Partial<Pick<Providers, 'sms' | 'inboundEmail'>>
+  /** TSK-0049: the receiving address of inbound email (INBOUND_EMAIL_ADDRESS); unset: no reply tokens. */
+  replyAddress?: InboundAddress | null
   /** TSK-0034: the key the access links are derived with; unset: no grant exists to send. */
   codeKey?: CodeKeySettings
   /** TSK-0034: the public site's base URL for the access link; undefined while not configured. */
@@ -29,14 +32,25 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     // TSK-0041: action queue items from the modules' committed events.
     ...queueAutomations(),
     // TSK-0032: the automatic receipt email, once per saved request (HH-INT-20); email only.
-    receiptEmailAutomation({ providers: { email: deps.providers.email, sms: null } }),
+    receiptEmailAutomation({
+      providers: { email: deps.providers.email, sms: null, replyAddress: deps.replyAddress ?? null },
+    }),
     // TSK-0034: the secure project access link, once per grant, by email and (with the SMS opt-in) by text.
     accessLinkAutomation({
-      providers: { email: deps.providers.email, sms: deps.providers.sms ?? null },
+      providers: {
+        email: deps.providers.email,
+        sms: deps.providers.sms ?? null,
+        replyAddress: deps.replyAddress ?? null,
+      },
       codeKey: deps.codeKey ?? { state: 'not_configured', missing: ['CODE_HASH_KEY'] },
       publicSiteUrl: deps.publicSiteUrl,
     }),
     // TSK-0044: duplicate suggestions (candidate matches) from submitted requests and changed contacts; never links.
     ...customerAutomations(),
+    // TSK-0049: inbound email and texts into the unified inbox, matched to one project or left in Needs Linking.
+    inboxIntakeAutomation({
+      inboundEmail: deps.providers.inboundEmail ?? null,
+      replyAddress: deps.replyAddress ?? null,
+    }),
   ]
 }

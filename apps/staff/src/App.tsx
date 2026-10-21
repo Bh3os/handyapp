@@ -7,6 +7,7 @@ import { Button, Card, Field, StateView } from '@handyhub/ui'
 import { useEffect, useState, type FormEvent } from 'react'
 import { call, setCsrfToken, type ApiErrorBody, type Fetch } from './api'
 import { CustomerRecord, CustomersScreen } from './Customers'
+import { InboxRecord, InboxScreen } from './Inbox'
 import { QueueHome } from './Queue'
 import { RequestRecord } from './Record'
 import { RequestsScreen } from './Requests'
@@ -232,6 +233,10 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
               go={go}
               href={href}
             />
+          ) : shown === 'inbox' && allowed && route.page === 'screen' ? (
+            <InboxScreen t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
+          ) : route.page === 'record' && route.screen === 'inbox' && allowed ? (
+            <InboxRecord key={route.id} t={t} locale={locale} fetchImpl={doFetch} id={route.id} go={go} href={href} />
           ) : route.page === 'record' && route.screen === 'requests' && allowed ? (
             <RequestRecord key={route.id} t={t} locale={locale} fetchImpl={doFetch} id={route.id} go={go} href={href} />
           ) : (

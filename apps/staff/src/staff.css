@@ -448,3 +448,10 @@
   margin: 0;
   overflow-wrap: anywhere;
 }
+
+/* The unified inbox (TSK-0049): a message body exactly as received, line breaks kept, never rendered as HTML. */
+.staff-inbox__body {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

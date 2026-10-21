@@ -25,6 +25,8 @@ export const QUEUE_ACTIONS = [
   'open_case',
   'decide',
   'review_match',
+  'link_message',
+  'open_conversation',
 ] as const
 export type QueueAction = (typeof QUEUE_ACTIONS)[number]
 
@@ -123,6 +125,30 @@ export const QUEUE_ITEM_TYPES = [
     reasons: ['possible_duplicate'],
     action: 'review_match',
     screen: 'customers',
+  },
+  // TSK-0049 (HH-COM-07, OWN-DEC-120): an inbound message that no reliable reference places on exactly one project
+  // waits in Needs Linking. Only the holders of message.view_unmatched (Owner, Office) see the item, and the item names
+  // no project, reference or sender.
+  {
+    id: 'inbox_needs_linking',
+    section: 'queue',
+    subject: 'inbound_message',
+    band: 'time_sensitive',
+    view: 'message.view_unmatched',
+    reasons: ['message_needs_linking'],
+    action: 'link_message',
+    screen: 'inbox',
+  },
+  // A customer's email or text matched to a project: one item per conversation until staff mark it handled.
+  {
+    id: 'customer_replied',
+    section: 'queue',
+    subject: 'conversation',
+    band: 'time_sensitive',
+    view: 'message.reply',
+    reasons: ['customer_replied'],
+    action: 'open_conversation',
+    screen: 'inbox',
   },
   // Owner Decisions (HH-OPS-01 "Owner, additionally"): each decision is owner-only in the matrix.
   {

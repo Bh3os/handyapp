@@ -44,6 +44,71 @@ export interface CatalogServicesTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface CommsConversationsTable {
+  id: Generated<string>
+  project_id: string
+  customer_id: string
+  audience: string
+  state: Generated<string>
+  last_message_at: Timestamp | null
+  last_inbound_at: Timestamp | null
+  handled_at: Timestamp | null
+  handled_by: string | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CommsMessageLinksTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  message_id: string
+  from_state: string | null
+  to_state: string
+  from_project_id: string | null
+  to_project_id: string | null
+  rule: string
+  reason: string | null
+  staff_id: string | null
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CommsMessagesTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  direction: string
+  channel: string
+  webhook_receipt_id: string | null
+  provider: string | null
+  provider_message_id: string | null
+  from_address: string | null
+  to_addresses: Generated<string[]>
+  subject: string | null
+  body_text: string | null
+  body_state: string
+  body_truncated: Generated<boolean>
+  email_message_id: string | null
+  in_reply_to: Generated<string[]>
+  attachments: ColumnType<JsonValue, string | undefined, string>
+  keyword: string | null
+  received_at: ColumnType<Date, Date | string | undefined, Date | string>
+  author_staff_id: string | null
+  link_state: string
+  match_rule: string | null
+  needs_linking_reason: string | null
+  project_id: string | null
+  customer_id: string | null
+  conversation_id: string | null
+  contact_id: string | null
+  suggested_project_id: string | null
+  link_version: Generated<number>
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CommsProjectReplyTokensTable {
+  project_id: string
+  token: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface CrmCandidateMatchEventsTable {
   id: Generated<string>
   match_id: string
@@ -570,6 +635,7 @@ export interface PlatformMessageDeliveriesTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   updated_at: ColumnType<Date, Date | string | undefined, Date | string>
   status_at: Timestamp | null
+  project_id: string | null
 }
 
 export interface PlatformMessageDeliveryEventsTable {
@@ -683,6 +749,10 @@ export interface WorkWorkPackagesTable {
 export interface Database {
   'catalog.service_versions': CatalogServiceVersionsTable
   'catalog.services': CatalogServicesTable
+  'comms.conversations': CommsConversationsTable
+  'comms.message_links': CommsMessageLinksTable
+  'comms.messages': CommsMessagesTable
+  'comms.project_reply_tokens': CommsProjectReplyTokensTable
   'crm.candidate_match_events': CrmCandidateMatchEventsTable
   'crm.candidate_matches': CrmCandidateMatchesTable
   'crm.contacts': CrmContactsTable

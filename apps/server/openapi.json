@@ -8831,6 +8831,2186 @@
         }
       }
     },
+    "/api/v1/staff/inbox/conversations": {
+      "get": {
+        "operationId": "listInboxConversations",
+        "summary": "Customer conversations",
+        "description": "Staff with message.reply, inside the caller’s project scope (Owner, Office: every project; an Estimator’s own threads are not recorded yet, so none). Customer conversations, latest activity first, each with its project, customer, whether a customer reply waits and a short preview of the latest message. Internal conversations and Needs Linking messages are never listed here.",
+        "tags": [
+          "inbox"
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "items",
+                    "nextCursor"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "project",
+                          "customer",
+                          "lastMessageAt",
+                          "lastInboundAt",
+                          "awaitingReply",
+                          "latest"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "project": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "reference",
+                              "state"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "reference": {
+                                "type": "string"
+                              },
+                              "state": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "customer": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "displayName"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "displayName": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "lastMessageAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "lastInboundAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "awaitingReply": {
+                            "type": "boolean"
+                          },
+                          "latest": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "additionalProperties": false,
+                            "required": [
+                              "channel",
+                              "direction",
+                              "preview",
+                              "receivedAt"
+                            ],
+                            "properties": {
+                              "channel": {
+                                "type": "string"
+                              },
+                              "direction": {
+                                "type": "string"
+                              },
+                              "preview": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "receivedAt": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.reply",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": true,
+          "cache": "private, no-store",
+          "test": "test/integration/inbox.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/inbox/conversations/{conversationId}": {
+      "get": {
+        "operationId": "getInboxConversation",
+        "summary": "A customer conversation",
+        "description": "Staff with message.reply on the conversation’s project, inside the caller’s scope (an unknown or out-of-scope ID is NOT_FOUND). The customer conversation’s inbound email and texts as received (the original text, never changed; attachments as metadata only, not imported), each with its sender contact or \"unknown sender\"; the project’s customer notifications as delivery metadata (no text); and, kept apart, the project’s internal conversation, which never reaches the customer.",
+        "tags": [
+          "inbox"
+        ],
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "project",
+                    "customer",
+                    "state",
+                    "awaitingReply",
+                    "handledAt",
+                    "messages",
+                    "deliveries",
+                    "internal"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "project": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "reference",
+                        "state"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "reference": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "customer": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "displayName"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "displayName": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "awaitingReply": {
+                      "type": "boolean"
+                    },
+                    "handledAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "messages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "direction",
+                          "channel",
+                          "from",
+                          "to",
+                          "subject",
+                          "body",
+                          "bodyState",
+                          "bodyTruncated",
+                          "attachments",
+                          "keyword",
+                          "receivedAt",
+                          "linkState",
+                          "matchRule",
+                          "author"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "direction": {
+                            "type": "string"
+                          },
+                          "channel": {
+                            "type": "string"
+                          },
+                          "from": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "to": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "subject": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "body": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "bodyState": {
+                            "type": "string"
+                          },
+                          "bodyTruncated": {
+                            "type": "boolean"
+                          },
+                          "attachments": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "contentType",
+                                "size"
+                              ],
+                              "properties": {
+                                "contentType": {
+                                  "type": "string"
+                                },
+                                "size": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "keyword": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "receivedAt": {
+                            "type": "string"
+                          },
+                          "linkState": {
+                            "type": "string"
+                          },
+                          "matchRule": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "author": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "kind",
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "contact",
+                                  "unknown_sender",
+                                  "staff"
+                                ]
+                              },
+                              "id": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "deliveries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "messageKey",
+                          "channel",
+                          "state",
+                          "at"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "messageKey": {
+                            "type": "string"
+                          },
+                          "channel": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string"
+                          },
+                          "at": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "internal": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "messages"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "messages": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "direction",
+                              "channel",
+                              "from",
+                              "to",
+                              "subject",
+                              "body",
+                              "bodyState",
+                              "bodyTruncated",
+                              "attachments",
+                              "keyword",
+                              "receivedAt",
+                              "linkState",
+                              "matchRule",
+                              "author"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "direction": {
+                                "type": "string"
+                              },
+                              "channel": {
+                                "type": "string"
+                              },
+                              "from": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "to": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "subject": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "body": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "bodyState": {
+                                "type": "string"
+                              },
+                              "bodyTruncated": {
+                                "type": "boolean"
+                              },
+                              "attachments": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "contentType",
+                                    "size"
+                                  ],
+                                  "properties": {
+                                    "contentType": {
+                                      "type": "string"
+                                    },
+                                    "size": {
+                                      "type": [
+                                        "integer",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                }
+                              },
+                              "keyword": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "receivedAt": {
+                                "type": "string"
+                              },
+                              "linkState": {
+                                "type": "string"
+                              },
+                              "matchRule": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "author": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "kind",
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "contact",
+                                      "unknown_sender",
+                                      "staff"
+                                    ]
+                                  },
+                                  "id": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.reply",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/inbox.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/inbox/conversations/{conversationId}/handled": {
+      "post": {
+        "operationId": "markConversationHandled",
+        "summary": "Mark a customer’s replies handled",
+        "description": "Staff with message.reply on the conversation’s project, inside the caller’s scope. Records who handled the customer’s replies and when, and resolves the conversation’s \"customer replied\" queue item. Nothing is sent and no message changes.",
+        "tags": [
+          "inbox"
+        ],
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "resolved",
+                    "handledAt"
+                  ],
+                  "properties": {
+                    "resolved": {
+                      "type": "boolean"
+                    },
+                    "handledAt": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.reply",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "inbox.conversation_handled",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/inbox.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/inbox/messages/{messageId}": {
+      "get": {
+        "operationId": "getInboxMessage",
+        "summary": "An inbound message and its linking",
+        "description": "Owner and Office only (message.view_unmatched). One inbound email or text exactly as received, its linking state (matched, Needs Linking with the reason, or linked by staff), its linking history with each correction’s staff member and reason, and candidate projects: projects of customers whose contacts have the sender’s exact address (marked when the address is verified) and the project a reference suggested. Candidates are suggestions for staff, never links.",
+        "tags": [
+          "inbox"
+        ],
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "version",
+                    "direction",
+                    "channel",
+                    "from",
+                    "to",
+                    "subject",
+                    "body",
+                    "bodyState",
+                    "bodyTruncated",
+                    "attachments",
+                    "keyword",
+                    "receivedAt",
+                    "linkState",
+                    "reason",
+                    "matchRule",
+                    "project",
+                    "customer",
+                    "conversationId",
+                    "candidates",
+                    "history"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "direction": {
+                      "type": "string"
+                    },
+                    "channel": {
+                      "type": "string"
+                    },
+                    "from": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "to": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "subject": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "body": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "bodyState": {
+                      "type": "string"
+                    },
+                    "bodyTruncated": {
+                      "type": "boolean"
+                    },
+                    "attachments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "contentType",
+                          "size"
+                        ],
+                        "properties": {
+                          "contentType": {
+                            "type": "string"
+                          },
+                          "size": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "keyword": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "receivedAt": {
+                      "type": "string"
+                    },
+                    "linkState": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "matchRule": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "project": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "reference"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "reference": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "customer": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "displayName"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "displayName": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "conversationId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "candidates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "projectId",
+                          "reference",
+                          "state",
+                          "customerId",
+                          "customerName",
+                          "verifiedContact",
+                          "suggested"
+                        ],
+                        "properties": {
+                          "projectId": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string"
+                          },
+                          "customerId": {
+                            "type": "string"
+                          },
+                          "customerName": {
+                            "type": "string"
+                          },
+                          "verifiedContact": {
+                            "type": "boolean"
+                          },
+                          "suggested": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "history": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "fromState",
+                          "toState",
+                          "fromReference",
+                          "toReference",
+                          "rule",
+                          "reason",
+                          "staff",
+                          "at"
+                        ],
+                        "properties": {
+                          "fromState": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "toState": {
+                            "type": "string"
+                          },
+                          "fromReference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "toReference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "rule": {
+                            "type": "string"
+                          },
+                          "reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "staff": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "at": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.view_unmatched",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/inbox.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/inbox/messages/{messageId}/link": {
+      "post": {
+        "operationId": "linkInboxMessage",
+        "summary": "Link a message to a project, or return it to Needs Linking",
+        "description": "Owner and Office only (message.link), with If-Match (the message’s linking version) and a written reason. Links an inbound message to the project with that reference (any project inside the caller’s scope), or, with projectReference null, returns it to Needs Linking. The message itself never changes: only its linking moves, and the correction is kept in its linking history and the audit log (OWN-DEC-120). The sender is recorded as a contact of the project’s customer only when one of that customer’s contacts already has the exact address; no contact is created and nothing is merged.",
+        "tags": [
+          "inbox"
+        ],
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "projectReference",
+                  "reason"
+                ],
+                "properties": {
+                  "projectReference": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "^HH-[0-9A-HJKMNP-TV-Z]{8}$"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "version",
+                    "linkState",
+                    "project",
+                    "conversationId"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "linkState": {
+                      "type": "string"
+                    },
+                    "project": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "reference"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "reference": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "conversationId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.link",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "inbox.message_linked",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/inbox.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/inbox/needs-linking": {
+      "get": {
+        "operationId": "listNeedsLinking",
+        "summary": "Needs Linking",
+        "description": "Owner and Office only (message.view_unmatched); every other role is refused. Inbound email and texts that no reliable reference placed on exactly one project (several possible projects, none, a shared contact, or a reference whose sender is not on the project), newest first, with the reason and, when a reference named a project, that project as a suggestion. Nothing here is attached to any customer until staff link it.",
+        "tags": [
+          "inbox"
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "items",
+                    "nextCursor"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "channel",
+                          "from",
+                          "subject",
+                          "preview",
+                          "receivedAt",
+                          "reason",
+                          "attachments",
+                          "suggestion"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "channel": {
+                            "type": "string"
+                          },
+                          "from": {
+                            "type": "string"
+                          },
+                          "subject": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "preview": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "receivedAt": {
+                            "type": "string"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "attachments": {
+                            "type": "integer"
+                          },
+                          "suggestion": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "additionalProperties": false,
+                            "required": [
+                              "projectId",
+                              "reference"
+                            ],
+                            "properties": {
+                              "projectId": {
+                                "type": "string"
+                              },
+                              "reference": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.view_unmatched",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": true,
+          "cache": "private, no-store",
+          "test": "test/integration/inbox.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/inbox/projects/{projectId}/internal-messages": {
+      "post": {
+        "operationId": "postInternalMessage",
+        "summary": "Add an internal message to a project",
+        "description": "Staff with message.reply on the project, inside the caller’s scope. Adds a staff-only message to the project’s internal conversation, which is separate from the customer conversation and never reaches the customer (HH-COM-01). A message never becomes a binding scope or price change. Card numbers are refused; never write passwords or access codes in a message.",
+        "tags": [
+          "inbox"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "body"
+                ],
+                "properties": {
+                  "body": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 5000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "conversationId"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "conversationId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.reply",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "inbox.internal_message_added",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/inbox.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/inbox/status": {
+      "get": {
+        "operationId": "getInboxStatus",
+        "summary": "Inbox channel states",
+        "description": "Staff with message.reply. Whether each inbound channel is configured (Bird texts, Resend email: their webhook signing secrets), whether email bodies can be read and whether reply tokens are configured, by state only: never a secret, an address or a value. While a secret is unset the channel is \"Inbound not configured\" and nothing is shown as received. Also the count of inbound events on unsupported channels, and, for holders of message.view_unmatched only, how many messages wait in Needs Linking.",
+        "tags": [
+          "inbox"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "sms",
+                    "email",
+                    "unsupported",
+                    "needsLinking"
+                  ],
+                  "properties": {
+                    "sms": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "provider",
+                        "inbound"
+                      ],
+                      "properties": {
+                        "provider": {
+                          "const": "bird"
+                        },
+                        "inbound": {
+                          "type": "string",
+                          "enum": [
+                            "configured",
+                            "not_configured",
+                            "unknown"
+                          ]
+                        }
+                      }
+                    },
+                    "email": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "provider",
+                        "inbound",
+                        "bodyReading",
+                        "replyTokens"
+                      ],
+                      "properties": {
+                        "provider": {
+                          "const": "resend"
+                        },
+                        "inbound": {
+                          "type": "string",
+                          "enum": [
+                            "configured",
+                            "not_configured",
+                            "unknown"
+                          ]
+                        },
+                        "bodyReading": {
+                          "type": "string",
+                          "enum": [
+                            "configured",
+                            "fake",
+                            "not_configured",
+                            "unknown"
+                          ]
+                        },
+                        "replyTokens": {
+                          "type": "string",
+                          "enum": [
+                            "configured",
+                            "not_configured",
+                            "unknown"
+                          ]
+                        }
+                      }
+                    },
+                    "unsupported": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "count",
+                        "latestAt"
+                      ],
+                      "properties": {
+                        "count": {
+                          "type": "integer"
+                        },
+                        "latestAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "needsLinking": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.reply",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/inbox.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/invitations": {
       "post": {
         "operationId": "inviteStaff",
@@ -9243,6 +11423,8 @@
                 "delivery_failed",
                 "case_open",
                 "candidate_match",
+                "inbox_needs_linking",
+                "customer_replied",
                 "deposit_waiver",
                 "start_work_exception",
                 "refund_request",
@@ -9357,6 +11539,8 @@
                               "delivery_failed",
                               "case_open",
                               "candidate_match",
+                              "inbox_needs_linking",
+                              "customer_replied",
                               "deposit_waiver",
                               "start_work_exception",
                               "refund_request",
@@ -9456,7 +11640,9 @@
                               "retry_delivery",
                               "open_case",
                               "decide",
-                              "review_match"
+                              "review_match",
+                              "link_message",
+                              "open_conversation"
                             ]
                           },
                           "link": {
@@ -9502,6 +11688,8 @@
                           "delivery_failed",
                           "case_open",
                           "candidate_match",
+                          "inbox_needs_linking",
+                          "customer_replied",
                           "deposit_waiver",
                           "start_work_exception",
                           "refund_request",
@@ -9636,6 +11824,8 @@
                 "delivery_failed",
                 "case_open",
                 "candidate_match",
+                "inbox_needs_linking",
+                "customer_replied",
                 "deposit_waiver",
                 "start_work_exception",
                 "refund_request",
@@ -9750,6 +11940,8 @@
                               "delivery_failed",
                               "case_open",
                               "candidate_match",
+                              "inbox_needs_linking",
+                              "customer_replied",
                               "deposit_waiver",
                               "start_work_exception",
                               "refund_request",
@@ -9849,7 +12041,9 @@
                               "retry_delivery",
                               "open_case",
                               "decide",
-                              "review_match"
+                              "review_match",
+                              "link_message",
+                              "open_conversation"
                             ]
                           },
                           "link": {
@@ -9895,6 +12089,8 @@
                           "delivery_failed",
                           "case_open",
                           "candidate_match",
+                          "inbox_needs_linking",
+                          "customer_replied",
                           "deposit_waiver",
                           "start_work_exception",
                           "refund_request",
