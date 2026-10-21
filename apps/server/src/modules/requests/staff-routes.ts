@@ -34,7 +34,13 @@ import { currentContext } from '../../platform/request-context.js'
 import { openQueueItem, syncNewRequestItem } from '../queue/index.js'
 import { DEFAULT_OBLIGATION_CHECKS, obligationFacts, type ObligationCheck } from './obligations.js'
 import { latestQualification, staffRequestView } from './staff-record.js'
-import { unqualifiedChecks, type Qualification } from '@handyhub/domain'
+import {
+  looksLikeCardNumber,
+  NOTE_VISIBILITIES,
+  type NoteVisibility,
+  unqualifiedChecks,
+  type Qualification,
+} from '@handyhub/domain'
 import {
   ACTION_RESULT,
   DETAIL,
@@ -531,6 +537,14 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
     handler: async (ctx) => {
       const view = await staffRequestView(ctx.db, ctx.scope, requestIdOf(ctx), ctx.actor)
       if (!view) throw new ApiError('NOT_FOUND')
+      // TSK-0044 (OWN-DEC-143): restricted incident detail shown in full is audited, as the matrix cell says.
+      const revealed = view.notes.filter((n) => n.visibility === 'restricted_incident' && !n.masked).map((n) => n.id)
+      if (revealed.length)
+        await ctx.auditAlways({
+          action: 'incident.view_restricted',
+          target: { type: 'request', id: view.id },
+          summary: { notes: revealed },
+        })
       return { body: view, version: view.version }
     },
   }
@@ -698,7 +712,9 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
     summary: 'Add an internal note to a request',
     description:
       'Staff with request.add_note (PROPOSED: the request-handling row). A staff-only note, kept separate from ' +
-      'customer messages and never shown to customers. Notes are never edited or deleted; a correction is a new note.',
+      'customer messages and never shown to customers. Notes are never edited or deleted; a correction is a new note. ' +
+      'TSK-0044 (HH-STAFF-05): its visibility class is internal_operational unless restricted_incident (the Owner and ' +
+      'the reporting worker only) or restricted_financial is chosen; never customer-shared. A card number is refused.',
     actors: ['staff'],
     permission: 'request.add_note',
     kind: 'write',
@@ -715,7 +731,10 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
         type: 'object',
         additionalProperties: false,
         required: ['body'],
-        properties: { body: { type: 'string', minLength: 1, maxLength: 5000, pattern: '\\S' } },
+        properties: {
+          body: { type: 'string', minLength: 1, maxLength: 5000, pattern: '\\S' },
+          visibility: { type: 'string', enum: [...NOTE_VISIBILITIES] },
+        },
       },
       response: {
         201: {
@@ -730,19 +749,28 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
       const tx = ctx.tx as Tx
       const actor = staffActor(ctx)
       const current = await lockRequest(tx, ctx.scope, requestIdOf(ctx))
-      const { body } = ctx.req.body as { body: string }
+      const { body, visibility } = ctx.req.body as { body: string; visibility?: NoteVisibility }
+      // Notes never hold payment card data (HH-CRM-01).
+      if (looksLikeCardNumber(body))
+        throw new ApiError('VALIDATION_FAILED', {
+          fieldErrors: [{ field: 'body.body', code: 'sensitive_content', message: '' }],
+        })
       const row = await tx
         .insertInto('intake.request_notes')
         .values({
           request_id: current.id,
           project_id: current.projectId,
           author_staff_id: actor.userId,
+          visibility: visibility ?? 'internal_operational',
           body: body.trim(),
         })
-        .returning(['id', 'created_at'])
+        .returning(['id', 'created_at', 'visibility'])
         .executeTakeFirstOrThrow()
       // The note's text is never written to the audit log (RULE-SERVER-AUTHZ).
-      await ctx.audit({ target: { type: 'request_note', id: row.id }, summary: { requestId: current.id } })
+      await ctx.audit({
+        target: { type: 'request_note', id: row.id },
+        summary: { requestId: current.id, visibility: row.visibility },
+      })
       return { status: 201, body: { id: row.id, createdAt: row.created_at.toISOString() } }
     },
   }

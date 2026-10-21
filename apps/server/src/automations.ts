@@ -6,6 +6,7 @@ import { photoProcessAutomation } from './modules/photos/index.js'
 import { queueAutomations } from './modules/queue/index.js'
 import { receiptEmailAutomation } from './modules/requests/receipt-email.js'
 import { accessLinkAutomation } from './modules/access/link-message.js'
+import { customerAutomations } from './modules/customers/index.js'
 import type { CodeKeySettings } from './modules/identity/index.js'
 import type { Automation } from './platform/automation.js'
 import type { Providers } from './providers/index.js'
@@ -35,5 +36,7 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
       codeKey: deps.codeKey ?? { state: 'not_configured', missing: ['CODE_HASH_KEY'] },
       publicSiteUrl: deps.publicSiteUrl,
     }),
+    // TSK-0044: duplicate suggestions (candidate matches) from submitted requests and changed contacts; never links.
+    ...customerAutomations(),
   ]
 }

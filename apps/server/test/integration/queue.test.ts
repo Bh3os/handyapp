@@ -114,7 +114,15 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
   it('[HH-OPS-01][T26] office never sees Owner Decisions items, in either list', async () => {
     const office = await list('office')
     expect(office.sections).toEqual(['queue'])
-    expect(office.types).toEqual(['new_request', 'safety_hold', 'visit_change_request', 'delivery_failed', 'case_open'])
+    // TSK-0044 added duplicate suggestions (customer.view_duplicates) to the queue.
+    expect(office.types).toEqual([
+      'new_request',
+      'safety_hold',
+      'visit_change_request',
+      'delivery_failed',
+      'case_open',
+      'candidate_match',
+    ])
     expect(office.items.map((i) => i.type)).not.toContain('deposit_waiver')
     expect(office.items.map((i) => i.id)).not.toContain(ownerOnly)
     expect((await get('office', '/api/v1/staff/queue/owner-decisions')).statusCode).toBe(403)
@@ -149,7 +157,8 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
   it('[HH-OPS-01][T26] an estimator sees requests and safety holds, but no cases and no Owner Decisions', async () => {
     const est = await list('estimator')
     expect(est.sections).toEqual(['queue'])
-    expect(est.types).toEqual(['new_request', 'safety_hold', 'delivery_failed'])
+    // TSK-0044: duplicate suggestions, by the Estimator's PROPOSED customer.view_duplicates cell.
+    expect(est.types).toEqual(['new_request', 'safety_hold', 'delivery_failed', 'candidate_match'])
     expect(est.items.map((i) => i.type)).not.toContain('case_open')
     expect((await get('estimator', '/api/v1/staff/queue/owner-decisions')).statusCode).toBe(403)
   })

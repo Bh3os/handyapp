@@ -6,6 +6,7 @@ import { staffTranslator, type StaffKey, type StaffLocale } from '@handyhub/i18n
 import { Button, Card, Field, StateView } from '@handyhub/ui'
 import { useEffect, useState, type FormEvent } from 'react'
 import { call, setCsrfToken, type ApiErrorBody, type Fetch } from './api'
+import { CustomerRecord, CustomersScreen } from './Customers'
 import { QueueHome } from './Queue'
 import { RequestRecord } from './Record'
 import { RequestsScreen } from './Requests'
@@ -219,6 +220,18 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
             <ConfigurationScreen t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
           ) : shown === 'requests' && allowed && route.page === 'screen' ? (
             <RequestsScreen t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
+          ) : shown === 'customers' && allowed && route.page === 'screen' ? (
+            <CustomersScreen t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
+          ) : route.page === 'record' && route.screen === 'customers' && allowed ? (
+            <CustomerRecord
+              key={route.id}
+              t={t}
+              locale={locale}
+              fetchImpl={doFetch}
+              id={route.id}
+              go={go}
+              href={href}
+            />
           ) : route.page === 'record' && route.screen === 'requests' && allowed ? (
             <RequestRecord key={route.id} t={t} locale={locale} fetchImpl={doFetch} id={route.id} go={go} href={href} />
           ) : (

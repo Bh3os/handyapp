@@ -14,6 +14,7 @@ export function requestDetail(over: Partial<RequestDetail> = {}): RequestDetail 
     privacyNoticeVersion: 'draft-test-1',
     spam: { suspected: false, signals: [] },
     project: { id: '22222222-2222-4222-8222-222222222222', reference: 'HH-7K2M9Q4D', state: 'open' },
+    customer: { id: '33333333-3333-4333-8333-333333333333', displayName: 'Synthetic Customer' },
     original: {
       services: [
         { serviceId: 'SVC-DW-01', code: 'DW-01', notes: 'Synthetic service note' },

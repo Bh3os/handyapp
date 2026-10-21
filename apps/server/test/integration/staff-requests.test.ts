@@ -392,7 +392,8 @@ describe('responsible staff member, qualification and internal notes (TSK-0042, 
       .select(['visibility'])
       .where('request_id', '=', r.id)
       .executeTakeFirstOrThrow()
-    expect(row.visibility).toBe('internal')
+    // TSK-0044 (HH-STAFF-05): the internal class is named internal_operational.
+    expect(row.visibility).toBe('internal_operational')
     await expect(
       sql`UPDATE intake.request_notes SET body = 'x' WHERE request_id = ${r.id}`.execute(t.db),
     ).rejects.toThrow(/APPEND_ONLY/)

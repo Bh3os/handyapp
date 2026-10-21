@@ -5,6 +5,7 @@ import type { Secret } from '../providers/types.js'
 import { identityModule } from './identity/index.js'
 import type { ObjectStorage } from '../providers/index.js'
 import { COVERAGE_MODULE } from './coverage/index.js'
+import { CUSTOMERS_MODULE } from './customers/index.js'
 import { NOTIFICATIONS_MODULE } from './notifications/index.js'
 import { photosModule } from './photos/index.js'
 import { QUEUE_MODULE } from './queue/index.js'
@@ -47,6 +48,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     verificationModule({ codeKey: deps.codeKey ?? NO_CODE_KEY, trustProxyHops: deps.trustProxyHops ?? 0 }),
     // TSK-0034: the project access link landing and the opened project.
     accessModule({ codeKey: deps.codeKey ?? NO_CODE_KEY, trustProxyHops: deps.trustProxyHops ?? 0 }),
+    // TSK-0044: staff customer and contact records, notes with visibility classes and duplicate suggestions.
+    CUSTOMERS_MODULE,
   ]
 }
 

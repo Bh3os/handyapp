@@ -51,7 +51,8 @@ describe('queue item types (TSK-0041, HH-OPS-01)', () => {
     expect(visibleSections(staff('estimator'))).toEqual(['queue'])
     expect(visibleSections(staff('worker'))).toEqual([])
     expect(visibleTypes(staff('estimator'), 'queue')).toEqual({
-      all: ['new_request', 'safety_hold'],
+      // TSK-0044: duplicate suggestions, by the Estimator's PROPOSED customer.view_duplicates cell.
+      all: ['new_request', 'safety_hold', 'candidate_match'],
       own: ['delivery_failed'],
     })
     // Roles add up: a worker who is also office sees what office sees.

@@ -110,6 +110,7 @@ export const DETAIL = {
     'privacyNoticeVersion',
     'spam',
     'project',
+    'customer',
     'original',
     'contactVerification',
     'coverage',
@@ -145,6 +146,13 @@ export const DETAIL = {
       additionalProperties: false,
       required: ['id', 'reference', 'state'],
       properties: { id: { type: 'string' }, reference: { type: 'string' }, state: { type: 'string' } },
+    },
+    // TSK-0044: the customer record the request belongs to (its own customer: never linked by matching details).
+    customer: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['id', 'displayName'],
+      properties: { id: { type: 'string' }, displayName: { type: 'string' } },
     },
     original: {
       type: 'object',
@@ -284,11 +292,15 @@ export const DETAIL = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['id', 'body', 'author', 'createdAt'],
+        // TSK-0044 (HH-STAFF-05): each note's visibility class; a restricted note the caller may not read is masked
+        // (it exists, its class and time; no text, no author).
+        required: ['id', 'visibility', 'masked', 'body', 'author', 'createdAt'],
         properties: {
           id: { type: 'string' },
-          body: { type: 'string' },
-          author: STAFF_REF,
+          visibility: { type: 'string' },
+          masked: { type: 'boolean' },
+          body: { type: ['string', 'null'] },
+          author: NULLABLE_STAFF,
           createdAt: { type: 'string' },
         },
       },

@@ -6,7 +6,7 @@
 // through its request, the request through its project, the project through the scope.
 import type { Database, Db, Tx } from '@handyhub/db'
 import { REFERENCE_PATTERN } from '@handyhub/domain/request-form'
-import type { DataScope } from '@handyhub/policy'
+import { readsVisibility, type Actor, type DataScope } from '@handyhub/policy'
 import type { Expression, ExpressionBuilder, SqlBool } from 'kysely'
 import { projectInScope } from '../../platform/data-scope.js'
 
@@ -64,7 +64,7 @@ export async function findRequest(
 
 /**
  * Media a customer may see (HH-DATA-07, OWN-DEC-106): what the customer uploaded, or what staff shared through the
- * audited share action. Internal is the default visibility, so every other photo (internal, restricted incident) is
+ * audited share action. Internal is the default visibility, so every other photo (internal_operational, restricted) is
  * absent from customer reads by URL and by ID.
  */
 export function customerVisiblePhoto(eb: ExpressionBuilder<Database, 'intake.photos'>): Expression<SqlBool> {
@@ -84,24 +84,31 @@ export type PhotoRow = {
 
 /**
  * The photos of a request inside the scope, oldest first (removed ones never). `audience: 'customer'` keeps only the
- * customer-visible ones. An out-of-scope or unknown request: null.
+ * customer-visible ones. For staff, `viewer` (TSK-0044, HH-STAFF-05) keeps only the visibility classes that staff
+ * member may read: a restricted photo is absent for a role outside its class. An out-of-scope or unknown request: null.
  */
 export async function requestPhotos(
   db: Reader,
   scope: DataScope,
   requestId: string,
   audience: 'customer' | 'staff',
+  viewer?: Actor,
 ): Promise<PhotoRow[] | null> {
   const request = await findRequest(db, scope, requestId)
   if (!request) return null
   let q = db
     .selectFrom('intake.photos')
-    .select(['id', 'state', 'content_type', 'byte_size', 'rejection_reason'])
+    .select(['id', 'state', 'content_type', 'byte_size', 'rejection_reason', 'visibility'])
     .where('request_id', '=', request.id)
     .where('project_id', '=', request.projectId)
     .where('state', '<>', 'removed')
   if (audience === 'customer') q = q.where(customerVisiblePhoto)
-  const rows = await q.orderBy('uploaded_at').orderBy('id').execute()
+  const all = await q.orderBy('uploaded_at').orderBy('id').execute()
+  const now = new Date()
+  const rows =
+    audience === 'staff' && viewer
+      ? all.filter((r) => readsVisibility(viewer, r.visibility, { projectId: request.projectId }, now).allowed)
+      : all
   return rows.map((r) => ({
     id: r.id,
     state: r.state,

@@ -6,10 +6,11 @@
 //
 // Entities with no customer view below are internal as a whole until a task declares one from its requirement: the
 // project access grant itself (its nonce, token hash, contact and revocation are never sent; a customer only learns
-// the reference of the project it opens), customer and account records, documents, invoices and cases.
+// the reference of the project it opens), customer and account records, documents, invoices and cases. TSK-0044:
+// contacts, notes (every class: notes are never customer-shared) and candidate matches have no customer view either.
 import type { JsonSchema } from '../../api/route.js'
 
-/** The entities of TSK-0037 (ENT-*). */
+/** The entities of TSK-0037 and TSK-0044 (ENT-*). */
 export const ENTITIES = [
   'Project',
   'ProjectAccessGrant',
@@ -19,6 +20,9 @@ export const ENTITIES = [
   'Document',
   'Invoice',
   'Case',
+  'Contact',
+  'Note',
+  'CandidateMatch',
 ] as const
 export type Entity = (typeof ENTITIES)[number]
 
