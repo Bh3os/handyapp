@@ -198,6 +198,14 @@ export const CONFIG_KEYS = {
   // recording it is the owner's legal-document sign-off (OQ-TERMS-OWNER-APPROVAL), and the customer view shows its
   // wording only while the recorded content hash matches.
   'legal.estimate_terms': legalDocument,
+  // TSK-0098 (HH-SEC-06, OWN-DEC-142, OWN-DEC-70): how long audit records are kept (7 years), then the owner's
+  // deletion-review queue. Automatic deletion is not a value this shape accepts, and holds always keep records.
+  'retention.audit_log': shape({
+    years: int(1, 100),
+    afterPeriod: exactly('owner_deletion_review'),
+    automaticDeletion: exactly(false),
+    holdsKeepRecords: exactly(true),
+  }),
   // TSK-0063 (OWN-DEC-144; OWN-DEC-99, OWN-DEC-105): offered appointment windows hold their workers and equipment for
   // holdHours from the offer; staff offer minWindows to maxWindows windows at a time. Decided values, seeded active by
   // migration 0053.

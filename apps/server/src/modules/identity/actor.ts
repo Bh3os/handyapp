@@ -5,7 +5,7 @@ import type { Db } from '@handyhub/db'
 import type { Capability, StaffActor, StaffRole } from '@handyhub/policy'
 import type { FastifyRequest } from 'fastify'
 import type { RequestActor, ResolveActor } from '../../api/route.js'
-import { readSessionToken, resolveSession, type CookieOptions, type LiveSession } from './sessions.js'
+import { readSessionToken, resolveSession, sessionStillLive, type CookieOptions, type LiveSession } from './sessions.js'
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -45,6 +45,8 @@ export function staffSessionResolver(db: Db, cookies: CookieOptions): ResolveAct
       locale: session.locale,
       csrfToken: session.csrfToken,
       authenticatedAt: session.authenticatedAt,
+      // TSK-0097: a business write checks again in its transaction that the account and session are still live.
+      revalidate: (tx) => sessionStillLive(tx, session.staffUserId, session.sessionId),
     }
   }
 }

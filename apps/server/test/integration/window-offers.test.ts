@@ -23,6 +23,7 @@ import { readCodeKey, type CodeKeySettings } from '../../src/modules/identity/in
 import { hashPassword } from '../../src/modules/identity/passwords.js'
 import { apiModules } from '../../src/modules/index.js'
 import { portalModule } from '../../src/modules/portal/index.js'
+import { disable } from '../../src/modules/staff/members.js'
 import {
   estimateVisitConfirmedAutomation,
   estimateVisitOptionsAutomation,
@@ -34,6 +35,7 @@ import { expireOfferIfDue } from '../../src/modules/visits/offers.js'
 import { createAutomationRegistry } from '../../src/platform/automation.js'
 import { recordPolicyVersion } from '../../src/platform/config/index.js'
 import { createWorker } from '../../src/platform/jobs.js'
+import { runWithContext } from '../../src/platform/request-context.js'
 import { createProviders } from '../../src/providers/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
@@ -1222,5 +1224,107 @@ describe('[FACT-AUTOMATIC-MESSAGES][OWN-DEC-99] the automatic notices are record
       .where('subject_key', 'in', [`window_offer:${o.id}`, `visit:${v.id}`])
       .execute()
     expect(rows).toHaveLength(4)
+  })
+})
+
+describe('[HH-STAFF-02][HH-STAFF-07][OWN-DEC-123] offboarding a worker whose windows are on offer (TSK-0097, TSK-0063)', () => {
+  // PROPOSED: disabling a person never cancels or withdraws an offer by itself (OWN-DEC-123: flagged for review, never
+  // cancelled). Their holds are flagged like any upcoming reservation, staff get the visit's review item, and no window
+  // that needs them can be selected any more (the selection rechecks the team under the row locks); withdrawing the
+  // offer releases the holds and resolves the item, and staff offer new windows with someone else.
+  it('[HH-STAFF-02][T38] the holds are flagged, the window cannot be selected, withdrawing resolves the item', async () => {
+    const leaving = await withTx(t.db, async (tx) => {
+      const user = await createStaffUser(tx, {
+        email: `dan-crew-offers-${randomUUID().slice(0, 8)}@example.test`,
+        displayName: 'Synthetic dan',
+        locale: 'en',
+        role: 'worker',
+        issuedBy: 'test',
+      })
+      await sql`UPDATE identity.staff_users SET status = 'active', activated_at = now() WHERE id = ${user.id}`.execute(
+        tx,
+      )
+      return user.id
+    })
+    const hours = await staffWrite(
+      'owner',
+      'PUT',
+      `/api/v1/staff/workers/${leaving}/working-hours`,
+      { periods: WEEK },
+      0,
+    )
+    expect(hours.statusCode, hours.body).toBe(200)
+    const p = await siteVisitProject()
+    const v = await planVisit(p, { date: day(13) })
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/v1/staff/visits/${v.id}/offers`,
+      payload: { windows: threeWindows(day(13)), workerIds: [leaving] },
+      headers: {
+        cookie: cookies.office,
+        'x-csrf-token': csrf.office,
+        'idempotency-key': key('offer'),
+        'if-match': `"${v.version}"`,
+      },
+    })
+    expect(res.statusCode, res.body).toBe(201)
+    const o = (res.json<Visits>().visits.find((x) => x.id === v.id) as VisitView).offers[0] as OfferView
+
+    await runWithContext({ requestId: `test:${randomUUID()}` }, () =>
+      withTx(t.db, (tx) => disable(tx, { actorId: ids.owner, staffUserId: leaving, reason: null })),
+    )
+    // Nothing is cancelled: the offer stays open and its holds stay (flagged for review).
+    expect((await offerRow(o.id)).state).toBe('open')
+    const holds = await reservationsOf(v.id)
+    expect(holds.map((r) => [r.kind, r.ended_reason])).toEqual([
+      ['hold', null],
+      ['hold', null],
+      ['hold', null],
+    ])
+    const flags = await t.db
+      .selectFrom('work.reservation_flags')
+      .select(['reservation_id', 'cause'])
+      .where('visit_id', '=', v.id)
+      .execute()
+    expect(new Set(flags.map((f) => f.reservation_id))).toEqual(new Set(holds.map((h) => h.id)))
+    expect(new Set(flags.map((f) => f.cause))).toEqual(new Set(['account_disabled']))
+    const items = () =>
+      t.db
+        .selectFrom('ops.queue_items')
+        .select(['reason', 'subject_status', 'resolved_at', 'resolution'])
+        .where('type', '=', 'visit_flagged')
+        .where('subject_id', '=', v.id)
+        .execute()
+    expect(await items()).toEqual([
+      { reason: 'assignee_disabled', subject_status: 'tentative', resolved_at: null, resolution: null },
+    ])
+
+    // The customer cannot select a window that needs the disabled person; nothing changes.
+    const picked = await select(p, 1, 1)
+    expect(picked.statusCode, picked.body).toBe(409)
+    expect(codes(picked.body)).toEqual([['body.position', 'WINDOW_UNAVAILABLE']])
+    expect((await offerRow(o.id)).state).toBe('open')
+    expect((await visitOf(p.projectId, v.id)).state).toBe('tentative')
+
+    // Staff withdraw the offer: every hold is released and the review item resolves; new windows can be offered.
+    const withdrawn = await staffWrite(
+      'office',
+      'POST',
+      `/api/v1/staff/window-offers/${o.id}/withdraw`,
+      { reason: 'Synthetic: the worker left' },
+      o.version,
+    )
+    expect(withdrawn.statusCode, withdrawn.body).toBe(200)
+    expect((await reservationsOf(v.id)).map((r) => r.ended_reason)).toEqual([
+      'hold_released',
+      'hold_released',
+      'hold_released',
+    ])
+    expect(await items()).toEqual([
+      expect.objectContaining({ reason: 'assignee_disabled', resolution: 'flags_cleared' }),
+    ])
+    expect((await items())[0]?.resolved_at).not.toBeNull()
+    const again = await offer('office', await visitOf(p.projectId, v.id), threeWindows(day(13)), ['cal'])
+    expect(again.statusCode, again.body).toBe(201)
   })
 })

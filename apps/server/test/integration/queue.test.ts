@@ -134,6 +134,8 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       'question_reminder',
       // TSK-0059: deposits to collect (payment.record: the Owner and Office).
       'deposit_due',
+      // TSK-0097: appointments flagged for review (reassignment) are seen by the roles that reassign visits.
+      'visit_flagged',
     ])
     expect(office.items.map((i) => i.type)).not.toContain('deposit_waiver')
     expect(office.items.map((i) => i.id)).not.toContain(ownerOnly)
