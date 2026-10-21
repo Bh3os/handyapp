@@ -99,7 +99,8 @@ const TYPES: readonly MessageType[] = [
   {
     key: 'approval.receipt',
     audience: 'customer',
-    channels: ['email'],
+    // TSK-0058: by email and, when the customer gave a number, by text (OWN-DEC-105: "yes text and mail").
+    channels: both,
     triggerEvents: ['estimate.approved'],
     variables: link,
     sourceIds: ['OWN-DEC-105'],

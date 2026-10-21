@@ -493,7 +493,8 @@ describe('media is internal by default; customers see their own and shared photo
       .select(['visibility', 'uploader_kind'])
       .where('id', '=', id)
       .executeTakeFirstOrThrow()
-    expect(row).toEqual({ visibility: 'internal', uploader_kind: 'staff' })
+    // TSK-0044 (HH-STAFF-05): the internal class is named internal_operational.
+    expect(row).toEqual({ visibility: 'internal_operational', uploader_kind: 'staff' })
     const cap = await t.db
       .selectFrom('intake.photos')
       .select('capability_id')

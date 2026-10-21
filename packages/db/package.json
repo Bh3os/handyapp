@@ -24,7 +24,8 @@
     "db:migrate": "pnpm run build && node --env-file-if-exists=../../.env dist/cli/migrate.js",
     "db:seed": "pnpm run build && node --env-file-if-exists=../../.env dist/cli/seed.js",
     "db:types": "pnpm run build && node --env-file-if-exists=../../.env dist/cli/types.js",
-    "db:services": "pnpm run build && node --env-file-if-exists=../../.env dist/cli/services.js"
+    "db:services": "pnpm run build && node --env-file-if-exists=../../.env dist/cli/services.js",
+    "db:sops": "pnpm run build && node --env-file-if-exists=../../.env dist/cli/sops.js"
   },
   "dependencies": {
     "kysely": "^0.29.7",

@@ -96,6 +96,11 @@ export const CONFIG_KEYS = {
     surcharge: exactly(false),
   }),
   'payment.instructions': shape({ placeholder: bool, zelle: text, cashApp: text, chime: text, checkPayee: text }),
+  // TSK-0059 (INT-Square): the hosts a staff-pasted Square payment link may use (https only; the host itself or a
+  // subdomain of it). The graph says "on a Square domain" without naming them: the list is PROPOSED (proposed = true).
+  'payment.square_link_hosts': shape({
+    hosts: listOf(matching(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/, 'a host name')),
+  }),
   'cancellation.rules': shape({ rescheduleFree: bool, noticeHours: hours, lateCancellationCents: int() }),
   'contact.hours': shape({ days: exactly('every_day'), open: clock, close: clock }),
   'business.timezone': shape({ zone: text }),
@@ -113,6 +118,9 @@ export const CONFIG_KEYS = {
     repeatService: shape({ schedule: exactly('customer_agreed'), ...contactHoursOnly }),
   }),
   'request.reopen_period': shape({ days: int(0, 3660) }),
+  // TSK-0050 (HH-COM-09, FACT-HOURS, OWN-DEC-120): whether a staff reply's email or text waits for contact.hours when
+  // Send is pressed outside them. PROPOSED (migration 0046): no decision names replies explicitly.
+  'replies.contact_hours': shape({ ...contactHoursOnly }),
   'response.target': shape({ minutes: int(1, 24 * 60), countedWithin: exactly('contact_hours') }),
   'session.timings': shape({
     staffInviteLinkHours: hours,

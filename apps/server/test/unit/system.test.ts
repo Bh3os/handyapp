@@ -92,6 +92,7 @@ describe('configuration view helpers (TSK-0101, HH-NFR-02)', () => {
       'DATABASE_URL',
       'ACCESS_GATE_USERS',
       'MFA_ENCRYPTION_KEY',
+      'ACCESS_CODE_ENCRYPTION_KEY',
       'CODE_HASH_KEY',
       'RESEND_API_KEY',
       'RESEND_WEBHOOK_SECRET',

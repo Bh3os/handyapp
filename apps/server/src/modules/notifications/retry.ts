@@ -15,14 +15,21 @@
 //     HH-INT-20 exactly one receipt);
 //   - the Estimator's own-record check uses the record's current responsible staff member (a request's), never a
 //     snapshot on the item (RULE-SERVER-AUTHZ).
+// - TSK-0050 (HH-COM-08, HH-COM-02, T66): a failed staff reply is retried the same way. Its delivery was released by
+//   Send, so the retry is a new `notify.release` job at the reply's release time (it waits for the contact hours
+//   again while replies.contact_hours says so), which rechecks the contact, consent and the template at send time and
+//   presents the same provider idempotency key. Other staff-released drafts are still a CONFLICT.
+// - TSK-0051 (HH-LEAD-06, HH-COM-02): a failed released question reminder is retried the same way (it waits for the
+//   contact hours again and is rechecked against its question at send time).
 import { randomUUID } from 'node:crypto'
 import { sql } from 'kysely'
 import { ApiError } from '../../api/errors.js'
-import type { ApiModule, RouteDef } from '../../api/route.js'
+import type { Tx } from '@handyhub/db'
+import type { ApiContext, ApiModule, ApiResult, RouteDef } from '../../api/route.js'
 import { loadConfig } from '../../platform/config/index.js'
-import { rerunJob } from '../../platform/jobs.js'
+import { rerunJob, scheduleJob } from '../../platform/jobs.js'
 import { currentContext } from '../../platform/request-context.js'
-import { isOutcomeUnknown } from './deliveries.js'
+import { isOutcomeUnknown, releaseAutomation, releaseTime, STAFF_REPLY_MESSAGE_KEY } from './deliveries.js'
 import { automaticPolicy } from './policy.js'
 
 const DELIVERY_ID = {
@@ -41,8 +48,11 @@ const retryDelivery: RouteDef = {
     'The Retry action of a delivery_failed queue item (HH-INT-20, HH-COM-02). Queues a failed delivery of an ' +
     'automatic message again, only when it never reached the provider: a new job of the message’s own automation ' +
     'sends it, rechecking the automatic list, the template, consent and the record, under the same provider ' +
-    'idempotency key, so a retry sends at most one message. A delivery that is not failed (queued, sent, ' +
-    'suppressed), a staff-released draft, a message no longer on the automatic list or a delivery without an open ' +
+    'idempotency key, so a retry sends at most one message. A failed staff reply (TSK-0050) is released again the ' +
+    'same way, at its release time (inside the contact hours while replies.contact_hours holds replies to them), and ' +
+    'so is a failed released question reminder (TSK-0051, inside the contact hours). A ' +
+    'delivery that is not failed (queued, sent, suppressed), any other staff-released draft, a message no longer ' +
+    'on the automatic list or a delivery without an open ' +
     'delivery issue is a CONFLICT; so is an uncertain provider outcome (fieldErrors code OUTCOME_UNKNOWN), which is ' +
     'reconciled against the provider instead (HH-ARC-09). A re-run that sends nothing leaves the delivery failed ' +
     'with its reason. Staff with message.release_draft; an Estimator only for deliveries of records they are ' +
@@ -132,6 +142,7 @@ const retryDelivery: RouteDef = {
     // The provider may already have sent it: reconciled against the provider's record, never sent again blindly.
     if (row.state === 'failed' && isOutcomeUnknown(row.error_code))
       throw new ApiError('CONFLICT', { fieldErrors: [{ field: 'state', code: 'OUTCOME_UNKNOWN', message: '' }] })
+    if (row.release === 'staff_released' && RETRYABLE_RELEASED.has(row.message_key)) return retryReply(ctx, tx, row)
     if (
       row.release !== 'automatic' ||
       row.state !== 'failed' ||
@@ -182,6 +193,63 @@ const retryDelivery: RouteDef = {
     })
     return { body: { id: row.id, state: 'queued' } }
   },
+}
+
+/** Staff-released messages whose failed delivery has a Retry: the staff reply and the question reminder (TSK-0051). */
+const RETRYABLE_RELEASED: ReadonlySet<string> = new Set([STAFF_REPLY_MESSAGE_KEY, 'reminder.unanswered_question'])
+
+/** The scheduling declaration of `notify.release` (its senders are the worker's own; scheduling needs none). */
+const RELEASE_JOB = releaseAutomation({ email: null, sms: null })
+
+type RetryRow = {
+  id: string
+  message_key: string
+  channel: string
+  state: string
+  attempts: number
+  error_code: string | null
+  provider_message_id: string | null
+  record_type: string | null
+  record_id: string | null
+}
+
+/** A failed staff reply (or question reminder), released again by a new `notify.release` job (TSK-0050, TSK-0051). */
+async function retryReply(ctx: ApiContext, tx: Tx, row: RetryRow): Promise<ApiResult> {
+  if (row.state !== 'failed' || row.provider_message_id !== null) throw new ApiError('CONFLICT')
+  const issue = await tx
+    .selectFrom('ops.queue_items')
+    .select('id')
+    .where('type', '=', 'delivery_failed')
+    .where('subject_type', '=', 'message_delivery')
+    .where('subject_id', '=', row.id)
+    .where('resolved_at', 'is', null)
+    .executeTakeFirst()
+  if (!issue)
+    throw new ApiError('CONFLICT', { fieldErrors: [{ field: 'state', code: 'NO_DELIVERY_ISSUE', message: '' }] })
+  const runAt = releaseTime(await loadConfig(tx), row.message_key, new Date())
+  await tx
+    .updateTable('platform.message_deliveries')
+    .set({ state: 'queued', error_code: null, queued_at: sql<Date>`now()`, updated_at: sql<Date>`now()` })
+    .where('id', '=', row.id)
+    .execute()
+  await scheduleJob(tx, RELEASE_JOB, {
+    key: `${row.id}:retry:${row.attempts}:${randomUUID()}`,
+    runAt,
+    payload: { deliveryId: row.id },
+    target: { type: 'message_delivery', id: row.id },
+    requestId: currentContext()?.requestId ?? ctx.req.id,
+  })
+  await ctx.audit({
+    target: { type: 'message_delivery', id: row.id },
+    summary: {
+      messageKey: row.message_key,
+      channel: row.channel,
+      record: `${row.record_type ?? ''}:${row.record_id ?? ''}`,
+      previousError: row.error_code,
+      sendAt: runAt.toISOString(),
+    },
+  })
+  return { body: { id: row.id, state: 'queued' } }
 }
 
 export const NOTIFICATIONS_MODULE: ApiModule = { name: 'notifications', routes: [retryDelivery] }

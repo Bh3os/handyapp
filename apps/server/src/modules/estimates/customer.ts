@@ -17,6 +17,9 @@
 //   instead, or none: then "Request an Updated Estimate" (OWN-DEC-103). The view carries the content digest the
 //   approval names, the customer's selected options kept on the server (HH-ID-07) with the server's total and deposit
 //   for them, and, once approved, what was approved. Approving is the approval transaction (approval.ts).
+// - TSK-0058 (HH-EST-12, HH-PORT-10, OWN-DEC-105): once approved, the next step (deposit due, or choose the work
+//   appointment) and the approval receipt PDF: issued (a short-lived signed link) or still being prepared. The
+//   Documents tab marks an approved version's receipt the same way.
 import type { Db, Tx } from '@handyhub/db'
 import { estimateTermsDocument, estimateTermsInEffect } from '@handyhub/domain/legal'
 import type { CustomerActor, DataScope } from '@handyhub/policy'
@@ -29,6 +32,7 @@ import { acceptanceCheck } from './lifecycle.js'
 import { discountRowLabel } from './customer-pdf.js'
 import { CUSTOMER_STATES } from './model.js'
 import { customerEstimateDocument, customerVersionContent } from './projections.js'
+import { approvalNextStep, receiptOfVersion, type ApprovalNextStep, type ReceiptView } from './receipt.js'
 import {
   customerVersionRow,
   customerVersionStatus,
@@ -47,6 +51,8 @@ export type CustomerEstimateListItem = {
   publishedAt: Date
   validUntil: Date | null
   totalCents: number
+  /** TSK-0058: an approved version's receipt, issued or being prepared; null for any other version. */
+  receipt: ReceiptView['state'] | null
 }
 
 /** The estimate versions of a project the customer received, newest first; null for a project outside the scope. */
@@ -61,7 +67,18 @@ export async function customerEstimateList(
   const rows = await db
     .selectFrom('estimating.estimate_versions as v')
     .innerJoin('estimating.estimates as e', 'e.id', 'v.estimate_id')
-    .select(['e.number', 'v.version', 'v.state', 'v.published_at', 'v.valid_until', 'v.total_cents'])
+    .leftJoin('estimating.approvals as a', 'a.version_id', 'v.id')
+    .leftJoin('estimating.approval_receipts as rc', 'rc.approval_id', 'a.id')
+    .select([
+      'e.number',
+      'v.version',
+      'v.state',
+      'v.published_at',
+      'v.valid_until',
+      'v.total_cents',
+      'a.id as approval_id',
+      'rc.id as receipt_id',
+    ])
     .where('v.project_id', '=', project.id)
     .where('e.project_id', '=', project.id)
     .where('v.state', 'in', [...CUSTOMER_STATES])
@@ -78,6 +95,7 @@ export async function customerEstimateList(
             publishedAt: r.published_at,
             validUntil: r.valid_until,
             totalCents: Number(r.total_cents),
+            receipt: r.approval_id ? (r.receipt_id ? ('issued' as const) : ('preparing' as const)) : null,
           },
         ]
       : [],
@@ -151,6 +169,10 @@ export type CustomerEstimateDetail = {
     /** The customer's selected options with the server's totals (kept on the server across a stale verification). */
     selection: SelectionView | null
     approved: ApprovedView | null
+    /** TSK-0058: once approved, the next step (OWN-DEC-105), or null once the project has moved past it. */
+    nextStep: ApprovalNextStep | null
+    /** TSK-0058: once approved, the approval receipt PDF. */
+    receipt: ReceiptView | null
   }
   actions: { requestChanges: boolean; decline: boolean; requestUpdate: boolean }
   freshVerification: boolean
@@ -247,6 +269,8 @@ export async function customerEstimateDetail(
       contentDigest,
       selection: selection ? view(selection) : null,
       approved: approvedRecord ? { ...view(approvedRecord), at: approvedRecord.at } : null,
+      nextStep: approvedRecord ? await approvalNextStep(db, row.project_id) : null,
+      receipt: approvedRecord ? await receiptOfVersion(db, row.id, storage) : null,
     },
     actions: {
       requestChanges: status === 'current',

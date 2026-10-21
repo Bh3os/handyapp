@@ -24,6 +24,9 @@ export const ACTIONS = [
   // PROPOSED (TSK-0043): recording a completed customer conversation (a logged call with its outcome) is part of
   // handling a request, in the same row.
   'request.record_conversation',
+  // PROPOSED (TSK-0051): closing an unbooked request "Closed—no response" (OWN-DEC-101) is part of handling it, in the
+  // same row.
+  'request.close_no_response',
   'request.reply',
   'customer.view',
   'customer.edit',
@@ -297,6 +300,7 @@ export const MATRIX: readonly MatrixRow[] = [
       'request.qualify',
       'request.add_note',
       'request.record_conversation',
+      'request.close_no_response',
     ],
     { owner: Y(), office: Y(), estimator: Y('Y (P)', P) },
   ),

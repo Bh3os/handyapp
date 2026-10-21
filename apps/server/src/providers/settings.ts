@@ -22,6 +22,9 @@ export const PROVIDER_ENV_VARS = {
   BIRD_SMS_FROM: 'The business number in E.164, held by the Bird workspace.',
   BIRD_API_BASE_URL: 'Optional. Default: the regional host named by the API key.',
   BIRD_WEBHOOK_SECRET: 'Bird webhook signing secret (whsec_...). Unset: inbound texts not configured. Secret.',
+  INBOUND_EMAIL_ADDRESS:
+    'The Resend receiving address customers reply to; each project email replies to its plus-addressed reply token. ' +
+    'Unset: reply tokens not configured (replies match by thread headers and verified email only).',
   STORAGE_PROVIDER: 'fake (local and ci only) or r2. Default: fake in local and ci, not configured elsewhere.',
   R2_ACCOUNT_ID: 'Cloudflare account ID of the R2 bucket.',
   R2_BUCKET: 'Private R2 bucket name.',
@@ -50,6 +53,11 @@ export type ProviderSettings = {
   sms: SmsSettings
   storage: StorageSettings
   webhookSecrets: { bird: Secret | null; resend: Secret | null }
+  /**
+   * TSK-0049: the receiving address of inbound email (INBOUND_EMAIL_ADDRESS). Project emails reply to
+   * `<local>+<reply token>@<domain>`; null while not configured.
+   */
+  inbound: { emailAddress: { local: string; domain: string } | null }
   /** Approved test destinations (set by the owner); every non-production send must match one. */
   testDestinations: { emails: string[]; phones: string[] }
 }
@@ -95,6 +103,15 @@ function required(env: NodeJS.ProcessEnv, names: string[]): { values: Record<str
 }
 
 const secretOrNull = (v: string | undefined) => (v && v.trim() ? new Secret(v.trim()) : null)
+
+/** The inbound receiving address, split for plus-addressing; its local part may not carry a '+' of its own. */
+export function inboundAddress(value: string | undefined): { local: string; domain: string } | null {
+  const v = value?.trim().toLowerCase()
+  if (!v) return null
+  const m = /^([a-z0-9._-]{1,40})@([a-z0-9.-]+\.[a-z]{2,})$/.exec(v)
+  if (!m) throw new ConfigError('INBOUND_EMAIL_ADDRESS must be a plain address such as replies@<receiving domain>')
+  return { local: m[1] as string, domain: m[2] as string }
+}
 
 /** Bird API keys name their region (`bk_us1_...`); the regional host follows from it. */
 export function birdApiBaseUrl(apiKey: string): string {
@@ -164,6 +181,7 @@ export function readProviderSettings(env: NodeJS.ProcessEnv = process.env): Prov
       bird: secretOrNull(env['BIRD_WEBHOOK_SECRET']),
       resend: secretOrNull(env['RESEND_WEBHOOK_SECRET']),
     },
+    inbound: { emailAddress: inboundAddress(env['INBOUND_EMAIL_ADDRESS']) },
     testDestinations: {
       emails: list(env['TEST_EMAIL_DESTINATIONS'], EMAIL, 'TEST_EMAIL_DESTINATIONS').map((e) => e.toLowerCase()),
       phones: list(env['TEST_PHONE_DESTINATIONS'], E164, 'TEST_PHONE_DESTINATIONS'),

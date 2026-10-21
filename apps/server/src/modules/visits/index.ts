@@ -184,7 +184,8 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
       'Staff with visit.confirm (Owner, Office), with If-Match: the visit version shown. Names every worker the visit ' +
       'needs (exactly its number of workers; the first is the lead) and an equipment item for each equipment entry. ' +
       'In one transaction the server checks the visit (tentative, in the future, expected work and workers entered, the ' +
-      "job's scheduling gates for a work visit, the on-site part inside the daily visit hours of contact.hours) and " +
+      "job's deposit gate (DEPOSIT_REQUIRED, DEPOSIT_REQUIREMENT_MISSING; never for an estimate visit) and its other " +
+      'scheduling gates for a work visit, the on-site part inside the daily visit hours of contact.hours) and ' +
       'each worker (active, PROPOSED eligible role, working hours set and covering the reserved range, no approved ' +
       'time off, no overlapping reservation or hold) and item (registered, not retired, not reserved), reserves them ' +
       'all for the reserved range (PROPOSED: travel buffer before the arrival window, preparation and expected work ' +
@@ -233,7 +234,7 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
   return { name: 'visits', routes: [list, plan, move, confirm] }
 }
 
-export { WORK_VISIT_GATES, unmetGates, type WorkVisitGate, type WorkVisitJob } from './gates.js'
+export { DEPOSIT_GATE, WORK_VISIT_GATES, unmetGates, type WorkVisitGate, type WorkVisitJob } from './gates.js'
 export {
   businessZone,
   ESTIMATE_VISIT_PROJECT_STATES,

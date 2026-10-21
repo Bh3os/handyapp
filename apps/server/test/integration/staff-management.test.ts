@@ -18,13 +18,14 @@ import { testConfig } from '../fixtures/env.js'
 
 const ZONE = 'America/Kentucky/Louisville'
 const pw = (n: number) => ['synthetic', 'staff', 'management', 'passphrase', String(n)].join(' ')
-const PEOPLE = ['owner', 'owner2', 'office', 'office2', 'estimator', 'worker', 'worker2', 'leaver'] as const
+const PEOPLE = ['owner', 'owner2', 'office', 'office2', 'office3', 'estimator', 'worker', 'worker2', 'leaver'] as const
 type Person = (typeof PEOPLE)[number]
 const ROLE: Record<Person, 'owner' | 'office' | 'estimator' | 'worker'> = {
   owner: 'owner',
   owner2: 'owner',
   office: 'office',
   office2: 'office',
+  office3: 'office',
   estimator: 'estimator',
   worker: 'worker',
   worker2: 'worker',
@@ -375,6 +376,36 @@ describe('[HH-STAFF-03] role and capability grants', () => {
   })
 })
 
+/**
+ * Holds the Owner's disabling transaction of `who` open (not committed), starts `write` as that person (their session
+ * still resolves, so the write begins and waits for the account's write lock), then commits the disabling.
+ */
+async function raceDisable<T>(who: Person, write: () => Promise<T>): Promise<T> {
+  let release: () => void = () => {}
+  const held = new Promise<void>((r) => (release = r))
+  const disabling = runWithContext({ requestId: `test:${randomUUID()}` }, () =>
+    withTx(wide, async (tx) => {
+      await disable(tx, { actorId: ids.owner, staffUserId: ids[who], reason: null })
+      await held
+    }),
+  )
+  // Give the disabling transaction time to take the account's write lock.
+  await new Promise((r) => setTimeout(r, 200))
+  const pending = write()
+  let waited = false
+  for (let i = 0; i < 50 && !waited; i++) {
+    const row = await sql<{
+      n: string
+    }>`SELECT count(*) AS n FROM pg_locks WHERE locktype = 'advisory' AND NOT granted`.execute(t.db)
+    waited = Number(row.rows[0]?.n) > 0
+    if (!waited) await new Promise((r) => setTimeout(r, 50))
+  }
+  expect(waited).toBe(true)
+  release()
+  await disabling
+  return pending
+}
+
 describe('[HH-STAFF-02][T27] offboarding', () => {
   it('[HH-STAFF-02][T27][T38][HH-STAFF-07] disabling ends every session and credential and flags assignments for reassignment', async () => {
     await setHours('leaver')
@@ -519,31 +550,7 @@ describe('[HH-STAFF-02][T27] offboarding', () => {
   it('[HH-STAFF-02][T27] a write already on its way when the account is disabled cannot commit after it', async () => {
     const project = await siteVisitProject()
     const office2 = auth.office2
-    let release: () => void = () => {}
-    const held = new Promise<void>((r) => (release = r))
-    // The Owner's disabling transaction, held open after disabling (not committed yet).
-    const disabling = runWithContext({ requestId: `test:${randomUUID()}` }, () =>
-      withTx(wide, async (tx) => {
-        await disable(tx, { actorId: ids.owner, staffUserId: ids.office2, reason: null })
-        await held
-      }),
-    )
-    // Give the disabling transaction time to take the account's write lock.
-    await new Promise((r) => setTimeout(r, 200))
-    // The session still resolves (the change is not committed), so the write starts and waits for the lock.
-    const write = planVisit(office2, project, day(9))
-    let waited = false
-    for (let i = 0; i < 50 && !waited; i++) {
-      const row = await sql<{
-        n: string
-      }>`SELECT count(*) AS n FROM pg_locks WHERE locktype = 'advisory' AND NOT granted`.execute(t.db)
-      waited = Number(row.rows[0]?.n) > 0
-      if (!waited) await new Promise((r) => setTimeout(r, 50))
-    }
-    expect(waited).toBe(true)
-    release()
-    await disabling
-    const res = await write
+    const res = await raceDisable('office2', () => planVisit(office2, project, day(9)))
     expect(res.statusCode, res.body).toBe(401)
     const visits = await t.db
       .selectFrom('work.visits')
@@ -551,6 +558,29 @@ describe('[HH-STAFF-02][T27] offboarding', () => {
       .where('project_id', '=', project.projectId)
       .execute()
     expect(visits).toEqual([])
+  })
+
+  it('[HH-STAFF-02][T27] the same holds for the writes of later modules (an internal message, TSK-0049)', async () => {
+    // Every write route re-checks the account and session inside its own transaction (api/register.ts), so the
+    // inbox, questions, deposits, SOP and capacity writes are covered like the visits above; one of them, raced.
+    const project = await siteVisitProject()
+    const office3 = auth.office3
+    const body = `Synthetic internal note ${randomUUID().slice(0, 8)}`
+    const before = await send(office3, 'POST', `/staff/inbox/projects/${project.projectId}/internal-messages`, {
+      body: `${body} (before)`,
+    })
+    expect(before.statusCode, before.body).toBe(201)
+    const res = await raceDisable('office3', () =>
+      send(office3, 'POST', `/staff/inbox/projects/${project.projectId}/internal-messages`, { body }),
+    )
+    expect(res.statusCode, res.body).toBe(401)
+    const written = await t.db
+      .selectFrom('comms.messages')
+      .select('body_text')
+      .where('project_id', '=', project.projectId)
+      .where('direction', '=', 'internal')
+      .execute()
+    expect(written.map((m) => m.body_text)).toEqual([`${body} (before)`])
   })
 })
 
