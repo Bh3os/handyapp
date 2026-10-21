@@ -186,6 +186,9 @@ test.describe('staff questions and customer replies (TSK-0051, HH-LEAD-03, HH-LE
     browser,
   }) => {
     const run = Date.now()
+    // Free text carries the run in base 36: a 13-digit timestamp can pass the Luhn check and be refused as a card
+    // number (sensitive_content), as the server must.
+    const tag = run.toString(36)
     const email = `e2e-questions-${run}@example.test`
     const link = await sendRequest(request, email)
     await openProject(page, link)
@@ -193,8 +196,8 @@ test.describe('staff questions and customer replies (TSK-0051, HH-LEAD-03, HH-LE
     await expect(page.getByRole('region', { name: 'Questions from HandyHub' })).toHaveCount(0)
 
     const office = await officeSession(browser)
-    const first = `Synthetic e2e question ${run}: how tall is the ceiling?`
-    const second = `Synthetic e2e question ${run}: when did the stain appear?`
+    const first = `Synthetic e2e question ${tag}: how tall is the ceiling?`
+    const second = `Synthetic e2e question ${tag}: when did the stain appear?`
     try {
       const staff = office.page
       await staff.goto(`/staff/requests/${link.requestId}`)
@@ -236,7 +239,7 @@ test.describe('staff questions and customer replies (TSK-0051, HH-LEAD-03, HH-LE
       const form = questions.getByRole('form', { name: "Reply to HandyHub's question" })
       await expect(form).toBeVisible()
       await axe(page)
-      const answer = `Synthetic e2e answer ${run}: about nine feet.`
+      const answer = `Synthetic e2e answer ${tag}: about nine feet.`
       await form.getByLabel('Your reply').fill(answer)
       await form.getByLabel("I'm not sure").check()
       await form
@@ -263,7 +266,7 @@ test.describe('staff questions and customer replies (TSK-0051, HH-LEAD-03, HH-LE
       // The customer writes in Messages; it is on the project's conversation as written.
       await page.getByRole('tab', { name: 'Messages' }).click()
       const compose = page.getByRole('form', { name: 'Write to HandyHub' })
-      const note = `Synthetic e2e message ${run}: the stain is near the window.`
+      const note = `Synthetic e2e message ${tag}: the stain is near the window.`
       await compose.getByLabel('Write to HandyHub').fill(note)
       await compose.getByRole('button', { name: 'Send' }).click()
       await expect(compose.getByText('Message sent to HandyHub.')).toBeVisible()

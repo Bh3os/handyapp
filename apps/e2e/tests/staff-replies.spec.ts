@@ -152,6 +152,9 @@ test.describe('staff replies and the portal Messages tab (TSK-0050, HH-COM-08, H
     browser,
   }) => {
     const run = Date.now()
+    // Free text carries the run in base 36: a 13-digit timestamp can pass the Luhn check and be refused as a card
+    // number (sensitive_content), as the server must.
+    const tag = run.toString(36)
     const email = `e2e-replies-${run}@example.test`
     const link = await sendRequest(request, email)
     await openProject(page, link)
@@ -180,7 +183,7 @@ test.describe('staff replies and the portal Messages tab (TSK-0050, HH-COM-08, H
       )
       await expect(composer.getByText(/No approved wording for reply emails yet/)).toBeVisible()
       await axe(staff)
-      const text = `Synthetic e2e reply ${run}: we can come on Tuesday morning.`
+      const text = `Synthetic e2e reply ${tag}: we can come on Tuesday morning.`
       await composer.getByLabel('Reply').fill(text)
       await composer.getByRole('button', { name: 'Send' }).click()
       await expect(composer.getByText("Reply sent. It is on the customer's project page.")).toBeVisible()
