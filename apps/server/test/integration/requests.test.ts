@@ -6,6 +6,7 @@ import type { FastifyInstance } from 'fastify'
 import { sql } from 'kysely'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildApp } from '../../src/app.js'
+import { localDate } from '../../src/modules/requests/submit.js'
 import { testConfig } from '../fixtures/env.js'
 
 let t: TestDatabase
@@ -224,7 +225,8 @@ describe('submission creates one request and its records (TSK-0025, HH-INT-10, H
 describe('validation keeps every field and reports each problem (TSK-0025, HH-INT-09)', () => {
   it('reports field errors and writes nothing', async () => {
     const before = await count('intake.requests')
-    const today = new Date().toISOString().slice(0, 10)
+    // Today in the business time zone, as the server counts it: in the evening there the UTC date is already tomorrow.
+    const today = localDate(new Date(), 'America/Kentucky/Louisville')
     const res = await submit(
       body({
         services: [{ serviceId: 'SVC-DW-01' }, { serviceId: 'SVC-ZZ-99' }],

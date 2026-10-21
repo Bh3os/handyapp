@@ -50,6 +50,15 @@ export const CLAIMS: readonly Claim[] = [
       source: OWNER_2026_10_12,
       decision: 'OWN-DEC-89',
     },
+    // Every service page names the licensed-trade, structural and hazardous-material limits (TSK-0021; OWN-DEC-51,
+    // FACT-SVC-EXCLUDED-SCOPE): "licensed" here describes work HandyHub does not do, never a credential. The facts are
+    // the owner's; this wording stays PROPOSED pending attorney and safety review (OQ-ATTORNEY-TERMS, OQ-SAFETY-REVIEW).
+    {
+      key: 'service.limits.excluded',
+      text: "We don't do licensed trade work (gas, line-voltage electrical, plumbing or HVAC), structural work, or asbestos, lead or mold work.",
+      source: 'owner, 2026-10-06',
+      decision: 'OWN-DEC-51',
+    },
   ])
   // The website terms describe the decided 90-day workmanship warranty (TSK-0024; HH-PRIV-04, FACT-WARRANTY,
   // OWN-DEC-135). Its wording and any exclusions wait on attorney review (OQ-ATTORNEY-TERMS); none is invented.

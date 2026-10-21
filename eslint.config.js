@@ -15,7 +15,9 @@ export default tseslint.config(
     ignores: [
       '**/dist/**',
       '**/node_modules/**',
-      '**/coverage/**',
+      'coverage/**',
+      'apps/*/coverage/**',
+      'packages/*/coverage/**',
       '**/.astro/**',
       '**/playwright-report/**',
       '**/test-results/**',

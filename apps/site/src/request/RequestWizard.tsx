@@ -7,6 +7,8 @@
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { Button, Dialog, Field, StateView } from '@handyhub/ui'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { checkZip, takeRememberedZip, type CoverageCheck } from '../coverage/coverage.js'
+import { zip5 } from '@handyhub/domain/coverage'
 import { DraftStore } from './draft.js'
 import { PhotoUploader, usePhotos, type PhotoLimits } from './photos.js'
 import {
@@ -152,6 +154,9 @@ export default function RequestWizard() {
   const [sending, setSending] = useState(false)
   const [reference, setReference] = useState<string | null>(null)
   const [website, setWebsite] = useState('')
+  // The ZIP checked before arriving (HH-INT-16) and the coverage of the ZIP in the form, rechecked as it changes.
+  const checkedZip = useRef<string | null>(null)
+  const [coverage, setCoverage] = useState<CoverageCheck | null>(null)
   const started = useRef(Date.now())
   const attempt = useRef<{ key: string; bodyHash: string } | null>(null)
   const summaryRef = useRef<HTMLDivElement>(null)
@@ -178,15 +183,19 @@ export default function RequestWizard() {
       if (!live) return
       setSettings(s)
       setServices(offered.services)
+      checkedZip.current = takeRememberedZip()
+      const remembered = checkedZip.current
+      if (remembered) setValues((v) => ({ ...v, zip: remembered }))
       const draft = new DraftStore(browserStorage(), IDENTITY, s.draftDays).load()
-      // Arriving from a service page: that service's category opens with the service selected (HH-INT-15, T05).
-      const preselect = offered.services.find(
-        (x) => x.id === new URLSearchParams(window.location.search).get('service'),
-      )
+      // Arriving from a service page: that service's category opens with the service selected (HH-INT-15, T05). The
+      // link names the immutable service ID; its code (DW-01) is accepted too. From "Not sure what service I need"
+      // (TSK-0021, HH-CUS-01) that option is chosen and no service is guessed.
+      const wanted = new URLSearchParams(window.location.search).get('service')
+      const preselect = offered.services.find((x) => x.id === wanted || x.id === `SVC-${wanted ?? ''}`)
       if (preselect) {
         setValues((v) => ({ ...v, services: [preselect.id] }))
         setOpenCategory(preselect.category)
-      }
+      } else if (wanted === 'not-sure') setValues((v) => ({ ...v, notSure: true }))
       setPhase(draft ? 'draftFound' : 'choose')
     })
     return () => {
@@ -200,6 +209,25 @@ export default function RequestWizard() {
     if (step === 'services' && JSON.stringify(values) === JSON.stringify(EMPTY_VALUES)) store.clear()
     else store.save(values, step)
   }, [phase, store, values, step])
+
+  // Correcting the ZIP rechecks coverage without touching any other answer (HH-INT-16); it never blocks the form.
+  useEffect(() => {
+    const zip = zip5(values.zip)
+    if (phase !== 'form' || step !== 'property' || !zip) {
+      setCoverage(null)
+      return
+    }
+    let live = true
+    const timer = setTimeout(() => {
+      void checkZip(zip).then((r) => {
+        if (live) setCoverage(r)
+      })
+    }, 300)
+    return () => {
+      live = false
+      clearTimeout(timer)
+    }
+  }, [phase, step, values.zip])
 
   useEffect(() => {
     if (focusSummary.current && summaryRef.current) summaryRef.current.focus()
@@ -351,7 +379,8 @@ export default function RequestWizard() {
             onClick={() => {
               const draft = store?.load()
               if (draft) {
-                setValues(draft.values)
+                const remembered = checkedZip.current
+                setValues(remembered && !draft.values.zip ? { ...draft.values, zip: remembered } : draft.values)
                 setStep(draft.step)
               }
               setPhase('form')
@@ -569,6 +598,9 @@ export default function RequestWizard() {
           autoComplete: 'postal-code',
           inputMode: 'numeric',
         })}
+        <p className="hh-muted hh-request__coverage" role="status" aria-live="polite">
+          {coverage?.kind === 'outcome' ? coverage.message : coverage?.kind === 'failed' ? t('coverage.failed') : null}
+        </p>
         {group(
           'property.propertyType',
           'request.property.type',

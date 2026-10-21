@@ -67,10 +67,13 @@ describe('homepage wording (TSK-0020, HH-CUS-06, OWN-DEC-86)', () => {
     expect(items).toEqual(WHY)
   })
 
-  it('[HH-CUS-06] every registered claim is the catalog value, cites the owner decision, and is on the page', () => {
+  it('[HH-CUS-06] every registered claim is the catalog value, cites the owner and its decision, and is on the page', () => {
+    // The homepage and payment wording (2026-10-12); the service-page limits of OWN-DEC-51 (2026-10-06, TSK-0021); the
+    // warranty sentences of the website terms (OWN-DEC-135, 2026-10-20, TSK-0024).
     const source: Record<string, string> = {
       'OWN-DEC-86': 'owner, 2026-10-12',
       'OWN-DEC-89': 'owner, 2026-10-12',
+      'OWN-DEC-51': 'owner, 2026-10-06',
       'OWN-DEC-135': 'owner, 2026-10-20',
     }
     for (const claim of CLAIMS) {
