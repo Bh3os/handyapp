@@ -17,8 +17,11 @@ import {
   EMPTY_VALUES,
   ESTIMATE_PREFERENCES,
   answerKey,
+  firstPreferredDate,
+  formatClock,
   fromServer,
   MAX_SERVICES,
+  offeredWindows,
   questionPlan,
   problemKey,
   PROPERTY_TYPES,
@@ -30,8 +33,10 @@ import {
   type FormMeta,
   type FormService,
   type FormValues,
+  type OfferedWindow,
   type Problem,
   type StepId,
+  type VisitHours,
 } from './form.js'
 
 const t = (key: CustomerKey, values?: Record<string, string | number>) => customerTranslator().t(key, values)
@@ -120,7 +125,27 @@ function fieldOf(path: string): string {
 }
 
 type Phase = 'loading' | 'draftFound' | 'choose' | 'dismissed' | 'form' | 'sent'
-type Settings = { draftDays: number | null; timeZone: string | null; photos: PhotoLimits | null }
+type Settings = {
+  draftDays: number | null
+  timeZone: string | null
+  photos: PhotoLimits | null
+  /** The configured visit hours (FACT-HOURS) and the windows offered with any configured hours (HH-INT-02). */
+  visitHours: VisitHours | null
+  windows: OfferedWindow[]
+  /** The free-estimate wording shows only while the configured policy is free (FACT-VISIT-FEE, HH-INT-03). */
+  freeEstimates: boolean
+}
+/** Until the settings arrive, or if they cannot be read: the five windows without hours, and no free-estimate claim. */
+const NO_SETTINGS: Settings = {
+  draftDays: null,
+  timeZone: null,
+  photos: null,
+  visitHours: null,
+  windows: offeredWindows(null, null),
+  freeEstimates: false,
+}
+/** Day windows that, with Weekends, are explained as weekend times (HH-INT-02). */
+const DAY_WINDOW_CODES: readonly string[] = ['mornings', 'afternoons', 'evenings']
 type PhotoSummary = { received: number; processing: number; failed: number }
 type Banner = { kind: 'error'; message: string } | { kind: 'success'; message: string } | null
 
@@ -150,7 +175,7 @@ export default function RequestWizard() {
   const [step, setStep] = useState<StepId>('services')
   const [problems, setProblems] = useState<Problem[]>([])
   const [banner, setBanner] = useState<Banner>(null)
-  const [settings, setSettings] = useState<Settings>({ draftDays: null, timeZone: null, photos: null })
+  const [settings, setSettings] = useState<Settings>(NO_SETTINGS)
   const [receiptPhotos, setReceiptPhotos] = useState<PhotoSummary | null>(null)
   const photos = usePhotos(settings.photos)
   const [sending, setSending] = useState(false)
@@ -179,11 +204,11 @@ export default function RequestWizard() {
         .then(async (r) => (r.ok ? ((await r.json()) as T) : fallback))
         .catch(() => fallback)
     void Promise.all([
-      json<Settings>('/api/v1/public/request-form', { draftDays: null, timeZone: null, photos: null }),
+      json<Settings>('/api/v1/public/request-form', NO_SETTINGS),
       json<{ services: FormService[] }>('/api/v1/public/services', { services: [] }),
     ]).then(([s, offered]) => {
       if (!live) return
-      setSettings(s)
+      setSettings({ ...NO_SETTINGS, ...s })
       setServices(offered.services)
       checkedZip.current = takeRememberedZip()
       const remembered = checkedZip.current
@@ -231,6 +256,14 @@ export default function RequestWizard() {
     }
   }, [phase, step, values.zip])
 
+  // A window no longer offered (its configured hours changed) is dropped from a resumed draft (HH-INT-02).
+  useEffect(() => {
+    const offered = settings.windows.map((w) => w.code as string)
+    setValues((v) =>
+      v.windows.every((w) => offered.includes(w)) ? v : { ...v, windows: v.windows.filter((w) => offered.includes(w)) },
+    )
+  }, [phase, settings.windows])
+
   useEffect(() => {
     if (focusSummary.current && summaryRef.current) summaryRef.current.focus()
     else if (focusHeading.current && headingRef.current) headingRef.current.focus()
@@ -248,6 +281,7 @@ export default function RequestWizard() {
     now: new Date(),
     zone: settings.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
     services,
+    windows: settings.windows.map((w) => w.code),
   }
   const set = <K extends keyof FormValues>(key: K, value: FormValues[K]) => setValues((v) => ({ ...v, [key]: value }))
   const errorFor = (field: string) => {
@@ -610,31 +644,73 @@ export default function RequestWizard() {
             radio('propertyType', p, t(PROPERTY_LABEL[p]), values.propertyType, (v) => set('propertyType', v)),
           ),
         )}
+        {/* Preferences only, never a slot or an appointment (HH-INT-02, HH-INT-17, OWN-DEC-92). */}
         <p className="hh-muted">{t('request.timing.note')}</p>
+        {settings.visitHours ? (
+          <p className="hh-small hh-muted">
+            {t('request.timing.visitHours', {
+              open: formatClock(settings.visitHours.open),
+              close: formatClock(settings.visitHours.close),
+            })}
+          </p>
+        ) : null}
         {check('flexible', t('request.timing.flexible'), values.flexible, (on) => set('flexible', on))}
         {values.flexible
           ? null
-          : text('timing.preferredDate', 'preferredDate', 'request.timing.date', { type: 'date', required: true })}
-        {check('needHelpToday', t('request.timing.needHelpToday'), values.needHelpToday, (on) =>
-          set('needHelpToday', on),
-        )}
+          : text('timing.preferredDate', 'preferredDate', 'request.timing.date', {
+              type: 'date',
+              required: true,
+              // Standard dates start tomorrow in the property's local time (OWN-DEC-92, FACT-TIMEZONE).
+              min: firstPreferredDate(opts.now, opts.zone),
+              hint: t('request.timing.dateHint'),
+            })}
+        <div className="hh-request__question">
+          <label className="hh-request__option">
+            <input
+              type="checkbox"
+              name="needHelpToday"
+              aria-describedby="hh-help-today-note"
+              checked={values.needHelpToday}
+              onChange={(e) => set('needHelpToday', e.currentTarget.checked)}
+            />
+            <span>{t('request.timing.needHelpToday')}</span>
+          </label>
+          <p id="hh-help-today-note" className="hh-field__hint">
+            {t('request.timing.needHelpTodayNote')}
+          </p>
+        </div>
         {group(
           'timing.windows',
           'request.timing.windows',
-          TIME_WINDOWS.map((w) =>
-            check(`window-${w}`, t(WINDOW_LABEL[w]), values.windows.includes(w), (on) =>
-              // "Any time" clears the others; another choice clears "Any time" (C02).
-              set(
-                'windows',
-                on
-                  ? w === 'any_time'
-                    ? ['any_time']
-                    : [...values.windows.filter((x) => x !== 'any_time'), w]
-                  : values.windows.filter((x) => x !== w),
-              ),
+          settings.windows.map(({ code: w, start, end }) =>
+            check(
+              `window-${w}`,
+              start && end
+                ? t('request.timing.windowHours', {
+                    window: t(WINDOW_LABEL[w]),
+                    start: formatClock(start),
+                    end: formatClock(end),
+                  })
+                : t(WINDOW_LABEL[w]),
+              values.windows.includes(w),
+              (on) =>
+                // "Any time" clears the others; another choice clears "Any time" (C02).
+                set(
+                  'windows',
+                  on
+                    ? w === 'any_time'
+                      ? ['any_time']
+                      : [...values.windows.filter((x) => x !== 'any_time'), w]
+                    : values.windows.filter((x) => x !== w),
+                ),
             ),
           ),
         )}
+        {values.windows.includes('weekends') && values.windows.some((w) => DAY_WINDOW_CODES.includes(w)) ? (
+          <p className="hh-field__hint" role="status">
+            {t('request.timing.weekendsCombined')}
+          </p>
+        ) : null}
       </>
     ),
     contact: (
@@ -665,6 +741,7 @@ export default function RequestWizard() {
           ),
           t('request.estimate.note'),
         )}
+        {settings.freeEstimates ? <p className="hh-muted">{t('request.estimate.free')}</p> : null}
       </>
     ),
     review: (

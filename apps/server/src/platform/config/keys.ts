@@ -161,6 +161,15 @@ export const CONFIG_KEYS = {
       }),
     ),
   }),
+  // TSK-0028 (HH-INT-02, OWN-DEC-92): the hours of the preferred windows, inside contact.hours. Not given by the owner:
+  // NOT CONFIGURED (OQ-WINDOW-HOURS), so the form shows the five windows without hours.
+  'request.window_hours': shape({
+    mornings: shape({ start: clock, end: clock }),
+    afternoons: shape({ start: clock, end: clock }),
+    evenings: shape({ start: clock, end: clock }),
+  }),
+  // TSK-0028 (FACT-VISIT-FEE, OWN-DEC-99): online and onsite estimates are free; no visit fee is shown or charged.
+  'estimate.visit_fee': shape({ policy: exactly('free') }),
   // TSK-0024: the public legal documents (ENT-PolicyVersion; HH-PRIV-04, HH-COM-12, OWN-DEC-72). Each version names
   // the document ID saved with requests and the SHA-256 of its exact wording (@handyhub/domain/legal). Drafts stay
   // marked until an attorney has reviewed them (OQ-ATTORNEY-PRIVACY).

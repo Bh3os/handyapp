@@ -49,6 +49,10 @@ async function axe(page: Page) {
   expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
 }
 
+// This spec's own synthetic client address (RFC 5737): the request-form limit counts per network, and every spec
+// reaches the server from 127.0.0.1 (playwright.config.ts trusts one hop on that server).
+test.use({ extraHTTPHeaders: { 'x-forwarded-for': '198.51.100.16' } })
+
 test.describe('the staff home: action queue and Owner Decisions (TSK-0041, HH-OPS-01, HH-OPS-02)', () => {
   test.describe.configure({ mode: 'serial' })
   test.skip(!databaseUrl, 'needs E2E_DATABASE_URL (a fresh PostgreSQL 16 database)')
