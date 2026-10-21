@@ -691,6 +691,7 @@ export const LABEL_FAMILIES = {
     'inbox',
     'incident',
     'job_hold',
+    'job_packet',
     'message',
     'notification',
     'payment',
@@ -915,6 +916,26 @@ export const LABEL_FAMILIES = {
   sopControl: ['HOLD', 'GATE', 'FLAG'],
   /** What pinned an SOP version on a work package (TSK-0068). */
   sopPinSource: ['approval', 'import'],
+  /** ENT-Hold kinds (TSK-0069 packet; the domain's HOLD_KINDS). */
+  holdKind: ['review', 'job_requirement', 'critical_safety', 'task_block'],
+  /** Where a job scope snapshot version comes from (ENT-JobScopeSnapshot). */
+  scopeSource: ['approval', 'change_order'],
+  /** The customer-facing lists of an accepted scope, as a packet shows them (TSK-0069). */
+  scopeText: ['assumptions', 'exclusions', 'customerResponsibilities', 'dependencies', 'scheduleAssumptions'],
+  /** The sections of a job packet (TSK-0069, HH-PKT-01; @handyhub/domain PACKET_SECTIONS). */
+  packetSection: [
+    'identity',
+    'schedule',
+    'assignment',
+    'site_access',
+    'occupants',
+    'scope',
+    'evidence',
+    'sop',
+    'holds',
+    'resources',
+    'dependencies',
+  ],
   /** Why the Owner's record of a competent-review sign-off was refused (TSK-0068). */
   sopSignOffProblem: ['REVIEWER_REQUIRED', 'QUALIFICATION_REQUIRED', 'REASON_REQUIRED', 'INVALID_TRANSITION'],
 } as const satisfies Record<string, readonly string[]>

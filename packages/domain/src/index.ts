@@ -161,6 +161,25 @@ export {
 } from './cancellation.js'
 export * from './capacity.js'
 export {
+  changedSections,
+  hasCriticalChange,
+  OCCUPANT_DETAILS,
+  PACKET_SECTIONS,
+  PACKET_VISIT_STATES,
+  packetChanges,
+  SITE_ACCESS_DETAILS,
+  type PacketAccessCode,
+  type PacketChange,
+  type PacketContent,
+  type PacketDetail,
+  type PacketHold,
+  type PacketLine,
+  type PacketSection,
+  type PacketSopPin,
+  type PacketVisit,
+  type PacketWorker,
+} from './packet.js'
+export {
   holdExpiresAt,
   offerProblems,
   WINDOW_OFFER_MACHINE,

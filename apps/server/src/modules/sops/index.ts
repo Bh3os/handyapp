@@ -11,6 +11,7 @@ import type { Tx } from '@handyhub/db'
 import { apply, type SopReviewState } from '@handyhub/domain'
 import { ApiError } from '../../api/errors.js'
 import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
+import { jobAssignments } from '../packets/assignments.js'
 import { SIGN_OFF_BODY, SOP_VERSION_PARAMS, WORK_PACKAGE_PARAMS, WORK_PACKAGE_SOP_VIEW } from './schemas.js'
 import { workPackageSopView, type SopEnvironment } from './view.js'
 
@@ -26,14 +27,16 @@ function staff(ctx: ApiContext) {
   return ctx.actor
 }
 
+/** The record facts: the project, and (TSK-0069) the assignments on the package's job, so an assigned worker reads it. */
 const workPackageProject: NonNullable<RouteDef['resource']> = async ({ req, db }) => {
   const { workPackageId } = req.params as { workPackageId: string }
   const w = await db
     .selectFrom('work.work_packages')
-    .select('project_id')
+    .select(['project_id', 'job_id'])
     .where('id', '=', workPackageId)
     .executeTakeFirst()
-  return w ? { projectId: w.project_id } : null
+  if (!w) return null
+  return { projectId: w.project_id, assignments: w.job_id ? await jobAssignments(db, w.job_id) : [] }
 }
 
 export function sopsModule(deps: SopsDeps = {}): ApiModule {
@@ -44,7 +47,8 @@ export function sopsModule(deps: SopsDeps = {}): ApiModule {
     operationId: 'getWorkPackageSop',
     summary: 'The SOP version pinned on a work package',
     description:
-      'Staff with job.view_packet, inside their record scope (else 404). The exact SOP version pinned on the work ' +
+      'Staff with job.view_packet, inside their record scope (else 404; a worker: assigned to the job, TSK-0069). ' +
+      'The exact SOP version pinned on the work ' +
       'package: the six checklist stages in order, every item verbatim with its vault line, the hazard checks (HOLD, ' +
       'GATE and FLAG controls and the stop-work section), the quality checks (stage 4), the open questions, the ' +
       'content, hazard and quality digests, the review state and the sign-off. NOT CONFIGURED (no SOP version when ' +

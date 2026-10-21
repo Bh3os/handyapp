@@ -362,6 +362,7 @@ export function RequestRecord({
         locale={locale}
         fetchImpl={fetchImpl}
         projectId={view.project.id}
+        href={href}
       />
       <Notes t={t} fetchImpl={fetchImpl} view={view} onChanged={load} when={when} />
       <History t={t} view={view} when={when} />

@@ -859,3 +859,49 @@
   outline: 0.1875rem solid var(--hh-focus);
   outline-offset: 0.125rem;
 }
+
+/* TSK-0069: the job packet. The print view keeps the version and the freshness warning and leaves out the app's
+   chrome, photos, access-code labels and any revealed code (HH-PKT-07). */
+.staff-packet__print-only {
+  display: none;
+}
+.staff-packet__photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hh-space-2, 0.5rem);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.staff-packet__photos img {
+  display: block;
+  max-width: min(12rem, 100%);
+  height: auto;
+  border-radius: 4px;
+}
+.staff-packet__code {
+  overflow-wrap: anywhere;
+}
+@media print {
+  .staff-packet__print-only {
+    display: block;
+  }
+  strong.staff-packet__print-only {
+    display: inline;
+  }
+  .staff-packet__screen-only,
+  .staff-packet__secret,
+  .staff-app__bar,
+  .staff-shell__nav,
+  nav,
+  header[role='banner'],
+  [role='search'] {
+    display: none !important;
+  }
+  .staff-packet details {
+    display: block;
+  }
+  .staff-packet__section {
+    break-inside: avoid-page;
+  }
+}

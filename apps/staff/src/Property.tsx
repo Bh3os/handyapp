@@ -79,7 +79,14 @@ export type PropertyDetailView = {
   actions: { edit: boolean; setAccessCodes: boolean; revealAccessCodes: boolean }
 }
 
-type Revealed = { id: string; kind: string; label: string | null; value: string; revealedAt: string; hideAt: string }
+export type Revealed = {
+  id: string
+  kind: string
+  label: string | null
+  value: string
+  revealedAt: string
+  hideAt: string
+}
 type Link = (to: string) => { href: string; onClick: (e: MouseEvent<HTMLAnchorElement>) => void }
 
 const TEXT_DETAILS = LABEL_FAMILIES.propertyDetail.filter((d) => d !== 'address' && d !== 'property_type')
@@ -541,7 +548,7 @@ function Details({ ctx }: { ctx: Ctx }) {
 type Code = PropertyDetailView['accessCodes']['items'][number]
 
 /** The revealed value: shown until its time is up, the tab is hidden, Hide is pressed or the screen closes. */
-function RevealedValue({ t, revealed, onHide }: { t: T; revealed: Revealed; onHide: () => void }) {
+export function RevealedValue({ t, revealed, onHide }: { t: T; revealed: Revealed; onHide: () => void }) {
   useEffect(() => {
     const left = Math.max(0, new Date(revealed.hideAt).getTime() - Date.now())
     const timer = setTimeout(onHide, left)
