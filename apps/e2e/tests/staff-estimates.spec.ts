@@ -135,9 +135,12 @@ test.describe('Write an Estimate: the staff builder (TSK-0053)', () => {
     await setPasswordAndSignIn(page, staffAccess('password-link', ESTIMATOR), ESTIMATOR, pw(2))
 
     // The pending-estimate item opens with Prepare Online Estimate (and the request.ready_for_estimate job keeps it).
+    // Filtered by reference: other specs' new requests rank first and can push it past the queue's first page.
+    const queue = page.locator('.staff-queue__list-wrap').first()
+    await queue.getByLabel('Reference').fill(reference)
     const item = page.getByRole('listitem', { name: `Pending estimate ${reference}` })
     await expect(async () => {
-      await page.reload()
+      await queue.getByRole('button', { name: 'Apply filters' }).click()
       await expect(item).toBeVisible({ timeout: 2_000 })
     }).toPass({ timeout: 30_000 })
     await expect(item.getByText('Ready for an estimate')).toBeVisible()
