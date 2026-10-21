@@ -294,7 +294,8 @@ describe('uploads, the outbox and request-to-intake integrity (TSK-0101, HH-NFR-
     const stuck = photo('quarantined', 2)
     await t.db.insertInto('intake.photos').values([rejected, stuck]).execute()
 
-    let { body, text } = await health()
+    const first = await health()
+    let body = first.body
     let uploads = checkOf(body, 'uploads')
     expect(uploads.status).toBe('attention')
     expect(metric(uploads, 'rejected')).toBe(1)
@@ -306,10 +307,10 @@ describe('uploads, the outbox and request-to-intake integrity (TSK-0101, HH-NFR-
         [stuck.id, 'quarantined', null],
       ]),
     )
-    expect(text).not.toContain('drafts/synthetic')
+    expect(first.text).not.toContain('drafts/synthetic')
 
     await failedJob('photo.process', { type: 'photo', id: stuck.id })
-    ;({ body, text } = await health())
+    body = (await health()).body
     uploads = checkOf(body, 'uploads')
     expect(uploads.status).toBe('failed')
     expect(metric(uploads, 'processing_failed')).toBe(1)
