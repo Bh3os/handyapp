@@ -10,6 +10,7 @@ import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
 import { ConflictBanner, conflictOf, type Conflict } from './ConflictBanner'
+import { ProjectEstimates } from './Estimates'
 import { codeLabel } from './Requests'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
@@ -215,6 +216,15 @@ export function RequestRecord({
       <Responsible t={t} fetchImpl={fetchImpl} view={view} onChanged={load} when={when} />
       <Qualification t={t} fetchImpl={fetchImpl} view={view} onChanged={load} when={when} />
       <Actions t={t} fetchImpl={fetchImpl} view={view} onChanged={load} />
+      {/* TSK-0053: the project's estimates and Write an Estimate, for the roles that write estimates. */}
+      <ProjectEstimates
+        key={`${view.project.id}-${view.version}`}
+        t={t}
+        fetchImpl={fetchImpl}
+        projectId={view.project.id}
+        go={go}
+        href={href}
+      />
       <Notes t={t} fetchImpl={fetchImpl} view={view} onChanged={load} when={when} />
       <History t={t} view={view} when={when} />
       <p>{back}</p>

@@ -72,6 +72,7 @@ export const LABEL_FAMILIES = {
     'visit_change_request',
     'delivery_failed',
     'case_open',
+    'estimate_to_write',
     'deposit_waiver',
     'start_work_exception',
     'refund_request',
@@ -101,9 +102,19 @@ export const LABEL_FAMILIES = {
     'deletion_requested',
     'overdue_owner_decision',
     'not_a_fit_with_obligations',
+    'ready_for_estimate',
+    'estimate_draft',
   ],
   /** The one action button of a queue item (HH-OPS-02); it opens the record's screen. */
-  queueAction: ['review_request', 'review_hold', 'review_change', 'retry_delivery', 'open_case', 'decide'],
+  queueAction: [
+    'review_request',
+    'review_hold',
+    'review_change',
+    'retry_delivery',
+    'open_case',
+    'decide',
+    'write_estimate',
+  ],
   /**
    * System health (TSK-0101; HH-NFR-02): the checks, their states, metrics and notes, as the server's health report
    * (apps/server/src/modules/system/health.ts) declares them, checked by its unit test.
@@ -189,6 +200,7 @@ export const LABEL_FAMILIES = {
     'legal.privacy_notice',
     'legal.sms_terms',
     'legal.website_terms',
+    'legal.estimate_terms',
     'ai.module',
   ],
   /** Staff qualification of a request (TSK-0042; HH-LEAD-02). */
@@ -244,6 +256,55 @@ export const LABEL_FAMILIES = {
     'OWNER_REVIEW_REQUIRED',
     'FACTS_MISSING',
     'ACTOR_NOT_ALLOWED',
+  ],
+  /** Estimate version states (ENT-EstimateVersion; migration 0026). */
+  estimateState: ['draft', 'in_review', 'published', 'accepted', 'declined', 'expired', 'withdrawn', 'superseded'],
+  /** Estimate line kinds: base scope and the options a customer may select (@handyhub/money LINE_KINDS). */
+  estimateLineKind: ['base', 'alternate', 'add_on'],
+  /** Where a line's quantity came from (HH-EST-01). */
+  quantitySource: ['measured_on_site', 'reported_by_customer'],
+  /** The categories of the discount rule (FACT-PRICING-DISCOUNTS; config discount.rule). */
+  discountCategory: ['military', 'senior', 'returning_customer'],
+  /** Payment terms (FACT-PAYMENT-DUE; config payment.term_default). */
+  paymentTerm: ['due_on_receipt'],
+  /**
+   * Why an estimate version is not ready to publish (TSK-0053; apps/server/src/modules/estimates/readiness.ts
+   * PUBLISH_PROBLEM_CODES, checked by its unit test).
+   */
+  estimateProblem: [
+    'NOT_CONFIGURED',
+    'VERSION_NOT_EDITABLE',
+    'NO_LINES',
+    'QUANTITY_UNKNOWN',
+    'UNIT_PRICE_MISSING',
+    'DESCRIPTION_MISSING',
+    'LINE_NOT_POSITIVE',
+    'NOT_AN_OPTION',
+    'TOTAL_NOT_POSITIVE',
+    'UNSUPPORTED_CURRENCY',
+    'DISCOUNT_NOT_CONFIGURED',
+    'DISCOUNT_CATEGORY_UNKNOWN',
+    'TOTALS_OUTDATED',
+  ],
+  /** Field errors of a refused estimate draft save (apps/server/src/modules/estimates/model.ts). */
+  estimateFieldError: [
+    'INVALID',
+    'NOT_POSITIVE',
+    'INVALID_QUANTITY',
+    'TOO_MANY_DECIMALS',
+    'QUANTITY_UNKNOWN',
+    'TOO_LONG',
+    'TOO_MANY',
+    'NOT_INTEGER_CENTS',
+    'NEGATIVE_AMOUNT',
+    'LINE_NOT_FOUND',
+    'WORK_PACKAGE_NOT_FOUND',
+    'DISCOUNT_NOT_CONFIGURED',
+    'DISCOUNT_CATEGORY_UNKNOWN',
+    'LINE_NOT_POSITIVE',
+    'TOTAL_NOT_POSITIVE',
+    'VERSION_NOT_EDITABLE',
+    'PROJECT_NOT_OPEN',
   ],
 } as const satisfies Record<string, readonly string[]>
 
