@@ -48,13 +48,16 @@ export function surfaceAllowed(surface: Surface, side: HostSide): boolean {
   return surface === 'staff' ? side === 'staff' : side === 'public'
 }
 
-/** Paths that answer on every host: the health checks Render polls and robots.txt. */
+/** Paths that answer on every host: the health checks Render polls and robots.txt (the sitemap checks its host). */
 export const ANY_HOST_PATHS = new Set(['/healthz', '/readyz', '/robots.txt'])
 
-/** Private surfaces: no referrer leaves them, and they are never indexed. */
+/**
+ * Private surfaces: no referrer leaves them, and they are never indexed or listed in the sitemap (HH-CUS-05). The
+ * request form holds the visitor's unfinished draft (TSK-0023: request drafts are private).
+ */
 export function isPrivatePath(side: HostSide, url: string): boolean {
   if (side === 'staff') return true
-  return /^\/(staff|portal|api|access|project|account)(\/|$)/.test(url)
+  return /^\/(staff|portal|api|access|project|account|request)(\/|$)/.test(url)
 }
 
 const inlineTag = /<(script|style)(\s[^>]*)?>([\s\S]*?)<\/\1>/g
