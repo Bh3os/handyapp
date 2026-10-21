@@ -449,6 +449,26 @@
   overflow-wrap: anywhere;
 }
 
+/* Property record (TSK-0045): details and the masked access codes. */
+.staff-property__detail,
+.staff-property__code-item {
+  display: grid;
+  gap: var(--hh-space-2);
+}
+.staff-property__masked {
+  letter-spacing: 0.2em;
+}
+.staff-property__revealed {
+  display: grid;
+  gap: var(--hh-space-2);
+  justify-items: start;
+}
+.staff-property__code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 1.25rem;
+  overflow-wrap: anywhere;
+}
+
 /* The estimate builder (TSK-0053): one fieldset per line inside its work package; amounts are the server's. */
 .staff-estimate__line {
   display: grid;
@@ -542,4 +562,11 @@
 
 .staff-estimate__history tr[aria-current='true'] {
   font-weight: 600;
+}
+
+/* The unified inbox (TSK-0049): a message body exactly as received, line breaks kept, never rendered as HTML. */
+.staff-inbox__body {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }

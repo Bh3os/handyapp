@@ -9,6 +9,9 @@
 // the reference of the project it opens), customer records, documents, invoices and cases. TSK-0036 declares the
 // signed-in account's own view (masked sign-in values and linked project references) and its code notices. (The
 // workspace tabs of TSK-0039 name Document and Invoice only for their "none yet" states; no record field is sent.)
+// TSK-0044: contacts, notes (every class: notes are never customer-shared) and candidate matches have no customer
+// view either. TSK-0049: inbound messages, conversations and Needs Linking have none yet (the portal Messages tab is
+// TSK-0050); internal messages never get one.
 import {
   CUSTOMER_NEXT_ACTIONS,
   CUSTOMER_SITUATIONS,
@@ -19,7 +22,7 @@ import {
 } from '@handyhub/domain'
 import type { JsonSchema } from '../../api/route.js'
 
-/** The entities of TSK-0037 (ENT-*). */
+/** The entities of TSK-0037 and TSK-0044 (ENT-*). */
 export const ENTITIES = [
   'Project',
   'ProjectAccessGrant',
@@ -33,6 +36,10 @@ export const ENTITIES = [
   'EstimateVersion',
   // TSK-0057: the customer's approval of one exact version.
   'Approval',
+  'Contact',
+  'Note',
+  'CandidateMatch',
+  'Message',
 ] as const
 export type Entity = (typeof ENTITIES)[number]
 

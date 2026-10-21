@@ -35,6 +35,8 @@ export const ENV_VARS = {
   BOOTSTRAP_OWNER_NAME: 'Optional display name of the first Owner.',
   MFA_ENCRYPTION_KEY:
     'Key that seals staff authenticator (TOTP) secrets, at least 32 random characters. Unset: optional MFA is NOT CONFIGURED (enrolment refused; nothing else changes). Secret.',
+  ACCESS_CODE_ENCRYPTION_KEY:
+    'Key that seals property access codes (gate, lockbox, alarm and door codes; TSK-0045), at least 32 random characters, different from MFA_ENCRYPTION_KEY. Unset: the access-code store is NOT CONFIGURED (codes cannot be entered or revealed; nothing else changes). Secret.',
   TRUST_PROXY_HOPS: 'Proxies in front of the service that append to X-Forwarded-For. Default 0.',
   LOG_LEVEL: 'fatal, error, warn, info, debug, trace or silent. Default info.',
   JOB_WORKER:
@@ -121,6 +123,8 @@ export interface Config {
   secureCookies: boolean
   /** Seals TOTP secrets (optional MFA); null while not configured. Printing it shows '[REDACTED]'. */
   mfaKey: Secret | null
+  /** Seals property access codes (TSK-0045); null while the store is NOT CONFIGURED. Printing it shows '[REDACTED]'. */
+  accessCodeKey: Secret | null
   trustProxyHops: number
   logLevel: LogLevel
   /** Runs the in-process job worker when a database is configured (JOB_WORKER, default on). */
@@ -260,6 +264,12 @@ export function loadConfig(source: Readonly<Record<string, string | undefined>>)
   const mfaKeyRaw = get('MFA_ENCRYPTION_KEY')
   if (mfaKeyRaw !== undefined && mfaKeyRaw.length < 32)
     throw new ConfigError('MFA_ENCRYPTION_KEY must be at least 32 characters')
+  const accessCodeKeyRaw = get('ACCESS_CODE_ENCRYPTION_KEY')
+  if (accessCodeKeyRaw !== undefined && accessCodeKeyRaw.length < 32)
+    throw new ConfigError('ACCESS_CODE_ENCRYPTION_KEY must be at least 32 characters')
+  // PROPOSED: one key per purpose, so a leaked MFA key never opens access codes (and the reverse).
+  if (accessCodeKeyRaw !== undefined && accessCodeKeyRaw === mfaKeyRaw)
+    throw new ConfigError('ACCESS_CODE_ENCRYPTION_KEY must differ from MFA_ENCRYPTION_KEY')
   return {
     env,
     databaseUrl,
@@ -275,6 +285,7 @@ export function loadConfig(source: Readonly<Record<string, string | undefined>>)
     bootstrapOwner: ownerEmail ? { email: ownerEmail, displayName: get('BOOTSTRAP_OWNER_NAME')?.trim() || null } : null,
     secureCookies: !local,
     mfaKey: mfaKeyRaw === undefined ? null : new Secret(mfaKeyRaw),
+    accessCodeKey: accessCodeKeyRaw === undefined ? null : new Secret(accessCodeKeyRaw),
     trustProxyHops: integer('TRUST_PROXY_HOPS', get('TRUST_PROXY_HOPS'), 0, 0, 5),
     logLevel: logLevelRaw === undefined ? 'info' : oneOf('LOG_LEVEL', logLevelRaw, LOG_LEVELS),
     jobWorker: oneOf('JOB_WORKER', get('JOB_WORKER') ?? 'on', ['on', 'off'] as const) === 'on',

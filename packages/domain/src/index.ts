@@ -32,7 +32,33 @@ export type {
   TransitionResult,
 } from './engine.js'
 export { NOT_A_FIT_CATEGORIES, REQUEST_CLOSED_STATES, REQUEST_MACHINE, REQUEST_STATES } from './request.js'
+export {
+  addressKey,
+  DEFAULT_VISIBILITY,
+  isRestricted,
+  looksLikeCardNumber,
+  MATCH_REASONS,
+  nameKey,
+  normalizeEmail,
+  normalizePhone,
+  NOTE_VISIBILITIES,
+  sortReasons,
+  suggests,
+  SUGGESTING_REASONS,
+  VISIBILITY_CLASSES,
+} from './records.js'
+export type { MatchReason, NoteVisibility, VisibilityClass } from './records.js'
 export type { NotAFitCategory, RequestFacts, RequestState } from './request.js'
+export {
+  ACCESS_SECRET_KINDS,
+  DETAIL_SOURCES,
+  looksLikeAccessCode,
+  PROPERTY_DETAILS,
+  PROPERTY_TEXT_DETAILS,
+  sameAddress,
+  STAFF_DETAIL_SOURCES,
+} from './property.js'
+export type { AccessSecretKind, DetailSource, PropertyAddress, PropertyDetail, PropertyTextDetail } from './property.js'
 export {
   ACTION_EVENTS,
   flaggedHazards,
