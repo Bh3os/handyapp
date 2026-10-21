@@ -176,6 +176,7 @@ export const CONFIG_KEYS = {
   'legal.privacy_notice': legalDocument,
   'legal.sms_terms': legalDocument,
   'legal.website_terms': legalDocument,
+  'legal.sms_disclosure': legalDocument,
   // RULE-AI-WAVE2: only `false` is a valid value; the database refuses anything else as well.
   'ai.module': shape({ enabled: exactly(false) }),
 } as const satisfies Record<string, Parser<unknown>>

@@ -75,6 +75,10 @@ export type FormValues = {
   email: string
   phone: string
   preferredChannel: string
+  /** The SMS opt-in checkbox: unchecked by default, separate from every other choice (HH-INT-22). */
+  smsOptIn: boolean
+  /** The separate marketing permission: unchecked by default (HH-INT-18). */
+  marketingOptIn: boolean
 }
 
 export const EMPTY_VALUES: FormValues = {
@@ -99,6 +103,8 @@ export const EMPTY_VALUES: FormValues = {
   email: '',
   phone: '',
   preferredChannel: '',
+  smsOptIn: false,
+  marketingOptIn: false,
 }
 
 /** Which step shows each field (body paths without the `body.` prefix, matched by their first segments). */
@@ -106,15 +112,24 @@ const FIELD_STEP: [RegExp, StepId][] = [
   [/^(services|notSure|otherServicesText)(\.|$)/, 'services'],
   [/^(description|answers)(\.|$)/, 'job'],
   [/^(property|timing)(\.|$)/, 'property'],
-  [/^(contact|estimatePreference|smsOptIn|marketingOptIn)(\.|$)/, 'contact'],
+  [/^(contact|estimatePreference|smsOptIn|smsDisclosureVersion|marketingOptIn)(\.|$)/, 'contact'],
 ]
 
 export function stepOf(field: string): StepId {
   return FIELD_STEP.find(([re]) => re.test(field))?.[1] ?? 'review'
 }
 
-/** The form version and privacy-notice version sent with every submission. */
-export type FormMeta = { formVersion: string; privacyNoticeVersion: string; startedAt?: number; website?: string }
+/**
+ * The form version, the privacy-notice version and the SMS disclosure version the page shows, sent with every
+ * submission (the disclosure version is recorded with an SMS opt-in, TSK-0029).
+ */
+export type FormMeta = {
+  formVersion: string
+  privacyNoticeVersion: string
+  smsDisclosureVersion?: string
+  startedAt?: number
+  website?: string
+}
 
 const optional = (s: string) => (s.trim() === '' ? undefined : s)
 
@@ -168,9 +183,10 @@ export function toBody(v: FormValues, meta: FormMeta, services: readonly FormSer
       preferredChannel: v.preferredChannel as SubmitBody['contact']['preferredChannel'],
     },
     // The SMS opt-in and the separate marketing permission are their own choices (TSK-0029); unchecked by default.
-    smsOptIn: false,
-    marketingOptIn: false,
+    smsOptIn: v.smsOptIn,
+    marketingOptIn: v.marketingOptIn,
   }
+  if (meta.smsDisclosureVersion !== undefined) body.smsDisclosureVersion = meta.smsDisclosureVersion
   if (optional(v.description)) body.description = v.description
   if (optional(v.otherServicesText)) body.otherServicesText = v.otherServicesText
   if (meta.startedAt !== undefined) body.startedAt = meta.startedAt
@@ -260,6 +276,9 @@ export function problemKey(code: string): CustomerKey {
     // Weekends with a weekday date (HH-INT-02): the message says how to make them agree.
     case 'weekendDate':
       return 'request.timing.weekendDate'
+    // Text as the preferred contact method without the SMS opt-in (HH-INT-22): the message says what to do.
+    case 'smsOptInRequired':
+      return 'request.contact.textNeedsOptIn'
     default:
       return 'error.field.invalid'
   }

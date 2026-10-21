@@ -16,7 +16,7 @@
 //   never written; a `pending` block shows openly what still waits on review, citing the open question.
 
 export type LegalDocumentCode = 'privacy_notice' | 'sms_terms' | 'website_terms'
-export type LegalConfigKey = 'legal.privacy_notice' | 'legal.sms_terms' | 'legal.website_terms'
+export type LegalConfigKey = 'legal.privacy_notice' | 'legal.sms_terms' | 'legal.website_terms' | 'legal.sms_disclosure'
 export type LegalStatus = 'draft' | 'owner_review_pending' | 'approved'
 
 /** One block of a section. Every string is a customer catalog key. */
@@ -424,16 +424,95 @@ export function legalPendingItems(doc: LegalDocument): string[] {
   return [...ids]
 }
 
+function canonical(
+  documentId: string,
+  version: number,
+  values: Readonly<Record<string, number>>,
+  keys: readonly string[],
+  catalog: Readonly<Record<string, string>>,
+): string {
+  const sorted = Object.fromEntries(Object.entries(values).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
+  return JSON.stringify({
+    documentId,
+    version,
+    values: sorted,
+    text: keys.map((k) => [k, Object.hasOwn(catalog, k) ? catalog[k] : null]),
+  })
+}
+
 /**
  * The canonical content the hash covers: the document ID and version, its values, and every catalog key with its
  * wording in reading order (a missing key is null, so it cannot hash like a present one).
  */
 export function legalContent(doc: LegalDocument, catalog: Readonly<Record<string, string>>): string {
-  const values = Object.fromEntries(Object.entries(doc.values).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
-  return JSON.stringify({
-    documentId: doc.documentId,
-    version: doc.version,
-    values,
-    text: legalKeys(doc).map((k) => [k, Object.hasOwn(catalog, k) ? catalog[k] : null]),
-  })
+  return canonical(doc.documentId, doc.version, doc.values, legalKeys(doc), catalog)
+}
+
+/**
+ * The SMS opt-in disclosure of the request form (TSK-0029; HH-INT-22, HH-COM-12, OWN-DEC-147, ENT-ConsentPreference).
+ * A versioned legal text like the documents, but shown beside the SMS checkbox instead of on a page of its own:
+ * - `label` is the checkbox label, the consent statement itself; the blocks sit next to it and describe it.
+ * - It names the program and the message types, states the frequency, "Message and data rates may apply", "Reply
+ *   STOP to opt out" and "Reply HELP for help", gives the support contact and links to the SMS terms and the privacy
+ *   policy. Every sentence that the SMS terms already publish is the same catalog key, so the two never differ.
+ * - Checking the box records an SMS consent with this text's `documentId` as the disclosure version; the server
+ *   accepts only a published version (legal.sms_disclosure, migration 0024).
+ * - A draft awaiting attorney review (OQ-ATTORNEY-PRIVACY). The wording of the label and of the frequency sentence
+ *   is PROPOSED: the graph lists what the text must contain, not its sentences.
+ */
+export type LegalText = {
+  readonly code: 'sms_disclosure'
+  readonly configKey: LegalConfigKey
+  readonly documentId: string
+  readonly version: number
+  readonly status: LegalStatus
+  readonly attorneyReviewed: boolean
+  readonly preparedOn: string
+  /** The checkbox label (a customer catalog key). */
+  readonly label: string
+  readonly blocks: readonly LegalBlock[]
+  readonly contentSha256: string
+  readonly sources: readonly string[]
+}
+
+export const SMS_DISCLOSURE: LegalText = {
+  code: 'sms_disclosure',
+  configKey: 'legal.sms_disclosure',
+  documentId: 'sms-disclosure-1',
+  version: 1,
+  status: 'draft',
+  attorneyReviewed: false,
+  preparedOn: '2026-10-21',
+  label: 'legal.smsDisclosure.label',
+  blocks: [
+    p('legal.sms.program.what'),
+    p('legal.smsDisclosure.frequency'),
+    p('legal.sms.rates.text'),
+    p('legal.sms.stop.text'),
+    p('legal.sms.help.text'),
+    p('legal.sms.optIn.optional'),
+    p('legal.sms.optIn.marketing'),
+    p('legal.sms.help.contact'),
+    contact,
+    link('legal.link.smsTerms', 'sms_terms'),
+    link('legal.link.privacy', 'privacy_notice'),
+  ],
+  contentSha256: '56dab52f3acdc48150550556dea7a3551e545213f137f22b7c6cdfca59edac2d',
+  sources: ['HH-INT-22', 'HH-COM-12', 'OWN-DEC-147', 'HH-INT-18', 'ENT-ConsentPreference'],
+}
+
+/** Every catalog key of a legal text, in reading order (label, then each block). */
+export function legalTextKeys(text: LegalText): string[] {
+  const keys = [text.label]
+  for (const b of text.blocks) {
+    if (b.kind === 'p' || b.kind === 'link') keys.push(b.key)
+    else if (b.kind === 'list') keys.push(...b.keys)
+    else if (b.kind === 'pending') keys.push(b.label, b.key)
+  }
+  return keys
+}
+
+/** The canonical content of a legal text that its hash covers (the same form as legalContent). */
+export function legalTextContent(text: LegalText, catalog: Readonly<Record<string, string>>): string {
+  return canonical(text.documentId, text.version, {}, legalTextKeys(text), catalog)
 }

@@ -68,6 +68,7 @@ export const LABEL_FAMILIES = {
    */
   queueItemType: [
     'new_request',
+    'review_hold',
     'safety_hold',
     'visit_change_request',
     'delivery_failed',
@@ -85,6 +86,8 @@ export const LABEL_FAMILIES = {
   queueReason: [
     'new_request',
     'new_request_flagged',
+    'awaiting_first_response',
+    'review_hold',
     'safety_hold',
     'reschedule_requested',
     'cancellation_requested',
@@ -104,6 +107,94 @@ export const LABEL_FAMILIES = {
   ],
   /** The one action button of a queue item (HH-OPS-02); it opens the record's screen. */
   queueAction: ['review_request', 'review_hold', 'review_change', 'retry_delivery', 'open_case', 'decide'],
+  /**
+   * System health (TSK-0101; HH-NFR-02): the checks, their states, metrics and notes, as the server's health report
+   * (apps/server/src/modules/system/health.ts) declares them, checked by its unit test.
+   */
+  healthCheck: [
+    'database',
+    'migrations',
+    'jobs',
+    'outbox',
+    'deliveries_email',
+    'deliveries_sms',
+    'callbacks_bird',
+    'callbacks_resend',
+    'uploads',
+    'intake_integrity',
+    'configuration',
+    'scheduling_conflicts',
+    'error_tracking',
+    'backups',
+    'restore_drill',
+  ],
+  healthStatus: ['ok', 'attention', 'failed', 'not_configured', 'unknown'],
+  healthMetric: [
+    'pending',
+    'queued',
+    'running',
+    'retrying',
+    'overdue',
+    'interrupted',
+    'failed',
+    'stale',
+    'received',
+    'processing_failed',
+    'quarantined',
+    'rejected',
+    'missing',
+    'configured',
+    'not_configured',
+    'proposed',
+  ],
+  healthNote: [
+    'migrations_unreadable',
+    'provider_unknown',
+    'fake_provider',
+    'rejected_callbacks_in_logs',
+    'no_scheduling_records',
+    'no_error_tracker',
+    'backups_not_observable',
+    'no_restore_drill_recorded',
+  ],
+  providerChannel: ['email', 'sms', 'storage'],
+  providerMode: ['real', 'fake', 'not_configured', 'unknown'],
+  /** Why the server rejected a request photo (apps/server/src/modules/photos/content.ts ContentProblem). */
+  photoRejection: ['unsupported_type', 'type_mismatch', 'malformed', 'trailing_data', 'unsafe_content'],
+  /** The configuration keys (TSK-0007, TSK-0101; apps/server/src/platform/config/keys.ts CONFIG_KEYS). */
+  configKey: [
+    'deposit.rule',
+    'discount.rule',
+    'discount.eligibility_verification',
+    'tax.mode',
+    'estimate.validity',
+    'estimate.publishing_roles',
+    'payment.term_default',
+    'payment.methods',
+    'payment.instructions',
+    'cancellation.rules',
+    'contact.hours',
+    'business.timezone',
+    'reminders.cadences',
+    'request.reopen_period',
+    'response.target',
+    'session.timings',
+    'uploads.limits',
+    'business.name',
+    'business.mailing_address',
+    'business.public_contact',
+    'verification.limits',
+    'messages.automatic',
+    'sms.help_reply',
+    'coverage.area',
+    'request.window_hours',
+    'estimate.visit_fee',
+    'legal.privacy_notice',
+    'legal.sms_terms',
+    'legal.website_terms',
+    'legal.sms_disclosure',
+    'ai.module',
+  ],
   /** Staff qualification of a request (TSK-0042; HH-LEAD-02). */
   qualificationCheck: [
     'coverage',
@@ -157,7 +248,24 @@ export const LABEL_FAMILIES = {
     'OWNER_REVIEW_REQUIRED',
     'FACTS_MISSING',
     'ACTOR_NOT_ALLOWED',
+    'REVIEW_HOLD_OPEN',
+    'HAZARD_CATEGORY_REQUIRED',
+    'HAZARD_NOTE_REQUIRED',
+    'HAZARDS_ONLY_ON_RISK_FLAGS',
+    'HAZARDS_NEED_ATTENTION',
+    'REVIEWER_REQUIRED',
+    'OWN_CRITICAL_HOLD',
   ],
+  /** Potential hazards or restricted scope found at intake (TSK-0043, HH-LEAD-04; PROPOSED categories). */
+  hazardCategory: ['hazardous_material', 'licensed_trade', 'structural', 'permit_licensing', 'other'],
+  /** Hold states (ENT-Hold). */
+  holdState: ['open', 'under_review', 'resolved', 'canceled_as_error'],
+  /** The first-response clock as staff read it (TSK-0043, HH-LEAD-05). */
+  responseClockState: ['not_configured', 'running', 'paused', 'overdue', 'stopped'],
+  /** How the first-response clock was stopped (OWN-DEC-116). */
+  responseStop: ['response_sent', 'conversation_recorded'],
+  /** Completed customer conversations staff record (TSK-0043, PROPOSED channels). */
+  conversationChannel: ['phone', 'in_person'],
 } as const satisfies Record<string, readonly string[]>
 
 export type LabelFamily = keyof typeof LABEL_FAMILIES

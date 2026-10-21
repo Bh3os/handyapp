@@ -1388,10 +1388,20 @@
                     }
                   },
                   "smsOptIn": {
-                    "type": "boolean"
+                    "enum": [
+                      true,
+                      false
+                    ]
+                  },
+                  "smsDisclosureVersion": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9._-]{1,40}$"
                   },
                   "marketingOptIn": {
-                    "type": "boolean"
+                    "enum": [
+                      true,
+                      false
+                    ]
                   },
                   "website": {
                     "type": "string",
@@ -2273,6 +2283,7 @@
                                 "staff",
                                 "audit",
                                 "dashboard",
+                                "health",
                                 "settings",
                                 null
                               ]
@@ -2294,6 +2305,7 @@
                                   "staff",
                                   "audit",
                                   "dashboard",
+                                  "health",
                                   "settings"
                                 ]
                               }
@@ -2893,6 +2905,7 @@
                             "staff",
                             "audit",
                             "dashboard",
+                            "health",
                             "settings",
                             null
                           ]
@@ -2914,6 +2927,7 @@
                               "staff",
                               "audit",
                               "dashboard",
+                              "health",
                               "settings"
                             ]
                           }
@@ -3580,6 +3594,7 @@
                             "staff",
                             "audit",
                             "dashboard",
+                            "health",
                             "settings",
                             null
                           ]
@@ -3601,6 +3616,7 @@
                               "staff",
                               "audit",
                               "dashboard",
+                              "health",
                               "settings"
                             ]
                           }
@@ -3852,6 +3868,7 @@
                             "staff",
                             "audit",
                             "dashboard",
+                            "health",
                             "settings",
                             null
                           ]
@@ -3873,6 +3890,7 @@
                               "staff",
                               "audit",
                               "dashboard",
+                              "health",
                               "settings"
                             ]
                           }
@@ -4112,6 +4130,7 @@
                             "staff",
                             "audit",
                             "dashboard",
+                            "health",
                             "settings",
                             null
                           ]
@@ -4133,6 +4152,7 @@
                               "staff",
                               "audit",
                               "dashboard",
+                              "health",
                               "settings"
                             ]
                           }
@@ -4555,6 +4575,7 @@
                             "staff",
                             "audit",
                             "dashboard",
+                            "health",
                             "settings",
                             null
                           ]
@@ -4576,6 +4597,7 @@
                               "staff",
                               "audit",
                               "dashboard",
+                              "health",
                               "settings"
                             ]
                           }
@@ -4904,6 +4926,663 @@
         }
       }
     },
+    "/api/v1/staff/holds/{holdId}/actions/cancel": {
+      "post": {
+        "operationId": "cancelHoldAsError",
+        "summary": "Cancel a hold entered in error",
+        "description": "The Owner (job_hold.set_ready, PROPOSED). Only for a hold entered in error, with the reason; the hold and its reason stay in the history.",
+        "tags": [
+          "requests"
+        ],
+        "parameters": [
+          {
+            "name": "holdId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "holdId",
+                    "state",
+                    "version",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "holdId": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job_hold.set_ready",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "hold.cancel_as_error",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/response-holds.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/holds/{holdId}/actions/resolve": {
+      "post": {
+        "operationId": "resolveHold",
+        "summary": "Resolve a hold under review",
+        "description": "The Owner (job_hold.set_ready, PROPOSED for review holds; OWN-DEC-137). Needs a note saying how it was resolved and who reviewed it (name and, where the hazard needs one, their qualification). No checkbox, timer, acknowledgment or AI output clears a hold. Nobody resolves a critical safety hold they raised.",
+        "tags": [
+          "requests"
+        ],
+        "parameters": [
+          {
+            "name": "holdId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "resolutionNote",
+                  "reviewer"
+                ],
+                "properties": {
+                  "resolutionNote": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "pattern": "\\S"
+                  },
+                  "reviewer": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "holdId",
+                    "state",
+                    "version",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "holdId": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job_hold.set_ready",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "hold.resolve",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/response-holds.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/holds/{holdId}/actions/start-review": {
+      "post": {
+        "operationId": "startHoldReview",
+        "summary": "Start reviewing a hold",
+        "description": "Staff with job_hold.set (PROPOSED). Moves an open review hold to \"under review\"; it still blocks the estimate path. If-Match is the hold version.",
+        "tags": [
+          "requests"
+        ],
+        "parameters": [
+          {
+            "name": "holdId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "holdId",
+                    "state",
+                    "version",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "holdId": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job_hold.set",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "hold.start_review",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/response-holds.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/invitations": {
       "post": {
         "operationId": "inviteStaff",
@@ -5136,6 +5815,7 @@
               "type": "string",
               "enum": [
                 "new_request",
+                "review_hold",
                 "safety_hold",
                 "visit_change_request",
                 "delivery_failed",
@@ -5234,6 +5914,7 @@
                           "openedAt",
                           "dueAt",
                           "clock",
+                          "responseClock",
                           "reason",
                           "masked",
                           "action",
@@ -5249,6 +5930,7 @@
                             "type": "string",
                             "enum": [
                               "new_request",
+                              "review_hold",
                               "safety_hold",
                               "visit_change_request",
                               "delivery_failed",
@@ -5337,6 +6019,115 @@
                               null
                             ]
                           },
+                          "responseClock": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "state",
+                                  "startedAt",
+                                  "targetMinutes",
+                                  "dueAt",
+                                  "remainingMinutes",
+                                  "overdueMinutes",
+                                  "resumesAt",
+                                  "timeZone",
+                                  "stoppedAt",
+                                  "stopKind",
+                                  "businessMinutes",
+                                  "withinTarget"
+                                ],
+                                "properties": {
+                                  "state": {
+                                    "type": "string",
+                                    "enum": [
+                                      "not_configured",
+                                      "running",
+                                      "paused",
+                                      "overdue",
+                                      "stopped"
+                                    ]
+                                  },
+                                  "startedAt": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  },
+                                  "targetMinutes": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ]
+                                  },
+                                  "dueAt": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "format": "date-time"
+                                  },
+                                  "remainingMinutes": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ]
+                                  },
+                                  "overdueMinutes": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ]
+                                  },
+                                  "resumesAt": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "format": "date-time"
+                                  },
+                                  "timeZone": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "stoppedAt": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "format": "date-time"
+                                  },
+                                  "stopKind": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "enum": [
+                                      "response_sent",
+                                      "conversation_recorded",
+                                      null
+                                    ]
+                                  },
+                                  "businessMinutes": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ]
+                                  },
+                                  "withinTarget": {
+                                    "type": [
+                                      "boolean",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
                           "reason": {
                             "type": "string"
                           },
@@ -5392,6 +6183,7 @@
                         "type": "string",
                         "enum": [
                           "new_request",
+                          "review_hold",
                           "safety_hold",
                           "visit_change_request",
                           "delivery_failed",
@@ -5525,6 +6317,7 @@
               "type": "string",
               "enum": [
                 "new_request",
+                "review_hold",
                 "safety_hold",
                 "visit_change_request",
                 "delivery_failed",
@@ -5623,6 +6416,7 @@
                           "openedAt",
                           "dueAt",
                           "clock",
+                          "responseClock",
                           "reason",
                           "masked",
                           "action",
@@ -5638,6 +6432,7 @@
                             "type": "string",
                             "enum": [
                               "new_request",
+                              "review_hold",
                               "safety_hold",
                               "visit_change_request",
                               "delivery_failed",
@@ -5726,6 +6521,115 @@
                               null
                             ]
                           },
+                          "responseClock": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "state",
+                                  "startedAt",
+                                  "targetMinutes",
+                                  "dueAt",
+                                  "remainingMinutes",
+                                  "overdueMinutes",
+                                  "resumesAt",
+                                  "timeZone",
+                                  "stoppedAt",
+                                  "stopKind",
+                                  "businessMinutes",
+                                  "withinTarget"
+                                ],
+                                "properties": {
+                                  "state": {
+                                    "type": "string",
+                                    "enum": [
+                                      "not_configured",
+                                      "running",
+                                      "paused",
+                                      "overdue",
+                                      "stopped"
+                                    ]
+                                  },
+                                  "startedAt": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  },
+                                  "targetMinutes": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ]
+                                  },
+                                  "dueAt": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "format": "date-time"
+                                  },
+                                  "remainingMinutes": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ]
+                                  },
+                                  "overdueMinutes": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ]
+                                  },
+                                  "resumesAt": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "format": "date-time"
+                                  },
+                                  "timeZone": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "stoppedAt": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "format": "date-time"
+                                  },
+                                  "stopKind": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "enum": [
+                                      "response_sent",
+                                      "conversation_recorded",
+                                      null
+                                    ]
+                                  },
+                                  "businessMinutes": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ]
+                                  },
+                                  "withinTarget": {
+                                    "type": [
+                                      "boolean",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
                           "reason": {
                             "type": "string"
                           },
@@ -5781,6 +6685,7 @@
                         "type": "string",
                         "enum": [
                           "new_request",
+                          "review_hold",
                           "safety_hold",
                           "visit_change_request",
                           "delivery_failed",
@@ -5894,6 +6799,195 @@
           "pagination": true,
           "cache": "private, no-store",
           "test": "test/integration/queue.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/reports/first-response": {
+      "get": {
+        "operationId": "getFirstResponseReport",
+        "summary": "Customer response: time to first meaningful response",
+        "description": "The Owner (dashboard.view). For requests received in [from, to): how many were received, answered, awaiting and within the internal one-hour target, the share within target (basis points of requests whose outcome is known) and the average and median business minutes to the first meaningful response (OWN-DEC-125). Figures with nothing to measure are null (unavailable), never zero; requests whose clock was NOT CONFIGURED are counted apart. The Owner Dashboard (TSK-0096) reads it.",
+        "tags": [
+          "requests"
+        ],
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "from",
+                    "to",
+                    "received",
+                    "notConfigured",
+                    "answered",
+                    "awaiting",
+                    "withinTarget",
+                    "withinTargetShareBps",
+                    "averageBusinessMinutes",
+                    "medianBusinessMinutes",
+                    "generatedAt"
+                  ],
+                  "properties": {
+                    "from": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "to": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "received": {
+                      "type": "integer"
+                    },
+                    "notConfigured": {
+                      "type": "integer"
+                    },
+                    "answered": {
+                      "type": "integer"
+                    },
+                    "awaiting": {
+                      "type": "integer"
+                    },
+                    "withinTarget": {
+                      "type": "integer"
+                    },
+                    "withinTargetShareBps": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "averageBusinessMinutes": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "medianBusinessMinutes": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "generatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "dashboard.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/response-holds.test.ts"
         }
       }
     },
@@ -6220,6 +7314,10 @@
                     "workPackages",
                     "nextStep",
                     "followUpDueAt",
+                    "responseClock",
+                    "conversations",
+                    "holds",
+                    "estimateBlockedByHolds",
                     "actions",
                     "serviceCatalog"
                   ],
@@ -6708,6 +7806,24 @@
                                         "null"
                                       ],
                                       "maxLength": 1000
+                                    },
+                                    "hazards": {
+                                      "type": [
+                                        "array",
+                                        "null"
+                                      ],
+                                      "uniqueItems": true,
+                                      "maxItems": 5,
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "hazardous_material",
+                                          "licensed_trade",
+                                          "structural",
+                                          "permit_licensing",
+                                          "other"
+                                        ]
+                                      }
                                     }
                                   }
                                 },
@@ -6732,6 +7848,24 @@
                                         "null"
                                       ],
                                       "maxLength": 1000
+                                    },
+                                    "hazards": {
+                                      "type": [
+                                        "array",
+                                        "null"
+                                      ],
+                                      "uniqueItems": true,
+                                      "maxItems": 5,
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "hazardous_material",
+                                          "licensed_trade",
+                                          "structural",
+                                          "permit_licensing",
+                                          "other"
+                                        ]
+                                      }
                                     }
                                   }
                                 },
@@ -6756,6 +7890,24 @@
                                         "null"
                                       ],
                                       "maxLength": 1000
+                                    },
+                                    "hazards": {
+                                      "type": [
+                                        "array",
+                                        "null"
+                                      ],
+                                      "uniqueItems": true,
+                                      "maxItems": 5,
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "hazardous_material",
+                                          "licensed_trade",
+                                          "structural",
+                                          "permit_licensing",
+                                          "other"
+                                        ]
+                                      }
                                     }
                                   }
                                 },
@@ -6780,6 +7932,24 @@
                                         "null"
                                       ],
                                       "maxLength": 1000
+                                    },
+                                    "hazards": {
+                                      "type": [
+                                        "array",
+                                        "null"
+                                      ],
+                                      "uniqueItems": true,
+                                      "maxItems": 5,
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "hazardous_material",
+                                          "licensed_trade",
+                                          "structural",
+                                          "permit_licensing",
+                                          "other"
+                                        ]
+                                      }
                                     }
                                   }
                                 },
@@ -6804,6 +7974,24 @@
                                         "null"
                                       ],
                                       "maxLength": 1000
+                                    },
+                                    "hazards": {
+                                      "type": [
+                                        "array",
+                                        "null"
+                                      ],
+                                      "uniqueItems": true,
+                                      "maxItems": 5,
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "hazardous_material",
+                                          "licensed_trade",
+                                          "structural",
+                                          "permit_licensing",
+                                          "other"
+                                        ]
+                                      }
                                     }
                                   }
                                 },
@@ -6828,6 +8016,24 @@
                                         "null"
                                       ],
                                       "maxLength": 1000
+                                    },
+                                    "hazards": {
+                                      "type": [
+                                        "array",
+                                        "null"
+                                      ],
+                                      "uniqueItems": true,
+                                      "maxItems": 5,
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "hazardous_material",
+                                          "licensed_trade",
+                                          "structural",
+                                          "permit_licensing",
+                                          "other"
+                                        ]
+                                      }
                                     }
                                   }
                                 },
@@ -6852,6 +8058,24 @@
                                         "null"
                                       ],
                                       "maxLength": 1000
+                                    },
+                                    "hazards": {
+                                      "type": [
+                                        "array",
+                                        "null"
+                                      ],
+                                      "uniqueItems": true,
+                                      "maxItems": 5,
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "hazardous_material",
+                                          "licensed_trade",
+                                          "structural",
+                                          "permit_licensing",
+                                          "other"
+                                        ]
+                                      }
                                     }
                                   }
                                 }
@@ -7094,6 +8318,388 @@
                         "null"
                       ]
                     },
+                    "responseClock": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state",
+                            "startedAt",
+                            "targetMinutes",
+                            "dueAt",
+                            "remainingMinutes",
+                            "overdueMinutes",
+                            "resumesAt",
+                            "timeZone",
+                            "stoppedAt",
+                            "stopKind",
+                            "businessMinutes",
+                            "withinTarget"
+                          ],
+                          "properties": {
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "not_configured",
+                                "running",
+                                "paused",
+                                "overdue",
+                                "stopped"
+                              ]
+                            },
+                            "startedAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "targetMinutes": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "dueAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            },
+                            "remainingMinutes": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "overdueMinutes": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "resumesAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            },
+                            "timeZone": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "stoppedAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            },
+                            "stopKind": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "response_sent",
+                                "conversation_recorded",
+                                null
+                              ]
+                            },
+                            "businessMinutes": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "withinTarget": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "conversations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "channel",
+                          "outcome",
+                          "occurredAt",
+                          "recordedBy",
+                          "recordedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "phone",
+                              "in_person"
+                            ]
+                          },
+                          "outcome": {
+                            "type": "string"
+                          },
+                          "occurredAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "recordedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "recordedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "holds": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "kind",
+                          "category",
+                          "note",
+                          "state",
+                          "version",
+                          "raisedBy",
+                          "raisedAt",
+                          "reviewStartedBy",
+                          "reviewStartedAt",
+                          "resolutionNote",
+                          "reviewer",
+                          "resolvedBy",
+                          "resolvedAt",
+                          "cancelReason",
+                          "canceledBy",
+                          "canceledAt",
+                          "actions"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "category": {
+                            "type": "string"
+                          },
+                          "note": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "open",
+                              "under_review",
+                              "resolved",
+                              "canceled_as_error"
+                            ]
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "raisedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "raisedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "reviewStartedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "reviewStartedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "resolutionNote": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "reviewer": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "resolvedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "resolvedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "cancelReason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "canceledBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "canceledAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "actions": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "startReview",
+                              "resolve",
+                              "cancel"
+                            ],
+                            "properties": {
+                              "startReview": {
+                                "type": "boolean"
+                              },
+                              "resolve": {
+                                "type": "boolean"
+                              },
+                              "cancel": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "estimateBlockedByHolds": {
+                      "type": "boolean"
+                    },
                     "actions": {
                       "type": "object",
                       "additionalProperties": false,
@@ -7104,7 +8710,8 @@
                         "notAFit",
                         "assign",
                         "qualify",
-                        "addNote"
+                        "addNote",
+                        "recordConversation"
                       ],
                       "properties": {
                         "askQuestion": {
@@ -7126,6 +8733,9 @@
                           "type": "boolean"
                         },
                         "addNote": {
+                          "type": "boolean"
+                        },
+                        "recordConversation": {
                           "type": "boolean"
                         }
                       }
@@ -7483,7 +9093,7 @@
       "post": {
         "operationId": "arrangeEstimateVisit",
         "summary": "Arrange Estimate Visit",
-        "description": "Staff with request.choose_estimate_approach. \"Site visit needed\" with a short customer-facing explanation (OWN-DEC-99): needs the qualification recorded; creates one work package per listed service and moves the request to \"needs site visit\". Nothing is booked and no message is sent: the visit windows are offered with TSK-0063 (request.site_visit_required is recorded for it).",
+        "description": "Staff with request.choose_estimate_approach. \"Site visit needed\" with a short customer-facing explanation (OWN-DEC-99): needs the qualification recorded; creates one work package per listed service and moves the request to \"needs site visit\". Nothing is booked and no message is sent: the visit windows are offered with TSK-0063 (request.site_visit_required is recorded for it). Refused while a review hold is open or under review (REVIEW_HOLD_OPEN).",
         "tags": [
           "requests"
         ],
@@ -7994,7 +9604,7 @@
       "post": {
         "operationId": "prepareOnlineEstimate",
         "summary": "Prepare Online Estimate",
-        "description": "Staff with request.choose_estimate_approach. \"Estimate online\": needs the qualification recorded; creates one work package per listed service of the one project and moves the request to \"ready for estimate\". The estimate itself is written with TSK-0052/TSK-0053; no message is sent.",
+        "description": "Staff with request.choose_estimate_approach. \"Estimate online\": needs the qualification recorded; creates one work package per listed service of the one project and moves the request to \"ready for estimate\". The estimate itself is written with TSK-0052/TSK-0053; no message is sent. Refused while a review hold is open or under review (REVIEW_HOLD_OPEN).",
         "tags": [
           "requests"
         ],
@@ -8236,6 +9846,322 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/staff-requests.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/requests/{requestId}/conversations": {
+      "post": {
+        "operationId": "recordRequestConversation",
+        "summary": "Record a completed customer conversation",
+        "description": "Staff with request.record_conversation (PROPOSED: the request-handling row). A completed conversation with the customer (a logged phone call or a conversation in person) with its outcome, when it happened (default now; never before the request or in the future). Staff only. It is a meaningful response: the first one stops the first-response clock at the time it happened (OWN-DEC-116). Never edited or deleted.",
+        "tags": [
+          "requests"
+        ],
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "channel",
+                  "outcome"
+                ],
+                "properties": {
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "phone",
+                      "in_person"
+                    ]
+                  },
+                  "outcome": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  },
+                  "occurredAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "occurredAt",
+                    "responseClock"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "occurredAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "responseClock": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state",
+                            "startedAt",
+                            "targetMinutes",
+                            "dueAt",
+                            "remainingMinutes",
+                            "overdueMinutes",
+                            "resumesAt",
+                            "timeZone",
+                            "stoppedAt",
+                            "stopKind",
+                            "businessMinutes",
+                            "withinTarget"
+                          ],
+                          "properties": {
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "not_configured",
+                                "running",
+                                "paused",
+                                "overdue",
+                                "stopped"
+                              ]
+                            },
+                            "startedAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "targetMinutes": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "dueAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            },
+                            "remainingMinutes": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "overdueMinutes": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "resumesAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            },
+                            "timeZone": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "stoppedAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            },
+                            "stopKind": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "response_sent",
+                                "conversation_recorded",
+                                null
+                              ]
+                            },
+                            "businessMinutes": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "withinTarget": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "request.record_conversation",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "request.record_conversation",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/response-holds.test.ts"
         }
       }
     },
@@ -8607,7 +10533,7 @@
       "put": {
         "operationId": "qualifyRequest",
         "summary": "Record the qualification of a request",
-        "description": "Staff with request.qualify (PROPOSED: the request-handling row). One outcome per check of HH-LEAD-02 (coverage, service fit, missing essential facts, urgency, site-visit need, staff and equipment, risk flags) with an optional note; each save is a new revision, and If-Match is the current revision (0 before the first). Classification is by staff; AI stays off. Never changes the request state or stops the clock.",
+        "description": "Staff with request.qualify (PROPOSED: the request-handling row). One outcome per check of HH-LEAD-02 (coverage, service fit, missing essential facts, urgency, site-visit need, staff and equipment, risk flags) with an optional note; each save is a new revision, and If-Match is the current revision (0 before the first). Classification is by staff; AI stays off. Never changes the request state or stops the clock. TSK-0043: risk flags needing attention name the potential hazards found (at least one, with a note); each newly named hazard opens a review hold in the same transaction. A later revision never clears a hold.",
         "tags": [
           "requests"
         ],
@@ -8685,6 +10611,24 @@
                               "null"
                             ],
                             "maxLength": 1000
+                          },
+                          "hazards": {
+                            "type": [
+                              "array",
+                              "null"
+                            ],
+                            "uniqueItems": true,
+                            "maxItems": 5,
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "hazardous_material",
+                                "licensed_trade",
+                                "structural",
+                                "permit_licensing",
+                                "other"
+                              ]
+                            }
                           }
                         }
                       },
@@ -8709,6 +10653,24 @@
                               "null"
                             ],
                             "maxLength": 1000
+                          },
+                          "hazards": {
+                            "type": [
+                              "array",
+                              "null"
+                            ],
+                            "uniqueItems": true,
+                            "maxItems": 5,
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "hazardous_material",
+                                "licensed_trade",
+                                "structural",
+                                "permit_licensing",
+                                "other"
+                              ]
+                            }
                           }
                         }
                       },
@@ -8733,6 +10695,24 @@
                               "null"
                             ],
                             "maxLength": 1000
+                          },
+                          "hazards": {
+                            "type": [
+                              "array",
+                              "null"
+                            ],
+                            "uniqueItems": true,
+                            "maxItems": 5,
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "hazardous_material",
+                                "licensed_trade",
+                                "structural",
+                                "permit_licensing",
+                                "other"
+                              ]
+                            }
                           }
                         }
                       },
@@ -8757,6 +10737,24 @@
                               "null"
                             ],
                             "maxLength": 1000
+                          },
+                          "hazards": {
+                            "type": [
+                              "array",
+                              "null"
+                            ],
+                            "uniqueItems": true,
+                            "maxItems": 5,
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "hazardous_material",
+                                "licensed_trade",
+                                "structural",
+                                "permit_licensing",
+                                "other"
+                              ]
+                            }
                           }
                         }
                       },
@@ -8781,6 +10779,24 @@
                               "null"
                             ],
                             "maxLength": 1000
+                          },
+                          "hazards": {
+                            "type": [
+                              "array",
+                              "null"
+                            ],
+                            "uniqueItems": true,
+                            "maxItems": 5,
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "hazardous_material",
+                                "licensed_trade",
+                                "structural",
+                                "permit_licensing",
+                                "other"
+                              ]
+                            }
                           }
                         }
                       },
@@ -8805,6 +10821,24 @@
                               "null"
                             ],
                             "maxLength": 1000
+                          },
+                          "hazards": {
+                            "type": [
+                              "array",
+                              "null"
+                            ],
+                            "uniqueItems": true,
+                            "maxItems": 5,
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "hazardous_material",
+                                "licensed_trade",
+                                "structural",
+                                "permit_licensing",
+                                "other"
+                              ]
+                            }
                           }
                         }
                       },
@@ -8829,6 +10863,24 @@
                               "null"
                             ],
                             "maxLength": 1000
+                          },
+                          "hazards": {
+                            "type": [
+                              "array",
+                              "null"
+                            ],
+                            "uniqueItems": true,
+                            "maxItems": 5,
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "hazardous_material",
+                                "licensed_trade",
+                                "structural",
+                                "permit_licensing",
+                                "other"
+                              ]
+                            }
                           }
                         }
                       }
@@ -8849,13 +10901,20 @@
                   "additionalProperties": false,
                   "required": [
                     "revision",
-                    "missingChecks"
+                    "missingChecks",
+                    "holdsOpened"
                   ],
                   "properties": {
                     "revision": {
                       "type": "integer"
                     },
                     "missingChecks": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "holdsOpened": {
                       "type": "array",
                       "items": {
                         "type": "string"
@@ -9543,6 +11602,857 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/staff-requests.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/system/configuration": {
+      "get": {
+        "operationId": "getSystemConfiguration",
+        "summary": "Configuration view",
+        "description": "Owner only (dashboard.view). Every configuration key with its active version: the value as path and value pairs (money in integer cents), or NOT CONFIGURED with the open question it cites; the source ids; whether the value is a PROPOSED reading; the AI module state (always disabled). Environment variables are listed by name with whether they are set; their values are never read into the response. Changing a value is a separate action (policy_values.change). Reads only.",
+        "tags": [
+          "system"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "loadedAt",
+                    "entries",
+                    "aiModule",
+                    "variables"
+                  ],
+                  "properties": {
+                    "loadedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "entries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "key",
+                          "state",
+                          "version",
+                          "sourceIds",
+                          "proposed",
+                          "effectiveFrom",
+                          "fields"
+                        ],
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "enum": [
+                              "deposit.rule",
+                              "discount.rule",
+                              "discount.eligibility_verification",
+                              "tax.mode",
+                              "estimate.validity",
+                              "estimate.publishing_roles",
+                              "payment.term_default",
+                              "payment.methods",
+                              "payment.instructions",
+                              "cancellation.rules",
+                              "contact.hours",
+                              "business.timezone",
+                              "reminders.cadences",
+                              "request.reopen_period",
+                              "response.target",
+                              "session.timings",
+                              "uploads.limits",
+                              "business.name",
+                              "business.mailing_address",
+                              "business.public_contact",
+                              "verification.limits",
+                              "messages.automatic",
+                              "sms.help_reply",
+                              "coverage.area",
+                              "request.window_hours",
+                              "estimate.visit_fee",
+                              "legal.privacy_notice",
+                              "legal.sms_terms",
+                              "legal.website_terms",
+                              "legal.sms_disclosure",
+                              "ai.module"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "CONFIGURED",
+                              "NOT_CONFIGURED"
+                            ]
+                          },
+                          "version": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "sourceIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "proposed": {
+                            "type": "boolean"
+                          },
+                          "effectiveFrom": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "fields": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "path",
+                                "value"
+                              ],
+                              "properties": {
+                                "path": {
+                                  "type": "string"
+                                },
+                                "value": {
+                                  "type": [
+                                    "string",
+                                    "number",
+                                    "boolean"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "aiModule": {
+                      "type": "string",
+                      "enum": [
+                        "AI_DISABLED"
+                      ]
+                    },
+                    "variables": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "name",
+                              "group",
+                              "set",
+                              "secret"
+                            ],
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "group": {
+                                "type": "string",
+                                "enum": [
+                                  "server",
+                                  "providers"
+                                ]
+                              },
+                              "set": {
+                                "type": "boolean"
+                              },
+                              "secret": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "dashboard.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/system.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/system/health": {
+      "get": {
+        "operationId": "getSystemHealth",
+        "summary": "System health",
+        "description": "Owner only (dashboard.view). Health checks read from recorded data: the database and migrations; the job queue (queued, running, retrying, overdue, interrupted and permanently failed jobs) and pending outbox events with their age; email and text deliveries; Bird and Resend callbacks; request photo uploads and processing; the request-to-intake integrity check; configuration values NOT CONFIGURED. What the system cannot observe (backups, the last restore drill, scheduling conflicts, error tracking) is unknown or not configured, never ok. Provider modes and missing variable names only: no secret, destination, payload, message text or variable value. The newest 20 failed jobs, failed deliveries, failed callbacks, upload problems and requests missing from intake are listed. Reads only.",
+        "tags": [
+          "system"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "checkedAt",
+                    "environment",
+                    "checks",
+                    "providers",
+                    "webhookSecrets",
+                    "testDestinations",
+                    "failedJobs",
+                    "failedDeliveries",
+                    "failedCallbacks",
+                    "uploadProblems",
+                    "missingFromIntake"
+                  ],
+                  "properties": {
+                    "checkedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "environment": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "checks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "status",
+                          "metrics",
+                          "oldestAt",
+                          "latestAt",
+                          "missing",
+                          "note",
+                          "sourceIds",
+                          "link"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "enum": [
+                              "database",
+                              "migrations",
+                              "jobs",
+                              "outbox",
+                              "deliveries_email",
+                              "deliveries_sms",
+                              "callbacks_bird",
+                              "callbacks_resend",
+                              "uploads",
+                              "intake_integrity",
+                              "configuration",
+                              "scheduling_conflicts",
+                              "error_tracking",
+                              "backups",
+                              "restore_drill"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "ok",
+                              "attention",
+                              "failed",
+                              "not_configured",
+                              "unknown"
+                            ]
+                          },
+                          "metrics": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "value"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "enum": [
+                                    "pending",
+                                    "queued",
+                                    "running",
+                                    "retrying",
+                                    "overdue",
+                                    "interrupted",
+                                    "failed",
+                                    "stale",
+                                    "received",
+                                    "processing_failed",
+                                    "quarantined",
+                                    "rejected",
+                                    "missing",
+                                    "configured",
+                                    "not_configured",
+                                    "proposed"
+                                  ]
+                                },
+                                "value": {
+                                  "type": "integer"
+                                }
+                              }
+                            }
+                          },
+                          "oldestAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "latestAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "missing": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "migrations_unreadable",
+                              "provider_unknown",
+                              "fake_provider",
+                              "rejected_callbacks_in_logs",
+                              "no_scheduling_records",
+                              "no_error_tracker",
+                              "backups_not_observable",
+                              "no_restore_drill_recorded",
+                              null
+                            ]
+                          },
+                          "sourceIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "link": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "providers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "channel",
+                          "mode",
+                          "provider",
+                          "missing"
+                        ],
+                        "properties": {
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "email",
+                              "sms",
+                              "storage"
+                            ]
+                          },
+                          "mode": {
+                            "type": "string",
+                            "enum": [
+                              "real",
+                              "fake",
+                              "not_configured",
+                              "unknown"
+                            ]
+                          },
+                          "provider": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "resend",
+                              "bird",
+                              "r2",
+                              null
+                            ]
+                          },
+                          "missing": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "webhookSecrets": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "bird",
+                        "resend"
+                      ],
+                      "properties": {
+                        "bird": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "resend": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "testDestinations": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "emails",
+                            "phones"
+                          ],
+                          "properties": {
+                            "emails": {
+                              "type": "integer"
+                            },
+                            "phones": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "failedJobs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "automation",
+                          "targetType",
+                          "attempts",
+                          "maxAttempts",
+                          "errorClass",
+                          "failedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "automation": {
+                            "type": "string"
+                          },
+                          "targetType": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "attempts": {
+                            "type": "integer"
+                          },
+                          "maxAttempts": {
+                            "type": "integer"
+                          },
+                          "errorClass": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "failedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "failedDeliveries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "messageKey",
+                          "channel",
+                          "audience",
+                          "errorCode",
+                          "updatedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "messageKey": {
+                            "type": "string"
+                          },
+                          "channel": {
+                            "type": "string"
+                          },
+                          "audience": {
+                            "type": "string"
+                          },
+                          "errorCode": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "failedCallbacks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "jobId",
+                          "provider",
+                          "eventType",
+                          "attempts",
+                          "errorClass",
+                          "failedAt"
+                        ],
+                        "properties": {
+                          "jobId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "provider": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "eventType": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "attempts": {
+                            "type": "integer"
+                          },
+                          "errorClass": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "failedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "uploadProblems": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "state",
+                          "reason",
+                          "contentType",
+                          "byteSize",
+                          "uploadedAt",
+                          "requestId",
+                          "reference"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "state": {
+                            "type": "string"
+                          },
+                          "reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "contentType": {
+                            "type": "string"
+                          },
+                          "byteSize": {
+                            "type": "integer"
+                          },
+                          "uploadedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "requestId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "reference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "missingFromIntake": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "requestId",
+                          "reference",
+                          "submittedAt"
+                        ],
+                        "properties": {
+                          "requestId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "reference": {
+                            "type": "string"
+                          },
+                          "submittedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "dashboard.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/system.test.ts"
         }
       }
     }

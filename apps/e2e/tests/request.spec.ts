@@ -37,7 +37,7 @@ async function fillToReview(page: Page, phone = '(502) 555-0123') {
   await page.getByLabel('Full name').fill('Test Customer')
   await page.getByRole('textbox', { name: /^Email/ }).fill('wizard-customer@example.test')
   await page.getByRole('textbox', { name: /^Phone/ }).fill(phone)
-  await page.getByLabel('Text', { exact: true }).check()
+  await page.getByLabel('Phone call', { exact: true }).check()
   await page.getByLabel('Let HandyHub decide').check()
   await page.getByRole('button', { name: 'Next' }).click()
   await expect(page.getByRole('heading', { name: 'Step 5 of 5: Review and send' })).toBeVisible()

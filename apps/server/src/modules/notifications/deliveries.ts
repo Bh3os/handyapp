@@ -19,6 +19,8 @@ import { audit, type AuditActor } from '../../platform/audit.js'
 import type { Automation, JobContext, JobOutcome } from '../../platform/automation.js'
 import { loadConfig, type Config } from '../../platform/config/index.js'
 import { scheduleJob } from '../../platform/jobs.js'
+import { outbox } from '../../platform/outbox.js'
+import { currentContext } from '../../platform/request-context.js'
 import type { EmailSender, SmsSender } from '../../providers/index.js'
 import { nextContactTime } from './contact-hours.js'
 import { messageType, type Channel } from './message-types.js'
@@ -74,6 +76,26 @@ export function deliveryIdempotencyKey(
   return `notification/${h.slice(0, 40)}`
 }
 
+/**
+ * The outcome of a customer delivery, for the modules that follow it (TSK-0043: the first-response clock, HH-LEAD-05).
+ * Written in the same transaction as the delivery's new state: `message.delivery_succeeded` when a delivery first
+ * becomes sent or delivered, `message.delivery_failed` when it fails or is suppressed. Identifiers and times only.
+ */
+export async function recordDeliveryOutcome(
+  tx: Tx,
+  input: { deliveryId: string; audience: string; outcome: 'succeeded' | 'failed'; at: Date; cause: string },
+): Promise<void> {
+  if (input.audience !== 'customer') return
+  const type = input.outcome === 'succeeded' ? 'message.delivery_succeeded' : 'message.delivery_failed'
+  await outbox.add(tx, {
+    type,
+    aggregate: { type: 'message_delivery', id: input.deliveryId },
+    payload: { at: input.at.toISOString() },
+    idempotencyKey: `${type}:${input.deliveryId}:${input.cause}`,
+    requestId: currentContext()?.requestId ?? `delivery:${input.deliveryId}`,
+  })
+}
+
 type DeliveryRow = {
   id: string
   message_key: string
@@ -100,14 +122,18 @@ async function send(
       .set({ ...set, attempts: sql<number>`attempts + 1`, updated_at: sql<Date>`now()` })
       .where('id', '=', row.id)
       .execute()
+  const settled = (o: 'succeeded' | 'failed') =>
+    recordDeliveryOutcome(tx, { deliveryId: row.id, audience: row.audience, outcome: o, at: new Date(), cause: 'send' })
   const template = await currentTemplate(tx, row.message_key, channel, row.locale as 'en' | 'es')
   if (!template) {
     await update({ state: 'failed', error_code: 'template_not_configured' })
+    await settled('failed')
     return
   }
   const sender = channel === 'email' ? providers.email : providers.sms
   if (!sender) {
     await update({ state: 'failed', error_code: 'channel_not_configured', template_version: template.version })
+    await settled('failed')
     return
   }
   // Send-time recheck of channel permission and consent (HH-COM-05, TSK-0048): a STOP, a missing SMS opt-in or a
@@ -120,6 +146,7 @@ async function send(
   })
   if (!permission.allowed) {
     await update({ state: 'suppressed', error_code: permission.reason, template_version: template.version })
+    await settled('failed')
     return
   }
   let rendered: { subject: string | null; body: string }
@@ -127,6 +154,7 @@ async function send(
     rendered = renderTemplate(template, values)
   } catch {
     await update({ state: 'failed', error_code: 'template_values_missing', template_version: template.version })
+    await settled('failed')
     return
   }
   const idempotencyKey = deliveryIdempotencyKey(row.message_key, channel, row.subject_key, row.destination)
@@ -148,12 +176,16 @@ async function send(
   switch (outcome.outcome) {
     case 'accepted':
       await update({ ...base, state: outcome.status, provider_message_id: outcome.providerMessageId, error_code: null })
+      if (outcome.status === 'sent' || outcome.status === 'delivered') await settled('succeeded')
+      else if (outcome.status === 'failed') await settled('failed')
       return
     case 'suppressed':
       await update({ ...base, state: 'suppressed', error_code: outcome.reason })
+      await settled('failed')
       return
     case 'rejected':
       await update({ ...base, state: 'failed', error_code: outcome.errorCode })
+      await settled('failed')
       return
     case 'retryable_error':
     case 'outcome_unknown':

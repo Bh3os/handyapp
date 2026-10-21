@@ -22,6 +22,11 @@ export type DraftStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 
 /** Field names that may never be written to browser storage, whatever a later step adds. */
 const NEVER_STORED = /password|code|token|secret|card|cvv|cvc|iban|account_?number/i
+/**
+ * PROPOSED (TSK-0029): the SMS opt-in and the marketing permission are not kept in the draft. A consent is given with
+ * its disclosure in view when the request is sent, so a resumed draft always shows both boxes unchecked.
+ */
+const CONSENTS: ReadonlySet<string> = new Set(['smsOptIn', 'marketingOptIn'])
 
 export function draftKey(identity: string): string {
   return `${PREFIX}.v${DRAFT_VERSION}:${identity}`
@@ -29,7 +34,8 @@ export function draftKey(identity: string): string {
 
 function sanitize(values: FormValues): FormValues {
   const out: Record<string, unknown> = {}
-  for (const [k, v] of Object.entries(values)) if (!NEVER_STORED.test(k) && k in EMPTY_VALUES) out[k] = v
+  for (const [k, v] of Object.entries(values))
+    if (!NEVER_STORED.test(k) && !CONSENTS.has(k) && k in EMPTY_VALUES) out[k] = v
   return { ...EMPTY_VALUES, ...(out as Partial<FormValues>) }
 }
 

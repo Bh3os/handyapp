@@ -23,6 +23,7 @@ export const NAV_LABELS = {
   staff: 'nav.staff',
   audit: 'nav.audit',
   dashboard: 'nav.dashboard',
+  health: 'nav.health',
   settings: 'nav.settings',
 } as const satisfies Record<string, StaffKey>
 export type NavId = keyof typeof NAV_LABELS

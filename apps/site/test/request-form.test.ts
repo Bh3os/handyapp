@@ -294,3 +294,60 @@ describe('browser drafts (TSK-0026, HH-INT-08, FACT-SESSION-TIMINGS)', () => {
     expect(new DraftStore(storage, 'guest', 7).load()).toBeNull()
   })
 })
+
+describe('contact step consents (TSK-0029, HH-INT-18, HH-INT-22, OWN-DEC-147)', () => {
+  const withDisclosure = { ...meta, smsDisclosureVersion: 'sms-disclosure-1' }
+
+  it('[HH-INT-22][HH-INT-18] both boxes start unchecked and are sent as the customer left them', () => {
+    expect(EMPTY_VALUES).toMatchObject({ smsOptIn: false, marketingOptIn: false })
+    expect(toBody(complete, withDisclosure)).toMatchObject({
+      smsOptIn: false,
+      marketingOptIn: false,
+      smsDisclosureVersion: 'sms-disclosure-1',
+    })
+    expect(toBody({ ...complete, smsOptIn: true }, withDisclosure)).toMatchObject({
+      smsOptIn: true,
+      marketingOptIn: false,
+    })
+    expect(toBody({ ...complete, marketingOptIn: true }, withDisclosure)).toMatchObject({
+      smsOptIn: false,
+      marketingOptIn: true,
+    })
+    // Neither is required: a request with both unchecked is complete (submitting is never SMS consent).
+    expect(validate(complete, withDisclosure, opts)).toEqual([])
+  })
+
+  it('[HH-INT-22][T10] text as the preferred method needs the opt-in, and the form says so instead of changing it', () => {
+    const textOnly = { ...complete, preferredChannel: 'text' }
+    expect(validate(textOnly, withDisclosure, opts)).toEqual([
+      { field: 'contact.preferredChannel', code: 'smsOptInRequired' },
+    ])
+    expect(stepOf('contact.preferredChannel')).toBe('contact')
+    expect(problemKey('smsOptInRequired')).toBe('request.contact.textNeedsOptIn')
+    expect(toBody(textOnly, withDisclosure).contact.preferredChannel).toBe('text')
+    expect(validate({ ...textOnly, smsOptIn: true }, withDisclosure, opts)).toEqual([])
+  })
+
+  it('[HH-INT-22] an opt-in without the disclosure version shown is refused, on the contact step', () => {
+    expect(validate({ ...complete, smsOptIn: true }, meta, opts)).toEqual([
+      { field: 'smsDisclosureVersion', code: 'required' },
+    ])
+    expect(stepOf('smsDisclosureVersion')).toBe('contact')
+    expect(stepOf('marketingOptIn')).toBe('contact')
+  })
+
+  it('[HH-INT-22][HH-INT-08] a draft never keeps the consent boxes: a resumed form shows them unchecked', () => {
+    const storage = new MemoryStorage()
+    const store = new DraftStore(storage, 'guest', 7)
+    store.save({ ...complete, smsOptIn: true, marketingOptIn: true }, 'contact', now.getTime())
+    const raw = storage.map.get(draftKey('guest')) ?? ''
+    expect(raw).toContain('"smsOptIn":false')
+    expect(raw).toContain('"marketingOptIn":false')
+    expect(raw).not.toMatch(/OptIn":true/)
+    expect(store.load(now.getTime())?.values).toMatchObject({
+      smsOptIn: false,
+      marketingOptIn: false,
+      email: complete.email,
+    })
+  })
+})
