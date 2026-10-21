@@ -12,6 +12,7 @@ import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
 import { loadConfig } from '../../platform/config/index.js'
 import { currentContext } from '../../platform/request-context.js'
 import type { ObjectStorage } from '../../providers/index.js'
+import { CUSTOMER_PHOTO, listOf, requestPhotos as scopedRequestPhotos } from '../records/index.js'
 import { PHOTO_TYPES } from './content.js'
 import {
   CAPABILITY_HEADER,
@@ -247,7 +248,7 @@ export function photosModule(deps: { storage: ObjectStorage | null }): ApiModule
 
   // One read on two surfaces (TSK-0017): staff on the staff host, the verified customer of the project on the public
   // host. Each surface reads only its own session.
-  const requestPhotos: RouteDef = {
+  const staffRequestPhotos: RouteDef = {
     method: 'GET',
     path: '/staff/requests/:requestId/photos',
     operationId: 'listRequestPhotos',
@@ -300,21 +301,12 @@ export function photosModule(deps: { storage: ObjectStorage | null }): ApiModule
     },
     handler: async (ctx) => {
       const { requestId } = ctx.req.params as { requestId: string }
-      const rows = await ctx.db
-        .selectFrom('intake.photos')
-        .select(['id', 'state', 'content_type', 'byte_size', 'rejection_reason'])
-        .where('request_id', '=', requestId)
-        .where('state', '<>', 'removed')
-        .orderBy('uploaded_at')
-        .execute()
+      const rows = await scopedRequestPhotos(ctx.db, ctx.scope, requestId, 'staff')
+      if (!rows) throw new ApiError('NOT_FOUND')
       const photos = []
       for (const r of rows)
         photos.push({
-          id: r.id,
-          state: r.state,
-          contentType: r.content_type,
-          byteSize: r.byte_size,
-          rejectionReason: r.rejection_reason,
+          ...r,
           url: r.state === 'ready' ? await photoUrl(ctx.db, { requestId, photoId: r.id, storage: deps.storage }) : null,
         })
       return { body: { photos } }
@@ -322,16 +314,32 @@ export function photosModule(deps: { storage: ObjectStorage | null }): ApiModule
   }
 
   const customerRequestPhotos: RouteDef = {
-    ...requestPhotos,
+    ...staffRequestPhotos,
     path: '/customer/requests/:requestId/photos',
     operationId: 'listCustomerRequestPhotos',
     summary: 'Photos of a customer’s request',
     description:
-      'The verified customer of the request’s project. Every photo with its state; ready photos carry a signed URL ' +
-      'valid for minutes. Quarantined and rejected photos are never served.',
+      'The verified customer of the request’s project (TSK-0037: read inside the session’s scope). The photos the ' +
+      'customer may see, each with its state: what the customer uploaded and what staff shared with them; internal ' +
+      'and restricted photos are not found by URL or ID (HH-DATA-07). Ready photos carry a signed URL valid for ' +
+      'minutes; quarantined and rejected photos are never served.',
     // Guests reach the policy too, so a guest (or a draft capability) gets the same NOT_FOUND as a missing record (T15).
     actors: ['customer', 'guest'],
+    projection: CUSTOMER_PHOTO,
+    schema: { ...staffRequestPhotos.schema, response: { 200: listOf('photos', CUSTOMER_PHOTO) } },
+    handler: async (ctx) => {
+      const { requestId } = ctx.req.params as { requestId: string }
+      const rows = await scopedRequestPhotos(ctx.db, ctx.scope, requestId, 'customer')
+      if (!rows) throw new ApiError('NOT_FOUND')
+      const photos = []
+      for (const r of rows) {
+        const url =
+          r.state === 'ready' ? await photoUrl(ctx.db, { requestId, photoId: r.id, storage: deps.storage }) : null
+        photos.push(CUSTOMER_PHOTO.project({ ...r, url }))
+      }
+      return { body: { photos } }
+    },
   }
 
-  return { name: 'photos', routes: [createDraft, upload, list, remove, requestPhotos, customerRequestPhotos] }
+  return { name: 'photos', routes: [createDraft, upload, list, remove, staffRequestPhotos, customerRequestPhotos] }
 }

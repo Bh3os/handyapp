@@ -2,7 +2,9 @@
 // queue's deep link opens the request's record; this is the part of it that exists before the full original-request
 // view (TSK-0042): reference, status, submission time, the services asked for and the responsible staff member. No
 // contact, address, description or answer is returned here, so nothing beyond the queue item's own fields is shown.
+import { ApiError } from '../../api/errors.js'
 import type { RouteDef } from '../../api/route.js'
+import { projectInScope } from '../../platform/data-scope.js'
 
 const UUID = {
   type: 'string',
@@ -65,7 +67,10 @@ export const staffRequestSummary: RouteDef = {
       .selectFrom('intake.requests')
       .select(['id', 'reference', 'state', 'submitted_at', 'responsible_staff_id'])
       .where('id', '=', requestId)
-      .executeTakeFirstOrThrow()
+      // Scoped read (TSK-0037): a request outside the caller's scope is not found.
+      .where(projectInScope('project_id', ctx.scope))
+      .executeTakeFirst()
+    if (!r) throw new ApiError('NOT_FOUND')
     const services = await ctx.db
       .selectFrom('intake.request_services as rs')
       .innerJoin('catalog.services as s', 's.id', 'rs.service_id')

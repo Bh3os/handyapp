@@ -375,6 +375,8 @@ export interface IntakePhotosTable {
   uploaded_at: ColumnType<Date, Date | string | undefined, Date | string>
   processed_at: Timestamp | null
   removed_at: Timestamp | null
+  uploader_kind: string
+  visibility: Generated<string>
 }
 
 export interface IntakeReceiptCapabilitiesTable {

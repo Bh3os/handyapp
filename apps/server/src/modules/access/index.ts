@@ -21,6 +21,7 @@ import { readSessionToken, resolveCustomerSession, sessionCookie, type CodeKeySe
 import { CONTACT_CHANNELS, type ContactChannel } from '../verification/contact-verification.js'
 import { resolveGrant, type Grant } from './grants.js'
 import { accessChannels, exchangeAccessCode, sendAccessCode } from './landing.js'
+import { listOf, PROJECT_GLANCE, PROJECT_REFERENCE, scopedProjectReferences } from '../records/index.js'
 import { projectGlance, projectIdOf, referencesOf } from './projects.js'
 import { reissueRoute } from './recovery.js'
 
@@ -279,30 +280,12 @@ export function accessModule(deps: AccessDeps): ApiModule {
     audit: 'none',
     pagination: false,
     test: 'test/integration/project-access.test.ts',
-    schema: {
-      response: {
-        200: {
-          type: 'object',
-          additionalProperties: false,
-          required: ['projects'],
-          properties: {
-            projects: {
-              type: 'array',
-              items: {
-                type: 'object',
-                additionalProperties: false,
-                required: ['reference'],
-                properties: { reference: { type: 'string' } },
-              },
-            },
-          },
-        },
-      },
-    },
+    projection: PROJECT_REFERENCE,
+    schema: { response: { 200: listOf('projects', PROJECT_REFERENCE) } },
     handler: async (ctx) => {
-      const ids = ctx.actor.kind === 'customer' ? ctx.actor.projectAccess.map((p) => p.projectId) : []
-      const references = await referencesOf(ctx.db, ids)
-      return { body: { projects: references.map((reference) => ({ reference })) } }
+      // The session's live projects only (TSK-0037): its scope, never a lookup by contact, email or account.
+      const references = await scopedProjectReferences(ctx.db, ctx.scope)
+      return { body: { projects: references.map((reference) => PROJECT_REFERENCE.project({ reference })) } }
     },
   }
 
@@ -336,25 +319,14 @@ export function accessModule(deps: AccessDeps): ApiModule {
         required: ['reference'],
         properties: { reference: { type: 'string', minLength: 1, maxLength: 40 } },
       },
-      response: {
-        200: {
-          type: 'object',
-          additionalProperties: false,
-          required: ['reference', 'submittedAt', 'requestState', 'services', 'notSure'],
-          properties: {
-            reference: { type: 'string' },
-            submittedAt: { type: 'string' },
-            requestState: { type: 'string' },
-            services: { type: 'array', items: { type: 'string' } },
-            notSure: { type: 'boolean' },
-          },
-        },
-      },
+      response: { 200: PROJECT_GLANCE.schema },
     },
+    projection: PROJECT_GLANCE,
     handler: async (ctx) => {
-      const glance = await projectGlance(ctx.db, (ctx.req.params as { reference: string }).reference)
+      // Scoped read (TSK-0037): outside the session's scope it is not found, whatever the policy step allowed.
+      const glance = await projectGlance(ctx.db, ctx.scope, (ctx.req.params as { reference: string }).reference)
       if (!glance) throw new ApiError('NOT_FOUND')
-      return { body: glance }
+      return { body: PROJECT_GLANCE.project(glance) }
     },
   }
 

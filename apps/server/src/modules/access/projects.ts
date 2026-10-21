@@ -1,9 +1,12 @@
 // The opened project at a glance (TSK-0034; HH-INT-21, HH-PORT-01, RULE-SERVER-AUTHZ). A customer projection of the
 // customer's own submission only: the reference, the services by their registry names (and whether they chose "Not
-// sure"), when it was sent and the request's state code. The policy has already decided that the caller's session opens this project; nothing here
-// reads another project, customer or account.
+// sure"), when it was sent and the request's state code. The policy has already decided that the caller's session
+// opens this project, and the read itself is scoped to the session (TSK-0037): nothing here reads another project,
+// customer or account.
 import type { Db, Tx } from '@handyhub/db'
 import { REFERENCE_PATTERN } from '@handyhub/domain/request-form'
+import type { DataScope } from '@handyhub/policy'
+import { findProject } from '../records/repository.js'
 
 /** The project a well-formed reference names, or null. */
 export async function projectIdOf(db: Db | Tx, reference: string): Promise<string | null> {
@@ -29,18 +32,24 @@ export async function referencesOf(db: Db | Tx, projectIds: readonly string[]): 
 
 export type ProjectGlance = {
   reference: string
-  submittedAt: string
+  submittedAt: Date
   requestState: string
   services: string[]
   notSure: boolean
 }
 
-export async function projectGlance(db: Db | Tx, reference: string): Promise<ProjectGlance | null> {
+/**
+ * The project's submission at a glance, read inside the caller's scope (TSK-0037): another project, or one outside
+ * the session, is null. The customer receives it only through the PROJECT_GLANCE view (records/projections.ts).
+ */
+export async function projectGlance(db: Db | Tx, scope: DataScope, reference: string): Promise<ProjectGlance | null> {
+  const project = await findProject(db, scope, { reference })
+  if (!project) return null
   const r = await db
-    .selectFrom('crm.projects as p')
-    .innerJoin('intake.requests as r', 'r.project_id', 'p.id')
-    .select(['p.reference', 'r.id', 'r.submitted_at', 'r.state', 'r.not_sure'])
-    .where('p.reference', '=', reference)
+    .selectFrom('intake.requests as r')
+    .select(['r.id', 'r.submitted_at', 'r.state', 'r.not_sure'])
+    .where('r.project_id', '=', project.id)
+    .orderBy('r.submitted_at')
     .executeTakeFirst()
   if (!r) return null
   const names = await db
@@ -53,8 +62,8 @@ export async function projectGlance(db: Db | Tx, reference: string): Promise<Pro
     .orderBy('s.position')
     .execute()
   return {
-    reference: r.reference,
-    submittedAt: r.submitted_at.toISOString(),
+    reference: project.reference,
+    submittedAt: r.submitted_at,
     requestState: r.state,
     services: names.map((n) => n.name),
     notSure: r.not_sure,

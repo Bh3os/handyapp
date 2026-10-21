@@ -289,6 +289,7 @@ describe('uploads, the outbox and request-to-intake integrity (TSK-0101, HH-NFR-
       state,
       rejection_reason: state === 'rejected' ? 'malformed' : null,
       uploaded_at: new Date(Date.now() - 60 * 60_000),
+      uploader_kind: 'customer',
     })
     const rejected = photo('rejected', 1)
     const stuck = photo('quarantined', 2)

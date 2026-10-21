@@ -22,7 +22,8 @@ import {
 } from '@handyhub/domain'
 import { serviceQuestions } from '@handyhub/domain/request-form'
 import { customerTranslator } from '@handyhub/i18n'
-import { decide, type Action, type Actor } from '@handyhub/policy'
+import { decide, type Action, type Actor, type DataScope } from '@handyhub/policy'
+import { projectInScope } from '../../platform/data-scope.js'
 import { responseClockView } from './clock-view.js'
 import { requestHolds } from './holds.js'
 import { contactBadges } from '../verification/contact-verification.js'
@@ -149,8 +150,8 @@ type Submitted = {
   contact?: { fullName?: string; email?: string; phone?: string; preferredChannel?: string }
 }
 
-/** The full staff view of a request, or null when it does not exist. */
-export async function staffRequestView(db: Reader, requestId: string, actor: Actor) {
+/** The full staff view of a request, or null when it does not exist or lies outside the caller's scope (TSK-0037). */
+export async function staffRequestView(db: Reader, scope: DataScope, requestId: string, actor: Actor) {
   const r = await db
     .selectFrom('intake.requests as r')
     .innerJoin('crm.projects as p', 'p.id', 'r.project_id')
@@ -191,6 +192,7 @@ export async function staffRequestView(db: Reader, requestId: string, actor: Act
       'c.phone_verification',
     ])
     .where('r.id', '=', requestId)
+    .where(projectInScope('r.project_id', scope))
     .executeTakeFirst()
   if (!r) return null
   // TSK-0033: the badges show each channel's current state, a code that simply ran out included (HH-LEAD-01).

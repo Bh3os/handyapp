@@ -26,11 +26,12 @@
 // blocking review hold refuses both estimating routes (holds.ts).
 import { apply, ACTION_EVENTS, NOT_A_FIT_EVENTS, type NotAFitCategory, type RequestState } from '@handyhub/domain'
 import type { Tx } from '@handyhub/db'
-import { heldScopes, type StaffActor } from '@handyhub/policy'
+import { heldScopes, type DataScope, type StaffActor } from '@handyhub/policy'
 import { sql } from 'kysely'
 import { ApiError } from '../../api/errors.js'
 import { instantIdCursor, pageSchema, toPage } from '../../api/pagination.js'
 import type { ApiContext, RouteDef } from '../../api/route.js'
+import { projectInScope } from '../../platform/data-scope.js'
 import { outbox } from '../../platform/outbox.js'
 import { currentContext } from '../../platform/request-context.js'
 import { syncDeliveryFailureOwner } from '../notifications/index.js'
@@ -89,11 +90,13 @@ type Locked = {
 }
 
 /** The request and its project, locked for this transaction (request first, then project: one order everywhere). */
-async function lockRequest(tx: Tx, requestId: string): Promise<Locked> {
+/** Locks a request inside the caller's scope (TSK-0037): outside it, or unknown, NOT_FOUND and nothing changes. */
+async function lockRequest(tx: Tx, scope: DataScope, requestId: string): Promise<Locked> {
   const r = await tx
     .selectFrom('intake.requests')
     .select(['id', 'reference', 'state', 'state_version', 'project_id', 'responsible_staff_id'])
     .where('id', '=', requestId)
+    .where(projectInScope('project_id', scope))
     .forUpdate()
     .executeTakeFirst()
   if (!r) throw new ApiError('NOT_FOUND')
@@ -315,7 +318,7 @@ async function moveRequest(
 ) {
   const tx = ctx.tx as Tx
   const actor = staffActor(ctx)
-  const current = await lockRequest(tx, requestIdOf(ctx))
+  const current = await lockRequest(tx, ctx.scope, requestIdOf(ctx))
   if (current.projectState !== 'open') throw refused({ code: 'PROJECT_NOT_OPEN', problems: [] })
   const qualification = await latestQualification(tx, current.id)
   const moved = transitionRequest(current, ctx.expectedVersion(), input.event, {
@@ -420,6 +423,8 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
           's.display_name',
           sql<string>`r.submitted_at::text`.as('submitted_key'),
         ])
+        // Scoped list (TSK-0037, HH-STAFF-04): only the projects the caller's request.view scope reaches.
+        .where(projectInScope('r.project_id', ctx.scope))
       if (q.state === 'open') query = query.where('r.state', 'in', OPEN_STATES)
       else if (q.state === 'closed') query = query.where('r.state', 'not in', OPEN_STATES)
       else if (q.state !== undefined) query = query.where('r.state', '=', q.state)
@@ -536,7 +541,7 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
     resource: projectOf,
     schema: { params: REQUEST_PARAMS, response: { 200: DETAIL } },
     handler: async (ctx) => {
-      const view = await staffRequestView(ctx.db, requestIdOf(ctx), ctx.actor)
+      const view = await staffRequestView(ctx.db, ctx.scope, requestIdOf(ctx), ctx.actor)
       if (!view) throw new ApiError('NOT_FOUND')
       return { body: view, version: view.version }
     },
@@ -576,7 +581,7 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
       const actor = staffActor(ctx)
       const { staffUserId } = ctx.req.body as { staffUserId: string }
       const target = staffUserId.toLowerCase()
-      const current = await lockRequest(tx, requestIdOf(ctx))
+      const current = await lockRequest(tx, ctx.scope, requestIdOf(ctx))
       if (ctx.expectedVersion() !== current.version) throw stale(current)
       if (!(await eligibleStaff(tx)).some((s) => s.id === target))
         throw new ApiError('VALIDATION_FAILED', {
@@ -677,7 +682,7 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
     handler: async (ctx) => {
       const tx = ctx.tx as Tx
       const actor = staffActor(ctx)
-      const current = await lockRequest(tx, requestIdOf(ctx))
+      const current = await lockRequest(tx, ctx.scope, requestIdOf(ctx))
       const latest = await latestQualification(tx, current.id)
       const revision = latest?.revision ?? 0
       if (ctx.expectedVersion() !== revision)
@@ -769,7 +774,7 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
     handler: async (ctx) => {
       const tx = ctx.tx as Tx
       const actor = staffActor(ctx)
-      const current = await lockRequest(tx, requestIdOf(ctx))
+      const current = await lockRequest(tx, ctx.scope, requestIdOf(ctx))
       const { body } = ctx.req.body as { body: string }
       const row = await tx
         .insertInto('intake.request_notes')
@@ -903,7 +908,7 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
       const tx = ctx.tx as Tx
       const actor = staffActor(ctx)
       const b = ctx.req.body as { category: NotAFitCategory; customerReason: string; internalNote?: string }
-      const current = await lockRequest(tx, requestIdOf(ctx))
+      const current = await lockRequest(tx, ctx.scope, requestIdOf(ctx))
       const expected = ctx.expectedVersion()
       if (expected !== current.version) throw stale(current)
       const customerText = b.customerReason.trim()
@@ -1104,7 +1109,7 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
       const tx = ctx.tx as Tx
       const actor = staffActor(ctx)
       const b = ctx.req.body as { channel: 'phone' | 'in_person'; outcome: string; occurredAt?: string }
-      const current = await lockRequest(tx, requestIdOf(ctx))
+      const current = await lockRequest(tx, ctx.scope, requestIdOf(ctx))
       const submitted = await tx
         .selectFrom('intake.requests')
         .select('submitted_at')

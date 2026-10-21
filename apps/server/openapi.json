@@ -137,7 +137,8 @@
           "audit": "none",
           "pagination": false,
           "cache": "private, no-store",
-          "test": "test/integration/project-access.test.ts"
+          "test": "test/integration/project-access.test.ts",
+          "projection": "project.reference"
         }
       }
     },
@@ -275,7 +276,8 @@
           "audit": "none",
           "pagination": false,
           "cache": "private, no-store",
-          "test": "test/integration/project-access.test.ts"
+          "test": "test/integration/project-access.test.ts",
+          "projection": "project.glance"
         }
       }
     },
@@ -283,7 +285,7 @@
       "get": {
         "operationId": "listCustomerRequestPhotos",
         "summary": "Photos of a customer’s request",
-        "description": "The verified customer of the request’s project. Every photo with its state; ready photos carry a signed URL valid for minutes. Quarantined and rejected photos are never served.",
+        "description": "The verified customer of the request’s project (TSK-0037: read inside the session’s scope). The photos the customer may see, each with its state: what the customer uploaded and what staff shared with them; internal and restricted photos are not found by URL or ID (HH-DATA-07). Ready photos carry a signed URL valid for minutes; quarantined and rejected photos are never served.",
         "tags": [
           "photos"
         ],
@@ -427,7 +429,8 @@
           "audit": "none",
           "pagination": false,
           "cache": "private, no-store",
-          "test": "test/integration/photos.test.ts"
+          "test": "test/integration/photos.test.ts",
+          "projection": "photo.customer"
         }
       }
     },
