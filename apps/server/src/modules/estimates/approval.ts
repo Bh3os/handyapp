@@ -19,7 +19,9 @@
 // - One transaction under the estimate's row lock, then the version's (the lifecycle's lock order): the version's move
 //   to accepted, the approval, the project's move to approved, one job, its scope snapshot version 1, one scheduling
 //   task, the work packages' job link and the committed event estimate.approved (the approval receipt, TSK-0058,
-//   reads it). Unique constraints back each "one" (one approval per version, one job per project and approval, one
+//   reads it). TSK-0060 (HH-EST-14): the same transaction cancels the version's waiting reminder drafts with the reason
+//   'accepted' (stopEstimateReminders), so no unanswered-estimate reminder is left to release after an approval; a
+//   released one not yet sent is stopped by its send-time check. Unique constraints back each "one" (one approval per version, one job per project and approval, one
 //   scheduling task per job). A second call that finds the version already approved by the same verified contact
 //   with the same options and total answers with that first approval (two tabs, a retry under a new key); anything
 //   else is a CONFLICT. The same idempotency key is answered by the API's stored response (claim/store).
@@ -39,6 +41,7 @@ import { currentContext } from '../../platform/request-context.js'
 import type { CustomerSession } from '../identity/index.js'
 import { currentVersion } from './lifecycle.js'
 import { customerVersionContent, type CustomerVersionContent } from './projections.js'
+import { stopEstimateReminders } from './reminders.js'
 import { customerVersionRow, customerVersionStatus, type CustomerVersionRef } from './responses.js'
 
 type Reader = Db | Tx
@@ -555,6 +558,8 @@ export async function approveVersion(
     .set({ state: accepted.to, state_changed_at: now, row_version: accepted.version })
     .where('id', '=', v.id)
     .execute()
+  // TSK-0060 (HH-EST-14): the approval stops the version's waiting reminder drafts at once, in this transaction.
+  await stopEstimateReminders(tx, v.id)
 
   const config = await loadConfig(tx)
   const privacy = config.get('legal.privacy_notice')

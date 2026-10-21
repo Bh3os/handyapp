@@ -1,7 +1,8 @@
 // Unanswered-estimate reminder drafts and their stop rules against PostgreSQL 16 (TSK-0060; HH-EST-14, HH-COM-05,
 // HH-COM-09, T65, S01, OWN-DEC-78, OWN-DEC-132, FACT-REMINDER-CADENCES, RULE-SERVER-AUTHZ). Staff, customers, requests,
-// amounts and messages are synthetic (RULE-SYNTHETIC-DATA); nothing reaches a real provider. Approval is TSK-0057's
-// transaction: until it exists, an approval is the database move published -> accepted the approval will make.
+// amounts and messages are synthetic (RULE-SYNTHETIC-DATA); nothing reaches a real provider. Here an approval
+// is the database move published -> accepted that TSK-0057's approval transaction makes; that the transaction itself
+// stops waiting drafts is tested with the real approval in estimate-approval.test.ts.
 import { randomUUID } from 'node:crypto'
 import { loadServiceSeed, syncServices, withTx } from '@handyhub/db'
 import { createTestDatabase, type TestDatabase } from '@handyhub/db/testing'
@@ -305,7 +306,7 @@ async function due(versionId: string, step: 'first' | 'final') {
             AND job_key = ${`estimate.reminder_draft:${versionId}:${step}`}`.execute(t.db)
   await drain()
 }
-/** The approval TSK-0057 will record: the published version becomes accepted. */
+/** The version move TSK-0057's approval records: the published version becomes accepted. */
 const accept = (versionId: string) =>
   sql`UPDATE estimating.estimate_versions SET state = 'accepted', state_changed_at = now(), row_version = row_version + 1
       WHERE id = ${versionId}`.execute(t.db)

@@ -19,7 +19,7 @@
 //   published (Request Changes, Decline, Request an Updated Estimate); a conversation with the customer that staff
 //   recorded since then (PROPOSED); the project no longer open. Channel permission is rechecked at release and send
 //   (HH-COM-05: an SMS STOP or a missing opt-in stops a text). A stopped draft is cancelled with its reason, and the
-//   lifecycle and response transactions cancel waiting drafts at once (stopEstimateReminders).
+//   lifecycle, response and approval (TSK-0057) transactions cancel waiting drafts at once (stopEstimateReminders).
 // - Channel (PROPOSED): one draft per reminder, on the customer's preferred channel: a text when they prefer texts and
 //   the SMS opt-in is current, otherwise email (a call preference has no message channel).
 // - A failed delivery is a staff issue (the reminders panel and System health list it), never a customer
@@ -232,7 +232,7 @@ const waitingDrafts = (tx: Tx, versionId: string) =>
 /**
  * Cancels the version's waiting reminder drafts when a stop rule now applies (HH-EST-14). Called in the transaction
  * of each change that can stop them (publishing a newer version, withdraw, expire, decline, the expiry job, a customer
- * response); a released reminder not yet sent is stopped by its send-time check instead. Returns the reason, or null.
+ * response, the approval); a released reminder not yet sent is stopped by its send-time check instead. Returns the reason, or null.
  */
 export async function stopEstimateReminders(tx: Tx, versionId: string): Promise<ReminderStopReason | null> {
   const reason = await reminderStopReason(tx, versionId, await dbNow(tx))
@@ -322,6 +322,8 @@ export function estimateReminderDraftAutomation(deps: ReminderDraftDeps = {}): A
         subjectKey: reminderSubjectKey(versionId, step),
         record: { type: RECORD_TYPE, id: versionId },
         values: base ? { projectLink: `${base}/portal/p/${encodeURIComponent(v.reference)}` } : {},
+        // TSK-0049: the delivery belongs to the project (its reply address and conversation).
+        projectId: v.project_id,
       })
       // The final draft replaces a first draft nobody released, so the customer never gets both at once (PROPOSED).
       if (step === 'final')
