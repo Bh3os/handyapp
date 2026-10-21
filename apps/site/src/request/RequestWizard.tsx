@@ -7,6 +7,9 @@
 // TSK-0030 (HH-INT-19, HH-INT-10, OWN-DEC-93): the review summarizes every section with an Edit action that opens its
 // step and keeps every other answer (Return to review comes straight back); the privacy policy is linked with the
 // exact version sent; "Send Estimate Request" uses the draft's idempotency key and sends once while it is pending.
+// A send whose outcome is not known is kept for the tab (send.ts): after a reload and Resume the same body goes again,
+// so the customer gets the request and reference already saved; a key that already created a request returns that
+// reference; and nothing is sent while a photo is still uploading (HH-INT-10, HH-INT-07, T11).
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { Button, Dialog, Field, StateView } from '@handyhub/ui'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
@@ -16,6 +19,15 @@ import { legalDocument, PRIVACY_NOTICE, SMS_DISCLOSURE } from '@handyhub/domain/
 import { contactDetails, parseSiteFacts, type ContactDetail } from '../site/facts.js'
 import { DraftStore, newSend, type DraftSend } from './draft.js'
 import { PhotoReviewList, PhotoUploader, usePhotos, type PhotoLimits } from './photos.js'
+import {
+  keepsBody,
+  resumedFrom,
+  SendStore,
+  sendOutcome,
+  type PhotoSummary,
+  type SendData,
+  type SendReply,
+} from './send.js'
 import {
   CHANNEL_LABEL,
   ESTIMATE_LABEL,
@@ -137,14 +149,13 @@ const NO_SETTINGS: Settings = {
 }
 /** Day windows that, with Weekends, are explained as weekend times (HH-INT-02). */
 const DAY_WINDOW_CODES: readonly string[] = ['mornings', 'afternoons', 'evenings']
-type PhotoSummary = { received: number; processing: number; failed: number }
 /** The support contact of the SMS disclosure, from configuration (GET /api/v1/public/site); null while unknown. */
 type SupportContact = { phone: ContactDetail; email: ContactDetail } | null
 type Banner = { kind: 'error'; message: string; retry: boolean } | { kind: 'success'; message: string } | null
 
-function browserStorage(): Storage | null {
+function usable(read: () => Storage): Storage | null {
   try {
-    const s = window.localStorage
+    const s = read()
     const probe = '__hh_probe__'
     s.setItem(probe, '1')
     s.removeItem(probe)
@@ -152,6 +163,15 @@ function browserStorage(): Storage | null {
   } catch {
     return null
   }
+}
+
+function browserStorage(): Storage | null {
+  return usable(() => window.localStorage)
+}
+
+/** This tab's storage: a send's exact body lives only as long as the tab, never with the 7-day draft (TSK-0030). */
+function tabStorage(): Storage | null {
+  return usable(() => window.sessionStorage)
 }
 
 export default function RequestWizard() {
@@ -177,6 +197,15 @@ export default function RequestWizard() {
   const draftSend = useRef<DraftSend>(newSend())
   // Set at the first press, before anything else runs, so a double click sends one request (HH-INT-10, T11).
   const inFlight = useRef(false)
+  // The body of a send whose outcome is not known, kept for this tab under the draft's key (send.ts).
+  const sends = useMemo(() => new SendStore(tabStorage()), [])
+  // After a Resume of such a send: the exact body it posted and the values shown with it. The first send posts that body
+  // unchanged while nothing has changed since, so the server returns the request it may already have saved.
+  const resumed = useRef<{ key: string; body: string; values: FormValues } | null>(null)
+  // The resumed send carries photos this page cannot show (they stay in its photo draft).
+  const [earlierPhotos, setEarlierPhotos] = useState(false)
+  // The draft's key had already created a request, sent with other details: the receipt says so.
+  const [alreadyReceived, setAlreadyReceived] = useState(false)
   // An Edit from the review: the step offers Return to review, which keeps every other answer (HH-INT-19).
   const [fromReview, setFromReview] = useState(false)
   const summaryRef = useRef<HTMLDivElement>(null)
@@ -233,6 +262,11 @@ export default function RequestWizard() {
     if (step === 'services' && JSON.stringify(values) === JSON.stringify(EMPTY_VALUES)) store.clear()
     else store.save(values, step, Date.now(), draftSend.current)
   }, [phase, store, values, step])
+
+  // Any change after a Resume makes a new body: the first send then posts what the page shows now (HH-INT-10).
+  useEffect(() => {
+    if (resumed.current && resumed.current.values !== values) resumed.current = null
+  }, [values])
 
   // Correcting the ZIP rechecks coverage without touching any other answer (HH-INT-16); it never blocks the form.
   useEffect(() => {
@@ -315,59 +349,82 @@ export default function RequestWizard() {
   const send = async () => {
     // One send at a time: a second press while the first is pending does nothing (the button is also pending).
     if (inFlight.current) return
-    const all = validate(values, meta, opts)
-    if (all.length) return show(all, stepOf(all[0]?.field ?? '') as StepId)
+    // A photo still uploading would be left out without a word, and the send would close its photo draft: nothing is
+    // sent until it finishes or is removed; the review says so beside the photos (HH-INT-07).
+    if (photos.items.some((i) => i.state === 'uploading')) return
+    // The draft's key for every send of this draft: a double tap, a retry or a send after a reload returns the request
+    // already saved; changed details under a key already used are a conflict naming that request (HH-INT-10, T11).
+    const key = draftSend.current.idempotencyKey
+    // The first send after a Resume, nothing changed since: the earlier body unchanged, with its consents and photo
+    // draft, which the draft never keeps (HH-INT-10, T11).
+    const replay = resumed.current?.key === key && photos.items.length === 0 ? resumed.current.body : null
+    if (replay === null) {
+      const all = validate(values, meta, opts)
+      if (all.length) return show(all, stepOf(all[0]?.field ?? '') as StepId)
+    }
     inFlight.current = true
     setSending(true)
     setBanner(null)
-    // The server binds the draft's stored photos to the request; failed photos were never stored (TSK-0031).
-    const stored = photos.items.some((i) => i.id)
-    const body = {
-      ...toBody(values, meta, services),
-      ...(stored && photos.capability ? { photoDraft: photos.capability } : {}),
-    }
-    // The draft's key for every send of this draft: a double tap, a retry or a send after a reload returns the request
-    // already saved; changed details under a key already used are refused as a conflict (HH-INT-10, T11).
-    const key = draftSend.current.idempotencyKey
+    // The server binds the draft's stored photos to the request; failed photos were never stored (TSK-0031). Photos
+    // added before a reload are in the same photo draft.
+    const stored = photos.items.some((i) => i.id) || earlierPhotos
+    const payload =
+      replay ??
+      JSON.stringify({
+        ...toBody(values, meta, services),
+        ...(stored && photos.capability ? { photoDraft: photos.capability } : {}),
+      })
+    // Kept for this tab until the outcome is known, so a reload and Resume send exactly this again.
+    sends.save(key, payload)
+    let reply: SendReply = 'network'
     try {
       const res = await fetch('/api/v1/public/requests', {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'idempotency-key': key },
-        body: JSON.stringify(body),
+        body: payload,
       })
-      const data = (await res.json().catch(() => null)) as {
-        reference?: string
-        photos?: PhotoSummary
-        error?: { code: string; message: string; fieldErrors: { field: string; code: string }[] }
-      } | null
-      if (res.status === 201 && data?.reference) {
-        store?.clear()
-        draftSend.current = newSend()
-        setReference(data.reference)
-        // Photos that failed here were never stored; the receipt counts them with any the server refused.
-        const failedHere = photos.items.filter((i) => i.state === 'failed').length
-        setReceiptPhotos(data.photos ? { ...data.photos, failed: data.photos.failed + failedHere } : null)
-        setPhase('sent')
-        focusHeading.current = true
-        return
-      }
-      if (data?.error?.code === 'VALIDATION_FAILED' && data.error.fieldErrors.length) {
-        const found = fromServer(data.error.fieldErrors)
-        return show(found, stepOf(found[0]?.field ?? '') as StepId)
-      }
-      setBanner({
-        kind: 'error',
-        message: data?.error?.message ?? t('error.INTERNAL'),
-        // The same details again cannot change a conflict: the request under this key was saved with other details.
-        retry: data?.error?.code !== 'IDEMPOTENCY_CONFLICT',
-      })
+      reply = { status: res.status, data: (await res.json().catch(() => null)) as SendData }
     } catch {
-      // The outcome is unknown: the same key is kept, so trying again cannot create a second request.
-      setBanner({ kind: 'error', message: t('request.uncertain'), retry: true })
+      // No answer: the outcome is unknown. The same key and body are kept, so trying again cannot create a second
+      // request.
     } finally {
       inFlight.current = false
       setSending(false)
     }
+    const outcome = sendOutcome(reply)
+    if (!keepsBody(outcome)) sends.clear(key)
+    if (outcome.kind === 'sent' || outcome.kind === 'already') {
+      store?.clear()
+      draftSend.current = newSend()
+      resumed.current = null
+      setReference(outcome.reference)
+      setAlreadyReceived(outcome.kind === 'already')
+      // Photos that failed here were never stored; the receipt counts them with any the server refused.
+      const failedHere = photos.items.filter((i) => i.state === 'failed').length
+      setReceiptPhotos(
+        outcome.kind === 'sent' && outcome.photos
+          ? { ...outcome.photos, failed: outcome.photos.failed + failedHere }
+          : null,
+      )
+      setPhase('sent')
+      focusHeading.current = true
+      return
+    }
+    if (outcome.kind === 'fields') {
+      const found = fromServer(outcome.fieldErrors)
+      return show(found, stepOf(found[0]?.field ?? '') as StepId)
+    }
+    // Never "start a new request": the key may already have created one, and sending again only ever returns it.
+    setBanner({
+      kind: 'error',
+      message:
+        outcome.kind === 'uncertain'
+          ? t('request.uncertain')
+          : outcome.kind === 'conflict'
+            ? t('request.sentEarlier')
+            : (outcome.message ?? t('error.INTERNAL')),
+      retry: true,
+    })
   }
 
   if (phase === 'loading') return <StateView kind="loading" title={t('request.title')} />
@@ -380,6 +437,7 @@ export default function RequestWizard() {
         </h2>
         <p>{t('request.receipt.thanks')}</p>
         <p className="hh-lead">{t('request.receipt.reference', { reference: reference ?? '' })}</p>
+        {alreadyReceived ? <p>{t('request.receipt.already')}</p> : null}
         {receiptPhotos ? <p>{t('request.receipt.photos', receiptPhotos)}</p> : null}
         <p>{t('request.receipt.separate')}</p>
         <a className="hh-button hh-button--secondary" href="/">
@@ -429,10 +487,26 @@ export default function RequestWizard() {
               const draft = store?.load()
               if (draft) {
                 const remembered = checkedZip.current
-                setValues(remembered && !draft.values.zip ? { ...draft.values, zip: remembered } : draft.values)
+                let restored = remembered && !draft.values.zip ? { ...draft.values, zip: remembered } : draft.values
                 setStep(draft.step)
                 // The draft's own send: a send after the reload reuses its key (TSK-0030, HH-INT-10).
-                if (draft.send) draftSend.current = draft.send
+                if (draft.send) {
+                  draftSend.current = draft.send
+                  // Its last send from this tab has no known outcome: the review shows and sends that exact body again,
+                  // consents and photo draft included, and says the outcome is not known (HH-INT-10, T11).
+                  const earlier = sends.load(draft.send.idempotencyKey)
+                  const kept = earlier === null ? null : resumedFrom(earlier)
+                  if (earlier !== null && kept) {
+                    restored = { ...restored, smsOptIn: kept.smsOptIn, marketingOptIn: kept.marketingOptIn }
+                    resumed.current = { key: draft.send.idempotencyKey, body: earlier, values: restored }
+                    if (kept.photoDraft) {
+                      photos.adopt(kept.photoDraft)
+                      setEarlierPhotos(true)
+                    }
+                    setBanner({ kind: 'error', message: t('request.uncertain'), retry: true })
+                  }
+                }
+                setValues(restored)
               }
               setPhase('form')
               focusHeading.current = true
@@ -443,6 +517,8 @@ export default function RequestWizard() {
           <Button
             variant="secondary"
             onClick={() => {
+              const saved = store?.load()?.send
+              if (saved) sends.clear(saved.idempotencyKey)
               store?.clear()
               draftSend.current = newSend()
               setValues(EMPTY_VALUES)
@@ -544,6 +620,9 @@ export default function RequestWizard() {
   const plan = questionPlan(values.services.flatMap((id) => services.filter((x) => x.id === id)))
   const savedPhotos = photos.items.filter((i) => i.state === 'complete' || i.state === 'processing').length
   const failedPhotos = photos.items.filter((i) => i.state === 'failed').length
+  const uploadingPhotos = photos.items.filter((i) => i.state === 'uploading').length
+  // While a photo uploads nothing is sent: it would be left out without a word (HH-INT-07).
+  const waitForPhotos = uploadingPhotos ? { disabledReason: t('request.photos.uploadingReason') } : {}
   const sections = step === 'review' ? reviewSections(values, services, { windows: settings.windows }) : []
   const body: Record<StepId, ReactNode> = {
     services: (
@@ -634,7 +713,7 @@ export default function RequestWizard() {
             />
           </section>
         ))}
-        <PhotoUploader photos={photos} limits={settings.photos} />
+        <PhotoUploader photos={photos} limits={settings.photos} earlier={earlierPhotos} />
       </>
     ),
     property: (
@@ -843,19 +922,28 @@ export default function RequestWizard() {
               </div>
             ))}
             {section.id === 'photos' ? (
-              photos.items.length ? (
-                <>
-                  {savedPhotos ? <p>{t('request.photos.saved', { count: savedPhotos })}</p> : null}
-                  {failedPhotos ? (
-                    <p className="hh-request__warning" role="status">
-                      {t('request.photos.failedNotice', { count: failedPhotos })}
-                    </p>
-                  ) : null}
-                  <PhotoReviewList items={photos.items} />
-                </>
-              ) : (
-                <p className="hh-muted">{t('request.review.noPhotos')}</p>
-              )
+              <>
+                {earlierPhotos ? <p className="hh-muted">{t('request.photos.earlier')}</p> : null}
+                {photos.items.length ? (
+                  <>
+                    {savedPhotos ? <p>{t('request.photos.saved', { count: savedPhotos })}</p> : null}
+                    {failedPhotos ? (
+                      <p className="hh-request__warning" role="status">
+                        {t('request.photos.failedNotice', { count: failedPhotos })}
+                      </p>
+                    ) : null}
+                    {/* A photo still uploading is not sent: wait for it or remove it (HH-INT-07). */}
+                    {uploadingPhotos ? (
+                      <p className="hh-request__warning" role="status" data-testid="photos-uploading">
+                        {t('request.photos.uploadingNotice', { count: uploadingPhotos })}
+                      </p>
+                    ) : null}
+                    <PhotoReviewList items={photos.items} />
+                  </>
+                ) : earlierPhotos ? null : (
+                  <p className="hh-muted">{t('request.review.noPhotos')}</p>
+                )}
+              </>
             ) : null}
             {/* Preferences, never an appointment (HH-INT-02, OWN-DEC-92); staff confirm the approach (HH-INT-03). */}
             {section.id === 'timing' ? <p className="hh-small hh-muted">{t('request.timing.note')}</p> : null}
@@ -945,7 +1033,7 @@ export default function RequestWizard() {
           title={banner.message}
           action={
             banner.retry ? (
-              <Button onClick={() => void send()} pending={sending}>
+              <Button onClick={() => void send()} pending={sending} {...waitForPhotos}>
                 {t('request.retry')}
               </Button>
             ) : undefined
@@ -976,7 +1064,7 @@ export default function RequestWizard() {
           </Button>
         ) : null}
         {step === 'review' ? (
-          <Button type="submit" pending={sending}>
+          <Button type="submit" pending={sending} {...waitForPhotos}>
             {t('request.send')}
           </Button>
         ) : (

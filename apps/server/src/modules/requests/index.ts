@@ -27,11 +27,18 @@ const submit: RouteDef = {
     'Guest or customer submission. One transaction creates a new customer, contact, property, project (not a job or ' +
     'appointment) and the request with its services and answers, plus one request.submitted outbox event. Never ' +
     'matched to existing customers. The same Idempotency-Key returns the same request; a changed body is a 409. ' +
+    'A key that already created a request, also after its idempotency record expired, is a 409 whose error names ' +
+    "that request's reference (existing.reference) and writes nothing. " +
     'Rate limited per client network with a neutral 429. Spam signals only flag the request for review.',
   actors: ['guest', 'customer'],
   permission: 'request.submit',
   kind: 'write',
   idempotency: 'required',
+  // The conflict names the request the key created (HH-INT-10): the browser whose answer was lost gets its reference.
+  idempotencyConflict: (stored) => {
+    const reference = (stored as { reference?: unknown } | null)?.reference
+    return typeof reference === 'string' ? { reference } : undefined
+  },
   expectedVersion: 'none',
   rateLimit: SUBMIT_RATE_LIMIT,
   audit: 'request.submit',

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import { REQUESTS_MODULE } from '../../src/modules/requests/index.js'
 import {
   localDate,
   newReference,
   normalizeUsPhone,
+  requestKeyTaken,
   semanticProblems,
   spamSignals,
 } from '../../src/modules/requests/submit.js'
@@ -67,5 +69,29 @@ describe('request submission helpers (TSK-0025, HH-INT-10, HH-INT-11)', () => {
     // One required project description (HH-SVC-03, TSK-0027).
     expect(p({ description: '  ' })).toEqual(['body.description'])
     expect(p({ answers: [{ question: 'size', kind: 'unknown', unit: 'ft' }] })).toEqual(['body.answers.0.unit'])
+  })
+})
+
+describe('one request per idempotency key (TSK-0030, HH-INT-10, T11)', () => {
+  it("[HH-INT-10][T11] a unique violation on the request's key is a conflict; any other error stays what it is", () => {
+    expect(requestKeyTaken({ code: '23505', constraint: 'requests_idempotency_key_key' })).toMatchObject({
+      code: 'IDEMPOTENCY_CONFLICT',
+      status: 409,
+      retryable: false,
+    })
+    expect(requestKeyTaken({ code: '23505', constraint: 'requests_reference_key' })).toBeNull()
+    expect(requestKeyTaken({ code: '23503', constraint: 'requests_idempotency_key_key' })).toBeNull()
+    expect(requestKeyTaken(new Error('synthetic'))).toBeNull()
+    expect(requestKeyTaken(null)).toBeNull()
+  })
+
+  it("[HH-INT-10] the submission's conflict names only the stored reference", () => {
+    const submit = REQUESTS_MODULE.routes.find((r) => r.operationId === 'submitRequest')
+    const detail = submit?.idempotencyConflict
+    expect(detail?.({ status: 'received', reference: 'HH-0000TEST', submittedAt: '2026-10-20T16:00:00.000Z' })).toEqual(
+      { reference: 'HH-0000TEST' },
+    )
+    expect(detail?.(null)).toBeUndefined()
+    expect(detail?.({ reference: 7 })).toBeUndefined()
   })
 })

@@ -7,7 +7,9 @@
 //   draft.
 // - TSK-0030 (HH-INT-10, HH-INT-19): the draft also keeps its send, the idempotency key "Send Estimate Request" uses
 //   and the time the form was started, so a send retried after a reload (a timeout, a closed tab) carries the same key
-//   and the same body, and the server returns the request it already saved instead of creating a second one.
+//   and the server returns the request it already saved instead of creating a second one. The exact body of a send
+//   whose outcome is not known, with the consents and the photo draft this draft never keeps, stays in the tab only
+//   (send.ts); a key that already created a request is answered with that request's reference.
 import { EMPTY_VALUES, STEPS, type FormValues, type StepId } from './form.js'
 
 export const DRAFT_VERSION = 1
@@ -15,8 +17,8 @@ const PREFIX = 'hh.request-draft'
 
 /**
  * The send of one draft (TSK-0030): its idempotency key, created once per draft and kept until the request is saved or
- * the draft is cleared, and when the form was started (sent as `startedAt`). The key is not a secret: under the guest
- * scope it can only replay the stored answer, which carries the request reference (HH-INT-12: it grants nothing).
+ * the draft is cleared, and when the form was started (sent as `startedAt`). The key is random and stays in this
+ * browser; under the guest scope it can only return the request's reference (HH-INT-12: it grants nothing).
  */
 export type DraftSend = { idempotencyKey: string; startedAt: number }
 

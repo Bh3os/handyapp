@@ -4,6 +4,7 @@ import type { Db } from '@handyhub/db'
 import { describe, expect, it } from 'vitest'
 import { buildApp } from '../../src/app.js'
 import { ApiError } from '../../src/api/errors.js'
+import { envelope } from '../../src/api/register.js'
 import { buildOpenApi, renderOpenApi } from '../../src/api/openapi.js'
 import { decodeCursor, encodeCursor, MAX_PAGE_SIZE, pageRequest, toPage } from '../../src/api/pagination.js'
 import { RouteContractError, routeProblems, type ApiModule, type RouteDef } from '../../src/api/route.js'
@@ -14,6 +15,7 @@ import { testActor, WIDGETS } from '../fixtures/widgets.js'
 
 const route = (name: string) => WIDGETS.routes.find((r) => r.operationId === name) as RouteDef
 const fakeDb = {} as Db
+const CUSTOMER = { kind: 'customer' } as const
 
 async function app(modules: readonly ApiModule[] = [WIDGETS], db: Db | null = fakeDb) {
   return buildApp({ config: testConfig(), api: { modules, resolveActor: testActor, ...(db ? { db } : {}) } })
@@ -42,6 +44,14 @@ describe('route contract (TSK-0010, HH-API-01, HH-ARC-02)', () => {
     )
     expect(routeProblems({ ...route('listWidgets'), kind: 'write' })).toContain(
       'GET /staff/widgets: GET routes are reads and every other method is a write',
+    )
+  })
+
+  it('[HH-API-04] only a route with an idempotency key describes an idempotency conflict (TSK-0030)', () => {
+    const detail = () => ({ reference: 'HH-0000TEST' })
+    expect(routeProblems({ ...route('createWidget'), idempotencyConflict: detail })).toEqual([])
+    expect(routeProblems({ ...route('listWidgets'), idempotencyConflict: detail })).toContain(
+      'GET /staff/widgets: only routes with an idempotency key describe an idempotency conflict',
     )
   })
 
@@ -166,6 +176,20 @@ describe('safe error envelope (TSK-0010, HH-API-03)', () => {
     expect(res.statusCode).toBe(503)
     expect(res.json().error.code).toBe('UNAVAILABLE')
     await a.close()
+  })
+
+  it('[HH-API-03][HH-INT-10] a conflict that names what its key created carries it; any other error does not (TSK-0030)', () => {
+    const named = envelope(
+      new ApiError('IDEMPOTENCY_CONFLICT', { existing: { reference: 'HH-0000TEST' } }),
+      CUSTOMER,
+      'r1',
+    )
+    expect(named.error).toMatchObject({
+      code: 'IDEMPOTENCY_CONFLICT',
+      retryable: false,
+      existing: { reference: 'HH-0000TEST' },
+    })
+    expect(Object.keys(envelope(new ApiError('IDEMPOTENCY_CONFLICT'), CUSTOMER, 'r2').error)).not.toContain('existing')
   })
 })
 
