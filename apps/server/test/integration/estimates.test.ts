@@ -34,6 +34,11 @@ let t: TestDatabase
 const staff = {} as Record<Person, StaffActor>
 let seq = 0
 
+function must<T>(v: T | undefined): T {
+  if (v === undefined) throw new Error('expected a value')
+  return v
+}
+
 const actorOf = (id: string, role: (typeof ROLES)[Person]): StaffActor => ({
   kind: 'staff',
   userId: id,
@@ -71,7 +76,7 @@ afterAll(async () => {
 })
 
 /** A synthetic project with one work package per service, as Prepare Online Estimate leaves it (TSK-0042). */
-async function newProject(): Promise<{ projectId: string; packages: string[]; reference: string }> {
+async function newProject(): Promise<{ projectId: string; packages: [string, string]; reference: string }> {
   seq += 1
   const body = {
     formVersion: 'test-1',
@@ -118,7 +123,7 @@ async function newProject(): Promise<{ projectId: string; packages: string[]; re
       .select('reference')
       .where('id', '=', out.projectId)
       .executeTakeFirstOrThrow()
-    return { projectId: out.projectId, packages, reference: project.reference }
+    return { projectId: out.projectId, packages: [must(packages[0]), must(packages[1])], reference: project.reference }
   })
 }
 
@@ -394,20 +399,21 @@ describe('[HH-EST-03][HH-DATA-02][T31] estimates and server-computed totals', ()
       ],
     })
     const view = await staffEstimateVersion(t.db, staff.owner, d.versionId)
-    const [first, second] = view?.lines ?? []
+    const first = must(view?.lines[0])
+    const second = must(view?.lines[1])
     await save(d.versionId, {
-      lines: [{ id: second?.id, description: 'Second, first now', quantity: '2', unitPriceCents: 2000 }],
+      lines: [{ id: second.id, description: 'Second, first now', quantity: '2', unitPriceCents: 2000 }],
     })
     const after = await staffEstimateVersion(t.db, staff.owner, d.versionId)
-    expect(after?.lines).toEqual([expect.objectContaining({ id: second?.id, position: 1, amountCents: 4000 })])
+    expect(after?.lines).toEqual([expect.objectContaining({ id: second.id, position: 1, amountCents: 4000 })])
     expect(after?.totals?.totalCents).toBe(4000)
     const costs = await t.db
       .selectFrom('estimating.estimate_line_costs')
       .select('line_id')
-      .where('line_id', '=', first?.id ?? '')
+      .where('line_id', '=', first.id)
       .execute()
     expect(costs).toEqual([])
-    expect((await refused(save(d.versionId, { lines: [{ id: first?.id, quantity: '1' }] }))).fields).toEqual([
+    expect((await refused(save(d.versionId, { lines: [{ id: first.id, quantity: '1' }] }))).fields).toEqual([
       'lines[0].id:LINE_NOT_FOUND',
     ])
   })
