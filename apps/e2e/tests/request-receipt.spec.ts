@@ -202,7 +202,8 @@ test.describe('the receipt (TSK-0032)', () => {
       )
       .toEqual([
         { type: 'delivery_failed', reason: 'delivery_not_configured', reference },
-        { type: 'new_request', reason: 'new_request', reference },
+        // A form sent within seconds of opening is quietly flagged (HH-INT-11); either way staff see the request.
+        { type: 'new_request', reason: expect.stringMatching(/^new_request(_flagged)?$/), reference },
       ])
 
     // A reload of this tab shows the same receipt; another browser with the same address sees nothing of it.
