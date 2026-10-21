@@ -4,7 +4,10 @@
 // contact, address, description or answer is returned here, so nothing beyond the queue item's own fields is shown.
 import type { RouteDef } from '../../api/route.js'
 
-const UUID = { type: 'string', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' }
+const UUID = {
+  type: 'string',
+  pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+}
 
 export const staffRequestSummary: RouteDef = {
   method: 'GET',
@@ -25,11 +28,7 @@ export const staffRequestSummary: RouteDef = {
   test: 'test/integration/queue.test.ts',
   resource: async ({ req, db }) => {
     const { requestId } = req.params as { requestId: string }
-    const r = await db
-      .selectFrom('intake.requests')
-      .select('project_id')
-      .where('id', '=', requestId)
-      .executeTakeFirst()
+    const r = await db.selectFrom('intake.requests').select('project_id').where('id', '=', requestId).executeTakeFirst()
     return r ? { projectId: r.project_id } : null
   },
   schema: {

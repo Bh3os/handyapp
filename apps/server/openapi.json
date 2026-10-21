@@ -4946,6 +4946,778 @@
         }
       }
     },
+    "/api/v1/staff/queue": {
+      "get": {
+        "operationId": "listActionQueue",
+        "summary": "The staff action queue",
+        "description": "Staff with request.view (a worker has My Day instead). Only the item types whose matrix action the caller holds are listed (own-record grants list only items assigned to the caller), filtered before ordering and paging. Ordered by urgency: safety, today’s appointment changes, overdue and other time-sensitive items, then by due time and age. Reasons that reveal restricted detail are replaced by a generic reason for roles that may not see it. No restricted field is stored on an item.",
+        "tags": [
+          "queue"
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "new_request",
+                "safety_hold",
+                "visit_change_request",
+                "delivery_failed",
+                "case_open",
+                "deposit_waiver",
+                "start_work_exception",
+                "refund_request",
+                "cancellation_outcome",
+                "deletion_request",
+                "invoice_overdue_decision",
+                "incident_notification"
+              ]
+            }
+          },
+          {
+            "name": "assignee",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "anyOf": [
+                {
+                  "enum": [
+                    "me",
+                    "unassigned"
+                  ]
+                },
+                {
+                  "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                }
+              ]
+            }
+          },
+          {
+            "name": "reference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[Hh][Hh]-[0-9A-Za-z]{0,8}$"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "items",
+                    "nextCursor",
+                    "section",
+                    "sections",
+                    "types",
+                    "refreshSeconds",
+                    "refreshedAt"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "type",
+                          "subjectType",
+                          "subjectId",
+                          "band",
+                          "reference",
+                          "status",
+                          "assignee",
+                          "openedAt",
+                          "dueAt",
+                          "clock",
+                          "reason",
+                          "masked",
+                          "action",
+                          "link",
+                          "version"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "new_request",
+                              "safety_hold",
+                              "visit_change_request",
+                              "delivery_failed",
+                              "case_open",
+                              "deposit_waiver",
+                              "start_work_exception",
+                              "refund_request",
+                              "cancellation_outcome",
+                              "deletion_request",
+                              "invoice_overdue_decision",
+                              "incident_notification"
+                            ]
+                          },
+                          "subjectType": {
+                            "type": "string"
+                          },
+                          "subjectId": {
+                            "type": "string"
+                          },
+                          "band": {
+                            "type": "string",
+                            "enum": [
+                              "safety",
+                              "today_change",
+                              "time_sensitive",
+                              "other"
+                            ]
+                          },
+                          "reference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "status": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "assignee": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "openedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "dueAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "clock": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "response_target",
+                              null
+                            ]
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "masked": {
+                            "type": "boolean"
+                          },
+                          "action": {
+                            "type": "string",
+                            "enum": [
+                              "review_request",
+                              "review_hold",
+                              "review_change",
+                              "retry_delivery",
+                              "open_case",
+                              "decide"
+                            ]
+                          },
+                          "link": {
+                            "type": "string"
+                          },
+                          "version": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "section": {
+                      "type": "string",
+                      "enum": [
+                        "queue",
+                        "owner_decisions"
+                      ]
+                    },
+                    "sections": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "queue",
+                          "owner_decisions"
+                        ]
+                      }
+                    },
+                    "types": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "new_request",
+                          "safety_hold",
+                          "visit_change_request",
+                          "delivery_failed",
+                          "case_open",
+                          "deposit_waiver",
+                          "start_work_exception",
+                          "refund_request",
+                          "cancellation_outcome",
+                          "deletion_request",
+                          "invoice_overdue_decision",
+                          "incident_notification"
+                        ]
+                      }
+                    },
+                    "refreshSeconds": {
+                      "type": "integer"
+                    },
+                    "refreshedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "request.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": true,
+          "cache": "private, no-store",
+          "test": "test/integration/queue.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/queue/owner-decisions": {
+      "get": {
+        "operationId": "listOwnerDecisions",
+        "summary": "Owner Decisions",
+        "description": "The Owner’s decisions waiting: deposit waivers, Start Work exceptions, refunds and cancellation outcomes, deletion requests, Overdue—owner decision invoices, damage, injury and dispute notifications. A caller without any of these grants is refused. Only the item types whose matrix action the caller holds are listed (own-record grants list only items assigned to the caller), filtered before ordering and paging. Ordered by urgency: safety, today’s appointment changes, overdue and other time-sensitive items, then by due time and age. Reasons that reveal restricted detail are replaced by a generic reason for roles that may not see it. No restricted field is stored on an item.",
+        "tags": [
+          "queue"
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "new_request",
+                "safety_hold",
+                "visit_change_request",
+                "delivery_failed",
+                "case_open",
+                "deposit_waiver",
+                "start_work_exception",
+                "refund_request",
+                "cancellation_outcome",
+                "deletion_request",
+                "invoice_overdue_decision",
+                "incident_notification"
+              ]
+            }
+          },
+          {
+            "name": "assignee",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "anyOf": [
+                {
+                  "enum": [
+                    "me",
+                    "unassigned"
+                  ]
+                },
+                {
+                  "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                }
+              ]
+            }
+          },
+          {
+            "name": "reference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[Hh][Hh]-[0-9A-Za-z]{0,8}$"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "items",
+                    "nextCursor",
+                    "section",
+                    "sections",
+                    "types",
+                    "refreshSeconds",
+                    "refreshedAt"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "type",
+                          "subjectType",
+                          "subjectId",
+                          "band",
+                          "reference",
+                          "status",
+                          "assignee",
+                          "openedAt",
+                          "dueAt",
+                          "clock",
+                          "reason",
+                          "masked",
+                          "action",
+                          "link",
+                          "version"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "new_request",
+                              "safety_hold",
+                              "visit_change_request",
+                              "delivery_failed",
+                              "case_open",
+                              "deposit_waiver",
+                              "start_work_exception",
+                              "refund_request",
+                              "cancellation_outcome",
+                              "deletion_request",
+                              "invoice_overdue_decision",
+                              "incident_notification"
+                            ]
+                          },
+                          "subjectType": {
+                            "type": "string"
+                          },
+                          "subjectId": {
+                            "type": "string"
+                          },
+                          "band": {
+                            "type": "string",
+                            "enum": [
+                              "safety",
+                              "today_change",
+                              "time_sensitive",
+                              "other"
+                            ]
+                          },
+                          "reference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "status": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "assignee": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "openedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "dueAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "clock": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "response_target",
+                              null
+                            ]
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "masked": {
+                            "type": "boolean"
+                          },
+                          "action": {
+                            "type": "string",
+                            "enum": [
+                              "review_request",
+                              "review_hold",
+                              "review_change",
+                              "retry_delivery",
+                              "open_case",
+                              "decide"
+                            ]
+                          },
+                          "link": {
+                            "type": "string"
+                          },
+                          "version": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "section": {
+                      "type": "string",
+                      "enum": [
+                        "queue",
+                        "owner_decisions"
+                      ]
+                    },
+                    "sections": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "queue",
+                          "owner_decisions"
+                        ]
+                      }
+                    },
+                    "types": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "new_request",
+                          "safety_hold",
+                          "visit_change_request",
+                          "delivery_failed",
+                          "case_open",
+                          "deposit_waiver",
+                          "start_work_exception",
+                          "refund_request",
+                          "cancellation_outcome",
+                          "deletion_request",
+                          "invoice_overdue_decision",
+                          "incident_notification"
+                        ]
+                      }
+                    },
+                    "refreshSeconds": {
+                      "type": "integer"
+                    },
+                    "refreshedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "request.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": true,
+          "cache": "private, no-store",
+          "test": "test/integration/queue.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/requests/{requestId}/photos": {
       "get": {
         "operationId": "listRequestPhotos",
@@ -5114,6 +5886,181 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/photos.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/requests/{requestId}/summary": {
+      "get": {
+        "operationId": "getStaffRequestSummary",
+        "summary": "A request’s record header",
+        "description": "Staff with request.view (not workers). The request’s reference, status, submission time, service codes and responsible staff member; an unknown request answers NOT_FOUND. No contact or property detail.",
+        "tags": [
+          "requests"
+        ],
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "reference",
+                    "state",
+                    "submittedAt",
+                    "services",
+                    "responsibleStaff"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "submittedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "services": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "responsibleStaff": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "request.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/queue.test.ts"
         }
       }
     }

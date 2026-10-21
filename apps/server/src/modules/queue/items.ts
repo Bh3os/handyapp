@@ -133,7 +133,9 @@ export function visibleTypes(actor: StaffActor, section: QueueSection): { all: s
     if (type.section !== section) continue
     const scope = listingScope(actor.roles, actor.capabilities, type.view)
     if (scope === 'all') all.push(type.id)
-    else if (scope === 'own') own.push(type.id)
+    // Owner Decisions are decisions, not one's own records: an own-record grant (a worker's own incident report)
+    // never lists them.
+    else if (scope === 'own' && section !== 'owner_decisions') own.push(type.id)
   }
   return { all, own }
 }
@@ -199,7 +201,9 @@ function readCursor(after: unknown[] | undefined): Cursor | undefined {
     UUID.test(id)
   )
     return [rank, due as string, opened as string, id]
-  throw new ApiError('VALIDATION_FAILED', { fieldErrors: [{ field: 'querystring.cursor', code: 'invalid', message: '' }] })
+  throw new ApiError('VALIDATION_FAILED', {
+    fieldErrors: [{ field: 'querystring.cursor', code: 'invalid', message: '' }],
+  })
 }
 
 /** One page of a section for this staff member, in urgency order. */
@@ -276,7 +280,9 @@ export async function listQueue(
   for (const r of shown) {
     const type = queueItemType(r.type)
     // Defence in depth: a row the policy would not list is never returned.
-    if (!type || type.section !== section || !mayList(actor, type.view, r.assigned_staff_id)) continue
+    const listed =
+      visible.all.includes(r.type) || (visible.own.includes(r.type) && r.assigned_staff_id === actor.userId)
+    if (!type || type.section !== section || !listed || !mayList(actor, type.view, r.assigned_staff_id)) continue
     const masked =
       type.restricted !== undefined &&
       type.restricted.reasons.includes(r.reason) &&
