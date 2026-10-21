@@ -63,11 +63,16 @@ export async function boot(env: Readonly<Record<string, string | undefined>>, op
       staffAppUrl: config.staffAppUrl,
       codeKey,
       publicSiteUrl: publicSiteUrl(config),
+      replyAddress: providers.inbound.emailAddress,
     }),
     codeDeliveryAutomation({ providers: sent, codeKey }),
   ])
   if (db) {
-    await registerWebhookRoutes(app, { db, secrets: providers.webhookSecrets })
+    await registerWebhookRoutes(app, {
+      db,
+      secrets: providers.webhookSecrets,
+      trustProxyHops: config.trustProxyHops,
+    })
     // The first Owner (HH-STAFF-01 safe bootstrap): only while no Owner exists; one invite through the outbox.
     if (config.bootstrapOwner) {
       const owner = config.bootstrapOwner

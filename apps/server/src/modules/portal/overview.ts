@@ -2,12 +2,18 @@
 // HH-ARC-04, HH-ARC-10, HH-PORT-01, T23, T24, RULE-SERVER-AUTHZ).
 // - Every read goes through the caller's scope (TSK-0037): a project outside it is null, answered NOT_FOUND.
 // - The status is the customer projection of the records (@handyhub/domain customerStatus): the request and project
-//   states, and the staff decisions published to the customer. The records later tasks build (estimate, visit, job,
-//   hold, invoice) are not read yet, so no estimate, appointment, hold or balance is ever claimed.
+//   states, and the staff decisions published to the customer. The records later tasks build (visit, hold, invoice)
+//   are not read yet, so no appointment, hold or balance is ever claimed. TSK-0058: the approval is read (approved,
+//   and a required deposit still due), so the step after approval is the owner's wording. TSK-0059: the job's deposit
+//   is read (the amount due, verified and pending money, the staff-pasted Square link) for the payment summary and
+//   the next step.
 // - The timeline lists only what the customer may see: the request they sent, "More information needed", "Site
 //   visit needed" with its customer explanation (OWN-DEC-99), and the Not a Fit decision in the owner's wording
 //   (OWN-DEC-100). Internal notes, qualification, assignment, the Owner routing and every staff name stay on the
 //   server: this module never selects them (HH-PORT-03, T24).
+// - TSK-0063: the visits feed the status (windows offered for the customer to choose, a confirmed visit) and the
+//   appointment beside it: the next confirmed visit with its date, arrival window, address, purpose and preparation
+//   instructions (visits/offers.ts appointmentsOf, the same customer view as the Appointments tab).
 import type { Db, Tx } from '@handyhub/db'
 import {
   customerStatus,
@@ -19,8 +25,12 @@ import {
 } from '@handyhub/domain'
 import type { DataScope } from '@handyhub/policy'
 import { loadConfig } from '../../platform/config/index.js'
+import { approvalFacts } from '../estimates/receipt.js'
+import { customerDeposit, type CustomerDeposit } from '../finance/index.js'
 import { findProject } from '../records/repository.js'
+import { replyWindow } from '../questions/model.js'
 import { notAFitCustomerMessage } from '../requests/staff-record.js'
+import { appointmentsOf, overviewVisitFacts, type CustomerAppointment } from '../visits/offers.js'
 
 type Reader = Db | Tx
 
@@ -33,6 +43,8 @@ const PUBLISHED_DECISIONS: Readonly<Record<string, TimelineKind>> = {
   ask_question: 'more_information',
   arrange_estimate_visit: 'site_visit',
   not_a_fit: 'not_a_fit',
+  // TSK-0051 (OWN-DEC-101).
+  close_no_response: 'closed_no_response',
 }
 
 export type ProjectOverview = {
@@ -42,10 +54,13 @@ export type ProjectOverview = {
   submittedAt: Date
   status: CustomerStatus & { since: Date; text: string | null }
   timeline: TimelineEntry[]
-  /** Payment summary, shown beside the status and never merged into it: no estimate, deposit or invoice exists yet. */
-  payment: { state: 'none' }
-  /** The confirmed appointment: none until visits exist (TSK-0061). */
-  appointment: null
+  /**
+   * Payment summary, shown beside the status and never merged into it. TSK-0059: the job's deposit while it is due
+   * (or once verified money covers it); no invoice exists yet.
+   */
+  payment: CustomerDeposit
+  /** The next confirmed visit (TSK-0063), or none. */
+  appointment: CustomerAppointment | null
   refreshedAt: Date
   /** portal.refresh.pollSeconds; 0 while NOT CONFIGURED (the page then refreshes only when asked). */
   refreshSeconds: number
@@ -84,7 +99,7 @@ async function overviewFor(db: Reader, project: { id: string; reference: string 
     .select(['id', 'action', 'customer_text', 'decided_at'])
     .where('request_id', '=', r.id)
     .where('project_id', '=', project.id)
-    .where('action', 'in', Object.keys(PUBLISHED_DECISIONS) as ('ask_question' | 'not_a_fit')[])
+    .where('action', 'in', Object.keys(PUBLISHED_DECISIONS))
     .orderBy('decided_at')
     .orderBy('id')
     .execute()
@@ -99,7 +114,35 @@ async function overviewFor(db: Reader, project: { id: string; reference: string 
           : null
     entries.push({ kind, at: d.decided_at, text })
   }
-  const facts: PortalFacts = { requestState: r.state as RequestState, projectState: p.state as ProjectState }
+  // TSK-0051: a "Closed—no response" request within its reopen period, with a question still open, can be reopened by
+  // the customer's reply (FACT-REOPEN-PERIOD).
+  let reopenByReply = false
+  if (r.state === 'closed_no_response') {
+    const w = await replyWindow(db, r, await loadConfig(db), now)
+    const open = await db
+      .selectFrom('intake.questions')
+      .select('id')
+      .where('request_id', '=', r.id)
+      .where('state', '=', 'published')
+      .limit(1)
+      .executeTakeFirst()
+    reopenByReply = w.window === 'reopen' && open !== undefined
+  }
+  // TSK-0059: the job's deposit for the payment summary (the amount due, verified and pending money, the Square link).
+  const payment = await customerDeposit(db, project.id)
+  const visits = overviewVisitFacts(await appointmentsOf(db, project.id, now), p.state === 'approved')
+  const facts: PortalFacts = {
+    requestState: r.state as RequestState,
+    projectState: p.state as ProjectState,
+    ...(reopenByReply ? { reopenByReply } : {}),
+    // TSK-0058 (HH-EST-12, OWN-DEC-105) with TSK-0059's deposit: an approved project waits on the customer's deposit
+    // while it is due; received or waived, the next step is choosing the work appointment.
+    ...(await approvalFacts(db, project.id)),
+    // TSK-0063: the windows offered to choose from and the next confirmed visit.
+    visitWindowsOffered: visits.visitWindowsOffered,
+    workWindowsOffered: visits.workWindowsOffered,
+    ...(visits.visit ? { visit: visits.visit } : {}),
+  }
   const status = customerStatus(facts)
   // The entry that put the project where it is now dates the status and carries its customer text.
   const current = [...entries].reverse().find((e) => e.kind === status.situation)
@@ -112,8 +155,8 @@ async function overviewFor(db: Reader, project: { id: string; reference: string 
     status: { ...status, since: (current ?? latest).at, text: current?.text ?? null },
     // Newest first: the latest update leads.
     timeline: entries.reverse(),
-    payment: { state: 'none' as const },
-    appointment: null,
+    payment,
+    appointment: visits.appointment,
     refreshedAt: now,
   }
 }

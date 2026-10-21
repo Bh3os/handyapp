@@ -140,6 +140,11 @@ export interface RouteDef {
    */
   projection?: { readonly name: string; readonly entity: string }
   /**
+   * The policy also needs today's date in the business time zone (a rule that holds only on the visit date, such as
+   * the access-code reveal, T28). Default: no date, so such a rule is refused.
+   */
+  businessDate?: true
+  /**
    * A read that answers with file bytes (for example a PDF) instead of JSON: the content types its success response
    * may have. The handler returns a Buffer with its content type; errors keep the JSON envelope.
    */

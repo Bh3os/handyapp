@@ -8,15 +8,23 @@
 //   ID per event type) together with a `webhook.received` outbox event in the same transaction; the status and
 //   inbound handlers of later tasks consume those events. A duplicate is acknowledged with 200 and has no effect.
 // - While a provider's signing secret is unset its endpoint answers 503 "inbound not configured".
+// - TSK-0049 (HH-COM-10): each endpoint is rate-limited per client network before anything else runs (PROPOSED
+//   engineering default WEBHOOK_RATE_LIMIT; a limited call answers 429 with Retry-After, and the provider retries).
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
 import { withTx, type Db, type Tx } from '@handyhub/db'
 import type { FastifyInstance } from 'fastify'
+import { RateLimiter } from '../api/rate-limit.js'
 import { outbox } from '../platform/outbox.js'
 import { birdMessageId } from './bird/index.js'
 import { resendMessageId } from './resend/index.js'
 import type { Secret } from './types.js'
 
 export const WEBHOOK_TOLERANCE_SECONDS = 300
+/**
+ * PROPOSED engineering default (no owner decision sets it): 600 deliveries a minute per provider and client network,
+ * well above two staff members' traffic and still a ceiling for a flood of forged calls.
+ */
+export const WEBHOOK_RATE_LIMIT = { limit: 600, windowSeconds: 60 } as const
 export type WebhookProvider = 'bird' | 'resend'
 
 export type WebhookRejection =
@@ -133,6 +141,10 @@ export type WebhookRouteOptions = {
   secrets: { bird: Secret | null; resend: Secret | null }
   /** Seconds since the epoch; tests pin it. */
   nowSeconds?: () => number
+  /** Default WEBHOOK_RATE_LIMIT; tests lower it. */
+  rateLimit?: { limit: number; windowSeconds: number }
+  /** Proxies in front of the service (TRUST_PROXY_HOPS), for the client network the limit counts. */
+  trustProxyHops?: number
 }
 
 const MESSAGE_ID: Record<WebhookProvider, (p: Record<string, unknown>) => string | null> = {
@@ -142,12 +154,25 @@ const MESSAGE_ID: Record<WebhookProvider, (p: Record<string, unknown>) => string
 
 /** POST /webhooks/bird and /webhooks/resend, with the raw body kept for verification (64 KiB at most). */
 export async function registerWebhookRoutes(app: FastifyInstance, options: WebhookRouteOptions): Promise<void> {
+  const limiter = new RateLimiter(options.db, options.trustProxyHops ?? 0)
+  const rule = options.rateLimit ?? WEBHOOK_RATE_LIMIT
   await app.register(async (scope) => {
     scope.addContentTypeParser('application/json', { parseAs: 'buffer', bodyLimit: 65_536 }, (_req, body, done) =>
       done(null, body),
     )
     for (const provider of ['bird', 'resend'] as const) {
       scope.post(`/webhooks/${provider}`, async (req, reply) => {
+        const limited = await limiter.consume(
+          { bucket: `webhook_${provider}`, limit: rule.limit, windowSeconds: rule.windowSeconds },
+          limiter.callerKey(req, { kind: 'guest' }),
+        )
+        if (!limited.allowed) {
+          req.log.warn({ provider, reason: 'rate_limited' }, 'webhook rejected')
+          return reply
+            .code(429)
+            .header('retry-after', String(limited.retryAfterSeconds))
+            .send({ error: 'rate_limited' })
+        }
         const secret = options.secrets[provider]
         if (!secret) return reply.code(503).send({ error: 'inbound_not_configured' })
         const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0)

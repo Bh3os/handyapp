@@ -55,3 +55,13 @@ export {
   type ServiceSeed,
   type SyncResult,
 } from './services.js'
+export {
+  loadSopSeed,
+  pinJobSops,
+  SOPS_SEED_FILE,
+  syncSops,
+  type PinOutcome,
+  type PinResult,
+  type SopSeed,
+  type SopSyncResult,
+} from './sops.js'

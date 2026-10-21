@@ -315,4 +315,65 @@ describe('the customer responses (TSK-0056, HH-EST-09)', () => {
     expect(within(es).getByText('Preparación pendiente')).toBeTruthy()
     expect(within(es).getByText('Abierta')).toBeTruthy()
   })
+
+  it('[HH-EST-12][HH-COM-04][RULE-LANGUAGES] the approval receipt PDF and each receipt message as it truly stands, in EN and ES', () => {
+    const v = view({
+      lifecycle: lifecycle({
+        effectiveState: 'accepted',
+        customerApproval: {
+          version: 1,
+          at: '2026-10-22T15:00:00.000Z',
+          fullName: 'Synthetic Approval Customer',
+          options: [],
+          totalCents: 90_000,
+          depositCents: null,
+          termsVersion: 'estimate-terms-1',
+          testMark: true,
+          jobState: 'pending_preparation',
+          schedulingTaskState: 'open',
+          receipt: { state: 'issued', issuedAt: '2026-10-22T15:01:00.000Z', byteSize: 4096 },
+          receiptDeliveries: [
+            { channel: 'email', state: 'failed', errorCode: 'template_not_configured' },
+            { channel: 'sms', state: 'suppressed', errorCode: 'sms_opt_in_missing' },
+          ],
+        },
+      }),
+    })
+    renderPanel(v, vi.fn())
+    const group = screen.getByTestId('estimate-customer-approval')
+    expect(within(group).getByTestId('approval-receipt-state').textContent).toMatch(/^Issued /)
+    const messages = within(group).getByTestId('approval-receipt-deliveries')
+    // The delivery labels are the shared deliveryState and deliveryError families (TSK-0048, TSK-0050).
+    expect(
+      within(messages).getByText('Email: Failed (Not sent: no approved wording for this message yet.)'),
+    ).toBeTruthy()
+    // A code without a label is shown as the code itself, never hidden.
+    expect(within(messages).getByText('Text: Not sent (no permission) (sms_opt_in_missing)')).toBeTruthy()
+    expect(within(group).queryByText(/^Sent$|: Sent/)).toBeNull()
+    cleanup()
+    renderPanel(v, vi.fn(), 'es')
+    const es = screen.getByTestId('estimate-customer-approval')
+    expect(within(es).getByTestId('approval-receipt-state').textContent).toMatch(/^Emitido /)
+    expect(
+      within(es).getByText(
+        'Correo electrónico: Falló (No enviado: todavía no hay redacción aprobada para este mensaje.)',
+      ),
+    ).toBeTruthy()
+    cleanup()
+    renderPanel(
+      view({
+        lifecycle: lifecycle({
+          effectiveState: 'accepted',
+          customerApproval: {
+            ...(v.lifecycle.customerApproval as object),
+            receipt: { state: 'preparing', issuedAt: null, byteSize: null },
+            receiptDeliveries: [],
+          } as never,
+        }),
+      }),
+      vi.fn(),
+    )
+    expect(screen.getByTestId('approval-receipt-state').textContent).toBe('Being prepared')
+    expect(screen.getByTestId('approval-receipt-deliveries').textContent).toBe('Not recorded yet')
+  })
 })

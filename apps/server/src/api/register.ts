@@ -19,7 +19,9 @@ import { dataScope, decide, type Actor, type Allow, type Resource } from '@handy
 import type { FastifyError, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import type { HostConfig } from '../config.js'
 import { hostSide, surfaceAllowed, surfaceOf } from '../hosts.js'
+import { localDate } from '@handyhub/domain/request-form'
 import { audit, type AuditActor } from '../platform/audit.js'
+import { loadConfig } from '../platform/config/index.js'
 import { currentContext } from '../platform/request-context.js'
 import { ApiError, type ErrorEnvelope, type FieldError } from './errors.js'
 import { requireFreshAuth } from './fresh-auth.js'
@@ -206,6 +208,15 @@ async function recordScopeDenial(db: Db, req: FastifyRequest, actor: Actor, rout
   )
 }
 
+/**
+ * Today in the business time zone (`business.timezone`), for rules that hold only on a date (the access-code reveal,
+ * T28). NOT CONFIGURED: undefined, so such a rule is refused for a missing fact, never allowed.
+ */
+async function businessToday(db: Db, now: Date): Promise<string | undefined> {
+  const zone = (await loadConfig(db)).get('business.timezone')
+  return zone.state === 'CONFIGURED' ? localDate(now, zone.value.zone) : undefined
+}
+
 async function runRoute(
   route: RouteDef,
   db: Db,
@@ -234,12 +245,14 @@ async function runRoute(
   if (route.permission !== AUTHENTICATION) {
     const body = req.body as { reason?: unknown } | undefined
     const reason = typeof body?.reason === 'string' ? body.reason : undefined
+    const today = route.businessDate ? await businessToday(db, now) : undefined
     const facts = route.decisionContext ? await route.decisionContext({ req, actor, db }) : {}
     const d = decide(actor, route.permission, resource, {
       now,
       online: true,
       ...facts,
       ...(reason ? { reason } : {}),
+      ...(today ? { today } : {}),
     })
     if (d.effect === 'deny') {
       req.log.warn({ action: d.action, reason: d.reason }, 'AUTHZ_DENIED')

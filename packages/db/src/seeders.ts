@@ -2,9 +2,12 @@
 // synthetic e-mail addresses and phone numbers.
 import type { Seeder } from './seed.js'
 import { loadServiceSeed, syncServices } from './services.js'
+import { loadSopSeed, syncSops } from './sops.js'
 
 export const SEEDERS: readonly Seeder[] = [
   // The service registry (TSK-0019): business configuration from the SVC-* nodes, also loaded outside the seeders by
   // `pnpm db:services` in every environment.
   { name: 'service-registry', run: async ({ trx }) => void (await syncServices(trx, loadServiceSeed())) },
+  // The SOP versions (TSK-0068): verbatim from the SOP-* nodes, pending competent review; also loaded by `pnpm db:sops`.
+  { name: 'sop-versions', run: async ({ trx }) => void (await syncSops(trx, loadSopSeed())) },
 ]

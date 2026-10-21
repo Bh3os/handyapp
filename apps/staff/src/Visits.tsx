@@ -11,6 +11,10 @@
 // - TSK-0062: a tentative visit with its planning facts entered is confirmed here by choosing its workers and items
 //   (Capacity.tsx); its reservations are listed with their review flags, and the ended ones as history. Moving a
 //   confirmed visit moves its reservations; a capacity conflict lists every problem and the alternatives.
+// - TSK-0063: a tentative visit's windows are offered to the customer here (Offers.tsx), each held for its team until
+//   the offer expires; its offers are listed with their windows, holds' expiry and notices. While an offer is open the
+//   visit is neither moved nor confirmed by staff: the customer selects, or staff withdraw the offer. A confirmed visit
+//   shows what happened to its automatic confirmation notice.
 import {
   formatOffset,
   resolveLocalTime,
@@ -24,6 +28,7 @@ import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
 import { AlternativesView, Assignments, ConfirmVisit, spanText, type Alternatives } from './Capacity'
+import { NoticeLine, OfferWindows, VisitOffers, type Notice, type Offer, type OfferPolicy } from './Offers'
 import { codeLabel } from './Requests'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
@@ -69,6 +74,8 @@ export type Visit = {
     endedAt: string | null
     endedReason: string | null
     flags: string[]
+    offerNumber?: number | null
+    offerPosition?: number | null
   }[]
   createdBy: StaffRef
   createdAt: string
@@ -80,7 +87,10 @@ export type Visit = {
     setAt: string
     reason: string | null
   }[]
-  actions: { changeWindow: boolean; confirm?: boolean }
+  /** TSK-0063: the window offers of the visit, newest first, and its confirmation notice's deliveries. */
+  offers?: Offer[]
+  notices?: Notice[]
+  actions: { changeWindow: boolean; confirm?: boolean; offerWindows?: boolean }
 }
 
 export type ProjectVisits = {
@@ -89,6 +99,8 @@ export type ProjectVisits = {
   timeZone: string
   businessTimeZone: { zone: string; proposed: boolean } | null
   visitHours: { open: string; close: string } | null
+  /** TSK-0063: the offer policy (scheduling.window_offers); null while NOT CONFIGURED. */
+  windowOffers?: OfferPolicy | null
   job: { id: string; scopeVersion: number | null } | null
   schedulingTask: { state: string } | null
   actions: { planEstimateVisit: boolean; planWorkVisit: boolean }
@@ -100,7 +112,7 @@ const bcp47 = (locale: StaffLocale) => (locale === 'es' ? 'es-US' : 'en-US')
 const name = (t: T, s: StaffRef) => s.name ?? t('queue.unnamed')
 
 /** A stored window as people read it, with its zone. */
-function shownWindow(w: VisitWindow, locale: StaffLocale): string {
+export function shownWindow(w: VisitWindow, locale: StaffLocale): string {
   const minutes = (o: string) => (o.startsWith('-') ? -1 : 1) * (Number(o.slice(1, 3)) * 60 + Number(o.slice(4, 6)))
   return windowText(
     {
@@ -127,8 +139,14 @@ function readingText(instant: Date, zone: string, locale: StaffLocale): string {
   }).format(instant)
 }
 
-type Entry = { localDate: string; windowStart: string; windowEnd: string; startOffset: string; endOffset: string }
-const EMPTY_ENTRY: Entry = { localDate: '', windowStart: '', windowEnd: '', startOffset: '', endOffset: '' }
+export type Entry = {
+  localDate: string
+  windowStart: string
+  windowEnd: string
+  startOffset: string
+  endOffset: string
+}
+export const EMPTY_ENTRY: Entry = { localDate: '', windowStart: '', windowEnd: '', startOffset: '', endOffset: '' }
 
 function resolution(entry: Entry, which: 'windowStart' | 'windowEnd', zone: string): LocalResolution | null {
   const time = entry[which]
@@ -141,7 +159,7 @@ function resolution(entry: Entry, which: 'windowStart' | 'windowEnd', zone: stri
 }
 
 /** The date, the two times and, inside a repeated hour, the reading chosen for each. */
-function WindowFields({
+export function WindowFields({
   t,
   locale,
   zone,
@@ -261,7 +279,7 @@ function errorsOf(t: T, error: ApiErrorBody, visit?: Visit): { fields: Record<st
   return { fields, general }
 }
 
-const body = (e: Entry) => ({
+export const windowBody = (e: Entry) => ({
   localDate: e.localDate,
   windowStart: e.windowStart,
   windowEnd: e.windowEnd,
@@ -308,7 +326,7 @@ function PlanForm({
       headers: { 'idempotency-key': key.current },
       body: {
         purpose,
-        ...body(entry),
+        ...windowBody(entry),
         expectedDurationMinutes: optionalInt(facts.duration),
         preparationBufferMinutes: optionalInt(facts.preparation),
         travelBufferMinutes: optionalInt(facts.travel),
@@ -422,7 +440,7 @@ function ChangeWindow({
     const r = await call<ProjectVisits>(fetchImpl, `/staff/visits/${encodeURIComponent(visit.id)}/window`, {
       method: 'POST',
       headers: { 'idempotency-key': key.current, 'if-match': `"${visit.version}"` },
-      body: { ...body(entry), ...(reason.trim() ? { reason: reason.trim() } : {}) },
+      body: { ...windowBody(entry), ...(reason.trim() ? { reason: reason.trim() } : {}) },
     })
     setPending(false)
     if (r.ok || r.status < 500) key.current = null
@@ -482,6 +500,7 @@ function VisitItem({
   locale,
   fetchImpl,
   visit,
+  policy,
   when,
   onChanged,
 }: {
@@ -489,6 +508,7 @@ function VisitItem({
   locale: StaffLocale
   fetchImpl: Fetch
   visit: Visit
+  policy: OfferPolicy | null
   when: (iso: string) => string
   onChanged: (d: ProjectVisits | null) => void
 }) {
@@ -581,6 +601,35 @@ function VisitItem({
             ))}
           </ul>
         </div>
+      ) : null}
+      {visit.notices?.length ? (
+        <div data-testid="visit-notices">
+          <p className="staff-request__hint">{t('visits.notices')}</p>
+          <ul className="staff-request__list">
+            {visit.notices.map((n) => (
+              <NoticeLine key={`${n.messageKey}-${n.channel}`} t={t} notice={n} />
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      <VisitOffers<ProjectVisits>
+        t={t}
+        locale={locale}
+        fetchImpl={fetchImpl}
+        offers={visit.offers ?? []}
+        when={when}
+        onChanged={onChanged}
+      />
+      {visit.actions.offerWindows && policy ? (
+        <OfferWindows<ProjectVisits>
+          key={`offer-${visit.id}-${visit.version}`}
+          t={t}
+          locale={locale}
+          fetchImpl={fetchImpl}
+          visit={visit}
+          policy={policy}
+          onOffered={onChanged}
+        />
       ) : null}
       {visit.actions.confirm ? (
         <ConfirmVisit<ProjectVisits>
@@ -689,6 +738,7 @@ export function ProjectVisitsSection({
               locale={locale}
               fetchImpl={fetchImpl}
               visit={v}
+              policy={data.windowOffers ?? null}
               when={when}
               onChanged={changed}
             />

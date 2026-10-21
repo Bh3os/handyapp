@@ -26,6 +26,14 @@ export const QUEUE_ACTIONS = [
   'decide',
   'write_estimate',
   'review_estimate',
+  'offer_windows',
+  // TSK-0060 estimate reminders; TSK-0051: also the drafted reminders of an unanswered question (or close the request).
+  'release_reminder',
+  'review_match',
+  'link_message',
+  'open_conversation',
+  'review_deposit',
+  // TSK-0097: reassign a visit flagged by an availability change.
   'reassign_visit',
 ] as const
 export type QueueAction = (typeof QUEUE_ACTIONS)[number]
@@ -153,6 +161,110 @@ export const QUEUE_ITEM_TYPES = [
     reasons: ['estimate_changes_requested', 'estimate_declined', 'estimate_update_requested'],
     action: 'review_estimate',
     screen: 'estimates',
+  },
+  // TSK-0063 (HH-SCH-11, OWN-DEC-144): the customer asked for other times, or an offer's hold ended with no window
+  // selected; staff offer new windows. One item per request (the request record lists the visits and their offers),
+  // opened with the answer or the expiry and resolved when a new offer is made or a window is selected. Band, view
+  // action and screen are PROPOSED.
+  {
+    id: 'window_offer_response',
+    section: 'queue',
+    subject: 'request',
+    band: 'time_sensitive',
+    view: 'visit.offer_windows',
+    reasons: ['window_other_times_requested', 'window_offer_expired'],
+    action: 'offer_windows',
+    screen: 'requests',
+  },
+  // A reminder draft waiting for staff release (S01 "message drafts awaiting release"; HH-EST-14, TSK-0060): one item
+  // per estimate version while a first or final unanswered-estimate reminder is a draft; it resolves once the draft is
+  // released, dismissed or stopped. Seen by the roles that work on estimates (the link opens the version, whose
+  // reminders panel releases or dismisses the draft); band and view action are PROPOSED.
+  {
+    id: 'estimate_reminder',
+    section: 'queue',
+    subject: 'estimate_version',
+    band: 'time_sensitive',
+    view: 'estimate.revise',
+    reasons: ['estimate_reminder_first', 'estimate_reminder_final'],
+    action: 'release_reminder',
+    screen: 'estimates',
+  },
+  // TSK-0044 (HH-ID-02, T21): customers sharing an email, phone or address wait for staff review; the item opens the
+  // customer record with its suggestions. Never merged or linked automatically.
+  {
+    id: 'candidate_match',
+    section: 'queue',
+    subject: 'customer',
+    band: 'other',
+    view: 'customer.view_duplicates',
+    reasons: ['possible_duplicate'],
+    action: 'review_match',
+    screen: 'customers',
+  },
+  // TSK-0049 (HH-COM-07, OWN-DEC-120): an inbound message that no reliable reference places on exactly one project
+  // waits in Needs Linking. Only the holders of message.view_unmatched (Owner, Office) see the item, and the item names
+  // no project, reference or sender.
+  {
+    id: 'inbox_needs_linking',
+    section: 'queue',
+    subject: 'inbound_message',
+    band: 'time_sensitive',
+    view: 'message.view_unmatched',
+    reasons: ['message_needs_linking'],
+    action: 'link_message',
+    screen: 'inbox',
+  },
+  // A customer's email or text matched to a project: one item per conversation until staff mark it handled.
+  {
+    id: 'customer_replied',
+    section: 'queue',
+    subject: 'conversation',
+    band: 'time_sensitive',
+    view: 'message.reply',
+    reasons: ['customer_replied'],
+    action: 'open_conversation',
+    screen: 'inbox',
+  },
+  // TSK-0051 (HH-LEAD-03, OWN-DEC-98): a customer replied to a question, or the reply reopened a "Closed—no response"
+  // request; one item per request until staff review it (or act on the request). Assigned to the responsible staff
+  // member, so it is the reply's notice in the queue.
+  {
+    id: 'question_replied',
+    section: 'queue',
+    subject: 'request',
+    band: 'time_sensitive',
+    view: 'request.view',
+    reasons: ['question_replied', 'reopened_by_reply'],
+    action: 'review_request',
+    screen: 'requests',
+  },
+  // TSK-0051 (HH-LEAD-06, OWN-DEC-101): the reminder drafts of an unanswered question wait for release, prominently;
+  // after the final one was actually sent and the configured hours passed, the item says the request may be closed.
+  // Seen by the roles that release drafts (ROLE-MATRIX "Reply from a project, release drafts").
+  {
+    id: 'question_reminder',
+    section: 'queue',
+    subject: 'request',
+    band: 'time_sensitive',
+    view: 'message.release_draft',
+    reasons: ['question_reminder_first', 'question_reminder_final', 'no_response_close_available'],
+    action: 'release_reminder',
+    screen: 'requests',
+  },
+  // Deposits to collect and checks to verify (S01, HH-FIN-02, HH-FIN-12; TSK-0059): one item per job while its required
+  // deposit is still due, opened from the approval's committed event and kept in line in the same transaction as every
+  // deposit payment, check clearing and waiver; resolved once verified money covers it or the Owner waives it. Seen by
+  // the roles that record payments (the Owner, Office); the link opens the job's deposit. Band and view are PROPOSED.
+  {
+    id: 'deposit_due',
+    section: 'queue',
+    subject: 'job',
+    band: 'other',
+    view: 'payment.record',
+    reasons: ['deposit_due', 'deposit_check_pending'],
+    action: 'review_deposit',
+    screen: 'payments',
   },
   // Appointments flagged by an availability change (HH-OPS-01 "upcoming assignments of a disabled account, to
   // reassign; appointments flagged by an availability change", HH-STAFF-02, HH-STAFF-07, TSK-0097): one item per visit,

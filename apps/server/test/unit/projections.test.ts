@@ -90,6 +90,14 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
         'getSessionVerification',
         'sendSessionVerificationCode',
         'confirmSessionVerification',
+        // TSK-0063: the customer's answer to offered windows.
+        'selectOfferedWindow',
+        'requestOtherWindows',
+        // TSK-0051: questions from HandyHub, the reply and its photos, and writing in the project conversation.
+        'listCustomerQuestions',
+        'createQuestionReplyUpload',
+        'replyToQuestion',
+        'sendPortalMessage',
       ].sort(),
     )
     for (const r of customerRoutes) {
@@ -119,7 +127,7 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
       rejectionReason: null,
       url: 'https://storage.example.test/signed',
       objectKey: 'requests/photos/photo-1',
-      visibility: 'internal',
+      visibility: 'internal_operational',
     }
     expect(CUSTOMER_PHOTO.project(record)).toEqual({
       id: 'photo-1',
@@ -205,12 +213,37 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
       expect(fieldNames(schema).filter(forbiddenForCustomer)).toEqual([])
   })
 
-  it('[TSK-0039][HH-PORT-09][HH-ARC-04] the tab views send only their state codes or counts, never a record field', () => {
+  it('[TSK-0039][HH-PORT-09][HH-ARC-04][TSK-0050][HH-PORT-08] the tab views send only their state codes or counts, never a record field', () => {
     const at = new Date('2026-10-21T12:00:00Z')
     const head = { reference: 'HH-0000TEST', refreshedAt: at, refreshSeconds: 30 }
     const out = { reference: 'HH-0000TEST', refreshedAt: '2026-10-21T12:00:00.000Z', refreshSeconds: 30 }
     const extra = { internalNote: 'staff only', objectKey: 'requests/photos/x', id: 'photo-1' }
-    expect(PROJECT_MESSAGES.project({ ...head, ...extra, state: 'not_shown' })).toEqual({ ...out, state: 'not_shown' })
+    // TSK-0050: the Messages tab lists the conversation: who, how, when and the text, nothing else of the record.
+    const message = {
+      from: 'handyhub' as const,
+      channel: 'email' as const,
+      at,
+      text: 'Synthetic reply text.',
+      textState: 'shown' as const,
+      attachments: 0,
+      authorStaffId: 'staff-1',
+      staffName: 'Synthetic Staff',
+      toAddresses: ['someone@example.test'],
+      deliveryId: 'delivery-1',
+    }
+    expect(PROJECT_MESSAGES.project({ ...head, ...extra, messages: [message] } as never)).toEqual({
+      ...out,
+      messages: [
+        {
+          from: 'handyhub',
+          channel: 'email',
+          at: '2026-10-21T12:00:00.000Z',
+          text: 'Synthetic reply text.',
+          textState: 'shown',
+          attachments: 0,
+        },
+      ],
+    })
     for (const view of [PROJECT_DOCUMENTS, PROJECT_APPOINTMENTS, PROJECT_PAYMENTS])
       expect(view.project({ ...head, ...extra, state: 'none' })).toEqual({ ...out, state: 'none' })
     expect(
@@ -221,9 +254,30 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
       }),
     ).toEqual({ ...out, photos: { received: 2, processing: 1, failed: 0 } })
     // The states are closed sets: a tab cannot answer "paid", "read" or a list it does not have yet.
-    expect(PROJECT_MESSAGES.schema).toMatchObject({ properties: { state: { enum: ['not_shown'] } } })
-    for (const view of [PROJECT_APPOINTMENTS, PROJECT_PAYMENTS])
-      expect(view.schema).toMatchObject({ additionalProperties: false, properties: { state: { enum: ['none'] } } })
+    expect(PROJECT_MESSAGES.schema).toMatchObject({
+      additionalProperties: false,
+      properties: {
+        messages: {
+          items: {
+            additionalProperties: false,
+            required: ['from', 'channel', 'at', 'text', 'textState', 'attachments'],
+            properties: { from: { enum: ['you', 'handyhub'] } },
+          },
+        },
+      },
+    })
+    expect(fieldNames(PROJECT_MESSAGES.schema).filter(forbiddenForCustomer)).toEqual([])
+    expect(PROJECT_PAYMENTS.schema).toMatchObject({
+      additionalProperties: false,
+      properties: { state: { enum: ['none'] } },
+    })
+    // TSK-0063 (HH-LEAD-07, HH-SCH-11): Appointments also answers "listed" with the offered windows and the confirmed
+    // visits; "none" is still the state alone.
+    expect(PROJECT_APPOINTMENTS.schema).toMatchObject({
+      additionalProperties: false,
+      required: ['reference', 'refreshedAt', 'refreshSeconds', 'state'],
+      properties: { state: { enum: ['none', 'listed'] } },
+    })
     // TSK-0056 (HH-PORT-10): Documents also answers "listed" with the estimate versions the customer received; "none"
     // is still the state alone.
     expect(PROJECT_DOCUMENTS.schema).toMatchObject({
@@ -233,6 +287,62 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
     })
     expect(PROJECT_PHOTOS.schema).toMatchObject({
       properties: { photos: { additionalProperties: false, required: ['received', 'processing', 'failed'] } },
+    })
+  })
+
+  it('[TSK-0063][HH-LEAD-07][HH-SCH-11][HH-ARC-04] the Appointments view sends windows and confirmed visits, never a hold, worker or ID', () => {
+    const at = new Date('2026-10-21T12:00:00Z')
+    const w = {
+      localDate: '2026-11-04',
+      start: '09:00',
+      end: '10:00',
+      timeZone: 'America/Kentucky/Louisville',
+      startsAt: '2026-11-04T14:00:00.000Z',
+      endsAt: '2026-11-04T15:00:00.000Z',
+    }
+    const out = PROJECT_APPOINTMENTS.project({
+      reference: 'HH-0000TEST',
+      refreshedAt: at,
+      refreshSeconds: 30,
+      state: 'listed',
+      offers: [
+        {
+          number: 1,
+          purpose: 'estimate_visit',
+          status: 'open',
+          offeredAt: at,
+          expiresAt: at,
+          windows: [{ position: 1, ...w, holdId: 'hold-1', workerId: 'staff-1' } as never],
+          offerId: 'offer-1',
+        } as never,
+      ],
+      appointments: [
+        {
+          purpose: 'estimate_visit',
+          status: 'confirmed',
+          window: { ...w, reservationId: 'r-1' } as never,
+          address: {
+            street: '1 Synthetic Way',
+            unit: null,
+            city: 'Testville',
+            state: 'KY',
+            zip: '40000',
+            gateCode: 'x',
+          },
+          preparationInstructions: null,
+          visitId: 'visit-1',
+          workers: ['staff-1'],
+        } as never,
+      ],
+      internalNote: 'staff only',
+    } as never)
+    const raw = JSON.stringify(out)
+    for (const leak of ['hold-1', 'staff-1', 'offer-1', 'visit-1', 'r-1', 'gateCode', 'staff only'])
+      expect(raw).not.toContain(leak)
+    expect(out).toMatchObject({
+      state: 'listed',
+      offers: [{ number: 1, windows: [{ position: 1, start: '09:00' }] }],
+      appointments: [{ address: { street: '1 Synthetic Way' }, window: { start: '09:00' } }],
     })
   })
 })

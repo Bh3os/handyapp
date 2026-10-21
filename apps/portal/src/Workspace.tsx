@@ -2,19 +2,25 @@
 // - One clear next action, and always who is waiting: HandyHub on the customer, or the customer on HandyHub.
 // - The status line, the latest update and the filtered timeline come from the shared records; the confirmed
 //   appointment and the payment summary are separate sections, never merged into the status.
-// - An action whose screen a later task builds (Reply with TSK-0051, the estimate, deposit, appointment, invoice...)
-//   is shown inactive with its reason written out: a placeholder never looks usable (HH-FIN-10).
+// - An action whose screen a later task builds (the estimate, deposit, appointment, invoice...) is shown inactive with
+//   its reason written out: a placeholder never looks usable (HH-FIN-10). TSK-0051: Reply opens the questions from
+//   HandyHub on this page while one waits on the customer (otherwise it stays inactive with its reason).
 // - While stale, every section is marked so and the refresh line says from when it is.
 // - The six tabs (TSK-0039; HH-PORT-09): Overview first, then Messages, Documents, Photos, Appointments and Payments,
 //   in the shared ARIA tabs pattern (one tab stop, arrow keys, Home and End). Each tab has its own page
 //   (/portal/p/<reference>/<tab>), so a link, Back and a reload open the same tab. The frame reads the Overview first:
 //   a project this session cannot open shows its one neutral state and no tab at all.
+import { cents, formatUsd } from '@handyhub/money'
 import { Button, StateView, StatusBadge, Tabs, type StatusTone } from '@handyhub/ui'
-import { portalApi, type Fetch, type NextAction, type ProjectOverview, type Waiting } from './api'
+import { AppointmentCard } from './Appointments'
+import { portalApi, type Fetch, type NextAction, type ProjectOverview, type QuestionList, type Waiting } from './api'
 import { ACTION_LABEL, SITUATION_LABEL, STEP_TEXT, t, TIMELINE_LABEL, WAITING_LABEL, when } from './labels'
 import { useLive } from './live'
 import { NotShown, RefreshLine } from './States'
+import { Questions } from './Questions'
 import { TAB_LABEL, TAB_ORDER, TabPanel, tabPath, type EstimateRoute, type Tab } from './Tabs'
+
+const usd = (c: number) => formatUsd(cents(c))
 
 const WAITING_TONE: Record<Waiting, StatusTone> = { customer: 'warning', handyhub: 'info', nobody: 'neutral' }
 
@@ -24,12 +30,19 @@ const WAITING_TONE: Record<Waiting, StatusTone> = { customer: 'warning', handyhu
  */
 const ACTION_SCREENS: Partial<Record<NextAction, (reference: string) => string>> = {
   review_estimate: (reference) => tabPath(reference, 'documents'),
+  // TSK-0063: choosing an offered window happens in the Appointments tab.
+  choose_visit_window: (reference) => tabPath(reference, 'appointments'),
+  choose_work_appointment: (reference) => tabPath(reference, 'appointments'),
+  // TSK-0059: Pay your deposit goes to the payment summary, where the amount due and Pay by Card are.
+  pay_deposit: () => '#portal-payment',
 }
 
-function NextStep({ o }: { o: ProjectOverview }) {
+function NextStep({ o, questions }: { o: ProjectOverview; questions: QuestionList | null }) {
   const step = STEP_TEXT[o.status.step]
   const action = o.status.nextAction
-  const screen = ACTION_SCREENS[action]?.(o.reference)
+  // TSK-0051: Reply opens the questions that wait on the customer, on this page.
+  const waiting = questions?.questions.find((q) => q.canReply)
+  const screen = action === 'reply' && waiting ? `#question-${waiting.id}` : ACTION_SCREENS[action]?.(o.reference)
   return (
     <div className="portal-next" data-testid="next-action">
       <p className="portal-next__waiting">
@@ -48,7 +61,53 @@ function NextStep({ o }: { o: ProjectOverview }) {
   )
 }
 
-function Overview({ o, stale }: { o: ProjectOverview; stale: boolean }) {
+/**
+ * The payment summary (TSK-0059; HH-FIN-02, OWN-DEC-104): the deposit due in the owner's words with Pay by Card when
+ * HandyHub entered the Square link, any check still pending, or the deposit received. Paying opens Square; nothing
+ * here marks anything paid.
+ */
+function PaymentSummary({ payment }: { payment: ProjectOverview['payment'] }) {
+  if (payment.state === 'deposit_due')
+    return (
+      <div className="portal-deposit" data-testid="portal-deposit">
+        <p className="portal-deposit__due">{t('portal.payment.deposit.due', { amount: usd(payment.amountCents) })}</p>
+        {payment.verifiedCents > 0 ? (
+          <p>{t('portal.payment.deposit.receivedSoFar', { amount: usd(payment.verifiedCents) })}</p>
+        ) : null}
+        {payment.pendingCents > 0 ? (
+          <p>{t('portal.payment.deposit.pending', { amount: usd(payment.pendingCents) })}</p>
+        ) : null}
+        {payment.payByCardUrl ? (
+          <p>
+            <a className="hh-button" href={payment.payByCardUrl} target="_blank" rel="noopener noreferrer">
+              {t('portal.payment.deposit.payByCard')}
+            </a>
+          </p>
+        ) : null}
+      </div>
+    )
+  if (payment.state === 'deposit_received')
+    return <p data-testid="portal-deposit">{t('portal.payment.deposit.paid', { amount: usd(payment.amountCents) })}</p>
+  return (
+    <StateView kind="empty" title={t('portal.payment.none.title')}>
+      <p>{t('portal.payment.none.text')}</p>
+    </StateView>
+  )
+}
+
+function Overview({
+  o,
+  stale,
+  questions,
+  fetchImpl,
+  onChanged,
+}: {
+  o: ProjectOverview
+  stale: boolean
+  questions: QuestionList | null
+  fetchImpl: Fetch
+  onChanged: () => Promise<void>
+}) {
   const latest = o.timeline[0]
   const section = (id: string) => ({
     'aria-labelledby': id,
@@ -64,8 +123,12 @@ function Overview({ o, stale }: { o: ProjectOverview; stale: boolean }) {
         <p className="portal-status__label hh-lead">{t(SITUATION_LABEL[o.status.situation])}</p>
         <p className="hh-small hh-muted">{t('portal.overview.since', { time: when(o.status.since) })}</p>
         <h4 className="hh-visually-hidden">{t('portal.overview.next')}</h4>
-        <NextStep o={o} />
+        <NextStep o={o} questions={questions} />
       </section>
+
+      {questions ? (
+        <Questions reference={o.reference} data={questions} fetchImpl={fetchImpl} onChanged={onChanged} />
+      ) : null}
 
       {latest ? (
         <section {...section('portal-latest')}>
@@ -82,18 +145,20 @@ function Overview({ o, stale }: { o: ProjectOverview; stale: boolean }) {
         <h3 id="portal-appointment" className="hh-h3">
           {t('portal.appointment.title')}
         </h3>
-        <StateView kind="empty" title={t('portal.appointment.none.title')}>
-          <p>{t('portal.appointment.none.text')}</p>
-        </StateView>
+        {o.appointment ? (
+          <AppointmentCard a={o.appointment} />
+        ) : (
+          <StateView kind="empty" title={t('portal.appointment.none.title')}>
+            <p>{t('portal.appointment.none.text')}</p>
+          </StateView>
+        )}
       </section>
 
       <section {...section('portal-payment')}>
         <h3 id="portal-payment" className="hh-h3">
           {t('portal.payment.title')}
         </h3>
-        <StateView kind="empty" title={t('portal.payment.none.title')}>
-          <p>{t('portal.payment.none.text')}</p>
-        </StateView>
+        <PaymentSummary payment={o.payment} />
       </section>
 
       <section {...section('portal-timeline')}>
@@ -115,6 +180,34 @@ function Overview({ o, stale }: { o: ProjectOverview; stale: boolean }) {
         </ol>
       </section>
     </div>
+  )
+}
+
+/** The Overview with the questions from HandyHub, read beside it and refreshed with it while it is shown. */
+function OverviewWithQuestions({
+  o,
+  stale,
+  active,
+  fetchImpl,
+  onChanged,
+}: {
+  o: ProjectOverview
+  stale: boolean
+  active: boolean
+  fetchImpl: Fetch
+  onChanged: () => Promise<void>
+}) {
+  const questions = useLive(() => portalApi.questions(fetchImpl, o.reference), `${o.reference}/questions`, active)
+  return (
+    <Overview
+      o={o}
+      stale={stale}
+      questions={questions.live.phase === 'ready' ? questions.live.data : null}
+      fetchImpl={fetchImpl}
+      onChanged={async () => {
+        await Promise.all([onChanged(), questions.refresh()])
+      }}
+    />
   )
 }
 
@@ -166,7 +259,24 @@ export function Workspace({
                       onRefresh={() => void refresh()}
                     />
                     <h2 className="hh-visually-hidden">{t('portal.overview.title')}</h2>
-                    <Overview o={live.data} stale={live.stale} />
+                    {/* TSK-0051: a project HandyHub asked questions on reads them too (its timeline says so). */}
+                    {live.data.timeline.some((e) => e.kind === 'more_information') ? (
+                      <OverviewWithQuestions
+                        o={live.data}
+                        stale={live.stale}
+                        active={tab === 'overview'}
+                        fetchImpl={fetchImpl}
+                        onChanged={refresh}
+                      />
+                    ) : (
+                      <Overview
+                        o={live.data}
+                        stale={live.stale}
+                        questions={null}
+                        fetchImpl={fetchImpl}
+                        onChanged={refresh}
+                      />
+                    )}
                   </>
                 ) : (
                   <TabPanel

@@ -195,8 +195,8 @@ describe('the workspace tabs (TSK-0039, HH-PORT-09, OWN-DEC-106)', () => {
       )
     }
     expect(answers).toEqual({
-      // The conversation is not shown here yet (TSK-0050): never "no messages".
-      messages: { state: 'not_shown' },
+      // TSK-0050: the project conversation; nothing has been written on this project yet.
+      messages: { messages: [] },
       documents: { state: 'none' },
       photos: { photos: { received: 0, processing: 0, failed: 0 } },
       appointments: { state: 'none' },

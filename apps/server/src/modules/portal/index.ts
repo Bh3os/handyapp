@@ -8,6 +8,8 @@
 //                                                Request Changes, Decline, Request an Updated Estimate (TSK-0056),
 //                                                the selected options and Approve Estimate (TSK-0057)
 //   GET/POST /customer/session/verification[/codes]   fresh verification inside the session (TSK-0057, HH-ID-07)
+//   POST /customer/projects/:reference/window-offers/:number/(select|other-times)  the customer's answer to offered
+//                                                windows (TSK-0063; HH-SCH-11, HH-LEAD-07)
 // The Overview is authorized by the policy (ROLE-MATRIX "View intake queue and original requests": Customer "V (own)")
 // and scoped by the session (TSK-0037): another project, an unknown or a malformed reference is the same NOT_FOUND.
 // The list names no record, so like GET /customer/access/session it starts from the session itself; each project
@@ -31,6 +33,7 @@ import {
   type CustomerView,
 } from '../records/index.js'
 import { projectOverview, projectSummaries, refreshSeconds } from './overview.js'
+import { portalAppointmentRoutes, type PortalAppointmentDeps } from './appointments.js'
 import { portalEstimateRoutes, type PortalEstimateDeps } from './estimates.js'
 import { sessionVerificationRoutes, type SessionVerificationDeps } from './verification.js'
 import { projectTab, type WorkspaceTab } from './tabs.js'
@@ -62,7 +65,11 @@ export { reverifyTargets, type SessionVerificationDeps } from './verification.js
 
 const NO_CODE_KEY: CodeKeySettings = { state: 'not_configured', missing: ['CODE_HASH_KEY'] }
 
-export function portalModule(deps: PortalEstimateDeps & Partial<SessionVerificationDeps> = {}): ApiModule {
+export { WINDOW_ANSWER_RATE_LIMIT, type PortalAppointmentDeps } from './appointments.js'
+
+export function portalModule(
+  deps: PortalEstimateDeps & PortalAppointmentDeps & Partial<SessionVerificationDeps> = {},
+): ApiModule {
   const list: RouteDef = {
     ...read,
     path: '/customer/projects',
@@ -119,15 +126,27 @@ export function portalModule(deps: PortalEstimateDeps & Partial<SessionVerificat
     },
   }
 
-  // The other five tabs (TSK-0039): the same permission, scope and NOT_FOUND as the Overview, each with its own view.
-  const TABS: readonly { tab: WorkspaceTab; operationId: string; view: CustomerView<never>; says: string }[] = [
+  // The other five tabs (TSK-0039): the same permission, scope and NOT_FOUND as the Overview, each with its own view;
+  // Messages (TSK-0050) is authorized by the matrix row of the project thread (message.reply, customer "V").
+  const TABS: readonly {
+    tab: WorkspaceTab
+    operationId: string
+    view: CustomerView<never>
+    says: string
+    permission?: RouteDef['permission']
+  }[] = [
     {
       tab: 'messages',
       operationId: 'getCustomerProjectMessages',
       view: PROJECT_MESSAGES as CustomerView<never>,
       says:
-        'The Messages tab. state "not_shown": the project conversation is not shown in the portal yet (TSK-0050); ' +
-        'it never claims that no message exists.',
+        'The Messages tab (TSK-0050): the project’s customer conversation, oldest first: the customer’s own email and ' +
+        'texts on the project (from the customer’s contacts only) and HandyHub’s replies (shown when staff press ' +
+        'Send), each with who wrote it (you or HandyHub), the channel, the time and the text exactly as written, or ' +
+        'why there is no text; attachments as a count (they are not imported). Never an internal message, a staff ' +
+        'name, an address or a delivery detail. An empty list: no message yet. Authorized by message.reply (ROLE-MATRIX ' +
+        '"V project thread").',
+      permission: 'message.reply',
     },
     {
       tab: 'documents',
@@ -136,8 +155,9 @@ export function portalModule(deps: PortalEstimateDeps & Partial<SessionVerificat
       says:
         'The Documents tab (TSK-0056, HH-PORT-10). state "listed": the estimate versions the customer received, newest ' +
         'first, each with its number, version, status (current, approved, declined, expired, superseded, withdrawn), ' +
-        'dates and stored total in integer cents. state "none": no customer document exists yet (receipts, invoices ' +
-        'and care notes come with their own tasks).',
+        'dates and stored total in integer cents, and for an approved version its approval receipt PDF (TSK-0058: ' +
+        'preparing or issued). state "none": no customer document exists yet (invoices, receipts and care notes come ' +
+        'with their own tasks).',
     },
     {
       tab: 'photos',
@@ -152,7 +172,13 @@ export function portalModule(deps: PortalEstimateDeps & Partial<SessionVerificat
       tab: 'appointments',
       operationId: 'getCustomerProjectAppointments',
       view: PROJECT_APPOINTMENTS as CustomerView<never>,
-      says: 'The Appointments tab. state "none": no estimate or work visit exists yet.',
+      says:
+        'The Appointments tab (TSK-0063, HH-LEAD-07, HH-SCH-11, T37). state "listed": the offers the customer can see ' +
+        '(open and held until expiresAt, expired with no selection, or other times asked for), each named by its ' +
+        'number with its windows (local date, arrival window, zone, UTC instants), and the confirmed visits with their ' +
+        'purpose (estimate_visit: on the project, no job and no price approval; work_visit), status, window, property ' +
+        'address and preparation instructions. state "none": no offered window or confirmed visit exists yet. Never ' +
+        'a hold, a worker, a staff detail or an ID.',
     },
     {
       tab: 'payments',
@@ -161,8 +187,9 @@ export function portalModule(deps: PortalEstimateDeps & Partial<SessionVerificat
       says: 'The Payments tab. state "none": no approved total, deposit, invoice or recorded payment exists yet.',
     },
   ]
-  const tabs: RouteDef[] = TABS.map(({ tab, operationId, view, says }) => ({
+  const tabs: RouteDef[] = TABS.map(({ tab, operationId, view, says, permission }) => ({
     ...overview,
+    ...(permission ? { permission } : {}),
     path: `/customer/projects/:reference/${tab}`,
     test: 'test/integration/portal-tabs.test.ts',
     operationId,
@@ -183,5 +210,8 @@ export function portalModule(deps: PortalEstimateDeps & Partial<SessionVerificat
     codeKey: deps.codeKey ?? NO_CODE_KEY,
     trustProxyHops: deps.trustProxyHops ?? 0,
   })
-  return { name: 'portal', routes: [list, overview, ...tabs, ...portalEstimateRoutes(deps), ...verification] }
+  return {
+    name: 'portal',
+    routes: [list, overview, ...tabs, ...portalEstimateRoutes(deps), ...portalAppointmentRoutes(deps), ...verification],
+  }
 }

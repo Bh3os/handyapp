@@ -14,7 +14,8 @@
 //   template_not_configured, never as sent, until a template is released (NOT CONFIGURED, FACT-AUTOMATIC-MESSAGES).
 // - Nothing here can accept an estimate: there is no accepting response, and silence, a question or a request for
 //   changes never approves anything (HH-EST-09). Approval is the approval transaction (TSK-0057).
-// - Estimate reminders (HH-EST-14, TSK-0060) stop on any customer response; the rows here are what they read.
+// - Estimate reminders (HH-EST-14, TSK-0060) stop on any customer response: the rows here are what they read, and
+//   the response's transaction cancels the waiting drafts (stopEstimateReminders).
 import type { Db, Tx } from '@handyhub/db'
 import { apply, effectiveEstimateState, type EstimateVersionState } from '@handyhub/domain'
 import type { CustomerActor, DataScope } from '@handyhub/policy'
@@ -28,6 +29,7 @@ import { openQueueItem, resolveQueueItem } from '../queue/index.js'
 import { findProject } from '../records/index.js'
 import { currentVersion } from './lifecycle.js'
 import { CUSTOMER_STATES } from './model.js'
+import { stopEstimateReminders } from './reminders.js'
 
 type Reader = Db | Tx
 
@@ -175,6 +177,8 @@ export async function recordCustomerResponse(
     })
     .returning(['id', 'created_at'])
     .executeTakeFirstOrThrow()
+  // TSK-0060 (HH-EST-14): any customer response stops the estimate's waiting reminder drafts.
+  await stopEstimateReminders(tx, v.id)
 
   // The staff follow-up item, assigned to the request's responsible staff member when there is one.
   const request = await tx
@@ -305,6 +309,9 @@ export function estimateResponseNoticeAutomations(deps: ResponseNoticeDeps): Aut
           record: { type: 'estimate_version', id: r.version_id },
           recipients,
           values: base ? { appLink: `${base}/estimates/${r.version_id}` } : {},
+          // TSK-0049: the delivery records its project. A staff notice is not a customer email, so it never carries
+          // the project's reply token (deliveries.ts) and stays out of the customer conversation.
+          projectId: r.project_id,
         }
       },
     }),
