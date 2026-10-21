@@ -21,7 +21,8 @@
     "db:migrate": "pnpm --filter @handyhub/db run db:migrate",
     "db:seed": "pnpm --filter @handyhub/db run db:seed",
     "db:types": "pnpm --filter @handyhub/db run db:types",
-    "openapi": "pnpm --filter @handyhub/server openapi"
+    "openapi": "pnpm --filter @handyhub/server openapi",
+    "data-inventory": "pnpm --filter @handyhub/server data-inventory"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",

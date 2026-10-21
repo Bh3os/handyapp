@@ -135,9 +135,17 @@ export const ACTIONS = [
   // Staff, audit, cases and privacy
   'staff.invite',
   'staff.grant_role',
+  // PROPOSED (TSK-0097): re-enabling a disabled account gives access back, so it sits in the grant row with its fresh
+  // sign-in and reason (ENT-StaffUser: "disabled -> active only by the Owner with a fresh sign-in").
+  'staff.enable',
   'staff.disable',
   'staff.revoke_sessions',
   'staff.start_password_recovery',
+  // PROPOSED (TSK-0097): ending a role or capability grant is protective (ENT-RoleGrant: "revocation never waits for
+  // step-up") and seeing the staff list is the Owner's staff management, so both sit in the row the Owner acts in
+  // without delay.
+  'staff.end_grant',
+  'staff.view',
   'audit.view',
   'incident.report',
   'case.record_complaint',
@@ -148,6 +156,9 @@ export const ACTIONS = [
   'privacy.request_correction',
   'privacy.request_deletion',
   'privacy.decide',
+  // PROPOSED (TSK-0099): opening the deletion-review queue (records past their retention period) is part of the
+  // Owner's deletion review, so it sits in the row of the Delete action (ENT-RetentionReview: the Owner).
+  'retention.view',
   'records.delete',
   'account.delete',
   'export.bulk',
@@ -584,13 +595,13 @@ export const MATRIX: readonly MatrixRow[] = [
   row(MESSAGES, 'Change policy values', ['policy_values.change'], { owner: Y('F', F) }),
 
   // Staff, audit, cases and privacy
-  row(STAFF, 'Invite staff, grant roles or capabilities', ['staff.invite', 'staff.grant_role'], {
+  row(STAFF, 'Invite staff, grant roles or capabilities', ['staff.invite', 'staff.grant_role', 'staff.enable'], {
     owner: Y('F', { ...F, conditions: ['not_self_subject'] }),
   }),
   row(
     STAFF,
     'Disable account, revoke sessions, start password recovery',
-    ['staff.disable', 'staff.revoke_sessions', 'staff.start_password_recovery'],
+    ['staff.disable', 'staff.revoke_sessions', 'staff.start_password_recovery', 'staff.end_grant', 'staff.view'],
     // Protective actions are never delayed: no fresh sign-in, no reason prompt.
     { owner: Y('Y (never delayed)', { audit: true }) },
   ),
@@ -621,7 +632,7 @@ export const MATRIX: readonly MatrixRow[] = [
   row(
     STAFF,
     'Decide privacy requests; Delete action; delete a login account',
-    ['privacy.decide', 'records.delete', 'account.delete'],
+    ['privacy.decide', 'retention.view', 'records.delete', 'account.delete'],
     { owner: Y('Y', { audit: true }) },
   ),
   row(STAFF, 'Bulk export', ['export.bulk'], { owner: Y('F', F) }),

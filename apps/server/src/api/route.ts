@@ -23,6 +23,12 @@ export type RequestActor = {
   csrfToken?: string
   /** When the caller last entered a password or second factor (fresh authentication). */
   authenticatedAt?: Date
+  /**
+   * Staff sessions (TSK-0097, HH-STAFF-02): checks again, inside a business write's transaction, that the account is
+   * still active and the session still live, and holds that until commit, so a write that raced an offboarding either
+   * committed before it or is refused. False refuses the write as UNAUTHENTICATED.
+   */
+  revalidate?: (tx: Tx) => Promise<boolean>
 }
 export type ResolveActor = (req: FastifyRequest) => Promise<RequestActor>
 

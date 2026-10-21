@@ -657,3 +657,105 @@ describe('[T09][HH-SCH-05] preferences and pending items never become a booking'
     expect(tab.offers ?? []).toEqual([])
   })
 })
+
+describe('[HH-SCH-06][HH-STAFF-02][HH-STAFF-07] a disabled assignee is never confirmed (with TSK-0097)', () => {
+  it('[HH-SCH-06][HH-STAFF-02][HH-STAFF-07][T27][T38] windows held for a disabled worker are not selectable; a booking flagged for reassignment is not moved to them; others still confirm', async () => {
+    // A synthetic worker of this test only, with the fixture hours: disabling them changes no other test.
+    const eli = await withTx(t.db, async (tx) => {
+      const user = await createStaffUser(tx, {
+        email: 'eli-crew-confirmation@example.test',
+        displayName: 'Synthetic eli',
+        locale: 'en',
+        role: 'worker',
+        issuedBy: 'test',
+      })
+      await sql`UPDATE identity.staff_users SET status = 'active', activated_at = now() WHERE id = ${user.id}`.execute(
+        tx,
+      )
+      return user.id
+    })
+    const hours = await staffWrite('owner', 'PUT', `/api/v1/staff/workers/${eli}/working-hours`, { periods: WEEK }, 0)
+    expect(hours.statusCode, hours.body).toBe(200)
+    // One confirmed Estimate visit of eli, and the windows of another project's visit held for eli.
+    const bookedProject = await siteVisitProject()
+    const planned = await planVisit(bookedProject, 'site_estimate', day(21))
+    const booked = await staffWrite(
+      'office',
+      'POST',
+      `/api/v1/staff/visits/${planned.id}/confirm`,
+      { workerIds: [eli] },
+      planned.version,
+    )
+    expect(booked.statusCode, booked.body).toBe(200)
+    const bookedView = await visitOf(bookedProject.projectId, planned.id)
+    const offeredProject = await siteVisitProject()
+    const offered = await planVisit(offeredProject, 'site_estimate', day(22))
+    const offer = await staffWrite(
+      'office',
+      'POST',
+      `/api/v1/staff/visits/${offered.id}/offers`,
+      { windows: [win(day(22), '09:00', '10:00'), win(day(22), '13:00', '14:00')], workerIds: [eli] },
+      offered.version,
+    )
+    expect(offer.statusCode, offer.body).toBe(201)
+
+    // Offboarding (TSK-0097): both visits are flagged for reassignment, nothing is cancelled.
+    const disabled = await staffWrite('owner', 'POST', `/api/v1/staff/members/${eli}/disable`, {
+      reason: 'Synthetic: left the team',
+    })
+    expect(disabled.statusCode, disabled.body).toBe(200)
+    const flaggedItem = async (p: Project) => {
+      const res = await staffGet('office', `/api/v1/staff/queue?type=visit_flagged&reference=${p.reference}`)
+      expect(res.statusCode, res.body).toBe(200)
+      return res.json<{ items: { subjectId: string; reason: string }[] }>().items
+    }
+    expect(await flaggedItem(bookedProject)).toEqual([
+      expect.objectContaining({ subjectId: planned.id, reason: 'assignee_disabled' }),
+    ])
+    expect(await flaggedItem(offeredProject)).toEqual([
+      expect.objectContaining({ subjectId: offered.id, reason: 'assignee_disabled' }),
+    ])
+
+    // The customer cannot select a window held for the disabled worker: the visit stays tentative and unbooked.
+    const selected = await select(offeredProject, 1, 1)
+    expect(selected.statusCode, selected.body).toBe(409)
+    expect(codes(selected.body)).toEqual([['body.position', 'WINDOW_UNAVAILABLE']])
+    const stillOffered = await visitOf(offeredProject.projectId, offered.id)
+    expect(stillOffered.state).toBe('tentative')
+    expect(stillOffered.assignments.filter((a) => a.kind === 'confirmed')).toEqual([])
+    expect((await customerGet(offeredProject, 'appointments')).appointments ?? []).toEqual([])
+
+    // The flagged booking is not moved while it is still the disabled worker's: it waits for its reassignment.
+    const moved = await staffWrite(
+      'office',
+      'POST',
+      `/api/v1/staff/visits/${planned.id}/window`,
+      win(day(21), '13:00', '14:00'),
+      bookedView.version,
+    )
+    expect(moved.statusCode, moved.body).toBe(409)
+    expect(codes(moved.body)).toContainEqual([`workers.${eli}`, 'WORKER_NOT_ACTIVE'])
+    expect(await visitOf(bookedProject.projectId, planned.id)).toMatchObject({
+      state: 'confirmed',
+      version: bookedView.version,
+      windowVersion: bookedView.windowVersion,
+    })
+    expect(await flaggedItem(bookedProject)).toHaveLength(1)
+
+    // The visit's own preconditions all hold (the team is chosen when confirming): it is not confirmed to the
+    // disabled worker, and it is to an active one.
+    const next = await planVisit(bookedProject, 'site_estimate', day(23))
+    expect(next.confirmationBlockers).toEqual([])
+    const toEli = await staffWrite(
+      'office',
+      'POST',
+      `/api/v1/staff/visits/${next.id}/confirm`,
+      { workerIds: [eli] },
+      next.version,
+    )
+    expect(toEli.statusCode, toEli.body).toBe(409)
+    expect(codes(toEli.body)).toContainEqual([`workers.${eli}`, 'WORKER_NOT_ACTIVE'])
+    expect((await visitOf(bookedProject.projectId, next.id)).state).toBe('tentative')
+    expect((await confirm('office', next, 'cal')).statusCode).toBe(200)
+  })
+})

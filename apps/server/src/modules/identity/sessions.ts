@@ -114,6 +114,36 @@ export async function revokeSession(tx: Tx, sessionId: string, reason: 'sign_out
     .execute()
 }
 
+const accountKey = (staffUserId: string) => `identity.staff_user:${staffUserId}`
+
+/**
+ * TSK-0097 (HH-STAFF-02): an account's in-flight business writes hold this shared lock until they commit; disabling
+ * the account or revoking its sessions takes it exclusively, so it waits for those writes and every later write sees
+ * the change. Advisory, so it never meets the row locks the writes themselves take.
+ */
+export async function lockAccountWrites(tx: Tx, staffUserId: string): Promise<void> {
+  await sql`SELECT pg_advisory_xact_lock(hashtextextended(${accountKey(staffUserId)}, 0))`.execute(tx)
+}
+
+/**
+ * Inside a business write's transaction: the account is still active and the session still live (not revoked), checked
+ * after taking the account's shared write lock (lockAccountWrites), so the answer holds until the write commits.
+ */
+export async function sessionStillLive(tx: Tx, staffUserId: string, sessionId: string): Promise<boolean> {
+  await sql`SELECT pg_advisory_xact_lock_shared(hashtextextended(${accountKey(staffUserId)}, 0))`.execute(tx)
+  const row = await tx
+    .selectFrom('identity.staff_sessions as s')
+    .innerJoin('identity.staff_users as u', 'u.id', 's.staff_user_id')
+    .select('s.id')
+    .where('s.id', '=', sessionId)
+    .where('u.id', '=', staffUserId)
+    .where('u.status', '=', 'active')
+    .where('s.revoked_at', 'is', null)
+    .where('s.state', '=', 'complete')
+    .executeTakeFirst()
+  return row !== undefined
+}
+
 /** Revokes every live session of a staff user; returns how many. */
 export async function revokeAllSessions(
   tx: Tx,
@@ -121,6 +151,7 @@ export async function revokeAllSessions(
   reason: 'password_set' | 'disabled' | 'revoked_by_owner' | 'revoked_all' | 'mfa_changed',
   except?: string,
 ): Promise<number> {
+  await lockAccountWrites(tx, staffUserId)
   let q = tx
     .updateTable('identity.staff_sessions')
     .set({ revoked_at: sql<Date>`now()`, revoke_reason: reason })

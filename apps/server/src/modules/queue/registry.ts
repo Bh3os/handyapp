@@ -33,6 +33,8 @@ export const QUEUE_ACTIONS = [
   'link_message',
   'open_conversation',
   'review_deposit',
+  // TSK-0097: reassign a visit flagged by an availability change.
+  'reassign_visit',
 ] as const
 export type QueueAction = (typeof QUEUE_ACTIONS)[number]
 
@@ -263,6 +265,21 @@ export const QUEUE_ITEM_TYPES = [
     reasons: ['deposit_due', 'deposit_check_pending'],
     action: 'review_deposit',
     screen: 'payments',
+  },
+  // Appointments flagged by an availability change (HH-OPS-01 "upcoming assignments of a disabled account, to
+  // reassign; appointments flagged by an availability change", HH-STAFF-02, HH-STAFF-07, TSK-0097): one item per visit,
+  // opened, updated and resolved by the database in the same transaction as the flag and as whatever clears it
+  // (migration 0054, ops.sync_visit_flagged_item). Seen by the roles that reassign visits; band (today_change on the
+  // visit's own date) and due time (the start of the reserved range) are PROPOSED.
+  {
+    id: 'visit_flagged',
+    section: 'queue',
+    subject: 'visit',
+    band: 'time_sensitive',
+    view: 'visit.reassign',
+    reasons: ['assignee_disabled', 'availability_changed', 'equipment_retired'],
+    action: 'reassign_visit',
+    screen: 'schedule',
   },
   // Owner Decisions (HH-OPS-01 "Owner, additionally"): each decision is owner-only in the matrix.
   {

@@ -318,7 +318,10 @@ async function runRoute(
             bodyHash: requestHash({ params: req.params, query: req.query, body: req.body }),
           }
         : undefined
+    const revalidate = route.permission === AUTHENTICATION ? undefined : req.apiActor?.revalidate
     result = await withTx(db, async (tx) => {
+      // TSK-0097 (HH-STAFF-02): a staff account disabled, or a session revoked, while this request was on its way.
+      if (revalidate && !(await revalidate(tx))) throw new ApiError('UNAUTHENTICATED')
       if (scope) {
         const stored = await claim(tx, scope, route.idempotencyConflict)
         if (stored) return { status: stored.status, body: stored.body, replayed: true }
