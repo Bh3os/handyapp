@@ -6,8 +6,8 @@
 //   concerns and, for a missing value, the configuration key and the open fact or question that explains it. A draft
 //   can always be saved whatever readiness says (HH-EST-05).
 // - Values the version needs from configuration: the issuer name (business.name), the validity period
-//   (estimate.validity), the estimate terms (legal.estimate_terms, HH-EST-13), the tax mode the totals pin (tax.mode)
-//   and the deposit rule (deposit.rule). While one is NOT CONFIGURED the version is not ready, with that key as the
+//   (estimate.validity) and the business time zone its days are counted in (business.timezone, TSK-0055), the estimate
+//   terms (legal.estimate_terms, HH-EST-13), the tax mode the totals pin (tax.mode) and the deposit rule (deposit.rule). While one is NOT CONFIGURED the version is not ready, with that key as the
 //   reason; no default is ever put in its place. The mailing address is not one of them: while it is missing the
 //   address line is omitted and nothing is blocked (FACT-BUSINESS-ADDRESS, HH-EST-05).
 // - The stored totals must be exactly what the active configuration gives for the stored lines: a policy that changed
@@ -26,13 +26,17 @@ import { EDITABLE_STATES, readinessProblems, type ReadinessProblem } from './mod
 import { currentDocuments } from './documents.js'
 import { computeVersionTotals, discountFor, pricingPolicies } from './pricing.js'
 
-/** The configuration a version cannot be published without (PROPOSED list, from HH-EST-01 and migration 0026). */
+/**
+ * The configuration a version cannot be published without (PROPOSED list, from HH-EST-01 and migration 0026). The
+ * business time zone (TSK-0055): the validity days are counted in it (FACT-ESTIMATE-VALIDITY).
+ */
 export const PUBLISH_REQUIRED_KEYS = [
   'business.name',
   'estimate.validity',
   'legal.estimate_terms',
   'tax.mode',
   'deposit.rule',
+  'business.timezone',
 ] as const satisfies readonly ConfigKey[]
 
 export type PublishProblemCode =

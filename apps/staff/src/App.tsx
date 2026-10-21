@@ -6,6 +6,7 @@ import { staffTranslator, type StaffKey, type StaffLocale } from '@handyhub/i18n
 import { Button, Card, Field, StateView } from '@handyhub/ui'
 import { useEffect, useState, type FormEvent } from 'react'
 import { call, setCsrfToken, type ApiErrorBody, type Fetch } from './api'
+import { EstimatePublishingSetting } from './EstimateLifecycle'
 import { EstimateBuilder, EstimatesScreen } from './Estimates'
 import { QueueHome } from './Queue'
 import { RequestRecord } from './Record'
@@ -217,7 +218,10 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
           ) : route.page === 'screen' && shown === 'health' && allowed ? (
             <HealthScreen t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
           ) : route.page === 'screen' && shown === 'settings' && allowed ? (
-            <ConfigurationScreen t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
+            <>
+              <ConfigurationScreen t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
+              <EstimatePublishingSetting t={t} fetchImpl={doFetch} />
+            </>
           ) : shown === 'requests' && allowed && route.page === 'screen' ? (
             <RequestsScreen t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
           ) : shown === 'estimates' && allowed && route.page === 'screen' ? (

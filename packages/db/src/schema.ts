@@ -203,6 +203,10 @@ export interface EstimatingEstimateVersionsTable {
   agreement_document_id: string | null
   agreement_confirmed_by: string | null
   agreement_confirmed_at: Timestamp | null
+  revised_from_id: string | null
+  customer_pdf_object_key: string | null
+  customer_pdf_sha256: string | null
+  customer_pdf_byte_size: number | null
 }
 
 export interface EstimatingEstimatesTable {

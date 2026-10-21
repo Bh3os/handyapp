@@ -12,7 +12,8 @@
 //   current version and the person's change is only listed beside it, to enter again where it still applies.
 // - The issuer name, mailing address, validity and terms come from configuration. A missing value is shown as NOT
 //   CONFIGURED, never filled in; the mailing-address line is left out while it is missing. The publish readiness lists
-//   every reason the version cannot be published yet. Publishing itself is a later step (TSK-0055).
+//   every reason the version cannot be published yet. Publishing, the lifecycle actions and the version history are
+//   the lifecycle panel (EstimateLifecycle.tsx, TSK-0055).
 // - Upload an Estimate (TSK-0054; HH-EST-11): the estimator uploads the PDF or Word document, opens it, enters the
 //   amounts the document states as lines (the same record and server totals as a written estimate; nothing is read
 //   from the document) and ticks that the document and the amounts agree. A Word document needs the PDF of the same
@@ -24,6 +25,7 @@ import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 import { call, idempotencyKey, upload, type ApiErrorBody, type Fetch } from './api'
 import { ConflictBanner, conflictOf, type Conflict } from './ConflictBanner'
+import { EstimateLifecycle, type Lifecycle } from './EstimateLifecycle'
 import { codeLabel } from './Requests'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
@@ -139,6 +141,8 @@ export type BuilderView = {
   } | null
   documents: DocumentsView | null
   canEdit: boolean
+  /** TSK-0055: what publishing pinned, the lifecycle actions and the version history. */
+  lifecycle?: Lifecycle
 }
 
 const usd = (c: number) => formatUsd(cents(c))
@@ -1221,6 +1225,14 @@ export function EstimateBuilder({ t, fetchImpl, id, go, href }: { t: TD; fetchIm
         )}
         <p className="staff-request__hint">{t('estimate.readinessHint')}</p>
       </Panel>
+      <EstimateLifecycle
+        t={t}
+        fetchImpl={fetchImpl}
+        view={view}
+        onView={(next) => (show(next), setSaved(false))}
+        go={go}
+        href={href}
+      />
       <p>
         <a href={href('/estimates')} onClick={linkClick(go, '/estimates')}>
           {t('estimate.back')}
