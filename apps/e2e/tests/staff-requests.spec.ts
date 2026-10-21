@@ -69,7 +69,7 @@ async function submitRequest(request: APIRequestContext, description: string): P
 
 /** Opens a request from the requests list, by reference. */
 async function openFromList(page: Page, reference: string) {
-  await page.getByRole('navigation').getByRole('link', { name: 'Requests' }).click()
+  await page.getByRole('navigation').getByRole('link', { name: 'Requests', exact: true }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Requests' })).toBeVisible()
   const item = page.getByRole('listitem', { name: `Request ${reference}` })
   await item.getByRole('link', { name: 'Open request' }).click()

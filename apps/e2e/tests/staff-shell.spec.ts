@@ -86,6 +86,7 @@ test.describe('staff app shell (TSK-0040, HH-STAFF-06, HH-OPS-04)', () => {
       'Staff',
       'Audit log',
       'Retention reviews',
+      'Privacy requests',
       'Owner Dashboard',
       'System health',
       'Configuration',

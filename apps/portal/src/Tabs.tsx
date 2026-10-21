@@ -3,17 +3,18 @@
 //   shown (useLive's `active`): a tab that is not on screen never polls.
 // - Each says truthfully what it holds today. Messages: the conversation is not shown here yet (it is never claimed
 //   empty). Documents (TSK-0056, HH-PORT-10): the estimate versions the customer received, each with its status, each
-//   opening the estimate view; nothing yet, with what will appear, while there is none. Appointments, Payments:
+//   opening the estimate view; nothing yet, with what will appear, while there is none. TSK-0100 (HH-PRIV-06): each
+//   version offers its download, a short-lived link the server issues only when asked. Appointments, Payments:
 //   nothing exists yet. Photos: how many photos the project has by state, the same counts as the receipt, and that
 //   viewing them here is not available yet.
 // - A tab once opened stays mounted while another is shown, so anything typed in it survives a tab switch.
 // English only, from the customer catalog; the wording no decision gives is PROPOSED (OQ-PORTAL-WORDING).
 import type { CustomerKey } from '@handyhub/i18n'
-import { StateView } from '@handyhub/ui'
+import { Button, StateView } from '@handyhub/ui'
 import { useEffect, useState } from 'react'
 import { cents, formatUsd } from '@handyhub/money'
 import { StatusBadge } from '@handyhub/ui'
-import { portalApi, type EstimateListItem, type Fetch, type TabData, type WorkspaceTab } from './api'
+import { portalApi, type Download, type EstimateListItem, type Fetch, type TabData, type WorkspaceTab } from './api'
 import { day, estimatePath, EstimateView, STATUS_LABEL, STATUS_TONE } from './Estimate'
 import { t } from './labels'
 import { useLive } from './live'
@@ -45,14 +46,58 @@ function Empty({ title, text, more }: { title: CustomerKey; text: CustomerKey; m
   )
 }
 
+const DOWNLOAD_LABEL: Record<Download['kind'], CustomerKey> = {
+  estimate_pdf: 'portal.documents.download.estimate_pdf',
+  estimate_document: 'portal.documents.download.estimate_document',
+}
+const kb = (bytes: number) => Math.max(1, Math.round(bytes / 1024))
+
+/** The download links of one version: asked for when the customer wants them, valid for a few minutes. */
+function Downloads({ reference, e, fetchImpl }: { reference: string; e: EstimateListItem; fetchImpl: Fetch }) {
+  const [links, setLinks] = useState<Download[] | null>(null)
+  const [pending, setPending] = useState(false)
+  const [failed, setFailed] = useState(false)
+  async function load() {
+    setPending(true)
+    setFailed(false)
+    const r = await portalApi.downloads(fetchImpl, { reference, number: e.number, version: e.version })
+    setPending(false)
+    if (!r.ok) return setFailed(true)
+    setLinks(r.data)
+  }
+  if (links)
+    return (
+      <ul className="portal-downloads">
+        {links.map((d) => (
+          <li key={d.kind}>
+            <a href={d.url} target="_blank" rel="noopener noreferrer" download>
+              {t(DOWNLOAD_LABEL[d.kind], { size: kb(d.byteSize) })}
+            </a>
+          </li>
+        ))}
+        <li className="hh-small hh-muted">{t('portal.documents.download.expires')}</li>
+      </ul>
+    )
+  return (
+    <>
+      <Button variant="secondary" pending={pending} onClick={() => void load()}>
+        {t('portal.documents.download.get', { number: e.number, version: e.version })}
+      </Button>
+      {failed ? <StateView kind="error" title={t('portal.documents.download.failed')} /> : null}
+    </>
+  )
+}
+
 function Estimates({
   reference,
   estimates,
   onNavigate,
+  fetchImpl,
 }: {
   reference: string
   estimates: EstimateListItem[]
   onNavigate?: ((path: string) => void) | undefined
+  fetchImpl: Fetch
 }) {
   return (
     <>
@@ -80,6 +125,7 @@ function Estimates({
                 {e.validUntil ? ` · ${t('portal.documents.estimate.validUntil', { date: day(e.validUntil) })}` : ''}
                 {` · ${t('portal.documents.estimate.total', { total: formatUsd(cents(e.totalCents)) })}`}
               </p>
+              <Downloads reference={reference} e={e} fetchImpl={fetchImpl} />
             </li>
           )
         })}
@@ -89,13 +135,26 @@ function Estimates({
   )
 }
 
-function Content({ data, onNavigate }: { data: TabData; onNavigate?: ((path: string) => void) | undefined }) {
+function Content({
+  data,
+  onNavigate,
+  fetchImpl,
+}: {
+  data: TabData
+  onNavigate?: ((path: string) => void) | undefined
+  fetchImpl: Fetch
+}) {
   switch (data.tab) {
     case 'messages':
       return <Empty title="portal.messages.notShown.title" text="portal.messages.notShown.text" />
     case 'documents':
       return data.state === 'listed' ? (
-        <Estimates reference={data.reference} estimates={data.estimates} onNavigate={onNavigate} />
+        <Estimates
+          reference={data.reference}
+          estimates={data.estimates}
+          onNavigate={onNavigate}
+          fetchImpl={fetchImpl}
+        />
       ) : (
         <Empty title="portal.documents.none.title" text="portal.documents.none.text" />
       )
@@ -160,7 +219,7 @@ function TabRead({
             className={live.stale ? 'portal-section portal-section--stale' : 'portal-section'}
             data-stale={live.stale || undefined}
           >
-            <Content data={live.data} onNavigate={onNavigate} />
+            <Content data={live.data} onNavigate={onNavigate} fetchImpl={fetchImpl} />
           </div>
         </>
       )}

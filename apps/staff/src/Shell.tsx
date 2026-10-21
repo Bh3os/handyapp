@@ -23,6 +23,7 @@ export const NAV_LABELS = {
   staff: 'nav.staff',
   audit: 'nav.audit',
   retention: 'nav.retention',
+  privacy: 'nav.privacy',
   dashboard: 'nav.dashboard',
   health: 'nav.health',
   settings: 'nav.settings',

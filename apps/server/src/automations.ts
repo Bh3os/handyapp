@@ -15,6 +15,7 @@ import { responseClockAutomation } from './modules/requests/response-clock.js'
 import { accessLinkAutomation } from './modules/access/link-message.js'
 import { contactChangedNoticeAutomation } from './modules/accounts/notice.js'
 import { retentionReviewAutomation } from './modules/retention/index.js'
+import { objectErasureAutomation } from './modules/privacy/log.js'
 import type { CodeKeySettings } from './modules/identity/index.js'
 import type { Automation } from './platform/automation.js'
 import type { Providers } from './providers/index.js'
@@ -62,5 +63,7 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     contactChangedNoticeAutomation({ providers: { email: deps.providers.email, sms: null } }),
     // TSK-0099: the daily retention scan opens Owner deletion-review entries; it never deletes anything.
     retentionReviewAutomation(),
+    // TSK-0100: the stored files of a record the Owner deleted are removed after the deletion committed.
+    objectErasureAutomation(deps.providers.storage),
   ]
 }
