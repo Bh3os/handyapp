@@ -473,6 +473,12 @@
   font-weight: 600;
 }
 
+/* An amount from the last save that an edit has made out of date: the text says so, and it loses its emphasis. */
+.staff-estimate__amount[data-outdated] {
+  font-weight: 400;
+  font-style: italic;
+}
+
 .staff-estimate__internal {
   padding-top: var(--hh-space-2);
   border-top: var(--hh-hairline);

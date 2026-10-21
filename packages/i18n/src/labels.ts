@@ -316,6 +316,8 @@ export const LABEL_FAMILIES = {
     'TOTAL_NOT_POSITIVE',
     'VERSION_NOT_EDITABLE',
     'PROJECT_NOT_OPEN',
+    'AMOUNT_TOO_LARGE',
+    'TOTAL_TOO_LARGE',
   ],
   /** Potential hazards or restricted scope found at intake (TSK-0043, HH-LEAD-04; PROPOSED categories). */
   hazardCategory: ['hazardous_material', 'licensed_trade', 'structural', 'permit_licensing', 'other'],
