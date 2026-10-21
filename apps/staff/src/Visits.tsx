@@ -260,7 +260,11 @@ export function WindowFields({
 }
 
 /** The server's refusal as messages per field, plus those for no field (a worker or item named by the visit's team). */
-function errorsOf(t: T, error: ApiErrorBody, visit?: Visit): { fields: Record<string, string>; general: string[] } {
+export function errorsOf(
+  t: T,
+  error: ApiErrorBody,
+  visit?: Pick<Visit, 'assignments'>,
+): { fields: Record<string, string>; general: string[] } {
   const fields: Record<string, string> = {}
   const general: string[] = []
   const team = new Map(

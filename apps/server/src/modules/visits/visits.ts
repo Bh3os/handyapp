@@ -128,7 +128,7 @@ export function mayPlanVisits(actor: StaffActor): boolean {
 }
 
 /** Whether one of the actor's roles holds the scheduling action (the matrix row's cell has a rule for it). */
-function holds(actor: StaffActor, action: 'visit.confirm' | 'visit.reschedule'): boolean {
+export function holds(actor: StaffActor, action: 'visit.confirm' | 'visit.reschedule'): boolean {
   const row = rowFor(action)
   return actor.roles.some((role) => row?.cells[role].rules[action] !== undefined)
 }
@@ -191,7 +191,7 @@ export function businessZone(config: Config): { zone: string; proposed: boolean 
   return { zone: z.value.zone, proposed: z.proposed }
 }
 
-const visitHoursOf = (config: Config) => {
+export const visitHoursOf = (config: Config) => {
   const h = config.get('contact.hours')
   return h.state === 'CONFIGURED' ? { open: h.value.open, close: h.value.close } : null
 }
@@ -578,7 +578,7 @@ export async function confirmVisit(
 
 type StaffRef = { id: string; name: string | null }
 
-async function staffNames(db: Reader, ids: string[]): Promise<Map<string, StaffRef>> {
+export async function staffNames(db: Reader, ids: string[]): Promise<Map<string, StaffRef>> {
   const wanted = [...new Set(ids)]
   if (wanted.length === 0) return new Map()
   const rows = await db
@@ -590,7 +590,7 @@ async function staffNames(db: Reader, ids: string[]): Promise<Map<string, StaffR
 }
 
 /** One window as the staff views show it: local fields with the zone, the offsets as text and the UTC instants. */
-function windowView(w: LocalWindow, hours: { open: string; close: string } | null, businessTz: string | null) {
+export function windowView(w: LocalWindow, hours: { open: string; close: string } | null, businessTz: string | null) {
   return {
     localDate: w.date,
     start: w.start,
@@ -624,7 +624,7 @@ export function windowSummary(w: LocalWindow) {
  * precondition. The capacity of the team, which staff choose when confirming, is checked then. Read in a transaction
  * of its own (the deposit gate share-locks the requirement) unless the caller is already in one.
  */
-async function confirmationBlockers(
+export async function confirmationBlockers(
   db: Reader,
   v: Parameters<typeof storedWindow>[0] & {
     id: string
@@ -648,6 +648,53 @@ async function confirmationBlockers(
   if (v.required_workers === null) out.push(field('visit.requiredWorkers', 'WORKERS_NOT_ENTERED'))
   out.push(...(await withTx(db, (tx) => confirmationPreconditions(tx, v, gates))))
   return out
+}
+
+/** What the board and the project's visits offer on one visit: the same rules in both places (TSK-0065). */
+export type ActionContext = {
+  readonly actor: StaffActor
+  /** business.timezone is configured. */
+  readonly business: boolean
+  /** contact.hours (the daily visit hours) is configured. */
+  readonly hours: boolean
+  /** scheduling.window_offers is configured. */
+  readonly offerPolicy: boolean
+  /** The property's zone is a known IANA zone. */
+  readonly zoneKnown: boolean
+}
+
+/**
+ * The actions offered on a visit: Change the window (a reschedule for a confirmed visit), Confirm and Offer windows.
+ * Offered only; the server decides again on every write (the same preconditions, deposit gate, holds and capacity).
+ */
+export function visitActions(
+  c: ActionContext,
+  v: { state: string; purpose: string; expected_duration_minutes: number | null; required_workers: number | null },
+  openOffer: boolean,
+  blockers: readonly FieldError[],
+) {
+  const canPlan = mayPlanVisits(c.actor) && c.business && c.zoneKnown
+  const work = mayPlanWorkVisits(c.actor)
+  const canConfirm = holds(c.actor, 'visit.confirm') && c.business && c.hours
+  const facts = v.expected_duration_minutes !== null && v.required_workers !== null
+  return {
+    changeWindow:
+      canPlan &&
+      canChangeWindow(v.state) &&
+      !openOffer &&
+      (v.purpose === 'site_estimate' || work) &&
+      (v.state !== 'confirmed' || holds(c.actor, 'visit.reschedule')),
+    confirm: canConfirm && v.state === 'tentative' && facts && blockers.length === 0 && !openOffer,
+    offerWindows:
+      canPlan &&
+      v.state === 'tentative' &&
+      (v.purpose === 'site_estimate' || work) &&
+      c.hours &&
+      c.offerPolicy &&
+      facts &&
+      !blockers.some((b) => b.field === 'approval' || b.field.startsWith('holds.')) &&
+      !openOffer,
+  }
 }
 
 /**
@@ -774,9 +821,15 @@ export async function projectVisits(
       return null
     }
   })()
+  const actionContext: ActionContext = {
+    actor,
+    business: business !== null,
+    hours: hours !== null,
+    offerPolicy: offerPolicy !== null,
+    zoneKnown: isTimeZone(project.time_zone),
+  }
   const canPlan = mayPlanVisits(actor) && business !== null && isTimeZone(project.time_zone)
   const work = mayPlanWorkVisits(actor)
-  const canConfirm = holds(actor, 'visit.confirm') && business !== null && hours !== null
   const blockers = new Map<string, FieldError[]>()
   for (const v of visits)
     if (v.state === 'tentative') blockers.set(v.id, await confirmationBlockers(db, v, hours, businessTz, gates, now))
@@ -860,32 +913,12 @@ export async function projectVisits(
           setAt: new Date(h.set_at).toISOString(),
           reason: h.reason,
         })),
-      actions: {
-        changeWindow:
-          canPlan &&
-          canChangeWindow(v.state) &&
-          !(offers.get(v.id) ?? []).some((o) => o.state === 'open') &&
-          (v.purpose === 'site_estimate' || work) &&
-          business !== null &&
-          (v.state !== 'confirmed' || holds(actor, 'visit.reschedule')),
-        confirm:
-          canConfirm &&
-          v.state === 'tentative' &&
-          v.expected_duration_minutes !== null &&
-          v.required_workers !== null &&
-          (blockers.get(v.id) ?? []).length === 0 &&
-          !(offers.get(v.id) ?? []).some((o) => o.state === 'open'),
-        offerWindows:
-          canPlan &&
-          v.state === 'tentative' &&
-          (v.purpose === 'site_estimate' || work) &&
-          hours !== null &&
-          offerPolicy !== null &&
-          v.expected_duration_minutes !== null &&
-          v.required_workers !== null &&
-          !(blockers.get(v.id) ?? []).some((b) => b.field === 'approval' || b.field.startsWith('holds.')) &&
-          !(offers.get(v.id) ?? []).some((o) => o.state === 'open'),
-      },
+      actions: visitActions(
+        actionContext,
+        v,
+        (offers.get(v.id) ?? []).some((o) => o.state === 'open'),
+        blockers.get(v.id) ?? [],
+      ),
     })),
   }
 }

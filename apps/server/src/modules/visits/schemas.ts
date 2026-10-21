@@ -1,6 +1,7 @@
 // JSON schemas of the staff visit routes (TSK-0061; HH-API-01, HH-ARC-04). Input objects refuse unknown fields;
 // response objects list every field.
 import { VISIT_PURPOSES, VISIT_STATES } from '@handyhub/domain'
+import { BOARD_VIEWS } from './board.js'
 import { OFFER_LIMITS } from './offers.js'
 import { CONFIRM_LIMITS, VISIT_LIMITS } from './visits.js'
 
@@ -482,5 +483,228 @@ export const PROJECT_VISITS = {
       properties: { planEstimateVisit: { type: 'boolean' }, planWorkVisit: { type: 'boolean' } },
     },
     visits: { type: 'array', items: VISIT },
+  },
+} as const
+
+// TSK-0065: the scheduling board (HH-SCH-13). A day or a week of the business zone, or the date of one visit to open.
+export const BOARD_QUERY = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    date: DATE,
+    view: { type: 'string', enum: [...BOARD_VIEWS] },
+    visitId: UUID,
+  },
+} as const
+
+const BLOCKER = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['field', 'code'],
+  properties: { field: { type: 'string' }, code: { type: 'string' } },
+} as const
+
+const BOARD_VISIT = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'id',
+    'projectId',
+    'projectReference',
+    'requestId',
+    'purpose',
+    'state',
+    'version',
+    'window',
+    'windowVersion',
+    'expectedDurationMinutes',
+    'preparationBufferMinutes',
+    'travelBufferMinutes',
+    'requiredWorkers',
+    'equipment',
+    'reservedRange',
+    'team',
+    'items',
+    'openOffer',
+    'confirmationBlockers',
+    'actions',
+  ],
+  properties: {
+    id: { type: 'string' },
+    projectId: { type: 'string' },
+    projectReference: { type: 'string' },
+    requestId: NULLABLE_STRING,
+    purpose: { type: 'string', enum: [...VISIT_PURPOSES] },
+    state: { type: 'string', enum: [...VISIT_STATES] },
+    version: { type: 'integer' },
+    window: WINDOW,
+    windowVersion: { type: 'integer' },
+    expectedDurationMinutes: NULLABLE_INT,
+    preparationBufferMinutes: NULLABLE_INT,
+    travelBufferMinutes: NULLABLE_INT,
+    requiredWorkers: NULLABLE_INT,
+    equipment: { type: 'array', items: { type: 'string' } },
+    reservedRange: { anyOf: [SPAN, { type: 'null' }] },
+    team: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['worker', 'role', 'kind', 'startsAt', 'endsAt', 'holdExpiresAt', 'flags'],
+        properties: {
+          worker: STAFF_REF,
+          role: NULLABLE_STRING,
+          kind: { type: 'string', enum: ['hold', 'confirmed'] },
+          startsAt: { type: 'string', format: 'date-time' },
+          endsAt: { type: 'string', format: 'date-time' },
+          holdExpiresAt: { type: ['string', 'null'] },
+          flags: { type: 'array', items: { type: 'string' } },
+        },
+      },
+    },
+    items: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['id', 'name', 'kind'],
+        properties: {
+          id: { type: 'string' },
+          name: { type: 'string' },
+          kind: { type: 'string', enum: ['hold', 'confirmed'] },
+        },
+      },
+    },
+    openOffer: { type: 'boolean' },
+    confirmationBlockers: { anyOf: [{ type: 'array', items: BLOCKER }, { type: 'null' }] },
+    actions: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['changeWindow', 'confirm', 'offerWindows'],
+      properties: {
+        changeWindow: { type: 'boolean' },
+        confirm: { type: 'boolean' },
+        offerWindows: { type: 'boolean' },
+      },
+    },
+  },
+} as const
+
+const BOARD_ENTRY = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['reservationId', 'visitId', 'kind', 'role', 'startsAt', 'endsAt', 'holdExpiresAt', 'flags'],
+  properties: {
+    reservationId: { type: 'string' },
+    visitId: { type: 'string' },
+    kind: { type: 'string', enum: ['hold', 'confirmed'] },
+    role: NULLABLE_STRING,
+    startsAt: { type: 'string', format: 'date-time' },
+    endsAt: { type: 'string', format: 'date-time' },
+    holdExpiresAt: { type: ['string', 'null'] },
+    flags: { type: 'array', items: { type: 'string' } },
+  },
+} as const
+
+export const SCHEDULE_BOARD = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'view',
+    'date',
+    'days',
+    'previous',
+    'next',
+    'timeZone',
+    'timeZoneProposed',
+    'visitHours',
+    'windowOffers',
+    'focusVisitId',
+    'workers',
+    'unassigned',
+    'visits',
+  ],
+  properties: {
+    view: { type: 'string', enum: [...BOARD_VIEWS] },
+    date: { type: 'string' },
+    days: { type: 'array', items: { type: 'string' } },
+    previous: { type: 'string' },
+    next: { type: 'string' },
+    timeZone: { type: 'string' },
+    timeZoneProposed: { type: 'boolean' },
+    visitHours: {
+      anyOf: [
+        {
+          type: 'object',
+          additionalProperties: false,
+          required: ['open', 'close'],
+          properties: { open: { type: 'string' }, close: { type: 'string' } },
+        },
+        { type: 'null' },
+      ],
+    },
+    windowOffers: {
+      anyOf: [
+        {
+          type: 'object',
+          additionalProperties: false,
+          required: ['holdHours', 'minWindows', 'maxWindows', 'proposed'],
+          properties: {
+            holdHours: { type: 'integer' },
+            minWindows: { type: 'integer' },
+            maxWindows: { type: 'integer' },
+            proposed: { type: 'boolean' },
+          },
+        },
+        { type: 'null' },
+      ],
+    },
+    focusVisitId: NULLABLE_STRING,
+    workers: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['id', 'name', 'eligibleFor', 'scheduleVersion', 'days'],
+        properties: {
+          id: { type: 'string' },
+          name: NULLABLE_STRING,
+          eligibleFor: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['estimateVisits', 'workVisits'],
+            properties: { estimateVisits: { type: 'boolean' }, workVisits: { type: 'boolean' } },
+          },
+          scheduleVersion: NULLABLE_INT,
+          days: {
+            type: 'array',
+            items: {
+              type: 'object',
+              additionalProperties: false,
+              required: ['date', 'working', 'timeOff', 'free', 'workingMinutes', 'freeMinutes', 'entries'],
+              properties: {
+                date: { type: 'string' },
+                working: { type: 'array', items: SPAN },
+                timeOff: { type: 'array', items: SPAN },
+                free: { type: 'array', items: SPAN },
+                workingMinutes: { type: 'integer' },
+                freeMinutes: { type: 'integer' },
+                entries: { type: 'array', items: BOARD_ENTRY },
+              },
+            },
+          },
+        },
+      },
+    },
+    unassigned: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['date', 'visitIds'],
+        properties: { date: { type: 'string' }, visitIds: { type: 'array', items: { type: 'string' } } },
+      },
+    },
+    visits: { type: 'array', items: BOARD_VISIT },
   },
 } as const

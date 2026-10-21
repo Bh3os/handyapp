@@ -82,7 +82,7 @@ const scheduleView = (s: Schedule | undefined) =>
       }
     : null
 
-const eligibility = (roles: readonly string[]) => ({
+export const eligibility = (roles: readonly string[]) => ({
   estimateVisits: roles.some((r) => (ESTIMATE_VISIT_ROLES as readonly string[]).includes(r)),
   workVisits: roles.some((r) => (WORK_VISIT_ROLES as readonly string[]).includes(r)),
 })
