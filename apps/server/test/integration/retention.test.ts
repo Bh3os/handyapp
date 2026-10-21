@@ -485,7 +485,11 @@ describe('the retention job opens review entries, never deletions (TSK-0099, HH-
     await expect(sql`DELETE FROM privacy.retention_reviews WHERE id = ${one.id}`.execute(t.db)).rejects.toThrow(
       /APPEND_ONLY|permission denied/,
     )
-    await expect(sql`TRUNCATE privacy.retention_reviews`.execute(t.db)).rejects.toThrow(/APPEND_ONLY|permission denied/)
+    // TSK-0100: the Owner's decisions and the deletion log reference the entries, so a truncate is refused before the
+    // append-only trigger is even reached.
+    await expect(sql`TRUNCATE privacy.retention_reviews`.execute(t.db)).rejects.toThrow(
+      /APPEND_ONLY|permission denied|cannot truncate/,
+    )
   })
 
   it('[HH-PRIV-01] the daily job runs the scan and schedules the next day; scheduling is idempotent', async () => {

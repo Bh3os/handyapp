@@ -10,7 +10,7 @@ import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
 import { pageSchema } from '../../api/pagination.js'
 import type { Automation } from '../../platform/automation.js'
 import { scheduleJob } from '../../platform/jobs.js'
-import { RETENTION_AUTOMATION, listReviewEntries, retentionOverview } from './reviews.js'
+import { ENTRY_STATES, RETENTION_AUTOMATION, listReviewEntries, retentionOverview } from './reviews.js'
 import { RETENTION_PROCESS, runRetentionScan, type ScanResult } from './scan.js'
 import { HOLD_CHECKS, PERIOD_CATEGORIES, RETENTION_CATEGORIES } from './schedule.js'
 
@@ -169,6 +169,7 @@ const ENTRY = {
     'holdsFound',
     'openedAt',
     'openedBy',
+    'status',
   ],
   properties: {
     id: { type: 'string' },
@@ -198,6 +199,18 @@ const ENTRY = {
     holdsFound: { type: 'boolean' },
     openedAt: { type: 'string', format: 'date-time' },
     openedBy: { type: 'string' },
+    // TSK-0100: the Owner's latest decision on the entry.
+    status: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['state', 'until', 'decidedAt', 'reason'],
+      properties: {
+        state: { type: 'string', enum: [...ENTRY_STATES] },
+        until: { type: ['string', 'null'], format: 'date-time' },
+        decidedAt: { type: ['string', 'null'], format: 'date-time' },
+        reason: { type: ['string', 'null'] },
+      },
+    },
   },
 } as const
 
@@ -231,19 +244,23 @@ export function retentionModule(): ApiModule {
       'period started and ended, the configuration version applied, and the hold checks (open holds on its ' +
       'project; complaints, warranties, disputes, claims, investigations, unfiled tax returns, legal and insurance ' +
       'holds are not recorded by the software yet and are listed as such). Read-only: the record is unchanged ' +
-      'until the Owner decides.',
+      'until the Owner decides. TSK-0100: each entry carries its status from the Owner’s latest decision (pending, ' +
+      'archived, kept longer until a time, deleted); `status` narrows the list to one.',
     pagination: true,
     schema: {
       querystring: {
         type: 'object',
         additionalProperties: false,
-        properties: { category: { type: 'string', enum: [...PERIOD_CATEGORIES] } },
+        properties: {
+          category: { type: 'string', enum: [...PERIOD_CATEGORIES] },
+          status: { type: 'string', enum: [...ENTRY_STATES] },
+        },
       },
       response: { 200: pageSchema(ENTRY) },
     },
     handler: async (ctx: ApiContext) => {
       const page = ctx.page as NonNullable<ApiContext['page']>
-      const q = ctx.req.query as { category?: string }
+      const q = ctx.req.query as { category?: string; status?: string }
       return { body: await listReviewEntries(ctx.db, q, page) }
     },
   }

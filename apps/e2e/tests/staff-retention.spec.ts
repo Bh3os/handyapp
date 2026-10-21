@@ -2,7 +2,8 @@
 // OWN-DEC-70, OWN-DEC-142). The spec records one synthetic audit entry dated eight years ago (the audit log accepts
 // new entries only, so it is inserted, never edited), runs the retention review once with the operations command, and
 // the Owner finds that entry in the deletion-review queue with its hold checks, while the entry itself is still in
-// the audit log. Nothing is deleted. The Owner account is created by whichever spec runs first; this one only sets
+// the audit log. Nothing is deleted. TSK-0100 (HH-PRIV-05): the entry opens the Delete confirmation, which says why
+// deletion is blocked (audit entries are append-only for every role) and archives it instead. The Owner account is created by whichever spec runs first; this one only sets
 // its password with a link. All data is synthetic (RULE-SYNTHETIC-DATA).
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
@@ -83,7 +84,7 @@ async function stillInAuditLog(seq: string): Promise<number> {
 test.describe('retention reviews (TSK-0099, HH-PRIV-01, HH-DATA-09)', () => {
   test.skip(!databaseUrl, 'needs E2E_DATABASE_URL (a fresh PostgreSQL 16 database)')
 
-  test('[HH-PRIV-01][HH-DATA-09][T74] an expired audit entry waits in the Owner review queue and is not deleted', async ({
+  test('[HH-PRIV-01][HH-DATA-09][T74][HH-PRIV-05] an expired audit entry waits in the Owner review queue and is archived, not deleted', async ({
     page,
   }) => {
     const seq = await oldAuditEntry()
@@ -126,8 +127,20 @@ test.describe('retention reviews (TSK-0099, HH-PRIV-01, HH-DATA-09)', () => {
     await expect(entry.getByText('7 years under retention.audit_log, version 1')).toBeVisible()
     await expect(entry.getByText('Not applicable')).toBeVisible()
     await expect(entry.getByText('Not recorded in the software: check before deciding')).toHaveCount(8)
-    await expect(entries.getByRole('button')).toHaveCount(0)
     await axe(page)
+
+    // TSK-0100: the confirmation names the entry and says why it cannot be deleted; Archive keeps it.
+    await entry.getByRole('button', { name: 'Delete, archive or keep…' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Are you sure you want to delete this entry?' })
+    await expect(dialog.getByText(`Audit entry: #${seq} ${ACTION}`)).toBeVisible()
+    await expect(dialog.getByText('Audit entries are append-only for every role.')).toBeVisible()
+    await expect(dialog.getByRole('button', { name: /^Confirm Delete/ })).toBeDisabled()
+    await axe(page)
+    await dialog.getByLabel('Reason (required)').fill('Synthetic e2e: audit entries are kept.')
+    await dialog.getByRole('button', { name: 'Archive instead' }).click()
+    await expect(dialog.getByText('Archived: the record is kept as it is.')).toBeVisible()
+    await dialog.getByRole('button', { name: 'Cancel' }).click()
+    await expect(entry.getByText('Archived', { exact: true })).toBeVisible()
 
     // Nothing was deleted: the entry is still in the append-only audit log.
     expect(await stillInAuditLog(seq)).toBe(1)

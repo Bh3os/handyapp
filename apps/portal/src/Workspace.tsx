@@ -242,6 +242,9 @@ export function Workspace({
             {[...live.data.services, ...(live.data.notSure ? [t('request.services.notSure')] : [])].join(', ')}
           </p>
           <p className="hh-small hh-muted">{t('access.project.sent', { date: when(live.data.submittedAt) })}</p>
+          <p className="portal-privacy-link">
+            <a href={`/portal/p/${encodeURIComponent(reference)}/privacy`}>{t('portal.privacy.link')}</a>
+          </p>
           <Tabs
             label={t('portal.tabs.label')}
             selectedId={tab}

@@ -27,6 +27,7 @@ import { staffModule } from './staff/index.js'
 import { systemModule, type SystemDeps } from './system/index.js'
 import { verificationModule } from './verification/index.js'
 import { retentionModule } from './retention/index.js'
+import { privacyModule } from './privacy/index.js'
 import { visitsModule } from './visits/index.js'
 import type { CodeKeySettings } from './identity/index.js'
 
@@ -107,6 +108,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     auditModule(),
     // TSK-0099: the retention schedule and the Owner's deletion-review queue (read-only; nothing deleted automatically).
     retentionModule(),
+    // TSK-0100: privacy requests, the Owner's Delete or Archive decisions, the deletion log and customer downloads.
+    privacyModule({ storage: deps.storage ?? null }),
   ]
 }
 
