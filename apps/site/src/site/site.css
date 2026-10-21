@@ -395,3 +395,105 @@
   align-items: center;
   min-height: var(--hh-target-dense);
 }
+
+/* Service area: the footer's county links and the Areas page (TSK-0023; HH-CUS-04). Same tokens, no redesign. */
+.hh-site-footer__areas {
+  display: grid;
+  gap: var(--hh-space-1);
+  margin: 0 0 var(--hh-space-3);
+  padding: 0;
+  list-style: none;
+}
+.hh-site-footer__areas a,
+.hh-site-footer__area-all a {
+  color: var(--hh-link);
+}
+.hh-site-footer__areas a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--hh-target);
+}
+
+.hh-areas {
+  padding-block: var(--hh-space-16);
+}
+.hh-areas__title {
+  margin-bottom: var(--hh-space-4);
+}
+.hh-areas__intro {
+  max-width: var(--hh-measure);
+  margin-bottom: var(--hh-space-8);
+}
+.hh-areas__check {
+  margin-bottom: var(--hh-space-12);
+}
+.hh-areas__state {
+  margin-bottom: var(--hh-space-12);
+}
+.hh-areas__state-title {
+  margin-bottom: var(--hh-space-6);
+}
+.hh-areas__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: var(--hh-space-6);
+}
+.hh-areas__county {
+  scroll-margin-top: var(--hh-space-6);
+}
+.hh-areas__county:target {
+  outline: 2px solid var(--hh-accent);
+  outline-offset: 2px;
+}
+.hh-areas__county-title {
+  margin-bottom: var(--hh-space-2);
+  font-size: var(--hh-text-h3);
+  overflow-wrap: anywhere;
+}
+.hh-areas__work-title {
+  margin: var(--hh-space-4) 0 var(--hh-space-2);
+  font-size: 1rem;
+  font-weight: 600;
+}
+.hh-areas__work {
+  display: grid;
+  gap: var(--hh-space-1);
+  margin: 0 0 var(--hh-space-4);
+  padding: 0;
+  list-style: none;
+}
+.hh-areas__work a,
+.hh-areas__zip {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--hh-target);
+  color: var(--hh-link);
+}
+.hh-areas__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hh-space-3) var(--hh-space-6);
+  margin: 0;
+}
+.hh-areas__outside {
+  max-width: var(--hh-measure);
+  padding-top: var(--hh-space-6);
+  border-top: var(--hh-hairline-gold);
+}
+
+.hh-error-page {
+  padding-block: var(--hh-space-16);
+}
+.hh-error-page__links {
+  display: grid;
+  gap: var(--hh-space-1);
+  padding: 0;
+  list-style: none;
+}
+.hh-error-page__links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--hh-target);
+  color: var(--hh-link);
+}

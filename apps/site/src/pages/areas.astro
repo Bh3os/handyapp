@@ -1,0 +1,74 @@
+---
+// Areas page (TSK-0023; HH-CUS-04, T08, FACT-SERVICE-AREA, OWN-DEC-37, OWN-DEC-48, OWN-DEC-57): the ZIP check, then one
+// anchored section per county of the service area, grouped by state. Each section names only the towns the fact names,
+// the kinds of work (the four service categories), the request action and the way to the ZIP check. No street, ZIP
+// code, landmark, neighbourhood, drive time or review (RULE-NO-INVENTED-FACTS). A county URL without its own page
+// answers 301 to its anchor here (the server). The page never changes coverage: the ZIP check answers from the
+// coverage configuration only (TSK-0022). English only (RULE-LANGUAGES).
+import { customerTranslator } from '@handyhub/i18n'
+import CoverageChecker from '../coverage/CoverageChecker.tsx'
+import '../coverage/coverage.css'
+import SiteLayout from '../layouts/SiteLayout.astro'
+import { areaByState, areaStructuredData } from '../site/areas'
+import { CATEGORIES, CATEGORY_LABEL } from '../site/services'
+
+const t = customerTranslator()
+const states = areaByState(t)
+const work = CATEGORIES.map((c) => ({ href: `/services#category-${c}`, label: t.t(CATEGORY_LABEL[c]) }))
+---
+
+<SiteLayout title={`${t.t('areas.title')} | HandyHub`}>
+  <script type="application/ld+json" is:inline set:html={areaStructuredData(t, 'HandyHub')} />
+  <section class="hh-areas" aria-labelledby="areas-title">
+    <div class="hh-site__wrap">
+      <h1 class="hh-display hh-areas__title" id="areas-title">{t.t('areas.title')}</h1>
+      <p class="hh-lead hh-areas__intro">{t.t('areas.intro')}</p>
+      <div class="hh-areas__check" id="zip-check">
+        <CoverageChecker client:load />
+      </div>
+      {
+        states.map((s) => (
+          <section class="hh-areas__state" aria-labelledby={`state-${s.state}`} data-state={s.state}>
+            <h2 class="hh-h2 hh-areas__state-title" id={`state-${s.state}`}>
+              {s.label}
+            </h2>
+            <div class="hh-areas__grid">
+              {s.counties.map((c) => (
+                <article
+                  class="hh-card hh-card--plate hh-areas__county"
+                  id={c.id}
+                  aria-labelledby={`${c.id}-title`}
+                  data-county={c.id}
+                >
+                  <h3 class="hh-areas__county-title" id={`${c.id}-title`}>
+                    {c.name}
+                  </h3>
+                  {c.towns ? <p data-testid="county-towns">{c.towns}</p> : null}
+                  <p class="hh-areas__work-title" id={`${c.id}-work`}>
+                    {t.t('areas.county.work')}
+                  </p>
+                  <ul class="hh-areas__work" aria-labelledby={`${c.id}-work`}>
+                    {work.map((w) => (
+                      <li>
+                        <a href={w.href}>{w.label}</a>
+                      </li>
+                    ))}
+                  </ul>
+                  <p class="hh-areas__actions">
+                    <a class="hh-button" href="/request">
+                      {t.t('site.cta.requestFree')}
+                    </a>
+                    <a class="hh-areas__zip" href="#zip-check">
+                      {t.t('areas.county.checkZip')}
+                    </a>
+                  </p>
+                </article>
+              ))}
+            </div>
+          </section>
+        ))
+      }
+      <p class="hh-areas__outside">{t.t('coverage.outcome.out_of_coverage')}</p>
+    </div>
+  </section>
+</SiteLayout>

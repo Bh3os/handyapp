@@ -411,5 +411,17 @@
   "legal.terms.contact.heading": "Contact us",
   "legal.terms.contact.intro": "For questions about these terms:",
   "legal.terms.changes.heading": "Changes to these terms",
-  "legal.terms.changes.text": "Each version of these terms has its own number and date. An approved estimate keeps the terms recorded with your approval."
+  "legal.terms.changes.text": "Each version of these terms has its own number and date. An approved estimate keeps the terms recorded with your approval.",
+  "areas.title": "Service area",
+  "areas.intro": "HandyHub serves 11 counties in the Louisville metro area in Kentucky and Southern Indiana.",
+  "areas.state.KY": "Kentucky",
+  "areas.state.IN": "Indiana",
+  "areas.county.name": "{county} County, {state}",
+  "areas.county.towns": "Includes {towns}.",
+  "areas.county.work": "Kinds of work",
+  "areas.county.checkZip": "Check your ZIP code above",
+  "site.footer.areaAll": "All 11 counties",
+  "notFound.title": "Page not found",
+  "notFound.links": "These pages may help:",
+  "serverError.title": "Something went wrong"
 }

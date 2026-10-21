@@ -5,7 +5,11 @@
 // placeholder and is never a link (OWN-DEC-47). Cards are named as taken with Square; no surcharge text exists.
 // TSK-0024 (HH-COM-12, OWN-DEC-147, FACT-LEGAL-ENTITY): links to the privacy policy, the SMS terms and the website
 // terms, and the brand and legal-entity sentence the legal pages use, the same name on every page.
+// The service area (TSK-0023; HH-CUS-04): each county links to its page when one is published, otherwise to its anchor
+// on the Areas page.
+import { AREAS_PATH } from '@handyhub/domain/areas'
 import { customerTranslator } from '@handyhub/i18n'
+import { areaByState } from '../site/areas'
 import { PAYMENT_ITEMS } from '../site/facts'
 import LegalLinks from './LegalLinks.astro'
 
@@ -22,6 +26,7 @@ const loading = t.t('site.footer.loading')
 const unavailable = t.t('error.UNAVAILABLE')
 const notConfigured = t.t('site.footer.notConfigured')
 const placeholder = t.t('site.footer.contactPlaceholder')
+const counties = areaByState(t).flatMap((s) => s.counties)
 ---
 
 <footer
@@ -49,6 +54,21 @@ const placeholder = t.t('site.footer.contactPlaceholder')
           <dd data-contact="email">{loading}</dd>
         </div>
       </dl>
+    </section>
+    <section aria-labelledby="site-footer-area">
+      <h2 class="hh-site-footer__heading" id="site-footer-area">{t.t('areas.title')}</h2>
+      <ul class="hh-site-footer__areas" data-testid="footer-areas">
+        {
+          counties.map((c) => (
+            <li>
+              <a href={c.href}>{c.name}</a>
+            </li>
+          ))
+        }
+      </ul>
+      <p class="hh-small hh-site-footer__area-all">
+        <a href={AREAS_PATH}>{t.t('site.footer.areaAll')}</a>
+      </p>
     </section>
     <section aria-labelledby="site-footer-payment">
       <h2 class="hh-site-footer__heading" id="site-footer-payment">{t.t('site.footer.paymentHeading')}</h2>

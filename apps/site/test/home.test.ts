@@ -38,9 +38,11 @@ const WHY = [
 ]
 
 describe('site shell (TSK-0020, HH-CUS-05, RULE-LANGUAGES)', () => {
-  it('[HH-CUS-05] the layout is an English page hidden from search, with skip link, header, main and footer', () => {
+  it('[HH-CUS-05] the layout is an English page with skip link, header, main and footer; noindex only when asked', () => {
     expect(layout).toContain('<html lang="en">')
-    expect(layout).toContain('<meta name="robots" content="noindex, nofollow" />')
+    // TSK-0023: public pages are indexable in production; the server keeps every other environment out of search.
+    expect(layout).toContain('{noindex ? <meta name="robots" content="noindex, nofollow" /> : null}')
+    expect(layout).toContain('const { title, noindex = false } = Astro.props')
     expect(layout).toMatch(/href="#main"/)
     expect(layout).toMatch(/<header[\s>]/)
     expect(layout).toMatch(/<main id="main"/)

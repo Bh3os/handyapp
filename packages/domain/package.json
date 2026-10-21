@@ -23,6 +23,11 @@
       "@handyhub/source": "./src/legal.ts",
       "types": "./dist/legal.d.ts",
       "default": "./dist/legal.js"
+    },
+    "./areas": {
+      "@handyhub/source": "./src/areas.ts",
+      "types": "./dist/areas.d.ts",
+      "default": "./dist/areas.js"
     }
   },
   "scripts": {
