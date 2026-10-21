@@ -22,6 +22,8 @@ import { readCodeKey, type CodeKeySettings } from '../../src/modules/identity/in
 import { hashPassword } from '../../src/modules/identity/passwords.js'
 import { apiModules } from '../../src/modules/index.js'
 import { portalModule } from '../../src/modules/portal/index.js'
+import { customerExport, customerPlan } from '../../src/modules/privacy/index.js'
+import { PRIVACY_EXPORT } from '../../src/modules/records/index.js'
 import {
   appointmentChangedAutomation,
   scheduleChangeStaffAutomation,
@@ -975,5 +977,70 @@ describe('[HH-SCH-07][T42] reschedule and reassignment update everyone; stale wr
     expect(codes(bad.body)).toEqual([['body.changeRequestId', 'REQUEST_NOT_FOR_VISIT']])
     // A visit keeps its number.
     await expect(sql`UPDATE work.visits SET number = number + 7 WHERE id = ${v.id}`.execute(t.db)).rejects.toThrow()
+  })
+})
+
+describe('[HH-PRIV-03][HH-PORT-04] change requests and visit changes in a privacy request (TSK-0100 x TSK-0066)', () => {
+  it("[HH-PRIV-03][HH-PORT-04] the search keeps the visits' change history and the requester's own requests; the export holds their words, never staff handling", async () => {
+    const p = await siteVisitProject()
+    const v = await bookedVisit(p, 'site_estimate', day(16), 'ben')
+    const asked = await customerRequest(p, v.number, 'reschedule', {
+      reason: 'Synthetic: a privacy family event.',
+      preferredTimes: 'Synthetic: any privacy afternoon',
+    })
+    expect(asked.statusCode, asked.body).toBe(200)
+    const r = (await visitOf(p.projectId, v.id)).changeRequest as NonNullable<VisitView['changeRequest']>
+    const declined = await decline('office', r.id, r.version, { reason: 'Synthetic: staff-only privacy decline.' })
+    expect(declined.statusCode, declined.body).toBe(200)
+    const kept = await visitOf(p.projectId, v.id)
+    const moved = await move('office', kept, {
+      localDate: day(17),
+      windowStart: '09:00',
+      windowEnd: '10:00',
+      reason: 'Synthetic: staff-only privacy move.',
+      initiator: 'handyhub',
+      handyhubCause: 'weather',
+    })
+    expect(moved.statusCode, moved.body).toBe(200)
+    expect((await customerRequest(p, v.number, 'cancellation')).statusCode).toBe(200)
+
+    const owner = await t.db
+      .selectFrom('intake.requests as r')
+      .innerJoin('crm.projects as p', 'p.id', 'r.project_id')
+      .select(['p.customer_id', 'r.contact_id'])
+      .where('r.id', '=', p.requestId)
+      .executeTakeFirstOrThrow()
+    const plan = await customerPlan(t.db, {
+      customerId: owner.customer_id,
+      contactId: owner.contact_id,
+      accountIds: [],
+    })
+    // One visit and its one committed change are job records; the two requests are the record of what was asked.
+    expect(plan.items).toContainEqual(
+      expect.objectContaining({ category: 'job_records', disposition: 'retain', count: 2, reason: 'active_record' }),
+    )
+    expect(plan.items).toContainEqual(
+      expect.objectContaining({ category: 'requests', disposition: 'retain', count: 2, reason: 'request_record' }),
+    )
+    // Neither is deleted by a deletion request (nothing of theirs names an estimate version).
+    expect(plan.items.filter((i) => i.disposition === 'delete' && i.category === 'requests')).toEqual([])
+
+    const data = PRIVACY_EXPORT.project(
+      await customerExport(t.db, { customerId: owner.customer_id, contactId: owner.contact_id, accountId: null }),
+    )
+    expect(data.appointmentRequests).toEqual([
+      expect.objectContaining({
+        project: p.reference,
+        appointment: v.number,
+        kind: 'reschedule',
+        state: 'declined',
+        reason: 'Synthetic: a privacy family event.',
+        preferredTimes: 'Synthetic: any privacy afternoon',
+        endedAt: expect.any(String),
+      }),
+      expect.objectContaining({ kind: 'cancellation', state: 'open', reason: null, endedAt: null }),
+    ])
+    const text = JSON.stringify(data)
+    expect(text).not.toContain('staff-only privacy')
   })
 })

@@ -1329,6 +1329,17 @@ export type ExportRecord = {
   }[]
   consents: readonly { purpose: string; channel: string; granted: boolean; recordedAt: Date }[]
   privacyRequests: readonly { reference: string; kind: string; state: string; submittedAt: Date }[]
+  /** TSK-0066: the requester's own Request to Reschedule / Request Cancellation of their appointments. */
+  appointmentRequests: readonly {
+    project: string
+    appointment: number
+    kind: string
+    state: string
+    reason: string | null
+    preferredTimes: string | null
+    requestedAt: Date
+    endedAt: Date | null
+  }[]
   photos: { received: number; processing: number; failed: number }
   excluded: readonly string[]
 }
@@ -1380,6 +1391,19 @@ export const PRIVACY_EXPORT = customerView(
     privacyRequests: {
       type: 'array',
       items: object({ reference: STRING, kind: STRING, state: STRING, submittedAt: DATE }),
+    },
+    appointmentRequests: {
+      type: 'array',
+      items: object({
+        project: STRING,
+        appointment: { type: 'integer' },
+        kind: STRING,
+        state: STRING,
+        reason: NULLABLE_STRING,
+        preferredTimes: NULLABLE_STRING,
+        requestedAt: DATE,
+        endedAt: NULLABLE_DATE,
+      }),
     },
     photos: object({
       received: { type: 'integer' },
@@ -1451,6 +1475,16 @@ export const PRIVACY_EXPORT = customerView(
       kind: p.kind,
       state: p.state,
       submittedAt: p.submittedAt.toISOString(),
+    })),
+    appointmentRequests: r.appointmentRequests.map((c) => ({
+      project: c.project,
+      appointment: c.appointment,
+      kind: c.kind,
+      state: c.state,
+      reason: c.reason,
+      preferredTimes: c.preferredTimes,
+      requestedAt: c.requestedAt.toISOString(),
+      endedAt: c.endedAt ? c.endedAt.toISOString() : null,
     })),
     photos: { received: r.photos.received, processing: r.photos.processing, failed: r.photos.failed },
     excluded: [...r.excluded],

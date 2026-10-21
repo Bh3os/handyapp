@@ -7143,6 +7143,7 @@
                     "approvals",
                     "consents",
                     "privacyRequests",
+                    "appointmentRequests",
                     "photos",
                     "excluded"
                   ],
@@ -7501,6 +7502,60 @@
                           },
                           "submittedAt": {
                             "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "appointmentRequests": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "project",
+                          "appointment",
+                          "kind",
+                          "state",
+                          "reason",
+                          "preferredTimes",
+                          "requestedAt",
+                          "endedAt"
+                        ],
+                        "properties": {
+                          "project": {
+                            "type": "string"
+                          },
+                          "appointment": {
+                            "type": "integer"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string"
+                          },
+                          "reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "preferredTimes": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "requestedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "endedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
                             "format": "date-time"
                           }
                         }
