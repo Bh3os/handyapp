@@ -378,6 +378,18 @@ const PAYMENT_TERM_TEXT: Record<string, CustomerKey> = { due_on_receipt: 'estima
 
 /** The access a session came through, read again at the moment of the write (HH-ID-07). */
 async function accessStillValid(tx: Tx, session: CustomerSession, projectId: string, now: Date): Promise<boolean> {
+  if (!session.projectIds.includes(projectId)) return false
+  if (session.via === 'grant' && !session.grantId) return false
+  // The guest grant before the session: TSK-0046's access recheck locks grants, then sessions.
+  const grant =
+    session.via === 'grant' && session.grantId
+      ? await tx
+          .selectFrom('identity.project_access_grants')
+          .select(['project_id', 'revoked_at'])
+          .where('id', '=', session.grantId)
+          .forShare()
+          .executeTakeFirst()
+      : undefined
   const live = await tx
     .selectFrom('identity.customer_sessions')
     .select(['revoked_at', 'expires_at', 'fresh_until'])
@@ -385,17 +397,7 @@ async function accessStillValid(tx: Tx, session: CustomerSession, projectId: str
     .forShare()
     .executeTakeFirst()
   if (!live || live.revoked_at !== null || live.expires_at <= now) return false
-  if (!session.projectIds.includes(projectId)) return false
-  if (session.via === 'grant') {
-    if (!session.grantId) return false
-    const grant = await tx
-      .selectFrom('identity.project_access_grants')
-      .select(['project_id', 'revoked_at'])
-      .where('id', '=', session.grantId)
-      .forShare()
-      .executeTakeFirst()
-    return grant?.project_id === projectId && grant.revoked_at === null
-  }
+  if (session.via === 'grant') return grant?.project_id === projectId && grant.revoked_at === null
   if (!session.accountId) return false
   const link = await tx
     .selectFrom('identity.customer_identity_links as l')
@@ -503,6 +505,16 @@ export async function approveVersion(
   if (totals.totalCents !== input.totalCents || totals.deposit.amountCents !== input.depositCents)
     throw new ApiError('VALIDATION_FAILED', { fieldErrors: [field('body.totalCents', 'TOTAL_MISMATCH')] })
 
+  // The project row is locked before the access is read again: a customer merge or a request relink (TSK-0046)
+  // locks the project, then its guest grants, then the sessions, so the approval takes the same order and the two
+  // serialize instead of deadlocking; whichever commits first decides what the other sees.
+  const project = await tx
+    .selectFrom('crm.projects')
+    .select(['id', 'state', 'state_version'])
+    .where('id', '=', v.project_id)
+    .forUpdate()
+    .executeTakeFirstOrThrow()
+
   // Fresh verification and the access used, read again at the moment of the write.
   if (!(await stillFresh(tx, input.session.id, now)))
     throw new ApiError('FORBIDDEN', { fieldErrors: [field('verification', 'FRESH_VERIFICATION_REQUIRED')] })
@@ -510,12 +522,6 @@ export async function approveVersion(
     throw new ApiError('FORBIDDEN', { fieldErrors: [field('access', 'ACCESS_REVOKED')] })
 
   // The project: open, with no job yet (one job per approved project).
-  const project = await tx
-    .selectFrom('crm.projects')
-    .select(['id', 'state', 'state_version'])
-    .where('id', '=', v.project_id)
-    .forUpdate()
-    .executeTakeFirstOrThrow()
   const hasJob = await tx.selectFrom('work.jobs').select('id').where('project_id', '=', v.project_id).executeTakeFirst()
   const projectMove = apply(
     { machine: 'project.lifecycle', state: project.state as ProjectState, version: project.state_version },
