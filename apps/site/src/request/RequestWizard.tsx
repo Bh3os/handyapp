@@ -141,6 +141,8 @@ type PhotoSummary = { received: number; processing: number; failed: number }
 /** The support contact of the SMS disclosure, from configuration (GET /api/v1/public/site); null while unknown. */
 type SupportContact = { phone: ContactDetail; email: ContactDetail } | null
 type Banner = { kind: 'error'; message: string; retry: boolean } | { kind: 'success'; message: string } | null
+/** Where focus goes once its target is on the page: the error summary, or the step or receipt heading (HH-INT-09). */
+type FocusRequest = { to: 'summary' | 'heading' }
 
 function browserStorage(): Storage | null {
   try {
@@ -181,8 +183,10 @@ export default function RequestWizard() {
   const [fromReview, setFromReview] = useState(false)
   const summaryRef = useRef<HTMLDivElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
-  const focusSummary = useRef(false)
-  const focusHeading = useRef(false)
+  // State, not a flag: it is set in the same update as the problems or the step, so it commits together with the element
+  // it names. Each request is a new object, so asking for the same target again still moves focus.
+  const [focusTo, setFocusTo] = useState<FocusRequest | null>(null)
+  const requestFocus = (to: FocusRequest['to']) => setFocusTo({ to })
 
   const loaded = phase !== 'loading'
   const store = useMemo(
@@ -261,12 +265,13 @@ export default function RequestWizard() {
     )
   }, [phase, settings.windows])
 
+  // Focus moves in the commit that shows its target (HH-INT-09). An effect that ran after every commit and cleared a ref
+  // flag lost the summary's focus: the effects of an unrelated update committed just before a press (the ZIP coverage
+  // result) run only when React starts the press's update, so they took the flag while the summary was not yet there.
   useEffect(() => {
-    if (focusSummary.current && summaryRef.current) summaryRef.current.focus()
-    else if (focusHeading.current && headingRef.current) headingRef.current.focus()
-    focusSummary.current = false
-    focusHeading.current = false
-  })
+    if (focusTo?.to === 'summary') summaryRef.current?.focus()
+    else if (focusTo?.to === 'heading') headingRef.current?.focus()
+  }, [focusTo])
 
   const meta: FormMeta = {
     formVersion: FORM_VERSION,
@@ -291,14 +296,14 @@ export default function RequestWizard() {
     // A problem found when sending opens its step, which then offers Return to review (HH-INT-19).
     if (to && step === 'review' && to !== 'review') setFromReview(true)
     if (to) setStep(to)
-    focusSummary.current = found.length > 0
+    if (found.length) requestFocus('summary')
   }
   const goTo = (to: StepId) => {
     setProblems([])
     setBanner(null)
     setStep(to)
     if (to === 'review') setFromReview(false)
-    focusHeading.current = true
+    requestFocus('heading')
   }
   const edit = (to: StepId) => {
     goTo(to)
@@ -348,7 +353,7 @@ export default function RequestWizard() {
         const failedHere = photos.items.filter((i) => i.state === 'failed').length
         setReceiptPhotos(data.photos ? { ...data.photos, failed: data.photos.failed + failedHere } : null)
         setPhase('sent')
-        focusHeading.current = true
+        requestFocus('heading')
         return
       }
       if (data?.error?.code === 'VALIDATION_FAILED' && data.error.fieldErrors.length) {
@@ -397,7 +402,7 @@ export default function RequestWizard() {
         <Button
           onClick={() => {
             setPhase('form')
-            focusHeading.current = true
+            requestFocus('heading')
           }}
         >
           {t('request.continue.guest')}
@@ -435,7 +440,7 @@ export default function RequestWizard() {
                 if (draft.send) draftSend.current = draft.send
               }
               setPhase('form')
-              focusHeading.current = true
+              requestFocus('heading')
             }}
           >
             {t('request.draft.resume')}
