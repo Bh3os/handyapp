@@ -20,6 +20,7 @@ import { accountsModule } from './accounts/index.js'
 import { portalModule } from './portal/index.js'
 import { questionsModule } from './questions/index.js'
 import { SITE_MODULE } from './site/index.js'
+import { sopsModule } from './sops/index.js'
 import { systemModule, type SystemDeps } from './system/index.js'
 import { verificationModule } from './verification/index.js'
 import { visitsModule } from './visits/index.js'
@@ -92,6 +93,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     questionsModule(),
     // TSK-0061: the visit model (tentative estimate and work visits, local windows in an IANA zone, window history).
     visitsModule(),
+    // TSK-0068: the SOP version pinned on each work package of a job, and the Owner's competent-review sign-off.
+    sopsModule(deps.environment ? { environment: deps.environment } : {}),
   ]
 }
 

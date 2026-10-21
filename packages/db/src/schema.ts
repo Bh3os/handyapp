@@ -44,6 +44,30 @@ export interface CatalogServicesTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface CatalogSopVersionsTable {
+  id: Generated<string>
+  sop_id: string
+  service_id: string
+  version: number
+  title: string
+  source_file: string
+  source_sha256: string
+  content: Json
+  content_sha256: string
+  hazard_sha256: string
+  quality_sha256: string
+  review_state: Generated<string>
+  spanish_status: Generated<string>
+  reviewer_name: string | null
+  reviewer_qualification: string | null
+  review_note: string | null
+  signed_off_by: string | null
+  signed_off_at: Timestamp | null
+  superseded_at: Timestamp | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  row_version: Generated<number>
+}
+
 export interface CommsConversationsTable {
   id: Generated<string>
   project_id: string
@@ -1303,6 +1327,21 @@ export interface WorkVisitsTable {
   updated_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface WorkWorkPackageSopPinsTable {
+  id: Generated<string>
+  work_package_id: string
+  project_id: string
+  job_id: string
+  service_id: string
+  outcome: string
+  sop_version_id: string | null
+  content_sha256: string | null
+  hazard_sha256: string | null
+  quality_sha256: string | null
+  source: string
+  pinned_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface WorkWorkPackagesTable {
   id: Generated<string>
   project_id: string
@@ -1315,11 +1354,14 @@ export interface WorkWorkPackagesTable {
   created_by: string
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   version: Generated<number>
+  sop_version_id: string | null
+  sop_pinned_at: Timestamp | null
 }
 
 export interface Database {
   'catalog.service_versions': CatalogServiceVersionsTable
   'catalog.services': CatalogServicesTable
+  'catalog.sop_versions': CatalogSopVersionsTable
   'comms.conversations': CommsConversationsTable
   'comms.message_links': CommsMessageLinksTable
   'comms.messages': CommsMessagesTable
@@ -1406,5 +1448,6 @@ export interface Database {
   'work.scheduling_tasks': WorkSchedulingTasksTable
   'work.visit_windows': WorkVisitWindowsTable
   'work.visits': WorkVisitsTable
+  'work.work_package_sop_pins': WorkWorkPackageSopPinsTable
   'work.work_packages': WorkWorkPackagesTable
 }

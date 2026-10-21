@@ -59245,6 +59245,243 @@
         }
       }
     },
+    "/api/v1/staff/sop-versions/{sopVersionId}/sign-off": {
+      "post": {
+        "operationId": "signOffSopVersion",
+        "summary": "Record the competent reviewer's sign-off of an SOP version",
+        "description": "The Owner (sop.sign_off_review), with If-Match: the SOP version row version shown. Records the competent reviewer's name, qualification and a note of what was reviewed on a version pending competent review (else 409 CONFLICT naming the unmet requirement); the version becomes approved for production use. A recorded sign-off is never changed; a later import of changed content is a new version pending review. Audited.",
+        "tags": [
+          "sops"
+        ],
+        "parameters": [
+          {
+            "name": "sopVersionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reviewerName",
+                  "reviewerQualification",
+                  "reviewNote"
+                ],
+                "properties": {
+                  "reviewerName": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "reviewerQualification": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "reviewNote": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "sopId",
+                    "version",
+                    "reviewState",
+                    "rowVersion",
+                    "signedOffAt"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "sopId": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "reviewState": {
+                      "type": "string"
+                    },
+                    "rowVersion": {
+                      "type": "integer"
+                    },
+                    "signedOffAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "sop.sign_off_review",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "sop.sign_off",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/sop-versions.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/system/configuration": {
       "get": {
         "operationId": "getSystemConfiguration",
@@ -60741,6 +60978,839 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/visits.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/work-packages/{workPackageId}/sop": {
+      "get": {
+        "operationId": "getWorkPackageSop",
+        "summary": "The SOP version pinned on a work package",
+        "description": "Staff with job.view_packet, inside their record scope (else 404). The exact SOP version pinned on the work package: the six checklist stages in order, every item verbatim with its vault line, the hazard checks (HOLD, GATE and FLAG controls and the stop-work section), the quality checks (stage 4), the open questions, the content, hazard and quality digests, the review state and the sign-off. NOT CONFIGURED (no SOP version when the job was created) has no checklist and blocks readiness; production also needs the sign-off. Staff only.",
+        "tags": [
+          "sops"
+        ],
+        "parameters": [
+          {
+            "name": "workPackageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "workPackage",
+                    "pin",
+                    "readiness",
+                    "sop",
+                    "actions"
+                  ],
+                  "properties": {
+                    "workPackage": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "projectId",
+                        "serviceId",
+                        "serviceCode",
+                        "position",
+                        "state",
+                        "jobId"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "projectId": {
+                          "type": "string"
+                        },
+                        "serviceId": {
+                          "type": "string"
+                        },
+                        "serviceCode": {
+                          "type": "string"
+                        },
+                        "position": {
+                          "type": "integer"
+                        },
+                        "state": {
+                          "type": "string"
+                        },
+                        "jobId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "pin": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state",
+                        "pinnedAt",
+                        "source"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "pinned",
+                            "not_configured",
+                            "no_job"
+                          ]
+                        },
+                        "pinnedAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "source": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "approval",
+                            "import",
+                            null
+                          ]
+                        }
+                      }
+                    },
+                    "readiness": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "ok",
+                        "blockers",
+                        "pendingReviewBanner"
+                      ],
+                      "properties": {
+                        "ok": {
+                          "type": "boolean"
+                        },
+                        "blockers": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "pendingReviewBanner": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "sop": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "sopId",
+                            "version",
+                            "title",
+                            "reviewState",
+                            "current",
+                            "spanishStatus",
+                            "sourceFile",
+                            "contentSha256",
+                            "hazardSha256",
+                            "qualitySha256",
+                            "rowVersion",
+                            "signOff",
+                            "stages",
+                            "hazards",
+                            "openQuestions"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "sopId": {
+                              "type": "string"
+                            },
+                            "version": {
+                              "type": "integer"
+                            },
+                            "title": {
+                              "type": "string"
+                            },
+                            "reviewState": {
+                              "type": "string",
+                              "enum": [
+                                "pending_competent_review",
+                                "approved",
+                                "superseded"
+                              ]
+                            },
+                            "current": {
+                              "type": "boolean"
+                            },
+                            "spanishStatus": {
+                              "type": "string",
+                              "enum": [
+                                "pending"
+                              ]
+                            },
+                            "sourceFile": {
+                              "type": "string"
+                            },
+                            "contentSha256": {
+                              "type": "string"
+                            },
+                            "hazardSha256": {
+                              "type": "string"
+                            },
+                            "qualitySha256": {
+                              "type": "string"
+                            },
+                            "rowVersion": {
+                              "type": "integer"
+                            },
+                            "signOff": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "reviewerName",
+                                    "reviewerQualification",
+                                    "reviewNote",
+                                    "signedOffBy",
+                                    "signedOffAt"
+                                  ],
+                                  "properties": {
+                                    "reviewerName": {
+                                      "type": "string"
+                                    },
+                                    "reviewerQualification": {
+                                      "type": "string"
+                                    },
+                                    "reviewNote": {
+                                      "type": "string"
+                                    },
+                                    "signedOffBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "signedOffAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "stages": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "stage",
+                                  "key",
+                                  "heading",
+                                  "steps",
+                                  "items"
+                                ],
+                                "properties": {
+                                  "stage": {
+                                    "type": "integer"
+                                  },
+                                  "key": {
+                                    "type": "string",
+                                    "enum": [
+                                      "site_preparation",
+                                      "setup_checks",
+                                      "work_steps",
+                                      "quality_checks",
+                                      "cleanup_waste",
+                                      "final_checks"
+                                    ]
+                                  },
+                                  "heading": {
+                                    "type": "string"
+                                  },
+                                  "steps": {
+                                    "type": "integer"
+                                  },
+                                  "items": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "kind",
+                                        "section",
+                                        "line",
+                                        "text"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "kind": {
+                                          "type": "string",
+                                          "enum": [
+                                            "step",
+                                            "control",
+                                            "note",
+                                            "table"
+                                          ]
+                                        },
+                                        "section": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "line": {
+                                          "type": [
+                                            "integer",
+                                            "null"
+                                          ]
+                                        },
+                                        "text": {
+                                          "type": "string"
+                                        },
+                                        "checkbox": {
+                                          "type": "boolean"
+                                        },
+                                        "evidence": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string",
+                                            "enum": [
+                                              "photo",
+                                              "measurement",
+                                              "note"
+                                            ]
+                                          }
+                                        },
+                                        "required": {
+                                          "type": "boolean"
+                                        },
+                                        "holdBefore": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "control": {
+                                          "type": "string",
+                                          "enum": [
+                                            "HOLD",
+                                            "GATE",
+                                            "FLAG"
+                                          ]
+                                        },
+                                        "ref": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "table": {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "header",
+                                            "rows"
+                                          ],
+                                          "properties": {
+                                            "header": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "rows": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "array",
+                                                "items": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "hazards": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "controls",
+                                "stopWork"
+                              ],
+                              "properties": {
+                                "controls": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "id",
+                                      "kind",
+                                      "section",
+                                      "line",
+                                      "text"
+                                    ],
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "kind": {
+                                        "type": "string",
+                                        "enum": [
+                                          "step",
+                                          "control",
+                                          "note",
+                                          "table"
+                                        ]
+                                      },
+                                      "section": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "line": {
+                                        "type": [
+                                          "integer",
+                                          "null"
+                                        ]
+                                      },
+                                      "text": {
+                                        "type": "string"
+                                      },
+                                      "checkbox": {
+                                        "type": "boolean"
+                                      },
+                                      "evidence": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string",
+                                          "enum": [
+                                            "photo",
+                                            "measurement",
+                                            "note"
+                                          ]
+                                        }
+                                      },
+                                      "required": {
+                                        "type": "boolean"
+                                      },
+                                      "holdBefore": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "control": {
+                                        "type": "string",
+                                        "enum": [
+                                          "HOLD",
+                                          "GATE",
+                                          "FLAG"
+                                        ]
+                                      },
+                                      "ref": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "table": {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "header",
+                                          "rows"
+                                        ],
+                                        "properties": {
+                                          "header": {
+                                            "type": "array",
+                                            "items": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "rows": {
+                                            "type": "array",
+                                            "items": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                "stopWork": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "id",
+                                      "kind",
+                                      "section",
+                                      "line",
+                                      "text"
+                                    ],
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "kind": {
+                                        "type": "string",
+                                        "enum": [
+                                          "step",
+                                          "control",
+                                          "note",
+                                          "table"
+                                        ]
+                                      },
+                                      "section": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "line": {
+                                        "type": [
+                                          "integer",
+                                          "null"
+                                        ]
+                                      },
+                                      "text": {
+                                        "type": "string"
+                                      },
+                                      "checkbox": {
+                                        "type": "boolean"
+                                      },
+                                      "evidence": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string",
+                                          "enum": [
+                                            "photo",
+                                            "measurement",
+                                            "note"
+                                          ]
+                                        }
+                                      },
+                                      "required": {
+                                        "type": "boolean"
+                                      },
+                                      "holdBefore": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "control": {
+                                        "type": "string",
+                                        "enum": [
+                                          "HOLD",
+                                          "GATE",
+                                          "FLAG"
+                                        ]
+                                      },
+                                      "ref": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "table": {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "header",
+                                          "rows"
+                                        ],
+                                        "properties": {
+                                          "header": {
+                                            "type": "array",
+                                            "items": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "rows": {
+                                            "type": "array",
+                                            "items": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "openQuestions": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "kind",
+                                  "section",
+                                  "line",
+                                  "text"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "step",
+                                      "control",
+                                      "note",
+                                      "table"
+                                    ]
+                                  },
+                                  "section": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "line": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ]
+                                  },
+                                  "text": {
+                                    "type": "string"
+                                  },
+                                  "checkbox": {
+                                    "type": "boolean"
+                                  },
+                                  "evidence": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "enum": [
+                                        "photo",
+                                        "measurement",
+                                        "note"
+                                      ]
+                                    }
+                                  },
+                                  "required": {
+                                    "type": "boolean"
+                                  },
+                                  "holdBefore": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "control": {
+                                    "type": "string",
+                                    "enum": [
+                                      "HOLD",
+                                      "GATE",
+                                      "FLAG"
+                                    ]
+                                  },
+                                  "ref": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "table": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "header",
+                                      "rows"
+                                    ],
+                                    "properties": {
+                                      "header": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "rows": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "signOff"
+                      ],
+                      "properties": {
+                        "signOff": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job.view_packet",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/sop-versions.test.ts"
         }
       }
     }

@@ -633,6 +633,18 @@ export const LABEL_FAMILIES = {
     'CHECK_VOIDED',
     'NOT_CONFIGURED',
   ],
+  /** The six ordered checklist stages of an SOP version (TSK-0068, HH-WORK-11, OWN-DEC-108). */
+  sopStage: ['site_preparation', 'setup_checks', 'work_steps', 'quality_checks', 'cleanup_waste', 'final_checks'],
+  /** SOP version review states (ENT-SOPVersion; OWN-DEC-17). */
+  sopReviewState: ['pending_competent_review', 'approved', 'superseded'],
+  /** The evidence an SOP step's own wording asks for (TSK-0068). */
+  sopEvidence: ['photo', 'measurement', 'note'],
+  /** The review controls the vault SOPs add next to steps (pending qualified review). */
+  sopControl: ['HOLD', 'GATE', 'FLAG'],
+  /** What pinned an SOP version on a work package (TSK-0068). */
+  sopPinSource: ['approval', 'import'],
+  /** Why the Owner's record of a competent-review sign-off was refused (TSK-0068). */
+  sopSignOffProblem: ['REVIEWER_REQUIRED', 'QUALIFICATION_REQUIRED', 'REASON_REQUIRED', 'INVALID_TRANSITION'],
 } as const satisfies Record<string, readonly string[]>
 
 export type LabelFamily = keyof typeof LABEL_FAMILIES

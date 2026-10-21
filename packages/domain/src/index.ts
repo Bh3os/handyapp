@@ -14,6 +14,7 @@ import { HOLD_MACHINE } from './hold.js'
 import { PROJECT_MACHINE } from './project.js'
 import { REQUEST_MACHINE } from './request.js'
 import { VISIT_MACHINE } from './visit.js'
+import { SOP_VERSION_MACHINE } from './sop.js'
 
 export const PACKAGE_NAME = '@handyhub/domain'
 
@@ -144,6 +145,32 @@ export {
 export type { VisitEvent, VisitFacts, VisitPurpose, VisitState } from './visit.js'
 export * from './local-time.js'
 
+export {
+  hazardControls,
+  itemText,
+  SOP_EVIDENCE_KINDS,
+  SOP_REVIEW_STATES,
+  SOP_STAGES,
+  SOP_VERSION_MACHINE,
+  sopReadiness,
+  tableRows,
+} from './sop.js'
+export type {
+  SopContent,
+  SopControl,
+  SopEvidenceKind,
+  SopItem,
+  SopNote,
+  SopPinFacts,
+  SopReadiness,
+  SopReadinessBlocker,
+  SopReviewState,
+  SopSignOffFacts,
+  SopStage,
+  SopStageContent,
+  SopStep,
+} from './sop.js'
+
 /** Every machine, keyed `<entity>.<dimension>`. One key per state dimension, so dimensions never share a state. */
 export const MACHINES = {
   'request.lifecycle': REQUEST_MACHINE,
@@ -151,6 +178,7 @@ export const MACHINES = {
   'hold.lifecycle': HOLD_MACHINE,
   'estimate_version.lifecycle': ESTIMATE_VERSION_MACHINE,
   'visit.lifecycle': VISIT_MACHINE,
+  'sop_version.review': SOP_VERSION_MACHINE,
 } as const
 export type MachineKey = keyof typeof MACHINES
 type M<K extends MachineKey> = (typeof MACHINES)[K]

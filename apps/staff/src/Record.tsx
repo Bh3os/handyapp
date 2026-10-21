@@ -6,6 +6,7 @@
 // - TSK-0043: the first-response clock (an internal target in business hours, never a customer promise), recorded
 //   customer conversations, the hazard flag on the risk flags and the review holds it opens.
 // - TSK-0051: questions to the customer (Questions.tsx).
+// - TSK-0068: the SOP version pinned on each work package (WorkPackageSop.tsx), opened on demand.
 // The server decides every action (role, state, version); this screen only offers the ones it says are open now,
 // sends the version it showed (If-Match) and an idempotency key, and shows a refusal's reasons or the conflict banner.
 import { customerTranslator, type StaffKey, type StaffLocale } from '@handyhub/i18n'
@@ -18,6 +19,7 @@ import { RequestQuestions } from './Questions'
 import { codeLabel } from './Requests'
 import { clockText, clockTime, type ResponseClock } from './ResponseClock'
 import { ProjectVisitsSection } from './Visits'
+import { WorkPackageSop } from './WorkPackageSop'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
 type StaffRef = { id: string; name: string | null }
@@ -363,8 +365,39 @@ export function RequestRecord({
       />
       <Notes t={t} fetchImpl={fetchImpl} view={view} onChanged={load} when={when} />
       <History t={t} view={view} when={when} />
+      <SopChecklists t={t} locale={locale} fetchImpl={fetchImpl} view={view} when={when} />
       <p>{back}</p>
     </section>
+  )
+}
+
+/** TSK-0068 (HH-PKT-03): the SOP version pinned on each work package, opened on demand. */
+function SopChecklists({
+  t,
+  locale,
+  fetchImpl,
+  view,
+  when,
+}: {
+  t: T
+  locale: StaffLocale
+  fetchImpl: Fetch
+  view: RequestDetail
+  when: (iso: string) => string
+}) {
+  const ids = useId()
+  if (view.workPackages.length === 0) return null
+  return (
+    <Section id={`${ids}-sops`} title={t('sop.title')}>
+      <ol className="staff-request__list">
+        {view.workPackages.map((w) => (
+          <li key={w.id} data-work-package={w.code}>
+            <h3>{codeLabel(t, 'service', w.code)}</h3>
+            <WorkPackageSop t={t} locale={locale} fetchImpl={fetchImpl} workPackageId={w.id} when={when} />
+          </li>
+        ))}
+      </ol>
+    </Section>
   )
 }
 
