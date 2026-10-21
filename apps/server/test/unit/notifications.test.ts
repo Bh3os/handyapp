@@ -4,7 +4,9 @@ import {
   assertAutomatic,
   automaticPolicy,
   contentLocale,
+  deliveryAuditAction,
   deliveryIdempotencyKey,
+  isOutcomeUnknown,
   MESSAGE_TYPES,
   messageTypeProblems,
   nextContactTime,
@@ -170,6 +172,26 @@ describe('templates hold no access secrets or amounts (TSK-0047, HH-COM-04, T74)
     expect(k).toBe(deliveryIdempotencyKey('request.receipt', 'email', 'request:1', 'a@example.test'))
     expect(k).not.toBe(deliveryIdempotencyKey('request.receipt', 'email', 'request:2', 'a@example.test'))
     expect(k).toMatch(/^notification\/[0-9a-f]{40}$/)
+  })
+
+  it('[HH-SEC-06][HH-ARC-09] audits each delivery as what happened; an unknown provider outcome is never a send', () => {
+    expect(deliveryAuditAction({ state: 'queued', errorCode: null })).toBe('notification.sent')
+    expect(deliveryAuditAction({ state: 'sent', errorCode: null })).toBe('notification.sent')
+    expect(deliveryAuditAction({ state: 'failed', errorCode: 'template_not_configured' })).toBe('notification.failed')
+    expect(deliveryAuditAction({ state: 'failed', errorCode: 'http_503' })).toBe('notification.failed')
+    expect(deliveryAuditAction({ state: 'failed', errorCode: 'outcome_unknown_timeout' })).toBe(
+      'notification.outcome_unknown',
+    )
+    expect(deliveryAuditAction({ state: 'suppressed', errorCode: 'opted_out' })).toBe('notification.suppressed')
+    expect(deliveryAuditAction({ state: 'cancelled', errorCode: 'record_changed' })).toBe('notification.cancelled')
+    expect(['outcome_unknown_timeout', 'outcome_unknown_network_error'].map(isOutcomeUnknown)).toEqual([true, true])
+    expect(['timeout', 'http_503', 'connect_refused', null, undefined].map(isOutcomeUnknown)).toEqual([
+      false,
+      false,
+      false,
+      false,
+      false,
+    ])
   })
 })
 

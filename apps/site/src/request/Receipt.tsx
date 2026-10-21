@@ -5,13 +5,18 @@
 // no new request is needed), "What happens next?" from configuration, and Return Home. English only.
 // The contact-verification panel, View My Request and Create an Account arrive with their flows (TSK-0033, TSK-0034);
 // no action is shown before it works.
+// - The counts the page learns (a Retry, a processing photo settling) are given to the wizard with the time they were
+//   taken, which writes them back to the tab's record (receipt.ts). A page that cannot check again (after a reload the
+//   capability is gone; it is never stored) shows them as of that time, never as current (T13).
+// - The held photos are a live region, so a Retry that fails again is announced; after a Retry that succeeds, focus
+//   moves to the next held photo's Retry, or to the "Your photos" heading (HH-A11Y-01).
 // - A request the key had already created (TSK-0030) shows its reference and says so; nothing else about it is known
 //   here, so no glance and no photo count is shown for it.
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { Button, StatusBadge } from '@handyhub/ui'
-import { useCallback, useEffect, useRef, useState, type Ref } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Ref } from 'react'
 import { problemValues, STATE_LABEL, STATE_TONE, uploadPhotoFile, type PhotoLimits } from './photos.js'
-import { countsFromServer, nextStepsText, type PhotoCounts, type ReceiptRecord } from './receipt.js'
+import { checkedAtText, countsFromServer, nextStepsText, type PhotoCounts, type ReceiptRecord } from './receipt.js'
 
 const t = (key: CustomerKey, values?: Record<string, string | number>) => customerTranslator().t(key, values)
 
@@ -26,20 +31,29 @@ export type ReceiptPhoto = {
 
 export type ReceiptPhotos = ReturnType<typeof useReceiptPhotos>
 
+/** Photo counts and when they were taken (ISO time). */
+export type CountsSnapshot = { counts: PhotoCounts; checkedAt: string }
+
 /**
  * The receipt's photos: the counts the server recorded, the failed photos this page still holds, and Retry under the
- * request's upload capability. While photos are processing their states are read again until each is settled.
+ * request's upload capability. While photos are processing their states are read again until each is settled. Every
+ * new count carries the time it was taken, so the wizard can keep the tab's record up to date (T13).
  */
 export function useReceiptPhotos() {
-  const [counts, setCounts] = useState<PhotoCounts | null>(null)
+  const [snapshot, setSnapshot] = useState<CountsSnapshot | null>(null)
   const [failed, setFailed] = useState<ReceiptPhoto[]>([])
   const [capability, setCapability] = useState<string | null>(null)
   const notStored = useRef(0)
   notStored.current = failed.length
 
   const start = useCallback(
-    (init: { counts: PhotoCounts | null; failed: ReceiptPhoto[]; capability: string | null }) => {
-      setCounts(init.counts)
+    (init: {
+      counts: PhotoCounts | null
+      checkedAt?: string | undefined
+      failed: ReceiptPhoto[]
+      capability: string | null
+    }) => {
+      setSnapshot(init.counts ? { counts: init.counts, checkedAt: init.checkedAt ?? new Date().toISOString() } : null)
       setFailed(init.failed)
       setCapability(init.capability)
     },
@@ -52,44 +66,54 @@ export function useReceiptPhotos() {
     )
     if (!res?.ok) return
     const { photos } = (await res.json()) as { photos: { state: string }[] }
-    setCounts(countsFromServer(photos, notStored.current))
+    setSnapshot({ counts: countsFromServer(photos, notStored.current), checkedAt: new Date().toISOString() })
   }, [])
 
+  /** Sends a held photo again; true when it is now stored. */
   const retry = useCallback(
-    async (key: string) => {
+    async (key: string): Promise<boolean> => {
       const item = failed.find((i) => i.key === key)
-      if (!item || !capability) return
+      if (!item || !capability) return false
       const set = (patch: Partial<ReceiptPhoto>) =>
         setFailed((list) => list.map((i) => (i.key === key ? { ...i, ...patch } : i)))
       set({ state: 'uploading' })
       const r = await uploadPhotoFile(item.file, capability)
-      if (!r.ok) return set({ state: 'failed', problem: r.problem })
+      if (!r.ok) {
+        set({ state: 'failed', problem: r.problem })
+        return false
+      }
       // Stored: no longer a failed photo; the server's own count says where it is now.
       notStored.current = Math.max(0, notStored.current - 1)
       setFailed((list) => list.filter((i) => i.key !== key))
-      setCounts((c) =>
-        c
+      setSnapshot((s) =>
+        s
           ? {
-              ...c,
-              failed: Math.max(0, c.failed - 1),
-              ...(r.state === 'complete' ? { received: c.received + 1 } : { processing: c.processing + 1 }),
+              counts: {
+                ...s.counts,
+                failed: Math.max(0, s.counts.failed - 1),
+                ...(r.state === 'complete'
+                  ? { received: s.counts.received + 1 }
+                  : { processing: s.counts.processing + 1 }),
+              },
+              checkedAt: new Date().toISOString(),
             }
-          : c,
+          : s,
       )
       URL.revokeObjectURL(item.preview)
-      await refresh(capability)
+      void refresh(capability)
+      return true
     },
     [failed, capability, refresh],
   )
 
-  const processing = (counts?.processing ?? 0) > 0
+  const processing = (snapshot?.counts.processing ?? 0) > 0
   useEffect(() => {
     if (!processing || !capability) return
     const timer = window.setInterval(() => void refresh(capability), 1500)
     return () => window.clearInterval(timer)
   }, [processing, capability, refresh])
 
-  return { counts, failed, canRetry: capability !== null, start, retry }
+  return { snapshot, counts: snapshot?.counts ?? null, failed, canRetry: capability !== null, start, retry }
 }
 
 function CopyReference({ reference }: { reference: string }) {
@@ -116,18 +140,45 @@ function CopyReference({ reference }: { reference: string }) {
 
 function Photos({
   counts,
+  checkedAt,
   photos,
   limits,
 }: {
   counts: PhotoCounts
+  /** When the counts were taken, shown when this page cannot check them again; null while they are current. */
+  checkedAt: string | null
   photos: ReceiptPhotos | null
   limits: PhotoLimits | null
 }) {
   const values = problemValues(limits)
   const held = photos?.canRetry ? photos.failed : []
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  const listRef = useRef<HTMLUListElement>(null)
+  // After a Retry that succeeds its photo leaves the list: focus goes to the next held photo's Retry, or to the
+  // heading, instead of falling to the page (HH-A11Y-01).
+  const focusAfter = useRef<{ key: string; next: string | null } | null>(null)
+  useLayoutEffect(() => {
+    const moved = focusAfter.current
+    if (!moved || held.some((i) => i.key === moved.key)) return
+    focusAfter.current = null
+    const active = document.activeElement
+    if (active && active !== document.body) return
+    const next = moved.next
+      ? listRef.current?.querySelector<HTMLButtonElement>(`li[data-photo="${CSS.escape(moved.next)}"] button`)
+      : null
+    ;(next ?? headingRef.current)?.focus()
+  }, [held])
+  const retry = async (key: string) => {
+    const at = held.findIndex((i) => i.key === key)
+    const others = held.filter((i) => i.key !== key && i.problem !== 'request.photos.problem.too_many')
+    const next = others.find((_, n) => n >= at) ?? others[others.length - 1] ?? null
+    focusAfter.current = { key, next: next?.key ?? null }
+    if (!(await photos?.retry(key))) focusAfter.current = null
+  }
+  const asOf = checkedAt ? checkedAtText(checkedAt) : ''
   return (
     <section className="hh-receipt__section" aria-labelledby="hh-receipt-photos">
-      <h3 id="hh-receipt-photos" className="hh-h3">
+      <h3 id="hh-receipt-photos" ref={headingRef} tabIndex={-1} className="hh-h3">
         {t('request.receipt.photos.title')}
       </h3>
       <ul className="hh-receipt__counts" aria-live="polite">
@@ -135,12 +186,17 @@ function Photos({
         <li>{t('request.receipt.photos.processing', { count: counts.processing })}</li>
         <li>{t('request.receipt.photos.failed', { count: counts.failed })}</li>
       </ul>
+      {asOf ? (
+        <p className="hh-field__hint" data-testid="receipt-photos-as-of">
+          {t('request.receipt.photos.asOf', { time: asOf })}
+        </p>
+      ) : null}
       {held.length ? (
         <>
           <p>{t('request.receipt.photos.retryHint')}</p>
-          <ul className="hh-request__photo-list">
+          <ul ref={listRef} className="hh-request__photo-list" aria-live="polite">
             {held.map((item, n) => (
-              <li key={item.key} className="hh-request__photo" data-state={item.state}>
+              <li key={item.key} className="hh-request__photo" data-state={item.state} data-photo={item.key}>
                 <img src={item.preview} alt={t('request.photos.alt', { n: n + 1 })} width={96} height={96} />
                 <div className="hh-request__photo-info">
                   <StatusBadge tone={STATE_TONE[item.state]}>{t(STATE_LABEL[item.state])}</StatusBadge>
@@ -150,7 +206,7 @@ function Photos({
                       <Button
                         variant="secondary"
                         pending={item.state === 'uploading'}
-                        onClick={() => void photos?.retry(item.key)}
+                        onClick={() => void retry(item.key)}
                       >
                         {t('request.photos.retry')}
                       </Button>
@@ -173,12 +229,16 @@ export function Receipt({
   headingRef,
 }: {
   record: ReceiptRecord
-  /** The live photos of the page that sent the request; null after a reload (the counts then stay as recorded). */
+  /** The live photos of the page that sent the request; null after a reload (the counts as last written back). */
   photos?: ReceiptPhotos | null
   limits?: PhotoLimits | null
   headingRef?: Ref<HTMLHeadingElement>
 }) {
-  const counts = photos?.counts ?? record.photos
+  // The live counts while this page holds them, else the tab's record (the counts as last written back).
+  const counts = photos?.snapshot?.counts ?? record.photos
+  const takenAt = photos?.snapshot?.checkedAt ?? record.photosCheckedAt ?? null
+  // Only a page holding the request's upload capability checks the counts again; any other shows when they were taken.
+  const current = photos?.canRetry === true
   const timing = record.glance.some((e) => e.id === 'timing')
   return (
     <section className="hh-receipt" aria-labelledby="hh-receipt-title">
@@ -222,7 +282,7 @@ export function Receipt({
       ) : null}
 
       {counts && counts.received + counts.processing + counts.failed > 0 ? (
-        <Photos counts={counts} photos={photos} limits={limits} />
+        <Photos counts={counts} checkedAt={current ? null : takenAt} photos={photos} limits={limits} />
       ) : null}
 
       <section className="hh-receipt__section" aria-labelledby="hh-receipt-next">

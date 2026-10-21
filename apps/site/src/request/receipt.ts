@@ -9,6 +9,9 @@
 // - "Your project at a glance" is the customer's own submission (services, description, property address, preferred
 //   timing, contact details); it never shows existing customer history, an account or earlier projects.
 // - "What happens next?" comes from configuration through the same lines as the receipt email (nextStepsLines).
+// - The photo counts are written back to the tab's record whenever the page learns new ones (a Retry, a processing
+//   photo settling), with the time they were taken. A reload has no upload capability (it is never stored), so it
+//   cannot check again: it shows the counts as of that time instead of presenting them as current (T13).
 // - A key that had already created a request (TSK-0030: a 409 naming its reference) gets a receipt with that reference
 //   and the "already received" sentence only: what that request holds is not known here, so neither the project at a
 //   glance nor any photo count is shown for it.
@@ -37,6 +40,8 @@ export type ReceiptRecord = {
   glance: GlanceEntry[]
   /** Null when the request was sent without photos, or when its photos are not known here. */
   photos: PhotoCounts | null
+  /** When the photo counts were taken (ISO time); set whenever `photos` is. */
+  photosCheckedAt?: string
   /** The key had already created this request with other details (TSK-0030): changes since were not included. */
   already?: boolean
   facts: ResponseFacts
@@ -102,6 +107,7 @@ export type SavedSend = {
   notStored: number
   glance: GlanceEntry[]
   facts: ResponseFacts
+  now: Date
 }
 
 /**
@@ -116,7 +122,29 @@ export function receiptRecord(saved: SavedSend): ReceiptRecord {
     : saved.notStored
       ? { received: 0, processing: 0, failed: saved.notStored }
       : null
-  return { ...base, glance: saved.glance, photos }
+  return {
+    ...base,
+    glance: saved.glance,
+    photos,
+    // The server took its counts when it saved the request.
+    ...(photos ? { photosCheckedAt: saved.submittedAt ?? saved.now.toISOString() } : {}),
+  }
+}
+
+/** The record with the counts this page has just learned, so a reload shows them with the time they were taken. */
+export function withPhotoCounts(record: ReceiptRecord, photos: PhotoCounts, checkedAt: string): ReceiptRecord {
+  return { ...record, photos, photosCheckedAt: checkedAt }
+}
+
+/** The time photo counts were taken, for "as of" wording; '' when it is not a readable time. */
+export function checkedAtText(iso: string | undefined, zone?: string): string {
+  const at = iso ? new Date(iso) : null
+  if (!at || Number.isNaN(at.getTime())) return ''
+  return new Intl.DateTimeFormat('en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    ...(zone ? { timeZone: zone } : {}),
+  }).format(at)
 }
 
 /** The response sentences of "What happens next?", as one paragraph; only the first while the facts are unknown. */
@@ -148,6 +176,7 @@ export function parseReceipt(raw: unknown): ReceiptRecord | null {
   const r = raw as Record<string, unknown>
   if (r['v'] !== 1 || typeof r['reference'] !== 'string' || !REFERENCE_PATTERN.test(r['reference'])) return null
   if (r['submittedAt'] !== null && typeof r['submittedAt'] !== 'string') return null
+  if (r['photosCheckedAt'] !== undefined && typeof r['photosCheckedAt'] !== 'string') return null
   if (r['already'] !== undefined && typeof r['already'] !== 'boolean') return null
   const glance = r['glance']
   if (
@@ -169,6 +198,8 @@ export function parseReceipt(raw: unknown): ReceiptRecord | null {
     !(typeof photos === 'object' && ['received', 'processing', 'failed'].every((k) => isCount(photos[k])))
   )
     return null
+  // Counts are always kept with the time they were taken, so a reload never shows them as current.
+  if (photos !== null && typeof r['photosCheckedAt'] !== 'string') return null
   const facts = r['facts'] as Record<string, unknown> | null
   if (typeof facts !== 'object' || facts === null) return null
   const hours = facts['visitHours'] as Record<string, unknown> | null

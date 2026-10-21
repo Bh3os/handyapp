@@ -10,7 +10,7 @@
 // TSK-0032 (HH-INT-12, OWN-DEC-94): only the server's confirmation of the save (a 201 with the reference, or a 409
 // naming the request the key already created) shows the receipt. The wizard keeps it in this tab and moves to
 // /request/received/<ref>, where the photos that failed can be retried under the request's own upload capability
-// without a new request (HH-INT-07).
+// without a new request (HH-INT-07); the counts the page learns are written back to the tab's record.
 // A send whose outcome is not known is kept for the tab (send.ts): after a reload and Resume the same body goes again,
 // so the customer gets the request and reference already saved; a key that already created a request returns that
 // reference; and nothing is sent while a photo is still uploading (HH-INT-10, HH-INT-07, T11).
@@ -24,7 +24,7 @@ import { contactDetails, parseSiteFacts, type ContactDetail } from '../site/fact
 import { DraftStore, newSend, type DraftSend } from './draft.js'
 import { PhotoReviewList, PhotoUploader, usePhotos, type PhotoLimits } from './photos.js'
 import { Receipt, useReceiptPhotos } from './Receipt.js'
-import { receiptGlance, receiptRecord, saveReceipt, type ReceiptRecord } from './receipt.js'
+import { receiptGlance, receiptRecord, saveReceipt, withPhotoCounts, type ReceiptRecord } from './receipt.js'
 import { receiptPath } from '@handyhub/domain/request-form'
 import { keepsBody, resumedFrom, SendStore, sendOutcome, type SendData, type SendReply } from './send.js'
 import {
@@ -263,6 +263,16 @@ export default function RequestWizard() {
     else store.save(values, step, Date.now(), draftSend.current)
   }, [phase, store, values, step])
 
+  // The photo counts the receipt learns (a Retry, a processing photo settling) are written back to the tab's record
+  // with the time they were taken, so a reload shows them as of then, never older ones (TSK-0032, T13). The upload
+  // capability is never stored.
+  const liveCounts = receiptPhotos.snapshot
+  useEffect(() => {
+    if (!receipt || !liveCounts) return
+    if (receipt.photosCheckedAt === liveCounts.checkedAt) return
+    saveReceipt(tabStorage(), withPhotoCounts(receipt, liveCounts.counts, liveCounts.checkedAt))
+  }, [receipt, liveCounts])
+
   // Any change after a Resume makes a new body: the first send then posts what the page shows now (HH-INT-10).
   useEffect(() => {
     if (resumed.current && resumed.current.values !== values) resumed.current = null
@@ -414,10 +424,12 @@ export default function RequestWizard() {
         notStored: notStored.length,
         glance: receiptGlance(values, services, settings.windows),
         facts: { visitHours: settings.visitHours, responseMinutes: settings.responseMinutes },
+        now: new Date(),
       })
       saveReceipt(tabStorage(), record)
       receiptPhotos.start({
         counts: record.photos,
+        checkedAt: record.photosCheckedAt,
         failed: notStored.map((i) => ({
           key: i.key,
           file: i.file,
