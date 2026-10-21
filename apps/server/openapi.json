@@ -163,6 +163,133 @@
         }
       }
     },
+    "/api/v1/public/coverage": {
+      "get": {
+        "operationId": "checkCoverage",
+        "summary": "ZIP coverage check",
+        "description": "Guest or customer. The outcome for a ZIP (in_coverage, boundary, out_of_coverage or unknown) and its message, from the active coverage rule set; unknown while no rule set is active (configured: false). Area eligibility only: never an appointment, availability, price or travel charge, and never a reason to refuse a request.",
+        "tags": [
+          "coverage"
+        ],
+        "parameters": [
+          {
+            "name": "zip",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{5}(-[0-9]{4})?$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "zip",
+                    "outcome",
+                    "configured",
+                    "message"
+                  ],
+                  "properties": {
+                    "zip": {
+                      "type": "string"
+                    },
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "in_coverage",
+                        "boundary",
+                        "out_of_coverage",
+                        "unknown"
+                      ]
+                    },
+                    "configured": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "guest",
+            "customer"
+          ],
+          "permission": "request.submit",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/coverage.test.ts"
+        }
+      }
+    },
     "/api/v1/public/request-drafts": {
       "post": {
         "operationId": "createRequestDraft",

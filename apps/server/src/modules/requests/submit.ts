@@ -4,14 +4,17 @@
 // framework's idempotency record commits in the same transaction, so a double tap or a retry returns this same result.
 // - Never matched to an existing customer: every submission creates new records; staff see matching details only as
 //   duplicate suggestions (HH-ID-02) and link records on review (HH-CRM-04).
-// - Coverage never blocks a request; until the coverage rules exist it is recorded as unknown (OWN-DEC-88, TSK-0022).
+// - Coverage never blocks a request: the server looks the ZIP up in the active rule set and stores the outcome with the
+//   rule set it came from; unknown while no rule set is active (OWN-DEC-88, TSK-0022). The browser's check is not trusted.
 // - Spam controls are quiet: signals flag the request for staff review; nothing is refused or discarded for them.
 import { randomBytes } from 'node:crypto'
 import { registryServices, type Tx } from '@handyhub/db'
 import { PROJECT_MACHINE, REQUEST_MACHINE } from '@handyhub/domain'
+import { sql } from 'kysely'
 import { ApiError } from '../../api/errors.js'
 import { loadConfig, requireConfigured } from '../../platform/config/index.js'
 import { outbox } from '../../platform/outbox.js'
+import { lookupCoverage, type CoverageResult } from '../coverage/coverage.js'
 import { bindDraftPhotos, type PhotoSummary } from '../photos/photos.js'
 import {
   localDate,
@@ -22,6 +25,22 @@ import {
 } from '@handyhub/domain/request-form'
 
 export { localDate, normalizeUsPhone, semanticProblems }
+
+/**
+ * The coverage of the property's ZIP, or unknown when the lookup fails: a failed lookup never loses the request
+ * (OWN-DEC-88). A savepoint keeps the submission's transaction usable after a failed statement.
+ */
+export async function coverageOrUnknown(tx: Tx, zip: string, lookup = lookupCoverage): Promise<CoverageResult> {
+  await sql`SAVEPOINT coverage_lookup`.execute(tx)
+  try {
+    const result = await lookup(tx, zip)
+    await sql`RELEASE SAVEPOINT coverage_lookup`.execute(tx)
+    return result
+  } catch {
+    await sql`ROLLBACK TO SAVEPOINT coverage_lookup`.execute(tx)
+    return { outcome: 'unknown', ruleSet: null }
+  }
+}
 
 const CROCKFORD = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'
 
@@ -101,6 +120,7 @@ export async function submitRequest(
     .returning('id')
     .executeTakeFirstOrThrow()
   const p = body.property
+  const coverage = await coverageOrUnknown(tx, p.zip)
   const property = await tx
     .insertInto('crm.properties')
     .values({
@@ -112,7 +132,8 @@ export async function submitRequest(
       property_type: p.propertyType,
       // Every served property is in the business time zone (FACT-TIMEZONE); staff correct it if ever needed.
       time_zone: zone,
-      coverage_result: 'unknown',
+      coverage_result: coverage.outcome,
+      coverage_rule_set: coverage.ruleSet,
     })
     .returning('id')
     .executeTakeFirstOrThrow()
@@ -158,7 +179,8 @@ export async function submitRequest(
       preferred_channel: c.preferredChannel,
       sms_opt_in: body.smsOptIn,
       marketing_opt_in: body.marketingOptIn,
-      coverage_result: 'unknown',
+      coverage_result: coverage.outcome,
+      coverage_rule_set: coverage.ruleSet,
       spam_suspected: spamSuspected,
       spam_signals: signals,
       original_submission: JSON.stringify(original),

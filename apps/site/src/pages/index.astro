@@ -1,8 +1,11 @@
 ---
 // Homepage (TSK-0020; HH-CUS-06, OWN-DEC-86): the hero with the owner's three trust facts and the request action,
 // then "Why HandyHub" with the owner's subtitle and six items, in exactly the approved wording (site/claims.ts). No
-// prices, completion times, 24/7 wording, guarantees, credentials or reviews (OWN-DEC-89, HH-BASE-04).
+// prices, completion times, 24/7 wording, guarantees, credentials or reviews (OWN-DEC-89, HH-BASE-04). The ZIP check
+// follows the hero (TSK-0022, HH-CUS-03).
 import { customerTranslator } from '@handyhub/i18n'
+import CoverageChecker from '../coverage/CoverageChecker.tsx'
+import '../coverage/coverage.css'
 import SiteLayout from '../layouts/SiteLayout.astro'
 
 const t = customerTranslator()
@@ -29,6 +32,9 @@ const why = [
       </p>
     </div>
   </section>
+  <div class="hh-site__wrap hh-home-coverage">
+    <CoverageChecker client:load />
+  </div>
   <section class="hh-home-why" aria-labelledby="home-why">
     <div class="hh-site__wrap">
       <h2 class="hh-h2" id="home-why">{t.t('home.why.heading')}</h2>
