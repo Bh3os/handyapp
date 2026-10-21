@@ -19,6 +19,9 @@
 //                                              (visit.cancel; a work visit: the Owner; If-Match; TSK-0066)
 //   POST /staff/visit-change-requests/:requestId/decline  decline a customer's reschedule or cancellation request
 //                                              (visit.reschedule or the cancel rule; If-Match; TSK-0066)
+//   GET  /staff/visits/:visitId/reminders      the visit's appointment reminder drafts (schedule.view_board; TSK-0067)
+//   POST /staff/appointment-reminders/:deliveryId/release|dismiss  release or dismiss one (message.release_draft and
+//                                              visit.reschedule; TSK-0067, reminder-routes.ts)
 // Every write takes an idempotency key and records its audit event with the local window, zone, offsets and instants.
 // The customer's side of an offer (select a window, ask for other times) is the portal module's (portal/appointments.ts).
 import type { Tx } from '@handyhub/db'
@@ -35,6 +38,7 @@ import {
 } from './changes.js'
 import { WORK_VISIT_GATES, type WorkVisitGate } from './gates.js'
 import { offerWindows, windowOfferExpiryAutomation, withdrawOffer, type OfferInput } from './offers.js'
+import { appointmentReminderRoutes } from './reminder-routes.js'
 import {
   BOARD_QUERY,
   CANCEL_BODY,
@@ -601,7 +605,23 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
     },
   }
 
-  return { name: 'visits', routes: [list, plan, move, confirm, offer, withdraw, board, reassign, cancel, decline] }
+  return {
+    name: 'visits',
+    routes: [
+      list,
+      plan,
+      move,
+      confirm,
+      offer,
+      withdraw,
+      board,
+      reassign,
+      cancel,
+      decline,
+      // TSK-0067: appointment reminders.
+      ...appointmentReminderRoutes(),
+    ],
+  }
 }
 
 export { BOARD_VIEWS, boardDays, scheduleBoard, type ScheduleBoard } from './board.js'
@@ -635,3 +655,18 @@ export {
   WORK_VISIT_PROJECT_STATES,
   type ProjectVisits,
 } from './visits.js'
+export {
+  APPOINTMENT_REMINDER_ITEM,
+  APPOINTMENT_REMINDER_MESSAGE_KEY,
+  APPOINTMENT_REMINDER_STOP_REASONS,
+  appointmentReminderAutomations,
+  appointmentReminderCadence,
+  appointmentReminderDueAt,
+  appointmentReminderFailureItem,
+  appointmentReminderRecordCheck,
+  appointmentReminderStopReason,
+  appointmentReminderSubject,
+  stopAppointmentReminders,
+  type AppointmentReminderDeps,
+  type AppointmentReminderStopReason,
+} from './reminders.js'
