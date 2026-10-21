@@ -77,6 +77,8 @@ export const LABEL_FAMILIES = {
     'candidate_match',
     'inbox_needs_linking',
     'customer_replied',
+    'question_replied',
+    'question_reminder',
     'deposit_waiver',
     'start_work_exception',
     'refund_request',
@@ -114,6 +116,11 @@ export const LABEL_FAMILIES = {
     'possible_duplicate',
     'message_needs_linking',
     'customer_replied',
+    'question_replied',
+    'reopened_by_reply',
+    'question_reminder_first',
+    'question_reminder_final',
+    'no_response_close_available',
   ],
   /** The one action button of a queue item (HH-OPS-02); it opens the record's screen. */
   queueAction: [
@@ -127,6 +134,7 @@ export const LABEL_FAMILIES = {
     'review_match',
     'link_message',
     'open_conversation',
+    'release_reminder',
   ],
   /**
    * System health (TSK-0101; HH-NFR-02): the checks, their states, metrics and notes, as the server's health report
@@ -251,6 +259,8 @@ export const LABEL_FAMILIES = {
     'arrange_estimate_visit',
     'not_a_fit',
     'not_a_fit_owner_review',
+    // TSK-0051 (OWN-DEC-101).
+    'close_no_response',
   ],
   /** Project lifecycle states (the project.lifecycle machine, PROPOSED). */
   projectState: ['open', 'approved', 'completed', 'closed', 'cancellation_review', 'canceled'],
@@ -282,9 +292,17 @@ export const LABEL_FAMILIES = {
   /** Message delivery states (HH-COM-02; platform.message_deliveries). */
   deliveryState: ['draft', 'queued', 'sent', 'delivered', 'failed', 'suppressed', 'cancelled'],
   /** The unified inbox (TSK-0049; apps/server/src/modules/inbox, comms.messages). */
-  messageChannel: ['email', 'sms', 'internal'],
+  messageChannel: ['email', 'sms', 'internal', 'portal'],
   linkState: ['matched', 'needs_linking', 'linked'],
-  matchRule: ['reply_token', 'thread_reference', 'verified_email', 'verified_phone', 'latest_conversation', 'staff'],
+  matchRule: [
+    'reply_token',
+    'thread_reference',
+    'verified_email',
+    'verified_phone',
+    'latest_conversation',
+    'staff',
+    'portal_session',
+  ],
   needsLinkingReason: [
     'no_match',
     'shared_contact',
@@ -345,7 +363,21 @@ export const LABEL_FAMILIES = {
     'HAZARDS_NEED_ATTENTION',
     'REVIEWER_REQUIRED',
     'OWN_CRITICAL_HOLD',
+    // TSK-0051: publishing a question, releasing its reminders and "Closed—no response".
+    'NO_OPEN_QUESTION',
+    'FINAL_REMINDER_NOT_SENT',
+    'TOO_EARLY',
+    'CONFIG_MISSING',
+    'QUESTION_ANSWERED',
+    'REQUEST_CLOSED',
+    'NO_DRAFT',
   ],
+  /** Staff questions to the customer (TSK-0051; apps/server/src/modules/questions). */
+  questionKind: ['general', 'measurement'],
+  questionState: ['published', 'answered'],
+  questionNotice: ['pending', 'sent', 'failed'],
+  reminderStage: ['first', 'final'],
+  reminderState: ['not_scheduled', 'scheduled', 'draft', 'queued', 'sent', 'failed', 'cancelled'],
   /** Estimate version states (ENT-EstimateVersion; migration 0026). */
   estimateState: ['draft', 'in_review', 'published', 'accepted', 'declined', 'expired', 'withdrawn', 'superseded'],
   /** Estimate line kinds: base scope and the options a customer may select (@handyhub/money LINE_KINDS). */

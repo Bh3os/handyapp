@@ -20,6 +20,7 @@ import {
 import type { DataScope } from '@handyhub/policy'
 import { loadConfig } from '../../platform/config/index.js'
 import { findProject } from '../records/repository.js'
+import { replyWindow } from '../questions/model.js'
 import { notAFitCustomerMessage } from '../requests/staff-record.js'
 
 type Reader = Db | Tx
@@ -33,6 +34,8 @@ const PUBLISHED_DECISIONS: Readonly<Record<string, TimelineKind>> = {
   ask_question: 'more_information',
   arrange_estimate_visit: 'site_visit',
   not_a_fit: 'not_a_fit',
+  // TSK-0051 (OWN-DEC-101).
+  close_no_response: 'closed_no_response',
 }
 
 export type ProjectOverview = {
@@ -84,7 +87,7 @@ async function overviewFor(db: Reader, project: { id: string; reference: string 
     .select(['id', 'action', 'customer_text', 'decided_at'])
     .where('request_id', '=', r.id)
     .where('project_id', '=', project.id)
-    .where('action', 'in', Object.keys(PUBLISHED_DECISIONS) as ('ask_question' | 'not_a_fit')[])
+    .where('action', 'in', Object.keys(PUBLISHED_DECISIONS))
     .orderBy('decided_at')
     .orderBy('id')
     .execute()
@@ -99,7 +102,25 @@ async function overviewFor(db: Reader, project: { id: string; reference: string 
           : null
     entries.push({ kind, at: d.decided_at, text })
   }
-  const facts: PortalFacts = { requestState: r.state as RequestState, projectState: p.state as ProjectState }
+  // TSK-0051: a "Closed—no response" request within its reopen period, with a question still open, can be reopened by
+  // the customer's reply (FACT-REOPEN-PERIOD).
+  let reopenByReply = false
+  if (r.state === 'closed_no_response') {
+    const w = await replyWindow(db, r, await loadConfig(db), now)
+    const open = await db
+      .selectFrom('intake.questions')
+      .select('id')
+      .where('request_id', '=', r.id)
+      .where('state', '=', 'published')
+      .limit(1)
+      .executeTakeFirst()
+    reopenByReply = w.window === 'reopen' && open !== undefined
+  }
+  const facts: PortalFacts = {
+    requestState: r.state as RequestState,
+    projectState: p.state as ProjectState,
+    ...(reopenByReply ? { reopenByReply } : {}),
+  }
   const status = customerStatus(facts)
   // The entry that put the project where it is now dates the status and carries its customer text.
   const current = [...entries].reverse().find((e) => e.kind === status.situation)

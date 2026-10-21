@@ -4,8 +4,8 @@
 // - Messages (TSK-0050): the project's customer conversation: the customer's email and texts that are on the project
 //   and come from one of the customer's own contacts (a message staff linked from another sender is never shown to
 //   the customer), and HandyHub's replies, at once when staff press Send (their email or text may still wait for the
-//   contact hours). Never an internal message, a staff name, an address or a delivery detail. Writing from the portal
-//   is TSK-0051's.
+//   contact hours). Never an internal message, a staff name, an address or a delivery detail. TSK-0051: the customer
+//   writes in it from the portal too (channel 'portal').
 // - Documents, Appointments, Payments: no customer document, visit or payment record exists yet, so none is shown.
 // - Photos: the counts of the customer-visible photos (the customer's uploads, and photos staff shared) by state, the
 //   same counts the receipt shows; the photos themselves, their URLs and IDs are not sent (viewing: TSK-0076).
@@ -67,7 +67,7 @@ async function conversation(db: Reader, projectId: string): Promise<Conversation
     const text = readable && m.body_text !== null && m.body_text.trim() !== '' ? m.body_text : null
     return {
       from: m.direction === 'outbound' ? 'handyhub' : 'you',
-      channel: m.channel === 'sms' ? 'sms' : 'email',
+      channel: m.channel === 'sms' ? 'sms' : m.channel === 'portal' ? 'portal' : 'email',
       at: m.received_at,
       text,
       textState: text !== null ? 'shown' : readable || m.body_state === 'empty' ? 'empty' : 'not_available',

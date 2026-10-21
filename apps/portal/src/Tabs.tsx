@@ -3,15 +3,23 @@
 //   shown (useLive's `active`): a tab that is not on screen never polls.
 // - Each says truthfully what it holds today. Messages (TSK-0050): the project conversation, oldest first: the
 //   customer's own email and texts on the project and HandyHub's replies, each with who wrote it, how, when and the
-//   text exactly as written (never translated); an empty conversation says what will appear. Writing from here is
-//   TSK-0051's. Documents, Appointments, Payments: nothing exists yet, with what will appear. Photos: how many photos
+//   text exactly as written (never translated); an empty conversation says what will appear. TSK-0051: the customer
+//   writes to HandyHub here too (text only). Documents, Appointments, Payments: nothing exists yet, with what will appear. Photos: how many photos
 //   the project has by state, the same counts as the receipt, and that viewing them here is not available yet.
 // - A tab once opened stays mounted while another is shown, so anything typed in it survives a tab switch.
 // English only, from the customer catalog; the wording no decision gives is PROPOSED (OQ-PORTAL-WORDING).
 import type { CustomerKey } from '@handyhub/i18n'
-import { StateView } from '@handyhub/ui'
-import { useEffect, useState } from 'react'
-import { portalApi, type ConversationMessage, type Fetch, type TabData, type WorkspaceTab } from './api'
+import { Button, Field, StateView } from '@handyhub/ui'
+import { useEffect, useState, type FormEvent } from 'react'
+import {
+  newKey,
+  portalApi,
+  portalWrites,
+  type ConversationMessage,
+  type Fetch,
+  type TabData,
+  type WorkspaceTab,
+} from './api'
 import { t, when } from './labels'
 import { useLive } from './live'
 import { NotShown, RefreshLine } from './States'
@@ -49,7 +57,13 @@ function Conversation({ messages }: { messages: readonly ConversationMessage[] }
     <ol className="portal-conversation" aria-label={t('portal.messages.list')}>
       {messages.map((m, i) => {
         const from = t(m.from === 'you' ? 'portal.messages.from.you' : 'portal.messages.from.handyhub')
-        const channel = t(m.channel === 'sms' ? 'portal.messages.channel.sms' : 'portal.messages.channel.email')
+        const channel = t(
+          m.channel === 'sms'
+            ? 'portal.messages.channel.sms'
+            : m.channel === 'portal'
+              ? 'portal.messages.channel.portal'
+              : 'portal.messages.channel.email',
+        )
         return (
           <li
             key={`${m.at}-${i}`}
@@ -79,10 +93,108 @@ function Conversation({ messages }: { messages: readonly ConversationMessage[] }
   )
 }
 
-function Content({ data }: { data: TabData }) {
+type MessageDraft = { text: string; key: string | null }
+const messageStore = (reference: string) => `hh.portal.message.${reference}`
+
+/**
+ * Writing to HandyHub in the project conversation (TSK-0051, HH-PORT-09): text only, kept exactly as written. The
+ * draft and its idempotency key stay in sessionStorage until the server accepts the message, so a failure, a tab
+ * switch or a reload never loses it and a retry adds it once. PROPOSED wording (OQ-PORTAL-WORDING).
+ */
+function Composer({
+  reference,
+  fetchImpl,
+  onSent,
+}: {
+  reference: string
+  fetchImpl: Fetch
+  onSent: () => Promise<void>
+}) {
+  const [draft, setDraft] = useState<MessageDraft>(() => {
+    try {
+      const raw = window.sessionStorage.getItem(messageStore(reference))
+      const d = raw ? (JSON.parse(raw) as Partial<MessageDraft>) : null
+      return { text: typeof d?.text === 'string' ? d.text : '', key: typeof d?.key === 'string' ? d.key : null }
+    } catch {
+      return { text: '', key: null }
+    }
+  })
+  const [pending, setPending] = useState(false)
+  const [outcome, setOutcome] = useState<'sent' | 'failed' | 'closed' | 'card' | null>(null)
+  useEffect(() => {
+    try {
+      if (draft.text || draft.key) window.sessionStorage.setItem(messageStore(reference), JSON.stringify(draft))
+      else window.sessionStorage.removeItem(messageStore(reference))
+    } catch {
+      // Storage blocked: the draft lives only on the page.
+    }
+  }, [reference, draft])
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    if (!draft.text.trim()) return
+    const key = draft.key ?? newKey()
+    setDraft({ ...draft, key })
+    setPending(true)
+    const r = await portalWrites.message(fetchImpl, reference, draft.text, key)
+    setPending(false)
+    if (r.ok) {
+      setDraft({ text: '', key: null })
+      setOutcome('sent')
+      await onSent()
+      return
+    }
+    if (r.failure === 'refused') {
+      setDraft({ ...draft, key: null })
+      return setOutcome(
+        r.codes.includes('PROJECT_CLOSED') ? 'closed' : r.codes.includes('sensitive_content') ? 'card' : 'failed',
+      )
+    }
+    setOutcome('failed')
+  }
+  return (
+    <form className="portal-compose" aria-label={t('portal.messages.compose.label')} onSubmit={(e) => void submit(e)}>
+      <Field
+        multiline
+        label={t('portal.messages.compose.label')}
+        hint={t('portal.messages.compose.hint')}
+        maxLength={5000}
+        value={draft.text}
+        onChange={(e) => {
+          setDraft({ ...draft, text: e.target.value })
+          setOutcome(null)
+        }}
+      />
+      {outcome === 'sent' ? (
+        <p className="portal-compose__status" role="status">
+          {t('portal.messages.compose.sent')}
+        </p>
+      ) : outcome ? (
+        <p className="portal-reply__problem" role="alert">
+          {t(
+            outcome === 'closed'
+              ? 'portal.messages.compose.closed'
+              : outcome === 'card'
+                ? 'portal.questions.cardNumber'
+                : 'portal.messages.compose.failed',
+          )}
+        </p>
+      ) : null}
+      <Button type="submit" pending={pending}>
+        {t('portal.messages.compose.send')}
+      </Button>
+    </form>
+  )
+}
+
+function Content({ data, fetchImpl, onChanged }: { data: TabData; fetchImpl: Fetch; onChanged: () => Promise<void> }) {
   switch (data.tab) {
     case 'messages':
-      return <Conversation messages={data.messages} />
+      return (
+        <>
+          <Conversation messages={data.messages} />
+          <Composer reference={data.reference} fetchImpl={fetchImpl} onSent={onChanged} />
+        </>
+      )
     case 'documents':
       return <Empty title="portal.documents.none.title" text="portal.documents.none.text" />
     case 'appointments':
@@ -142,7 +254,7 @@ function TabRead({
             className={live.stale ? 'portal-section portal-section--stale' : 'portal-section'}
             data-stale={live.stale || undefined}
           >
-            <Content data={live.data} />
+            <Content data={live.data} fetchImpl={fetchImpl} onChanged={refresh} />
           </div>
         </>
       )}

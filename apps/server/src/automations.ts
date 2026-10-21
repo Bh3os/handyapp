@@ -12,6 +12,7 @@ import { queueAutomations } from './modules/queue/index.js'
 import { receiptEmailAutomation } from './modules/requests/receipt-email.js'
 import { responseClockAutomation } from './modules/requests/response-clock.js'
 import { accessLinkAutomation } from './modules/access/link-message.js'
+import { questionAutomations, questionRecordCheck, questionReminderFailureItem } from './modules/questions/index.js'
 import { customerAutomations } from './modules/customers/index.js'
 import {
   inboxIntakeAutomation,
@@ -72,9 +73,22 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     // TSK-0050: staff-released messages (a staff reply's Send; released reminders), each at its release time: inside
     // the daily contact hours for those held to them. A reply is rechecked against its contact at send time, and its
     // failed delivery opens a delivery issue with Retry.
+    // TSK-0051: released question reminders are rechecked against their question (answered or closed: cancelled) and
+    // their failed delivery opens a delivery issue on the request.
     releaseAutomation(
       { email: deps.providers.email, sms: deps.providers.sms, replyAddress: deps.replyAddress ?? null },
-      { recordChecks: { project: replyRecordCheck }, failureItem: replyFailureItem },
+      {
+        recordChecks: { project: replyRecordCheck, question: questionRecordCheck },
+        failureItem: async (tx, row) =>
+          (await replyFailureItem(tx, row)) ?? (await questionReminderFailureItem(tx, row)),
+      },
     ),
+    // TSK-0051: the automatic question notice and staff reply notice, the reminder clock from the notice's successful
+    // send, the reminder drafts and the "may close" queue item.
+    ...questionAutomations({
+      providers: { email: deps.providers.email, sms: deps.providers.sms, replyAddress: deps.replyAddress ?? null },
+      publicSiteUrl: deps.publicSiteUrl,
+      staffAppUrl: deps.staffAppUrl,
+    }),
   ]
 }

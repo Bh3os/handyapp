@@ -9,8 +9,8 @@
 // - the four actions. Each is one named request event (no "set status"), checked by @handyhub/domain against the
 //   current state and version (If-Match); a received request is moved to review in the same transaction first.
 //   * Ask a Question moves the request to "needs information". Writing and publishing the questions, and the
-//     automatic notice that publishing sends, belong to TSK-0051: this sends no customer message and only records
-//     the request.information_requested event for it.
+//     automatic notice that publishing sends, are TSK-0051's (modules/questions: publishing a question moves the
+//     request the same way): this route sends no customer message and only records request.information_requested.
 //   * Prepare Online Estimate and Arrange Estimate Visit need the qualification recorded, create one work package per
 //     service of the one project (HH-SVC-04) and move the request on. The estimate (TSK-0052, TSK-0053) and the
 //     estimate-visit windows (TSK-0063) are built later: nothing is booked and no message is sent; the
@@ -35,7 +35,7 @@ import { projectInScope } from '../../platform/data-scope.js'
 import { outbox } from '../../platform/outbox.js'
 import { currentContext } from '../../platform/request-context.js'
 import { syncDeliveryFailureOwner } from '../notifications/index.js'
-import { openQueueItem, syncEstimateItem, syncNewRequestItem } from '../queue/index.js'
+import { openQueueItem, resolveQueueItem, syncEstimateItem, syncNewRequestItem } from '../queue/index.js'
 import { DEFAULT_OBLIGATION_CHECKS, obligationFacts, type ObligationCheck } from './obligations.js'
 import { latestQualification, staffRequestView } from './staff-record.js'
 import {
@@ -353,6 +353,8 @@ async function moveRequest(
   // The pending-estimate item opens with Prepare Online Estimate and is resolved when the request leaves "ready for
   // estimate" (Ask a Question, Arrange Estimate Visit), in the same transaction (HH-OPS-01).
   await syncEstimateItem(tx, current.id)
+  // TSK-0051: acting on the request is staff's review of the customer's question replies.
+  await resolveQueueItem(tx, { type: 'question_replied', subjectId: current.id, resolution: 'handled' })
   await outbox.add(tx, {
     type: input.outboxType,
     aggregate: { type: 'request', id: current.id, version: moved.version },
@@ -1058,6 +1060,9 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
       // A closed request keeps its holds as history; its review-hold and pending-estimate items leave the queue.
       await syncReviewHoldItem(tx, current.id)
       await syncEstimateItem(tx, current.id)
+      // TSK-0051: the request is decided; its question items leave the queue (the history stays).
+      await resolveQueueItem(tx, { type: 'question_replied', subjectId: current.id, resolution: 'closed' })
+      await resolveQueueItem(tx, { type: 'question_reminder', subjectId: current.id, resolution: 'closed' })
       // The automatic notice that points the customer to the project (FACT-AUTOMATIC-MESSAGES row 7).
       await outbox.add(tx, {
         type: 'decision.not_a_fit_published',

@@ -71,6 +71,11 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
         'getCustomerProjectPhotos',
         'getCustomerProjectAppointments',
         'getCustomerProjectPayments',
+        // TSK-0051: questions from HandyHub, the reply and its photos, and writing in the project conversation.
+        'listCustomerQuestions',
+        'createQuestionReplyUpload',
+        'replyToQuestion',
+        'sendPortalMessage',
       ].sort(),
     )
     for (const r of customerRoutes) {

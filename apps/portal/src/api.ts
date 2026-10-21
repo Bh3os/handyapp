@@ -70,7 +70,7 @@ export type NextAction = (typeof NEXT_ACTIONS)[number]
 export const WAITING = ['customer', 'handyhub', 'nobody'] as const
 export type Waiting = (typeof WAITING)[number]
 
-export const TIMELINE_KINDS = ['received', 'more_information', 'site_visit', 'not_a_fit'] as const
+export const TIMELINE_KINDS = ['received', 'more_information', 'site_visit', 'not_a_fit', 'closed_no_response'] as const
 export type TimelineKind = (typeof TIMELINE_KINDS)[number]
 
 export type Status = {
@@ -178,7 +178,8 @@ export type PhotoCounts = { received: number; processing: number; failed: number
 /** One message of the project conversation (TSK-0050): who, how, when and the text exactly as written. */
 export type ConversationMessage = {
   from: 'you' | 'handyhub'
-  channel: 'email' | 'sms'
+  /** TSK-0051: 'portal' is a message the customer wrote here. */
+  channel: 'email' | 'sms' | 'portal'
   at: string
   text: string | null
   textState: 'shown' | 'empty' | 'not_available'
@@ -224,7 +225,7 @@ export function parseTab(tab: WorkspaceTab, v: unknown): TabData | null {
 }
 
 const FROM = ['you', 'handyhub'] as const
-const CHANNELS = ['email', 'sms'] as const
+const CHANNELS = ['email', 'sms', 'portal'] as const
 const TEXT_STATES = ['shown', 'empty', 'not_available'] as const
 
 function conversationMessage(v: unknown): ConversationMessage | null {
@@ -255,8 +256,169 @@ async function read<T>(fetchImpl: Fetch, path: string, parse: (v: unknown) => T 
   return data === null ? { ok: false, failure: 'failed' } : { ok: true, data }
 }
 
+// Questions from HandyHub (TSK-0051; HH-LEAD-03, OWN-DEC-98): the customer view project.questions.
+export const REPLY_WINDOWS = ['open', 'reopen', 'period_ended', 'closed'] as const
+export type ReplyWindow = (typeof REPLY_WINDOWS)[number]
+export type Question = {
+  id: string
+  kind: 'general' | 'measurement'
+  text: string
+  askedAt: string
+  state: 'waiting' | 'answered'
+  canReply: boolean
+  reply: { text: string | null; notSure: boolean; at: string; photos: PhotoCounts } | null
+}
+export type QuestionList = {
+  reference: string
+  refreshedAt: string
+  refreshSeconds: number
+  questions: Question[]
+  replyWindow: ReplyWindow
+  reopenUntil: string | null
+  maxLength: number
+}
+
+function counts(v: unknown): PhotoCounts | null {
+  if (!isObj(v) || !isSeconds(v['received']) || !isSeconds(v['processing']) || !isSeconds(v['failed'])) return null
+  return { received: v['received'], processing: v['processing'], failed: v['failed'] }
+}
+
+function question(v: unknown): Question | null {
+  if (!isObj(v)) return null
+  const { id, kind, text, askedAt, state, canReply, reply } = v
+  if (!isStr(id) || !oneOf(['general', 'measurement'] as const)(kind) || !isStr(text) || !isDate(askedAt)) return null
+  if (!oneOf(['waiting', 'answered'] as const)(state) || typeof canReply !== 'boolean') return null
+  if (reply === null) return { id, kind, text, askedAt, state, canReply, reply: null }
+  if (!isObj(reply) || (reply['text'] !== null && !isStr(reply['text'])) || typeof reply['notSure'] !== 'boolean')
+    return null
+  const photos = counts(reply['photos'])
+  if (!isDate(reply['at']) || !photos) return null
+  return {
+    id,
+    kind,
+    text,
+    askedAt,
+    state,
+    canReply,
+    reply: { text: reply['text'] as string | null, notSure: reply['notSure'], at: reply['at'], photos },
+  }
+}
+
+export function parseQuestions(v: unknown): QuestionList | null {
+  if (!isObj(v) || !isStr(v['reference']) || !isDate(v['refreshedAt']) || !isSeconds(v['refreshSeconds'])) return null
+  if (!Array.isArray(v['questions']) || !oneOf(REPLY_WINDOWS)(v['replyWindow'])) return null
+  if (v['reopenUntil'] !== null && !isDate(v['reopenUntil'])) return null
+  if (typeof v['maxLength'] !== 'number' || v['maxLength'] < 1) return null
+  const questions = v['questions'].map(question)
+  if (questions.some((q) => q === null)) return null
+  return {
+    reference: v['reference'],
+    refreshedAt: v['refreshedAt'],
+    refreshSeconds: v['refreshSeconds'],
+    questions: questions as Question[],
+    replyWindow: v['replyWindow'],
+    reopenUntil: v['reopenUntil'] as string | null,
+    maxLength: v['maxLength'],
+  }
+}
+
+/** The outcome of a write the page shows: done (with the answer), refused (with the server's codes), or failed. */
+export type WriteResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; failure: 'refused'; status: number; codes: string[] }
+  | { ok: false; failure: Failure }
+
+async function send<T>(fetchImpl: Fetch, path: string, init: RequestInit): Promise<WriteResult<T>> {
+  let res: Response
+  try {
+    res = await fetchImpl(`/api/v1${path}`, { credentials: 'same-origin', cache: 'no-store', ...init })
+  } catch {
+    return { ok: false, failure: 'failed' }
+  }
+  if (res.status === 401) return { ok: false, failure: 'expired' }
+  if (res.status === 403 || res.status === 404) return { ok: false, failure: 'unavailable' }
+  const body = (await res.json().catch(() => null)) as unknown
+  if (res.ok) return { ok: true, data: body as T }
+  if (res.status >= 400 && res.status < 500 && isObj(body) && isObj(body['error'])) {
+    const e = body['error']
+    const fe = Array.isArray(e['fieldErrors']) ? e['fieldErrors'] : []
+    const codes = fe.flatMap((f) => (isObj(f) && isStr(f['code']) ? [f['code']] : []))
+    return { ok: false, failure: 'refused', status: res.status, codes: codes.length ? codes : [String(e['code'])] }
+  }
+  return { ok: false, failure: 'failed' }
+}
+
+const json = (body: unknown, headers: Record<string, string> = {}): RequestInit => ({
+  method: 'POST',
+  headers: { 'content-type': 'application/json', accept: 'application/json', ...headers },
+  body: JSON.stringify(body),
+})
+
+export type UploadStart = {
+  capability: string
+  expiresAt: string
+  limits: { maxFileBytes: number; maxPhotos: number; types: string[] }
+}
+export type UploadedPhoto = { id: string; state: 'quarantined' | 'ready' | 'rejected'; rejectionReason: string | null }
+
+/** A random idempotency key: one per draft, kept with it, so a retried submission is answered once. */
+export function newKey(): string {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+}
+
+export const portalWrites = {
+  /** A new upload capability for one reply's photos. */
+  startUpload: (f: Fetch, reference: string, questionId: string) =>
+    send<UploadStart>(
+      f,
+      `/customer/projects/${encodeURIComponent(reference)}/questions/${encodeURIComponent(questionId)}/uploads`,
+      json({}),
+    ),
+  /** One photo, as raw bytes, under the reply's capability. */
+  uploadPhoto: (f: Fetch, capability: string, file: Blob, type: string) =>
+    send<UploadedPhoto>(f, '/public/request-drafts/photos', {
+      method: 'POST',
+      headers: { 'content-type': type, 'upload-capability': capability, accept: 'application/json' },
+      body: file,
+    }),
+  /** The capability's photos as they are now (processing finishes after the upload). */
+  listPhotos: (f: Fetch, capability: string) =>
+    send<{ photos: UploadedPhoto[] }>(f, '/public/request-drafts/photos', {
+      method: 'GET',
+      headers: { 'upload-capability': capability, accept: 'application/json' },
+    }),
+  removePhoto: (f: Fetch, capability: string, photoId: string) =>
+    send<{ removed: boolean }>(f, `/public/request-drafts/photos/${encodeURIComponent(photoId)}`, {
+      method: 'DELETE',
+      headers: { 'upload-capability': capability, accept: 'application/json' },
+    }),
+  reply: (
+    f: Fetch,
+    reference: string,
+    questionId: string,
+    body: { text?: string; notSure?: boolean; photoIds?: string[] },
+    key: string,
+    capability: string | null,
+  ) =>
+    send<{ questionId: string; state: 'answered'; at: string; photos: number; reopened: boolean }>(
+      f,
+      `/customer/projects/${encodeURIComponent(reference)}/questions/${encodeURIComponent(questionId)}/replies`,
+      json(body, { 'idempotency-key': key, ...(capability ? { 'upload-capability': capability } : {}) }),
+    ),
+  message: (f: Fetch, reference: string, text: string, key: string) =>
+    send<{ from: 'you'; channel: 'portal'; at: string }>(
+      f,
+      `/customer/projects/${encodeURIComponent(reference)}/messages`,
+      json({ text }, { 'idempotency-key': key }),
+    ),
+}
+
 export const portalApi = {
   projects: (f: Fetch) => read(f, '/customer/projects', parseList),
+  questions: (f: Fetch, reference: string) =>
+    read(f, `/customer/projects/${encodeURIComponent(reference)}/questions`, parseQuestions),
   overview: (f: Fetch, reference: string) =>
     read(f, `/customer/projects/${encodeURIComponent(reference)}/overview`, parseOverview),
   tab: (f: Fetch, reference: string, tab: WorkspaceTab) =>

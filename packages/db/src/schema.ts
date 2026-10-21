@@ -491,6 +491,40 @@ export interface IntakePhotosTable {
   visibility: Generated<string>
 }
 
+export interface IntakeQuestionRepliesTable {
+  id: Generated<string>
+  question_id: string
+  request_id: string
+  project_id: string
+  author_contact_id: string
+  body: string | null
+  not_sure: Generated<boolean>
+  reopened_request: Generated<boolean>
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface IntakeQuestionReplyPhotosTable {
+  reply_id: string
+  photo_id: string
+  position: number
+}
+
+export interface IntakeQuestionsTable {
+  id: Generated<string>
+  request_id: string
+  project_id: string
+  kind: string
+  body: string
+  author_staff_id: string
+  published_at: ColumnType<Date, Date | string | undefined, Date | string>
+  state: Generated<string>
+  answered_at: Timestamp | null
+  notice_sent_at: Timestamp | null
+  first_reminder_sent_at: Timestamp | null
+  final_reminder_sent_at: Timestamp | null
+  version: Generated<number>
+}
+
 export interface IntakeReceiptCapabilitiesTable {
   id: string
   token_hash: string
@@ -649,6 +683,7 @@ export interface IntakeUploadCapabilitiesTable {
   expires_at: Timestamp
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   consumed_at: Timestamp | null
+  question_id: string | null
 }
 
 export interface OpsQueueItemsTable {
@@ -961,6 +996,9 @@ export interface Database {
   'identity.verification_attempts': IdentityVerificationAttemptsTable
   'identity.verification_codes': IdentityVerificationCodesTable
   'intake.photos': IntakePhotosTable
+  'intake.question_replies': IntakeQuestionRepliesTable
+  'intake.question_reply_photos': IntakeQuestionReplyPhotosTable
+  'intake.questions': IntakeQuestionsTable
   'intake.receipt_capabilities': IntakeReceiptCapabilitiesTable
   'intake.request_answers': IntakeRequestAnswersTable
   'intake.request_assignments': IntakeRequestAssignmentsTable

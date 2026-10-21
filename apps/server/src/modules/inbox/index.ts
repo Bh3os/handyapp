@@ -142,6 +142,8 @@ const messageResource: NonNullable<RouteDef['resource']> = async ({ req, db }) =
     .select('id')
     .where('id', '=', messageId)
     .where('direction', '=', 'inbound')
+    // TSK-0051: a portal message is placed by the customer's own session and is never relinked.
+    .where('channel', '<>', 'portal')
     .executeTakeFirst()
   return row ? {} : null
 }
@@ -607,6 +609,7 @@ async function messageDetail(ctx: ApiContext, messageId: string) {
     ])
     .where('m.id', '=', messageId)
     .where('m.direction', '=', 'inbound')
+    .where('m.channel', '<>', 'portal')
     .executeTakeFirst()
   if (!m) throw new ApiError('NOT_FOUND')
   // Candidates for office staff: projects of the customers whose contacts have this address (verified or not), and
@@ -767,6 +770,7 @@ const linkMessage: RouteDef = {
       ])
       .where('id', '=', messageId)
       .where('direction', '=', 'inbound')
+      .where('channel', '<>', 'portal')
       .forUpdate()
       .executeTakeFirst()
     if (!m) throw new ApiError('NOT_FOUND')

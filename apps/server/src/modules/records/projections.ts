@@ -37,6 +37,8 @@ export const ENTITIES = [
   'Note',
   'CandidateMatch',
   'Message',
+  // TSK-0051: staff questions to the customer and the customer's replies.
+  'Question',
 ] as const
 export type Entity = (typeof ENTITIES)[number]
 
@@ -322,7 +324,8 @@ function tabView<S extends string>(name: string, entity: Entity, states: readonl
  */
 export type ConversationMessageRecord = {
   from: 'you' | 'handyhub'
-  channel: 'email' | 'sms'
+  /** TSK-0051: 'portal' is a message the customer wrote in the portal's Messages tab. */
+  channel: 'email' | 'sms' | 'portal'
   at: Date
   text: string | null
   textState: 'shown' | 'empty' | 'not_available'
@@ -330,7 +333,7 @@ export type ConversationMessageRecord = {
 }
 const CONVERSATION_MESSAGE = object({
   from: enumOf(['you', 'handyhub']),
-  channel: enumOf(['email', 'sms']),
+  channel: enumOf(['email', 'sms', 'portal']),
   at: DATE,
   text: { type: ['string', 'null'] },
   textState: enumOf(['shown', 'empty', 'not_available']),
@@ -374,6 +377,140 @@ export const PROJECT_PHOTOS = customerView(
   }),
 )
 
+/**
+ * TSK-0051 (HH-LEAD-03, OWN-DEC-98, OWN-DEC-101): the questions HandyHub published in the project, oldest first, as
+ * the customer sees them: the text exactly as staff wrote it, whether it is a measurement (the reply may say "I'm not
+ * sure"), when it was asked, whether it waits on the customer, whether a reply can be sent now, and the customer's own
+ * reply (text as written, "I'm not sure", the attached photos counted by state). Never the author, a delivery, a
+ * reminder or anything internal. replyWindow: open; reopen (the request is "Closed—no response" and a reply within the
+ * period until reopenUntil reopens it); period_ended (a new request is the way); closed.
+ */
+export type QuestionRecord = {
+  id: string
+  kind: 'general' | 'measurement'
+  text: string
+  askedAt: Date
+  state: 'waiting' | 'answered'
+  canReply: boolean
+  reply: { text: string | null; notSure: boolean; at: Date; photos: PhotoCountsRecord } | null
+}
+type PhotoCountsRecord = { received: number; processing: number; failed: number }
+const PHOTO_COUNTS = object({
+  received: { type: 'integer', minimum: 0 },
+  processing: { type: 'integer', minimum: 0 },
+  failed: { type: 'integer', minimum: 0 },
+})
+const QUESTION_ITEM = object({
+  id: STRING,
+  kind: enumOf(['general', 'measurement']),
+  text: STRING,
+  askedAt: DATE,
+  state: enumOf(['waiting', 'answered']),
+  canReply: { type: 'boolean' },
+  reply: {
+    anyOf: [
+      { type: 'null' },
+      object({ text: { type: ['string', 'null'] }, notSure: { type: 'boolean' }, at: DATE, photos: PHOTO_COUNTS }),
+    ],
+  },
+})
+export const PROJECT_QUESTIONS = customerView(
+  'project.questions',
+  'Question',
+  {
+    ...TAB_FIELDS,
+    questions: { type: 'array', items: QUESTION_ITEM },
+    replyWindow: enumOf(['open', 'reopen', 'period_ended', 'closed']),
+    reopenUntil: { type: ['string', 'null'] },
+    maxLength: { type: 'integer', minimum: 1 },
+  },
+  (
+    r: TabRecord & {
+      questions: readonly QuestionRecord[]
+      replyWindow: 'open' | 'reopen' | 'period_ended' | 'closed'
+      reopenUntil: Date | null
+      maxLength: number
+    },
+  ) => ({
+    ...tabHead(r),
+    questions: r.questions.map((q) => ({
+      id: q.id,
+      kind: q.kind,
+      text: q.text,
+      askedAt: q.askedAt.toISOString(),
+      state: q.state,
+      canReply: q.canReply,
+      reply: q.reply
+        ? {
+            text: q.reply.text,
+            notSure: q.reply.notSure,
+            at: q.reply.at.toISOString(),
+            photos: {
+              received: q.reply.photos.received,
+              processing: q.reply.photos.processing,
+              failed: q.reply.photos.failed,
+            },
+          }
+        : null,
+    })),
+    replyWindow: r.replyWindow,
+    reopenUntil: r.reopenUntil ? r.reopenUntil.toISOString() : null,
+    maxLength: r.maxLength,
+  }),
+)
+
+/** A reply's upload capability (TSK-0051): returned once; the photo limits come from uploads.limits. */
+export const QUESTION_UPLOAD = customerView(
+  'question.upload',
+  'Photo',
+  {
+    capability: STRING,
+    expiresAt: DATE,
+    limits: object({
+      maxFileBytes: { type: 'integer' },
+      maxPhotos: { type: 'integer' },
+      types: { type: 'array', items: STRING },
+    }),
+  },
+  (r: {
+    capability: string
+    expiresAt: Date
+    limits: { maxFileBytes: number; maxPhotos: number; types: readonly string[] }
+  }) => ({
+    capability: r.capability,
+    expiresAt: r.expiresAt.toISOString(),
+    limits: { maxFileBytes: r.limits.maxFileBytes, maxPhotos: r.limits.maxPhotos, types: [...r.limits.types] },
+  }),
+)
+
+/** "Reply received—HandyHub will review it" (OWN-DEC-98): what the customer's reply did. */
+export const QUESTION_REPLY_RESULT = customerView(
+  'question.reply_received',
+  'Question',
+  {
+    questionId: STRING,
+    state: enumOf(['answered']),
+    at: DATE,
+    photos: { type: 'integer', minimum: 0 },
+    reopened: { type: 'boolean' },
+  },
+  (r: { questionId: string; at: Date; photos: number; reopened: boolean }) => ({
+    questionId: r.questionId,
+    state: 'answered',
+    at: r.at.toISOString(),
+    photos: r.photos,
+    reopened: r.reopened,
+  }),
+)
+
+/** A message the customer wrote in the portal (TSK-0051, HH-PORT-09): it is on the project's conversation now. */
+export const PORTAL_MESSAGE_SENT = customerView(
+  'project.message_sent',
+  'Message',
+  { from: enumOf(['you']), channel: enumOf(['portal']), at: DATE },
+  (r: { at: Date }) => ({ from: 'you', channel: 'portal', at: r.at.toISOString() }),
+)
+
 /** Every customer view, by name. */
 export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
   [
@@ -388,5 +525,9 @@ export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
     PROJECT_PHOTOS,
     PROJECT_APPOINTMENTS,
     PROJECT_PAYMENTS,
+    PROJECT_QUESTIONS,
+    QUESTION_UPLOAD,
+    QUESTION_REPLY_RESULT,
+    PORTAL_MESSAGE_SENT,
   ].map((v) => [v.name, v as CustomerView<never>]),
 )
