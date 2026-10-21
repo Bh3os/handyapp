@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@astrojs/react": "7.0.1",
+    "@handyhub/db": "workspace:*",
     "@handyhub/domain": "workspace:*",
     "@handyhub/i18n": "workspace:*",
     "@handyhub/ui": "workspace:*",

@@ -176,6 +176,27 @@ export async function publicServices(db: Db | Tx, environment: RegistryEnvironme
   }))
 }
 
+/**
+ * Whether the public site serves the page of the service with this slug (TSK-0021; HH-CUS-02, OWN-DEC-84): the same
+ * rule as publicServices(). Production: only a service the owner approved and published. Staging, local and ci: a
+ * service shown on staging or published. A draft, or a slug that names no service, has no page.
+ */
+export async function isPublicServiceSlug(
+  db: Db | Tx,
+  environment: RegistryEnvironment,
+  slug: string,
+): Promise<boolean> {
+  const production = environment === 'production'
+  const row = await db
+    .selectFrom('catalog.services')
+    .select('id')
+    .where('slug', '=', slug)
+    .where('public_status', 'in', production ? ['published'] : ['staging', 'published'])
+    .$if(production, (q) => q.where('published_version', 'is not', null))
+    .executeTakeFirst()
+  return row !== undefined
+}
+
 /** Every service with its current version, for staff screens, the request router and dispatch. */
 export async function registryServices(db: Db | Tx) {
   return db

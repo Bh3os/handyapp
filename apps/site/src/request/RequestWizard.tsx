@@ -187,14 +187,15 @@ export default function RequestWizard() {
       const remembered = checkedZip.current
       if (remembered) setValues((v) => ({ ...v, zip: remembered }))
       const draft = new DraftStore(browserStorage(), IDENTITY, s.draftDays).load()
-      // Arriving from a service page: that service's category opens with the service selected (HH-INT-15, T05).
-      const preselect = offered.services.find(
-        (x) => x.id === new URLSearchParams(window.location.search).get('service'),
-      )
+      // Arriving from a service page: that service's category opens with the service selected (HH-INT-15, T05). The
+      // link names the immutable service ID; its code (DW-01) is accepted too. From "Not sure what service I need"
+      // (TSK-0021, HH-CUS-01) that option is chosen and no service is guessed.
+      const wanted = new URLSearchParams(window.location.search).get('service')
+      const preselect = offered.services.find((x) => x.id === wanted || x.id === `SVC-${wanted ?? ''}`)
       if (preselect) {
         setValues((v) => ({ ...v, services: [preselect.id] }))
         setOpenCategory(preselect.category)
-      }
+      } else if (wanted === 'not-sure') setValues((v) => ({ ...v, notSure: true }))
       setPhase(draft ? 'draftFound' : 'choose')
     })
     return () => {
