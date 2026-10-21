@@ -28,6 +28,7 @@ import {
 } from './modules/inbox/index.js'
 import { contactChangedNoticeAutomation } from './modules/accounts/notice.js'
 import type { CodeKeySettings } from './modules/identity/index.js'
+import type { RecordChecks, ReleaseFailureItem } from './modules/notifications/index.js'
 import type { Automation } from './platform/automation.js'
 import type { Providers } from './providers/index.js'
 
@@ -40,6 +41,22 @@ export type AutomationDeps = LinkEmailDeps & {
   /** TSK-0034: the public site's base URL for the access link; undefined while not configured. */
   publicSiteUrl?: string | undefined
 }
+
+/**
+ * The send-time record checks of the one `notify.release` registration (HH-COM-05), by the record type a released
+ * draft is about: an estimate reminder's version (TSK-0060, HH-EST-14), a staff reply's project and contact
+ * (TSK-0050) and a question reminder's question (TSK-0051, HH-LEAD-06). A feature whose released drafts need a check
+ * adds its record type here, never a second registration.
+ */
+export const RELEASE_RECORD_CHECKS: RecordChecks = {
+  estimate_version: estimateReminderRecordCheck,
+  project: replyRecordCheck,
+  question: questionRecordCheck,
+}
+
+/** The delivery issue of a failed released draft: a staff reply's (TSK-0050) or a question reminder's (TSK-0051). */
+export const releaseFailureItem: ReleaseFailureItem = async (tx, row) =>
+  (await replyFailureItem(tx, row)) ?? (await questionReminderFailureItem(tx, row))
 
 export function buildAutomations(deps: AutomationDeps): Automation[] {
   return [
@@ -72,15 +89,7 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     // The one `notify.release` registration: every record type's send-time check is listed here.
     releaseAutomation(
       { email: deps.providers.email, sms: deps.providers.sms, replyAddress: deps.replyAddress ?? null },
-      {
-        recordChecks: {
-          estimate_version: estimateReminderRecordCheck,
-          project: replyRecordCheck,
-          question: questionRecordCheck,
-        },
-        failureItem: async (tx, row) =>
-          (await replyFailureItem(tx, row)) ?? (await questionReminderFailureItem(tx, row)),
-      },
+      { recordChecks: RELEASE_RECORD_CHECKS, failureItem: releaseFailureItem },
     ),
     // TSK-0058: each approval's receipt PDF, issued once, and the automatic approval receipt message
     // (FACT-AUTOMATIC-MESSAGES #9; wording NOT CONFIGURED: each delivery records template_not_configured).
