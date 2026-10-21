@@ -7,7 +7,8 @@
 // Entities with no customer view below are internal as a whole until a task declares one from its requirement: the
 // project access grant itself (its nonce, token hash, contact and revocation are never sent; a customer only learns
 // the reference of the project it opens), customer records, documents, invoices and cases. TSK-0036 declares the
-// signed-in account's own view (masked sign-in values and linked project references) and its code notices.
+// signed-in account's own view (masked sign-in values and linked project references) and its code notices. (The
+// workspace tabs of TSK-0039 name Document and Invoice only for their "none yet" states; no record field is sent.)
 import {
   CUSTOMER_NEXT_ACTIONS,
   CUSTOMER_SITUATIONS,
@@ -283,6 +284,51 @@ export const PROJECT_OVERVIEW = customerView(
   }),
 )
 
+// The workspace tabs (TSK-0039; HH-PORT-09, OWN-DEC-106). Each tab answers with its own view: the project reference,
+// what the tab holds as the records stand, the server time of the read and the refresh interval. A tab whose records
+// later tasks build says so with an explicit state code, so an empty section is never a guess:
+// - messages 'not_shown': the project conversation is not shown in the portal yet (TSK-0050, TSK-0051); messages that
+//   exist are never claimed absent;
+// - documents, appointments, payments 'none': no customer document, visit or payment record exists for any project
+//   yet (estimates TSK-0054/0058, visits TSK-0061, payments TSK-0087), so there is truthfully nothing to show;
+// - photos: the counts of the customer-visible photos by state (received, processing, failed); viewing them in the
+//   portal comes with TSK-0076, so no photo, URL or ID is sent.
+type TabRecord = { reference: string; refreshedAt: Date; refreshSeconds: number }
+const TAB_FIELDS = { reference: STRING, refreshedAt: DATE, refreshSeconds: { type: 'integer', minimum: 0 } } as const
+const tabHead = (r: TabRecord) => ({
+  reference: r.reference,
+  refreshedAt: r.refreshedAt.toISOString(),
+  refreshSeconds: r.refreshSeconds,
+})
+function tabView<S extends string>(name: string, entity: Entity, states: readonly S[]) {
+  return customerView(name, entity, { ...TAB_FIELDS, state: enumOf(states) }, (r: TabRecord & { state: S }) => ({
+    ...tabHead(r),
+    state: r.state,
+  }))
+}
+
+/** The Messages tab: the conversation is not shown in the portal yet (TSK-0050). */
+export const PROJECT_MESSAGES = tabView('project.messages', 'Project', ['not_shown'] as const)
+/** The Documents tab: no customer document exists yet. */
+export const PROJECT_DOCUMENTS = tabView('project.documents', 'Document', ['none'] as const)
+/** The Appointments tab: no visit exists yet (TSK-0061). */
+export const PROJECT_APPOINTMENTS = tabView('project.appointments', 'Project', ['none'] as const)
+/** The Payments tab: no estimate total, deposit, invoice or recorded payment exists yet (TSK-0087). */
+export const PROJECT_PAYMENTS = tabView('project.payments', 'Invoice', ['none'] as const)
+
+const COUNT = { type: 'integer', minimum: 0 } as const
+export type PhotoCounts = { received: number; processing: number; failed: number }
+/** The Photos tab: how many customer-visible photos the project has, by state; never a photo, URL or ID. */
+export const PROJECT_PHOTOS = customerView(
+  'project.photos',
+  'Photo',
+  { ...TAB_FIELDS, photos: object({ received: COUNT, processing: COUNT, failed: COUNT }) },
+  (r: TabRecord & { photos: PhotoCounts }) => ({
+    ...tabHead(r),
+    photos: { received: r.photos.received, processing: r.photos.processing, failed: r.photos.failed },
+  }),
+)
+
 // Optional customer accounts (TSK-0036; HH-ID-10, HH-ID-11, HH-ID-03, ENT-CustomerAccount). The account a session
 // signed in to, as its owner sees it: the sign-in values masked, the references of its linked projects (read from the
 // active links on every request) and two flags. No account ID, contact ID, link, code or unmasked value.
@@ -350,6 +396,11 @@ export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
     PROJECT_SUMMARY,
     PROJECT_LIST,
     PROJECT_OVERVIEW,
+    PROJECT_MESSAGES,
+    PROJECT_DOCUMENTS,
+    PROJECT_PHOTOS,
+    PROJECT_APPOINTMENTS,
+    PROJECT_PAYMENTS,
     CUSTOMER_ACCOUNT,
     ACCOUNT_SIGNED_IN,
     ACCOUNT_CODE_SENT,

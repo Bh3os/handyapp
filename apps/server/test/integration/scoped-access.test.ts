@@ -362,7 +362,14 @@ describe('project B is unreachable from project A’s session (TSK-0037, HH-DATA
     expect((await get('/customer/access/session', cookie)).json()).toEqual({ projects: [{ reference: A.reference }] })
     const listed = (await get('/customer/projects', cookie)).json<{ projects: { reference: string }[] }>()
     expect(listed.projects.map((p) => p.reference)).toEqual([A.reference])
-    for (const url of [`/customer/projects/${C.reference}`, `/customer/projects/${C.reference}/overview`])
+    // The TSK-0039 workspace tabs too.
+    const tabs = ['messages', 'documents', 'photos', 'appointments', 'payments']
+    expect((await get(`/customer/projects/${A.reference}/photos`, cookie)).statusCode).toBe(200)
+    for (const url of [
+      `/customer/projects/${C.reference}`,
+      `/customer/projects/${C.reference}/overview`,
+      ...tabs.map((tab) => `/customer/projects/${C.reference}/${tab}`),
+    ])
       expect((await get(url, cookie)).statusCode, url).toBe(404)
     expect((await get(`/customer/requests/${C.requestId}/photos`, cookie)).statusCode).toBe(404)
     expect((await get(`/customer/projects/${A.reference}/overview`, cookie)).statusCode).toBe(200)

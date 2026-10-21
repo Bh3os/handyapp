@@ -64,7 +64,7 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     accessModule({ codeKey: deps.codeKey ?? NO_CODE_KEY, trustProxyHops: deps.trustProxyHops ?? 0 }),
     // TSK-0036: optional customer accounts with one-time-code sign-in, Sign Out and sign-in email changes.
     accountsModule({ codeKey: deps.codeKey ?? NO_CODE_KEY, trustProxyHops: deps.trustProxyHops ?? 0 }),
-    // TSK-0038: the customer project workspace frame (projects list and Overview).
+    // TSK-0038: the customer project workspace frame (projects list and Overview); TSK-0039: the other five tabs.
     portalModule(),
   ]
 }

@@ -6,6 +6,8 @@
 //   with the time of the last successful read, until a refresh succeeds.
 // - An ended session (401) replaces the record with the expired state: nothing stays on screen once access is gone.
 // - The record is replaced in place: the same components re-render, so focus and anything typed are kept.
+// - A view that is not on screen (a workspace tab that is not selected, TSK-0039) is `active: false`: it does not poll,
+//   and it refreshes once when it is shown again, so a tab never shows an old record as current.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Failure, Result } from './api'
 
@@ -29,6 +31,7 @@ const serverTime = (data: { refreshedAt: string }) => new Date(data.refreshedAt)
 export function useLive<T extends { refreshedAt: string; refreshSeconds: number }>(
   load: () => Promise<Result<T>>,
   key: string,
+  active = true,
 ): LiveView<T> {
   const [live, setLive] = useState<Live<T>>({ phase: 'loading' })
   const loadRef = useRef(load)
@@ -63,7 +66,14 @@ export function useLive<T extends { refreshedAt: string; refreshSeconds: number 
     void refresh()
   }, [key, refresh])
 
-  const seconds = live.phase === 'ready' ? live.data.refreshSeconds : 0
+  // Shown again after being hidden in the workspace: read again at once.
+  const wasActive = useRef(active)
+  useEffect(() => {
+    if (active && !wasActive.current) void refresh()
+    wasActive.current = active
+  }, [active, refresh])
+
+  const seconds = active && live.phase === 'ready' ? live.data.refreshSeconds : 0
   useEffect(() => {
     if (seconds <= 0) return
     const tick = () => {
