@@ -35,6 +35,8 @@ import { audit, type AuditActor } from '../../platform/audit.js'
 import type { Automation, JobContext, JobOutcome } from '../../platform/automation.js'
 import { loadConfig, type Config } from '../../platform/config/index.js'
 import { scheduleJob } from '../../platform/jobs.js'
+import { outbox } from '../../platform/outbox.js'
+import { currentContext } from '../../platform/request-context.js'
 import type { EmailSender, SmsSender } from '../../providers/index.js'
 import { openQueueItem, resolveQueueItem } from '../queue/items.js'
 import { nextContactTime } from './contact-hours.js'
@@ -97,6 +99,26 @@ export function deliveryIdempotencyKey(
 ): string {
   const h = createHash('sha256').update(`${messageKey}\n${channel}\n${subjectKey}\n${destination}`).digest('hex')
   return `notification/${h.slice(0, 40)}`
+}
+
+/**
+ * The outcome of a customer delivery, for the modules that follow it (TSK-0043: the first-response clock, HH-LEAD-05).
+ * Written in the same transaction as the delivery's new state: `message.delivery_succeeded` when a delivery first
+ * becomes sent or delivered, `message.delivery_failed` when it fails or is suppressed. Identifiers and times only.
+ */
+export async function recordDeliveryOutcome(
+  tx: Tx,
+  input: { deliveryId: string; audience: string; outcome: 'succeeded' | 'failed'; at: Date; cause: string },
+): Promise<void> {
+  if (input.audience !== 'customer') return
+  const type = input.outcome === 'succeeded' ? 'message.delivery_succeeded' : 'message.delivery_failed'
+  await outbox.add(tx, {
+    type,
+    aggregate: { type: 'message_delivery', id: input.deliveryId },
+    payload: { at: input.at.toISOString() },
+    idempotencyKey: `${type}:${input.deliveryId}:${input.cause}`,
+    requestId: currentContext()?.requestId ?? `delivery:${input.deliveryId}`,
+  })
 }
 
 type DeliveryRow = {
@@ -174,6 +196,22 @@ async function send(
       .set({ ...set, attempts: sql<number>`attempts + 1`, updated_at: sql<Date>`now()` })
       .where('id', '=', row.id)
       .execute()
+    // The outcome for the modules that follow customer deliveries (TSK-0043: the first-response clock), in the same
+    // transaction as the new state: sent or delivered succeeded; failed (also an unknown last outcome) or suppressed failed.
+    const outcome =
+      set.state === 'sent' || set.state === 'delivered'
+        ? 'succeeded'
+        : set.state === 'failed' || set.state === 'suppressed'
+          ? 'failed'
+          : null
+    if (outcome)
+      await recordDeliveryOutcome(tx, {
+        deliveryId: row.id,
+        audience: row.audience,
+        outcome,
+        at: new Date(),
+        cause: 'send',
+      })
     return { state: set.state, errorCode: set.error_code }
   }
   const template = await currentTemplate(tx, row.message_key, channel, row.locale as 'en' | 'es')

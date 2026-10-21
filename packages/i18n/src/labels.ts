@@ -68,6 +68,7 @@ export const LABEL_FAMILIES = {
    */
   queueItemType: [
     'new_request',
+    'review_hold',
     'safety_hold',
     'visit_change_request',
     'delivery_failed',
@@ -85,6 +86,8 @@ export const LABEL_FAMILIES = {
   queueReason: [
     'new_request',
     'new_request_flagged',
+    'awaiting_first_response',
+    'review_hold',
     'safety_hold',
     'reschedule_requested',
     'cancellation_requested',
@@ -246,7 +249,24 @@ export const LABEL_FAMILIES = {
     'OWNER_REVIEW_REQUIRED',
     'FACTS_MISSING',
     'ACTOR_NOT_ALLOWED',
+    'REVIEW_HOLD_OPEN',
+    'HAZARD_CATEGORY_REQUIRED',
+    'HAZARD_NOTE_REQUIRED',
+    'HAZARDS_ONLY_ON_RISK_FLAGS',
+    'HAZARDS_NEED_ATTENTION',
+    'REVIEWER_REQUIRED',
+    'OWN_CRITICAL_HOLD',
   ],
+  /** Potential hazards or restricted scope found at intake (TSK-0043, HH-LEAD-04; PROPOSED categories). */
+  hazardCategory: ['hazardous_material', 'licensed_trade', 'structural', 'permit_licensing', 'other'],
+  /** Hold states (ENT-Hold). */
+  holdState: ['open', 'under_review', 'resolved', 'canceled_as_error'],
+  /** The first-response clock as staff read it (TSK-0043, HH-LEAD-05). */
+  responseClockState: ['not_configured', 'running', 'paused', 'overdue', 'stopped'],
+  /** How the first-response clock was stopped (OWN-DEC-116). */
+  responseStop: ['response_sent', 'conversation_recorded'],
+  /** Completed customer conversations staff record (TSK-0043, PROPOSED channels). */
+  conversationChannel: ['phone', 'in_person'],
 } as const satisfies Record<string, readonly string[]>
 
 export type LabelFamily = keyof typeof LABEL_FAMILIES

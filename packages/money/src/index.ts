@@ -6,12 +6,14 @@ export const PACKAGE_NAME = '@handyhub/money'
 export {
   add,
   assertCents,
+  assertCurrency,
   cents,
   centsFromDecimal,
   compare,
   CURRENCY,
   fromBigInt,
   isCents,
+  isCurrency,
   MoneyError,
   negate,
   parseCents,
@@ -37,3 +39,12 @@ export type { BasisPoints, Quantity } from './arithmetic.js'
 export { formatUsd } from './format.js'
 export { depositFor, estimateTotals } from './totals.js'
 export type { DepositOutcome, DepositRule, Totals, TotalsInput, TotalsProblem } from './totals.js'
+export { internalMargin, isLineKind, LINE_KINDS, priceEstimate } from './estimate.js'
+export type {
+  EstimateLineInput,
+  EstimatePricing,
+  EstimatePricingInput,
+  EstimateProblem,
+  InternalMargin,
+  LineKind,
+} from './estimate.js'

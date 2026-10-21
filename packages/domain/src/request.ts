@@ -2,7 +2,8 @@
 //
 //   received -> reviewing -> needs_information / needs_site_visit / ready_for_estimate -> estimated
 //   Both estimating routes need the staff qualification recorded (TSK-0042, PROPOSED); a site visit also needs its
-//   short customer-facing explanation (OWN-DEC-99).
+//   short customer-facing explanation (OWN-DEC-99). A review hold that is open or under review blocks both routes and
+//   the estimate's publication (TSK-0043, HH-LEAD-04); Ask a Question and Not a Fit stay open.
 //   terminal: declined ("Not a fit" with a reason category), outside_scope, not_served, withdrawn
 //   closed_no_response: only 24 h after the final unanswered-question reminder was actually sent; a customer reply
 //   within the reopen period reopens the same request for review (never restoring an expired estimate or appointment).
@@ -50,6 +51,8 @@ export type RequestFacts = ObligationFacts & {
   readonly customerExplanation?: string
   /** The qualification checks still without an outcome (TSK-0042, HH-LEAD-02); the server reads them. */
   readonly missingChecks?: readonly string[]
+  /** Review holds on the request that are open or under review (TSK-0043, HH-LEAD-04); the server reads them. */
+  readonly blockingReviewHolds?: number
   /** When the final unanswered-question reminder was actually sent (a failed delivery never counts). */
   readonly finalReminderSentAt?: Date
   /** Configured: hours after the final reminder before "Closed—no response" (24, OWN-DEC-101). */
@@ -89,6 +92,14 @@ const qualified: G = (f) => {
         message: `Record the qualification first; still unchecked: ${f.missingChecks.join(', ')}.`,
       }
 }
+/** A potential hazard under review blocks the estimate path until it is resolved (TSK-0043, HH-LEAD-04). */
+const noReviewHold: G = (f) => {
+  if (f.blockingReviewHolds === undefined)
+    return { code: 'FACTS_MISSING', message: 'The server must check: review holds.' }
+  return f.blockingReviewHolds === 0
+    ? null
+    : { code: 'REVIEW_HOLD_OPEN', message: 'A review hold must be resolved before estimating.' }
+}
 const finalReminderWaited: G = (f, now) =>
   hoursPassed(f.finalReminderSentAt, f.noResponseCloseHours, now, 'the final reminder was sent')
 const replyWithinReopenPeriod: G = (f) =>
@@ -122,7 +133,7 @@ export const REQUEST_MACHINE = defineMachine({
       from: ['reviewing', 'ready_for_estimate'],
       to: 'needs_site_visit',
       actors: ['staff'],
-      guards: [qualified, explanation],
+      guards: [qualified, explanation, noReviewHold],
       // The estimate-visit windows are offered next (HH-LEAD-07, TSK-0063).
       effects: ['estimate_visit.windows_needed'],
     },
@@ -131,10 +142,16 @@ export const REQUEST_MACHINE = defineMachine({
       from: ['reviewing', 'needs_site_visit'],
       to: 'ready_for_estimate',
       actors: ['staff'],
-      guards: [qualified],
+      guards: [qualified, noReviewHold],
     },
     // An estimate version for the request was published (the estimate machine records the publish itself).
-    { event: 'mark_estimated', from: ['ready_for_estimate'], to: 'estimated', actors: ['staff', 'system'] },
+    {
+      event: 'mark_estimated',
+      from: ['ready_for_estimate'],
+      to: 'estimated',
+      actors: ['staff', 'system'],
+      guards: [noReviewHold],
+    },
     {
       event: 'decline_not_a_fit',
       from: OPEN,
