@@ -7,7 +7,8 @@
 //   missing one, T19);
 // - a network failure, a server error or an unexpected answer: failed.
 // TSK-0056 adds the estimate view (estimate_version.customer) and the customer's responses to it (POST, JSON body,
-// with an idempotency key the page keeps for retries of the same response).
+// with an idempotency key the page keeps for retries of the same response). TSK-0057 adds the selected options, the
+// approval (one key per approval attempt, kept for its retries) and the session's fresh verification.
 
 export type Fetch = (input: string, init?: RequestInit) => Promise<Response>
 
@@ -250,13 +251,14 @@ export const APPROVAL_REASONS = [
   'superseded',
   'expired',
   'not_published',
-  'approval_not_available',
 ] as const
 export type ApprovalReason = (typeof APPROVAL_REASONS)[number]
 export const RESPONSE_KINDS = ['changes_requested', 'declined', 'update_requested'] as const
 export type ResponseKind = (typeof RESPONSE_KINDS)[number]
 
 export type EstimateLine = {
+  /** The line's position on the version: an option is selected by it (TSK-0057). */
+  position: number
   kind: 'base' | 'alternate' | 'add_on'
   serviceCode: string | null
   description: string | null
@@ -266,6 +268,15 @@ export type EstimateLine = {
   amountCents: number | null
 }
 export type EstimateResponse = { kind: ResponseKind; version: number; at: string; message: string | null }
+/** The server's totals for the selected options (integer cents). */
+export type Selection = {
+  options: number[]
+  subtotalCents: number
+  reductionCents: number
+  totalCents: number
+  deposit: { state: 'required' | 'not_required'; amountCents: number | null }
+}
+export type Approved = Selection & { at: string }
 export type EstimateDetail = {
   reference: string
   number: string
@@ -288,7 +299,14 @@ export type EstimateDetail = {
   paymentTerm: string
   document: { url: string; byteSize: number } | null
   terms: { documentId: string | null; state: TermsState }
-  approval: { available: false; reasons: ApprovalReason[]; current: { number: string; version: number } | null }
+  approval: {
+    available: boolean
+    reasons: ApprovalReason[]
+    current: { number: string; version: number } | null
+    contentDigest: string
+    selection: Selection | null
+    approved: Approved | null
+  }
   actions: { requestChanges: boolean; decline: boolean; requestUpdate: boolean }
   freshVerification: boolean
   responses: EstimateResponse[]
@@ -299,11 +317,12 @@ export type EstimateDetail = {
 
 const LINE_KINDS = ['base', 'alternate', 'add_on'] as const
 function line(v: unknown): EstimateLine | null {
-  if (!isObj(v) || !oneOf(LINE_KINDS)(v['kind'])) return null
+  if (!isObj(v) || !oneOf(LINE_KINDS)(v['kind']) || !isInt(v['position']) || v['position'] < 1) return null
   const { serviceCode, description, quantity, unit, unitPriceCents, amountCents } = v
   if (![serviceCode, description, quantity, unit].every(isNullableStr)) return null
   if (![unitPriceCents, amountCents].every((c) => c === null || isCents(c))) return null
   return {
+    position: v['position'],
     kind: v['kind'],
     serviceCode: serviceCode as string | null,
     description: description as string | null,
@@ -346,10 +365,17 @@ export function parseEstimate(v: unknown): EstimateDetail | null {
   const terms = v['terms']
   if (!isObj(terms) || !isNullableStr(terms['documentId']) || !oneOf(TERMS_STATES)(terms['state'])) return null
   const approval = v['approval']
-  if (!isObj(approval) || approval['available'] !== false || !Array.isArray(approval['reasons'])) return null
+  if (!isObj(approval) || typeof approval['available'] !== 'boolean' || !Array.isArray(approval['reasons'])) return null
   if (!approval['reasons'].every(oneOf(APPROVAL_REASONS))) return null
+  // Approval is offered only when the server says so and gives no reason against it.
+  if (approval['available'] && approval['reasons'].length > 0) return null
   const current = approval['current']
   if (current !== null && !(isObj(current) && isStr(current['number']) && isInt(current['version']))) return null
+  if (!isStr(approval['contentDigest']) || !/^[0-9a-f]{64}$/.test(approval['contentDigest'])) return null
+  const selection = approval['selection'] === null ? null : parseSelection(approval['selection'])
+  if (approval['selection'] !== null && !selection) return null
+  const approved = approval['approved'] === null ? null : parseApproved(approval['approved'])
+  if (approval['approved'] !== null && !approved) return null
   const actions = v['actions']
   if (!isObj(actions) || !['requestChanges', 'decline', 'requestUpdate'].every((k) => typeof actions[k] === 'boolean'))
     return null
@@ -373,7 +399,14 @@ export function parseEstimate(v: unknown): EstimateDetail | null {
     paymentTerm: v['paymentTerm'],
     document: document as EstimateDetail['document'],
     terms: terms as EstimateDetail['terms'],
-    approval: approval as EstimateDetail['approval'],
+    approval: {
+      available: approval['available'],
+      reasons: approval['reasons'] as ApprovalReason[],
+      current: current as EstimateDetail['approval']['current'],
+      contentDigest: approval['contentDigest'],
+      selection,
+      approved,
+    },
     actions: actions as EstimateDetail['actions'],
     freshVerification: v['freshVerification'],
     responses: responses as EstimateResponse[],
@@ -381,6 +414,26 @@ export function parseEstimate(v: unknown): EstimateDetail | null {
     refreshedAt: v['refreshedAt'],
     refreshSeconds: v['refreshSeconds'],
   }
+}
+
+/** The server's totals for a selection; anything else is a failure. */
+export function parseSelection(v: unknown): Selection | null {
+  if (!isObj(v) || !Array.isArray(v['options']) || !v['options'].every((o) => isInt(o) && o >= 1)) return null
+  if (!isCents(v['subtotalCents']) || !isCents(v['reductionCents']) || !isCents(v['totalCents'])) return null
+  const d = v['deposit']
+  if (!isObj(d) || !oneOf(['required', 'not_required'] as const)(d['state'])) return null
+  if (d['state'] === 'required' ? !isCents(d['amountCents']) : d['amountCents'] !== null) return null
+  return {
+    options: v['options'] as number[],
+    subtotalCents: v['subtotalCents'],
+    reductionCents: v['reductionCents'],
+    totalCents: v['totalCents'],
+    deposit: { state: d['state'], amountCents: d['amountCents'] as number | null },
+  }
+}
+function parseApproved(v: unknown): Approved | null {
+  const s = parseSelection(v)
+  return s && isObj(v) && isDate(v['at']) ? { ...s, at: v['at'] } : null
 }
 
 /** Why a response was not recorded, as the page says it. */
@@ -438,6 +491,126 @@ async function respond(
   return { ok: false, failure: 'failed' }
 }
 
+type Posted = { status: number; json: unknown } | null
+async function post(fetchImpl: Fetch, path: string, body: unknown, key?: string): Promise<Posted> {
+  try {
+    const res = await fetchImpl(`/api/v1${path}`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+        ...(key ? { 'idempotency-key': key } : {}),
+      },
+      body: JSON.stringify(body),
+    })
+    return { status: res.status, json: (await res.json().catch(() => null)) as unknown }
+  } catch {
+    return null
+  }
+}
+const fieldCodes = (json: unknown): unknown[] => {
+  const err = isObj(json) && isObj(json['error']) ? json['error'] : null
+  return err && Array.isArray(err['fieldErrors']) ? err['fieldErrors'].map((f) => (isObj(f) ? f['code'] : null)) : []
+}
+const versionPath = (ref: { reference: string; number: string; version: number }) =>
+  `/customer/projects/${encodeURIComponent(ref.reference)}/estimates/${encodeURIComponent(ref.number)}/versions/${ref.version}`
+
+export type SelectionResult = { ok: true; selection: Selection } | { ok: false; failure: WriteFailure }
+async function select(
+  fetchImpl: Fetch,
+  ref: { reference: string; number: string; version: number },
+  options: number[],
+): Promise<SelectionResult> {
+  const r = await post(fetchImpl, `${versionPath(ref)}/selection`, { options })
+  if (!r) return { ok: false, failure: 'failed' }
+  const selection = r.status === 200 && isObj(r.json) ? parseSelection(r.json['selection']) : null
+  if (selection) return { ok: true, selection }
+  return { ok: false, failure: failureOf(r.status, r.json) }
+}
+
+function failureOf(status: number, json: unknown): WriteFailure {
+  if (status === 401) return 'expired'
+  if (status === 404) return 'unavailable'
+  if (status === 403 && fieldCodes(json).includes('FRESH_VERIFICATION_REQUIRED')) return 'fresh_verification'
+  if (status === 409) return 'not_applicable'
+  if (status === 400) return 'invalid'
+  if (status === 429) return 'rate_limited'
+  return 'failed'
+}
+
+/** Why an approval was not recorded, as the page says it. */
+export type ApprovalFailure = WriteFailure | 'not_configured' | 'total_changed' | 'access_revoked'
+export type ApprovalResult = { ok: true; approved: Approved } | { ok: false; failure: ApprovalFailure }
+export type ApprovalBody = {
+  contentDigest: string
+  options: number[]
+  totalCents: number
+  depositCents: number | null
+  termsDocumentId: string
+  termsSha256: string
+  acceptTerms: boolean
+  fullName: string
+}
+async function approve(
+  fetchImpl: Fetch,
+  ref: { reference: string; number: string; version: number },
+  body: ApprovalBody,
+  key: string,
+): Promise<ApprovalResult> {
+  const r = await post(fetchImpl, `${versionPath(ref)}/approve`, body, key)
+  if (!r) return { ok: false, failure: 'failed' }
+  if ((r.status === 200 || r.status === 201) && isObj(r.json) && r.json['status'] === 'approved') {
+    const approved = parseApproved(r.json['approved'])
+    if (approved) return { ok: true, approved }
+    return { ok: false, failure: 'failed' }
+  }
+  const codes = fieldCodes(r.json)
+  if (r.status === 503 && isObj(r.json) && isObj(r.json['error']) && r.json['error']['code'] === 'NOT_CONFIGURED')
+    return { ok: false, failure: 'not_configured' }
+  if (r.status === 400 && codes.includes('TOTAL_MISMATCH')) return { ok: false, failure: 'total_changed' }
+  if (r.status === 403 && codes.includes('ACCESS_REVOKED')) return { ok: false, failure: 'access_revoked' }
+  return { ok: false, failure: failureOf(r.status, r.json) }
+}
+
+// The session's own fresh verification (TSK-0057, HH-ID-07).
+export const CHANNELS = ['email', 'phone'] as const
+export type Channel = (typeof CHANNELS)[number]
+export type Verification = {
+  fresh: boolean
+  freshUntil: string
+  channels: { channel: Channel; destination: string }[]
+}
+export function parseVerification(v: unknown): Verification | null {
+  if (!isObj(v) || typeof v['fresh'] !== 'boolean' || !isDate(v['freshUntil']) || !Array.isArray(v['channels']))
+    return null
+  const channels = v['channels'].map((c) =>
+    isObj(c) && oneOf(CHANNELS)(c['channel']) && isStr(c['destination'])
+      ? { channel: c['channel'], destination: c['destination'] }
+      : null,
+  )
+  if (channels.some((c) => c === null)) return null
+  return { fresh: v['fresh'], freshUntil: v['freshUntil'], channels: channels as Verification['channels'] }
+}
+export type CodeResult = { ok: true; destination: string } | { ok: false; failure: WriteFailure | 'not_configured' }
+async function sendCode(fetchImpl: Fetch, channel: Channel): Promise<CodeResult> {
+  const r = await post(fetchImpl, '/customer/session/verification/codes', { channel })
+  if (!r) return { ok: false, failure: 'failed' }
+  if (r.status === 202 && isObj(r.json) && isObj(r.json['sent']) && isStr(r.json['sent']['destination']))
+    return { ok: true, destination: r.json['sent']['destination'] }
+  if (r.status === 503) return { ok: false, failure: 'not_configured' }
+  return { ok: false, failure: failureOf(r.status, r.json) }
+}
+export type VerifyResult = { ok: true; verification: Verification } | { ok: false; failure: WriteFailure }
+async function verify(fetchImpl: Fetch, channel: Channel, code: string): Promise<VerifyResult> {
+  const r = await post(fetchImpl, '/customer/session/verification', { channel, code })
+  if (!r) return { ok: false, failure: 'failed' }
+  const verification = r.status === 200 ? parseVerification(r.json) : null
+  if (verification) return { ok: true, verification }
+  return { ok: false, failure: failureOf(r.status, r.json) }
+}
+
 async function read<T>(fetchImpl: Fetch, path: string, parse: (v: unknown) => T | null): Promise<Result<T>> {
   let res: Response
   try {
@@ -470,4 +643,9 @@ export const portalApi = {
       parseEstimate,
     ),
   respond,
+  select,
+  approve,
+  verification: (f: Fetch) => read(f, '/customer/session/verification', parseVerification),
+  sendCode,
+  verify,
 }

@@ -9,6 +9,9 @@
 // - The Owner's publishing setting (Settings): whether Estimators may publish; the Owner always may.
 // - TSK-0056 (HH-EST-09): the customer's Request Changes, Decline and Request an Updated Estimate, newest first, with
 //   the customer's own words; the queue's estimate_response item links here.
+// - TSK-0057 (HH-EST-06, HH-EST-08): the customer's approval: the version, the typed name, the time, the selected
+//   options, the approved total and deposit, the terms accepted, the TEST mark, and the job and scheduling task it
+//   created. Nothing here confirms an appointment or marks a deposit paid.
 import type { StaffKey } from '@handyhub/i18n'
 import { cents, formatUsd } from '@handyhub/money'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
@@ -32,6 +35,19 @@ export type Lifecycle = {
   current: { versionId: string; version: number } | null
   /** TSK-0056 (HH-EST-09): the customer's responses on the estimate, newest first, in their own words. */
   customerResponses?: { kind: string; version: number; at: string; message: string | null }[]
+  /** TSK-0057 (HH-EST-06, HH-EST-08): the customer's approval of a version of this estimate, or null. */
+  customerApproval?: {
+    version: number
+    at: string
+    fullName: string
+    options: number[]
+    totalCents: number
+    depositCents: number | null
+    termsVersion: string
+    testMark: boolean
+    jobState: string
+    schedulingTaskState: string
+  } | null
   actions: Record<
     'publish' | 'requestReview' | 'returnToDraft' | 'withdraw' | 'expire' | 'recordDecline' | 'revise',
     boolean
@@ -452,6 +468,52 @@ export function EstimateLifecycle<V extends VersionLike>({
         <p>{t('estimate.responses.none')}</p>
       )}
       <p className="staff-request__hint">{t('estimate.responses.hint')}</p>
+
+      <h3 id={`${ids}-approval`}>{t('estimate.approval.title')}</h3>
+      {lc.customerApproval ? (
+        <div aria-labelledby={`${ids}-approval`} role="group" data-testid="estimate-customer-approval">
+          {lc.customerApproval.testMark ? (
+            <p>
+              <StatusBadge tone="warning">{t('estimate.approval.test')}</StatusBadge>
+            </p>
+          ) : null}
+          <p>
+            <strong>
+              {t('estimate.approval.entry', {
+                n: lc.customerApproval.version,
+                // The customer's typed name, exactly as given (HH-PORT-08): never translated.
+                name: lc.customerApproval.fullName,
+                time: new Date(lc.customerApproval.at),
+              })}
+            </strong>
+          </p>
+          <dl className="staff-record">
+            <dt>{t('estimate.approval.total')}</dt>
+            <dd>{usd(lc.customerApproval.totalCents)}</dd>
+            <dt>{t('estimate.approval.deposit')}</dt>
+            <dd>
+              {lc.customerApproval.depositCents === null
+                ? t('estimate.approval.noDeposit')
+                : usd(lc.customerApproval.depositCents)}
+            </dd>
+            <dt>{t('estimate.approval.options')}</dt>
+            <dd>
+              {lc.customerApproval.options.length
+                ? lc.customerApproval.options.join(', ')
+                : t('estimate.approval.noOptions')}
+            </dd>
+            <dt>{t('estimate.approval.terms')}</dt>
+            <dd>{lc.customerApproval.termsVersion}</dd>
+            <dt>{t('estimate.approval.job')}</dt>
+            <dd>{codeLabel(t, 'jobState', lc.customerApproval.jobState)}</dd>
+            <dt>{t('estimate.approval.task')}</dt>
+            <dd>{codeLabel(t, 'schedulingTaskState', lc.customerApproval.schedulingTaskState)}</dd>
+          </dl>
+        </div>
+      ) : (
+        <p>{t('estimate.approval.none')}</p>
+      )}
+      <p className="staff-request__hint">{t('estimate.approval.hint')}</p>
     </section>
   )
 }

@@ -36,7 +36,15 @@ export type AccessChannel = { channel: ContactChannel; destination: string }
 
 type Target = { contactId: string; email: string; phone: string; textsAllowed: boolean }
 
-async function targetOf(db: Db | Tx, grant: Grant): Promise<Target> {
+/**
+ * The grant's own contact: its current email and phone, and whether texts may go to that phone (that request's own
+ * current SMS opt-in). TSK-0057 sends the in-session re-verification code of a guest-link session to the same values.
+ */
+export async function grantContactTarget(db: Db | Tx, grant: Pick<Grant, 'contactId' | 'requestId'>): Promise<Target> {
+  return targetOf(db, grant)
+}
+
+async function targetOf(db: Db | Tx, grant: Pick<Grant, 'contactId' | 'requestId'>): Promise<Target> {
   const contact = await db
     .selectFrom('crm.contacts')
     .select(['id', 'email', 'phone_e164'])

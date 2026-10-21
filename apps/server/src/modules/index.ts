@@ -70,7 +70,13 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     // TSK-0036: optional customer accounts with one-time-code sign-in, Sign Out and sign-in email changes.
     accountsModule({ codeKey: deps.codeKey ?? NO_CODE_KEY, trustProxyHops: deps.trustProxyHops ?? 0 }),
     // TSK-0038: the customer project workspace frame (projects list and Overview); TSK-0039: the other five tabs.
-    portalModule({ storage: deps.storage ?? null, testMark: deps.environment !== 'production' }),
+    // TSK-0057: the approval and the in-session fresh verification before it.
+    portalModule({
+      storage: deps.storage ?? null,
+      testMark: deps.environment !== 'production',
+      codeKey: deps.codeKey ?? NO_CODE_KEY,
+      trustProxyHops: deps.trustProxyHops ?? 0,
+    }),
     // TSK-0044: staff customer and contact records, notes with visibility classes and duplicate suggestions.
     CUSTOMERS_MODULE,
     // TSK-0049: the unified inbox, Needs Linking and the inbound channel states (from this process's settings).

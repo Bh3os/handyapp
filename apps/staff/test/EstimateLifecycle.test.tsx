@@ -277,5 +277,42 @@ describe('the customer responses (TSK-0056, HH-EST-09)', () => {
   it('[HH-EST-09] says so when the customer has not answered', () => {
     renderPanel(view(), vi.fn())
     expect(screen.getByText('The customer has not responded to this estimate.')).toBeTruthy()
+    // TSK-0057: no approval yet either.
+    expect(screen.getByText('No version of this estimate is approved.')).toBeTruthy()
+  })
+
+  it('[HH-EST-06][HH-EST-08][RULE-LANGUAGES] shows the customer approval, the job and the scheduling task, in EN and ES', () => {
+    const v = view({
+      lifecycle: lifecycle({
+        effectiveState: 'accepted',
+        customerApproval: {
+          version: 1,
+          at: '2026-10-22T15:00:00.000Z',
+          fullName: 'Synthetic Approval Customer',
+          options: [3],
+          totalCents: 133_497,
+          depositCents: 26_699,
+          termsVersion: 'estimate-terms-1',
+          testMark: true,
+          jobState: 'pending_preparation',
+          schedulingTaskState: 'open',
+        },
+      }),
+    })
+    renderPanel(v, vi.fn())
+    const group = screen.getByTestId('estimate-customer-approval')
+    expect(within(group).getByText('TEST approval: not a real customer approval')).toBeTruthy()
+    expect(within(group).getByText(/^Version 1 approved by Synthetic Approval Customer, /)).toBeTruthy()
+    expect(within(group).getByText('$1,334.97')).toBeTruthy()
+    expect(within(group).getByText('$266.99')).toBeTruthy()
+    expect(within(group).getByText('Pending preparation')).toBeTruthy()
+    expect(within(group).getByText('Open')).toBeTruthy()
+    expect(screen.getByText(/It is not an appointment, and no deposit is marked paid\./)).toBeTruthy()
+    cleanup()
+    renderPanel(v, vi.fn(), 'es')
+    const es = screen.getByTestId('estimate-customer-approval')
+    expect(within(es).getByText(/^Versión 1 aprobada por Synthetic Approval Customer, /)).toBeTruthy()
+    expect(within(es).getByText('Preparación pendiente')).toBeTruthy()
+    expect(within(es).getByText('Abierta')).toBeTruthy()
   })
 })

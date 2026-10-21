@@ -12,9 +12,11 @@
 //   when it is a document this software holds and the recorded policy version names the same content hash; otherwise
 //   the terms are NOT CONFIGURED and no wording is shown. A document that is not approved and attorney-reviewed is
 //   shown as a draft that is not in effect (the TEST banner), and approval is refused (OQ-TERMS-OWNER-APPROVAL).
-// - Approval itself is the approval transaction (TSK-0057): this view never offers it. It names every reason it is not
-//   available (terms, superseded, expired, not published) and the current version to review instead, or none: then
-//   "Request an Updated Estimate" (OWN-DEC-103).
+// - TSK-0057: approval is available on the current version while its pinned terms are in effect; otherwise the view
+//   names every reason it is not (terms, superseded, expired, not published) and the current version to review
+//   instead, or none: then "Request an Updated Estimate" (OWN-DEC-103). The view carries the content digest the
+//   approval names, the customer's selected options kept on the server (HH-ID-07) with the server's total and deposit
+//   for them, and, once approved, what was approved. Approving is the approval transaction (approval.ts).
 import type { Db, Tx } from '@handyhub/db'
 import { estimateTermsDocument, estimateTermsInEffect } from '@handyhub/domain/legal'
 import type { CustomerActor, DataScope } from '@handyhub/policy'
@@ -22,6 +24,7 @@ import { loadConfig } from '../../platform/config/index.js'
 import type { ObjectStorage } from '../../providers/index.js'
 import { legalVersions } from '../legal/index.js'
 import { findProject } from '../records/index.js'
+import { approvalOfVersion, savedSelection, selectionTotals, versionContentDigest } from './approval.js'
 import { acceptanceCheck } from './lifecycle.js'
 import { discountRowLabel } from './customer-pdf.js'
 import { CUSTOMER_STATES } from './model.js'
@@ -82,8 +85,18 @@ export async function customerEstimateList(
 }
 
 export type TermsState = 'not_configured' | 'not_in_effect' | 'in_effect'
-export type ApprovalReason =
-  'terms_not_configured' | 'terms_not_in_effect' | 'superseded' | 'expired' | 'not_published' | 'approval_not_available'
+export type ApprovalReason = 'terms_not_configured' | 'terms_not_in_effect' | 'superseded' | 'expired' | 'not_published'
+
+/** The totals of the customer's selection, as the server computes them (integer cents). */
+export type SelectionView = {
+  options: number[]
+  subtotalCents: number
+  discountCents: number
+  totalCents: number
+  deposit: { state: 'required' | 'not_required'; amountCents: number | null }
+}
+/** What was approved, once the version is approved. */
+export type ApprovedView = SelectionView & { at: Date }
 
 /** The terms a version pinned, as the customer may be shown them. */
 export async function pinnedTerms(
@@ -107,6 +120,7 @@ export type CustomerEstimateDetail = {
   publishedAt: Date
   validUntil: Date | null
   lines: {
+    position: number
     kind: string
     serviceCode: string | null
     description: string | null
@@ -128,7 +142,16 @@ export type CustomerEstimateDetail = {
   paymentTerm: string
   document: { url: string; byteSize: number } | null
   terms: { documentId: string | null; state: TermsState }
-  approval: { available: false; reasons: ApprovalReason[]; current: { number: string; version: number } | null }
+  approval: {
+    available: boolean
+    reasons: ApprovalReason[]
+    current: { number: string; version: number } | null
+    /** The digest of this version's customer content, which an approval names (approval.ts). */
+    contentDigest: string
+    /** The customer's selected options with the server's totals (kept on the server across a stale verification). */
+    selection: SelectionView | null
+    approved: ApprovedView | null
+  }
   actions: { requestChanges: boolean; decline: boolean; requestUpdate: boolean }
   freshVerification: boolean
   responses: ResponseRecord[]
@@ -165,8 +188,19 @@ export async function customerEstimateDetail(
     reasons.push(check.code.toLowerCase() as ApprovalReason)
     if (check.current) current = { number: row.number, version: check.current.version }
   }
-  // Approving online is the approval transaction of TSK-0057: never offered by this view.
-  reasons.push('approval_not_available')
+  const contentDigest = await versionContentDigest(db, row.id)
+  if (!contentDigest) return null
+  const available = status === 'current' && reasons.length === 0
+  const selection =
+    status === 'current' ? await selectionTotals(db, row.id, await savedSelection(db, row.id, actor.contactId)) : null
+  const approvedRecord = status === 'approved' ? await approvalOfVersion(db, row.id) : null
+  const view = (t: SelectionView): SelectionView => ({
+    options: t.options,
+    subtotalCents: t.subtotalCents,
+    discountCents: t.discountCents,
+    totalCents: t.totalCents,
+    deposit: t.deposit,
+  })
 
   const document = await customerEstimateDocument(db, actor, row.id, storage, now)
   const d = c.totals.deposit
@@ -179,6 +213,7 @@ export async function customerEstimateDetail(
     publishedAt: new Date(c.publishedAt),
     validUntil: c.validUntil ? new Date(c.validUntil) : null,
     lines: c.lines.map((l) => ({
+      position: l.position,
       kind: l.kind,
       serviceCode: l.serviceCode,
       description: l.description,
@@ -205,7 +240,14 @@ export async function customerEstimateDetail(
     paymentTerm: c.paymentTerm,
     document: document ? { url: document.url, byteSize: document.byteSize } : null,
     terms,
-    approval: { available: false, reasons, current },
+    approval: {
+      available,
+      reasons,
+      current,
+      contentDigest,
+      selection: selection ? view(selection) : null,
+      approved: approvedRecord ? { ...view(approvedRecord), at: approvedRecord.at } : null,
+    },
     actions: {
       requestChanges: status === 'current',
       decline: status === 'current',

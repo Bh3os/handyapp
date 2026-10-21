@@ -1992,7 +1992,7 @@
       "get": {
         "operationId": "getCustomerEstimate",
         "summary": "One estimate version as the customer received it",
-        "description": "An estimate version of a project the caller’s session opens, as published (HH-EST-06): the business name, the lines, options, exclusions and other texts, the subtotal, any discount row, the total and any deposit in integer cents as stored, the payment term, the valid-until time and the status (current, approved, declined, expired, superseded, withdrawn). For an uploaded estimate, a short-lived link to its customer PDF. The terms it pinned by document ID, with their state: not_configured (no wording this software holds for that ID, or a content hash that does not match), not_in_effect (a draft not approved for real customers: shown with the TEST banner) or in_effect. Approval is never available here (TSK-0057): every reason is listed, with the current version to review or none. The responses the customer may give now and their own earlier responses, the server time of the read and the refresh interval (portal.refresh). Any other project, estimate or version, a draft and a malformed reference are the same NOT_FOUND (T19).",
+        "description": "An estimate version of a project the caller’s session opens, as published (HH-EST-06): the business name, the lines, options, exclusions and other texts, the subtotal, any discount row, the total and any deposit in integer cents as stored, the payment term, the valid-until time and the status (current, approved, declined, expired, superseded, withdrawn). For an uploaded estimate, a short-lived link to its customer PDF. The terms it pinned by document ID, with their state: not_configured (no wording this software holds for that ID, or a content hash that does not match), not_in_effect (a draft not approved for real customers: shown with the TEST banner) or in_effect. Whether it can be approved now (TSK-0057: the current version with terms in effect), with every reason it cannot and the current version to review or none; the digest of its content an approval names; the options the customer selected (kept on the server) with the server’s total and deposit for them; and, once approved, what was approved. The responses the customer may give now and their own earlier responses, the server time of the read and the refresh interval (portal.refresh). Any other project, estimate or version, a draft and a malformed reference are the same NOT_FOUND (T19).",
         "tags": [
           "portal"
         ],
@@ -2109,6 +2109,7 @@
                         "type": "object",
                         "additionalProperties": false,
                         "required": [
+                          "position",
                           "kind",
                           "serviceCode",
                           "description",
@@ -2118,6 +2119,10 @@
                           "amountCents"
                         ],
                         "properties": {
+                          "position": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
                           "kind": {
                             "type": "string",
                             "enum": [
@@ -2304,14 +2309,14 @@
                       "required": [
                         "available",
                         "reasons",
-                        "current"
+                        "current",
+                        "contentDigest",
+                        "selection",
+                        "approved"
                       ],
                       "properties": {
                         "available": {
-                          "type": "boolean",
-                          "enum": [
-                            false
-                          ]
+                          "type": "boolean"
                         },
                         "reasons": {
                           "type": "array",
@@ -2322,8 +2327,7 @@
                               "terms_not_in_effect",
                               "superseded",
                               "expired",
-                              "not_published",
-                              "approval_not_available"
+                              "not_published"
                             ]
                           }
                         },
@@ -2346,6 +2350,132 @@
                                 "version": {
                                   "type": "integer",
                                   "minimum": 1
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "contentDigest": {
+                          "type": "string"
+                        },
+                        "selection": {
+                          "oneOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "options",
+                                "subtotalCents",
+                                "reductionCents",
+                                "totalCents",
+                                "deposit"
+                              ],
+                              "properties": {
+                                "options": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "integer",
+                                    "minimum": 1
+                                  }
+                                },
+                                "subtotalCents": {
+                                  "type": "integer"
+                                },
+                                "reductionCents": {
+                                  "type": "integer"
+                                },
+                                "totalCents": {
+                                  "type": "integer"
+                                },
+                                "deposit": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "state",
+                                    "amountCents"
+                                  ],
+                                  "properties": {
+                                    "state": {
+                                      "type": "string",
+                                      "enum": [
+                                        "required",
+                                        "not_required"
+                                      ]
+                                    },
+                                    "amountCents": {
+                                      "type": [
+                                        "integer",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "approved": {
+                          "oneOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "options",
+                                "subtotalCents",
+                                "reductionCents",
+                                "totalCents",
+                                "deposit",
+                                "at"
+                              ],
+                              "properties": {
+                                "options": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "integer",
+                                    "minimum": 1
+                                  }
+                                },
+                                "subtotalCents": {
+                                  "type": "integer"
+                                },
+                                "reductionCents": {
+                                  "type": "integer"
+                                },
+                                "totalCents": {
+                                  "type": "integer"
+                                },
+                                "deposit": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "state",
+                                    "amountCents"
+                                  ],
+                                  "properties": {
+                                    "state": {
+                                      "type": "string",
+                                      "enum": [
+                                        "required",
+                                        "not_required"
+                                      ]
+                                    },
+                                    "amountCents": {
+                                      "type": [
+                                        "integer",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
                                 }
                               }
                             }
@@ -2506,6 +2636,444 @@
           "cache": "private, no-store",
           "test": "test/integration/portal-estimates.test.ts",
           "projection": "estimate_version.customer"
+        }
+      }
+    },
+    "/api/v1/customer/projects/{reference}/estimates/{number}/versions/{version}/approve": {
+      "post": {
+        "operationId": "approveEstimate",
+        "summary": "Approve Estimate: approve this exact version",
+        "description": "The verified customer approves the exact published version they viewed (HH-EST-06, HH-EST-07, HH-EST-08). The body names the digest of the content viewed (approval.contentDigest of the estimate view), the selected options, the total and deposit shown in integer cents, the terms document and its content hash, the ticked \"I have read and accept the estimate terms\" box and the typed full name. Needs a fresh verification of the session (estimate.approve: Customer \"V (fresh verification)\"): an older one is FRESH_VERIFICATION_REQUIRED and nothing is written; the selected options stay on the server. In one transaction under the estimate lock the server checks the version is the current, unexpired published one (else CONFLICT naming its status, with the current version to review when there is one), the terms are the current version and in effect (else NOT_CONFIGURED: terms that are not approved for real customers are never accepted), the content digest, the options and the total and deposit equal its own computation (else refused with no record written), and the session’s access is still valid; then it records the approval, accepts the version, moves the project to approved and creates one job, its scope snapshot and one scheduling task, with the committed event estimate.approved. A retry with the same key returns the first answer; a second tab of the same customer with the same choice gets the same approval (200); anything else on an approved version is CONFLICT. Approval never confirms an appointment, reserves capacity or marks a deposit paid. Any other project, estimate or version is NOT_FOUND (T19).",
+        "tags": [
+          "portal"
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          },
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,3}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "contentDigest",
+                  "options",
+                  "totalCents",
+                  "depositCents",
+                  "termsDocumentId",
+                  "termsSha256",
+                  "acceptTerms",
+                  "fullName"
+                ],
+                "properties": {
+                  "contentDigest": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "options": {
+                    "type": "array",
+                    "maxItems": 200,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 32767
+                    }
+                  },
+                  "totalCents": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "depositCents": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1
+                  },
+                  "termsDocumentId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60
+                  },
+                  "termsSha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "acceptTerms": {
+                    "type": "boolean"
+                  },
+                  "fullName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reference",
+                    "number",
+                    "version",
+                    "status",
+                    "approved",
+                    "nextStep"
+                  ],
+                  "properties": {
+                    "reference": {
+                      "type": "string"
+                    },
+                    "number": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "approved"
+                      ]
+                    },
+                    "approved": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "options",
+                        "subtotalCents",
+                        "reductionCents",
+                        "totalCents",
+                        "deposit",
+                        "at"
+                      ],
+                      "properties": {
+                        "options": {
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": 1
+                          }
+                        },
+                        "subtotalCents": {
+                          "type": "integer"
+                        },
+                        "reductionCents": {
+                          "type": "integer"
+                        },
+                        "totalCents": {
+                          "type": "integer"
+                        },
+                        "deposit": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state",
+                            "amountCents"
+                          ],
+                          "properties": {
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "required",
+                                "not_required"
+                              ]
+                            },
+                            "amountCents": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            }
+                          }
+                        },
+                        "at": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "nextStep": {
+                      "type": "string",
+                      "enum": [
+                        "scheduling_next"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reference",
+                    "number",
+                    "version",
+                    "status",
+                    "approved",
+                    "nextStep"
+                  ],
+                  "properties": {
+                    "reference": {
+                      "type": "string"
+                    },
+                    "number": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "approved"
+                      ]
+                    },
+                    "approved": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "options",
+                        "subtotalCents",
+                        "reductionCents",
+                        "totalCents",
+                        "deposit",
+                        "at"
+                      ],
+                      "properties": {
+                        "options": {
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": 1
+                          }
+                        },
+                        "subtotalCents": {
+                          "type": "integer"
+                        },
+                        "reductionCents": {
+                          "type": "integer"
+                        },
+                        "totalCents": {
+                          "type": "integer"
+                        },
+                        "deposit": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state",
+                            "amountCents"
+                          ],
+                          "properties": {
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "required",
+                                "not_required"
+                              ]
+                            },
+                            "amountCents": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            }
+                          }
+                        },
+                        "at": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "nextStep": {
+                      "type": "string",
+                      "enum": [
+                        "scheduling_next"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "estimate.approve",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "customer-estimate-approval",
+            "limit": 30,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "estimate.approve",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/estimate-approval.test.ts",
+          "projection": "estimate_approval.customer"
         }
       }
     },
@@ -3244,6 +3812,267 @@
           "cache": "private, no-store",
           "test": "test/integration/portal-estimates.test.ts",
           "projection": "estimate_response.customer"
+        }
+      }
+    },
+    "/api/v1/customer/projects/{reference}/estimates/{number}/versions/{version}/selection": {
+      "post": {
+        "operationId": "saveEstimateSelection",
+        "summary": "Select options on the current estimate version",
+        "description": "The options the customer selects on the current version (by line position), kept on the server for this verified contact so a verification that went stale never loses them (HH-ID-07). Answers the server’s subtotal, discount row, total and deposit for that choice in integer cents: the version’s own line amounts with the discount share and deposit rule version it pinned (FACT-DEPOSIT-RULE), never the client’s arithmetic. A position that is not an option line is VALIDATION_FAILED; a version that is not current is CONFLICT naming its status. Never approves anything. Any other project, estimate or version is NOT_FOUND (T19).",
+        "tags": [
+          "portal"
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          },
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,3}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "options"
+                ],
+                "properties": {
+                  "options": {
+                    "type": "array",
+                    "maxItems": 200,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 32767
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reference",
+                    "number",
+                    "version",
+                    "selection"
+                  ],
+                  "properties": {
+                    "reference": {
+                      "type": "string"
+                    },
+                    "number": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "selection": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "options",
+                        "subtotalCents",
+                        "reductionCents",
+                        "totalCents",
+                        "deposit"
+                      ],
+                      "properties": {
+                        "options": {
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": 1
+                          }
+                        },
+                        "subtotalCents": {
+                          "type": "integer"
+                        },
+                        "reductionCents": {
+                          "type": "integer"
+                        },
+                        "totalCents": {
+                          "type": "integer"
+                        },
+                        "deposit": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state",
+                            "amountCents"
+                          ],
+                          "properties": {
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "required",
+                                "not_required"
+                              ]
+                            },
+                            "amountCents": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "request.view",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "customer-estimate-selection",
+            "limit": 120,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "estimate.select_options",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/estimate-approval.test.ts",
+          "projection": "estimate_selection.customer"
         }
       }
     },
@@ -4267,6 +5096,560 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/customer-accounts.test.ts"
+        }
+      }
+    },
+    "/api/v1/customer/session/verification": {
+      "get": {
+        "operationId": "getSessionVerification",
+        "summary": "Whether this session’s verification is fresh enough to approve",
+        "description": "For a live customer session: whether its verification is fresh enough for an approval (HH-ID-07: newer than verification.limits.freshVerificationMinutes), until when, and where a new one-time code can go: the session’s own verified contact, masked (a guest link’s contact; an account’s sign-in values; a phone only with a current SMS permission). Nothing about any other contact, project or account.",
+        "tags": [
+          "portal"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "fresh",
+                    "freshUntil",
+                    "channels"
+                  ],
+                  "properties": {
+                    "fresh": {
+                      "type": "boolean"
+                    },
+                    "freshUntil": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "channels": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "channel",
+                          "destination"
+                        ],
+                        "properties": {
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "email",
+                              "phone"
+                            ]
+                          },
+                          "destination": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/estimate-approval.test.ts",
+          "projection": "session_verification.customer"
+        }
+      },
+      "post": {
+        "operationId": "confirmSessionVerification",
+        "summary": "Enter the code: this session’s verification is fresh again",
+        "description": "The code sent to the session’s own verified contact on that channel. A match restarts the session’s fresh verification window (HH-ID-07); nothing else changes (no new session, project or contact). A wrong, expired, used or exhausted code is the same neutral 400 (invalid_code), and its attempt is counted and kept.",
+        "tags": [
+          "portal"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "channel",
+                  "code"
+                ],
+                "properties": {
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "email",
+                      "phone"
+                    ]
+                  },
+                  "code": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "fresh",
+                    "freshUntil",
+                    "channels"
+                  ],
+                  "properties": {
+                    "fresh": {
+                      "type": "boolean"
+                    },
+                    "freshUntil": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "channels": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "channel",
+                          "destination"
+                        ],
+                        "properties": {
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "email",
+                              "phone"
+                            ]
+                          },
+                          "destination": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "customer-reverify",
+            "limit": 60,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_session.reverify",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/estimate-approval.test.ts",
+          "projection": "session_verification.customer"
+        }
+      }
+    },
+    "/api/v1/customer/session/verification/codes": {
+      "post": {
+        "operationId": "sendSessionVerificationCode",
+        "summary": "Send a new code to verify this session again",
+        "description": "Sends a one-time code (the automatic message contact.verification_code) to the session’s own verified contact on the chosen channel, to make its verification fresh again before an approval (HH-ID-07). A channel the session cannot use is VALIDATION_FAILED (not_available); 429 with Retry-After within the resend cooldown or over the per-destination and per-address limits; 503 while codes are NOT CONFIGURED: nothing is sent.",
+        "tags": [
+          "portal"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "channel"
+                ],
+                "properties": {
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "email",
+                      "phone"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "sent"
+                  ],
+                  "properties": {
+                    "sent": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "channel",
+                        "destination",
+                        "expiresAt"
+                      ],
+                      "properties": {
+                        "channel": {
+                          "type": "string",
+                          "enum": [
+                            "email",
+                            "phone"
+                          ]
+                        },
+                        "destination": {
+                          "type": "string"
+                        },
+                        "expiresAt": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "customer-reverify-code",
+            "limit": 20,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_session.verification_code",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/estimate-approval.test.ts",
+          "projection": "account.code_sent"
         }
       }
     },
@@ -15917,6 +17300,7 @@
                         "revisedFrom",
                         "current",
                         "customerResponses",
+                        "customerApproval",
                         "actions",
                         "history"
                       ],
@@ -16091,6 +17475,68 @@
                               }
                             }
                           }
+                        },
+                        "customerApproval": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "version",
+                                "at",
+                                "fullName",
+                                "options",
+                                "totalCents",
+                                "depositCents",
+                                "termsVersion",
+                                "testMark",
+                                "jobState",
+                                "schedulingTaskState"
+                              ],
+                              "properties": {
+                                "version": {
+                                  "type": "integer"
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "fullName": {
+                                  "type": "string"
+                                },
+                                "options": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "integer"
+                                  }
+                                },
+                                "totalCents": {
+                                  "type": "integer"
+                                },
+                                "depositCents": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "termsVersion": {
+                                  "type": "string"
+                                },
+                                "testMark": {
+                                  "type": "boolean"
+                                },
+                                "jobState": {
+                                  "type": "string"
+                                },
+                                "schedulingTaskState": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          ]
                         },
                         "actions": {
                           "type": "object",
@@ -17332,6 +18778,7 @@
                         "revisedFrom",
                         "current",
                         "customerResponses",
+                        "customerApproval",
                         "actions",
                         "history"
                       ],
@@ -17506,6 +18953,68 @@
                               }
                             }
                           }
+                        },
+                        "customerApproval": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "version",
+                                "at",
+                                "fullName",
+                                "options",
+                                "totalCents",
+                                "depositCents",
+                                "termsVersion",
+                                "testMark",
+                                "jobState",
+                                "schedulingTaskState"
+                              ],
+                              "properties": {
+                                "version": {
+                                  "type": "integer"
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "fullName": {
+                                  "type": "string"
+                                },
+                                "options": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "integer"
+                                  }
+                                },
+                                "totalCents": {
+                                  "type": "integer"
+                                },
+                                "depositCents": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "termsVersion": {
+                                  "type": "string"
+                                },
+                                "testMark": {
+                                  "type": "boolean"
+                                },
+                                "jobState": {
+                                  "type": "string"
+                                },
+                                "schedulingTaskState": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          ]
                         },
                         "actions": {
                           "type": "object",
@@ -19025,6 +20534,7 @@
                         "revisedFrom",
                         "current",
                         "customerResponses",
+                        "customerApproval",
                         "actions",
                         "history"
                       ],
@@ -19199,6 +20709,68 @@
                               }
                             }
                           }
+                        },
+                        "customerApproval": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "version",
+                                "at",
+                                "fullName",
+                                "options",
+                                "totalCents",
+                                "depositCents",
+                                "termsVersion",
+                                "testMark",
+                                "jobState",
+                                "schedulingTaskState"
+                              ],
+                              "properties": {
+                                "version": {
+                                  "type": "integer"
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "fullName": {
+                                  "type": "string"
+                                },
+                                "options": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "integer"
+                                  }
+                                },
+                                "totalCents": {
+                                  "type": "integer"
+                                },
+                                "depositCents": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "termsVersion": {
+                                  "type": "string"
+                                },
+                                "testMark": {
+                                  "type": "boolean"
+                                },
+                                "jobState": {
+                                  "type": "string"
+                                },
+                                "schedulingTaskState": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          ]
                         },
                         "actions": {
                           "type": "object",
@@ -20294,6 +21866,7 @@
                         "revisedFrom",
                         "current",
                         "customerResponses",
+                        "customerApproval",
                         "actions",
                         "history"
                       ],
@@ -20468,6 +22041,68 @@
                               }
                             }
                           }
+                        },
+                        "customerApproval": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "version",
+                                "at",
+                                "fullName",
+                                "options",
+                                "totalCents",
+                                "depositCents",
+                                "termsVersion",
+                                "testMark",
+                                "jobState",
+                                "schedulingTaskState"
+                              ],
+                              "properties": {
+                                "version": {
+                                  "type": "integer"
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "fullName": {
+                                  "type": "string"
+                                },
+                                "options": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "integer"
+                                  }
+                                },
+                                "totalCents": {
+                                  "type": "integer"
+                                },
+                                "depositCents": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "termsVersion": {
+                                  "type": "string"
+                                },
+                                "testMark": {
+                                  "type": "boolean"
+                                },
+                                "jobState": {
+                                  "type": "string"
+                                },
+                                "schedulingTaskState": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          ]
                         },
                         "actions": {
                           "type": "object",
@@ -21738,6 +23373,7 @@
                         "revisedFrom",
                         "current",
                         "customerResponses",
+                        "customerApproval",
                         "actions",
                         "history"
                       ],
@@ -21912,6 +23548,68 @@
                               }
                             }
                           }
+                        },
+                        "customerApproval": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "version",
+                                "at",
+                                "fullName",
+                                "options",
+                                "totalCents",
+                                "depositCents",
+                                "termsVersion",
+                                "testMark",
+                                "jobState",
+                                "schedulingTaskState"
+                              ],
+                              "properties": {
+                                "version": {
+                                  "type": "integer"
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "fullName": {
+                                  "type": "string"
+                                },
+                                "options": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "integer"
+                                  }
+                                },
+                                "totalCents": {
+                                  "type": "integer"
+                                },
+                                "depositCents": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "termsVersion": {
+                                  "type": "string"
+                                },
+                                "testMark": {
+                                  "type": "boolean"
+                                },
+                                "jobState": {
+                                  "type": "string"
+                                },
+                                "schedulingTaskState": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          ]
                         },
                         "actions": {
                           "type": "object",
@@ -23007,6 +24705,7 @@
                         "revisedFrom",
                         "current",
                         "customerResponses",
+                        "customerApproval",
                         "actions",
                         "history"
                       ],
@@ -23181,6 +24880,68 @@
                               }
                             }
                           }
+                        },
+                        "customerApproval": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "version",
+                                "at",
+                                "fullName",
+                                "options",
+                                "totalCents",
+                                "depositCents",
+                                "termsVersion",
+                                "testMark",
+                                "jobState",
+                                "schedulingTaskState"
+                              ],
+                              "properties": {
+                                "version": {
+                                  "type": "integer"
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "fullName": {
+                                  "type": "string"
+                                },
+                                "options": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "integer"
+                                  }
+                                },
+                                "totalCents": {
+                                  "type": "integer"
+                                },
+                                "depositCents": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "termsVersion": {
+                                  "type": "string"
+                                },
+                                "testMark": {
+                                  "type": "boolean"
+                                },
+                                "jobState": {
+                                  "type": "string"
+                                },
+                                "schedulingTaskState": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          ]
                         },
                         "actions": {
                           "type": "object",
@@ -24642,6 +26403,7 @@
                         "revisedFrom",
                         "current",
                         "customerResponses",
+                        "customerApproval",
                         "actions",
                         "history"
                       ],
@@ -24816,6 +26578,68 @@
                               }
                             }
                           }
+                        },
+                        "customerApproval": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "version",
+                                "at",
+                                "fullName",
+                                "options",
+                                "totalCents",
+                                "depositCents",
+                                "termsVersion",
+                                "testMark",
+                                "jobState",
+                                "schedulingTaskState"
+                              ],
+                              "properties": {
+                                "version": {
+                                  "type": "integer"
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "fullName": {
+                                  "type": "string"
+                                },
+                                "options": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "integer"
+                                  }
+                                },
+                                "totalCents": {
+                                  "type": "integer"
+                                },
+                                "depositCents": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "termsVersion": {
+                                  "type": "string"
+                                },
+                                "testMark": {
+                                  "type": "boolean"
+                                },
+                                "jobState": {
+                                  "type": "string"
+                                },
+                                "schedulingTaskState": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          ]
                         },
                         "actions": {
                           "type": "object",
@@ -26099,6 +27923,7 @@
                         "revisedFrom",
                         "current",
                         "customerResponses",
+                        "customerApproval",
                         "actions",
                         "history"
                       ],
@@ -26273,6 +28098,68 @@
                               }
                             }
                           }
+                        },
+                        "customerApproval": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "version",
+                                "at",
+                                "fullName",
+                                "options",
+                                "totalCents",
+                                "depositCents",
+                                "termsVersion",
+                                "testMark",
+                                "jobState",
+                                "schedulingTaskState"
+                              ],
+                              "properties": {
+                                "version": {
+                                  "type": "integer"
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "fullName": {
+                                  "type": "string"
+                                },
+                                "options": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "integer"
+                                  }
+                                },
+                                "totalCents": {
+                                  "type": "integer"
+                                },
+                                "depositCents": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "termsVersion": {
+                                  "type": "string"
+                                },
+                                "testMark": {
+                                  "type": "boolean"
+                                },
+                                "jobState": {
+                                  "type": "string"
+                                },
+                                "schedulingTaskState": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          ]
                         },
                         "actions": {
                           "type": "object",
@@ -27547,6 +29434,7 @@
                         "revisedFrom",
                         "current",
                         "customerResponses",
+                        "customerApproval",
                         "actions",
                         "history"
                       ],
@@ -27721,6 +29609,68 @@
                               }
                             }
                           }
+                        },
+                        "customerApproval": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "version",
+                                "at",
+                                "fullName",
+                                "options",
+                                "totalCents",
+                                "depositCents",
+                                "termsVersion",
+                                "testMark",
+                                "jobState",
+                                "schedulingTaskState"
+                              ],
+                              "properties": {
+                                "version": {
+                                  "type": "integer"
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "fullName": {
+                                  "type": "string"
+                                },
+                                "options": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "integer"
+                                  }
+                                },
+                                "totalCents": {
+                                  "type": "integer"
+                                },
+                                "depositCents": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "termsVersion": {
+                                  "type": "string"
+                                },
+                                "testMark": {
+                                  "type": "boolean"
+                                },
+                                "jobState": {
+                                  "type": "string"
+                                },
+                                "schedulingTaskState": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          ]
                         },
                         "actions": {
                           "type": "object",
@@ -29000,6 +30950,7 @@
                         "revisedFrom",
                         "current",
                         "customerResponses",
+                        "customerApproval",
                         "actions",
                         "history"
                       ],
@@ -29174,6 +31125,68 @@
                               }
                             }
                           }
+                        },
+                        "customerApproval": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "version",
+                                "at",
+                                "fullName",
+                                "options",
+                                "totalCents",
+                                "depositCents",
+                                "termsVersion",
+                                "testMark",
+                                "jobState",
+                                "schedulingTaskState"
+                              ],
+                              "properties": {
+                                "version": {
+                                  "type": "integer"
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "fullName": {
+                                  "type": "string"
+                                },
+                                "options": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "integer"
+                                  }
+                                },
+                                "totalCents": {
+                                  "type": "integer"
+                                },
+                                "depositCents": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "termsVersion": {
+                                  "type": "string"
+                                },
+                                "testMark": {
+                                  "type": "boolean"
+                                },
+                                "jobState": {
+                                  "type": "string"
+                                },
+                                "schedulingTaskState": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          ]
                         },
                         "actions": {
                           "type": "object",
@@ -30448,6 +32461,7 @@
                         "revisedFrom",
                         "current",
                         "customerResponses",
+                        "customerApproval",
                         "actions",
                         "history"
                       ],
@@ -30622,6 +32636,68 @@
                               }
                             }
                           }
+                        },
+                        "customerApproval": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "version",
+                                "at",
+                                "fullName",
+                                "options",
+                                "totalCents",
+                                "depositCents",
+                                "termsVersion",
+                                "testMark",
+                                "jobState",
+                                "schedulingTaskState"
+                              ],
+                              "properties": {
+                                "version": {
+                                  "type": "integer"
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "fullName": {
+                                  "type": "string"
+                                },
+                                "options": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "integer"
+                                  }
+                                },
+                                "totalCents": {
+                                  "type": "integer"
+                                },
+                                "depositCents": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "termsVersion": {
+                                  "type": "string"
+                                },
+                                "testMark": {
+                                  "type": "boolean"
+                                },
+                                "jobState": {
+                                  "type": "string"
+                                },
+                                "schedulingTaskState": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          ]
                         },
                         "actions": {
                           "type": "object",
@@ -31896,6 +33972,7 @@
                         "revisedFrom",
                         "current",
                         "customerResponses",
+                        "customerApproval",
                         "actions",
                         "history"
                       ],
@@ -32070,6 +34147,68 @@
                               }
                             }
                           }
+                        },
+                        "customerApproval": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "version",
+                                "at",
+                                "fullName",
+                                "options",
+                                "totalCents",
+                                "depositCents",
+                                "termsVersion",
+                                "testMark",
+                                "jobState",
+                                "schedulingTaskState"
+                              ],
+                              "properties": {
+                                "version": {
+                                  "type": "integer"
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "fullName": {
+                                  "type": "string"
+                                },
+                                "options": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "integer"
+                                  }
+                                },
+                                "totalCents": {
+                                  "type": "integer"
+                                },
+                                "depositCents": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "termsVersion": {
+                                  "type": "string"
+                                },
+                                "testMark": {
+                                  "type": "boolean"
+                                },
+                                "jobState": {
+                                  "type": "string"
+                                },
+                                "schedulingTaskState": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          ]
                         },
                         "actions": {
                           "type": "object",
@@ -33548,6 +35687,7 @@
                         "revisedFrom",
                         "current",
                         "customerResponses",
+                        "customerApproval",
                         "actions",
                         "history"
                       ],
@@ -33722,6 +35862,68 @@
                               }
                             }
                           }
+                        },
+                        "customerApproval": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "version",
+                                "at",
+                                "fullName",
+                                "options",
+                                "totalCents",
+                                "depositCents",
+                                "termsVersion",
+                                "testMark",
+                                "jobState",
+                                "schedulingTaskState"
+                              ],
+                              "properties": {
+                                "version": {
+                                  "type": "integer"
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "fullName": {
+                                  "type": "string"
+                                },
+                                "options": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "integer"
+                                  }
+                                },
+                                "totalCents": {
+                                  "type": "integer"
+                                },
+                                "depositCents": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "termsVersion": {
+                                  "type": "string"
+                                },
+                                "testMark": {
+                                  "type": "boolean"
+                                },
+                                "jobState": {
+                                  "type": "string"
+                                },
+                                "schedulingTaskState": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          ]
                         },
                         "actions": {
                           "type": "object",

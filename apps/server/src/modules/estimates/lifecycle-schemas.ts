@@ -43,6 +43,7 @@ export const LIFECYCLE = {
     'revisedFrom',
     'current',
     'customerResponses',
+    'customerApproval',
     'actions',
     'history',
   ],
@@ -80,6 +81,41 @@ export const LIFECYCLE = {
           message: NULLABLE_STRING,
         },
       },
+    },
+    // TSK-0057 (HH-EST-06, HH-EST-08): the customer's approval of this estimate, with the job and scheduling task it
+    // created; null while no version is approved.
+    customerApproval: {
+      anyOf: [
+        { type: 'null' },
+        {
+          type: 'object',
+          additionalProperties: false,
+          required: [
+            'version',
+            'at',
+            'fullName',
+            'options',
+            'totalCents',
+            'depositCents',
+            'termsVersion',
+            'testMark',
+            'jobState',
+            'schedulingTaskState',
+          ],
+          properties: {
+            version: { type: 'integer' },
+            at: DATE_TIME,
+            fullName: { type: 'string' },
+            options: { type: 'array', items: { type: 'integer' } },
+            totalCents: { type: 'integer' },
+            depositCents: { type: ['integer', 'null'] },
+            termsVersion: { type: 'string' },
+            testMark: { type: 'boolean' },
+            jobState: { type: 'string' },
+            schedulingTaskState: { type: 'string' },
+          },
+        },
+      ],
     },
     actions: {
       type: 'object',

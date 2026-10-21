@@ -5,7 +5,8 @@
 // TSK-0055 (HH-EST-04) adds the lifecycle: publishing under the Owner's publishing policy, revising as a new version,
 // withdrawing, expiring and recording a decline, the validity expiry job, the estimate-ready notice and the version
 // history (lifecycle.ts, lifecycle-routes.ts, notify.ts). TSK-0056 (HH-EST-09, HH-EST-13) adds the customer view and the
-// customer's responses (customer.ts, responses.ts; the routes are the portal module's).
+// customer's responses (customer.ts, responses.ts; the routes are the portal module's). TSK-0057 (HH-EST-06, HH-EST-07,
+// HH-EST-08) adds the approval transaction (approval.ts; its routes are the portal module's too).
 import type { ApiModule } from '../../api/route.js'
 import { estimateDocumentRoutes, type EstimateDocumentDeps } from './document-routes.js'
 import { lifecycleRoutes } from './lifecycle-routes.js'
@@ -155,3 +156,18 @@ export {
   type CustomerVersionContent,
   type StaffEstimateVersion,
 } from './projections.js'
+// TSK-0057: the approval transaction: exact version, fresh verification, one job and one scheduling task.
+export {
+  approvalOfVersion,
+  approveVersion,
+  canonicalJson,
+  ESTIMATE_APPROVED_EVENT,
+  savedSelection,
+  saveSelection,
+  selectionTotals,
+  termsForApproval,
+  versionContentDigest,
+  type ApprovalResult,
+  type ApproveInput,
+  type SelectionTotals,
+} from './approval.js'

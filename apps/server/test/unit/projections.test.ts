@@ -84,6 +84,12 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
         'requestEstimateChanges',
         'declineEstimate',
         'requestUpdatedEstimate',
+        // TSK-0057: the selected options, the approval and the in-session fresh verification before it.
+        'saveEstimateSelection',
+        'approveEstimate',
+        'getSessionVerification',
+        'sendSessionVerificationCode',
+        'confirmSessionVerification',
       ].sort(),
     )
     for (const r of customerRoutes) {

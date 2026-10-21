@@ -11,16 +11,31 @@
 // - Every project outside the session, another project's estimate, an unknown version and a version that never
 //   reached the customer answer the same NOT_FOUND (T19). The answers are the explicit customer views of
 //   records/projections.ts; the customer's words are kept in the response history, never in the audit summary.
-// - There is no approval route here: approving is the approval transaction (TSK-0057). No route, retry or timeout of
-//   this module can accept an estimate (HH-EST-09).
+// TSK-0057 (HH-EST-06, HH-EST-07, HH-EST-08, HH-ID-07, HH-API-04, T17, T32, T33, T34, OWN-DEC-103):
+//   POST .../versions/:version/selection   the selected options, kept on the server, with the server's totals
+//   POST .../versions/:version/approve     Approve Estimate: the approval transaction (estimates/approval.ts)
+// - Selecting options is part of reading the estimate (request.view, PROPOSED mapping) and never approves anything.
+//   Approving is the matrix's estimate.approve (Customer "V (fresh verification)"): a stale verification is
+//   FRESH_VERIFICATION_REQUIRED with nothing written, and the selection stays on the server. Only a POST with the
+//   ticked box, the typed name, the digest of the content viewed, the options and the total shown approves; no GET,
+//   link preview, timeout or silence ever does (HH-EST-09, T17). Request Changes, Decline and Request an Updated
+//   Estimate never accept an estimate.
 import type { CustomerActor } from '@handyhub/policy'
+import { clientAddress } from '../../access-gate.js'
 import { ApiError } from '../../api/errors.js'
+import { readIdempotencyKey } from '../../api/idempotency.js'
 import type { RouteDef } from '../../api/route.js'
 import { projectIdOf } from '../access/projects.js'
+import { approveVersion, FULL_NAME_MAX, saveSelection } from '../estimates/approval.js'
 import { customerEstimateDetail } from '../estimates/customer.js'
 import { recordCustomerResponse, RESPONSE_LIMITS, type ResponseKind } from '../estimates/responses.js'
 import { readSessionToken, resolveCustomerSession } from '../identity/customer-sessions.js'
-import { CUSTOMER_ESTIMATE, CUSTOMER_ESTIMATE_RESPONSE } from '../records/index.js'
+import {
+  CUSTOMER_ESTIMATE,
+  CUSTOMER_ESTIMATE_APPROVAL,
+  CUSTOMER_ESTIMATE_RESPONSE,
+  CUSTOMER_ESTIMATE_SELECTION,
+} from '../records/index.js'
 import { refreshSeconds } from './overview.js'
 import type { ObjectStorage } from '../../providers/index.js'
 
@@ -28,6 +43,8 @@ export type PortalEstimateDeps = {
   storage?: ObjectStorage | null
   /** Outside production the estimate carries the TEST mark (OWN-DEC-126, HH-PORT-10); default true. */
   testMark?: boolean
+  /** Proxies in front of the service (TRUST_PROXY_HOPS): the client address an approval keeps (HH-EST-06). */
+  trustProxyHops?: number
 }
 
 const TEST = 'test/integration/portal-estimates.test.ts'
@@ -37,6 +54,26 @@ export const ESTIMATE_RESPONSE_RATE_LIMIT = {
   limit: 30,
   windowSeconds: 3600,
 } as const
+
+/** PROPOSED (no owner value): per client network and hour, like the other customer-facing writes. */
+export const ESTIMATE_SELECTION_RATE_LIMIT = {
+  bucket: 'customer-estimate-selection',
+  limit: 120,
+  windowSeconds: 3600,
+} as const
+export const ESTIMATE_APPROVAL_RATE_LIMIT = {
+  bucket: 'customer-estimate-approval',
+  limit: 30,
+  windowSeconds: 3600,
+} as const
+const APPROVAL_TEST = 'test/integration/estimate-approval.test.ts'
+const OPTIONS_FIELD = {
+  type: 'array',
+  maxItems: 200,
+  uniqueItems: true,
+  items: { type: 'integer', minimum: 1, maximum: 32767 },
+} as const
+const SHA256_FIELD = { type: 'string', pattern: '^[0-9a-f]{64}$' } as const
 
 const PATH = '/customer/projects/:reference/estimates/:number/versions/:version'
 const PARAMS = {
@@ -70,8 +107,10 @@ export function portalEstimateRoutes(deps: PortalEstimateDeps = {}): RouteDef[] 
       'expired, superseded, withdrawn). For an uploaded estimate, a short-lived link to its customer PDF. The terms ' +
       'it pinned by document ID, with their state: not_configured (no wording this software holds for that ID, or a ' +
       'content hash that does not match), not_in_effect (a draft not approved for real customers: shown with the TEST ' +
-      'banner) or in_effect. Approval is never available here (TSK-0057): every reason is listed, with the current ' +
-      'version to review or none. The responses the customer may give now and their own earlier responses, the server ' +
+      'banner) or in_effect. Whether it can be approved now (TSK-0057: the current version with terms in effect), with ' +
+      'every reason it cannot and the current version to review or none; the digest of its content an approval names; ' +
+      'the options the customer selected (kept on the server) with the server’s total and deposit for them; and, once ' +
+      'approved, what was approved. The responses the customer may give now and their own earlier responses, the server ' +
       'time of the read and the refresh interval (portal.refresh). Any other ' +
       'project, estimate or version, a draft and a malformed reference are the same NOT_FOUND (T19).',
     actors: ['customer'],
@@ -168,9 +207,166 @@ export function portalEstimateRoutes(deps: PortalEstimateDeps = {}): RouteDef[] 
     },
   })
 
+  const selection: RouteDef = {
+    method: 'POST',
+    path: `${PATH}/selection`,
+    operationId: 'saveEstimateSelection',
+    summary: 'Select options on the current estimate version',
+    description:
+      'The options the customer selects on the current version (by line position), kept on the server for this ' +
+      'verified contact so a verification that went stale never loses them (HH-ID-07). Answers the server’s ' +
+      'subtotal, discount row, total and deposit for that choice in integer cents: the version’s own line amounts with ' +
+      'the discount share and deposit rule version it pinned (FACT-DEPOSIT-RULE), never the client’s arithmetic. A ' +
+      'position that is not an option line is VALIDATION_FAILED; a version that is not current is CONFLICT naming ' +
+      'its status. Never approves anything. Any other project, estimate or version is NOT_FOUND (T19).',
+    actors: ['customer'],
+    permission: 'request.view',
+    kind: 'write',
+    idempotency: 'none',
+    expectedVersion: 'none',
+    rateLimit: ESTIMATE_SELECTION_RATE_LIMIT,
+    audit: 'estimate.select_options',
+    pagination: false,
+    test: APPROVAL_TEST,
+    resource,
+    projection: CUSTOMER_ESTIMATE_SELECTION,
+    schema: {
+      params: PARAMS,
+      body: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['options'],
+        properties: { options: OPTIONS_FIELD },
+      },
+      response: { 200: CUSTOMER_ESTIMATE_SELECTION.schema },
+    },
+    handler: async (ctx) => {
+      if (!ctx.tx) throw new Error('saveEstimateSelection runs in its write transaction')
+      const ref = refOf(ctx.req.params as Params)
+      const out = await saveSelection(ctx.tx, ctx.actor as CustomerActor, ctx.scope, {
+        ...ref,
+        options: (ctx.req.body as { options: number[] }).options,
+      })
+      await ctx.audit({
+        target: { type: 'estimate_version', id: out.versionId },
+        summary: { version: ref.version, options: out.totals.options.length },
+      })
+      return { body: CUSTOMER_ESTIMATE_SELECTION.project({ ...ref, selection: out.totals }) }
+    },
+  }
+
+  const approve: RouteDef = {
+    method: 'POST',
+    path: `${PATH}/approve`,
+    operationId: 'approveEstimate',
+    summary: 'Approve Estimate: approve this exact version',
+    description:
+      'The verified customer approves the exact published version they viewed (HH-EST-06, HH-EST-07, HH-EST-08). ' +
+      'The body names the digest of the content viewed (approval.contentDigest of the estimate view), the selected ' +
+      'options, the total and deposit shown in integer cents, the terms document and its content hash, the ticked ' +
+      '"I have read and accept the estimate terms" box and the typed full name. Needs a fresh verification of the ' +
+      'session (estimate.approve: Customer "V (fresh verification)"): an older one is FRESH_VERIFICATION_REQUIRED and ' +
+      'nothing is written; the selected options stay on the server. In one transaction under the estimate lock the ' +
+      'server checks the version is the current, unexpired published one (else CONFLICT naming its status, with the ' +
+      'current version to review when there is one), the terms are the current version and in effect (else ' +
+      'NOT_CONFIGURED: terms that are not approved for real customers are never accepted), the content digest, the ' +
+      'options and the total and deposit equal its own computation (else refused with no record written), and the ' +
+      'session’s access is still valid; then it records the approval, accepts the version, moves the project to ' +
+      'approved and creates one job, its scope snapshot and one scheduling task, with the committed event ' +
+      'estimate.approved. A retry with the same key returns the first answer; a second tab of the same customer with ' +
+      'the same choice gets the same approval (200); anything else on an approved version is CONFLICT. Approval never ' +
+      'confirms an appointment, reserves capacity or marks a deposit paid. Any other project, estimate or version is ' +
+      'NOT_FOUND (T19).',
+    actors: ['customer'],
+    permission: 'estimate.approve',
+    kind: 'write',
+    idempotency: 'required',
+    expectedVersion: 'none',
+    rateLimit: ESTIMATE_APPROVAL_RATE_LIMIT,
+    audit: 'estimate.approve',
+    pagination: false,
+    test: APPROVAL_TEST,
+    resource,
+    projection: CUSTOMER_ESTIMATE_APPROVAL,
+    schema: {
+      params: PARAMS,
+      body: {
+        type: 'object',
+        additionalProperties: false,
+        required: [
+          'contentDigest',
+          'options',
+          'totalCents',
+          'depositCents',
+          'termsDocumentId',
+          'termsSha256',
+          'acceptTerms',
+          'fullName',
+        ],
+        properties: {
+          contentDigest: SHA256_FIELD,
+          options: OPTIONS_FIELD,
+          totalCents: { type: 'integer', minimum: 1 },
+          depositCents: { type: ['integer', 'null'], minimum: 1 },
+          termsDocumentId: { type: 'string', minLength: 1, maxLength: 60 },
+          termsSha256: SHA256_FIELD,
+          acceptTerms: { type: 'boolean' },
+          fullName: { type: 'string', minLength: 1, maxLength: FULL_NAME_MAX },
+        },
+      },
+      response: { 200: CUSTOMER_ESTIMATE_APPROVAL.schema, 201: CUSTOMER_ESTIMATE_APPROVAL.schema },
+    },
+    handler: async (ctx) => {
+      if (!ctx.tx) throw new Error('approveEstimate runs in its write transaction')
+      const ref = refOf(ctx.req.params as Params)
+      const session = await resolveCustomerSession(ctx.tx, readSessionToken(ctx.req))
+      if (!session) throw new ApiError('UNAUTHENTICATED')
+      const body = ctx.req.body as {
+        contentDigest: string
+        options: number[]
+        totalCents: number
+        depositCents: number | null
+        termsDocumentId: string
+        termsSha256: string
+        acceptTerms: boolean
+        fullName: string
+      }
+      const agent = ctx.req.headers['user-agent']
+      const out = await approveVersion(ctx.tx, ctx.actor as CustomerActor, ctx.scope, {
+        ...ref,
+        ...body,
+        session,
+        idempotencyKey: readIdempotencyKey(ctx.req.headers['idempotency-key']),
+        clientAddress: clientAddress(ctx.req.raw, deps.trustProxyHops ?? 0),
+        userAgent: typeof agent === 'string' && agent.trim() ? agent.trim() : null,
+        testMark: deps.testMark ?? true,
+      })
+      // The typed name and the security metadata stay in the approval record; the audit keeps what happened.
+      await ctx.audit({
+        target: { type: 'estimate_version', id: out.versionId },
+        summary: {
+          version: ref.version,
+          created: out.created,
+          approvalId: out.approvalId,
+          jobId: out.jobId,
+          schedulingTaskId: out.schedulingTaskId,
+          options: out.options.length,
+          totalCents: out.totalCents,
+          depositRequired: out.deposit.state === 'required',
+        },
+      })
+      return {
+        status: out.created ? 201 : 200,
+        body: CUSTOMER_ESTIMATE_APPROVAL.project({ ...ref, approved: out }),
+      }
+    },
+  }
+
   const text = (key: string) => (b: Record<string, unknown>) => (typeof b[key] === 'string' ? b[key] : undefined)
   return [
     read,
+    selection,
+    approve,
     write({
       path: 'request-changes',
       operationId: 'requestEstimateChanges',
