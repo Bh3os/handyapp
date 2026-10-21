@@ -73,7 +73,7 @@ export type NextAction = (typeof NEXT_ACTIONS)[number]
 export const WAITING = ['customer', 'handyhub', 'nobody'] as const
 export type Waiting = (typeof WAITING)[number]
 
-export const TIMELINE_KINDS = ['received', 'more_information', 'site_visit', 'not_a_fit'] as const
+export const TIMELINE_KINDS = ['received', 'more_information', 'site_visit', 'not_a_fit', 'closed_no_response'] as const
 export type TimelineKind = (typeof TIMELINE_KINDS)[number]
 
 export type Status = {
@@ -101,10 +101,25 @@ export type ProjectOverview = {
   timeline: TimelineEntry[]
   /** TSK-0063: the next confirmed visit, or none. */
   appointment: Appointment | null
-  payment: { state: 'none' }
+  payment: Payment
   refreshedAt: string
   refreshSeconds: number
 }
+
+/**
+ * The Overview's payment summary (TSK-0059): the deposit while it is due (amount, verified and pending money, the
+ * Square link HandyHub entered) or once it is received; nothing to pay otherwise.
+ */
+export type Payment =
+  | { state: 'none' }
+  | {
+      state: 'deposit_due'
+      amountCents: number
+      verifiedCents: number
+      pendingCents: number
+      payByCardUrl: string | null
+    }
+  | { state: 'deposit_received'; amountCents: number }
 
 export type Failure = 'expired' | 'unavailable' | 'failed'
 export type Result<T> = { ok: true; data: T } | { ok: false; failure: Failure }
@@ -152,6 +167,21 @@ function entry(v: unknown): TimelineEntry | null {
   return { kind: v['kind'], at: v['at'], text }
 }
 
+/** Only an https link is ever offered as Pay by Card. */
+const isHttps = (v: unknown): v is string => isStr(v) && /^https:\/\//.test(v)
+
+function paymentOf(v: unknown): Payment | null {
+  if (!isObj(v)) return null
+  if (v['state'] === 'none') return { state: 'none' }
+  if (v['state'] === 'deposit_received')
+    return isCents(v['amountCents']) ? { state: v['state'], amountCents: v['amountCents'] } : null
+  if (v['state'] !== 'deposit_due') return null
+  const { amountCents, verifiedCents, pendingCents, payByCardUrl } = v
+  if (!isCents(amountCents) || !isCents(verifiedCents) || !isCents(pendingCents)) return null
+  if (payByCardUrl !== null && !isHttps(payByCardUrl)) return null
+  return { state: 'deposit_due', amountCents, verifiedCents, pendingCents, payByCardUrl }
+}
+
 export function parseOverview(v: unknown): ProjectOverview | null {
   if (!isObj(v)) return null
   const head = summary(v)
@@ -161,15 +191,15 @@ export function parseOverview(v: unknown): ProjectOverview | null {
   if (!Array.isArray(v['timeline']) || appointment === undefined) return null
   const timeline = v['timeline'].map(entry)
   if (timeline.some((e) => e === null)) return null
-  const payment = v['payment']
-  if (!isObj(payment) || payment['state'] !== 'none') return null
+  const payment = paymentOf(v['payment'])
+  if (!payment) return null
   if (!isDate(v['refreshedAt']) || !isSeconds(v['refreshSeconds'])) return null
   return {
     ...head,
     status: { ...head.status, text: s },
     timeline: timeline as TimelineEntry[],
     appointment,
-    payment: { state: 'none' },
+    payment,
     refreshedAt: v['refreshedAt'],
     refreshSeconds: v['refreshSeconds'],
   }
@@ -191,7 +221,16 @@ export type EstimateListItem = {
   publishedAt: string
   validUntil: string | null
   totalCents: number
+  /** TSK-0058 (HH-PORT-10): an approved version's approval receipt PDF, issued or being prepared; null otherwise. */
+  receipt: ReceiptState | null
 }
+export const RECEIPT_STATES = ['preparing', 'issued'] as const
+export type ReceiptState = (typeof RECEIPT_STATES)[number]
+/** TSK-0058 (OWN-DEC-105): the step after approval, worded by the portal in the owner's words. */
+export const NEXT_STEPS = ['deposit_due', 'choose_work_appointment'] as const
+export type NextStep = (typeof NEXT_STEPS)[number]
+/** TSK-0058: the approval receipt PDF; once issued, a short-lived link while storage is configured. */
+export type Receipt = { state: ReceiptState; issuedAt: string | null; byteSize: number | null; url: string | null }
 
 // The offered windows and the confirmed visits of the Appointments tab (TSK-0063; HH-LEAD-07, HH-SCH-11, T37).
 export const VISIT_PURPOSES = ['estimate_visit', 'work_visit'] as const
@@ -270,17 +309,30 @@ function parseOffer(v: unknown): WindowOffer | null {
   }
 }
 
-/** What each tab holds today: a closed state code, the estimates (Documents) or the photo counts (Photos). */
+/** One message of the project conversation (TSK-0050): who, how, when and the text exactly as written. */
+export type ConversationMessage = {
+  from: 'you' | 'handyhub'
+  /** TSK-0051: 'portal' is a message the customer wrote here. */
+  channel: 'email' | 'sms' | 'portal'
+  at: string
+  text: string | null
+  textState: 'shown' | 'empty' | 'not_available'
+  attachments: number
+}
+/**
+ * What each tab holds today: a closed state code, (Documents, TSK-0056) the estimates, (Photos) the counts of the
+ * customer-visible photos, (Messages, TSK-0050) the project conversation, or (Appointments, TSK-0063) the offered
+ * windows and the confirmed visits.
+ */
 export type TabData =
-  | (TabHead & { tab: 'messages'; state: 'not_shown' })
+  | (TabHead & { tab: 'messages'; messages: ConversationMessage[] })
   | (TabHead & { tab: 'documents'; state: 'none' })
   | (TabHead & { tab: 'documents'; state: 'listed'; estimates: EstimateListItem[] })
   | (TabHead & { tab: 'appointments' | 'payments'; state: 'none' })
   | (TabHead & { tab: 'appointments'; state: 'listed'; offers: WindowOffer[]; appointments: Appointment[] })
   | (TabHead & { tab: 'photos'; photos: PhotoCounts })
 
-const TAB_STATE: Record<Exclude<WorkspaceTab, 'photos'>, string> = {
-  messages: 'not_shown',
+const TAB_STATE: Record<Exclude<WorkspaceTab, 'photos' | 'messages'>, string> = {
   documents: 'none',
   appointments: 'none',
   payments: 'none',
@@ -297,6 +349,13 @@ export function parseTab(tab: WorkspaceTab, v: unknown): TabData | null {
     const p = v['photos']
     if (!isObj(p) || !isSeconds(p['received']) || !isSeconds(p['processing']) || !isSeconds(p['failed'])) return null
     return { ...head, tab, photos: { received: p['received'], processing: p['processing'], failed: p['failed'] } }
+  }
+  if (tab === 'messages') {
+    const list = v['messages']
+    if (!Array.isArray(list) || 'state' in v) return null
+    const messages = list.map(conversationMessage)
+    if (messages.some((m) => m === null)) return null
+    return { ...head, tab, messages: messages as ConversationMessage[] }
   }
   if (tab === 'documents' && v['state'] === 'listed') {
     const list = Array.isArray(v['estimates']) ? v['estimates'].map(listItem) : null
@@ -319,9 +378,21 @@ export function parseTab(tab: WorkspaceTab, v: unknown): TabData | null {
   }
   // Any other state (for example "paid" or "read") is not what the view declares: a failure, never shown as data.
   if (v['state'] !== TAB_STATE[tab]) return null
-  if (tab === 'messages') return { ...head, tab, state: 'not_shown' }
-  if (tab === 'documents') return { ...head, tab, state: 'none' }
   return { ...head, tab, state: 'none' }
+}
+
+const FROM = ['you', 'handyhub'] as const
+const MESSAGE_CHANNELS = ['email', 'sms', 'portal'] as const
+const TEXT_STATES = ['shown', 'empty', 'not_available'] as const
+
+function conversationMessage(v: unknown): ConversationMessage | null {
+  if (!isObj(v)) return null
+  const { from, channel, at, text, textState, attachments } = v
+  if (!oneOf(FROM)(from) || !oneOf(MESSAGE_CHANNELS)(channel) || !isDate(at) || !oneOf(TEXT_STATES)(textState))
+    return null
+  if (text !== null && !isStr(text)) return null
+  if ((textState === 'shown') !== (text !== null) || !isSeconds(attachments)) return null
+  return { from, channel, at, text, textState, attachments }
 }
 
 const isInt = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v)
@@ -334,7 +405,21 @@ function listItem(v: unknown): EstimateListItem | null {
   const { number, version, status, publishedAt, validUntil, totalCents } = v
   if (!isStr(number) || !isInt(version) || !oneOf(VERSION_STATUSES)(status) || !isDate(publishedAt)) return null
   if (!isNullableDate(validUntil) || !isCents(totalCents)) return null
-  return { number, version, status, publishedAt, validUntil, totalCents }
+  // The estimate view carries its receipt under approval; a list item names it (null when not approved).
+  const receipt = v['receipt'] === undefined ? null : v['receipt']
+  if (receipt !== null && !oneOf(RECEIPT_STATES)(receipt)) return null
+  return { number, version, status, publishedAt, validUntil, totalCents, receipt }
+}
+
+function parseReceipt(v: unknown): Receipt | null {
+  if (!isObj(v) || !oneOf(RECEIPT_STATES)(v['state'])) return null
+  const { issuedAt, byteSize, url } = v
+  if (!isNullableDate(issuedAt) || !isNullableStr(url) || !(byteSize === null || (isInt(byteSize) && byteSize > 0)))
+    return null
+  // A receipt being prepared has no date, size or link; an issued one has its date and size.
+  if (v['state'] === 'preparing' ? issuedAt !== null || byteSize !== null || url !== null : !issuedAt || !byteSize)
+    return null
+  return { state: v['state'], issuedAt, byteSize, url }
 }
 
 export const TERMS_STATES = ['not_configured', 'not_in_effect', 'in_effect'] as const
@@ -400,6 +485,10 @@ export type EstimateDetail = {
     contentDigest: string
     selection: Selection | null
     approved: Approved | null
+    /** TSK-0058: once approved, the step after approval, or null once the project has moved past it. */
+    nextStep: NextStep | null
+    /** TSK-0058: once approved, the approval receipt PDF. */
+    receipt: Receipt | null
   }
   actions: { requestChanges: boolean; decline: boolean; requestUpdate: boolean }
   freshVerification: boolean
@@ -470,6 +559,10 @@ export function parseEstimate(v: unknown): EstimateDetail | null {
   if (approval['selection'] !== null && !selection) return null
   const approved = approval['approved'] === null ? null : parseApproved(approval['approved'])
   if (approval['approved'] !== null && !approved) return null
+  const nextStep = approval['nextStep']
+  if (nextStep !== null && !oneOf(NEXT_STEPS)(nextStep)) return null
+  const receipt = approval['receipt'] === null ? null : parseReceipt(approval['receipt'])
+  if (approval['receipt'] !== null && !receipt) return null
   const actions = v['actions']
   if (!isObj(actions) || !['requestChanges', 'decline', 'requestUpdate'].every((k) => typeof actions[k] === 'boolean'))
     return null
@@ -500,6 +593,8 @@ export function parseEstimate(v: unknown): EstimateDetail | null {
       contentDigest: approval['contentDigest'],
       selection,
       approved,
+      nextStep,
+      receipt,
     },
     actions: actions as EstimateDetail['actions'],
     freshVerification: v['freshVerification'],
@@ -754,8 +849,169 @@ async function read<T>(fetchImpl: Fetch, path: string, parse: (v: unknown) => T 
   return data === null ? { ok: false, failure: 'failed' } : { ok: true, data }
 }
 
+// Questions from HandyHub (TSK-0051; HH-LEAD-03, OWN-DEC-98): the customer view project.questions.
+export const REPLY_WINDOWS = ['open', 'reopen', 'period_ended', 'closed'] as const
+export type ReplyWindow = (typeof REPLY_WINDOWS)[number]
+export type Question = {
+  id: string
+  kind: 'general' | 'measurement'
+  text: string
+  askedAt: string
+  state: 'waiting' | 'answered'
+  canReply: boolean
+  reply: { text: string | null; notSure: boolean; at: string; photos: PhotoCounts } | null
+}
+export type QuestionList = {
+  reference: string
+  refreshedAt: string
+  refreshSeconds: number
+  questions: Question[]
+  replyWindow: ReplyWindow
+  reopenUntil: string | null
+  maxLength: number
+}
+
+function counts(v: unknown): PhotoCounts | null {
+  if (!isObj(v) || !isSeconds(v['received']) || !isSeconds(v['processing']) || !isSeconds(v['failed'])) return null
+  return { received: v['received'], processing: v['processing'], failed: v['failed'] }
+}
+
+function question(v: unknown): Question | null {
+  if (!isObj(v)) return null
+  const { id, kind, text, askedAt, state, canReply, reply } = v
+  if (!isStr(id) || !oneOf(['general', 'measurement'] as const)(kind) || !isStr(text) || !isDate(askedAt)) return null
+  if (!oneOf(['waiting', 'answered'] as const)(state) || typeof canReply !== 'boolean') return null
+  if (reply === null) return { id, kind, text, askedAt, state, canReply, reply: null }
+  if (!isObj(reply) || (reply['text'] !== null && !isStr(reply['text'])) || typeof reply['notSure'] !== 'boolean')
+    return null
+  const photos = counts(reply['photos'])
+  if (!isDate(reply['at']) || !photos) return null
+  return {
+    id,
+    kind,
+    text,
+    askedAt,
+    state,
+    canReply,
+    reply: { text: reply['text'] as string | null, notSure: reply['notSure'], at: reply['at'], photos },
+  }
+}
+
+export function parseQuestions(v: unknown): QuestionList | null {
+  if (!isObj(v) || !isStr(v['reference']) || !isDate(v['refreshedAt']) || !isSeconds(v['refreshSeconds'])) return null
+  if (!Array.isArray(v['questions']) || !oneOf(REPLY_WINDOWS)(v['replyWindow'])) return null
+  if (v['reopenUntil'] !== null && !isDate(v['reopenUntil'])) return null
+  if (typeof v['maxLength'] !== 'number' || v['maxLength'] < 1) return null
+  const questions = v['questions'].map(question)
+  if (questions.some((q) => q === null)) return null
+  return {
+    reference: v['reference'],
+    refreshedAt: v['refreshedAt'],
+    refreshSeconds: v['refreshSeconds'],
+    questions: questions as Question[],
+    replyWindow: v['replyWindow'],
+    reopenUntil: v['reopenUntil'] as string | null,
+    maxLength: v['maxLength'],
+  }
+}
+
+/** The outcome of a write the page shows: done (with the answer), refused (with the server's codes), or failed. */
+export type PortalWriteResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; failure: 'refused'; status: number; codes: string[] }
+  | { ok: false; failure: Failure }
+
+async function send<T>(fetchImpl: Fetch, path: string, init: RequestInit): Promise<PortalWriteResult<T>> {
+  let res: Response
+  try {
+    res = await fetchImpl(`/api/v1${path}`, { credentials: 'same-origin', cache: 'no-store', ...init })
+  } catch {
+    return { ok: false, failure: 'failed' }
+  }
+  if (res.status === 401) return { ok: false, failure: 'expired' }
+  if (res.status === 403 || res.status === 404) return { ok: false, failure: 'unavailable' }
+  const body = (await res.json().catch(() => null)) as unknown
+  if (res.ok) return { ok: true, data: body as T }
+  if (res.status >= 400 && res.status < 500 && isObj(body) && isObj(body['error'])) {
+    const e = body['error']
+    const fe = Array.isArray(e['fieldErrors']) ? e['fieldErrors'] : []
+    const codes = fe.flatMap((f) => (isObj(f) && isStr(f['code']) ? [f['code']] : []))
+    return { ok: false, failure: 'refused', status: res.status, codes: codes.length ? codes : [String(e['code'])] }
+  }
+  return { ok: false, failure: 'failed' }
+}
+
+const json = (body: unknown, headers: Record<string, string> = {}): RequestInit => ({
+  method: 'POST',
+  headers: { 'content-type': 'application/json', accept: 'application/json', ...headers },
+  body: JSON.stringify(body),
+})
+
+export type UploadStart = {
+  capability: string
+  expiresAt: string
+  limits: { maxFileBytes: number; maxPhotos: number; types: string[] }
+}
+export type UploadedPhoto = { id: string; state: 'quarantined' | 'ready' | 'rejected'; rejectionReason: string | null }
+
+/** A random idempotency key: one per draft, kept with it, so a retried submission is answered once. */
+export function newKey(): string {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+}
+
+export const portalWrites = {
+  /** A new upload capability for one reply's photos. */
+  startUpload: (f: Fetch, reference: string, questionId: string) =>
+    send<UploadStart>(
+      f,
+      `/customer/projects/${encodeURIComponent(reference)}/questions/${encodeURIComponent(questionId)}/uploads`,
+      json({}),
+    ),
+  /** One photo, as raw bytes, under the reply's capability. */
+  uploadPhoto: (f: Fetch, capability: string, file: Blob, type: string) =>
+    send<UploadedPhoto>(f, '/public/request-drafts/photos', {
+      method: 'POST',
+      headers: { 'content-type': type, 'upload-capability': capability, accept: 'application/json' },
+      body: file,
+    }),
+  /** The capability's photos as they are now (processing finishes after the upload). */
+  listPhotos: (f: Fetch, capability: string) =>
+    send<{ photos: UploadedPhoto[] }>(f, '/public/request-drafts/photos', {
+      method: 'GET',
+      headers: { 'upload-capability': capability, accept: 'application/json' },
+    }),
+  removePhoto: (f: Fetch, capability: string, photoId: string) =>
+    send<{ removed: boolean }>(f, `/public/request-drafts/photos/${encodeURIComponent(photoId)}`, {
+      method: 'DELETE',
+      headers: { 'upload-capability': capability, accept: 'application/json' },
+    }),
+  reply: (
+    f: Fetch,
+    reference: string,
+    questionId: string,
+    body: { text?: string; notSure?: boolean; photoIds?: string[] },
+    key: string,
+    capability: string | null,
+  ) =>
+    send<{ questionId: string; state: 'answered'; at: string; photos: number; reopened: boolean }>(
+      f,
+      `/customer/projects/${encodeURIComponent(reference)}/questions/${encodeURIComponent(questionId)}/replies`,
+      json(body, { 'idempotency-key': key, ...(capability ? { 'upload-capability': capability } : {}) }),
+    ),
+  message: (f: Fetch, reference: string, text: string, key: string) =>
+    send<{ from: 'you'; channel: 'portal'; at: string }>(
+      f,
+      `/customer/projects/${encodeURIComponent(reference)}/messages`,
+      json({ text }, { 'idempotency-key': key }),
+    ),
+}
+
 export const portalApi = {
   projects: (f: Fetch) => read(f, '/customer/projects', parseList),
+  questions: (f: Fetch, reference: string) =>
+    read(f, `/customer/projects/${encodeURIComponent(reference)}/questions`, parseQuestions),
   overview: (f: Fetch, reference: string) =>
     read(f, `/customer/projects/${encodeURIComponent(reference)}/overview`, parseOverview),
   tab: (f: Fetch, reference: string, tab: WorkspaceTab) =>

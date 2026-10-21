@@ -76,6 +76,13 @@ export const LABEL_FAMILIES = {
     'estimate_to_write',
     'estimate_response',
     'window_offer_response',
+    'estimate_reminder',
+    'candidate_match',
+    'inbox_needs_linking',
+    'customer_replied',
+    'question_replied',
+    'question_reminder',
+    'deposit_due',
     'deposit_waiver',
     'start_work_exception',
     'refund_request',
@@ -102,6 +109,8 @@ export const LABEL_FAMILIES = {
     'injury_reported',
     'dispute_reported',
     'deposit_waiver_requested',
+    'deposit_due',
+    'deposit_check_pending',
     'start_work_exception_requested',
     'refund_requested',
     'cancellation_outcome_requested',
@@ -115,6 +124,16 @@ export const LABEL_FAMILIES = {
     'estimate_update_requested',
     'window_other_times_requested',
     'window_offer_expired',
+    'estimate_reminder_first',
+    'estimate_reminder_final',
+    'possible_duplicate',
+    'message_needs_linking',
+    'customer_replied',
+    'question_replied',
+    'reopened_by_reply',
+    'question_reminder_first',
+    'question_reminder_final',
+    'no_response_close_available',
   ],
   /** The one action button of a queue item (HH-OPS-02); it opens the record's screen. */
   queueAction: [
@@ -127,6 +146,11 @@ export const LABEL_FAMILIES = {
     'write_estimate',
     'review_estimate',
     'offer_windows',
+    'release_reminder',
+    'review_match',
+    'link_message',
+    'open_conversation',
+    'review_deposit',
   ],
   /**
    * System health (TSK-0101; HH-NFR-02): the checks, their states, metrics and notes, as the server's health report
@@ -193,11 +217,13 @@ export const LABEL_FAMILIES = {
     'payment.term_default',
     'payment.methods',
     'payment.instructions',
+    'payment.square_link_hosts',
     'cancellation.rules',
     'contact.hours',
     'business.timezone',
     'reminders.cadences',
     'request.reopen_period',
+    'replies.contact_hours',
     'response.target',
     'session.timings',
     'uploads.limits',
@@ -251,6 +277,8 @@ export const LABEL_FAMILIES = {
     'arrange_estimate_visit',
     'not_a_fit',
     'not_a_fit_owner_review',
+    // TSK-0051 (OWN-DEC-101).
+    'close_no_response',
   ],
   /** Project lifecycle states (the project.lifecycle machine, PROPOSED). */
   projectState: ['open', 'approved', 'completed', 'closed', 'cancellation_review', 'canceled'],
@@ -264,6 +292,103 @@ export const LABEL_FAMILIES = {
   propertyType: ['house', 'apartment_condo', 'townhouse', 'rental_short_term'],
   timeWindow: ['mornings', 'afternoons', 'evenings', 'weekends', 'any_time'],
   photoState: ['quarantined', 'ready', 'rejected'],
+  /** Customer records (TSK-0044; ENT-Customer, HH-CRM-01). */
+  customerStatus: ['active', 'inactive', 'merged'],
+  customerProvenance: ['request_submission', 'staff_entry'],
+  /** Visibility classes of notes and attachments (HH-STAFF-05; @handyhub/domain VISIBILITY_CLASSES). */
+  visibilityClass: ['internal_operational', 'restricted_incident', 'restricted_financial', 'customer_shared'],
+  /** What two customers share in a duplicate suggestion (HH-ID-02; @handyhub/domain MATCH_REASONS). */
+  matchReason: ['email', 'phone', 'address', 'name'],
+  candidateStatus: ['open', 'dismissed', 'merged'],
+  /** A merge or relink (crm.record_links, TSK-0046): in effect, reversed by the Owner, or replaced by a later relink. */
+  recordLinkState: ['current', 'reversed', 'replaced'],
+  /** Consent records (ENT-ConsentPreference; apps/server/src/modules/notifications/consent.ts). */
+  consentPurpose: ['service_communication', 'transactional_sms', 'marketing'],
+  consentChannel: ['email', 'sms'],
+  consentSource: ['request_form', 'portal', 'sms_keyword', 'provider_suppression', 'staff_recorded'],
+  consentState: ['granted', 'withdrawn', 'none'],
+  /** Fields a staff edit of a customer or contact changes (crm.record_changes). */
+  recordField: ['displayName', 'fullName', 'email', 'phone', 'preferredChannel'],
+  /** Property records (TSK-0045; @handyhub/domain PROPERTY_DETAILS, DETAIL_SOURCES, ACCESS_SECRET_KINDS). */
+  propertyDetail: [
+    'address',
+    'property_type',
+    'site_contact',
+    'access_windows',
+    'access_notes',
+    'parking_loading',
+    'occupants_pets',
+    'restricted_areas',
+    'utilities',
+    'customer_preparation',
+    'site_flags',
+  ],
+  detailSource: ['request_form', 'customer_call', 'customer_message', 'site_visit', 'office_record'],
+  accessSecretKind: ['gate', 'lockbox', 'alarm', 'door', 'key_location', 'other'],
+  /** What a crm.property_changes entry records. */
+  propertyChange: ['changed', 'cleared', 'confirmed'],
+  /** Message delivery states (HH-COM-02; platform.message_deliveries). */
+  deliveryState: ['draft', 'queued', 'sent', 'delivered', 'failed', 'suppressed', 'cancelled'],
+  /** The unified inbox (TSK-0049; apps/server/src/modules/inbox, comms.messages). */
+  messageChannel: ['email', 'sms', 'internal', 'portal'],
+  linkState: ['matched', 'needs_linking', 'linked'],
+  matchRule: [
+    'reply_token',
+    'thread_reference',
+    'verified_email',
+    'verified_phone',
+    'latest_conversation',
+    'staff',
+    'portal_session',
+  ],
+  needsLinkingReason: [
+    'no_match',
+    'shared_contact',
+    'several_projects',
+    'no_open_project',
+    'sender_not_on_project',
+    'conflicting_references',
+    'returned_by_staff',
+  ],
+  bodyState: ['received', 'html_converted', 'not_retrieved', 'retrieval_failed', 'empty'],
+  smsKeyword: ['stop', 'start', 'help'],
+  inboundState: ['configured', 'fake', 'not_configured', 'unknown'],
+  /** Staff replies (TSK-0050; apps/server/src/modules/inbox/replies.ts): why a channel cannot carry a reply now. */
+  replyChannelReason: ['available', 'unverified', 'no_opt_in', 'opted_out'],
+  /** Why a delivery was not sent (apps/server/src/modules/notifications/deliveries.ts and the providers' guard). */
+  deliveryError: [
+    'template_not_configured',
+    'channel_not_configured',
+    'template_values_missing',
+    'sms_no_opt_in',
+    'sms_opted_out',
+    'record_changed',
+    'not_on_test_allowlist',
+    'invalid_destination',
+  ],
+  /** Entries of a customer's activity history (apps/server/src/modules/customers/record.ts). */
+  customerTimeline: [
+    'request_submitted',
+    'request_assigned',
+    'request_decision',
+    'request_note',
+    'customer_note',
+    'customer_changed',
+    'contact_changed',
+    'consent_granted',
+    'consent_withdrawn',
+    'message',
+    'candidate_detected',
+    'candidate_reasons_added',
+    'candidate_reopened',
+    'candidate_dismissed',
+    'customer_merged',
+    'request_relinked',
+    'link_reversed',
+    'candidate_merged',
+    'candidate_merge_reversed',
+  ],
+  timelineActor: ['staff', 'customer', 'system'],
   /** Why the server refused a request action (the problem codes of @handyhub/domain and the requests module). */
   requestRefusal: [
     'INVALID_TRANSITION',
@@ -281,7 +406,21 @@ export const LABEL_FAMILIES = {
     'HAZARDS_NEED_ATTENTION',
     'REVIEWER_REQUIRED',
     'OWN_CRITICAL_HOLD',
+    // TSK-0051: publishing a question, releasing its reminders and "Closed—no response".
+    'NO_OPEN_QUESTION',
+    'FINAL_REMINDER_NOT_SENT',
+    'TOO_EARLY',
+    'CONFIG_MISSING',
+    'QUESTION_ANSWERED',
+    'REQUEST_CLOSED',
+    'NO_DRAFT',
   ],
+  /** Staff questions to the customer (TSK-0051; apps/server/src/modules/questions). */
+  questionKind: ['general', 'measurement'],
+  questionState: ['published', 'answered'],
+  questionNotice: ['pending', 'sent', 'failed'],
+  reminderStage: ['first', 'final'],
+  // TSK-0051 question reminders use the same reminderState family as TSK-0060's estimate reminders (below).
   /** Estimate version states (ENT-EstimateVersion; migration 0026). */
   estimateState: ['draft', 'in_review', 'published', 'accepted', 'declined', 'expired', 'withdrawn', 'superseded'],
   /** Estimate line kinds: base scope and the options a customer may select (@handyhub/money LINE_KINDS). */
@@ -369,6 +508,11 @@ export const LABEL_FAMILIES = {
   estimateResponseKind: ['changes_requested', 'declined', 'update_requested'],
   /** Scheduling task states (TSK-0057, ENT-SchedulingTask; migration 0044): open -> planning -> fulfilled / canceled. */
   schedulingTaskState: ['open', 'planning', 'fulfilled', 'canceled'],
+  /**
+   * TSK-0058: notification delivery channels (platform.message_deliveries); the delivery states and errors are the
+   * deliveryState and deliveryError families above.
+   */
+  deliveryChannel: ['email', 'sms'],
   /** Visit purposes (TSK-0061, ENT-Visit; migration 0049): the Estimate visit and the three work visits. */
   visitPurpose: ['site_estimate', 'service', 'follow_up', 'return_work'],
   /** Visit states (ENT-Visit): tentative -> confirmed -> en_route -> arrived -> completed; expired, canceled, no_access. */
@@ -390,6 +534,9 @@ export const LABEL_FAMILIES = {
     'PROJECT_NOT_OPEN',
     'PROJECT_NOT_ACTIVE',
     'NO_JOB',
+    // TSK-0059's deposit gate, registered in WORK_VISIT_GATES (apps/server/src/modules/visits/gates.ts).
+    'DEPOSIT_REQUIRED',
+    'DEPOSIT_REQUIREMENT_MISSING',
     'PROPERTY_ZONE_UNKNOWN',
     'BUSINESS_TIMEZONE_NOT_CONFIGURED',
     'FORBIDDEN',
@@ -510,6 +657,87 @@ export const LABEL_FAMILIES = {
   responseStop: ['response_sent', 'conversation_recorded'],
   /** Completed customer conversations staff record (TSK-0043, PROPOSED channels). */
   conversationChannel: ['phone', 'in_person'],
+  /** The two unanswered-estimate reminder drafts (TSK-0060; HH-EST-14, FACT-REMINDER-CADENCES). */
+  reminderStep: ['first', 'final'],
+  /** A reminder delivery's state (ENT-Message: draft, released and queued, then the delivery's outcome). */
+  // TSK-0051: a question reminder is also 'not_scheduled' (its clock starts when the notice is sent) or 'scheduled'.
+  reminderState: [
+    'not_scheduled',
+    'scheduled',
+    'draft',
+    'queued',
+    'sent',
+    'delivered',
+    'failed',
+    'suppressed',
+    'cancelled',
+  ],
+  /**
+   * Why a reminder was stopped, dismissed, suppressed or not sent (TSK-0060; HH-EST-14 stop rules, HH-COM-05). The
+   * server's reminders module declares the stop reasons (apps/server/src/modules/estimates/reminders.ts).
+   */
+  reminderReason: [
+    'accepted',
+    'declined',
+    'expired',
+    'withdrawn',
+    'superseded',
+    'not_published',
+    'customer_responded',
+    'customer_message',
+    'question_replied',
+    'conversation_recorded',
+    'project_not_open',
+    'dismissed',
+    'replaced_by_final',
+    'sms_opted_out',
+    'sms_no_opt_in',
+    'template_not_configured',
+    'channel_not_configured',
+    'template_values_missing',
+    'record_changed',
+  ],
+  /** Deposit requirement states (ENT-DepositRequirement; TSK-0059). */
+  depositState: ['not_required', 'required', 'partly_satisfied', 'satisfied', 'applied', 'waived'],
+  /** Accepted payment methods (FACT-PAYMENT-METHODS; config payment.methods). */
+  paymentMethod: ['square_payment_link', 'square_tap_to_pay', 'cash', 'check', 'zelle', 'cash_app', 'chime'],
+  /** Payment states (ENT-Payment): cash and digital recorded -> reconciled; checks received -> deposited -> cleared. */
+  paymentState: ['recorded', 'reconciled', 'received', 'deposited', 'cleared', 'returned', 'voided'],
+  /** Why a deposit action was refused (TSK-0059), by the field code the server answers. */
+  depositRefusal: [
+    'DEPOSIT_NOT_REQUIRED',
+    'DEPOSIT_SATISFIED',
+    'DEPOSIT_WAIVED',
+    'DEPOSIT_APPLIED',
+    'DEPOSIT_COVERED',
+    'DUPLICATE_PAYMENT',
+    'NOT_A_LINK',
+    'NOT_HTTPS',
+    'NOT_A_SQUARE_LINK',
+    'TOO_LONG',
+    'NOT_ACCEPTED',
+    'INVALID',
+    'IN_FUTURE',
+    'required',
+    'NOT_ACTIVE_STAFF',
+    'NOT_A_CHECK',
+    'CHECK_CLEARED',
+    'CHECK_RETURNED',
+    'CHECK_VOIDED',
+    'NOT_CONFIGURED',
+  ],
+  /** The six ordered checklist stages of an SOP version (TSK-0068, HH-WORK-11, OWN-DEC-108). */
+  sopStage: ['site_preparation', 'setup_checks', 'work_steps', 'quality_checks', 'cleanup_waste', 'final_checks'],
+  /** SOP version review states (ENT-SOPVersion; OWN-DEC-17). */
+  sopReviewState: ['pending_competent_review', 'approved', 'superseded'],
+  /** The evidence an SOP step's own wording asks for (TSK-0068). */
+  sopEvidence: ['photo', 'measurement', 'note'],
+  /** The review controls the vault SOPs add next to steps (pending qualified review). */
+  sopControl: ['HOLD', 'GATE', 'FLAG'],
+  /** What pinned an SOP version on a work package (TSK-0068). */
+  sopPinSource: ['approval', 'import'],
+  /** Why the Owner's record of a competent-review sign-off was refused (TSK-0068). */
+  sopSignOffProblem: ['REVIEWER_REQUIRED', 'QUALIFICATION_REQUIRED', 'REASON_REQUIRED', 'INVALID_TRANSITION'],
 } as const satisfies Record<string, readonly string[]>
 
 export type LabelFamily = keyof typeof LABEL_FAMILIES

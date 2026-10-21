@@ -51,9 +51,11 @@ describe('queue item types (TSK-0041, HH-OPS-01)', () => {
     expect(visibleSections(staff('estimator'))).toEqual(['queue'])
     expect(visibleSections(staff('worker'))).toEqual([])
     // Estimators also see pending estimates (estimate_to_write, TSK-0053), the customer's responses to published
-    // estimates (estimate_response, TSK-0056) and answers to offered windows that need new ones (window_offer_response,
-    // TSK-0063: they offer estimate-visit windows).
+    // estimates (estimate_response, TSK-0056), answers to offered windows that need new ones (window_offer_response,
+    // TSK-0063: they offer estimate-visit windows) and estimate reminder drafts to send (estimate_reminder, TSK-0060).
     expect(visibleTypes(staff('estimator'), 'queue')).toEqual({
+      // TSK-0044: duplicate suggestions, by the Estimator's PROPOSED customer.view_duplicates cell.
+      // TSK-0051: replies to questions, by the Estimator's request.view cell.
       all: [
         'new_request',
         'review_hold',
@@ -61,8 +63,13 @@ describe('queue item types (TSK-0041, HH-OPS-01)', () => {
         'estimate_to_write',
         'estimate_response',
         'window_offer_response',
+        'estimate_reminder',
+        'candidate_match',
+        'question_replied',
       ],
-      own: ['delivery_failed'],
+      // TSK-0049: customer replies on the Estimator's own threads; never the private Needs Linking list.
+      // TSK-0051: question reminders to release on the Estimator's own requests (message.release_draft, own threads).
+      own: ['delivery_failed', 'customer_replied', 'question_reminder'],
     })
     // Roles add up: a worker who is also office sees what office sees.
     expect(visibleTypes(staff('worker', 'office'), 'queue')).toEqual(visibleTypes(staff('office'), 'queue'))

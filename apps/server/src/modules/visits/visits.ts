@@ -21,12 +21,15 @@
 //   same transaction (one success, one conflict with alternatives, nothing partial). A confirmed visit's window
 //   change moves its reservations in the same transaction, after checking the new range for the same team; a change
 //   that fails keeps the booking exactly as it was. PROPOSED: confirming a work visit fulfils the job's scheduling
-//   task. The other confirmation preconditions (HH-SCH-06: deposit gate, blocking holds) come with TSK-0064; the
-//   deposit gate plugs into WORK_VISIT_GATES.
+//   task. The deposit gate of TSK-0059 (HH-SCH-06) is the first of WORK_VISIT_GATES for planning and window changes,
+//   a reschedule included, and confirmation runs it itself in its transaction; the other confirmation preconditions
+//   (HH-SCH-06: blocking holds) come with TSK-0064.
 // - TSK-0063 (HH-SCH-11, HH-LEAD-07, OWN-DEC-144): windows are offered to the customer and held through offers.ts. While
 //   a visit has an open offer its window changes and confirmations go through the offer (OFFER_OPEN here). A confirmed
 //   visit writes the committed event of its automatic confirmation notice (estimate_visit.reserved or
 //   appointment.reserved, FACT-AUTOMATIC-MESSAGES #6 and #10), whether staff confirmed it or the customer selected it.
+//   The customer's selection of a work-visit window confirms the visit, so it runs the same deposit gate in its
+//   transaction (offers.ts).
 import type { Db, Tx } from '@handyhub/db'
 import {
   canChangeWindow,
@@ -52,7 +55,8 @@ import {
   refuse,
   type ReservationRequest,
 } from '../capacity/resources.js'
-import { unmetGates, type WorkVisitGate } from './gates.js'
+import { confirmationDepositGate, depositGateProblem } from '../finance/deposit-gate.js'
+import { DEPOSIT_GATE, unmetGates, type WorkVisitGate } from './gates.js'
 import { noticesOf, recordReserved, staffOffers, windowOfferPolicy } from './offers.js'
 
 type Reader = Db | Tx
@@ -506,8 +510,22 @@ export async function confirmVisit(
   if (new Set(equipmentIds).size !== equipmentIds.length)
     problems.push(field('body.equipmentIds', 'EQUIPMENT_REPEATED'))
   else if (equipmentIds.length < v.equipment.length) problems.push(field('body.equipmentIds', 'EQUIPMENT_NOT_ASSIGNED'))
+  // TSK-0059 (HH-SCH-06, HH-FIN-02, RULE-SAFETY-GATES): the deposit gate runs here itself, in this transaction, for
+  // every work visit, whatever gates the module was given; an estimate visit never waits for a deposit. The other
+  // registered gates follow (the deposit gate is not asked twice).
+  const deposit = depositGateProblem(
+    await confirmationDepositGate(
+      tx,
+      v.job_id !== null && isWorkVisitPurpose(v.purpose) ? { kind: 'work', jobId: v.job_id } : { kind: 'estimate' },
+    ),
+  )
+  if (deposit) problems.push(deposit)
   if (v.job_id !== null)
-    for (const code of await unmetGates(tx, { jobId: v.job_id, projectId: v.project_id }, deps.gates))
+    for (const code of await unmetGates(
+      tx,
+      { jobId: v.job_id, projectId: v.project_id },
+      deps.gates.filter((g) => g !== DEPOSIT_GATE),
+    ))
       problems.push(field('job', code))
   // Without the expected work there is no range to check or offer alternatives for.
   if (v.expected_duration_minutes === null || v.required_workers === null)

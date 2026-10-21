@@ -680,11 +680,21 @@ describe('[HH-EST-09][T33] Request Changes and Decline keep history; silence nev
     const responseId = (await responsesOf(e.versionId))[0]?.id as string
     const deliveries = await t.db
       .selectFrom('platform.message_deliveries')
-      .select(['message_key', 'channel', 'audience', 'state', 'error_code', 'recipient_kind', 'recipient_id'])
+      .select([
+        'message_key',
+        'channel',
+        'audience',
+        'state',
+        'error_code',
+        'recipient_kind',
+        'recipient_id',
+        'project_id',
+      ])
       .where('subject_key', '=', `estimate_customer_response:${responseId}`)
       .execute()
     // No request is assigned, so the estimator who prepared the version is told. No wording is approved for the
-    // notice yet: the delivery is recorded as not configured, never as sent.
+    // notice yet: the delivery is recorded as not configured, never as sent. TSK-0049: the delivery records its
+    // project; a staff notice never carries the project's customer reply token.
     expect(deliveries).toEqual([
       {
         message_key: 'staff_notice.estimate_declined',
@@ -694,6 +704,7 @@ describe('[HH-EST-09][T33] Request Changes and Decline keep history; silence nev
         error_code: 'template_not_configured',
         recipient_kind: 'staff_user',
         recipient_id: staff.estimator.userId,
+        project_id: e.projectId,
       },
     ])
     expect(p.fakes.email?.sent ?? []).toEqual([])

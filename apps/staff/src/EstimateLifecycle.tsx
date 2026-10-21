@@ -12,11 +12,15 @@
 // - TSK-0057 (HH-EST-06, HH-EST-08): the customer's approval: the version, the typed name, the time, the selected
 //   options, the approved total and deposit, the terms accepted, the TEST mark, and the job and scheduling task it
 //   created. Nothing here confirms an appointment or marks a deposit paid.
+// - TSK-0058 (HH-EST-12): the approval receipt PDF (issued, or being prepared) and what happened to each automatic
+//   receipt message: while its wording is NOT CONFIGURED each delivery reads "Not sent" with the reason, never sent.
+// - TSK-0059: the job's deposit panel (JobDeposit.tsx) under the approval, for the roles that may see payments.
 import type { StaffKey } from '@handyhub/i18n'
 import { cents, formatUsd } from '@handyhub/money'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useEffect, useId, useRef, useState, type MouseEvent } from 'react'
 import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
+import { JobDeposit } from './JobDeposit'
 import { codeLabel } from './Requests'
 
 type T = (key: StaffKey, values?: Record<string, string | number | Date>) => string
@@ -45,8 +49,13 @@ export type Lifecycle = {
     depositCents: number | null
     termsVersion: string
     testMark: boolean
+    /** TSK-0059: the job its deposit panel reads. */
+    jobId?: string
     jobState: string
     schedulingTaskState: string
+    /** TSK-0058: the approval receipt PDF and each automatic receipt message's delivery. */
+    receipt?: { state: 'preparing' | 'issued'; issuedAt: string | null; byteSize: number | null }
+    receiptDeliveries?: { channel: string; state: string; errorCode: string | null }[]
   } | null
   actions: Record<
     'publish' | 'requestReview' | 'returnToDraft' | 'withdraw' | 'expire' | 'recordDecline' | 'revise',
@@ -508,7 +517,49 @@ export function EstimateLifecycle<V extends VersionLike>({
             <dd>{codeLabel(t, 'jobState', lc.customerApproval.jobState)}</dd>
             <dt>{t('estimate.approval.task')}</dt>
             <dd>{codeLabel(t, 'schedulingTaskState', lc.customerApproval.schedulingTaskState)}</dd>
+            {lc.customerApproval.receipt ? (
+              <>
+                <dt>{t('estimate.approval.receipt')}</dt>
+                <dd data-testid="approval-receipt-state">
+                  {lc.customerApproval.receipt.state === 'issued' && lc.customerApproval.receipt.issuedAt
+                    ? t('estimate.approval.receiptIssued', { time: new Date(lc.customerApproval.receipt.issuedAt) })
+                    : t('estimate.approval.receiptPreparing')}
+                </dd>
+              </>
+            ) : null}
+            {lc.customerApproval.receiptDeliveries ? (
+              <>
+                <dt>{t('estimate.approval.receiptMessages')}</dt>
+                <dd data-testid="approval-receipt-deliveries">
+                  {lc.customerApproval.receiptDeliveries.length ? (
+                    <ul>
+                      {lc.customerApproval.receiptDeliveries.map((d) => {
+                        const values = {
+                          channel: codeLabel(t, 'deliveryChannel', d.channel),
+                          state: codeLabel(t, 'deliveryState', d.state),
+                        }
+                        return (
+                          <li key={d.channel}>
+                            {d.errorCode
+                              ? t('estimate.approval.deliveryReason', {
+                                  ...values,
+                                  reason: codeLabel(t, 'deliveryError', d.errorCode),
+                                })
+                              : t('estimate.approval.delivery', values)}
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  ) : (
+                    t('estimate.approval.receiptNoMessages')
+                  )}
+                </dd>
+              </>
+            ) : null}
           </dl>
+          {lc.customerApproval.jobId ? (
+            <JobDeposit t={t} fetchImpl={fetchImpl} jobId={lc.customerApproval.jobId} />
+          ) : null}
         </div>
       ) : (
         <p>{t('estimate.approval.none')}</p>

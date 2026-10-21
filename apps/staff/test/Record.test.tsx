@@ -357,3 +357,40 @@ describe('the first-response clock and review holds (TSK-0043, HH-LEAD-04, HH-LE
     expect(within(holds).getByText('En revisión')).toBeTruthy()
   })
 })
+
+describe('request notes with visibility classes (TSK-0044, HH-STAFF-05)', () => {
+  it('[HH-STAFF-05] a restricted note arrives masked; a new note is internal unless a restricted class is chosen', async () => {
+    const write = vi.fn((url: string) =>
+      url.endsWith('/notes') ? json(201, { id: 'n-9', createdAt: 'x' }) : undefined,
+    )
+    const view = requestDetail()
+    view.notes = [
+      {
+        id: 'n-1',
+        visibility: 'restricted_incident',
+        masked: true,
+        body: null,
+        author: null,
+        createdAt: '2026-10-20T14:05:00.000Z',
+      },
+    ]
+    renderRecord(api(view, write))
+    const notes = await screen.findByRole('region', { name: 'Internal notes' })
+    expect(within(notes).getByText('Restricted note: not shown to your role.')).toBeTruthy()
+    const select = within(notes).getByLabelText('Visibility') as HTMLSelectElement
+    expect([...select.options].map((o) => o.value)).toEqual([
+      'internal_operational',
+      'restricted_incident',
+      'restricted_financial',
+    ])
+    fireEvent.change(within(notes).getByLabelText(/New internal note/), { target: { value: 'Synthetic note' } })
+    fireEvent.change(select, { target: { value: 'restricted_financial' } })
+    fireEvent.click(within(notes).getByRole('button', { name: 'Add internal note' }))
+    await waitFor(() => expect(write).toHaveBeenCalled())
+    const [, init] = write.mock.calls[0] as unknown as [string, RequestInit]
+    expect(JSON.parse(String(init.body))).toEqual({ body: 'Synthetic note', visibility: 'restricted_financial' })
+    expect(screen.getByRole('link', { name: 'Synthetic Customer' }).getAttribute('href')).toBe(
+      '/staff/customers/33333333-3333-4333-8333-333333333333',
+    )
+  })
+})
