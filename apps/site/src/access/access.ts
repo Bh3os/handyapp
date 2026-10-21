@@ -6,6 +6,8 @@
 // - Nothing is sent until the visitor presses Open; the token then travels only in POST bodies. The server answers
 //   where a code can go (masked), sends a code when asked, and opens the project only after the code is entered.
 // - After the exchange the token is forgotten: the server-side session (an HttpOnly cookie) opens the project.
+// - TSK-0035 (HH-ID-09): a link that opens nothing may ask for a new one (reissue, POST body only); every accepted
+//   request has one answer, so the page never says whether a request or contact exists.
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { problemNotice, type Channel, type Fetch, type Notice } from '../request/verification.js'
 
@@ -78,7 +80,10 @@ export type ProjectGlance = {
   services: string[]
   notSure: boolean
 }
-export type Result<T> = { ok: true; data: T } | { ok: false; status: number; notice: Notice }
+export type Result<T> =
+  | { ok: true; data: T }
+  /** `field`: the first field error's code, when the server named one (for example code_ended). */
+  | { ok: false; status: number; notice: Notice; field?: string }
 
 const isChannel = (c: unknown): c is Channel => c === 'email' || c === 'phone'
 
@@ -148,11 +153,37 @@ async function call<T>(
       ? { ok: true, data: parsed }
       : { ok: false, status: res.status, notice: { key: 'request.verify.error.failed' } }
   }
+  const problem = data as Parameters<typeof problemNotice>[1]
+  const field = problem?.error?.fieldErrors?.[0]?.code
   return {
     ok: false,
     status: res.status,
-    notice: problemNotice(res.status, data as Parameters<typeof problemNotice>[1], res.headers.get('retry-after')),
+    notice: problemNotice(res.status, problem, res.headers.get('retry-after')),
+    ...(typeof field === 'string' ? { field } : {}),
   }
+}
+
+/**
+ * The recovery form's refusals in the customer's words (TSK-0035, HH-ID-09). The server answers every well-formed
+ * request the same way, so these only ever concern the form itself, the network's limit or a sending that is not
+ * configured; none says whether a request or contact exists.
+ */
+export function recoveryNotice(r: { status: number; notice: Notice; field?: string }): Notice {
+  if (r.field === 'invalid_contact') return { key: 'access.recover.error.contact' }
+  if (r.field === 'required') return { key: 'access.recover.error.reference' }
+  if (r.status === 503) return { key: 'access.recover.notConfigured' }
+  return r.notice
+}
+
+/** The fields of the recovery form; the reference only when this tab holds no old link. */
+export type RecoveryForm = { contact: string; reference: string }
+
+/** Client-side checks before sending (the server checks again): which fields are empty. */
+export function recoveryProblems(form: RecoveryForm, withReference: boolean): ('contact' | 'reference')[] {
+  return [
+    ...(withReference && !form.reference.trim() ? (['reference'] as const) : []),
+    ...(!form.contact.trim() ? (['contact'] as const) : []),
+  ]
 }
 
 const BASE = '/api/v1/public/access'
@@ -171,6 +202,23 @@ export const accessApi = {
       const ref = (data as { project?: { reference?: unknown } } | null)?.project?.reference
       return typeof ref === 'string' ? { reference: ref } : null
     }),
+  /**
+   * Asks for a new link (TSK-0035): the old link this tab holds, or the reference, and the contact on the request.
+   * The token travels only in the POST body. Every accepted request has the same answer.
+   */
+  reissue: (f: Fetch, input: { token: string | null; reference: string; contact: string }) =>
+    call(
+      f,
+      `${BASE}/reissue`,
+      {
+        method: 'POST',
+        body: {
+          ...(input.token ? { token: input.token } : { reference: input.reference.trim() }),
+          contact: input.contact.trim(),
+        },
+      },
+      (data) => ((data as { accepted?: unknown } | null)?.accepted === true ? { accepted: true as const } : null),
+    ),
   /** The projects this browser's session opens; an empty list without a session. */
   session: async (f: Fetch): Promise<Result<string[]>> => {
     const r = await call(f, '/api/v1/customer/access/session', { method: 'GET' }, (data) => {

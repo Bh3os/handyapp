@@ -44,6 +44,40 @@ export async function call<T>(
 }
 
 /**
+ * Sends one file as raw bytes (an estimate document, TSK-0054) with its declared content type; the server checks the
+ * real content itself. Same envelope and CSRF token as `call`.
+ */
+export async function upload<T>(
+  fetchImpl: Fetch,
+  path: string,
+  file: Blob,
+  contentType: string,
+  headers: Record<string, string> = {},
+): Promise<ApiResponse<T>> {
+  let res: Response
+  try {
+    res = await fetchImpl(`/api/v1${path}`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'content-type': contentType, ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}), ...headers },
+      body: file,
+    })
+  } catch {
+    return { ok: false, status: 0, error: { code: 'UNAVAILABLE', fieldErrors: [] } }
+  }
+  const text = await res.text()
+  let json: unknown
+  try {
+    json = text ? (JSON.parse(text) as unknown) : null
+  } catch {
+    json = null
+  }
+  if (res.ok) return { ok: true, status: res.status, data: json as T }
+  const error = (json as { error?: ApiErrorBody } | null)?.error ?? { code: 'INTERNAL', fieldErrors: [] }
+  return { ok: false, status: res.status, error }
+}
+
+/**
  * A fresh Idempotency-Key for one write (HH-API-04). The caller keeps it for retries of the same submission, so a
  * double tap or a retried request is answered once.
  */

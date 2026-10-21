@@ -133,9 +133,10 @@ export async function buildApp({
         mfaKey: config.mfaKey,
         accessCodeKey: config.accessCodeKey,
         storage: api?.storage ?? null,
+        environment: config.env,
+        trustProxyHops: config.trustProxyHops,
         ...(api?.system ? { system: api.system } : {}),
         ...(api?.codeKey ? { codeKey: api.codeKey } : {}),
-        trustProxyHops: config.trustProxyHops,
       }),
     ...(resolveActor ? { resolveActor } : {}),
   })
@@ -272,8 +273,9 @@ export async function buildApp({
     }
     // The access link landing (TSK-0034; HH-ID-05, HH-ID-08): one static page. The link's token is in the fragment,
     // which a browser never sends, so this GET reads nothing and changes nothing: a link-preview fetch consumes no
-    // grant, starts no session and sees no project. Never cached or indexed, and no referrer leaves it (hosts.ts).
-    if (url === '/access' || url === '/access/') {
+    // grant, starts no session and sees no project. Never cached or indexed, and no referrer leaves it (hosts.ts);
+    // the built file's own name is the same private page (TSK-0035, HH-ID-08: never in a shared cache).
+    if (url === '/access' || url === '/access/' || url === '/access.html') {
       const file = fileIn(site, '/access.html')
       if (!file) return reply.callNotFound()
       return reply

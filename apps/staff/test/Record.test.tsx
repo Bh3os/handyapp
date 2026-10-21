@@ -178,6 +178,7 @@ describe('the four actions (TSK-0042, HH-LEAD-02, HH-LEAD-08, OWN-DEC-100)', () 
             assign: true,
             qualify: true,
             addNote: true,
+            recordConversation: true,
           },
         }),
       ),
@@ -227,6 +228,133 @@ describe('the requests list (TSK-0042, HH-LEAD-01)', () => {
     expect(fetchImpl).toHaveBeenCalledWith('/api/v1/staff/requests?state=open', expect.anything())
     fireEvent.click(within(item).getByRole('link', { name: 'Open request' }))
     expect(go).toHaveBeenCalledWith(`/requests/${REQUEST_ID}`)
+  })
+})
+
+describe('the first-response clock and review holds (TSK-0043, HH-LEAD-04, HH-LEAD-05, OWN-DEC-116)', () => {
+  const hold = {
+    id: '33333333-3333-4333-8333-333333333333',
+    kind: 'review',
+    category: 'licensed_trade',
+    note: 'Synthetic: old wiring near the wall.',
+    state: 'under_review' as const,
+    version: 2,
+    raisedBy: { id: 'staff-1', name: 'Synthetic Office' },
+    raisedAt: '2026-10-20T15:05:00.000Z',
+    reviewStartedBy: { id: 'staff-1', name: 'Synthetic Office' },
+    reviewStartedAt: '2026-10-20T15:10:00.000Z',
+    resolutionNote: null,
+    reviewer: null,
+    resolvedBy: null,
+    resolvedAt: null,
+    cancelReason: null,
+    canceledBy: null,
+    canceledAt: null,
+    actions: { startReview: false, resolve: true, cancel: true },
+  }
+
+  it('[HH-LEAD-05][OWN-DEC-115] shows the clock in business minutes, labelled an internal target, never a promise', async () => {
+    renderRecord(
+      api(
+        requestDetail({
+          responseClock: {
+            ...(requestDetail().responseClock as NonNullable<ReturnType<typeof requestDetail>['responseClock']>),
+            state: 'paused',
+            remainingMinutes: 40,
+            resumesAt: '2026-10-21T12:00:00.000Z',
+          },
+        }),
+      ),
+    )
+    const clock = await screen.findByTestId('response-clock')
+    expect(clock.textContent).toMatch(/40 minutes left; paused outside daily hours until Wed,? 8:00\sAM/)
+    expect(clock.textContent).toContain('Internal response target, not a customer promise')
+    expect(
+      screen.getByText(/stops only when a meaningful response is sent or a completed conversation is recorded/),
+    ).toBeTruthy()
+  })
+
+  it('[HH-LEAD-05][OWN-DEC-116] records a completed conversation with its outcome', async () => {
+    const write = vi.fn<Handler>(() =>
+      json(201, { id: 'c1', occurredAt: '2026-10-20T15:20:00.000Z', responseClock: null }),
+    )
+    renderRecord(api(requestDetail(), write))
+    const form = await screen.findByRole('form', { name: 'Record a completed conversation' })
+    fireEvent.change(within(form).getByLabelText('How you spoke with the customer'), { target: { value: 'phone' } })
+    fireEvent.change(within(form).getByLabelText(/Outcome \(staff only\)/), {
+      target: { value: 'Synthetic: photos to follow.' },
+    })
+    fireEvent.click(within(form).getByRole('button', { name: 'Record a completed conversation' }))
+    await waitFor(() => expect(write).toHaveBeenCalled())
+    const [url, init] = write.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe(`/api/v1/staff/requests/${REQUEST_ID}/conversations`)
+    expect(JSON.parse(String(init.body))).toEqual({ channel: 'phone', outcome: 'Synthetic: photos to follow.' })
+    expect(await screen.findByText('Conversation recorded.')).toBeTruthy()
+  })
+
+  it('[HH-LEAD-04] risk flags needing attention name the hazards, which the qualification sends', async () => {
+    const write = vi.fn<Handler>(() => json(200, { revision: 1, missingChecks: [], holdsOpened: ['h1'] }))
+    renderRecord(api(requestDetail(), write))
+    const group = await screen.findByRole('group', { name: 'Risk flags' })
+    expect(within(group).queryByText('What is the potential hazard about?')).toBeNull()
+    fireEvent.click(within(group).getByLabelText('Needs attention'))
+    fireEvent.click(within(group).getByLabelText('Hazardous material (asbestos, lead, mold)'))
+    fireEvent.change(within(group).getByLabelText('Note (optional)'), {
+      target: { value: 'Synthetic: peeling paint.' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save qualification' }))
+    await waitFor(() => expect(write).toHaveBeenCalled())
+    const body = JSON.parse(String((write.mock.calls[0] as [string, RequestInit])[1].body)) as {
+      checks: Record<string, unknown>
+    }
+    expect(body.checks['risk_flags']).toEqual({
+      outcome: 'attention',
+      note: 'Synthetic: peeling paint.',
+      hazards: ['hazardous_material'],
+    })
+    expect(body.checks['coverage']).toEqual({ outcome: 'not_checked' })
+  })
+
+  it('[HH-LEAD-04][T40][RULE-SAFETY-GATES] an open hold blocks the estimate path and the Owner resolves it with a note and the reviewer', async () => {
+    const write = vi.fn<Handler>(() =>
+      json(200, { holdId: hold.id, state: 'resolved', version: 3, requestId: REQUEST_ID }),
+    )
+    renderRecord(
+      api(
+        requestDetail({
+          holds: [hold],
+          estimateBlockedByHolds: true,
+          actions: { ...requestDetail().actions, prepareOnlineEstimate: false, arrangeEstimateVisit: false },
+        }),
+        write,
+      ),
+    )
+    const holds = await screen.findByRole('region', { name: 'Review holds' })
+    expect(within(holds).getByText('Licensed trade work (electrical, plumbing, HVAC, gas)')).toBeTruthy()
+    expect(within(holds).getByText('Under review')).toBeTruthy()
+    expect(within(holds).getByText('Estimating is blocked until every review hold is resolved.')).toBeTruthy()
+    const estimate = screen.getByRole('button', { name: 'Prepare Online Estimate' }) as HTMLButtonElement
+    expect(estimate.disabled).toBe(true)
+    expect(screen.getAllByText('Estimating is blocked until every review hold is resolved.').length).toBeGreaterThan(1)
+    fireEvent.click(within(holds).getByRole('button', { name: 'Resolve' }))
+    const form = within(holds).getByRole('form', { name: 'Resolve' })
+    fireEvent.change(within(form).getByLabelText(/How it was resolved/), { target: { value: 'Synthetic resolution.' } })
+    fireEvent.change(within(form).getByLabelText(/Who reviewed it/), { target: { value: 'Synthetic Owner' } })
+    fireEvent.click(within(form).getByRole('button', { name: 'Confirm: resolve the hold' }))
+    await waitFor(() => expect(write).toHaveBeenCalled())
+    const [url, init] = write.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe(`/api/v1/staff/holds/${hold.id}/actions/resolve`)
+    expect(JSON.parse(String(init.body))).toEqual({
+      resolutionNote: 'Synthetic resolution.',
+      reviewer: 'Synthetic Owner',
+    })
+    expect((init.headers as Record<string, string>)['if-match']).toBe('"2"')
+  })
+
+  it('[HH-LEAD-04][RULE-LANGUAGES] the holds read in Spanish for a Spanish-speaking staff member', async () => {
+    renderRecord(api(requestDetail({ holds: [hold], estimateBlockedByHolds: true })), 'es')
+    const holds = await screen.findByRole('region', { name: 'Retenciones para revisión' })
+    expect(within(holds).getByText('En revisión')).toBeTruthy()
   })
 })
 

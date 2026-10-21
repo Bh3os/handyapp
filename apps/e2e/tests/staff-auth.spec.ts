@@ -6,6 +6,9 @@ import { expect, test, type Page } from '@playwright/test'
 /** WCAG 2.0, 2.1 and 2.2 level A and AA rules (axe-core tags). */
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const databaseUrl = process.env['E2E_DATABASE_URL']
+// This spec's own synthetic network (RFC 5737): the staff sign-in, reset and link limits count per network, so the
+// suite must not share one address (playwright.config.ts trusts one forwarded hop on the main server).
+const NETWORK = { 'x-forwarded-for': '198.51.100.31' }
 const port = process.env['E2E_PORT'] ?? '4310'
 const cli = fileURLToPath(new URL('../../server/dist/cli/staff-access.js', import.meta.url))
 const OWNER = 'e2e-owner@example.test'
@@ -35,6 +38,8 @@ async function signIn(page: Page, email: string, password: string) {
   await page.getByLabel('Password', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Sign in' }).click()
 }
+
+test.use({ extraHTTPHeaders: NETWORK })
 
 test.describe('staff sign-in, invites and password reset (TSK-0014, HH-STAFF-01, HH-SEC-02)', () => {
   test.describe.configure({ mode: 'serial' })
@@ -81,7 +86,7 @@ test.describe('staff sign-in, invites and password reset (TSK-0014, HH-STAFF-01,
       headers: { 'idempotency-key': 'e2e-invite-worker-0001', 'x-csrf-token': csrf },
     })
     expect(res.status()).toBe(201)
-    const worker = await browser.newPage()
+    const worker = await browser.newPage({ extraHTTPHeaders: NETWORK })
     await setPassword(worker, staffAccess('password-link', WORKER), pw(3))
     await signIn(worker, WORKER, pw(3))
     await expect(worker.getByText('Signed in as E2E Worker', { exact: true })).toBeVisible()
@@ -94,7 +99,7 @@ test.describe('staff sign-in, invites and password reset (TSK-0014, HH-STAFF-01,
   }) => {
     await signIn(page, OWNER, pw(1))
     await expect(page.getByText('Signed in as E2E Owner', { exact: true })).toBeVisible()
-    const other = await browser.newPage()
+    const other = await browser.newPage({ extraHTTPHeaders: NETWORK })
     await setPassword(other, staffAccess('password-link', OWNER), pw(4))
     await page.reload()
     await expect(page.getByRole('heading', { level: 1, name: 'Staff sign-in' })).toBeVisible()
