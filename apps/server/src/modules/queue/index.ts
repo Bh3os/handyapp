@@ -5,6 +5,7 @@
 import type { StaffActor } from '@handyhub/policy'
 import { ApiError } from '../../api/errors.js'
 import { pageSchema } from '../../api/pagination.js'
+import { CLOCK_SCHEMA } from '../requests/clock-view.js'
 import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
 import { listQueue, visibleSections, visibleTypes, type QueueFilters } from './items.js'
 import { QUEUE_ACTIONS, QUEUE_BANDS, QUEUE_ITEM_TYPES, QUEUE_SECTIONS, type QueueSection } from './registry.js'
@@ -44,6 +45,7 @@ const ITEM_SCHEMA = {
     'openedAt',
     'dueAt',
     'clock',
+    'responseClock',
     'reason',
     'masked',
     'action',
@@ -72,6 +74,8 @@ const ITEM_SCHEMA = {
     openedAt: { type: 'string', format: 'date-time' },
     dueAt: { type: ['string', 'null'], format: 'date-time' },
     clock: { type: ['string', 'null'], enum: ['response_target', null] },
+    // TSK-0043: the first-response clock read now, in business minutes; labelled an internal target, never a promise.
+    responseClock: { anyOf: [{ type: 'null' }, CLOCK_SCHEMA] },
     reason: { type: 'string' },
     masked: { type: 'boolean' },
     action: { type: 'string', enum: [...QUEUE_ACTIONS] },

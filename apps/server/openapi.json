@@ -12550,6 +12550,663 @@
         }
       }
     },
+    "/api/v1/staff/holds/{holdId}/actions/cancel": {
+      "post": {
+        "operationId": "cancelHoldAsError",
+        "summary": "Cancel a hold entered in error",
+        "description": "The Owner (job_hold.set_ready, PROPOSED). Only for a hold entered in error, with the reason; the hold and its reason stay in the history.",
+        "tags": [
+          "requests"
+        ],
+        "parameters": [
+          {
+            "name": "holdId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "holdId",
+                    "state",
+                    "version",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "holdId": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job_hold.set_ready",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "hold.cancel_as_error",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/response-holds.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/holds/{holdId}/actions/resolve": {
+      "post": {
+        "operationId": "resolveHold",
+        "summary": "Resolve a hold under review",
+        "description": "The Owner (job_hold.set_ready, PROPOSED for review holds; OWN-DEC-137). Needs a note saying how it was resolved and who reviewed it (name and, where the hazard needs one, their qualification). No checkbox, timer, acknowledgment or AI output clears a hold. Nobody resolves a critical safety hold they raised.",
+        "tags": [
+          "requests"
+        ],
+        "parameters": [
+          {
+            "name": "holdId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "resolutionNote",
+                  "reviewer"
+                ],
+                "properties": {
+                  "resolutionNote": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "pattern": "\\S"
+                  },
+                  "reviewer": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "holdId",
+                    "state",
+                    "version",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "holdId": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job_hold.set_ready",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "hold.resolve",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/response-holds.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/holds/{holdId}/actions/start-review": {
+      "post": {
+        "operationId": "startHoldReview",
+        "summary": "Start reviewing a hold",
+        "description": "Staff with job_hold.set (PROPOSED). Moves an open review hold to \"under review\"; it still blocks the estimate path. If-Match is the hold version.",
+        "tags": [
+          "requests"
+        ],
+        "parameters": [
+          {
+            "name": "holdId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "holdId",
+                    "state",
+                    "version",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "holdId": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job_hold.set",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "hold.start_review",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/response-holds.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/invitations": {
       "post": {
         "operationId": "inviteStaff",
@@ -13358,6 +14015,7 @@
               "type": "string",
               "enum": [
                 "new_request",
+                "review_hold",
                 "safety_hold",
                 "visit_change_request",
                 "delivery_failed",
@@ -13457,6 +14115,7 @@
                           "openedAt",
                           "dueAt",
                           "clock",
+                          "responseClock",
                           "reason",
                           "masked",
                           "action",
@@ -13472,6 +14131,7 @@
                             "type": "string",
                             "enum": [
                               "new_request",
+                              "review_hold",
                               "safety_hold",
                               "visit_change_request",
                               "delivery_failed",
@@ -13561,6 +14221,115 @@
                               null
                             ]
                           },
+                          "responseClock": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "state",
+                                  "startedAt",
+                                  "targetMinutes",
+                                  "dueAt",
+                                  "remainingMinutes",
+                                  "overdueMinutes",
+                                  "resumesAt",
+                                  "timeZone",
+                                  "stoppedAt",
+                                  "stopKind",
+                                  "businessMinutes",
+                                  "withinTarget"
+                                ],
+                                "properties": {
+                                  "state": {
+                                    "type": "string",
+                                    "enum": [
+                                      "not_configured",
+                                      "running",
+                                      "paused",
+                                      "overdue",
+                                      "stopped"
+                                    ]
+                                  },
+                                  "startedAt": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  },
+                                  "targetMinutes": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ]
+                                  },
+                                  "dueAt": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "format": "date-time"
+                                  },
+                                  "remainingMinutes": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ]
+                                  },
+                                  "overdueMinutes": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ]
+                                  },
+                                  "resumesAt": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "format": "date-time"
+                                  },
+                                  "timeZone": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "stoppedAt": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "format": "date-time"
+                                  },
+                                  "stopKind": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "enum": [
+                                      "response_sent",
+                                      "conversation_recorded",
+                                      null
+                                    ]
+                                  },
+                                  "businessMinutes": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ]
+                                  },
+                                  "withinTarget": {
+                                    "type": [
+                                      "boolean",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
                           "reason": {
                             "type": "string"
                           },
@@ -13617,6 +14386,7 @@
                         "type": "string",
                         "enum": [
                           "new_request",
+                          "review_hold",
                           "safety_hold",
                           "visit_change_request",
                           "delivery_failed",
@@ -13751,6 +14521,7 @@
               "type": "string",
               "enum": [
                 "new_request",
+                "review_hold",
                 "safety_hold",
                 "visit_change_request",
                 "delivery_failed",
@@ -13850,6 +14621,7 @@
                           "openedAt",
                           "dueAt",
                           "clock",
+                          "responseClock",
                           "reason",
                           "masked",
                           "action",
@@ -13865,6 +14637,7 @@
                             "type": "string",
                             "enum": [
                               "new_request",
+                              "review_hold",
                               "safety_hold",
                               "visit_change_request",
                               "delivery_failed",
@@ -13954,6 +14727,115 @@
                               null
                             ]
                           },
+                          "responseClock": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "state",
+                                  "startedAt",
+                                  "targetMinutes",
+                                  "dueAt",
+                                  "remainingMinutes",
+                                  "overdueMinutes",
+                                  "resumesAt",
+                                  "timeZone",
+                                  "stoppedAt",
+                                  "stopKind",
+                                  "businessMinutes",
+                                  "withinTarget"
+                                ],
+                                "properties": {
+                                  "state": {
+                                    "type": "string",
+                                    "enum": [
+                                      "not_configured",
+                                      "running",
+                                      "paused",
+                                      "overdue",
+                                      "stopped"
+                                    ]
+                                  },
+                                  "startedAt": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  },
+                                  "targetMinutes": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ]
+                                  },
+                                  "dueAt": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "format": "date-time"
+                                  },
+                                  "remainingMinutes": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ]
+                                  },
+                                  "overdueMinutes": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ]
+                                  },
+                                  "resumesAt": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "format": "date-time"
+                                  },
+                                  "timeZone": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "stoppedAt": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "format": "date-time"
+                                  },
+                                  "stopKind": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "enum": [
+                                      "response_sent",
+                                      "conversation_recorded",
+                                      null
+                                    ]
+                                  },
+                                  "businessMinutes": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ]
+                                  },
+                                  "withinTarget": {
+                                    "type": [
+                                      "boolean",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
                           "reason": {
                             "type": "string"
                           },
@@ -14010,6 +14892,7 @@
                         "type": "string",
                         "enum": [
                           "new_request",
+                          "review_hold",
                           "safety_hold",
                           "visit_change_request",
                           "delivery_failed",
@@ -14124,6 +15007,195 @@
           "pagination": true,
           "cache": "private, no-store",
           "test": "test/integration/queue.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/reports/first-response": {
+      "get": {
+        "operationId": "getFirstResponseReport",
+        "summary": "Customer response: time to first meaningful response",
+        "description": "The Owner (dashboard.view). For requests received in [from, to): how many were received, answered, awaiting and within the internal one-hour target, the share within target (basis points of requests whose outcome is known) and the average and median business minutes to the first meaningful response (OWN-DEC-125). Figures with nothing to measure are null (unavailable), never zero; requests whose clock was NOT CONFIGURED are counted apart. The Owner Dashboard (TSK-0096) reads it.",
+        "tags": [
+          "requests"
+        ],
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "from",
+                    "to",
+                    "received",
+                    "notConfigured",
+                    "answered",
+                    "awaiting",
+                    "withinTarget",
+                    "withinTargetShareBps",
+                    "averageBusinessMinutes",
+                    "medianBusinessMinutes",
+                    "generatedAt"
+                  ],
+                  "properties": {
+                    "from": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "to": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "received": {
+                      "type": "integer"
+                    },
+                    "notConfigured": {
+                      "type": "integer"
+                    },
+                    "answered": {
+                      "type": "integer"
+                    },
+                    "awaiting": {
+                      "type": "integer"
+                    },
+                    "withinTarget": {
+                      "type": "integer"
+                    },
+                    "withinTargetShareBps": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "averageBusinessMinutes": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "medianBusinessMinutes": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "generatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "dashboard.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/response-holds.test.ts"
         }
       }
     },
@@ -14450,6 +15522,10 @@
                     "workPackages",
                     "nextStep",
                     "followUpDueAt",
+                    "responseClock",
+                    "conversations",
+                    "holds",
+                    "estimateBlockedByHolds",
                     "actions",
                     "serviceCatalog"
                   ],
@@ -14938,6 +16014,24 @@
                                         "null"
                                       ],
                                       "maxLength": 1000
+                                    },
+                                    "hazards": {
+                                      "type": [
+                                        "array",
+                                        "null"
+                                      ],
+                                      "uniqueItems": true,
+                                      "maxItems": 5,
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "hazardous_material",
+                                          "licensed_trade",
+                                          "structural",
+                                          "permit_licensing",
+                                          "other"
+                                        ]
+                                      }
                                     }
                                   }
                                 },
@@ -14962,6 +16056,24 @@
                                         "null"
                                       ],
                                       "maxLength": 1000
+                                    },
+                                    "hazards": {
+                                      "type": [
+                                        "array",
+                                        "null"
+                                      ],
+                                      "uniqueItems": true,
+                                      "maxItems": 5,
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "hazardous_material",
+                                          "licensed_trade",
+                                          "structural",
+                                          "permit_licensing",
+                                          "other"
+                                        ]
+                                      }
                                     }
                                   }
                                 },
@@ -14986,6 +16098,24 @@
                                         "null"
                                       ],
                                       "maxLength": 1000
+                                    },
+                                    "hazards": {
+                                      "type": [
+                                        "array",
+                                        "null"
+                                      ],
+                                      "uniqueItems": true,
+                                      "maxItems": 5,
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "hazardous_material",
+                                          "licensed_trade",
+                                          "structural",
+                                          "permit_licensing",
+                                          "other"
+                                        ]
+                                      }
                                     }
                                   }
                                 },
@@ -15010,6 +16140,24 @@
                                         "null"
                                       ],
                                       "maxLength": 1000
+                                    },
+                                    "hazards": {
+                                      "type": [
+                                        "array",
+                                        "null"
+                                      ],
+                                      "uniqueItems": true,
+                                      "maxItems": 5,
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "hazardous_material",
+                                          "licensed_trade",
+                                          "structural",
+                                          "permit_licensing",
+                                          "other"
+                                        ]
+                                      }
                                     }
                                   }
                                 },
@@ -15034,6 +16182,24 @@
                                         "null"
                                       ],
                                       "maxLength": 1000
+                                    },
+                                    "hazards": {
+                                      "type": [
+                                        "array",
+                                        "null"
+                                      ],
+                                      "uniqueItems": true,
+                                      "maxItems": 5,
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "hazardous_material",
+                                          "licensed_trade",
+                                          "structural",
+                                          "permit_licensing",
+                                          "other"
+                                        ]
+                                      }
                                     }
                                   }
                                 },
@@ -15058,6 +16224,24 @@
                                         "null"
                                       ],
                                       "maxLength": 1000
+                                    },
+                                    "hazards": {
+                                      "type": [
+                                        "array",
+                                        "null"
+                                      ],
+                                      "uniqueItems": true,
+                                      "maxItems": 5,
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "hazardous_material",
+                                          "licensed_trade",
+                                          "structural",
+                                          "permit_licensing",
+                                          "other"
+                                        ]
+                                      }
                                     }
                                   }
                                 },
@@ -15082,6 +16266,24 @@
                                         "null"
                                       ],
                                       "maxLength": 1000
+                                    },
+                                    "hazards": {
+                                      "type": [
+                                        "array",
+                                        "null"
+                                      ],
+                                      "uniqueItems": true,
+                                      "maxItems": 5,
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "hazardous_material",
+                                          "licensed_trade",
+                                          "structural",
+                                          "permit_licensing",
+                                          "other"
+                                        ]
+                                      }
                                     }
                                   }
                                 }
@@ -15324,6 +16526,388 @@
                         "null"
                       ]
                     },
+                    "responseClock": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state",
+                            "startedAt",
+                            "targetMinutes",
+                            "dueAt",
+                            "remainingMinutes",
+                            "overdueMinutes",
+                            "resumesAt",
+                            "timeZone",
+                            "stoppedAt",
+                            "stopKind",
+                            "businessMinutes",
+                            "withinTarget"
+                          ],
+                          "properties": {
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "not_configured",
+                                "running",
+                                "paused",
+                                "overdue",
+                                "stopped"
+                              ]
+                            },
+                            "startedAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "targetMinutes": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "dueAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            },
+                            "remainingMinutes": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "overdueMinutes": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "resumesAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            },
+                            "timeZone": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "stoppedAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            },
+                            "stopKind": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "response_sent",
+                                "conversation_recorded",
+                                null
+                              ]
+                            },
+                            "businessMinutes": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "withinTarget": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "conversations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "channel",
+                          "outcome",
+                          "occurredAt",
+                          "recordedBy",
+                          "recordedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "phone",
+                              "in_person"
+                            ]
+                          },
+                          "outcome": {
+                            "type": "string"
+                          },
+                          "occurredAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "recordedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "recordedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "holds": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "kind",
+                          "category",
+                          "note",
+                          "state",
+                          "version",
+                          "raisedBy",
+                          "raisedAt",
+                          "reviewStartedBy",
+                          "reviewStartedAt",
+                          "resolutionNote",
+                          "reviewer",
+                          "resolvedBy",
+                          "resolvedAt",
+                          "cancelReason",
+                          "canceledBy",
+                          "canceledAt",
+                          "actions"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "category": {
+                            "type": "string"
+                          },
+                          "note": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "open",
+                              "under_review",
+                              "resolved",
+                              "canceled_as_error"
+                            ]
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "raisedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "raisedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "reviewStartedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "reviewStartedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "resolutionNote": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "reviewer": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "resolvedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "resolvedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "cancelReason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "canceledBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "canceledAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "actions": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "startReview",
+                              "resolve",
+                              "cancel"
+                            ],
+                            "properties": {
+                              "startReview": {
+                                "type": "boolean"
+                              },
+                              "resolve": {
+                                "type": "boolean"
+                              },
+                              "cancel": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "estimateBlockedByHolds": {
+                      "type": "boolean"
+                    },
                     "actions": {
                       "type": "object",
                       "additionalProperties": false,
@@ -15334,7 +16918,8 @@
                         "notAFit",
                         "assign",
                         "qualify",
-                        "addNote"
+                        "addNote",
+                        "recordConversation"
                       ],
                       "properties": {
                         "askQuestion": {
@@ -15356,6 +16941,9 @@
                           "type": "boolean"
                         },
                         "addNote": {
+                          "type": "boolean"
+                        },
+                        "recordConversation": {
                           "type": "boolean"
                         }
                       }
@@ -15713,7 +17301,7 @@
       "post": {
         "operationId": "arrangeEstimateVisit",
         "summary": "Arrange Estimate Visit",
-        "description": "Staff with request.choose_estimate_approach. \"Site visit needed\" with a short customer-facing explanation (OWN-DEC-99): needs the qualification recorded; creates one work package per listed service and moves the request to \"needs site visit\". Nothing is booked and no message is sent: the visit windows are offered with TSK-0063 (request.site_visit_required is recorded for it).",
+        "description": "Staff with request.choose_estimate_approach. \"Site visit needed\" with a short customer-facing explanation (OWN-DEC-99): needs the qualification recorded; creates one work package per listed service and moves the request to \"needs site visit\". Nothing is booked and no message is sent: the visit windows are offered with TSK-0063 (request.site_visit_required is recorded for it). Refused while a review hold is open or under review (REVIEW_HOLD_OPEN).",
         "tags": [
           "requests"
         ],
@@ -16224,7 +17812,7 @@
       "post": {
         "operationId": "prepareOnlineEstimate",
         "summary": "Prepare Online Estimate",
-        "description": "Staff with request.choose_estimate_approach. \"Estimate online\": needs the qualification recorded; creates one work package per listed service of the one project and moves the request to \"ready for estimate\". The estimate itself is written with TSK-0052/TSK-0053; no message is sent.",
+        "description": "Staff with request.choose_estimate_approach. \"Estimate online\": needs the qualification recorded; creates one work package per listed service of the one project and moves the request to \"ready for estimate\". The estimate itself is written with TSK-0052/TSK-0053; no message is sent. Refused while a review hold is open or under review (REVIEW_HOLD_OPEN).",
         "tags": [
           "requests"
         ],
@@ -16466,6 +18054,322 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/staff-requests.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/requests/{requestId}/conversations": {
+      "post": {
+        "operationId": "recordRequestConversation",
+        "summary": "Record a completed customer conversation",
+        "description": "Staff with request.record_conversation (PROPOSED: the request-handling row). A completed conversation with the customer (a logged phone call or a conversation in person) with its outcome, when it happened (default now; never before the request or in the future). Staff only. It is a meaningful response: the first one stops the first-response clock at the time it happened (OWN-DEC-116). Never edited or deleted.",
+        "tags": [
+          "requests"
+        ],
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "channel",
+                  "outcome"
+                ],
+                "properties": {
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "phone",
+                      "in_person"
+                    ]
+                  },
+                  "outcome": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  },
+                  "occurredAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "occurredAt",
+                    "responseClock"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "occurredAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "responseClock": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state",
+                            "startedAt",
+                            "targetMinutes",
+                            "dueAt",
+                            "remainingMinutes",
+                            "overdueMinutes",
+                            "resumesAt",
+                            "timeZone",
+                            "stoppedAt",
+                            "stopKind",
+                            "businessMinutes",
+                            "withinTarget"
+                          ],
+                          "properties": {
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "not_configured",
+                                "running",
+                                "paused",
+                                "overdue",
+                                "stopped"
+                              ]
+                            },
+                            "startedAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "targetMinutes": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "dueAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            },
+                            "remainingMinutes": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "overdueMinutes": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "resumesAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            },
+                            "timeZone": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "stoppedAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            },
+                            "stopKind": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "response_sent",
+                                "conversation_recorded",
+                                null
+                              ]
+                            },
+                            "businessMinutes": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "withinTarget": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "request.record_conversation",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "request.record_conversation",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/response-holds.test.ts"
         }
       }
     },
@@ -16837,7 +18741,7 @@
       "put": {
         "operationId": "qualifyRequest",
         "summary": "Record the qualification of a request",
-        "description": "Staff with request.qualify (PROPOSED: the request-handling row). One outcome per check of HH-LEAD-02 (coverage, service fit, missing essential facts, urgency, site-visit need, staff and equipment, risk flags) with an optional note; each save is a new revision, and If-Match is the current revision (0 before the first). Classification is by staff; AI stays off. Never changes the request state or stops the clock.",
+        "description": "Staff with request.qualify (PROPOSED: the request-handling row). One outcome per check of HH-LEAD-02 (coverage, service fit, missing essential facts, urgency, site-visit need, staff and equipment, risk flags) with an optional note; each save is a new revision, and If-Match is the current revision (0 before the first). Classification is by staff; AI stays off. Never changes the request state or stops the clock. TSK-0043: risk flags needing attention name the potential hazards found (at least one, with a note); each newly named hazard opens a review hold in the same transaction. A later revision never clears a hold.",
         "tags": [
           "requests"
         ],
@@ -16915,6 +18819,24 @@
                               "null"
                             ],
                             "maxLength": 1000
+                          },
+                          "hazards": {
+                            "type": [
+                              "array",
+                              "null"
+                            ],
+                            "uniqueItems": true,
+                            "maxItems": 5,
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "hazardous_material",
+                                "licensed_trade",
+                                "structural",
+                                "permit_licensing",
+                                "other"
+                              ]
+                            }
                           }
                         }
                       },
@@ -16939,6 +18861,24 @@
                               "null"
                             ],
                             "maxLength": 1000
+                          },
+                          "hazards": {
+                            "type": [
+                              "array",
+                              "null"
+                            ],
+                            "uniqueItems": true,
+                            "maxItems": 5,
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "hazardous_material",
+                                "licensed_trade",
+                                "structural",
+                                "permit_licensing",
+                                "other"
+                              ]
+                            }
                           }
                         }
                       },
@@ -16963,6 +18903,24 @@
                               "null"
                             ],
                             "maxLength": 1000
+                          },
+                          "hazards": {
+                            "type": [
+                              "array",
+                              "null"
+                            ],
+                            "uniqueItems": true,
+                            "maxItems": 5,
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "hazardous_material",
+                                "licensed_trade",
+                                "structural",
+                                "permit_licensing",
+                                "other"
+                              ]
+                            }
                           }
                         }
                       },
@@ -16987,6 +18945,24 @@
                               "null"
                             ],
                             "maxLength": 1000
+                          },
+                          "hazards": {
+                            "type": [
+                              "array",
+                              "null"
+                            ],
+                            "uniqueItems": true,
+                            "maxItems": 5,
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "hazardous_material",
+                                "licensed_trade",
+                                "structural",
+                                "permit_licensing",
+                                "other"
+                              ]
+                            }
                           }
                         }
                       },
@@ -17011,6 +18987,24 @@
                               "null"
                             ],
                             "maxLength": 1000
+                          },
+                          "hazards": {
+                            "type": [
+                              "array",
+                              "null"
+                            ],
+                            "uniqueItems": true,
+                            "maxItems": 5,
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "hazardous_material",
+                                "licensed_trade",
+                                "structural",
+                                "permit_licensing",
+                                "other"
+                              ]
+                            }
                           }
                         }
                       },
@@ -17035,6 +19029,24 @@
                               "null"
                             ],
                             "maxLength": 1000
+                          },
+                          "hazards": {
+                            "type": [
+                              "array",
+                              "null"
+                            ],
+                            "uniqueItems": true,
+                            "maxItems": 5,
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "hazardous_material",
+                                "licensed_trade",
+                                "structural",
+                                "permit_licensing",
+                                "other"
+                              ]
+                            }
                           }
                         }
                       },
@@ -17059,6 +19071,24 @@
                               "null"
                             ],
                             "maxLength": 1000
+                          },
+                          "hazards": {
+                            "type": [
+                              "array",
+                              "null"
+                            ],
+                            "uniqueItems": true,
+                            "maxItems": 5,
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "hazardous_material",
+                                "licensed_trade",
+                                "structural",
+                                "permit_licensing",
+                                "other"
+                              ]
+                            }
                           }
                         }
                       }
@@ -17079,13 +19109,20 @@
                   "additionalProperties": false,
                   "required": [
                     "revision",
-                    "missingChecks"
+                    "missingChecks",
+                    "holdsOpened"
                   ],
                   "properties": {
                     "revision": {
                       "type": "integer"
                     },
                     "missingChecks": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "holdsOpened": {
                       "type": "array",
                       "items": {
                         "type": "string"

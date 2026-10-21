@@ -9,6 +9,7 @@ import { labelKey, type StaffKey, type StaffLocale } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge, type StatusTone } from '@handyhub/ui'
 import { useCallback, useEffect, useRef, useState, type FormEvent, type MouseEvent } from 'react'
 import { call, type Fetch } from './api'
+import { clockText, clockTime, type ResponseClock } from './ResponseClock'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
 
@@ -24,6 +25,8 @@ export type QueueItem = {
   openedAt: string
   dueAt: string | null
   clock: 'response_target' | null
+  /** The first-response clock read by the server in business minutes (TSK-0043); null for other items. */
+  responseClock?: ResponseClock | null
   reason: string
   masked: boolean
   action: string
@@ -354,7 +357,7 @@ function QueueList({ t, locale, fetchImpl, go, href, staffUserId, now = () => ne
       ) : (
         <ol className="staff-queue__items">
           {items.map((item) => (
-            <QueueRow key={item.id} t={t} item={item} now={now()} go={go} href={href} />
+            <QueueRow key={item.id} t={t} item={item} now={now()} go={go} href={href} locale={locale} />
           ))}
         </ol>
       )}
@@ -373,12 +376,14 @@ function QueueRow({
   now,
   go,
   href,
+  locale,
 }: {
   t: T
   item: QueueItem
   now: Date
   go: (to: string) => void
   href: (to: string) => string
+  locale: StaffLocale
 }) {
   const type = label(t, labelKey('queueItemType', item.type))
   const reason = label(t, labelKey('queueReason', item.reason))
@@ -417,7 +422,13 @@ function QueueRow({
             ? t('queue.assignedTo', { name: item.assignee.name ?? t('queue.unnamed') })
             : t('queue.unassigned')}
         </li>
-        {due ? (
+        {item.responseClock ? (
+          // The first-response clock: business minutes, paused outside the daily hours (HH-LEAD-05, OWN-DEC-115).
+          <li className={item.responseClock.state === 'overdue' ? 'staff-queue__overdue' : undefined}>
+            {clockText(t, item.responseClock, (iso) => clockTime(locale, item.responseClock as ResponseClock, iso))} ·{' '}
+            {t('queue.responseTarget')}
+          </li>
+        ) : due ? (
           <li className={due.getTime() <= now.getTime() ? 'staff-queue__overdue' : undefined}>
             {due.getTime() <= now.getTime()
               ? t('queue.overdue', { time: duration(t, now.getTime() - due.getTime()) })

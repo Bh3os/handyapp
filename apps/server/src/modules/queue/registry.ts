@@ -60,10 +60,23 @@ export const QUEUE_ITEM_TYPES = [
     subject: 'request',
     band: 'time_sensitive',
     view: 'request.view',
-    reasons: ['new_request', 'new_request_flagged'],
+    // TSK-0043: past "received" the item stays until a meaningful response stops the clock (OWN-DEC-116).
+    reasons: ['new_request', 'new_request_flagged', 'awaiting_first_response'],
     action: 'review_request',
     screen: 'requests',
     clock: 'response_target',
+  },
+  // A potential hazard or restricted scope found at intake (HH-LEAD-04, TSK-0043): one item per request while any of
+  // its review holds is open or under review. A safety issue, so it is in the safety band (OWN-DEC-115).
+  {
+    id: 'review_hold',
+    section: 'queue',
+    subject: 'request',
+    band: 'safety',
+    view: 'request.view',
+    reasons: ['review_hold'],
+    action: 'review_hold',
+    screen: 'requests',
   },
   {
     id: 'safety_hold',
