@@ -4,6 +4,12 @@
 // fields without losing input, and the browser draft with Resume and Clear Draft. Every label comes from the
 // customer catalog (English only, RULE-LANGUAGES). The step contents are deliberately plain; TSK-0027..0030 refine
 // each step (category cards, service questions, photos, SMS opt-in and consent, the final review).
+// TSK-0030 (HH-INT-19, HH-INT-10, OWN-DEC-93): the review summarizes every section with an Edit action that opens its
+// step and keeps every other answer (Return to review comes straight back); the privacy policy is linked with the
+// exact version sent; "Send Estimate Request" uses the draft's idempotency key and sends once while it is pending.
+// A send whose outcome is not known is kept for the tab (send.ts): after a reload and Resume the same body goes again,
+// so the customer gets the request and reference already saved; a key that already created a request returns that
+// reference; and nothing is sent while a photo is still uploading (HH-INT-10, HH-INT-07, T11).
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { Button, Dialog, Field, StateView } from '@handyhub/ui'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
@@ -11,8 +17,26 @@ import { checkZip, takeRememberedZip, type CoverageCheck } from '../coverage/cov
 import { zip5 } from '@handyhub/domain/coverage'
 import { legalDocument, PRIVACY_NOTICE, SMS_DISCLOSURE } from '@handyhub/domain/legal'
 import { contactDetails, parseSiteFacts, type ContactDetail } from '../site/facts.js'
-import { DraftStore } from './draft.js'
-import { PhotoUploader, usePhotos, type PhotoLimits } from './photos.js'
+import { DraftStore, newSend, type DraftSend } from './draft.js'
+import { PhotoReviewList, PhotoUploader, usePhotos, type PhotoLimits } from './photos.js'
+import {
+  keepsBody,
+  resumedFrom,
+  SendStore,
+  sendOutcome,
+  type PhotoSummary,
+  type SendData,
+  type SendReply,
+} from './send.js'
+import {
+  CHANNEL_LABEL,
+  ESTIMATE_LABEL,
+  PROPERTY_LABEL,
+  reviewSections,
+  WINDOW_LABEL,
+  type ReviewRow,
+} from './review.js'
+import { preparedOnText } from '../site/legal.js'
 import {
   CONTACT_CHANNELS,
   EMPTY_VALUES,
@@ -28,7 +52,6 @@ import {
   PROPERTY_TYPES,
   STEPS,
   stepOf,
-  TIME_WINDOWS,
   toBody,
   validate,
   type FormMeta,
@@ -57,32 +80,6 @@ const CATEGORY_LABEL: Record<string, CustomerKey> = {
   painting: 'request.category.painting',
   cleaning: 'request.category.cleaning',
 }
-const PROPERTY_LABEL: Record<(typeof PROPERTY_TYPES)[number], CustomerKey> = {
-  house: 'request.property.house',
-  apartment_condo: 'request.property.apartment_condo',
-  townhouse: 'request.property.townhouse',
-  rental_short_term: 'request.property.rental_short_term',
-}
-const WINDOW_LABEL: Record<(typeof TIME_WINDOWS)[number], CustomerKey> = {
-  mornings: 'request.timing.mornings',
-  afternoons: 'request.timing.afternoons',
-  evenings: 'request.timing.evenings',
-  weekends: 'request.timing.weekends',
-  any_time: 'request.timing.any_time',
-}
-const CHANNEL_LABEL: Record<(typeof CONTACT_CHANNELS)[number], CustomerKey> = {
-  email: 'request.contact.email_channel',
-  call: 'request.contact.call',
-  text: 'request.contact.text',
-}
-const ESTIMATE_LABEL: Record<(typeof ESTIMATE_PREFERENCES)[number], CustomerKey> = {
-  online: 'request.estimate.online',
-  site_visit: 'request.estimate.site_visit',
-  let_handyhub_decide: 'request.estimate.let_handyhub_decide',
-}
-const label = <T extends string>(map: Record<T, CustomerKey>, code: string): string =>
-  Object.hasOwn(map, code) ? t(map[code as T]) : ''
-
 /** PROPOSED: the form version. */
 const FORM_VERSION = 'wizard-1'
 /** The privacy policy version this page presents, saved with the request (TSK-0024; HH-PRIV-04, OWN-DEC-72). */
@@ -152,14 +149,15 @@ const NO_SETTINGS: Settings = {
 }
 /** Day windows that, with Weekends, are explained as weekend times (HH-INT-02). */
 const DAY_WINDOW_CODES: readonly string[] = ['mornings', 'afternoons', 'evenings']
-type PhotoSummary = { received: number; processing: number; failed: number }
 /** The support contact of the SMS disclosure, from configuration (GET /api/v1/public/site); null while unknown. */
 type SupportContact = { phone: ContactDetail; email: ContactDetail } | null
-type Banner = { kind: 'error'; message: string } | { kind: 'success'; message: string } | null
+type Banner = { kind: 'error'; message: string; retry: boolean } | { kind: 'success'; message: string } | null
+/** Where focus goes once its target is on the page: the error summary, or the step or receipt heading (HH-INT-09). */
+type FocusRequest = { to: 'summary' | 'heading' }
 
-function browserStorage(): Storage | null {
+function usable(read: () => Storage): Storage | null {
   try {
-    const s = window.localStorage
+    const s = read()
     const probe = '__hh_probe__'
     s.setItem(probe, '1')
     s.removeItem(probe)
@@ -169,9 +167,13 @@ function browserStorage(): Storage | null {
   }
 }
 
-async function hash(text: string): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
-  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('')
+function browserStorage(): Storage | null {
+  return usable(() => window.localStorage)
+}
+
+/** This tab's storage: a send's exact body lives only as long as the tab, never with the 7-day draft (TSK-0030). */
+function tabStorage(): Storage | null {
+  return usable(() => window.sessionStorage)
 }
 
 export default function RequestWizard() {
@@ -193,12 +195,27 @@ export default function RequestWizard() {
   // The ZIP checked before arriving (HH-INT-16) and the coverage of the ZIP in the form, rechecked as it changes.
   const checkedZip = useRef<string | null>(null)
   const [coverage, setCoverage] = useState<CoverageCheck | null>(null)
-  const started = useRef(Date.now())
-  const attempt = useRef<{ key: string; bodyHash: string } | null>(null)
+  // The draft's send: one idempotency key per draft, kept with the draft until the request is saved (TSK-0030).
+  const draftSend = useRef<DraftSend>(newSend())
+  // Set at the first press, before anything else runs, so a double click sends one request (HH-INT-10, T11).
+  const inFlight = useRef(false)
+  // The body of a send whose outcome is not known, kept for this tab under the draft's key (send.ts).
+  const sends = useMemo(() => new SendStore(tabStorage()), [])
+  // After a Resume of such a send: the exact body it posted and the values shown with it. The first send posts that body
+  // unchanged while nothing has changed since, so the server returns the request it may already have saved.
+  const resumed = useRef<{ key: string; body: string; values: FormValues } | null>(null)
+  // The resumed send carries photos this page cannot show (they stay in its photo draft).
+  const [earlierPhotos, setEarlierPhotos] = useState(false)
+  // The draft's key had already created a request, sent with other details: the receipt says so.
+  const [alreadyReceived, setAlreadyReceived] = useState(false)
+  // An Edit from the review: the step offers Return to review, which keeps every other answer (HH-INT-19).
+  const [fromReview, setFromReview] = useState(false)
   const summaryRef = useRef<HTMLDivElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
-  const focusSummary = useRef(false)
-  const focusHeading = useRef(false)
+  // State, not a flag: it is set in the same update as the problems or the step, so it commits together with the element
+  // it names. Each request is a new object, so asking for the same target again still moves focus.
+  const [focusTo, setFocusTo] = useState<FocusRequest | null>(null)
+  const requestFocus = (to: FocusRequest['to']) => setFocusTo({ to })
 
   const loaded = phase !== 'loading'
   const store = useMemo(
@@ -247,8 +264,13 @@ export default function RequestWizard() {
     if (phase !== 'form' || !store) return
     // Nothing entered yet: nothing to keep.
     if (step === 'services' && JSON.stringify(values) === JSON.stringify(EMPTY_VALUES)) store.clear()
-    else store.save(values, step)
+    else store.save(values, step, Date.now(), draftSend.current)
   }, [phase, store, values, step])
+
+  // Any change after a Resume makes a new body: the first send then posts what the page shows now (HH-INT-10).
+  useEffect(() => {
+    if (resumed.current && resumed.current.values !== values) resumed.current = null
+  }, [values])
 
   // Correcting the ZIP rechecks coverage without touching any other answer (HH-INT-16); it never blocks the form.
   useEffect(() => {
@@ -277,18 +299,19 @@ export default function RequestWizard() {
     )
   }, [phase, settings.windows])
 
+  // Focus moves in the commit that shows its target (HH-INT-09). An effect that ran after every commit and cleared a ref
+  // flag lost the summary's focus: the effects of an unrelated update committed just before a press (the ZIP coverage
+  // result) run only when React starts the press's update, so they took the flag while the summary was not yet there.
   useEffect(() => {
-    if (focusSummary.current && summaryRef.current) summaryRef.current.focus()
-    else if (focusHeading.current && headingRef.current) headingRef.current.focus()
-    focusSummary.current = false
-    focusHeading.current = false
-  })
+    if (focusTo?.to === 'summary') summaryRef.current?.focus()
+    else if (focusTo?.to === 'heading') headingRef.current?.focus()
+  }, [focusTo])
 
   const meta: FormMeta = {
     formVersion: FORM_VERSION,
     privacyNoticeVersion: PRIVACY_NOTICE_VERSION,
     smsDisclosureVersion: SMS_DISCLOSURE_VERSION,
-    startedAt: started.current,
+    startedAt: draftSend.current.startedAt,
     ...(website ? { website } : {}),
   }
   const opts = {
@@ -304,71 +327,109 @@ export default function RequestWizard() {
   }
   const show = (found: Problem[], to?: StepId) => {
     setProblems(found)
+    // A problem found when sending opens its step, which then offers Return to review (HH-INT-19).
+    if (to && step === 'review' && to !== 'review') setFromReview(true)
     if (to) setStep(to)
-    focusSummary.current = found.length > 0
+    if (found.length) requestFocus('summary')
   }
   const goTo = (to: StepId) => {
     setProblems([])
     setBanner(null)
     setStep(to)
-    focusHeading.current = true
+    if (to === 'review') setFromReview(false)
+    requestFocus('heading')
+  }
+  const edit = (to: StepId) => {
+    goTo(to)
+    setFromReview(true)
   }
   const index = STEPS.indexOf(step)
 
-  const next = () => {
+  const next = (to: StepId = STEPS[index + 1] ?? 'review') => {
     const mine = validate(values, meta, opts).filter((p) => stepOf(p.field) === step)
     if (mine.length) return show(mine)
-    goTo(STEPS[index + 1] ?? 'review')
+    goTo(to)
   }
 
   const send = async () => {
-    const all = validate(values, meta, opts)
-    if (all.length) return show(all, stepOf(all[0]?.field ?? '') as StepId)
-    // The server binds the draft's stored photos to the request; failed photos were never stored (TSK-0031).
-    const stored = photos.items.some((i) => i.id)
-    const body = {
-      ...toBody(values, meta, services),
-      ...(stored && photos.capability ? { photoDraft: photos.capability } : {}),
+    // One send at a time: a second press while the first is pending does nothing (the button is also pending).
+    if (inFlight.current) return
+    // A photo still uploading would be left out without a word, and the send would close its photo draft: nothing is
+    // sent until it finishes or is removed; the review says so beside the photos (HH-INT-07).
+    if (photos.items.some((i) => i.state === 'uploading')) return
+    // The draft's key for every send of this draft: a double tap, a retry or a send after a reload returns the request
+    // already saved; changed details under a key already used are a conflict naming that request (HH-INT-10, T11).
+    const key = draftSend.current.idempotencyKey
+    // The first send after a Resume, nothing changed since: the earlier body unchanged, with its consents and photo
+    // draft, which the draft never keeps (HH-INT-10, T11).
+    const replay = resumed.current?.key === key && photos.items.length === 0 ? resumed.current.body : null
+    if (replay === null) {
+      const all = validate(values, meta, opts)
+      if (all.length) return show(all, stepOf(all[0]?.field ?? '') as StepId)
     }
-    const text = JSON.stringify(body)
-    const bodyHash = await hash(text)
-    // The same key for a retry of the same content, so a double tap or a retry creates one request (HH-INT-10).
-    if (!attempt.current || attempt.current.bodyHash !== bodyHash)
-      attempt.current = { key: crypto.randomUUID(), bodyHash }
+    inFlight.current = true
     setSending(true)
     setBanner(null)
+    // The server binds the draft's stored photos to the request; failed photos were never stored (TSK-0031). Photos
+    // added before a reload are in the same photo draft.
+    const stored = photos.items.some((i) => i.id) || earlierPhotos
+    const payload =
+      replay ??
+      JSON.stringify({
+        ...toBody(values, meta, services),
+        ...(stored && photos.capability ? { photoDraft: photos.capability } : {}),
+      })
+    // Kept for this tab until the outcome is known, so a reload and Resume send exactly this again.
+    sends.save(key, payload)
+    let reply: SendReply = 'network'
     try {
       const res = await fetch('/api/v1/public/requests', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', 'idempotency-key': attempt.current.key },
-        body: text,
+        headers: { 'content-type': 'application/json', 'idempotency-key': key },
+        body: payload,
       })
-      const data = (await res.json().catch(() => null)) as {
-        reference?: string
-        photos?: PhotoSummary
-        error?: { code: string; message: string; fieldErrors: { field: string; code: string }[] }
-      } | null
-      if (res.status === 201 && data?.reference) {
-        store?.clear()
-        setReference(data.reference)
-        // Photos that failed here were never stored; the receipt counts them with any the server refused.
-        const failedHere = photos.items.filter((i) => i.state === 'failed').length
-        setReceiptPhotos(data.photos ? { ...data.photos, failed: data.photos.failed + failedHere } : null)
-        setPhase('sent')
-        focusHeading.current = true
-        return
-      }
-      if (data?.error?.code === 'VALIDATION_FAILED' && data.error.fieldErrors.length) {
-        const found = fromServer(data.error.fieldErrors)
-        return show(found, stepOf(found[0]?.field ?? '') as StepId)
-      }
-      setBanner({ kind: 'error', message: data?.error?.message ?? t('error.INTERNAL') })
+      reply = { status: res.status, data: (await res.json().catch(() => null)) as SendData }
     } catch {
-      // The outcome is unknown: the same key is kept, so trying again cannot create a second request.
-      setBanner({ kind: 'error', message: t('request.uncertain') })
+      // No answer: the outcome is unknown. The same key and body are kept, so trying again cannot create a second
+      // request.
     } finally {
+      inFlight.current = false
       setSending(false)
     }
+    const outcome = sendOutcome(reply)
+    if (!keepsBody(outcome)) sends.clear(key)
+    if (outcome.kind === 'sent' || outcome.kind === 'already') {
+      store?.clear()
+      draftSend.current = newSend()
+      resumed.current = null
+      setReference(outcome.reference)
+      setAlreadyReceived(outcome.kind === 'already')
+      // Photos that failed here were never stored; the receipt counts them with any the server refused.
+      const failedHere = photos.items.filter((i) => i.state === 'failed').length
+      setReceiptPhotos(
+        outcome.kind === 'sent' && outcome.photos
+          ? { ...outcome.photos, failed: outcome.photos.failed + failedHere }
+          : null,
+      )
+      setPhase('sent')
+      requestFocus('heading')
+      return
+    }
+    if (outcome.kind === 'fields') {
+      const found = fromServer(outcome.fieldErrors)
+      return show(found, stepOf(found[0]?.field ?? '') as StepId)
+    }
+    // Never "start a new request": the key may already have created one, and sending again only ever returns it.
+    setBanner({
+      kind: 'error',
+      message:
+        outcome.kind === 'uncertain'
+          ? t('request.uncertain')
+          : outcome.kind === 'conflict'
+            ? t('request.sentEarlier')
+            : (outcome.message ?? t('error.INTERNAL')),
+      retry: true,
+    })
   }
 
   if (phase === 'loading') return <StateView kind="loading" title={t('request.title')} />
@@ -381,6 +442,7 @@ export default function RequestWizard() {
         </h2>
         <p>{t('request.receipt.thanks')}</p>
         <p className="hh-lead">{t('request.receipt.reference', { reference: reference ?? '' })}</p>
+        {alreadyReceived ? <p>{t('request.receipt.already')}</p> : null}
         {receiptPhotos ? <p>{t('request.receipt.photos', receiptPhotos)}</p> : null}
         <p>{t('request.receipt.separate')}</p>
         <a className="hh-button hh-button--secondary" href="/">
@@ -398,7 +460,7 @@ export default function RequestWizard() {
         <Button
           onClick={() => {
             setPhase('form')
-            focusHeading.current = true
+            requestFocus('heading')
           }}
         >
           {t('request.continue.guest')}
@@ -430,11 +492,29 @@ export default function RequestWizard() {
               const draft = store?.load()
               if (draft) {
                 const remembered = checkedZip.current
-                setValues(remembered && !draft.values.zip ? { ...draft.values, zip: remembered } : draft.values)
+                let restored = remembered && !draft.values.zip ? { ...draft.values, zip: remembered } : draft.values
                 setStep(draft.step)
+                // The draft's own send: a send after the reload reuses its key (TSK-0030, HH-INT-10).
+                if (draft.send) {
+                  draftSend.current = draft.send
+                  // Its last send from this tab has no known outcome: the review shows and sends that exact body again,
+                  // consents and photo draft included, and says the outcome is not known (HH-INT-10, T11).
+                  const earlier = sends.load(draft.send.idempotencyKey)
+                  const kept = earlier === null ? null : resumedFrom(earlier)
+                  if (earlier !== null && kept) {
+                    restored = { ...restored, smsOptIn: kept.smsOptIn, marketingOptIn: kept.marketingOptIn }
+                    resumed.current = { key: draft.send.idempotencyKey, body: earlier, values: restored }
+                    if (kept.photoDraft) {
+                      photos.adopt(kept.photoDraft)
+                      setEarlierPhotos(true)
+                    }
+                    setBanner({ kind: 'error', message: t('request.uncertain'), retry: true })
+                  }
+                }
+                setValues(restored)
               }
               setPhase('form')
-              focusHeading.current = true
+              requestFocus('heading')
             }}
           >
             {t('request.draft.resume')}
@@ -442,7 +522,10 @@ export default function RequestWizard() {
           <Button
             variant="secondary"
             onClick={() => {
+              const saved = store?.load()?.send
+              if (saved) sends.clear(saved.idempotencyKey)
               store?.clear()
+              draftSend.current = newSend()
               setValues(EMPTY_VALUES)
               setBanner({ kind: 'success', message: t('request.draft.cleared') })
               setPhase('choose')
@@ -542,6 +625,10 @@ export default function RequestWizard() {
   const plan = questionPlan(values.services.flatMap((id) => services.filter((x) => x.id === id)))
   const savedPhotos = photos.items.filter((i) => i.state === 'complete' || i.state === 'processing').length
   const failedPhotos = photos.items.filter((i) => i.state === 'failed').length
+  const uploadingPhotos = photos.items.filter((i) => i.state === 'uploading').length
+  // While a photo uploads nothing is sent: it would be left out without a word (HH-INT-07).
+  const waitForPhotos = uploadingPhotos ? { disabledReason: t('request.photos.uploadingReason') } : {}
+  const sections = step === 'review' ? reviewSections(values, services, { windows: settings.windows }) : []
   const body: Record<StepId, ReactNode> = {
     services: (
       <>
@@ -631,7 +718,7 @@ export default function RequestWizard() {
             />
           </section>
         ))}
-        <PhotoUploader photos={photos} limits={settings.photos} />
+        <PhotoUploader photos={photos} limits={settings.photos} earlier={earlierPhotos} />
       </>
     ),
     property: (
@@ -812,22 +899,79 @@ export default function RequestWizard() {
     ),
     review: (
       <>
-        {failedPhotos ? (
-          <p className="hh-request__warning" role="status">
-            {t('request.photos.failedNotice', { count: failedPhotos })}
-          </p>
-        ) : null}
-        {(['services', 'job', 'property', 'contact'] as const).map((s) => (
-          <section key={s} className="hh-card hh-request__review" aria-labelledby={`hh-review-${s}`}>
-            <h3 id={`hh-review-${s}`} className="hh-h3">
-              {t(STEP_LABEL[s])}
-            </h3>
-            <dl>{reviewLines(s, values, services, savedPhotos)}</dl>
-            <Button variant="quiet" onClick={() => goTo(s)} aria-describedby={`hh-review-${s}`}>
-              {t('request.edit')}
-            </Button>
+        {/* Nothing here is a price or a confirmed time (HH-INT-19): scope, pricing and scheduling follow review. */}
+        <p className="hh-muted">{t('request.services.note')}</p>
+        {sections.map((section) => (
+          <section
+            key={section.id}
+            className="hh-card hh-request__review"
+            aria-labelledby={`hh-review-${section.id}`}
+            data-section={section.id}
+          >
+            <div className="hh-request__review-head">
+              <h3 id={`hh-review-${section.id}`} className="hh-h3">
+                {section.title}
+              </h3>
+              <Button
+                variant="quiet"
+                onClick={() => edit(section.step)}
+                aria-label={t('request.review.editNamed', { section: section.title })}
+              >
+                {t('request.edit')}
+              </Button>
+            </div>
+            {section.groups.map((g, i) => (
+              <div key={g.title ?? i} className="hh-request__review-group">
+                {g.title ? <h4 className="hh-request__review-sub">{g.title}</h4> : null}
+                <dl>{g.rows.map(reviewRow)}</dl>
+              </div>
+            ))}
+            {section.id === 'photos' ? (
+              <>
+                {earlierPhotos ? <p className="hh-muted">{t('request.photos.earlier')}</p> : null}
+                {photos.items.length ? (
+                  <>
+                    {savedPhotos ? <p>{t('request.photos.saved', { count: savedPhotos })}</p> : null}
+                    {failedPhotos ? (
+                      <p className="hh-request__warning" role="status">
+                        {t('request.photos.failedNotice', { count: failedPhotos })}
+                      </p>
+                    ) : null}
+                    {/* A photo still uploading is not sent: wait for it or remove it (HH-INT-07). */}
+                    {uploadingPhotos ? (
+                      <p className="hh-request__warning" role="status" data-testid="photos-uploading">
+                        {t('request.photos.uploadingNotice', { count: uploadingPhotos })}
+                      </p>
+                    ) : null}
+                    <PhotoReviewList items={photos.items} />
+                  </>
+                ) : earlierPhotos ? null : (
+                  <p className="hh-muted">{t('request.review.noPhotos')}</p>
+                )}
+              </>
+            ) : null}
+            {/* Preferences, never an appointment (HH-INT-02, OWN-DEC-92); staff confirm the approach (HH-INT-03). */}
+            {section.id === 'timing' ? <p className="hh-small hh-muted">{t('request.timing.note')}</p> : null}
+            {section.id === 'contact' ? <p className="hh-small hh-muted">{t('request.estimate.note')}</p> : null}
           </section>
         ))}
+        {/* The privacy policy, linked, with the exact version this request is sent with (OWN-DEC-72, ENT-PolicyVersion). */}
+        <div className="hh-request__privacy" data-privacy-notice={PRIVACY_NOTICE_VERSION}>
+          <p>
+            {t('request.review.privacy')}{' '}
+            <a href={PRIVACY_NOTICE.path} target="_blank" rel="noopener">
+              {t('legal.link.privacy')}
+              <span className="hh-visually-hidden"> {t('request.newTab')}</span>
+            </a>
+          </p>
+          <p className="hh-small hh-muted" data-testid="privacy-version">
+            {t('legal.common.version', {
+              version: PRIVACY_NOTICE.version,
+              preparedOn: preparedOnText(PRIVACY_NOTICE.preparedOn),
+              documentId: PRIVACY_NOTICE.documentId,
+            })}
+          </p>
+        </div>
       </>
     ),
   }
@@ -892,7 +1036,13 @@ export default function RequestWizard() {
         <StateView
           kind="error"
           title={banner.message}
-          action={<Button onClick={() => void send()}>{t('request.retry')}</Button>}
+          action={
+            banner.retry ? (
+              <Button onClick={() => void send()} pending={sending} {...waitForPhotos}>
+                {t('request.retry')}
+              </Button>
+            ) : undefined
+          }
         />
       ) : null}
       {body[step]}
@@ -913,8 +1063,13 @@ export default function RequestWizard() {
             {t('request.back')}
           </Button>
         ) : null}
+        {fromReview && step !== 'review' ? (
+          <Button variant="secondary" onClick={() => next('review')}>
+            {t('request.review.return')}
+          </Button>
+        ) : null}
         {step === 'review' ? (
-          <Button type="submit" pending={sending}>
+          <Button type="submit" pending={sending} {...waitForPhotos}>
             {t('request.send')}
           </Button>
         ) : (
@@ -925,65 +1080,26 @@ export default function RequestWizard() {
   )
 }
 
-function reviewLines(step: StepId, v: FormValues, services: FormService[], savedPhotos: number): ReactNode {
-  const line = (label: CustomerKey, value: string) =>
-    value ? (
-      <div key={label}>
-        <dt>{t(label)}</dt>
-        <dd>{value}</dd>
-      </div>
-    ) : null
-  switch (step) {
-    case 'services':
-      return [
-        line(
-          'request.services.select',
-          v.services.map((id) => services.find((s) => s.id === id)?.name ?? id).join(', '),
-        ),
-        v.notSure ? line('request.services.notSure', '✓') : null,
-        line('request.services.other', v.otherServicesText),
-      ]
-    case 'job': {
-      const plan = questionPlan(v.services.flatMap((id) => services.filter((s) => s.id === id)))
-      const rows = [
-        ...plan.shared.map((q) => ({ id: undefined as string | undefined, q })),
-        ...plan.perService.flatMap((g) => g.questions.map((q) => ({ id: g.serviceId as string | undefined, q }))),
-      ]
-      return [
-        line('request.job.description', v.description),
-        ...rows.map(({ id, q }) => {
-          const a = v.answers[answerKey(id, q.key)]
-          const value = a?.unknown ? t('request.questions.unknown') : (a?.text ?? '')
-          return value ? (
-            <div key={answerKey(id, q.key)}>
-              <dt>{q.label}</dt>
-              <dd>{value}</dd>
-            </div>
-          ) : null
-        }),
-        savedPhotos ? line('request.photos.title', t('request.photos.saved', { count: savedPhotos })) : null,
-      ]
-    }
-    case 'property':
-      return [
-        line('request.property.street', [v.street, v.unit].filter(Boolean).join(', ')),
-        line('request.property.city', [v.city, v.state, v.zip].filter(Boolean).join(' ')),
-        line('request.property.type', label(PROPERTY_LABEL, v.propertyType)),
-        line('request.timing.date', v.flexible ? t('request.timing.flexible') : v.preferredDate),
-        v.needHelpToday ? line('request.timing.needHelpToday', '✓') : null,
-        line('request.timing.windows', v.windows.map((w) => label(WINDOW_LABEL, w)).join(', ')),
-      ]
-    default:
-      return [
-        line('request.contact.fullName', v.fullName),
-        line('request.contact.email', v.email),
-        line('request.contact.phone', v.phone),
-        line('request.contact.channel', label(CHANNEL_LABEL, v.preferredChannel)),
-        line('request.review.sms', t(v.smsOptIn ? 'request.review.yes' : 'request.review.no')),
-        line('request.review.marketing', t(v.marketingOptIn ? 'request.review.yes' : 'request.review.no')),
-        line('request.estimate.title', label(ESTIMATE_LABEL, v.estimatePreference)),
-      ]
-  }
+/** One summary line; a value with several lines (an address, the services) is a list. */
+function reviewRow(row: ReviewRow): ReactNode {
+  return (
+    <div key={row.label}>
+      <dt>{row.label}</dt>
+      <dd>
+        {typeof row.value === 'string' ? (
+          row.value
+        ) : row.value.length === 1 ? (
+          row.value[0]
+        ) : (
+          <ul className="hh-request__review-lines">
+            {row.value.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        )}
+      </dd>
+    </div>
+  )
 }
 
 /**

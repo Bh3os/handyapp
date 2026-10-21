@@ -176,12 +176,27 @@ export function usePhotos(limits: PhotoLimits | null) {
     return () => window.clearInterval(timer)
   }, [processing, capability])
 
-  return { items, capability, add, retry, remove }
+  /**
+   * The photo draft of a send resumed after a reload (TSK-0030, HH-INT-10): new photos join it, so the request carries
+   * the photos added before the reload too. A photo draft already started here is kept.
+   */
+  const adopt = useCallback((cap: string) => setCapability((current) => current ?? cap), [])
+
+  return { items, capability, add, retry, remove, adopt }
 }
 
 export type PhotosApi = ReturnType<typeof usePhotos>
 
-export function PhotoUploader({ photos, limits }: { photos: PhotosApi; limits: PhotoLimits | null }) {
+export function PhotoUploader({
+  photos,
+  limits,
+  earlier = false,
+}: {
+  photos: PhotosApi
+  limits: PhotoLimits | null
+  /** Photos of a send resumed after a reload, which this page cannot show (TSK-0030). */
+  earlier?: boolean
+}) {
   const values = problemValues(limits)
   return (
     <section className="hh-request__photos" aria-labelledby="hh-photos-title">
@@ -189,6 +204,7 @@ export function PhotoUploader({ photos, limits }: { photos: PhotosApi; limits: P
         {t('request.photos.title')}
       </h3>
       <p className="hh-request__warning">{t('request.photos.warning')}</p>
+      {earlier ? <p className="hh-muted">{t('request.photos.earlier')}</p> : null}
       {limits ? (
         <>
           <p className="hh-field__hint" id="hh-photos-limits">
@@ -237,5 +253,24 @@ export function PhotoUploader({ photos, limits }: { photos: PhotosApi; limits: P
         </ul>
       ) : null}
     </section>
+  )
+}
+
+/**
+ * The photos on the final review (TSK-0030, HH-INT-19): each preview with its state, without controls (Edit opens the
+ * step that has them). A failed photo is shown as failed: it is not sent with the request (HH-INT-07).
+ */
+export function PhotoReviewList({ items }: { items: readonly PhotoItem[] }) {
+  return (
+    <ul className="hh-request__photo-list">
+      {items.map((item, n) => (
+        <li key={item.key} className="hh-request__photo" data-state={item.state}>
+          <img src={item.preview} alt={t('request.photos.alt', { n: n + 1 })} width={96} height={96} />
+          <div className="hh-request__photo-info">
+            <StatusBadge tone={STATE_TONE[item.state]}>{t(STATE_LABEL[item.state])}</StatusBadge>
+          </div>
+        </li>
+      ))}
+    </ul>
   )
 }
