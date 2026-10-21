@@ -178,11 +178,13 @@ test.describe('contact verification on the receipt (TSK-0033)', () => {
     await expect(channelGroup(page, 'Phone').getByText('Not verified')).toBeVisible()
     await expect(panel).not.toContainText(new RegExp(earlierRef))
 
-    // The optional account offer: Create an Account is not available yet; No thanks changes nothing.
+    // The optional account offer: Create an Account is offered (TSK-0036); No thanks changes nothing.
     const offer = page.getByRole('region', { name: 'Keep your project history' })
     await expect(offer).toBeVisible()
-    await expect(offer.getByRole('button', { name: 'Create an Account' })).toBeDisabled()
-    await expect(offer.getByText('Accounts are not available yet.')).toBeVisible()
+    await expect(offer.getByRole('button', { name: 'Create an Account' })).toBeEnabled()
+    await expect(
+      offer.getByText('An account is optional. Without one, nothing changes for this request.'),
+    ).toBeVisible()
     await axe(page)
     const before = await withDb((db) =>
       db

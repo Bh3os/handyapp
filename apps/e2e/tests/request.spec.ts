@@ -63,7 +63,12 @@ test.describe('request wizard shell (TSK-0026)', () => {
     await expect(
       dialog.getByText('Request an estimate without creating an account. Manage your project through a secure link.'),
     ).toBeVisible()
-    await expect(dialog.getByRole('button', { name: 'Create an Account' })).toBeDisabled()
+    // TSK-0036: Create an Account and Sign in are available (HH-ID-10); Sign in opens the account page.
+    await expect(dialog.getByRole('button', { name: 'Create an Account' })).toBeEnabled()
+    await expect(dialog.getByRole('link', { name: 'Already have an account? Sign in' })).toHaveAttribute(
+      'href',
+      '/account',
+    )
     await axe(page)
     await page.keyboard.press('Escape')
     await expect(dialog).toBeHidden()
