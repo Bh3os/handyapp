@@ -1,0 +1,23 @@
+/* ZIP coverage checker (TSK-0022). Design-system tokens only; works at 320 px and 200% text (HH-A11Y-02). */
+.hh-coverage {
+  display: grid;
+  gap: var(--hh-space-4);
+  max-width: 32rem;
+}
+.hh-coverage__form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--hh-space-3);
+}
+.hh-coverage__form > :first-child {
+  flex: 1 1 12rem;
+}
+.hh-coverage__result {
+  display: grid;
+  gap: var(--hh-space-3);
+  justify-items: start;
+}
+.hh-coverage__message {
+  margin: 0;
+}
