@@ -17,6 +17,7 @@ import type { Db, Tx } from '@handyhub/db'
 import {
   apply,
   BLOCKING_HOLD_STATES,
+  HAZARD_CATEGORIES,
   type HazardCategory,
   type HoldState,
   newlyFlaggedHazards,
@@ -163,6 +164,7 @@ export async function requestHolds(db: Reader, requestId: string, actor: Actor):
     .where('scope_type', '=', 'request')
     .where('scope_id', '=', requestId)
     .orderBy('raised_at')
+    .orderBy(sql`array_position(${sql.lit(`{${HAZARD_CATEGORIES.join(',')}}`)}::text[], category)`)
     .orderBy('id')
     .execute()
   const ids = [
