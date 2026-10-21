@@ -48,6 +48,60 @@ export const LABEL_FAMILIES = {
     'PT-03',
     'PT-04',
   ],
+  /** Request lifecycle states (ENT-Request; the request.lifecycle machine of @handyhub/domain). */
+  requestState: [
+    'received',
+    'reviewing',
+    'needs_information',
+    'needs_site_visit',
+    'ready_for_estimate',
+    'estimated',
+    'declined',
+    'outside_scope',
+    'not_served',
+    'withdrawn',
+    'closed_no_response',
+  ],
+  /**
+   * Staff action queue item types (TSK-0041; HH-OPS-01, ENT-QueueItem). The server's queue registry
+   * (apps/server/src/modules/queue/registry.ts) declares the same ids, checked by its unit test.
+   */
+  queueItemType: [
+    'new_request',
+    'safety_hold',
+    'visit_change_request',
+    'delivery_failed',
+    'case_open',
+    'deposit_waiver',
+    'start_work_exception',
+    'refund_request',
+    'cancellation_outcome',
+    'deletion_request',
+    'invoice_overdue_decision',
+    'incident_notification',
+  ],
+  /** Why a queue item needs action (HH-OPS-02 "reason"). */
+  queueReason: [
+    'new_request',
+    'new_request_flagged',
+    'safety_hold',
+    'reschedule_requested',
+    'cancellation_requested',
+    'delivery_failed',
+    'case_opened',
+    'complaint_recorded',
+    'damage_reported',
+    'injury_reported',
+    'dispute_reported',
+    'deposit_waiver_requested',
+    'start_work_exception_requested',
+    'refund_requested',
+    'cancellation_outcome_requested',
+    'deletion_requested',
+    'overdue_owner_decision',
+  ],
+  /** The one action button of a queue item (HH-OPS-02); it opens the record's screen. */
+  queueAction: ['review_request', 'review_hold', 'review_change', 'retry_delivery', 'open_case', 'decide'],
 } as const satisfies Record<string, readonly string[]>
 
 export type LabelFamily = keyof typeof LABEL_FAMILIES

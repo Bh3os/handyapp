@@ -6,6 +6,7 @@ import { identityModule } from './identity/index.js'
 import type { ObjectStorage } from '../providers/index.js'
 import { COVERAGE_MODULE } from './coverage/index.js'
 import { photosModule } from './photos/index.js'
+import { QUEUE_MODULE } from './queue/index.js'
 import { REQUESTS_MODULE } from './requests/index.js'
 import { SITE_MODULE } from './site/index.js'
 
@@ -25,6 +26,7 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     COVERAGE_MODULE,
     photosModule({ storage: deps.storage ?? null }),
     SITE_MODULE,
+    QUEUE_MODULE,
   ]
 }
 

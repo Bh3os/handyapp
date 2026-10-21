@@ -10,6 +10,23 @@ afterEach(cleanup)
 const json = (status: number, body: unknown) =>
   new Response(body === null ? null : JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
 
+/** A synthetic staff API: the session, an empty action queue (TSK-0041) and, for PUTs, `put`'s answer. */
+const EMPTY_QUEUE = {
+  items: [],
+  nextCursor: null,
+  section: 'queue',
+  sections: ['queue'],
+  types: ['new_request'],
+  refreshSeconds: 30,
+  refreshedAt: '2026-10-20T12:00:00.000Z',
+}
+const api = (body: unknown, put?: () => Response) =>
+  vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (init?.method === 'PUT' && put) return put()
+    if (String(input).startsWith('/api/v1/staff/queue')) return json(200, EMPTY_QUEUE)
+    return json(200, body)
+  })
+
 const NAV = {
   owner: {
     home: 'queue',
@@ -61,14 +78,7 @@ describe('staff shell routes (TSK-0040)', () => {
 
 describe('navigation by role (TSK-0040, HH-STAFF-06)', () => {
   it('[HH-STAFF-06] the Owner sees the full menu, the queue as home and the search box', async () => {
-    render(
-      <App
-        path="/staff/"
-        base="/staff/"
-        fetchImpl={vi.fn().mockResolvedValue(json(200, session('owner')))}
-        navigate={vi.fn()}
-      />,
-    )
+    render(<App path="/staff/" base="/staff/" fetchImpl={api(session('owner'))} navigate={vi.fn()} />)
     await screen.findByRole('heading', { level: 1, name: 'Action queue' })
     expect(menu()).toEqual([
       'Action queue',
@@ -94,7 +104,7 @@ describe('navigation by role (TSK-0040, HH-STAFF-06)', () => {
   })
 
   it('[HH-STAFF-06][HH-STAFF-04] a worker sees only My Day and no search; other screens say they are not part of the role', async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(json(200, session('worker')))
+    const fetchImpl = api(session('worker'))
     render(<App path="/staff/staff" base="/staff/" fetchImpl={fetchImpl} navigate={vi.fn()} />)
     await screen.findByText('This screen is not part of your role.')
     expect(menu()).toEqual(['My Day', 'My account'])
@@ -104,40 +114,19 @@ describe('navigation by role (TSK-0040, HH-STAFF-06)', () => {
 
   it('[HH-STAFF-04] deny by default: unknown ids from the server and a missing menu show nothing', async () => {
     const odd = { home: 'admin', items: ['admin', 'my-day', 'export'], search: ['everything'] }
-    render(
-      <App
-        path="/staff/admin"
-        base="/staff/"
-        fetchImpl={vi.fn().mockResolvedValue(json(200, session('worker', 'en', odd)))}
-        navigate={vi.fn()}
-      />,
-    )
+    render(<App path="/staff/admin" base="/staff/" fetchImpl={api(session('worker', 'en', odd))} navigate={vi.fn()} />)
     await screen.findByText('This screen is not part of your role.')
     expect(menu()).toEqual(['My Day', 'My account'])
     expect(screen.queryByRole('search')).toBeNull()
     cleanup()
-    render(
-      <App
-        path="/staff/"
-        base="/staff/"
-        fetchImpl={vi.fn().mockResolvedValue(json(200, session('worker', 'en', null)))}
-        navigate={vi.fn()}
-      />,
-    )
+    render(<App path="/staff/" base="/staff/" fetchImpl={api(session('worker', 'en', null))} navigate={vi.fn()} />)
     await screen.findByText('Your account has no screens yet. Ask the owner to check your role.')
     expect(menu()).toEqual(['My account'])
   })
 
   it('[HH-STAFF-06] menu links move between screens with the keyboard-reachable links, in place', async () => {
     const navigate = vi.fn()
-    render(
-      <App
-        path="/staff/"
-        base="/staff/"
-        fetchImpl={vi.fn().mockResolvedValue(json(200, session('owner')))}
-        navigate={navigate}
-      />,
-    )
+    render(<App path="/staff/" base="/staff/" fetchImpl={api(session('owner'))} navigate={navigate} />)
     const link = await screen.findByRole('link', { name: 'Requests' })
     expect(link.getAttribute('href')).toBe('/staff/requests')
     fireEvent.click(link)
@@ -150,16 +139,13 @@ describe('navigation by role (TSK-0040, HH-STAFF-06)', () => {
 
 describe('staff language switch (TSK-0040, HH-OPS-04, HH-LANG-02)', () => {
   it('[HH-OPS-04][T70] switching to Spanish saves it on the server and keeps what was typed', async () => {
-    const fetchImpl = vi
-      .fn()
-      .mockResolvedValueOnce(json(200, session('owner')))
-      .mockResolvedValueOnce(json(200, session('owner', 'es')))
+    const fetchImpl = api(session('owner'), () => json(200, session('owner', 'es')))
     render(<App path="/staff/" base="/staff/" fetchImpl={fetchImpl} navigate={vi.fn()} />)
     const box = (await screen.findByRole('searchbox', { name: 'Search' })) as HTMLInputElement
     fireEvent.change(box, { target: { value: 'unsent synthetic draft' } })
     fireEvent.change(screen.getByLabelText('Language'), { target: { value: 'es' } })
     await screen.findByRole('heading', { level: 1, name: 'Acciones pendientes' })
-    const [url, init] = fetchImpl.mock.calls[1] as [string, RequestInit]
+    const [url, init] = fetchImpl.mock.calls.find(([, i]) => i?.method === 'PUT') as [string, RequestInit]
     expect(url).toBe('/api/v1/staff/auth/session/locale')
     expect(init.method).toBe('PUT')
     expect(JSON.parse(String(init.body))).toEqual({ locale: 'es' })
@@ -170,10 +156,7 @@ describe('staff language switch (TSK-0040, HH-OPS-04, HH-LANG-02)', () => {
   })
 
   it('[HH-OPS-04] a failed save says so and keeps the current language', async () => {
-    const fetchImpl = vi
-      .fn()
-      .mockResolvedValueOnce(json(200, session('worker')))
-      .mockResolvedValueOnce(json(503, { error: { code: 'UNAVAILABLE', fieldErrors: [] } }))
+    const fetchImpl = api(session('worker'), () => json(503, { error: { code: 'UNAVAILABLE', fieldErrors: [] } }))
     render(<App path="/staff/" base="/staff/" fetchImpl={fetchImpl} navigate={vi.fn()} />)
     fireEvent.change(await screen.findByLabelText('Language'), { target: { value: 'es' } })
     await waitFor(() =>
@@ -185,14 +168,7 @@ describe('staff language switch (TSK-0040, HH-OPS-04, HH-LANG-02)', () => {
 
 describe('offline indicator (TSK-0040, HH-BASE-01)', () => {
   it('[HH-BASE-01] going offline shows the offline state; coming back removes it', async () => {
-    render(
-      <App
-        path="/staff/"
-        base="/staff/"
-        fetchImpl={vi.fn().mockResolvedValue(json(200, session('worker')))}
-        navigate={vi.fn()}
-      />,
-    )
+    render(<App path="/staff/" base="/staff/" fetchImpl={api(session('worker'))} navigate={vi.fn()} />)
     await screen.findByRole('heading', { level: 1, name: 'My Day' })
     expect(screen.queryByText('You are offline.')).toBeNull()
     // The listeners attach in an effect that may not have run yet under load: repeat the (idempotent) event until the

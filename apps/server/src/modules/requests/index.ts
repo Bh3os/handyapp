@@ -1,4 +1,5 @@
-// Requests module (TSK-0025; HH-INT-10, HH-INT-11, HH-ID-01, HH-INT-21). The public submission route.
+// Requests module (TSK-0025; HH-INT-10, HH-INT-11, HH-ID-01, HH-INT-21). The public submission route, and the
+// staff record header the action queue's deep link opens (TSK-0041).
 import { readIdempotencyKey } from '../../api/idempotency.js'
 import type { ApiModule, RouteDef } from '../../api/route.js'
 import { publicServices, type RegistryEnvironment } from '@handyhub/db'
@@ -8,6 +9,7 @@ import { formWindows } from './submit.js'
 import { currentContext } from '../../platform/request-context.js'
 import { photoLimits } from '../photos/photos.js'
 import { MAX_SERVICES, SUBMIT_BODY, SUBMIT_RESPONSE, type SubmitBody } from './schema.js'
+import { staffRequestSummary } from './staff-summary.js'
 import { submitRequest } from './submit.js'
 
 /** PROPOSED (old repo, 32 D-32-08): 5 submissions per client network per hour; no owner value exists. */
@@ -223,4 +225,7 @@ const publicServiceList: RouteDef = {
   },
 }
 
-export const REQUESTS_MODULE: ApiModule = { name: 'requests', routes: [submit, formSettings, publicServiceList] }
+export const REQUESTS_MODULE: ApiModule = {
+  name: 'requests',
+  routes: [submit, formSettings, publicServiceList, staffRequestSummary],
+}
