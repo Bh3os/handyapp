@@ -105,6 +105,90 @@ export interface CrmPropertiesTable {
   coverage_rule_set: number | null
 }
 
+export interface EstimatingEstimateLineCostsTable {
+  line_id: string
+  version_id: string
+  material_cost_cents: Int8 | null
+  labor_cost_cents: Int8 | null
+  currency: Generated<string>
+  note: string | null
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface EstimatingEstimateLinesTable {
+  id: Generated<string>
+  version_id: string
+  project_id: string
+  position: number
+  kind: Generated<string>
+  work_package_id: string | null
+  description: string | null
+  quantity_milli: Int8 | null
+  unit: string | null
+  quantity_source: string | null
+  unit_price_cents: Int8 | null
+  amount_cents: Int8 | null
+  currency: Generated<string>
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface EstimatingEstimateVersionInternalsTable {
+  version_id: string
+  markup_assumptions: string | null
+  estimator_notes: string | null
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface EstimatingEstimateVersionsTable {
+  id: Generated<string>
+  estimate_id: string
+  project_id: string
+  version: number
+  state: Generated<string>
+  state_changed_at: ColumnType<Date, Date | string | undefined, Date | string>
+  authoring_method: string
+  currency: Generated<string>
+  assumptions: Generated<string[]>
+  exclusions: Generated<string[]>
+  customer_responsibilities: Generated<string[]>
+  dependencies: Generated<string[]>
+  schedule_assumptions: Generated<string[]>
+  discount_category: string | null
+  discount_percent_bps: number | null
+  discount_rule_version: number | null
+  subtotal_cents: Int8 | null
+  discount_cents: Int8 | null
+  total_cents: Int8 | null
+  deposit_state: string | null
+  deposit_cents: Int8 | null
+  deposit_rule_version: number | null
+  tax_mode_version: number | null
+  totals_computed_at: Timestamp | null
+  payment_term: string
+  payment_term_version: number
+  validity_policy_version: number | null
+  valid_until: Timestamp | null
+  terms_version: string | null
+  prepared_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  updated_by: string
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+  published_by: string | null
+  published_at: Timestamp | null
+  first_viewed_at: Timestamp | null
+  row_version: Generated<number>
+}
+
+export interface EstimatingEstimatesTable {
+  id: Generated<string>
+  project_id: string
+  sequence: number
+  number: string
+  created_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface IdentityAuthIdentitiesTable {
   id: Generated<string>
   staff_user_id: string
@@ -679,6 +763,11 @@ export interface Database {
   'crm.customers': CrmCustomersTable
   'crm.projects': CrmProjectsTable
   'crm.properties': CrmPropertiesTable
+  'estimating.estimate_line_costs': EstimatingEstimateLineCostsTable
+  'estimating.estimate_lines': EstimatingEstimateLinesTable
+  'estimating.estimate_version_internals': EstimatingEstimateVersionInternalsTable
+  'estimating.estimate_versions': EstimatingEstimateVersionsTable
+  'estimating.estimates': EstimatingEstimatesTable
   'identity.auth_identities': IdentityAuthIdentitiesTable
   'identity.customer_sessions': IdentityCustomerSessionsTable
   'identity.rate_limits': IdentityRateLimitsTable
