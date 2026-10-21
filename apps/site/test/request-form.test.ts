@@ -5,7 +5,10 @@ import {
   answerKey,
   answersFor,
   EMPTY_VALUES,
+  firstPreferredDate,
+  formatClock,
   fromServer,
+  offeredWindows,
   problemKey,
   questionPlan,
   stepOf,
@@ -92,8 +95,15 @@ describe('request form validation shared with the server (TSK-0026, HH-INT-09)',
         { field: 'property.propertyType', code: 'required' },
       ]),
     )
-    expect(problems.map((p) => stepOf(p.field))).toEqual(problems.map(() => 'property'))
-    // Semantic checks run once the schema passes: the phone, the date in the property's time zone.
+    // Each problem belongs to its step; the semantic checks run on every step (TSK-0028), so the phone's format
+    // problem is reported for the contact step at the same time.
+    expect(problems.map((p) => [p.field, stepOf(p.field)])).toEqual([
+      ['property.street', 'property'],
+      ['property.zip', 'property'],
+      ['property.propertyType', 'property'],
+      ['contact.phone', 'contact'],
+    ])
+    // The semantic checks: the phone, the date in the property's time zone.
     expect(validate({ ...complete, phone: '555 1234', preferredDate: '2026-10-20' }, meta, opts)).toEqual([
       { field: 'timing.preferredDate', code: 'minimum' },
       { field: 'contact.phone', code: 'format' },
@@ -110,6 +120,104 @@ describe('request form validation shared with the server (TSK-0026, HH-INT-09)',
       ['contact.email', 'contact'],
       ['services.0.serviceId', 'services'],
     ])
+  })
+})
+
+describe('property and timing preferences (TSK-0028, HH-INT-02, HH-INT-16, HH-INT-17)', () => {
+  const zone = 'America/Kentucky/Louisville'
+  const visit = { open: '08:00', close: '22:00' }
+
+  it('[HH-INT-02][T09] offers the five windows without hours while the window hours are not configured', () => {
+    expect(offeredWindows(visit, null)).toEqual([
+      { code: 'mornings' },
+      { code: 'afternoons' },
+      { code: 'evenings' },
+      { code: 'weekends' },
+      { code: 'any_time' },
+    ])
+    expect(offeredWindows(null, null).map((w) => w.code)).toHaveLength(5)
+  })
+
+  it('[HH-INT-02] shows configured hours and leaves out a window outside the visit hours', () => {
+    // Synthetic hours for the test only: the owner has not given any (OQ-WINDOW-HOURS).
+    const hours = {
+      mornings: { start: '08:00', end: '12:00' },
+      afternoons: { start: '12:00', end: '17:00' },
+      evenings: { start: '17:00', end: '23:00' },
+    }
+    expect(offeredWindows(visit, hours)).toEqual([
+      { code: 'mornings', start: '08:00', end: '12:00' },
+      { code: 'afternoons', start: '12:00', end: '17:00' },
+      { code: 'weekends' },
+      { code: 'any_time' },
+    ])
+    expect(['08:00', '12:00', '12:30', '22:00', '00:00'].map(formatClock)).toEqual([
+      '8 AM',
+      '12 PM',
+      '12:30 PM',
+      '10 PM',
+      '12 AM',
+    ])
+  })
+
+  it('[HH-INT-02][T09] Weekends must agree with the date; I am flexible always agrees; Any time stands alone', () => {
+    const timing = (over: Partial<FormValues>) => validate({ ...complete, ...over }, meta, opts)
+    // 2026-10-21 is a Wednesday, 2026-10-24 a Saturday.
+    expect(timing({ windows: ['mornings', 'weekends'] })).toEqual([{ field: 'timing.windows', code: 'weekendDate' }])
+    expect(problemKey('weekendDate')).toBe('request.timing.weekendDate')
+    expect(timing({ windows: ['mornings', 'weekends'], preferredDate: '2026-10-24' })).toEqual([])
+    expect(timing({ windows: ['weekends'], flexible: true })).toEqual([])
+    // Reported when leaving the property step, before the later steps are filled in.
+    expect(timing({ windows: ['weekends'], fullName: '', email: '', phone: '', preferredChannel: '' })).toContainEqual({
+      field: 'timing.windows',
+      code: 'weekendDate',
+    })
+    expect(timing({ windows: ['any_time', 'mornings'] })).toEqual([{ field: 'timing.windows', code: 'invalid' }])
+    // A window the form does not offer is refused, as the server does.
+    expect(validate({ ...complete, windows: ['evenings'] }, meta, { ...opts, windows: ['mornings'] })).toEqual([
+      { field: 'timing.windows', code: 'enum' },
+    ])
+  })
+
+  it('[HH-INT-17][T09] I am flexible replaces the date; Need help today is a flag sent with the preferences', () => {
+    const body = toBody({ ...complete, flexible: true, needHelpToday: true, windows: ['any_time'] }, meta)
+    expect(body.timing).toEqual({ flexible: true, needHelpToday: true, windows: ['any_time'] })
+    expect(validate({ ...complete, flexible: false, preferredDate: '' }, meta, opts)).toEqual([
+      { field: 'timing.preferredDate', code: 'required' },
+    ])
+  })
+
+  it('[HH-INT-17][T41] dates start tomorrow in the property time zone, across both DST changes', () => {
+    // 23:30 local on 2026-10-20 (EDT) is already 2026-10-21 in UTC.
+    expect(firstPreferredDate(new Date('2026-10-21T03:30:00Z'), zone)).toBe('2026-10-21')
+    // Spring forward, 2026-03-08: 01:59 EST and 03:00 EDT are the same local day.
+    expect(firstPreferredDate(new Date('2026-03-08T06:59:00Z'), zone)).toBe('2026-03-09')
+    expect(firstPreferredDate(new Date('2026-03-08T07:00:00Z'), zone)).toBe('2026-03-09')
+    expect(firstPreferredDate(new Date('2026-03-08T04:59:00Z'), zone)).toBe('2026-03-08')
+    // Fall back, 2026-11-01: both 01:30 hours (EDT, then EST) are 2026-11-01.
+    expect(firstPreferredDate(new Date('2026-11-01T05:30:00Z'), zone)).toBe('2026-11-02')
+    expect(firstPreferredDate(new Date('2026-11-01T06:30:00Z'), zone)).toBe('2026-11-02')
+    // Month and year ends.
+    expect(firstPreferredDate(new Date('2026-12-31T20:00:00Z'), zone)).toBe('2027-01-01')
+  })
+
+  it('[HH-INT-16] the full address is required, the unit optional, and the property type one of the four', () => {
+    const body = toBody({ ...complete, unit: '' }, meta)
+    expect(body.property).toEqual({
+      street: '1 Synthetic Way',
+      city: 'Testville',
+      state: 'KY',
+      zip: '40000',
+      propertyType: 'house',
+    })
+    expect(toBody({ ...complete, unit: 'Apt 2' }, meta).property.unit).toBe('Apt 2')
+    expect(validate({ ...complete, city: '', state: '', propertyType: 'mansion' }, meta, opts)).toEqual(
+      expect.arrayContaining([
+        { field: 'property.city', code: 'required' },
+        { field: 'property.state', code: 'required' },
+        { field: 'property.propertyType', code: 'enum' },
+      ]),
+    )
   })
 })
 

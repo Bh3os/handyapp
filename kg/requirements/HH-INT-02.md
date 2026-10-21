@@ -12,6 +12,7 @@ links:
   uses: ["[[ENT-Request]]", "[[FACT-HOURS]]"]
   tested_by: ["[[T09]]"]
   part_of: ["[[C02]]"]
+  related: ["[[OQ-WINDOW-HOURS]]"]
 source: "guide 7.1 HH-INT-02; OWN-DEC-92, OWN-DEC-56"
 ---
 - The choices are **Mornings, Afternoons, Evenings, Weekends, Any time**, stored as canonical enum values (`preferred_windows`).

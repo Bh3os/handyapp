@@ -950,7 +950,7 @@
       "get": {
         "operationId": "getRequestFormSettings",
         "summary": "Request form settings",
-        "description": "Public read of the configured request-draft period (session.timings.requestDraftDays, FACT-SESSION-TIMINGS), the business time zone, the service limit and the photo limits (uploads.limits). draftDays is null while the value is NOT CONFIGURED; the wizard then keeps no draft.",
+        "description": "Public read of the configured request-draft period (session.timings.requestDraftDays, FACT-SESSION-TIMINGS), the business time zone, the service limit and the photo limits (uploads.limits). draftDays is null while the value is NOT CONFIGURED; the wizard then keeps no draft. TSK-0028: the visit hours (contact.hours, FACT-HOURS), the preferred windows offered with their configured hours (request.window_hours; no hours while NOT CONFIGURED) and whether estimates are free (estimate.visit_fee, FACT-VISIT-FEE). Preferences only: nothing here is availability, a slot or a price.",
         "tags": [
           "requests"
         ],
@@ -967,7 +967,10 @@
                     "draftDays",
                     "maxServices",
                     "timeZone",
-                    "photos"
+                    "photos",
+                    "visitHours",
+                    "windows",
+                    "freeEstimates"
                   ],
                   "properties": {
                     "draftDays": {
@@ -1010,6 +1013,49 @@
                           }
                         }
                       }
+                    },
+                    "visitHours": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "open",
+                        "close"
+                      ],
+                      "properties": {
+                        "open": {
+                          "type": "string"
+                        },
+                        "close": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "windows": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "code"
+                        ],
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "start": {
+                            "type": "string"
+                          },
+                          "end": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "freeEstimates": {
+                      "type": "boolean"
                     }
                   }
                 }

@@ -52,6 +52,10 @@ async function check(page: Page, zip: string) {
   await page.getByRole('button', { name: 'Check ZIP' }).click()
 }
 
+// This spec's own synthetic client address (RFC 5737): the request-form limit counts per network, and every spec
+// reaches the server from 127.0.0.1 (playwright.config.ts trusts one hop on that server).
+test.use({ extraHTTPHeaders: { 'x-forwarded-for': '198.51.100.11' } })
+
 test.describe('ZIP coverage checker (TSK-0022, HH-CUS-03, T07)', () => {
   test.describe.configure({ mode: 'serial' })
   test.skip(!databaseUrl, 'needs E2E_DATABASE_URL (a fresh PostgreSQL 16 database)')
