@@ -1,10 +1,42 @@
 // Queue item providers fed by the outbox (TSK-0041; HH-OPS-01, HH-AUTO-01, TSK-0012). Each provider is a declared
 // automation: it reads its subject as it is now and opens, updates or resolves the subject's one item, in the job's
 // transaction. Modules built later add their providers here, next to the type they declare in registry.ts.
+import type { Tx } from '@handyhub/db'
 import type { Automation } from '../../platform/automation.js'
 import { openQueueItem, resolveQueueItem } from './items.js'
 
 export const REQUEST_SUBMITTED = 'request.submitted'
+
+/**
+ * Brings a request's new_request item in line with the request as it is now: a received request has its one open item
+ * (with the current responsible staff member); a request past received has none (resolved as handled). The provider
+ * below runs it from the outbox; the requests module runs it in the same transaction as an assignment or an action
+ * (TSK-0042), so the queue never shows a handled request or a stale assignee.
+ */
+export async function syncNewRequestItem(tx: Tx, requestId: string): Promise<'open' | 'resolved' | 'missing'> {
+  const request = await tx
+    .selectFrom('intake.requests')
+    .select(['id', 'state', 'reference', 'project_id', 'submitted_at', 'spam_suspected', 'responsible_staff_id'])
+    .where('id', '=', requestId)
+    .executeTakeFirst()
+  if (!request) return 'missing'
+  if (request.state !== 'received') {
+    // Already handled: an open item from an earlier event is resolved, and none is opened.
+    await resolveQueueItem(tx, { type: 'new_request', subjectId: request.id, resolution: 'handled' })
+    return 'resolved'
+  }
+  await openQueueItem(tx, {
+    type: 'new_request',
+    subjectId: request.id,
+    reason: request.spam_suspected ? 'new_request_flagged' : 'new_request',
+    projectId: request.project_id,
+    reference: request.reference,
+    status: request.state,
+    assignedStaffId: request.responsible_staff_id,
+    openedAt: request.submitted_at,
+  })
+  return 'open'
+}
 
 /**
  * New requests (HH-OPS-01 "new requests (with the 1-hour response clock)"): a received request opens its
@@ -26,28 +58,7 @@ export function newRequestQueueAutomation(): Automation {
     handle: async ({ tx, job }) => {
       const id = job.target.id
       if (!id) return 'cancelled'
-      const request = await tx
-        .selectFrom('intake.requests')
-        .select(['id', 'state', 'reference', 'project_id', 'submitted_at', 'spam_suspected', 'responsible_staff_id'])
-        .where('id', '=', id)
-        .executeTakeFirst()
-      if (!request) return 'cancelled'
-      if (request.state !== 'received') {
-        // Already handled: an open item from an earlier event is resolved, and none is opened.
-        await resolveQueueItem(tx, { type: 'new_request', subjectId: request.id, resolution: 'handled' })
-        return 'cancelled'
-      }
-      await openQueueItem(tx, {
-        type: 'new_request',
-        subjectId: request.id,
-        reason: request.spam_suspected ? 'new_request_flagged' : 'new_request',
-        projectId: request.project_id,
-        reference: request.reference,
-        status: request.state,
-        assignedStaffId: request.responsible_staff_id,
-        openedAt: request.submitted_at,
-      })
-      return 'done'
+      return (await syncNewRequestItem(tx, id)) === 'open' ? 'done' : 'cancelled'
     },
   }
 }

@@ -171,6 +171,18 @@ export const QUEUE_ITEM_TYPES = [
     action: 'decide',
     screen: 'payments',
   },
+  // A Not a Fit decision on a request with accepted work, an appointment or money received goes to the Owner for
+  // cancellation and financial review instead of closing (OWN-DEC-100, HH-LEAD-08; TSK-0042).
+  {
+    id: 'cancellation_review',
+    section: 'owner_decisions',
+    subject: 'request',
+    band: 'time_sensitive',
+    view: 'work.cancel_with_financial_review',
+    reasons: ['not_a_fit_with_obligations'],
+    action: 'decide',
+    screen: 'requests',
+  },
   {
     id: 'incident_notification',
     section: 'owner_decisions',
