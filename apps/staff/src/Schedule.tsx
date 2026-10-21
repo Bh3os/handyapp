@@ -46,6 +46,7 @@ import {
   type CancellationPreview,
   type ChangeRequest,
 } from './VisitChanges'
+import { AppointmentReminders } from './AppointmentReminders'
 import { EMPTY_ENTRY, WindowFields, errorsOf, shownWindow, windowBody, type Entry, type VisitWindow } from './Visits'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
@@ -867,6 +868,10 @@ function SelectedVisit({
         </p>
       ) : null}
       {visit.window.withinVisitHours === false ? <StateView kind="blocked" title={t('visits.outsideHours')} /> : null}
+      {visit.state !== 'tentative' ? (
+        // TSK-0067: the visit's appointment reminder (the queue's appointment_reminder item opens this visit).
+        <AppointmentReminders t={t} fetchImpl={fetchImpl} visitId={visit.id} refreshKey={visit.version} />
+      ) : null}
       <div className="hh-button-row">
         {recordLink ? (
           <a

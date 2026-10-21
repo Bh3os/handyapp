@@ -11,6 +11,7 @@ import { CUSTOMERS_MODULE } from './customers/index.js'
 import { inboxModule } from './inbox/index.js'
 import { FINANCE_MODULE } from './finance/index.js'
 import { NOTIFICATIONS_MODULE } from './notifications/index.js'
+import { packetsModule } from './packets/index.js'
 import { photosModule } from './photos/index.js'
 import { propertiesModule } from './properties/index.js'
 import { QUEUE_MODULE } from './queue/index.js'
@@ -102,6 +103,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     capacityModule(),
     // TSK-0068: the SOP version pinned on each work package of a job, and the Owner's competent-review sign-off.
     sopsModule(deps.environment ? { environment: deps.environment } : {}),
+    // TSK-0069: the versioned job packet, what changed since each person viewed it, and its audited print and PDF.
+    packetsModule({ storage: deps.storage ?? null, accessCodes: (deps.accessCodeKey ?? null) !== null }),
     // TSK-0097: staff management (the staff list, role and capability grants, offboarding and re-enabling).
     staffModule(),
     // TSK-0098: the audit-log screen (Owner every entry, Office their own actions; retention shown, never deleted).

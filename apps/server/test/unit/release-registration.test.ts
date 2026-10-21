@@ -7,13 +7,14 @@ import { buildAutomations, RELEASE_RECORD_CHECKS, releaseFailureItem } from '../
 import { estimateReminderRecordCheck } from '../../src/modules/estimates/index.js'
 import { replyRecordCheck } from '../../src/modules/inbox/index.js'
 import { questionRecordCheck } from '../../src/modules/questions/index.js'
+import { appointmentReminderRecordCheck } from '../../src/modules/visits/index.js'
 import { createAutomationRegistry } from '../../src/platform/automation.js'
 import { createLogger } from '../../src/platform/logger.js'
 import { createProviders } from '../../src/providers/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
 
-describe('the notify.release registration (TSK-0050, TSK-0051, TSK-0060)', () => {
-  it('[HH-COM-05][HH-EST-14][HH-LEAD-06][T65] one registration; its record checks cover every released draft', () => {
+describe('the notify.release registration (TSK-0050, TSK-0051, TSK-0060, TSK-0067)', () => {
+  it('[HH-COM-05][HH-EST-14][HH-LEAD-06][HH-COM-11][T65] one registration; its record checks cover every released draft', () => {
     const sink = new Writable({ write: (_c, _e, done) => done() })
     const providers = createProviders(readProviderSettings({ HANDYHUB_ENV: 'ci' }), {
       logger: createLogger({ level: 'fatal' }, sink),
@@ -24,7 +25,9 @@ describe('the notify.release registration (TSK-0050, TSK-0051, TSK-0060)', () =>
     expect(createAutomationRegistry(automations).get('notify.release')).toBeDefined()
     // Estimate reminders (their version), staff replies (their project and contact), question reminders (their
     // question): each record type has exactly its own feature's check.
-    expect(Object.keys(RELEASE_RECORD_CHECKS).sort()).toEqual(['estimate_version', 'project', 'question'])
+    // TSK-0067 (HH-COM-11): appointment reminders (their visit).
+    expect(Object.keys(RELEASE_RECORD_CHECKS).sort()).toEqual(['estimate_version', 'project', 'question', 'visit'])
+    expect(RELEASE_RECORD_CHECKS['visit']).toBe(appointmentReminderRecordCheck)
     expect(RELEASE_RECORD_CHECKS['estimate_version']).toBe(estimateReminderRecordCheck)
     expect(RELEASE_RECORD_CHECKS['project']).toBe(replyRecordCheck)
     expect(RELEASE_RECORD_CHECKS['question']).toBe(questionRecordCheck)

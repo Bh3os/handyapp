@@ -50,8 +50,10 @@ export function customerInScope(column: string, scope: DataScope): Expression<Sq
 
 /**
  * `column` (a property ID column, for example `p.id`) lies inside the scope (TSK-0045, HH-CRM-02): staff with an `all`
- * scope reach every property; a list of projects reaches only the properties of those projects; anything else
- * (including a worker's `assigned` scope, while no visit assignment is recorded) reaches none.
+ * scope reach every property; a list of projects reaches only the properties of those projects; a worker's `assigned`
+ * scope (TSK-0069) reaches a property only while they hold an active confirmed reservation on a live visit there whose
+ * service day has not ended (the same window as jobInScope; the access-code reveal adds the visit date and the online
+ * check through the policy, T28); anything else reaches none.
  */
 export function propertyInScope(column: string, scope: DataScope): Expression<SqlBool> {
   switch (scope.kind) {
@@ -65,6 +67,39 @@ export function propertyInScope(column: string, scope: DataScope): Expression<Sq
             AND sp.id = ANY(${sql.val(ids)}::uuid[]))`
     }
     case 'assigned':
+      return UUID.test(scope.staffUserId)
+        ? sql<SqlBool>`EXISTS (SELECT 1 FROM work.reservations sr JOIN work.visits sv ON sv.id = sr.visit_id
+            WHERE sv.property_id = ${sql.ref(column)} AND sr.staff_user_id = ${scope.staffUserId}::uuid
+              AND sr.kind = 'confirmed' AND sr.ended_at IS NULL
+              AND sv.state IN ('confirmed', 'en_route', 'arrived')
+              AND now() < ((sv.local_date + 1)::timestamp AT TIME ZONE sv.time_zone))`
+        : sql<SqlBool>`false`
+    case 'own':
+    case 'none':
+      return sql<SqlBool>`false`
+  }
+}
+
+/**
+ * `column` (a job ID column, for example `j.id`) lies inside the scope (TSK-0069; HH-PKT-01, HH-DATA-08, OWN-DEC-40,
+ * OWN-DEC-121): staff with an `all` scope reach every job; a worker's `assigned` scope reaches a job only while they
+ * hold an active confirmed reservation on one of its live work visits (confirmed, on the way or arrived) and the
+ * visit's service day has not ended in the visit's zone. A reservation ended by a reassignment, a reschedule or a
+ * cancellation, or a visit completed, therefore loses the job on the very next request. Everything else reaches none.
+ */
+export function jobInScope(column: string, scope: DataScope): Expression<SqlBool> {
+  switch (scope.kind) {
+    case 'all':
+      return sql<SqlBool>`true`
+    case 'assigned':
+      return UUID.test(scope.staffUserId)
+        ? sql<SqlBool>`EXISTS (SELECT 1 FROM work.reservations sr JOIN work.visits sv ON sv.id = sr.visit_id
+            WHERE sv.job_id = ${sql.ref(column)} AND sr.staff_user_id = ${scope.staffUserId}::uuid
+              AND sr.kind = 'confirmed' AND sr.ended_at IS NULL
+              AND sv.state IN ('confirmed', 'en_route', 'arrived')
+              AND now() < ((sv.local_date + 1)::timestamp AT TIME ZONE sv.time_zone))`
+        : sql<SqlBool>`false`
+    case 'projects':
     case 'own':
     case 'none':
       return sql<SqlBool>`false`

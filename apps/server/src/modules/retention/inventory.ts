@@ -600,6 +600,23 @@ export const TABLES = {
     classes: ['request_details'],
     categories: [R, J, S],
   },
+  'work.job_packet_exports': {
+    holds: 'Every print and PDF export of a job packet: who, when, which version, the latest version then',
+    classes: ['logs_audit'],
+    categories: [J],
+  },
+  'work.job_packet_views': {
+    holds: 'Which job packet version a staff member viewed and when',
+    classes: ['staff_account'],
+    categories: [J],
+  },
+  'work.job_packets': {
+    holds:
+      'Versioned job packets: visits, team names, site-access and occupant details with sources, the accepted scope ' +
+      'without prices, SOP pins, blocking holds and their notes; never an access code or the address itself',
+    classes: ['request_details', 'scheduling', 'contact'],
+    categories: [J],
+  },
   'work.job_scope_snapshots': {
     holds: 'The accepted scope of a job, frozen at approval',
     classes: ['estimate_approval'],

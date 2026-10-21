@@ -25,6 +25,7 @@ import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
 import { propertyInScope } from '../../platform/data-scope.js'
 import { currentContext } from '../../platform/request-context.js'
 import type { Secret } from '../../providers/types.js'
+import { propertyVisitFacts } from '../packets/assignments.js'
 import { coverageOrUnknown } from '../requests/submit.js'
 import {
   ADDRESS_BODY,
@@ -92,13 +93,13 @@ const propertyExists: NonNullable<RouteDef['resource']> = async ({ req, db }) =>
 }
 
 /**
- * The visit facts a worker's reveal is decided on (T28, OWN-DEC-121, OWN-DEC-40): the worker's assignments on the
- * property's visits, each with its access window, and the visit date in the business time zone. No visit or visit
- * assignment is recorded yet (TSK-0061 builds visits, TSK-0062 their assignments), so a worker holds no assignment at
- * any property and the policy refuses the reveal (NOT_ASSIGNED). The Owner and Office need no facts.
+ * The visit facts a worker's reveal is decided on (T28, OWN-DEC-121, OWN-DEC-40): the worker's active confirmed
+ * reservations on live visits at the property, each with its access window, and the visit date in the business time
+ * zone (TSK-0069, packets/assignments.ts). A worker removed by a reassignment holds no assignment there any more and
+ * the policy refuses the reveal (NOT_ASSIGNED); another day is NOT_VISIT_DATE. The Owner and Office need no facts.
  */
-export async function visitAccessFacts(_db: Db | Tx, _propertyId: string, _actor: Actor): Promise<Resource> {
-  return { assignments: [] }
+export async function visitAccessFacts(db: Db | Tx, propertyId: string, actor: Actor): Promise<Resource> {
+  return propertyVisitFacts(db, propertyId, actor)
 }
 
 /** The record facts of a reveal: the code exists and is not removed, plus the visit facts. */
@@ -760,9 +761,9 @@ const revealCode = (deps: PropertiesDeps) =>
     summary: 'Reveal an access code',
     description:
       'Staff with access_code.reveal: the Owner; Office (PROPOSED cell); a worker only when assigned to a visit at ' +
-      'the property, on the visit date (business time zone), online (T28) - no visit assignment is recorded yet, so ' +
-      'every worker is refused. Returns the value once, with when the staff app hides it again; the reveal is ' +
-      'recorded and audited (who, when, which code; never the value). The response is never cached, never kept for ' +
+      'the property (an active confirmed reservation on a live visit there, TSK-0069), on the visit date (business ' +
+      'time zone), online (T28); every other worker is refused. Returns the value once, with when the staff app ' +
+      'hides it again; the reveal is recorded and audited (who, when, which code; never the value). The response is never cached, never kept for ' +
       'idempotency and never logged. A removed code is not found. NOT_CONFIGURED while ' +
       'ACCESS_CODE_ENCRYPTION_KEY is unset. PROPOSED limit: 30 reveals per staff member per hour.',
     permission: 'access_code.reveal',

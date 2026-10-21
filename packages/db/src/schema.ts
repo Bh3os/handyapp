@@ -1346,6 +1346,39 @@ export interface WorkHoldsTable {
   version: Generated<number>
 }
 
+export interface WorkJobPacketExportsTable {
+  id: Generated<string>
+  packet_id: string
+  job_id: string
+  version: number
+  latest_version: number
+  staff_user_id: string
+  format: string
+  request_id: string
+  exported_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface WorkJobPacketViewsTable {
+  id: Generated<string>
+  packet_id: string
+  job_id: string
+  version: number
+  staff_user_id: string
+  viewed_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface WorkJobPacketsTable {
+  id: Generated<string>
+  job_id: string
+  project_id: string
+  version: number
+  content: Json
+  content_sha256: string
+  changes: Json
+  critical: boolean
+  generated_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface WorkJobScopeSnapshotsTable {
   id: Generated<string>
   job_id: string
@@ -1695,6 +1728,9 @@ export interface Database {
   'privacy.retention_reviews': PrivacyRetentionReviewsTable
   'work.equipment': WorkEquipmentTable
   'work.holds': WorkHoldsTable
+  'work.job_packet_exports': WorkJobPacketExportsTable
+  'work.job_packet_views': WorkJobPacketViewsTable
+  'work.job_packets': WorkJobPacketsTable
   'work.job_scope_snapshots': WorkJobScopeSnapshotsTable
   'work.jobs': WorkJobsTable
   'work.reservation_flags': WorkReservationFlagsTable

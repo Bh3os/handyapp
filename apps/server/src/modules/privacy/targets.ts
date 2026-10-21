@@ -21,7 +21,9 @@
 //   request (with its questions and replies, visits and window offers, messages and their links), the review entry,
 //   the messages sent about the versions (the estimate-ready notice, a released reminder) and the audit entries stay
 //   and keep only references; open queue items about the versions are resolved and their waiting jobs cancelled, and a
-//   job or delivery that still names a version finds it gone and stops as stale.
+//   job or delivery that still names a version finds it gone and stops as stale. Job packets, their views and exports
+//   (TSK-0069) name a job, and an estimate with a job is protected evidence, so none goes with an estimate; the
+//   appointment reminders of the project's visits (TSK-0067) name the visit, not a version, and stay as they are.
 import type { Db, Tx } from '@handyhub/db'
 import { sql } from 'kysely'
 import { HOLD_CHECKS, NOT_RECORDED_CHECKS } from '../retention/schedule.js'

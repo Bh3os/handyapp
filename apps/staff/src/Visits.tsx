@@ -686,11 +686,14 @@ export function ProjectVisitsSection({
   locale,
   fetchImpl,
   projectId,
+  href,
 }: {
   t: T
   locale: StaffLocale
   fetchImpl: Fetch
   projectId: string
+  /** TSK-0069: links the job to its packet when given. */
+  href?: (to: string) => string
 }) {
   const ids = useId()
   const [data, setData] = useState<ProjectVisits | null | undefined>(undefined)
@@ -743,6 +746,12 @@ export function ProjectVisitsSection({
                 ? t('visits.jobExists')
                 : t('visits.jobScope', { n: data.job.scopeVersion })
               : t('visits.noJob')}
+            {data.job && href ? (
+              <>
+                {' '}
+                <a href={href(`/packets/${data.job.id}`)}>{t('visits.openPacket')}</a>
+              </>
+            ) : null}
           </dd>
         </div>
         {data.schedulingTask ? (

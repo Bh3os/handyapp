@@ -19,7 +19,7 @@ import {
 } from '@handyhub/domain'
 import { decide, type DataScope, type StaffActor } from '@handyhub/policy'
 import { ApiError } from '../../api/errors.js'
-import { projectInScope } from '../../platform/data-scope.js'
+import { jobInScope, projectInScope } from '../../platform/data-scope.js'
 
 type Reader = Db | Tx
 export type SopEnvironment = 'local' | 'ci' | 'staging' | 'production'
@@ -77,7 +77,8 @@ export async function workPackageSopView(
       'w.sop_pinned_at',
     ])
     .where('w.id', '=', workPackageId)
-    .where(projectInScope('w.project_id', scope))
+    // TSK-0069: an assigned worker reaches the packages of the job they are assigned to (jobInScope).
+    .where((eb) => eb.or([projectInScope('w.project_id', scope), jobInScope('w.job_id', scope)]))
     .executeTakeFirst()
   if (!wp) throw new ApiError('NOT_FOUND')
   // The record of the pinning (or of the NOT CONFIGURED outcome) that the package's state shows.

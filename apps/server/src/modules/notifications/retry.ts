@@ -21,6 +21,8 @@
 //   presents the same provider idempotency key. Other staff-released drafts are still a CONFLICT.
 // - TSK-0051 (HH-LEAD-06, HH-COM-02): a failed released question reminder is retried the same way (it waits for the
 //   contact hours again and is rechecked against its question at send time).
+// - TSK-0067 (HH-COM-11, OWN-DEC-107 "record delivery failures for staff"): so is a failed released appointment
+//   reminder (inside the contact hours, rechecked against its visit at send time).
 import { randomUUID } from 'node:crypto'
 import { sql } from 'kysely'
 import { ApiError } from '../../api/errors.js'
@@ -50,7 +52,8 @@ const retryDelivery: RouteDef = {
     'sends it, rechecking the automatic list, the template, consent and the record, under the same provider ' +
     'idempotency key, so a retry sends at most one message. A failed staff reply (TSK-0050) is released again the ' +
     'same way, at its release time (inside the contact hours while replies.contact_hours holds replies to them), and ' +
-    'so is a failed released question reminder (TSK-0051, inside the contact hours). A ' +
+    'so is a failed released question reminder (TSK-0051) or appointment reminder (TSK-0067), inside the contact ' +
+    'hours. A ' +
     'delivery that is not failed (queued, sent, suppressed), any other staff-released draft, a message no longer ' +
     'on the automatic list or a delivery without an open ' +
     'delivery issue is a CONFLICT; so is an uncertain provider outcome (fieldErrors code OUTCOME_UNKNOWN), which is ' +
@@ -195,8 +198,15 @@ const retryDelivery: RouteDef = {
   },
 }
 
-/** Staff-released messages whose failed delivery has a Retry: the staff reply and the question reminder (TSK-0051). */
-const RETRYABLE_RELEASED: ReadonlySet<string> = new Set([STAFF_REPLY_MESSAGE_KEY, 'reminder.unanswered_question'])
+/**
+ * Staff-released messages whose failed delivery has a Retry: the staff reply, the question reminder (TSK-0051) and the
+ * appointment reminder (TSK-0067, rechecked against its visit at send time).
+ */
+const RETRYABLE_RELEASED: ReadonlySet<string> = new Set([
+  STAFF_REPLY_MESSAGE_KEY,
+  'reminder.unanswered_question',
+  'reminder.appointment',
+])
 
 /** The scheduling declaration of `notify.release` (its senders are the worker's own; scheduling needs none). */
 const RELEASE_JOB = releaseAutomation({ email: null, sms: null })

@@ -731,7 +731,10 @@ const windowShape = (w: LocalWindow) => ({
 
 export type NoticeView = { messageKey: string; channel: string; state: string; errorCode: string | null }
 
-/** The deliveries recorded for records (window offers, visits), by record id. */
+/**
+ * The automatic notices recorded for records (window offers, visits), by record id. Staff-released drafts about the
+ * same records (TSK-0067 appointment reminders) are listed by their own panel, not here.
+ */
 export async function noticesOf(db: Reader, recordType: string, ids: readonly string[]) {
   const out = new Map<string, NoticeView[]>()
   if (ids.length === 0) return out
@@ -740,6 +743,7 @@ export async function noticesOf(db: Reader, recordType: string, ids: readonly st
     .select(['record_id', 'message_key', 'channel', 'state', 'error_code'])
     .where('record_type', '=', recordType)
     .where('record_id', 'in', [...ids])
+    .where('release', '=', 'automatic')
     .orderBy('seq')
     .execute()
   for (const r of rows) {

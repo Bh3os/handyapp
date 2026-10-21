@@ -15882,6 +15882,846 @@
         }
       }
     },
+    "/api/v1/staff/appointment-reminders/{deliveryId}/dismiss": {
+      "post": {
+        "operationId": "dismissAppointmentReminder",
+        "summary": "Dismiss an appointment reminder draft",
+        "description": "Staff with message.release_draft and visit.reschedule (Owner, Office). Dismisses one appointment reminder draft: it is cancelled as dismissed, kept with who dismissed it, and never sent (PROPOSED). A rescheduled visit still gets a reminder for its new window. A reminder that is not a draft is a CONFLICT (REMINDER_NOT_DRAFT). Returns the visit’s reminders.",
+        "tags": [
+          "visits"
+        ],
+        "parameters": [
+          {
+            "name": "deliveryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "visitId",
+                    "visitState",
+                    "cadence",
+                    "stoppedBy",
+                    "reminders"
+                  ],
+                  "properties": {
+                    "visitId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "visitState": {
+                      "type": "string"
+                    },
+                    "cadence": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "CONFIGURED",
+                            "NOT_CONFIGURED"
+                          ]
+                        },
+                        "proposed": {
+                          "type": "boolean"
+                        },
+                        "hoursBefore": {
+                          "type": "number"
+                        },
+                        "contactHoursOnly": {
+                          "type": "boolean"
+                        },
+                        "draftAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "stoppedBy": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "visit_canceled",
+                        "visit_rescheduled",
+                        "visit_en_route",
+                        "visit_arrived",
+                        "visit_completed",
+                        "visit_no_access",
+                        "visit_not_confirmed",
+                        "visit_started",
+                        "already_reminded",
+                        "details_changed",
+                        null
+                      ]
+                    },
+                    "reminders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "windowVersion",
+                          "current",
+                          "state",
+                          "channel",
+                          "reason",
+                          "content",
+                          "draftedAt",
+                          "releasedAt",
+                          "releasedBy",
+                          "sendAt",
+                          "cancelledAt",
+                          "cancelledBy",
+                          "actions"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "windowVersion": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "current": {
+                            "type": "boolean"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "draft",
+                              "queued",
+                              "sent",
+                              "delivered",
+                              "failed",
+                              "suppressed",
+                              "cancelled"
+                            ]
+                          },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "email",
+                              "sms"
+                            ]
+                          },
+                          "reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "content": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "visitWindow",
+                              "serviceAddress",
+                              "preparationSteps"
+                            ],
+                            "properties": {
+                              "visitWindow": {
+                                "type": "string"
+                              },
+                              "serviceAddress": {
+                                "type": "string"
+                              },
+                              "preparationSteps": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "draftedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "releasedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "releasedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "sendAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "cancelledAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "cancelledBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "system"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "actions": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "release",
+                              "dismiss"
+                            ],
+                            "properties": {
+                              "release": {
+                                "type": "boolean"
+                              },
+                              "dismiss": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.release_draft",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "appointment_reminder.dismiss",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/appointment-reminders.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/appointment-reminders/{deliveryId}/release": {
+      "post": {
+        "operationId": "releaseAppointmentReminder",
+        "summary": "Send an appointment reminder draft",
+        "description": "Staff with message.release_draft and visit.reschedule (Owner, Office). Releases one appointment reminder draft; it sends inside the daily contact hours (released outside them it waits for the next opening, HH-COM-09), through a send job that checks the visit, consent and the template again. Before releasing, under the visit lock: the visit must still be confirmed at the reminder’s window, before the window starts, with no reminder of it already sent, and the channel permitted. When one fails the draft is cancelled with that reason, kept, and the answer is CONFLICT naming it (fieldErrors[].field \"reminder\", code the reason). Changed address or preparation steps refresh the draft and answer CONFLICT (details_changed) for staff to review. A reminder that is not a draft is a CONFLICT (REMINDER_NOT_DRAFT). Returns the visit’s reminders.",
+        "tags": [
+          "visits"
+        ],
+        "parameters": [
+          {
+            "name": "deliveryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "visitId",
+                    "visitState",
+                    "cadence",
+                    "stoppedBy",
+                    "reminders"
+                  ],
+                  "properties": {
+                    "visitId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "visitState": {
+                      "type": "string"
+                    },
+                    "cadence": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "CONFIGURED",
+                            "NOT_CONFIGURED"
+                          ]
+                        },
+                        "proposed": {
+                          "type": "boolean"
+                        },
+                        "hoursBefore": {
+                          "type": "number"
+                        },
+                        "contactHoursOnly": {
+                          "type": "boolean"
+                        },
+                        "draftAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "stoppedBy": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "visit_canceled",
+                        "visit_rescheduled",
+                        "visit_en_route",
+                        "visit_arrived",
+                        "visit_completed",
+                        "visit_no_access",
+                        "visit_not_confirmed",
+                        "visit_started",
+                        "already_reminded",
+                        "details_changed",
+                        null
+                      ]
+                    },
+                    "reminders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "windowVersion",
+                          "current",
+                          "state",
+                          "channel",
+                          "reason",
+                          "content",
+                          "draftedAt",
+                          "releasedAt",
+                          "releasedBy",
+                          "sendAt",
+                          "cancelledAt",
+                          "cancelledBy",
+                          "actions"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "windowVersion": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "current": {
+                            "type": "boolean"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "draft",
+                              "queued",
+                              "sent",
+                              "delivered",
+                              "failed",
+                              "suppressed",
+                              "cancelled"
+                            ]
+                          },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "email",
+                              "sms"
+                            ]
+                          },
+                          "reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "content": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "visitWindow",
+                              "serviceAddress",
+                              "preparationSteps"
+                            ],
+                            "properties": {
+                              "visitWindow": {
+                                "type": "string"
+                              },
+                              "serviceAddress": {
+                                "type": "string"
+                              },
+                              "preparationSteps": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "draftedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "releasedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "releasedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "sendAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "cancelledAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "cancelledBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "system"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "actions": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "release",
+                              "dismiss"
+                            ],
+                            "properties": {
+                              "release": {
+                                "type": "boolean"
+                              },
+                              "dismiss": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.release_draft",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "appointment_reminder.release",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/appointment-reminders.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/audit-events": {
       "get": {
         "operationId": "listAuditEvents",
@@ -52774,6 +53614,2036 @@
         }
       }
     },
+    "/api/v1/staff/jobs/{jobId}/packet": {
+      "get": {
+        "operationId": "getJobPacket",
+        "summary": "The current job packet",
+        "description": "Staff with job.view_packet inside their scope: the Owner and Office; the Estimator (PROPOSED cell); a worker only while assigned to a live visit of the job (an active confirmed reservation, until the end of the service day; a removed worker is refused on the next request). The server first brings the packet up to date (a new version when its records changed). Answers the version, its first-generated, last-updated and checked times, whether it is the latest, \"What changed since you reviewed this?\" against the version the caller last viewed, and every section of HH-PKT-01 from stored records only (no price, never an access code: a code is revealed separately, online, on the visit date). What no record holds is marked, never filled in.",
+        "tags": [
+          "packets"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "job",
+                    "packet",
+                    "freshness",
+                    "review",
+                    "services",
+                    "visits",
+                    "site",
+                    "occupants",
+                    "scope",
+                    "evidence",
+                    "sop",
+                    "holds",
+                    "dependencies",
+                    "materials",
+                    "careNotes",
+                    "communication",
+                    "actions"
+                  ],
+                  "properties": {
+                    "job": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "projectId",
+                        "projectReference",
+                        "jobState"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "projectId": {
+                          "type": "string"
+                        },
+                        "projectReference": {
+                          "type": "string"
+                        },
+                        "jobState": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "packet": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "version",
+                        "contentSha256",
+                        "generatedAt",
+                        "critical",
+                        "changes"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "version": {
+                          "type": "integer"
+                        },
+                        "contentSha256": {
+                          "type": "string"
+                        },
+                        "generatedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "critical": {
+                          "type": "boolean"
+                        },
+                        "changes": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "section",
+                              "code",
+                              "critical",
+                              "ref",
+                              "from",
+                              "to"
+                            ],
+                            "properties": {
+                              "section": {
+                                "type": "string",
+                                "enum": [
+                                  "identity",
+                                  "schedule",
+                                  "assignment",
+                                  "site_access",
+                                  "occupants",
+                                  "scope",
+                                  "evidence",
+                                  "sop",
+                                  "holds",
+                                  "resources",
+                                  "dependencies"
+                                ]
+                              },
+                              "code": {
+                                "type": "string"
+                              },
+                              "critical": {
+                                "type": "boolean"
+                              },
+                              "ref": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "from": {
+                                "type": [
+                                  "string",
+                                  "integer",
+                                  "null"
+                                ]
+                              },
+                              "to": {
+                                "type": [
+                                  "string",
+                                  "integer",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "freshness": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "firstGeneratedAt",
+                        "lastUpdatedAt",
+                        "checkedAt",
+                        "latestVersion",
+                        "current"
+                      ],
+                      "properties": {
+                        "firstGeneratedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "lastUpdatedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "checkedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "latestVersion": {
+                          "type": "integer"
+                        },
+                        "current": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "review": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "lastViewed",
+                        "fromVersion",
+                        "changes",
+                        "critical"
+                      ],
+                      "properties": {
+                        "lastViewed": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "additionalProperties": false,
+                          "required": [
+                            "version",
+                            "viewedAt"
+                          ],
+                          "properties": {
+                            "version": {
+                              "type": "integer"
+                            },
+                            "viewedAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        },
+                        "fromVersion": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "changes": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "section",
+                              "code",
+                              "critical",
+                              "ref",
+                              "from",
+                              "to"
+                            ],
+                            "properties": {
+                              "section": {
+                                "type": "string",
+                                "enum": [
+                                  "identity",
+                                  "schedule",
+                                  "assignment",
+                                  "site_access",
+                                  "occupants",
+                                  "scope",
+                                  "evidence",
+                                  "sop",
+                                  "holds",
+                                  "resources",
+                                  "dependencies"
+                                ]
+                              },
+                              "code": {
+                                "type": "string"
+                              },
+                              "critical": {
+                                "type": "boolean"
+                              },
+                              "ref": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "from": {
+                                "type": [
+                                  "string",
+                                  "integer",
+                                  "null"
+                                ]
+                              },
+                              "to": {
+                                "type": [
+                                  "string",
+                                  "integer",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "critical": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "services": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "workPackageId",
+                          "serviceId",
+                          "serviceCode",
+                          "position",
+                          "state"
+                        ],
+                        "properties": {
+                          "workPackageId": {
+                            "type": "string"
+                          },
+                          "serviceId": {
+                            "type": "string"
+                          },
+                          "serviceCode": {
+                            "type": "string"
+                          },
+                          "position": {
+                            "type": "integer"
+                          },
+                          "state": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "visits": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "visitId",
+                          "number",
+                          "purpose",
+                          "state",
+                          "localDate",
+                          "windowStart",
+                          "windowEnd",
+                          "timeZone",
+                          "windowVersion",
+                          "team",
+                          "equipment",
+                          "requested"
+                        ],
+                        "properties": {
+                          "visitId": {
+                            "type": "string"
+                          },
+                          "number": {
+                            "type": "integer"
+                          },
+                          "purpose": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string"
+                          },
+                          "localDate": {
+                            "type": "string"
+                          },
+                          "windowStart": {
+                            "type": "string"
+                          },
+                          "windowEnd": {
+                            "type": "string"
+                          },
+                          "timeZone": {
+                            "type": "string"
+                          },
+                          "windowVersion": {
+                            "type": "integer"
+                          },
+                          "team": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "staffUserId",
+                                "name",
+                                "role"
+                              ],
+                              "properties": {
+                                "staffUserId": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "role": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "equipment": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "equipmentId",
+                                "name"
+                              ],
+                              "properties": {
+                                "equipmentId": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "requested": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "site": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "propertyId",
+                        "address",
+                        "addressVersion",
+                        "directionsUrl",
+                        "propertyType",
+                        "timeZone",
+                        "details",
+                        "accessCodes"
+                      ],
+                      "properties": {
+                        "propertyId": {
+                          "type": "string"
+                        },
+                        "address": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "additionalProperties": false,
+                          "required": [
+                            "street",
+                            "unit",
+                            "city",
+                            "state",
+                            "zip"
+                          ],
+                          "properties": {
+                            "street": {
+                              "type": "string"
+                            },
+                            "unit": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "city": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string"
+                            },
+                            "zip": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "addressVersion": {
+                          "type": "integer"
+                        },
+                        "directionsUrl": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "propertyType": {
+                          "type": "string"
+                        },
+                        "timeZone": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "detail",
+                              "value",
+                              "source",
+                              "confirmedAt"
+                            ],
+                            "properties": {
+                              "detail": {
+                                "type": "string"
+                              },
+                              "value": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "source": {
+                                "type": "string"
+                              },
+                              "confirmedAt": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "accessCodes": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "kind",
+                              "label",
+                              "confirmedAt"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "type": "string"
+                              },
+                              "label": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "confirmedAt": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "occupants": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "detail",
+                          "value",
+                          "source",
+                          "confirmedAt"
+                        ],
+                        "properties": {
+                          "detail": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "source": {
+                            "type": "string"
+                          },
+                          "confirmedAt": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "scope": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "snapshotId",
+                        "version",
+                        "source",
+                        "createdAt",
+                        "lines",
+                        "texts",
+                        "selectedOptions",
+                        "history"
+                      ],
+                      "properties": {
+                        "snapshotId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "version": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "source": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "createdAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "lines": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "position",
+                              "kind",
+                              "serviceCode",
+                              "description",
+                              "quantity",
+                              "unit"
+                            ],
+                            "properties": {
+                              "position": {
+                                "type": "integer"
+                              },
+                              "kind": {
+                                "type": "string"
+                              },
+                              "serviceCode": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "description": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "quantity": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "unit": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "texts": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "assumptions",
+                            "exclusions",
+                            "customerResponsibilities",
+                            "dependencies",
+                            "scheduleAssumptions"
+                          ],
+                          "properties": {
+                            "assumptions": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "exclusions": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "customerResponsibilities": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "dependencies": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "scheduleAssumptions": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "selectedOptions": {
+                          "type": "array",
+                          "items": {
+                            "type": "integer"
+                          }
+                        },
+                        "history": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "version",
+                              "source",
+                              "createdAt"
+                            ],
+                            "properties": {
+                              "version": {
+                                "type": "integer"
+                              },
+                              "source": {
+                                "type": "string"
+                              },
+                              "createdAt": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "evidence": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "photos"
+                      ],
+                      "properties": {
+                        "photos": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "uploadedAt",
+                              "uploaderKind",
+                              "url"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "uploadedAt": {
+                                "type": "string"
+                              },
+                              "uploaderKind": {
+                                "type": "string"
+                              },
+                              "url": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "sop": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "packages",
+                        "preWork",
+                        "completion"
+                      ],
+                      "properties": {
+                        "packages": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "workPackageId",
+                              "serviceId",
+                              "serviceCode",
+                              "state",
+                              "sopVersionId",
+                              "sopId",
+                              "version",
+                              "title",
+                              "reviewState",
+                              "spanishStatus",
+                              "contentSha256",
+                              "hazardSha256",
+                              "qualitySha256"
+                            ],
+                            "properties": {
+                              "workPackageId": {
+                                "type": "string"
+                              },
+                              "serviceId": {
+                                "type": "string"
+                              },
+                              "serviceCode": {
+                                "type": "string"
+                              },
+                              "state": {
+                                "type": "string",
+                                "enum": [
+                                  "pinned",
+                                  "not_configured"
+                                ]
+                              },
+                              "sopVersionId": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "sopId": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "version": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              },
+                              "title": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "reviewState": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "spanishStatus": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "contentSha256": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "hazardSha256": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "qualitySha256": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "preWork": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "workPackageId",
+                              "serviceCode",
+                              "stage",
+                              "itemId",
+                              "text",
+                              "evidence",
+                              "line"
+                            ],
+                            "properties": {
+                              "workPackageId": {
+                                "type": "string"
+                              },
+                              "serviceCode": {
+                                "type": "string"
+                              },
+                              "stage": {
+                                "type": "string"
+                              },
+                              "itemId": {
+                                "type": "string"
+                              },
+                              "text": {
+                                "type": "string"
+                              },
+                              "evidence": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "line": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "completion": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "workPackageId",
+                              "serviceCode",
+                              "stage",
+                              "itemId",
+                              "text",
+                              "evidence",
+                              "line"
+                            ],
+                            "properties": {
+                              "workPackageId": {
+                                "type": "string"
+                              },
+                              "serviceCode": {
+                                "type": "string"
+                              },
+                              "stage": {
+                                "type": "string"
+                              },
+                              "itemId": {
+                                "type": "string"
+                              },
+                              "text": {
+                                "type": "string"
+                              },
+                              "evidence": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "line": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "holds": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "holdId",
+                          "kind",
+                          "category",
+                          "scopeType",
+                          "state",
+                          "note",
+                          "source",
+                          "raisedAt"
+                        ],
+                        "properties": {
+                          "holdId": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "category": {
+                            "type": "string"
+                          },
+                          "scopeType": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string"
+                          },
+                          "note": {
+                            "type": "string"
+                          },
+                          "source": {
+                            "type": "string"
+                          },
+                          "raisedAt": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "dependencies": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "approvedAt",
+                        "deposit",
+                        "jobState",
+                        "blockingHolds",
+                        "liveVisits"
+                      ],
+                      "properties": {
+                        "approvedAt": {
+                          "type": "string"
+                        },
+                        "deposit": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "additionalProperties": false,
+                          "required": [
+                            "required",
+                            "state"
+                          ],
+                          "properties": {
+                            "required": {
+                              "type": "boolean"
+                            },
+                            "state": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "jobState": {
+                          "type": "string"
+                        },
+                        "blockingHolds": {
+                          "type": "integer"
+                        },
+                        "liveVisits": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "materials": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "not_recorded"
+                          ]
+                        }
+                      }
+                    },
+                    "careNotes": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "none_approved"
+                          ]
+                        }
+                      }
+                    },
+                    "communication": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "siteContact",
+                        "escalationContact",
+                        "stopWork"
+                      ],
+                      "properties": {
+                        "siteContact": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "additionalProperties": false,
+                          "required": [
+                            "detail",
+                            "value",
+                            "source",
+                            "confirmedAt"
+                          ],
+                          "properties": {
+                            "detail": {
+                              "type": "string"
+                            },
+                            "value": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "source": {
+                              "type": "string"
+                            },
+                            "confirmedAt": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "escalationContact": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state"
+                          ],
+                          "properties": {
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "not_configured"
+                              ]
+                            }
+                          }
+                        },
+                        "stopWork": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "workPackageId",
+                              "serviceCode",
+                              "items"
+                            ],
+                            "properties": {
+                              "workPackageId": {
+                                "type": "string"
+                              },
+                              "serviceCode": {
+                                "type": "string"
+                              },
+                              "items": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "text",
+                                    "line"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "text": {
+                                      "type": "string"
+                                    },
+                                    "line": {
+                                      "type": [
+                                        "integer",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "revealAccessCodes"
+                      ],
+                      "properties": {
+                        "revealAccessCodes": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job.view_packet",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/job-packets.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/jobs/{jobId}/packet/exports": {
+      "post": {
+        "operationId": "recordJobPacketPrint",
+        "summary": "Record a print of a packet version",
+        "description": "Staff with job.view_packet inside their scope (as for the packet; PROPOSED: printing uses the view permission). Records and audits the print of the given version (who, when, which version, the latest version then); the staff app then prints its print view, which carries the version and \"Printed <time>; check the app for changes\" and never an access code. An older version is recorded as stale.",
+        "tags": [
+          "packets"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "version",
+                  "format"
+                ],
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "print"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "exportId",
+                    "version",
+                    "latestVersion",
+                    "current",
+                    "format",
+                    "exportedAt"
+                  ],
+                  "properties": {
+                    "exportId": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "latestVersion": {
+                      "type": "integer"
+                    },
+                    "current": {
+                      "type": "boolean"
+                    },
+                    "format": {
+                      "type": "string"
+                    },
+                    "exportedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job.view_packet",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "job_packet.export",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/job-packets.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/jobs/{jobId}/packet/pdf": {
+      "get": {
+        "operationId": "getJobPacketPdf",
+        "summary": "The printable PDF of a packet version",
+        "description": "Staff with job.view_packet inside their scope (as for the packet). The PDF of the given version (default: the latest), in the caller's interface language: every page says \"Printed <time>; check the app for changes\" with the version, an older version says it is not the latest, and it never contains an access code, a code label, a price or a photo link. Each download is recorded and audited as an export (who, when, which version). Never cached. PROPOSED limit: 60 per staff member per hour.",
+        "tags": [
+          "packets"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job.view_packet",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "job-packet-pdf",
+            "limit": 60,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/job-packets.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/jobs/{jobId}/packet/versions": {
+      "get": {
+        "operationId": "listJobPacketVersions",
+        "summary": "The versions of a job packet",
+        "description": "Staff with job.view_packet inside their scope (as for the packet). Every version, newest first, with when it was generated, what changed against the version before it and whether a change was critical (scope, holds, SOP version, assignment, site access). Versions are never changed or deleted.",
+        "tags": [
+          "packets"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "versions"
+                  ],
+                  "properties": {
+                    "versions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "version",
+                          "generatedAt",
+                          "critical",
+                          "changes"
+                        ],
+                        "properties": {
+                          "version": {
+                            "type": "integer"
+                          },
+                          "generatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "critical": {
+                            "type": "boolean"
+                          },
+                          "changes": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "section",
+                                "code",
+                                "critical",
+                                "ref",
+                                "from",
+                                "to"
+                              ],
+                              "properties": {
+                                "section": {
+                                  "type": "string",
+                                  "enum": [
+                                    "identity",
+                                    "schedule",
+                                    "assignment",
+                                    "site_access",
+                                    "occupants",
+                                    "scope",
+                                    "evidence",
+                                    "sop",
+                                    "holds",
+                                    "resources",
+                                    "dependencies"
+                                  ]
+                                },
+                                "code": {
+                                  "type": "string"
+                                },
+                                "critical": {
+                                  "type": "boolean"
+                                },
+                                "ref": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "from": {
+                                  "type": [
+                                    "string",
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "to": {
+                                  "type": [
+                                    "string",
+                                    "integer",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job.view_packet",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/job-packets.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/jobs/{jobId}/packet/views": {
+      "post": {
+        "operationId": "recordJobPacketView",
+        "summary": "Record that the caller viewed a packet version",
+        "description": "Staff with job.view_packet inside their scope (as for the packet). Records that the caller viewed the given version (a version the job has), so the packet later shows what changed since then. Personal: it records the caller only. A view is not an acknowledgment: it releases nothing and passes no gate. Audited.",
+        "tags": [
+          "packets"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "version"
+                ],
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "version",
+                    "viewedAt"
+                  ],
+                  "properties": {
+                    "version": {
+                      "type": "integer"
+                    },
+                    "viewedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job.view_packet",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "job_packet.view",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/job-packets.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/members": {
       "get": {
         "operationId": "listStaffMembers",
@@ -56617,7 +59487,7 @@
       "post": {
         "operationId": "retryMessageDelivery",
         "summary": "Retry a failed message",
-        "description": "The Retry action of a delivery_failed queue item (HH-INT-20, HH-COM-02). Queues a failed delivery of an automatic message again, only when it never reached the provider: a new job of the message’s own automation sends it, rechecking the automatic list, the template, consent and the record, under the same provider idempotency key, so a retry sends at most one message. A failed staff reply (TSK-0050) is released again the same way, at its release time (inside the contact hours while replies.contact_hours holds replies to them), and so is a failed released question reminder (TSK-0051, inside the contact hours). A delivery that is not failed (queued, sent, suppressed), any other staff-released draft, a message no longer on the automatic list or a delivery without an open delivery issue is a CONFLICT; so is an uncertain provider outcome (fieldErrors code OUTCOME_UNKNOWN), which is reconciled against the provider instead (HH-ARC-09). A re-run that sends nothing leaves the delivery failed with its reason. Staff with message.release_draft; an Estimator only for deliveries of records they are responsible for. The queue item resolves once the send is handed over.",
+        "description": "The Retry action of a delivery_failed queue item (HH-INT-20, HH-COM-02). Queues a failed delivery of an automatic message again, only when it never reached the provider: a new job of the message’s own automation sends it, rechecking the automatic list, the template, consent and the record, under the same provider idempotency key, so a retry sends at most one message. A failed staff reply (TSK-0050) is released again the same way, at its release time (inside the contact hours while replies.contact_hours holds replies to them), and so is a failed released question reminder (TSK-0051) or appointment reminder (TSK-0067), inside the contact hours. A delivery that is not failed (queued, sent, suppressed), any other staff-released draft, a message no longer on the automatic list or a delivery without an open delivery issue is a CONFLICT; so is an uncertain provider outcome (fieldErrors code OUTCOME_UNKNOWN), which is reconciled against the provider instead (HH-ARC-09). A re-run that sends nothing leaves the delivery failed with its reason. Staff with message.release_draft; an Estimator only for deliveries of records they are responsible for. The queue item resolves once the send is handed over.",
         "tags": [
           "notifications"
         ],
@@ -56785,6 +59655,207 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/request-receipt.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/my/job-packets": {
+      "get": {
+        "operationId": "listMyJobPackets",
+        "summary": "The caller's assigned jobs and their packets",
+        "description": "Staff with schedule.view_my_day: only the caller's own assignments (active confirmed reservations on live work visits whose service day has not ended), grouped by job, with the packet's current version (brought up to date first), the version the caller last viewed and whether it changed since then, critically or not. Nothing about another person's assignments.",
+        "tags": [
+          "packets"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "packets"
+                  ],
+                  "properties": {
+                    "packets": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "jobId",
+                          "projectReference",
+                          "version",
+                          "lastViewedVersion",
+                          "changedSinceViewed",
+                          "criticalSinceViewed",
+                          "visits"
+                        ],
+                        "properties": {
+                          "jobId": {
+                            "type": "string"
+                          },
+                          "projectReference": {
+                            "type": "string"
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "lastViewedVersion": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "changedSinceViewed": {
+                            "type": "boolean"
+                          },
+                          "criticalSinceViewed": {
+                            "type": "boolean"
+                          },
+                          "visits": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "visitId",
+                                "number",
+                                "purpose",
+                                "state",
+                                "localDate",
+                                "windowStart",
+                                "windowEnd",
+                                "timeZone",
+                                "role"
+                              ],
+                              "properties": {
+                                "visitId": {
+                                  "type": "string"
+                                },
+                                "number": {
+                                  "type": "integer"
+                                },
+                                "purpose": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string"
+                                },
+                                "localDate": {
+                                  "type": "string"
+                                },
+                                "windowStart": {
+                                  "type": "string"
+                                },
+                                "windowEnd": {
+                                  "type": "string"
+                                },
+                                "timeZone": {
+                                  "type": "string"
+                                },
+                                "role": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "schedule.view_my_day",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/job-packets.test.ts"
         }
       }
     },
@@ -66230,7 +69301,7 @@
       "post": {
         "operationId": "revealAccessCode",
         "summary": "Reveal an access code",
-        "description": "Staff with access_code.reveal: the Owner; Office (PROPOSED cell); a worker only when assigned to a visit at the property, on the visit date (business time zone), online (T28) - no visit assignment is recorded yet, so every worker is refused. Returns the value once, with when the staff app hides it again; the reveal is recorded and audited (who, when, which code; never the value). The response is never cached, never kept for idempotency and never logged. A removed code is not found. NOT_CONFIGURED while ACCESS_CODE_ENCRYPTION_KEY is unset. PROPOSED limit: 30 reveals per staff member per hour.",
+        "description": "Staff with access_code.reveal: the Owner; Office (PROPOSED cell); a worker only when assigned to a visit at the property (an active confirmed reservation on a live visit there, TSK-0069), on the visit date (business time zone), online (T28); every other worker is refused. Returns the value once, with when the staff app hides it again; the reveal is recorded and audited (who, when, which code; never the value). The response is never cached, never kept for idempotency and never logged. A removed code is not found. NOT_CONFIGURED while ACCESS_CODE_ENCRYPTION_KEY is unset. PROPOSED limit: 30 reveals per staff member per hour.",
         "tags": [
           "properties"
         ],
@@ -67430,6 +70501,7 @@
                 "review_hold",
                 "safety_hold",
                 "visit_change_request",
+                "appointment_reminder",
                 "delivery_failed",
                 "case_open",
                 "estimate_to_write",
@@ -67557,6 +70629,7 @@
                               "review_hold",
                               "safety_hold",
                               "visit_change_request",
+                              "appointment_reminder",
                               "delivery_failed",
                               "case_open",
                               "estimate_to_write",
@@ -67831,6 +70904,7 @@
                           "review_hold",
                           "safety_hold",
                           "visit_change_request",
+                          "appointment_reminder",
                           "delivery_failed",
                           "case_open",
                           "estimate_to_write",
@@ -67977,6 +71051,7 @@
                 "review_hold",
                 "safety_hold",
                 "visit_change_request",
+                "appointment_reminder",
                 "delivery_failed",
                 "case_open",
                 "estimate_to_write",
@@ -68104,6 +71179,7 @@
                               "review_hold",
                               "safety_hold",
                               "visit_change_request",
+                              "appointment_reminder",
                               "delivery_failed",
                               "case_open",
                               "estimate_to_write",
@@ -68378,6 +71454,7 @@
                           "review_hold",
                           "safety_hold",
                           "visit_change_request",
+                          "appointment_reminder",
                           "delivery_failed",
                           "case_open",
                           "estimate_to_write",
@@ -88301,6 +91378,375 @@
         }
       }
     },
+    "/api/v1/staff/visits/{visitId}/reminders": {
+      "get": {
+        "operationId": "listAppointmentReminders",
+        "summary": "Reminders of a visit",
+        "description": "Staff with schedule.view_board (Owner, Office, Estimator). The appointment reminders of one visit (HH-COM-11): the configured interval (reminders.cadences.appointment, before the arrival window starts) and when the current window’s draft is due, whether a stop rule applies now (canceled, rescheduled, under way, the window started), and every reminder drafted: its window version, its content (date and arrival window, address, preparation steps), state, channel, the reason it stopped or was not sent, who released or dismissed it, when a released one sends, and whether the caller may release or dismiss it now. The destination is not shown.",
+        "tags": [
+          "visits"
+        ],
+        "parameters": [
+          {
+            "name": "visitId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "visitId",
+                    "visitState",
+                    "cadence",
+                    "stoppedBy",
+                    "reminders"
+                  ],
+                  "properties": {
+                    "visitId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "visitState": {
+                      "type": "string"
+                    },
+                    "cadence": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "CONFIGURED",
+                            "NOT_CONFIGURED"
+                          ]
+                        },
+                        "proposed": {
+                          "type": "boolean"
+                        },
+                        "hoursBefore": {
+                          "type": "number"
+                        },
+                        "contactHoursOnly": {
+                          "type": "boolean"
+                        },
+                        "draftAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "stoppedBy": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "visit_canceled",
+                        "visit_rescheduled",
+                        "visit_en_route",
+                        "visit_arrived",
+                        "visit_completed",
+                        "visit_no_access",
+                        "visit_not_confirmed",
+                        "visit_started",
+                        "already_reminded",
+                        "details_changed",
+                        null
+                      ]
+                    },
+                    "reminders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "windowVersion",
+                          "current",
+                          "state",
+                          "channel",
+                          "reason",
+                          "content",
+                          "draftedAt",
+                          "releasedAt",
+                          "releasedBy",
+                          "sendAt",
+                          "cancelledAt",
+                          "cancelledBy",
+                          "actions"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "windowVersion": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "current": {
+                            "type": "boolean"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "draft",
+                              "queued",
+                              "sent",
+                              "delivered",
+                              "failed",
+                              "suppressed",
+                              "cancelled"
+                            ]
+                          },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "email",
+                              "sms"
+                            ]
+                          },
+                          "reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "content": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "visitWindow",
+                              "serviceAddress",
+                              "preparationSteps"
+                            ],
+                            "properties": {
+                              "visitWindow": {
+                                "type": "string"
+                              },
+                              "serviceAddress": {
+                                "type": "string"
+                              },
+                              "preparationSteps": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "draftedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "releasedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "releasedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "sendAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "cancelledAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "cancelledBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "system"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "actions": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "release",
+                              "dismiss"
+                            ],
+                            "properties": {
+                              "release": {
+                                "type": "boolean"
+                              },
+                              "dismiss": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "schedule.view_board",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/appointment-reminders.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/visits/{visitId}/window": {
       "post": {
         "operationId": "changeVisitWindow",
@@ -91568,7 +95014,7 @@
       "get": {
         "operationId": "getWorkPackageSop",
         "summary": "The SOP version pinned on a work package",
-        "description": "Staff with job.view_packet, inside their record scope (else 404). The exact SOP version pinned on the work package: the six checklist stages in order, every item verbatim with its vault line, the hazard checks (HOLD, GATE and FLAG controls and the stop-work section), the quality checks (stage 4), the open questions, the content, hazard and quality digests, the review state and the sign-off. NOT CONFIGURED (no SOP version when the job was created) has no checklist and blocks readiness; production also needs the sign-off. Staff only.",
+        "description": "Staff with job.view_packet, inside their record scope (else 404; a worker: assigned to the job, TSK-0069). The exact SOP version pinned on the work package: the six checklist stages in order, every item verbatim with its vault line, the hazard checks (HOLD, GATE and FLAG controls and the stop-work section), the quality checks (stage 4), the open questions, the content, hazard and quality digests, the review state and the sign-off. NOT CONFIGURED (no SOP version when the job was created) has no checklist and blocks readiness; production also needs the sign-off. Staff only.",
         "tags": [
           "sops"
         ],

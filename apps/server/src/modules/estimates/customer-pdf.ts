@@ -248,7 +248,12 @@ export async function renderCustomerPdf(
  */
 export async function renderPdfModel(
   model: CustomerPdfModel,
-  meta: { readonly author: string | null; readonly createdAt: Date },
+  meta: {
+    readonly author: string | null
+    readonly createdAt: Date
+    /** The page label in the footer; default the customer catalog's (TSK-0069: the staff packet PDF gives its own). */
+    readonly pageLabel?: (page: number, pages: number) => string
+  },
   options: { compress?: boolean } = {},
 ): Promise<Buffer> {
   const doc = new PDFDocument({
@@ -385,7 +390,9 @@ export async function renderPdfModel(
       .fontSize(SMALL)
       .fillColor('#444444')
       .text(
-        pdfText(`${model.footer} ${t('estimatePdf.page', { page: i + 1, pages: range.count })}`),
+        pdfText(
+          `${model.footer} ${meta.pageLabel ? meta.pageLabel(i + 1, range.count) : t('estimatePdf.page', { page: i + 1, pages: range.count })}`,
+        ),
         left,
         PAGE.height - PAGE.margin + 12,
         { width: CONTENT_WIDTH, align: 'center', lineBreak: false },

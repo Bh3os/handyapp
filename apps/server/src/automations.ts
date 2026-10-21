@@ -31,6 +31,9 @@ import { retentionReviewAutomation } from './modules/retention/index.js'
 import {
   appointmentChangedAutomation,
   appointmentConfirmedAutomation,
+  appointmentReminderAutomations,
+  appointmentReminderFailureItem,
+  appointmentReminderRecordCheck,
   estimateVisitConfirmedAutomation,
   estimateVisitOptionsAutomation,
   scheduleChangeStaffAutomation,
@@ -55,18 +58,24 @@ export type AutomationDeps = LinkEmailDeps & {
 /**
  * The send-time record checks of the one `notify.release` registration (HH-COM-05), by the record type a released
  * draft is about: an estimate reminder's version (TSK-0060, HH-EST-14), a staff reply's project and contact
- * (TSK-0050) and a question reminder's question (TSK-0051, HH-LEAD-06). A feature whose released drafts need a check
- * adds its record type here, never a second registration.
+ * (TSK-0050), a question reminder's question (TSK-0051, HH-LEAD-06) and an appointment reminder's visit (TSK-0067,
+ * HH-COM-11). A feature whose released drafts need a check adds its record type here, never a second registration.
  */
 export const RELEASE_RECORD_CHECKS: RecordChecks = {
   estimate_version: estimateReminderRecordCheck,
   project: replyRecordCheck,
   question: questionRecordCheck,
+  visit: appointmentReminderRecordCheck,
 }
 
-/** The delivery issue of a failed released draft: a staff reply's (TSK-0050) or a question reminder's (TSK-0051). */
+/**
+ * The delivery issue of a failed released draft: a staff reply's (TSK-0050), a question reminder's (TSK-0051) or an
+ * appointment reminder's (TSK-0067).
+ */
 export const releaseFailureItem: ReleaseFailureItem = async (tx, row) =>
-  (await replyFailureItem(tx, row)) ?? (await questionReminderFailureItem(tx, row))
+  (await replyFailureItem(tx, row)) ??
+  (await questionReminderFailureItem(tx, row)) ??
+  (await appointmentReminderFailureItem(tx, row))
 
 export function buildAutomations(deps: AutomationDeps): Automation[] {
   return [
@@ -149,6 +158,9 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
       providers: { email: deps.providers.email, sms: null },
       staffAppUrl: deps.staffAppUrl,
     }),
+    // TSK-0067: the appointment reminder draft of each confirmed visit's window, at the configured interval before it
+    // (staff-released, never automatic); its send-time check is the visit entry of RELEASE_RECORD_CHECKS.
+    ...appointmentReminderAutomations({ publicSiteUrl: deps.publicSiteUrl }),
     // TSK-0051: the automatic question notice and staff reply notice, the reminder clock from the notice's successful
     // send, the reminder drafts and the "may close" queue item.
     ...questionAutomations({
