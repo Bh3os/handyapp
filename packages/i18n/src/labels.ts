@@ -219,6 +219,7 @@ export const LABEL_FAMILIES = {
     'legal.website_terms',
     'legal.sms_disclosure',
     'legal.estimate_terms',
+    'retention.audit_log',
     'ai.module',
   ],
   /** Staff qualification of a request (TSK-0042; HH-LEAD-02). */
@@ -458,6 +459,40 @@ export const LABEL_FAMILIES = {
   staffCapability: ['collect'],
   /** Staff account states (ENT-StaffUser: invited, active, disabled). */
   staffStatus: ['invited', 'active', 'disabled'],
+  /**
+   * The areas of audit actions (TSK-0098; HH-SEC-06): the part of an action code before its first dot, as the
+   * modules record them. An area not listed here is shown by its code.
+   */
+  auditArea: [
+    'account_offer',
+    'automation',
+    'contact_verification',
+    'coverage',
+    'customer_account',
+    'customer_session',
+    'equipment',
+    'estimate',
+    'estimate_document',
+    'hold',
+    'incident',
+    'job_hold',
+    'message',
+    'notification',
+    'photo',
+    'project_access',
+    'queue',
+    'request',
+    'request_draft',
+    'security',
+    'sms',
+    'staff',
+    'staff_link',
+    'visit',
+  ],
+  /** The result of an audited action (ENT-AuditEvent; platform.audit_events.result). */
+  auditResult: ['succeeded', 'denied', 'failed'],
+  /** Who performed an audited action, when it was not a staff member (ENT-AuditEvent; actor_kind). */
+  auditActorKind: ['staff', 'customer', 'guest', 'system'],
   /**
    * Why the server refused a staff-management change (TSK-0097; apps/server/src/modules/staff/members.ts), and the
    * error codes shown when no field is named.

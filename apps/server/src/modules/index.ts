@@ -13,6 +13,7 @@ import { QUEUE_MODULE } from './queue/index.js'
 import { requestsModule } from './requests/index.js'
 import { accessModule } from './access/index.js'
 import { accountsModule } from './accounts/index.js'
+import { auditModule } from './audit/index.js'
 import { capacityModule } from './capacity/index.js'
 import { portalModule } from './portal/index.js'
 import { SITE_MODULE } from './site/index.js'
@@ -81,6 +82,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     capacityModule(),
     // TSK-0097: staff management (the staff list, role and capability grants, offboarding and re-enabling).
     staffModule(),
+    // TSK-0098: the audit-log screen (Owner every entry, Office their own actions; retention shown, never deleted).
+    auditModule(),
   ]
 }
 

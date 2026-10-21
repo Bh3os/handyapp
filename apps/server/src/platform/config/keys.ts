@@ -190,6 +190,14 @@ export const CONFIG_KEYS = {
   // recording it is the owner's legal-document sign-off (OQ-TERMS-OWNER-APPROVAL), and the customer view shows its
   // wording only while the recorded content hash matches.
   'legal.estimate_terms': legalDocument,
+  // TSK-0098 (HH-SEC-06, OWN-DEC-142, OWN-DEC-70): how long audit records are kept (7 years), then the owner's
+  // deletion-review queue. Automatic deletion is not a value this shape accepts, and holds always keep records.
+  'retention.audit_log': shape({
+    years: int(1, 100),
+    afterPeriod: exactly('owner_deletion_review'),
+    automaticDeletion: exactly(false),
+    holdsKeepRecords: exactly(true),
+  }),
   // RULE-AI-WAVE2: only `false` is a valid value; the database refuses anything else as well.
   'ai.module': shape({ enabled: exactly(false) }),
 } as const satisfies Record<string, Parser<unknown>>
