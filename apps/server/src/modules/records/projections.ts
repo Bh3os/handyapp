@@ -7,6 +7,14 @@
 // Entities with no customer view below are internal as a whole until a task declares one from its requirement: the
 // project access grant itself (its nonce, token hash, contact and revocation are never sent; a customer only learns
 // the reference of the project it opens), customer and account records, documents, invoices and cases.
+import {
+  CUSTOMER_NEXT_ACTIONS,
+  CUSTOMER_SITUATIONS,
+  CUSTOMER_STEPS,
+  CUSTOMER_TIMELINE_KINDS,
+  WAITING_ON,
+  type CustomerStatus,
+} from '@handyhub/domain'
 import type { JsonSchema } from '../../api/route.js'
 
 /** The entities of TSK-0037 (ENT-*). */
@@ -160,7 +168,124 @@ export const CUSTOMER_PHOTO = customerView(
   }),
 )
 
+// The project workspace frame (TSK-0038; HH-PORT-02, HH-PORT-03, HH-PORT-06, HH-ARC-10). Codes only: the portal
+// holds the English words. Customer text is limited to what staff wrote for the customer (the site-visit explanation,
+// OWN-DEC-99) and the Not a Fit decision in the owner's wording (OWN-DEC-100).
+const DATE = { type: 'string', format: 'date-time' } as const
+const enumOf = (values: readonly string[]) => ({ type: 'string', enum: [...values] }) as const
+const object = (fields: Fields): JsonSchema => ({
+  type: 'object',
+  additionalProperties: false,
+  required: Object.keys(fields),
+  properties: fields,
+})
+const STATUS_FIELDS = {
+  situation: enumOf(CUSTOMER_SITUATIONS),
+  step: enumOf(CUSTOMER_STEPS),
+  waitingOn: enumOf(WAITING_ON),
+  nextAction: enumOf(CUSTOMER_NEXT_ACTIONS),
+  since: DATE,
+} as const
+type StatusRecord = CustomerStatus & { since: Date }
+const status = (s: StatusRecord) => ({
+  situation: s.situation,
+  step: s.step,
+  waitingOn: s.waitingOn,
+  nextAction: s.nextAction,
+  since: s.since.toISOString(),
+})
+
+/** One project of the caller's scope in the projects list: reference, services and status (TSK-0038). */
+export const PROJECT_SUMMARY = customerView(
+  'project.summary',
+  'Project',
+  {
+    reference: STRING,
+    services: { type: 'array', items: STRING },
+    notSure: { type: 'boolean' },
+    submittedAt: DATE,
+    status: object(STATUS_FIELDS),
+  },
+  (p: { reference: string; services: string[]; notSure: boolean; submittedAt: Date; status: StatusRecord }) => ({
+    reference: p.reference,
+    services: [...p.services],
+    notSure: p.notSure,
+    submittedAt: p.submittedAt.toISOString(),
+    status: status(p.status),
+  }),
+)
+
+/** The projects list (/portal): every project of the caller's scope, and when to refresh it (HH-ARC-10). */
+export const PROJECT_LIST = customerView(
+  'project.list',
+  'Project',
+  {
+    projects: { type: 'array', items: PROJECT_SUMMARY.schema },
+    refreshedAt: DATE,
+    refreshSeconds: { type: 'integer', minimum: 0 },
+  },
+  (l: { projects: Parameters<typeof PROJECT_SUMMARY.project>[0][]; refreshedAt: Date; refreshSeconds: number }) => ({
+    projects: l.projects.map((p) => PROJECT_SUMMARY.project(p)),
+    refreshedAt: l.refreshedAt.toISOString(),
+    refreshSeconds: l.refreshSeconds,
+  }),
+)
+
+const TIMELINE_ENTRY = object({
+  kind: enumOf(CUSTOMER_TIMELINE_KINDS),
+  at: DATE,
+  text: { type: ['string', 'null'] },
+})
+type TimelineRecord = { kind: string; at: Date; text: string | null }
+const entry = (e: TimelineRecord) => ({ kind: e.kind, at: e.at.toISOString(), text: e.text })
+
+/** The project Overview (TSK-0038): status, one next action, the filtered timeline, appointment and payment summary. */
+export const PROJECT_OVERVIEW = customerView(
+  'project.overview',
+  'Project',
+  {
+    reference: STRING,
+    services: { type: 'array', items: STRING },
+    notSure: { type: 'boolean' },
+    submittedAt: DATE,
+    status: object({ ...STATUS_FIELDS, text: { type: ['string', 'null'] } }),
+    timeline: { type: 'array', items: TIMELINE_ENTRY },
+    // Nothing is confirmed until visits exist (TSK-0061); the slot is explicit so "none" is never a guess.
+    appointment: { type: 'null' },
+    // Shown beside the status, never merged into it (HH-PORT-03): no estimate, deposit or invoice exists yet.
+    payment: object({ state: enumOf(['none']) }),
+    refreshedAt: DATE,
+    refreshSeconds: { type: 'integer', minimum: 0 },
+  },
+  (o: {
+    reference: string
+    services: string[]
+    notSure: boolean
+    submittedAt: Date
+    status: StatusRecord & { text: string | null }
+    timeline: TimelineRecord[]
+    appointment: null
+    payment: { state: 'none' }
+    refreshedAt: Date
+    refreshSeconds: number
+  }) => ({
+    reference: o.reference,
+    services: [...o.services],
+    notSure: o.notSure,
+    submittedAt: o.submittedAt.toISOString(),
+    status: { ...status(o.status), text: o.status.text },
+    timeline: o.timeline.map(entry),
+    appointment: null,
+    payment: { state: o.payment.state },
+    refreshedAt: o.refreshedAt.toISOString(),
+    refreshSeconds: o.refreshSeconds,
+  }),
+)
+
 /** Every customer view, by name. */
 export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
-  [PROJECT_REFERENCE, PROJECT_GLANCE, CUSTOMER_PHOTO].map((v) => [v.name, v as CustomerView<never>]),
+  [PROJECT_REFERENCE, PROJECT_GLANCE, CUSTOMER_PHOTO, PROJECT_SUMMARY, PROJECT_LIST, PROJECT_OVERVIEW].map((v) => [
+    v.name,
+    v as CustomerView<never>,
+  ]),
 )

@@ -183,6 +183,7 @@ export const LABEL_FAMILIES = {
     'business.public_contact',
     'verification.limits',
     'access.grants',
+    'portal.refresh',
     'messages.automatic',
     'sms.help_reply',
     'coverage.area',
