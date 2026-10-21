@@ -202,3 +202,49 @@ describe('[HH-PORT-06][T37] the views are parsed strictly', () => {
     )
   })
 })
+
+describe('[HH-SCH-05][HH-SCH-06] a time that cannot be confirmed yet is never shown as booked (TSK-0064)', () => {
+  const refusal = (fieldErrors: { field: string; code: string }[]) => () =>
+    json(409, {
+      error: {
+        code: 'CONFLICT',
+        message: '',
+        requestId: 'r',
+        retryable: false,
+        fieldErrors: fieldErrors.map((f) => ({ ...f, message: '' })),
+      },
+    })
+  const workOffer = { ...openOffer, purpose: 'work_visit' }
+
+  it('[HH-SCH-06][HH-FIN-02][T36] the deposit is due: the deposit wording, nothing booked, the times still offered', async () => {
+    const { fetchImpl } = api({
+      appointments: () => json(200, tab([workOffer], [])),
+      select: refusal([
+        { field: 'body.position', code: 'SCHEDULING_NOT_READY' },
+        { field: 'deposit', code: 'DEPOSIT_REQUIRED' },
+      ]),
+    })
+    open(fetchImpl)
+    const offer = await screen.findByTestId('window-offer')
+    fireEvent.click(within(offer).getAllByRole('button', { name: 'Choose this time' })[0] as HTMLElement)
+    expect((await screen.findByTestId('offer-message')).textContent).toBe(
+      "This time can't be confirmed until your deposit is received, so nothing is booked yet. Please pay your deposit so we can confirm your work appointment. Payment does not guarantee a particular date.",
+    )
+    expect(screen.queryByTestId('appointment')).toBeNull()
+    expect(screen.getAllByRole('button', { name: 'Choose this time' })).toHaveLength(2)
+  })
+
+  it('[HH-SCH-06][T40] another precondition is unmet: a neutral message naming no hold', async () => {
+    const { fetchImpl } = api({
+      appointments: () => json(200, tab([workOffer], [])),
+      select: refusal([{ field: 'body.position', code: 'SCHEDULING_NOT_READY' }]),
+    })
+    open(fetchImpl)
+    const offer = await screen.findByTestId('window-offer')
+    fireEvent.click(within(offer).getAllByRole('button', { name: 'Choose this time' })[1] as HTMLElement)
+    expect((await screen.findByTestId('offer-message')).textContent).toBe(
+      "This time can't be confirmed yet, so nothing is booked. HandyHub needs to finish reviewing your project first.",
+    )
+    expect(screen.queryByTestId('appointment')).toBeNull()
+  })
+})

@@ -87,8 +87,10 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
       'window, IANA zone, UTC offsets and instants, and whether it lies inside the daily visit hours of contact.hours ' +
       'in the business zone; null while NOT CONFIGURED) and every earlier window version. Beside them, kept apart, ' +
       "the project's job with its scope version and its scheduling task (never a booking), the property's zone, the " +
-      'business zone with its PROPOSED mark, and what the caller may plan now. A timing preference on the request is ' +
-      'never listed here.',
+      'business zone with its PROPOSED mark, and what the caller may plan now. Each tentative visit lists its ' +
+      'confirmationBlockers (TSK-0064): every unmet confirmation precondition and missing visit fact, as field and ' +
+      "code; Confirm is offered only when the list is empty (the team's capacity is checked on confirming). A timing " +
+      'preference on the request is never listed here.',
     actors: ['staff'],
     permission: 'schedule.view_board',
     kind: 'read',
@@ -102,7 +104,7 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
     schema: { params: PROJECT_PARAMS, response: { 200: PROJECT_VISITS } },
     handler: async (ctx) => {
       const { projectId } = ctx.req.params as { projectId: string }
-      return { body: await projectVisits(ctx.db, staffActor(ctx), ctx.scope, projectId) }
+      return { body: await projectVisits(ctx.db, staffActor(ctx), ctx.scope, projectId, gates) }
     },
   }
 
@@ -142,7 +144,7 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
         target: { type: 'visit', id: out.id, version: out.version },
         summary: { projectId, purpose: body.purpose, windowVersion: 1, window: windowSummary(out.window) },
       })
-      return { status: 201, body: await projectVisits(tx, actor, ctx.scope, projectId), version: out.version }
+      return { status: 201, body: await projectVisits(tx, actor, ctx.scope, projectId, gates), version: out.version }
     },
   }
 
@@ -160,7 +162,9 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
       '(WINDOW_UNCHANGED). An optional reason is kept in the history. Moving a confirmed visit needs visit.reschedule ' +
       '(Owner, Office): its workers and items are checked and reserved for the new range in the same transaction ' +
       '(the old reservations are kept, ended "rescheduled"); a capacity conflict refuses with every problem and the ' +
-      "alternatives, and the booking stays exactly as it was. Returns the project's visits.",
+      'alternatives, and the booking stays exactly as it was. A confirmed visit is moved only while every ' +
+      'confirmation precondition still holds (TSK-0064: the approval, the deposit, the gates, no blocking hold), named ' +
+      "with the capacity problems. Returns the project's visits.",
     actors: ['staff'],
     permission: 'visit.offer_windows',
     kind: 'write',
@@ -194,7 +198,7 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
         },
         ...(reason ? { reason } : {}),
       })
-      return { body: await projectVisits(tx, actor, ctx.scope, out.projectId), version: out.version }
+      return { body: await projectVisits(tx, actor, ctx.scope, out.projectId, gates), version: out.version }
     },
   }
 
@@ -207,8 +211,11 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
       'Staff with visit.confirm (Owner, Office), with If-Match: the visit version shown. Names every worker the visit ' +
       'needs (exactly its number of workers; the first is the lead) and an equipment item for each equipment entry. ' +
       'In one transaction the server checks the visit (tentative, in the future, expected work and workers entered, the ' +
-      "job's deposit gate (DEPOSIT_REQUIRED, DEPOSIT_REQUIREMENT_MISSING; never for an estimate visit) and its other " +
-      'scheduling gates for a work visit, the on-site part inside the daily visit hours of contact.hours) and ' +
+      'confirmation preconditions (TSK-0064, HH-SCH-06): for a work visit the approval (approval: NO_JOB, ' +
+      "APPROVAL_NOT_ACTIVE, SCOPE_NOT_ACCEPTED), the job's deposit gate (deposit: DEPOSIT_REQUIRED, " +
+      'DEPOSIT_REQUIREMENT_MISSING; never for an estimate visit) and its other scheduling gates, and for every visit no ' +
+      'blocking hold on the project (holds.<id>: REVIEW_HOLD_OPEN, JOB_ON_HOLD, CRITICAL_HOLD_OPEN; the database ' +
+      'refuses it too), the on-site part inside the daily visit hours of contact.hours) and ' +
       'each worker (active, PROPOSED eligible role, working hours set and covering the reserved range, no approved ' +
       'time off, no overlapping reservation or hold) and item (registered, not retired, not reserved), reserves them ' +
       'all for the reserved range (PROPOSED: travel buffer before the arrival window, preparation and expected work ' +
@@ -253,7 +260,7 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
         },
         ...(reason ? { reason } : {}),
       })
-      return { body: await projectVisits(tx, actor, ctx.scope, out.projectId), version: out.version }
+      return { body: await projectVisits(tx, actor, ctx.scope, out.projectId, gates), version: out.version }
     },
   }
 
@@ -315,7 +322,7 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
           expiresAt: out.expiresAt.toISOString(),
         },
       })
-      return { status: 201, body: await projectVisits(tx, actor, ctx.scope, out.projectId) }
+      return { status: 201, body: await projectVisits(tx, actor, ctx.scope, out.projectId, gates) }
     },
   }
 
@@ -351,7 +358,7 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
         summary: { projectId: out.projectId, visitId: out.visitId, number: out.number },
         reason: body.reason.trim(),
       })
-      return { body: await projectVisits(tx, actor, ctx.scope, out.projectId), version: out.version }
+      return { body: await projectVisits(tx, actor, ctx.scope, out.projectId, gates), version: out.version }
     },
   }
 

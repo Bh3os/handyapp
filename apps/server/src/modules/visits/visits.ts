@@ -22,15 +22,20 @@
 //   change moves its reservations in the same transaction, after checking the new range for the same team; a change
 //   that fails keeps the booking exactly as it was. PROPOSED: confirming a work visit fulfils the job's scheduling
 //   task. The deposit gate of TSK-0059 (HH-SCH-06) is the first of WORK_VISIT_GATES for planning and window changes,
-//   a reschedule included, and confirmation runs it itself in its transaction; the other confirmation preconditions
-//   (HH-SCH-06: blocking holds) come with TSK-0064.
+//   a reschedule included, and confirmation runs it itself in its transaction.
+// - TSK-0064 (HH-SCH-06, HH-SCH-05, T36, T40): confirming a visit and rescheduling a confirmed one run every
+//   confirmation precondition of preconditions.ts (approval, deposit, the other gates, no blocking hold) in their
+//   transaction, beside the visit's own facts and the capacity, and refuse naming every unmet one at once. Planning
+//   and moving a tentative visit stay planning: they pass WORK_VISIT_GATES only, and a hold never blocks them. The
+//   staff view lists, for each tentative visit, what still stops its confirmation, and offers Confirm only when
+//   nothing does.
 // - TSK-0063 (HH-SCH-11, HH-LEAD-07, OWN-DEC-144): windows are offered to the customer and held through offers.ts. While
 //   a visit has an open offer its window changes and confirmations go through the offer (OFFER_OPEN here). A confirmed
 //   visit writes the committed event of its automatic confirmation notice (estimate_visit.reserved or
 //   appointment.reserved, FACT-AUTOMATIC-MESSAGES #6 and #10), whether staff confirmed it or the customer selected it.
 //   The customer's selection of a work-visit window confirms the visit, so it runs the same deposit gate in its
 //   transaction (offers.ts).
-import type { Db, Tx } from '@handyhub/db'
+import { withTx, type Db, type Tx } from '@handyhub/db'
 import {
   canChangeWindow,
   onSiteRange,
@@ -55,9 +60,11 @@ import {
   refuse,
   type ReservationRequest,
 } from '../capacity/resources.js'
-import { confirmationDepositGate, depositGateProblem } from '../finance/deposit-gate.js'
-import { DEPOSIT_GATE, unmetGates, type WorkVisitGate } from './gates.js'
+import { unmetGates, WORK_VISIT_GATES, type WorkVisitGate } from './gates.js'
 import { noticesOf, recordReserved, staffOffers, windowOfferPolicy } from './offers.js'
+import { confirmationPreconditions, WORK_VISIT_PROJECT_STATES } from './preconditions.js'
+
+export { WORK_VISIT_PROJECT_STATES } from './preconditions.js'
 
 type Reader = Db | Tx
 
@@ -65,8 +72,6 @@ const field = (f: string, code: string): FieldError => ({ field: f, code, messag
 
 /** PROPOSED: estimate visits are planned while the project is open (before an estimate is approved). */
 export const ESTIMATE_VISIT_PROJECT_STATES = ['open'] as const
-/** PROPOSED: work visits are planned while the project is approved or, for follow-up and return work, completed. */
-export const WORK_VISIT_PROJECT_STATES = ['approved', 'completed'] as const
 
 /** PROPOSED input bounds (no owner value): what one tentative visit may record. */
 export const VISIT_LIMITS = {
@@ -357,13 +362,18 @@ export async function changeWindow(
   if (v.state === 'confirmed' && !holds(actor, 'visit.reschedule')) throw new ApiError('FORBIDDEN')
   const config = await loadConfig(tx)
   businessZone(config)
-  if (v.job_id !== null) await passGates(tx, { id: v.job_id, project_id: v.project_id }, deps.gates)
+  // TSK-0064: moving a confirmed visit commits a new booking version, so every confirmation precondition must still
+  // hold (named with the capacity problems below); a tentative visit's move is planning and passes the gates only.
+  const pre = v.state === 'confirmed' ? await confirmationPreconditions(tx, v, deps.gates) : []
+  if (v.state !== 'confirmed' && v.job_id !== null)
+    await passGates(tx, { id: v.job_id, project_id: v.project_id }, deps.gates)
   // The visit keeps the zone it was planned in: the property's zone at planning time.
   const to = resolveEntry(entry, v.time_zone, deps.now)
   const from = storedWindow(v)
   if (from.startsAt.getTime() === to.startsAt.getTime() && from.endsAt.getTime() === to.endsAt.getTime())
     throw new ApiError('CONFLICT', { fieldErrors: [field('body', 'WINDOW_UNCHANGED')] })
-  if (v.state === 'confirmed') await moveReservations(tx, actor, v, to, config, entry.reason?.trim() || null, deps.now)
+  if (v.state === 'confirmed')
+    await moveReservations(tx, actor, v, to, config, entry.reason?.trim() || null, deps.now, pre)
   const updated = await tx
     .updateTable('work.visits')
     .set({
@@ -408,7 +418,7 @@ export function factsOf(v: VisitRow) {
 /**
  * A confirmed visit's new window: the same workers (with their roles) and items, checked and reserved for the new
  * range in this transaction, replacing the current reservations (kept as history, ended "rescheduled"). A refusal
- * names every problem with alternatives, and nothing changes.
+ * names every problem (the unmet confirmation preconditions first) with alternatives, and nothing changes.
  */
 async function moveReservations(
   tx: Tx,
@@ -418,6 +428,7 @@ async function moveReservations(
   config: Config,
   reason: string | null,
   now: Date,
+  pre: readonly FieldError[],
 ) {
   const own = await tx
     .selectFrom('work.reservations')
@@ -443,7 +454,7 @@ async function moveReservations(
     settings: capacitySettings(config),
     now,
   }
-  const problems = await evaluate(tx, req)
+  const problems = [...pre, ...(await evaluate(tx, req))]
   if (problems.length > 0) await refuse(tx, req, problems)
   await insertReservations(
     tx,
@@ -475,8 +486,9 @@ export type ConfirmedVisit = {
  * item for each equipment entry for the visit's reserved range, then confirms it, all in this transaction. Refusals:
  * NOT_FOUND, FORBIDDEN, STALE_VERSION, NOT_CONFIGURED (business.timezone, contact.hours), CONFLICT naming every unmet
  * requirement (VISIT_NOT_TENTATIVE, WINDOW_IN_PAST, DURATION_NOT_ENTERED, WORKERS_NOT_ENTERED, WORKER_COUNT_MISMATCH,
- * WORKER_REPEATED, EQUIPMENT_NOT_ASSIGNED, EQUIPMENT_REPEATED, a gate's codes, OUTSIDE_VISIT_HOURS and the per-worker
- * and per-item codes of the capacity module) with the alternatives once the range is known. Nothing partial is written.
+ * WORKER_REPEATED, EQUIPMENT_NOT_ASSIGNED, EQUIPMENT_REPEATED, the confirmation preconditions of preconditions.ts
+ * (approval, deposit, a gate's codes, every blocking hold), OUTSIDE_VISIT_HOURS and the per-worker and per-item codes
+ * of the capacity module) with the alternatives once the range is known. Nothing partial is written.
  */
 export async function confirmVisit(
   tx: Tx,
@@ -510,23 +522,10 @@ export async function confirmVisit(
   if (new Set(equipmentIds).size !== equipmentIds.length)
     problems.push(field('body.equipmentIds', 'EQUIPMENT_REPEATED'))
   else if (equipmentIds.length < v.equipment.length) problems.push(field('body.equipmentIds', 'EQUIPMENT_NOT_ASSIGNED'))
-  // TSK-0059 (HH-SCH-06, HH-FIN-02, RULE-SAFETY-GATES): the deposit gate runs here itself, in this transaction, for
-  // every work visit, whatever gates the module was given; an estimate visit never waits for a deposit. The other
-  // registered gates follow (the deposit gate is not asked twice).
-  const deposit = depositGateProblem(
-    await confirmationDepositGate(
-      tx,
-      v.job_id !== null && isWorkVisitPurpose(v.purpose) ? { kind: 'work', jobId: v.job_id } : { kind: 'estimate' },
-    ),
-  )
-  if (deposit) problems.push(deposit)
-  if (v.job_id !== null)
-    for (const code of await unmetGates(
-      tx,
-      { jobId: v.job_id, projectId: v.project_id },
-      deps.gates.filter((g) => g !== DEPOSIT_GATE),
-    ))
-      problems.push(field('job', code))
+  // TSK-0064 (HH-SCH-06, RULE-SAFETY-GATES): every confirmation precondition, in this transaction: the approval and
+  // the deposit gate of TSK-0059 for a work visit (run here whatever gates the module was given; an estimate visit
+  // never waits for a deposit), the other registered gates and no blocking hold on the project.
+  problems.push(...(await confirmationPreconditions(tx, v, deps.gates)))
   // Without the expected work there is no range to check or offer alternatives for.
   if (v.expected_duration_minutes === null || v.required_workers === null)
     throw new ApiError('CONFLICT', { fieldErrors: problems })
@@ -620,10 +619,49 @@ export function windowSummary(w: LocalWindow) {
 }
 
 /**
+ * What still stops a tentative visit from being confirmed now (TSK-0064, HH-SCH-06, HH-SCH-05): its own facts (a
+ * window in the future inside the visit hours, the expected work and workers entered) and every confirmation
+ * precondition. The capacity of the team, which staff choose when confirming, is checked then. Read in a transaction
+ * of its own (the deposit gate share-locks the requirement) unless the caller is already in one.
+ */
+async function confirmationBlockers(
+  db: Reader,
+  v: Parameters<typeof storedWindow>[0] & {
+    id: string
+    purpose: string
+    project_id: string
+    job_id: string | null
+    expected_duration_minutes: number | null
+    required_workers: number | null
+  },
+  hours: { open: string; close: string } | null,
+  businessTz: string | null,
+  gates: readonly WorkVisitGate[],
+  now: Date,
+): Promise<FieldError[]> {
+  const out: FieldError[] = []
+  const w = storedWindow(v)
+  if (w.startsAt.getTime() <= now.getTime()) out.push(field('window', 'WINDOW_IN_PAST'))
+  if (!hours) out.push(field('window', 'VISIT_HOURS_NOT_CONFIGURED'))
+  else if (businessTz && !windowWithinHours(w, hours, businessTz)) out.push(field('window', 'OUTSIDE_VISIT_HOURS'))
+  if (v.expected_duration_minutes === null) out.push(field('visit.expectedDurationMinutes', 'DURATION_NOT_ENTERED'))
+  if (v.required_workers === null) out.push(field('visit.requiredWorkers', 'WORKERS_NOT_ENTERED'))
+  out.push(...(await withTx(db, (tx) => confirmationPreconditions(tx, v, gates))))
+  return out
+}
+
+/**
  * A project's visits for staff, newest window first within each visit's history, with the project's job and
  * scheduling task beside them (kept apart: a scheduling task is never a booking) and what the caller may do now.
+ * Each tentative visit lists what still stops its confirmation (TSK-0064); Confirm is offered only when nothing does.
  */
-export async function projectVisits(db: Reader, actor: StaffActor, scope: DataScope, projectId: string) {
+export async function projectVisits(
+  db: Reader,
+  actor: StaffActor,
+  scope: DataScope,
+  projectId: string,
+  gates: readonly WorkVisitGate[] = WORK_VISIT_GATES,
+) {
   if (!scopeIncludesProject(scope, projectId)) throw new ApiError('NOT_FOUND')
   const project = await db
     .selectFrom('crm.projects as p')
@@ -739,6 +777,11 @@ export async function projectVisits(db: Reader, actor: StaffActor, scope: DataSc
   const canPlan = mayPlanVisits(actor) && business !== null && isTimeZone(project.time_zone)
   const work = mayPlanWorkVisits(actor)
   const canConfirm = holds(actor, 'visit.confirm') && business !== null && hours !== null
+  const blockers = new Map<string, FieldError[]>()
+  for (const v of visits)
+    if (v.state === 'tentative') blockers.set(v.id, await confirmationBlockers(db, v, hours, businessTz, gates, now))
+  const blockerView = (id: string) =>
+    blockers.has(id) ? (blockers.get(id) ?? []).map((b) => ({ field: b.field, code: b.code })) : null
   const range = (v: (typeof visits)[number]) =>
     v.expected_duration_minutes === null
       ? null
@@ -804,6 +847,7 @@ export async function projectVisits(db: Reader, actor: StaffActor, scope: DataSc
         })),
       offers: offers.get(v.id) ?? [],
       notices: visitNotices.get(v.id) ?? [],
+      confirmationBlockers: blockerView(v.id),
       createdBy: ref(v.created_by),
       createdAt: new Date(v.created_at).toISOString(),
       history: history
@@ -829,6 +873,7 @@ export async function projectVisits(db: Reader, actor: StaffActor, scope: DataSc
           v.state === 'tentative' &&
           v.expected_duration_minutes !== null &&
           v.required_workers !== null &&
+          (blockers.get(v.id) ?? []).length === 0 &&
           !(offers.get(v.id) ?? []).some((o) => o.state === 'open'),
         offerWindows:
           canPlan &&
@@ -838,6 +883,7 @@ export async function projectVisits(db: Reader, actor: StaffActor, scope: DataSc
           offerPolicy !== null &&
           v.expected_duration_minutes !== null &&
           v.required_workers !== null &&
+          !(blockers.get(v.id) ?? []).some((b) => b.field === 'approval' || b.field.startsWith('holds.')) &&
           !(offers.get(v.id) ?? []).some((o) => o.state === 'open'),
       },
     })),

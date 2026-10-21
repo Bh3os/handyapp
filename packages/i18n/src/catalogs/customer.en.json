@@ -944,5 +944,7 @@
   "portal.appointment.offer.otherRequested": "You asked for other times. HandyHub will offer new times.",
   "portal.appointment.offer.unavailable": "That time is no longer available. Choose another time or request other times.",
   "portal.appointment.offer.closed": "These times were already answered or are no longer offered. The page now shows what is current.",
-  "portal.appointment.offer.failed": "Your answer couldn't be saved. Please try again."
+  "portal.appointment.offer.failed": "Your answer couldn't be saved. Please try again.",
+  "portal.appointment.offer.depositDue": "This time can't be confirmed until your deposit is received, so nothing is booked yet. Please pay your deposit so we can confirm your work appointment. Payment does not guarantee a particular date.",
+  "portal.appointment.offer.notReady": "This time can't be confirmed yet, so nothing is booked. HandyHub needs to finish reviewing your project first."
 }

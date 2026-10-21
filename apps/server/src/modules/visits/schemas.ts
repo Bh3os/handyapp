@@ -268,6 +268,7 @@ const VISIT = {
     'history',
     'offers',
     'notices',
+    'confirmationBlockers',
     'actions',
   ],
   properties: {
@@ -366,6 +367,22 @@ const VISIT = {
     },
     offers: { type: 'array', items: OFFER },
     notices: { type: 'array', items: NOTICE },
+    // TSK-0064 (HH-SCH-06): for a tentative visit, what still stops its confirmation now (empty: nothing; the team's
+    // capacity is checked when staff confirm); null for a visit that is not tentative.
+    confirmationBlockers: {
+      anyOf: [
+        {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['field', 'code'],
+            properties: { field: { type: 'string' }, code: { type: 'string' } },
+          },
+        },
+        { type: 'null' },
+      ],
+    },
     actions: {
       type: 'object',
       additionalProperties: false,
