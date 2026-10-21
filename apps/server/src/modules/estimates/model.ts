@@ -9,6 +9,9 @@
 //   category, a work package of another project (HH-DATA-02: nothing is clamped).
 // - Authorization is decided here on the server through the policy (estimate.draft, Owner and Estimator), so a route
 //   that calls these functions cannot skip it. Routes add the audit event (TSK-0053).
+// - Internal costs and notes are written only by a role the policy allows estimate.view_internal_cost (TSK-0053): a
+//   caller who may not see them cannot send them either, and a save that leaves them out keeps them as they are (an
+//   omitted line cost or internal block is kept; null removes it), so another estimator's save never wipes them.
 // - Only draft and in-review versions are written; the database refuses any change to a published version, its
 //   lines and its internal costs (migration 0026). Lifecycle transitions and publishing are TSK-0055.
 import type { Tx } from '@handyhub/db'
@@ -19,6 +22,7 @@ import {
   type EstimateProblem,
   isLineKind,
   type LineKind,
+  lineTotal,
   MoneyError,
   parseCents,
   quantity as parseQuantity,
@@ -68,7 +72,7 @@ export type DraftLineInput = {
   readonly quantitySource?: QuantitySource | null
   /** Integer cents; null while the price is not written yet. */
   readonly unitPriceCents?: number | null
-  /** Staff-only internal cost of the line (HH-EST-03). */
+  /** Staff-only internal cost of the line (HH-EST-03). Omitted: kept as stored; null: removed. */
   readonly internalCost?: {
     readonly materialCostCents?: number | null
     readonly laborCostCents?: number | null
@@ -82,8 +86,8 @@ export type DraftInput = {
   /** The job's one discount category (FACT-PRICING-DISCOUNTS), or null for none. */
   readonly discountCategory?: string | null
   readonly texts?: Partial<Record<TextList, readonly string[]>>
-  /** Staff-only: markup assumptions and confidential estimator notes (HH-EST-03). */
-  readonly internal?: { readonly markupAssumptions?: string | null; readonly estimatorNotes?: string | null }
+  /** Staff-only: markup assumptions and confidential estimator notes (HH-EST-03). Omitted: kept as stored. */
+  readonly internal?: { readonly markupAssumptions?: string | null; readonly estimatorNotes?: string | null } | null
 }
 
 function authorize(actor: StaffActor, action: Action, projectId: string): void {
@@ -93,6 +97,34 @@ function authorize(actor: StaffActor, action: Action, projectId: string): void {
 }
 
 const field = (f: string, code: string, message: string): FieldError => ({ field: f, code, message })
+
+/**
+ * Runs the totals, turning an amount past the exact integer range into field errors (nothing is stored), never a
+ * server error: each line whose own amount overflows is named; otherwise the sum is too large.
+ */
+function totalsOrFieldErrors<T>(
+  lines: readonly { quantity: Quantity | null; unitPrice: Cents | null }[],
+  errors: FieldError[],
+  compute: () => T,
+): T {
+  try {
+    return compute()
+  } catch (err) {
+    if (!(err instanceof MoneyError) || err.code !== 'OUT_OF_RANGE') throw err
+    const before = errors.length
+    lines.forEach((l, i) => {
+      if (l.quantity === null || l.unitPrice === null) return
+      try {
+        lineTotal(l.unitPrice, l.quantity)
+      } catch (e) {
+        if (!(e instanceof MoneyError) || e.code !== 'OUT_OF_RANGE') throw e
+        errors.push(field(`lines[${i}].unitPriceCents`, 'AMOUNT_TOO_LARGE', 'The line amount is too large.'))
+      }
+    })
+    if (errors.length === before) errors.push(field('lines', 'TOTAL_TOO_LARGE', 'The total is too large.'))
+    throw new ApiError('VALIDATION_FAILED', { fieldErrors: errors })
+  }
+}
 
 /** Creates estimate number <project reference>-E<n> with its first draft version (written or uploaded). */
 export async function createEstimate(
@@ -157,7 +189,8 @@ type ParsedLine = {
   unit: string | null
   quantitySource: QuantitySource | null
   unitPrice: Cents | null
-  cost: { material: Cents | null; labor: Cents | null; note: string | null } | null
+  /** undefined: keep the stored cost; null: remove it. */
+  cost: { material: Cents | null; labor: Cents | null; note: string | null } | null | undefined
 }
 
 const text = (v: unknown): string | null => (typeof v === 'string' && v.trim() !== '' ? v.trim() : null)
@@ -227,13 +260,16 @@ function parseLine(raw: DraftLineInput, i: number, errors: FieldError[]): Parsed
     unit,
     quantitySource: source,
     unitPrice,
-    cost: c
-      ? {
-          material: money(c.materialCostCents, at('internalCost.materialCostCents'), errors, false),
-          labor: money(c.laborCostCents, at('internalCost.laborCostCents'), errors, false),
-          note,
-        }
-      : null,
+    cost:
+      c === undefined
+        ? undefined
+        : c
+          ? {
+              material: money(c.materialCostCents, at('internalCost.materialCostCents'), errors, false),
+              labor: money(c.laborCostCents, at('internalCost.laborCostCents'), errors, false),
+              note,
+            }
+          : null,
   }
 }
 
@@ -273,12 +309,26 @@ export async function saveDraft(
   if (!isUuid(versionId)) throw new ApiError('NOT_FOUND')
   const current = await tx
     .selectFrom('estimating.estimate_versions')
-    .select(['id', 'project_id', 'state', 'row_version'])
+    .select(['id', 'project_id', 'state', 'row_version', 'prepared_by'])
     .where('id', '=', versionId)
     .forUpdate()
     .executeTakeFirst()
   if (!current) throw new ApiError('NOT_FOUND')
   authorize(actor, 'estimate.draft', current.project_id)
+  // Internal costs and notes: only a role that may see them may write them (HH-EST-03, RULE-SERVER-AUTHZ).
+  const sendsInternal =
+    input.internal !== undefined ||
+    (Array.isArray(input.lines) && input.lines.some((l) => l.internalCost !== undefined))
+  if (
+    sendsInternal &&
+    decide(
+      actor,
+      'estimate.view_internal_cost',
+      { projectId: current.project_id, ownerStaffId: current.prepared_by },
+      { now: new Date(), online: true },
+    ).effect !== 'allow'
+  )
+    throw new ApiError('FORBIDDEN')
   if (!(EDITABLE_STATES as readonly string[]).includes(current.state)) {
     throw new ApiError('CONFLICT', {
       fieldErrors: [field('state', 'VERSION_NOT_EDITABLE', 'A published version is not edited; revise it instead.')],
@@ -357,7 +407,9 @@ export async function saveDraft(
     unitPrice: l.unitPrice,
   }))
   const discountPercent: BasisPoints | null = discount.ok ? (discount.discount?.percent ?? null) : null
-  const priced = computeVersionTotals({ lines: pricedLines, policies, discountPercent })
+  const priced = totalsOrFieldErrors(lines, errors, () =>
+    computeVersionTotals({ lines: pricedLines, policies, discountPercent }),
+  )
   for (const p of priced.problems) {
     if (p.code === 'LINE_NOT_POSITIVE') {
       errors.push(field(`lines[${p.line}].unitPriceCents`, 'LINE_NOT_POSITIVE', 'The line amount must be above $0.00.'))
@@ -405,7 +457,9 @@ export async function saveDraft(
             .returning('id')
             .executeTakeFirstOrThrow()
         ).id
-    if (l.cost && (l.cost.material !== null || l.cost.labor !== null || l.cost.note !== null)) {
+    if (l.cost === undefined) {
+      // Omitted: the stored cost of an existing line stays as it is.
+    } else if (l.cost && (l.cost.material !== null || l.cost.labor !== null || l.cost.note !== null)) {
       const cost = {
         material_cost_cents: l.cost.material,
         labor_cost_cents: l.cost.labor,
@@ -421,12 +475,14 @@ export async function saveDraft(
       await tx.deleteFrom('estimating.estimate_line_costs').where('line_id', '=', lineId).execute()
     }
   }
-  const internal = { markup_assumptions: markup, estimator_notes: notes, updated_at: new Date() }
-  await tx
-    .insertInto('estimating.estimate_version_internals')
-    .values({ ...internal, version_id: versionId })
-    .onConflict((oc) => oc.column('version_id').doUpdateSet(internal))
-    .execute()
+  if (input.internal !== undefined) {
+    const internal = { markup_assumptions: markup, estimator_notes: notes, updated_at: new Date() }
+    await tx
+      .insertInto('estimating.estimate_version_internals')
+      .values({ ...internal, version_id: versionId })
+      .onConflict((oc) => oc.column('version_id').doUpdateSet(internal))
+      .execute()
+  }
 
   const t = priced.totals
   const applied = discount.ok ? discount.discount : null
