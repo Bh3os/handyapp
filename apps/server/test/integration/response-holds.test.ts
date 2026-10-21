@@ -5,6 +5,7 @@
 import { loadServiceSeed, syncServices, withTx } from '@handyhub/db'
 import { createTestDatabase, type TestDatabase } from '@handyhub/db/testing'
 import { addBusinessMinutes, businessMinutesBetween } from '@handyhub/domain'
+import { PRIVACY_NOTICE } from '@handyhub/domain/legal'
 import type { FastifyInstance } from 'fastify'
 import { sql } from 'kysely'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -88,7 +89,7 @@ async function newRequest() {
     headers: { 'idempotency-key': key('submit'), 'x-forwarded-for': `198.51.100.${++ip}` },
     payload: {
       formVersion: 'test-1',
-      privacyNoticeVersion: 'draft-test-1',
+      privacyNoticeVersion: PRIVACY_NOTICE.documentId,
       services: [{ serviceId: 'SVC-DW-01' }],
       notSure: false,
       description: 'Synthetic clock description.',
