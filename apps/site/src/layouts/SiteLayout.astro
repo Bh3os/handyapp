@@ -27,7 +27,10 @@ const t = customerTranslator()
     <header class="hh-site-header">
       <div class="hh-site__wrap hh-site-header__inner">
         <a class="hh-site-header__brand" href="/" aria-label={t.t('site.homeLink')}>HandyHub</a>
-        <a class="hh-button hh-site-header__cta" href="/request">{t.t('site.cta.request')}</a>
+        <nav class="hh-site-header__nav" aria-label={t.t('site.nav.label')}>
+          <a class="hh-site-header__link" href="/services">{t.t('site.nav.services')}</a>
+          <a class="hh-button hh-site-header__cta" href="/request">{t.t('site.cta.request')}</a>
+        </nav>
       </div>
     </header>
     <main id="main" tabindex="-1">
