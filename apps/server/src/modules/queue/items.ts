@@ -11,6 +11,7 @@ import { listingScope, type StaffActor } from '@handyhub/policy'
 import { sql, type Expression, type SqlBool } from 'kysely'
 import { ApiError } from '../../api/errors.js'
 import { encodeCursor, type Page, type PageRequest } from '../../api/pagination.js'
+import { responseClockView, type ResponseClockView } from '../requests/clock-view.js'
 import {
   bandRank,
   deepLink,
@@ -173,6 +174,8 @@ export type QueueItemView = {
   openedAt: string
   dueAt: string | null
   clock: 'response_target' | null
+  /** The first-response clock read now (TSK-0043): remaining, paused or overdue in business minutes. */
+  responseClock: ResponseClockView | null
   reason: string
   /** The reason was replaced by the generic one: its detail is restricted to other roles. */
   masked: boolean
@@ -276,6 +279,17 @@ export async function listQueue(
 
   const more = rows.length > page.limit
   const shown = rows.slice(0, page.limit)
+  // The first-response clocks of the shown items that carry one (TSK-0043, HH-LEAD-05).
+  const clockIds = shown
+    .filter((r) => queueItemType(r.type)?.clock === 'response_target' && UUID.test(r.subject_id))
+    .map((r) => r.subject_id)
+  const clocks = new Map(
+    clockIds.length
+      ? (await db.selectFrom('intake.response_clocks').selectAll().where('request_id', 'in', clockIds).execute()).map(
+          (c) => [c.request_id, c],
+        )
+      : [],
+  )
   const items: QueueItemView[] = []
   for (const r of shown) {
     const type = queueItemType(r.type)
@@ -300,6 +314,10 @@ export async function listQueue(
       openedAt: r.opened_at.toISOString(),
       dueAt: r.due_at ? r.due_at.toISOString() : null,
       clock: type.clock ?? null,
+      responseClock: (() => {
+        const c = type.clock === 'response_target' ? clocks.get(r.subject_id) : undefined
+        return c ? responseClockView(c, now) : null
+      })(),
       reason: masked && type.restricted ? type.restricted.generic : r.reason,
       masked,
       action: type.action,

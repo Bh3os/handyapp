@@ -266,6 +266,18 @@ export interface IntakeRequestAssignmentsTable {
   assigned_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface IntakeRequestConversationsTable {
+  id: Generated<string>
+  request_id: string
+  project_id: string
+  channel: string
+  outcome: string
+  visibility: Generated<string>
+  occurred_at: Timestamp
+  recorded_by: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface IntakeRequestDecisionsTable {
   id: Generated<string>
   request_id: string
@@ -342,6 +354,36 @@ export interface IntakeRequestsTable {
   original_submission: Json
   responsible_staff_id: string | null
   coverage_rule_set: number | null
+}
+
+export interface IntakeResponseClocksTable {
+  request_id: string
+  project_id: string
+  started_at: Timestamp
+  target_minutes: number | null
+  hours_open: string | null
+  hours_close: string | null
+  time_zone: string | null
+  config_versions: ColumnType<JsonValue, string | undefined, string>
+  due_at: Timestamp | null
+  stopped_at: Timestamp | null
+  stop_kind: string | null
+  stop_ref: string | null
+  business_minutes: number | null
+  within_target: boolean | null
+  version: Generated<number>
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface IntakeResponseEventsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  request_id: string
+  kind: string
+  ref: string
+  message_key: string | null
+  occurred_at: Timestamp
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
 export interface IntakeUploadCapabilitiesTable {
@@ -589,6 +631,32 @@ export interface PlatformWebhookReceiptsTable {
   processed_at: Timestamp | null
 }
 
+export interface WorkHoldsTable {
+  id: Generated<string>
+  kind: string
+  scope_type: string
+  scope_id: string
+  project_id: string
+  request_id: string | null
+  category: string
+  note: string
+  source: string
+  source_ref: string
+  state: Generated<string>
+  raised_by: string
+  raised_at: ColumnType<Date, Date | string | undefined, Date | string>
+  review_started_by: string | null
+  review_started_at: Timestamp | null
+  resolution_note: string | null
+  reviewer: string | null
+  resolved_by: string | null
+  resolved_at: Timestamp | null
+  cancel_reason: string | null
+  canceled_by: string | null
+  canceled_at: Timestamp | null
+  version: Generated<number>
+}
+
 export interface WorkWorkPackagesTable {
   id: Generated<string>
   project_id: string
@@ -625,11 +693,14 @@ export interface Database {
   'intake.photos': IntakePhotosTable
   'intake.request_answers': IntakeRequestAnswersTable
   'intake.request_assignments': IntakeRequestAssignmentsTable
+  'intake.request_conversations': IntakeRequestConversationsTable
   'intake.request_decisions': IntakeRequestDecisionsTable
   'intake.request_notes': IntakeRequestNotesTable
   'intake.request_qualifications': IntakeRequestQualificationsTable
   'intake.request_services': IntakeRequestServicesTable
   'intake.requests': IntakeRequestsTable
+  'intake.response_clocks': IntakeResponseClocksTable
+  'intake.response_events': IntakeResponseEventsTable
   'intake.upload_capabilities': IntakeUploadCapabilitiesTable
   'ops.queue_items': OpsQueueItemsTable
   'platform.audit_events': PlatformAuditEventsTable
@@ -647,5 +718,6 @@ export interface Database {
   'platform.rate_counters': PlatformRateCountersTable
   'platform.schema_migration': PlatformSchemaMigrationTable
   'platform.webhook_receipts': PlatformWebhookReceiptsTable
+  'work.holds': WorkHoldsTable
   'work.work_packages': WorkWorkPackagesTable
 }
