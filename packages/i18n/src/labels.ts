@@ -198,6 +198,7 @@ export const LABEL_FAMILIES = {
     'verification.limits',
     'access.grants',
     'access.recovery',
+    'portal.refresh',
     'messages.automatic',
     'sms.help_reply',
     'coverage.area',

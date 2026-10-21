@@ -324,6 +324,7 @@
   "enum.configKey.verification.limits": "Verification code limits",
   "enum.configKey.access.grants": "Project access link lifetime",
   "enum.configKey.access.recovery": "New project access links on request",
+  "enum.configKey.portal.refresh": "Customer project page refresh interval",
   "enum.configKey.messages.automatic": "Messages that send automatically",
   "enum.configKey.sms.help_reply": "Reply to a HELP text",
   "enum.configKey.coverage.area": "Service area",

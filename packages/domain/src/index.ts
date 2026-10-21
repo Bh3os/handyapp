@@ -75,6 +75,24 @@ export { PROJECT_MACHINE, PROJECT_STATES } from './project.js'
 export type { ProjectFacts, ProjectState } from './project.js'
 export type { ObligationFacts } from './guards.js'
 export {
+  CUSTOMER_NEXT_ACTIONS,
+  CUSTOMER_SITUATIONS,
+  CUSTOMER_STEPS,
+  CUSTOMER_TIMELINE_KINDS,
+  customerSituation,
+  customerStatus,
+  WAITING_ON,
+} from './portal.js'
+export type {
+  CustomerNextAction,
+  CustomerSituation,
+  CustomerStatus,
+  CustomerStep,
+  CustomerTimelineKind,
+  PortalFacts,
+  WaitingOn,
+} from './portal.js'
+export {
   acceptanceProblem,
   EDITABLE_ESTIMATE_STATES,
   effectiveEstimateState,

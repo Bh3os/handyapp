@@ -12,6 +12,7 @@ import { photosModule } from './photos/index.js'
 import { QUEUE_MODULE } from './queue/index.js'
 import { requestsModule } from './requests/index.js'
 import { accessModule } from './access/index.js'
+import { portalModule } from './portal/index.js'
 import { SITE_MODULE } from './site/index.js'
 import { systemModule, type SystemDeps } from './system/index.js'
 import { verificationModule } from './verification/index.js'
@@ -60,6 +61,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     verificationModule({ codeKey: deps.codeKey ?? NO_CODE_KEY, trustProxyHops: deps.trustProxyHops ?? 0 }),
     // TSK-0034: the project access link landing and the opened project.
     accessModule({ codeKey: deps.codeKey ?? NO_CODE_KEY, trustProxyHops: deps.trustProxyHops ?? 0 }),
+    // TSK-0038: the customer project workspace frame (projects list and Overview).
+    portalModule(),
   ]
 }
 

@@ -146,6 +146,9 @@ export const CONFIG_KEYS = {
   'access.grants': shape({ linkHours: int(1, 24 * 366) }),
   // TSK-0035: how many new links one project may be sent per day on request (HH-ID-09, HH-INT-11; PROPOSED 3).
   'access.recovery': shape({ maxReissuesPerProjectPerDay: int(1, 100) }),
+  // TSK-0038 (HH-ARC-10, OWN-DEC-59): how often an open customer project view refreshes itself, in seconds. PROPOSED
+  // 30, inside the guide's "30-60 seconds by default"; no owner decision sets it.
+  'portal.refresh': shape({ pollSeconds: int(10, 3600) }),
   // FACT-AUTOMATIC-MESSAGES (TSK-0047): the one list of messages that send without staff release. Codes are message
   // types of modules/notifications, which refuses an unknown code when it reads the list.
   'messages.automatic': shape({
