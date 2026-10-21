@@ -23,13 +23,13 @@ const TYPE_NAME: Record<string, string> = { 'image/jpeg': 'JPEG', 'image/png': '
 const typeNames = (types: string[]) => types.map((x) => TYPE_NAME[x] ?? x).join(', ')
 const mb = (bytes: number) => Math.floor(bytes / (1024 * 1024))
 
-const STATE_LABEL: Record<PhotoState, CustomerKey> = {
+export const STATE_LABEL: Record<PhotoState, CustomerKey> = {
   uploading: 'request.photos.state.uploading',
   processing: 'request.photos.state.processing',
   complete: 'request.photos.state.complete',
   failed: 'request.photos.state.failed',
 }
-const STATE_TONE: Record<PhotoState, StatusTone> = {
+export const STATE_TONE: Record<PhotoState, StatusTone> = {
   uploading: 'info',
   processing: 'info',
   complete: 'success',
@@ -52,7 +52,34 @@ function problemOf(status: number, code: string | undefined): CustomerKey {
     return 'request.photos.problem.invalid'
   return 'request.photos.problem.network'
 }
-const problemValues = (limits: PhotoLimits | null) =>
+export type UploadResult =
+  { ok: true; id: string; state: 'complete' | 'processing' } | { ok: false; problem: CustomerKey }
+
+/**
+ * Uploads one photo under a capability: the draft's, or after submission the request's own (TSK-0032, the receipt's
+ * Retry). The server checks it again by its content.
+ */
+export async function uploadPhotoFile(file: File, capability: string): Promise<UploadResult> {
+  try {
+    const res = await fetch('/api/v1/public/request-drafts/photos', {
+      method: 'POST',
+      headers: { 'content-type': file.type || 'application/octet-stream', 'upload-capability': capability },
+      body: file,
+    })
+    const data = (await res.json().catch(() => null)) as {
+      id?: string
+      state?: string
+      error?: { fieldErrors?: { code: string }[] }
+    } | null
+    if ((res.status === 201 || res.status === 200) && data?.id)
+      return { ok: true, id: data.id, state: data.state === 'ready' ? 'complete' : 'processing' }
+    return { ok: false, problem: problemOf(res.status, data?.error?.fieldErrors?.[0]?.code) }
+  } catch {
+    return { ok: false, problem: 'request.photos.problem.network' }
+  }
+}
+
+export const problemValues = (limits: PhotoLimits | null) =>
   limits
     ? { mb: mb(limits.maxFileBytes), max: limits.maxPhotos, types: typeNames(limits.types) }
     : { mb: 0, max: 0, types: '' }
@@ -93,23 +120,9 @@ export function usePhotos(limits: PhotoLimits | null) {
       )
       const cap = await ensureCapability()
       if (!cap) return update(item.key, { state: 'failed', problem: 'request.photos.problem.unavailable' })
-      try {
-        const res = await fetch('/api/v1/public/request-drafts/photos', {
-          method: 'POST',
-          headers: { 'content-type': item.file.type || 'application/octet-stream', 'upload-capability': cap },
-          body: item.file,
-        })
-        const data = (await res.json().catch(() => null)) as {
-          id?: string
-          state?: string
-          error?: { fieldErrors?: { code: string }[] }
-        } | null
-        if ((res.status === 201 || res.status === 200) && data?.id)
-          return update(item.key, { id: data.id, state: data.state === 'ready' ? 'complete' : 'processing' })
-        update(item.key, { state: 'failed', problem: problemOf(res.status, data?.error?.fieldErrors?.[0]?.code) })
-      } catch {
-        update(item.key, { state: 'failed', problem: 'request.photos.problem.network' })
-      }
+      const r = await uploadPhotoFile(item.file, cap)
+      if (r.ok) update(item.key, { id: r.id, state: r.state })
+      else update(item.key, { state: 'failed', problem: r.problem })
     },
     [ensureCapability],
   )

@@ -8,11 +8,12 @@ import { serviceQuestions } from '@handyhub/domain/request-form'
 import { loadConfig } from '../../platform/config/index.js'
 import { formWindows } from './submit.js'
 import { currentContext } from '../../platform/request-context.js'
-import { photoLimits } from '../photos/photos.js'
+import { CAPABILITY_HEADER, photoLimits } from '../photos/photos.js'
 import { MAX_SERVICES, SUBMIT_BODY, SUBMIT_RESPONSE, type SubmitBody } from './schema.js'
 import type { ObligationCheck } from './obligations.js'
 import { staffRequestRoutes } from './staff-routes.js'
 import { staffRequestSummary } from './staff-summary.js'
+import { responseFacts } from './receipt-email.js'
 import { submitRequest } from './submit.js'
 
 /** PROPOSED (old repo, 32 D-32-08): 5 submissions per client network per hour; no owner value exists. */
@@ -29,7 +30,10 @@ const submit: RouteDef = {
     'matched to existing customers. The same Idempotency-Key returns the same request; a changed body is a 409. ' +
     'A key that already created a request, also after its idempotency record expired, is a 409 whose error names ' +
     "that request's reference (existing.reference) and writes nothing. " +
-    'Rate limited per client network with a neutral 429. Spam signals only flag the request for review.',
+    'Rate limited per client network with a neutral 429. Spam signals only flag the request for review. ' +
+    'TSK-0032: when the draft’s photos were bound, the Upload-Capability response header carries a new capability ' +
+    'scoped to this request’s photos only (token returned once, never stored with the replayable response), so the ' +
+    'receipt can show their states and retry a failed photo without a new request (HH-INT-07, HH-INT-12).',
   actors: ['guest', 'customer'],
   permission: 'request.submit',
   kind: 'write',
@@ -68,6 +72,8 @@ const submit: RouteDef = {
         submittedAt: out.submittedAt.toISOString(),
         ...(body.photoDraft ? { photos: out.photos } : {}),
       },
+      // A header, not the body: the idempotency record stores the body, and the server keeps only token hashes.
+      ...(out.photoCapability ? { headers: { [CAPABILITY_HEADER]: out.photoCapability } } : {}),
     }
   },
 }
@@ -83,7 +89,10 @@ const formSettings: RouteDef = {
     'the business time zone, the service limit and the photo limits (uploads.limits). draftDays is null while the value is NOT CONFIGURED; the wizard then keeps no draft. ' +
     'TSK-0028: the visit hours (contact.hours, FACT-HOURS), the preferred windows offered with their configured hours ' +
     '(request.window_hours; no hours while NOT CONFIGURED) and whether estimates are free (estimate.visit_fee, ' +
-    'FACT-VISIT-FEE). Preferences only: nothing here is availability, a slot or a price.',
+    'FACT-VISIT-FEE). Preferences only: nothing here is availability, a slot or a price. ' +
+    'TSK-0032: the response target in minutes (response.target, FACT-RESPONSE-TARGET), which the receipt’s ' +
+    '"What happens next?" wording states with the visit hours; null while NOT CONFIGURED (the receipt then states no ' +
+    'response time).',
   actors: ['guest', 'customer'],
   permission: 'request.submit',
   kind: 'read',
@@ -98,7 +107,16 @@ const formSettings: RouteDef = {
       200: {
         type: 'object',
         additionalProperties: false,
-        required: ['draftDays', 'maxServices', 'timeZone', 'photos', 'visitHours', 'windows', 'freeEstimates'],
+        required: [
+          'draftDays',
+          'maxServices',
+          'timeZone',
+          'photos',
+          'visitHours',
+          'windows',
+          'freeEstimates',
+          'responseMinutes',
+        ],
         properties: {
           draftDays: { type: ['integer', 'null'] },
           maxServices: { type: 'integer' },
@@ -130,6 +148,7 @@ const formSettings: RouteDef = {
             },
           },
           freeEstimates: { type: 'boolean' },
+          responseMinutes: { type: ['integer', 'null'] },
         },
       },
     },
@@ -151,6 +170,7 @@ const formSettings: RouteDef = {
         windows: formWindows(config),
         // The free-estimate wording appears only while the configured policy says so (FACT-VISIT-FEE).
         freeEstimates: fee.state === 'CONFIGURED' && fee.value.policy === 'free',
+        responseMinutes: responseFacts(config).responseMinutes,
       },
       headers: { 'cache-control': 'no-cache' },
     }

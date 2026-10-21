@@ -408,3 +408,56 @@ describe('deep links open the record (TSK-0041, HH-OPS-02)', () => {
     expect(fetchImpl.mock.calls.map(([u]) => u)).toEqual(['/api/v1/staff/auth/session'])
   })
 })
+
+describe('Retry on a delivery issue (TSK-0032, HH-INT-20, HH-COM-02, T12)', () => {
+  const DELIVERY_ID = '33333333-3333-4333-8333-333333333333'
+  const failure = item({
+    id: '00000000-0000-4000-8000-000000000032',
+    type: 'delivery_failed',
+    subjectType: 'message_delivery',
+    subjectId: DELIVERY_ID,
+    status: 'failed',
+    clock: null,
+    reason: 'delivery_not_configured',
+    action: 'retry_delivery',
+    link: `/inbox/${DELIVERY_ID}`,
+  })
+
+  it('[T12][HH-INT-20] the one action retries the message on the server and reloads the list', async () => {
+    const calls: { url: string; method: string; headers: Record<string, string> }[] = []
+    let retried = false
+    const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push({ url, method: init?.method ?? 'GET', headers: (init?.headers ?? {}) as Record<string, string> })
+      if (url.endsWith('/retry')) {
+        retried = true
+        return json(200, { id: DELIVERY_ID, state: 'queued' })
+      }
+      return json(200, page(retried ? [] : [failure], { types: ['delivery_failed'] }))
+    })
+    render(<QueueHome {...props(fetchImpl as unknown as typeof fetch)} />)
+    const row = await screen.findByRole('listitem', { name: /Delivery failure/ })
+    expect(within(row).getByText('A message was not sent: its wording or channel is not configured')).toBeTruthy()
+    // Retry is a button that acts here, not a link to a screen.
+    expect(within(row).queryByRole('link', { name: 'Retry delivery' })).toBeNull()
+    fireEvent.click(within(row).getByRole('button', { name: 'Retry delivery' }))
+    await waitFor(() => expect(calls.some((c) => c.url.endsWith('/retry'))).toBe(true))
+    const post = calls.find((c) => c.url.endsWith('/retry'))
+    expect(post?.url).toBe(`/api/v1/staff/message-deliveries/${DELIVERY_ID}/retry`)
+    expect(post?.method).toBe('POST')
+    expect(post?.headers['idempotency-key']).toMatch(/^staff-[0-9a-f]{32}$/)
+    // The list reloads; the item disappears once the server resolves it.
+    await waitFor(() => expect(screen.queryByRole('listitem', { name: /Delivery failure/ })).toBeNull())
+  })
+
+  it('[T12] a refused retry says the message is not waiting for one', async () => {
+    const fetchImpl = vi.fn(async (url: string) =>
+      url.endsWith('/retry')
+        ? json(409, { error: { code: 'CONFLICT', message: 'Conflict', retryable: false, fieldErrors: [] } })
+        : json(200, page([failure], { types: ['delivery_failed'] })),
+    )
+    render(<QueueHome {...props(fetchImpl as unknown as typeof fetch)} />)
+    const row = await screen.findByRole('listitem', { name: /Delivery failure/ })
+    fireEvent.click(within(row).getByRole('button', { name: 'Retry delivery' }))
+    expect(await within(row).findByText('This message is not waiting for a retry.')).toBeTruthy()
+  })
+})

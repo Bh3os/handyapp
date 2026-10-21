@@ -22,7 +22,7 @@ import { outbox } from '../../platform/outbox.js'
 import { lookupCoverage, type CoverageResult } from '../coverage/coverage.js'
 import { isLegalVersion } from '../legal/index.js'
 import { recordConsent } from '../notifications/index.js'
-import { bindDraftPhotos, type PhotoSummary } from '../photos/photos.js'
+import { bindDraftPhotos, createCapability, PhotoError, type PhotoSummary } from '../photos/photos.js'
 import { startResponseClock } from './response-clock.js'
 import {
   localDate,
@@ -154,7 +154,9 @@ export async function submitRequest(
   tx: Tx,
   body: SubmitBody,
   opts: { idempotencyKey: string; requestId: string; now?: Date },
-): Promise<Submitted & { serviceCodes: string[]; spamSuspected: boolean; photos: PhotoSummary }> {
+): Promise<
+  Submitted & { serviceCodes: string[]; spamSuspected: boolean; photos: PhotoSummary; photoCapability: string | null }
+> {
   const now = opts.now ?? new Date()
   // Before anything is written: a key that already created a request (its idempotency record may have expired). The
   // framework's advisory lock on the caller's key is held, so no other submission of this caller with this key runs
@@ -330,6 +332,20 @@ export async function submitRequest(
 
   // The draft's photos, bound by the server to this request and project; a bad token binds nothing (TSK-0031).
   const photos = await bindDraftPhotos(tx, { token: body.photoDraft, requestId: request.id, projectId: project.id })
+  // TSK-0032 (HH-INT-07, HH-INT-12): when the draft was bound, a capability for this request's photos only, so the
+  // receipt can follow their states and retry a failed photo without a new request. PROPOSED: it lives as long as a
+  // draft (session.timings.requestDraftDays), the only configured lifetime for request uploads.
+  // A photo problem never loses the request: without a configured lifetime no capability is made (nothing is written
+  // before that check), and the receipt then reports the counts without a retry.
+  const photoCapability = photos.bound
+    ? await createCapability(tx, { scope: 'request', requestId: request.id }, now).then(
+        (c) => c.token,
+        (err: unknown) => {
+          if (err instanceof PhotoError) return null
+          throw err
+        },
+      )
+    : null
 
   await recordFormConsents(tx, body, {
     contactId: contact.id,
@@ -355,6 +371,7 @@ export async function submitRequest(
     submittedAt: request.submitted_at,
     serviceCodes: body.services.map((s) => services.get(s.serviceId)?.code ?? s.serviceId),
     spamSuspected,
-    photos,
+    photos: { received: photos.received, processing: photos.processing, failed: photos.failed },
+    photoCapability,
   }
 }

@@ -263,3 +263,44 @@
   align-items: center;
   min-height: var(--hh-target-dense);
 }
+/* The receipt (TSK-0032): the reference with its Copy button, the project at a glance, photos and next steps. */
+.hh-receipt {
+  display: grid;
+  gap: var(--hh-space-4);
+}
+.hh-receipt__reference {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hh-space-3);
+}
+.hh-receipt__reference .hh-lead {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.hh-receipt__copy-status {
+  flex-basis: 100%;
+  min-height: 1.5em;
+  margin: 0;
+}
+.hh-receipt__section .hh-h3 {
+  margin-top: 0;
+}
+.hh-receipt__section dl {
+  display: grid;
+  gap: var(--hh-space-2);
+  margin: 0 0 var(--hh-space-3);
+}
+.hh-receipt__section dt {
+  font-weight: 600;
+}
+.hh-receipt__section dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.hh-receipt__counts {
+  margin: 0 0 var(--hh-space-3);
+}
+.hh-receipt > .hh-button {
+  justify-self: start;
+}

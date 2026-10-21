@@ -6,7 +6,8 @@
 //   project's work packages, the issuer name, mailing address, validity and terms from configuration (null where NOT
 //   CONFIGURED: never a default) and the publish readiness with every reason the version cannot be published yet.
 // - Saving sends the whole draft (lines per work package, options, texts, discount category, internal notes); the
-//   server computes every amount and total (saveDraft), refuses a stale save (If-Match row version) and audits it.
+//   server computes every amount and total (saveDraft), refuses a stale save (If-Match row version) and a save on a
+//   project that is no longer open (as canEdit shows), and audits it.
 // - Every route needs estimate.draft (Owner, Estimator). Publishing, revising and the lifecycle are TSK-0055; Upload an
 //   Estimate (TSK-0054) is document-routes.ts, and the builder view shows an uploaded version's documents. Nothing here
 //   sends a message.
@@ -14,7 +15,7 @@ import type { Db, Tx } from '@handyhub/db'
 import { decide, type StaffActor } from '@handyhub/policy'
 import { sql } from 'kysely'
 import { ApiError } from '../../api/errors.js'
-import { pageSchema, toPage } from '../../api/pagination.js'
+import { instantIdCursor, pageSchema, toPage } from '../../api/pagination.js'
 import type { ApiContext, RouteDef } from '../../api/route.js'
 import { loadConfig } from '../../platform/config/index.js'
 import { syncEstimateItem } from '../queue/index.js'
@@ -215,13 +216,9 @@ const list: RouteDef = {
         'c.display_name',
         sql<string>`e.created_at::text`.as('created_key'),
       ])
-    const after = page.after
-    if (after !== undefined) {
-      const [at, id] = after
-      if (after.length !== 2 || typeof at !== 'string' || typeof id !== 'string' || !/^[0-9a-f-]{36}$/.test(id))
-        throw new ApiError('VALIDATION_FAILED', {
-          fieldErrors: [{ field: 'querystring.cursor', code: 'invalid', message: '' }],
-        })
+    if (page.after !== undefined) {
+      // Both parts checked strictly: a crafted cursor is a 400, never a failed cast (a 500).
+      const [at, id] = instantIdCursor(page.after)
       query = query.where(sql<boolean>`(e.created_at, e.id) < (${at}::timestamptz, ${id}::uuid)`)
     }
     const rows = await query
@@ -385,9 +382,10 @@ const save: RouteDef = {
   operationId: 'saveEstimateDraft',
   summary: 'Save the estimate draft',
   description:
-    'Staff with estimate.draft, on a draft or in-review version, with If-Match: the row version shown. Replaces the ' +
-    'whole content (lines in order, options, texts, discount category; internal costs and notes only with ' +
-    'estimate.view_internal_cost, kept when left out). The server computes every line amount half-up and the totals ' +
+    'Staff with estimate.draft, on a draft or in-review version of an open project (else 409 PROJECT_NOT_OPEN), ' +
+    'with If-Match: the row version shown. Replaces the whole content (lines in order, options, texts, discount ' +
+    'category; internal costs and notes only with estimate.view_internal_cost, kept when left out). The server ' +
+    'computes every line amount half-up and the totals ' +
     'from the active configuration; client amounts are never read. An incomplete draft is saved with its totals ' +
     'empty; an invalid value is refused with field errors and nothing is stored. Returns the builder view.',
   actors: ['staff'],

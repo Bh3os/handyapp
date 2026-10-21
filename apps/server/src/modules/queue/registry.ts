@@ -104,7 +104,8 @@ export const QUEUE_ITEM_TYPES = [
     subject: 'message_delivery',
     band: 'time_sensitive',
     view: 'message.reply',
-    reasons: ['delivery_failed'],
+    // TSK-0032: a message that cannot be sent until its wording or channel is configured says so.
+    reasons: ['delivery_failed', 'delivery_not_configured'],
     action: 'retry_delivery',
     screen: 'inbox',
   },

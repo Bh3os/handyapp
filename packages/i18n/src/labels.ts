@@ -93,6 +93,7 @@ export const LABEL_FAMILIES = {
     'reschedule_requested',
     'cancellation_requested',
     'delivery_failed',
+    'delivery_not_configured',
     'case_opened',
     'complaint_recorded',
     'damage_reported',
@@ -322,6 +323,8 @@ export const LABEL_FAMILIES = {
     'TOTAL_NOT_POSITIVE',
     'VERSION_NOT_EDITABLE',
     'PROJECT_NOT_OPEN',
+    'AMOUNT_TOO_LARGE',
+    'TOTAL_TOO_LARGE',
     // TSK-0054: refused document uploads and agree-confirmations (apps/server/src/modules/estimates/documents.ts).
     'NOT_UPLOADED_METHOD',
     'DOCUMENT_MISSING',

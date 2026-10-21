@@ -5,6 +5,7 @@ import { estimateDocumentProcessAutomation } from './modules/estimates/index.js'
 import { deliveryStatusAutomation } from './modules/notifications/index.js'
 import { photoProcessAutomation } from './modules/photos/index.js'
 import { queueAutomations } from './modules/queue/index.js'
+import { receiptEmailAutomation } from './modules/requests/receipt-email.js'
 import { responseClockAutomation } from './modules/requests/response-clock.js'
 import type { Automation } from './platform/automation.js'
 import type { Providers } from './providers/index.js'
@@ -22,6 +23,8 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     estimateDocumentProcessAutomation(deps.providers.storage),
     // TSK-0041: action queue items from the modules' committed events.
     ...queueAutomations(),
+    // TSK-0032: the automatic receipt email, once per saved request (HH-INT-20); email only.
+    receiptEmailAutomation({ providers: { email: deps.providers.email, sms: null } }),
     // TSK-0043: a meaningful customer message whose delivery succeeded stops the first-response clock.
     responseClockAutomation(),
   ]

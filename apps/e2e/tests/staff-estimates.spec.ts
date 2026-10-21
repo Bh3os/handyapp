@@ -134,7 +134,7 @@ test.describe('Write an Estimate: the staff builder (TSK-0053)', () => {
   }) => {
     await setPasswordAndSignIn(page, staffAccess('password-link', ESTIMATOR), ESTIMATOR, pw(2))
 
-    // The pending-estimate item comes from the request.ready_for_estimate event (the server's job worker).
+    // The pending-estimate item opens with Prepare Online Estimate (and the request.ready_for_estimate job keeps it).
     const item = page.getByRole('listitem', { name: `Pending estimate ${reference}` })
     await expect(async () => {
       await page.reload()

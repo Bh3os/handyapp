@@ -148,11 +148,13 @@ test.describe('the first-response clock and review holds (TSK-0043)', () => {
     await page.getByRole('button', { name: 'Confirm: Ask a Question' }).click()
     await expect(page.getByText('Done. The request has moved on.')).toBeVisible()
 
-    // Answered and handled: the new-request item leaves the queue.
+    // Answered and handled: the new-request item leaves the queue (the request's failed receipt, NOT CONFIGURED, may
+    // still be listed as its own delivery item).
     await page.getByRole('link', { name: 'Back to the action queue' }).click()
     await queue.getByLabel('Reference').fill(reference)
     await queue.getByRole('button', { name: 'Apply filters' }).click()
-    await expect(page.getByText('No items match these filters.')).toBeVisible()
+    await expect(page.getByRole('listitem', { name: new RegExp(`Delivery failure ${reference}`) })).toBeVisible()
+    await expect(item).toHaveCount(0)
   })
 
   test('[HH-LEAD-04][T40][RULE-SAFETY-GATES] a hazard flag opens a review hold that blocks estimating until the Owner resolves it', async ({

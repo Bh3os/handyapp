@@ -218,6 +218,7 @@ export function createWorker(options: WorkerOptions): Worker {
     key: j.job_key,
     automation: j.automation,
     attempt: j.attempts,
+    maxAttempts: j.max_attempts,
     payload: (j.payload ?? {}) as JobPayload,
     eventId: j.outbox_event_id,
     eventType: j.event_type,
@@ -253,10 +254,15 @@ export function createWorker(options: WorkerOptions): Worker {
     })
   }
 
-  async function fail(j: JobRow, a: Automation | undefined, err: unknown): Promise<'retried' | 'failed'> {
+  async function fail(
+    j: JobRow,
+    a: Automation | undefined,
+    err: unknown,
+    jobLog: Logger = log,
+  ): Promise<'retried' | 'failed'> {
     const errorClass = (err instanceof Error && err.name ? err.name : 'Error').slice(0, 120)
     const final = !a || j.attempts >= j.max_attempts
-    return withTx(db, async (tx) => {
+    const outcome = await withTx(db, async (tx) => {
       const delay = a ? retryDelayMs(a.retry, j.attempts) : 0
       const updated = await tx
         .updateTable('platform.jobs')
@@ -285,6 +291,17 @@ export function createWorker(options: WorkerOptions): Worker {
         })
       return final ? 'failed' : 'retried'
     })
+    // The failure is recorded; the automation may now make the records it owns say so (TSK-0032), in its own
+    // transaction so that nothing it does can undo the job's failure record.
+    if (outcome === 'failed' && a?.onFinalFailure) {
+      const hook = a.onFinalFailure
+      try {
+        await withTx(db, (tx) => hook({ tx, job: view(j), errorClass, log: jobLog }))
+      } catch (e) {
+        jobLog.error({ err: e }, 'final-failure hook failed')
+      }
+    }
+    return outcome
   }
 
   async function runJob(j: JobRow): Promise<'succeeded' | 'cancelled' | 'retried' | 'failed' | 'lost'> {
@@ -318,7 +335,7 @@ export function createWorker(options: WorkerOptions): Worker {
         }
         jobLog.error({ err }, 'job attempt failed')
         try {
-          return await fail(j, a, err)
+          return await fail(j, a, err, jobLog)
         } catch (e) {
           if (e instanceof LeaseLostError) return 'lost'
           throw e
@@ -431,6 +448,59 @@ export async function retryFailedJob(
     ...(input.reason ? { reason: input.reason } : {}),
     ...(input.requestId ? { requestId: input.requestId } : {}),
   })
+}
+
+/**
+ * Staff retry of a finished job's effect (for example a failed delivery's send, TSK-0032): a new job of the same
+ * automation for the same event, target and payload, keyed `<job key>:<key>` (idempotent by key, so a repeated retry
+ * of the same failure creates one job). Its effect stays the automation's own, so its idempotency and rechecks apply.
+ * Authorization and the audit event are the caller's.
+ */
+export async function rerunJob(
+  tx: Tx,
+  input: { jobId: string; key: string; requestId: string },
+): Promise<{ id: string; created: boolean }> {
+  if (!tx.isTransaction) throw new Error('rerunJob must run inside the business transaction (withTx)')
+  const job = await tx
+    .selectFrom('platform.jobs')
+    .select([
+      'automation',
+      'job_key',
+      'outbox_event_id',
+      'event_type',
+      'target_type',
+      'target_id',
+      'payload',
+      'max_attempts',
+    ])
+    .where('id', '=', input.jobId)
+    .where('state', 'in', ['succeeded', 'cancelled', 'failed'])
+    .executeTakeFirst()
+  if (!job) throw new Error(`Job ${input.jobId} has not finished`)
+  const jobKey = `${job.job_key}:${input.key}`
+  const row = await tx
+    .insertInto('platform.jobs')
+    .values({
+      automation: job.automation,
+      job_key: jobKey,
+      outbox_event_id: job.outbox_event_id,
+      event_type: job.event_type,
+      target_type: job.target_type,
+      target_id: job.target_id,
+      payload: JSON.stringify(job.payload ?? {}),
+      request_id: input.requestId,
+      max_attempts: job.max_attempts,
+    })
+    .onConflict((oc) => oc.column('job_key').doNothing())
+    .returning('id')
+    .executeTakeFirst()
+  if (row) return { id: row.id, created: true }
+  const existing = await tx
+    .selectFrom('platform.jobs')
+    .select('id')
+    .where('job_key', '=', jobKey)
+    .executeTakeFirstOrThrow()
+  return { id: existing.id, created: false }
 }
 
 export type QueueStats = {

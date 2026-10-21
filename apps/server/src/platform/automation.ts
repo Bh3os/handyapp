@@ -17,6 +17,8 @@ export type JobView = {
   automation: string
   /** 1 on the first run. */
   attempt: number
+  /** The job's attempt budget (the automation's retry.maxAttempts when it was created); unset in hand-built views. */
+  maxAttempts?: number
   payload: JobPayload
   eventId: string | null
   eventType: string | null
@@ -60,8 +62,16 @@ export type Automation = {
    * 'done': the provider already has the effect, so the job succeeds without another send.
    */
   reconcile?: (ctx: ReconcileContext) => Promise<'done' | 'retry'>
+  /**
+   * Called once after the job's last attempt failed and the failure was recorded, in a transaction of its own, so the
+   * records the automation owns can say so truthfully (TSK-0032: a delivery queued by a staff retry goes back to
+   * failed instead of reading queued for good). Best effort: an error here is logged and changes nothing else.
+   */
+  onFinalFailure?: (ctx: FinalFailureContext) => Promise<void>
   handle: (ctx: JobContext) => Promise<JobOutcome>
 }
+
+export type FinalFailureContext = { tx: Tx; job: JobView; errorClass: string; log: Logger }
 
 export class AutomationDeclarationError extends Error {
   override name = 'AutomationDeclarationError'
@@ -106,6 +116,7 @@ export function validateAutomation(a: Automation): void {
   if (!decl.audit || !DOTTED.test(String(decl.audit.action))) problems.push('audit')
   if (typeof decl.handle !== 'function') problems.push('handle')
   if (decl.reconcile !== undefined && typeof decl.reconcile !== 'function') problems.push('reconcile')
+  if (decl.onFinalFailure !== undefined && typeof decl.onFinalFailure !== 'function') problems.push('onFinalFailure')
   if (problems.length)
     throw new AutomationDeclarationError(
       `Automation ${String(decl.name)} is missing or invalid: ${problems.join(', ')}`,

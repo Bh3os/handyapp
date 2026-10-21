@@ -11,6 +11,14 @@ export const CONTACT_CHANNELS = ['email', 'call', 'text'] as const
 /** At most 5 distinct services per request (OWN-DEC-90); more are described in free text. */
 export const MAX_SERVICES = 5
 
+/** A public request reference: HH- and 8 Crockford base-32 characters (ENT-Request; newReference on the server). */
+export const REFERENCE_PATTERN = /^HH-[0-9A-HJKMNP-TV-Z]{8}$/
+
+/** The receipt page of a saved request (TSK-0032, HH-INT-12). The reference in it grants nothing. */
+export function receiptPath(reference: string): string {
+  return `/request/received/${encodeURIComponent(reference)}`
+}
+
 const text = (max: number, min = 1) => ({ type: 'string', minLength: min, maxLength: max }) as const
 
 export const REQUEST_FORM_SCHEMA = {
@@ -250,6 +258,35 @@ export function formatClock(clock: string): string {
   const [h = 0, m = 0] = clock.split(':').map(Number)
   const hour = h % 12 === 0 ? 12 : h % 12
   return `${hour}${m ? `:${String(m).padStart(2, '0')}` : ''} ${h < 12 ? 'AM' : 'PM'}`
+}
+
+/** The configured visit hours as the receipt states them, for example "8 AM–10 PM" (FACT-HOURS). */
+export function hoursText(visit: VisitHours): string {
+  return `${formatClock(visit.open)}–${formatClock(visit.close)}`
+}
+
+/** One sentence of customer copy: a customer catalog key and its values (rendered by the caller's translator). */
+export type CopyLine = { readonly key: string; readonly values?: Readonly<Record<string, string | number>> }
+
+/**
+ * The receipt's "What happens next?" wording (TSK-0032; HH-INT-12, HH-INT-20, OWN-DEC-94, FACT-RESPONSE-TARGET,
+ * FACT-HOURS), shared by the receipt page and the receipt email so both say the same thing. The response target and
+ * the daily hours come from configuration (response.target, contact.hours), never from the text: with the decided
+ * values (60 minutes, 08:00-22:00) the sentences are exactly the owner's. While either value is NOT CONFIGURED only
+ * the first sentence is said: no response time or hours are guessed (RULE-NO-INVENTED-FACTS).
+ */
+export function nextStepsLines(facts: { visitHours: VisitHours | null; responseMinutes: number | null }): CopyLine[] {
+  const lines: CopyLine[] = [{ key: 'request.receipt.next.review' }]
+  const minutes = facts.responseMinutes
+  if (!facts.visitHours || minutes === null || !Number.isInteger(minutes) || minutes < 1) return lines
+  const hours = hoursText(facts.visitHours)
+  lines.push(
+    minutes % 60 === 0
+      ? { key: 'request.receipt.next.targetHours', values: { count: minutes / 60, hours } }
+      : { key: 'request.receipt.next.targetMinutes', values: { count: minutes, hours } },
+    { key: 'request.receipt.next.outside' },
+  )
+  return lines
 }
 
 const field = (name: string, code: string): FormFieldError => ({ field: `body.${name}`, code, message: '' })

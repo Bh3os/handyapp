@@ -305,6 +305,10 @@
   justify-self: start;
 }
 
+.staff-queue__retry-status {
+  margin: 0;
+}
+
 .staff-record {
   display: grid;
   grid-template-columns: minmax(8rem, max-content) minmax(0, 1fr);
@@ -471,6 +475,12 @@
 .staff-estimate__amount {
   margin: 0;
   font-weight: 600;
+}
+
+/* An amount from the last save that an edit has made out of date: the text says so, and it loses its emphasis. */
+.staff-estimate__amount[data-outdated] {
+  font-weight: 400;
+  font-style: italic;
 }
 
 .staff-estimate__internal {
