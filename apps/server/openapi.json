@@ -4933,6 +4933,1990 @@
         }
       }
     },
+    "/api/v1/staff/estimate-versions/{versionId}": {
+      "get": {
+        "operationId": "getEstimateVersion",
+        "summary": "Estimate builder",
+        "description": "Staff with estimate.draft. One version as the builder shows it: lines per work package with server-computed amounts, options, texts, the discount row and total, the deposit state, the project, customer and property, the issuer name, mailing address (null: the line is omitted), validity and terms from configuration (null while NOT CONFIGURED) and the publish readiness with its reasons. Internal costs and notes only with estimate.view_internal_cost. The ETag is the row version for If-Match on save.",
+        "tags": [
+          "estimates"
+        ],
+        "parameters": [
+          {
+            "name": "versionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "estimateId",
+                    "estimateNumber",
+                    "version",
+                    "state",
+                    "rowVersion",
+                    "authoringMethod",
+                    "currency",
+                    "project",
+                    "customer",
+                    "property",
+                    "request",
+                    "preparedBy",
+                    "createdAt",
+                    "updatedAt",
+                    "lines",
+                    "texts",
+                    "discountCategory",
+                    "totals",
+                    "paymentTerm",
+                    "document",
+                    "workPackages",
+                    "readiness",
+                    "internal",
+                    "canEdit"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "estimateId": {
+                      "type": "string"
+                    },
+                    "estimateNumber": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "rowVersion": {
+                      "type": "integer"
+                    },
+                    "authoringMethod": {
+                      "type": "string",
+                      "enum": [
+                        "written",
+                        "uploaded"
+                      ]
+                    },
+                    "currency": {
+                      "type": "string",
+                      "enum": [
+                        "USD"
+                      ]
+                    },
+                    "project": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "reference",
+                        "state"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "reference": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "customer": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "name"
+                      ],
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "property": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "street",
+                        "unit",
+                        "city",
+                        "state",
+                        "zip"
+                      ],
+                      "properties": {
+                        "street": {
+                          "type": "string"
+                        },
+                        "unit": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "city": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "type": "string"
+                        },
+                        "zip": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "request": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "reference"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "reference": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "preparedBy": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "lines": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "position",
+                          "kind",
+                          "workPackageId",
+                          "serviceCode",
+                          "description",
+                          "quantity",
+                          "unit",
+                          "quantitySource",
+                          "unitPriceCents",
+                          "amountCents"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "position": {
+                            "type": "integer"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "base",
+                              "alternate",
+                              "add_on"
+                            ]
+                          },
+                          "workPackageId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "serviceCode": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "description": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "quantity": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "unit": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "quantitySource": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "unitPriceCents": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "texts": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "assumptions",
+                        "exclusions",
+                        "customerResponsibilities",
+                        "dependencies",
+                        "scheduleAssumptions"
+                      ],
+                      "properties": {
+                        "assumptions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "exclusions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "customerResponsibilities": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "dependencies": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "scheduleAssumptions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "discountCategory": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "totals": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "subtotalCents",
+                            "discount",
+                            "totalCents",
+                            "depositState",
+                            "depositCents",
+                            "computedAt"
+                          ],
+                          "properties": {
+                            "subtotalCents": {
+                              "type": "integer"
+                            },
+                            "discount": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "category",
+                                    "percentBps",
+                                    "amountCents"
+                                  ],
+                                  "properties": {
+                                    "category": {
+                                      "type": "string"
+                                    },
+                                    "percentBps": {
+                                      "type": "integer"
+                                    },
+                                    "amountCents": {
+                                      "type": "integer"
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "totalCents": {
+                              "type": "integer"
+                            },
+                            "depositState": {
+                              "type": "string",
+                              "enum": [
+                                "not_required",
+                                "required",
+                                "not_configured"
+                              ]
+                            },
+                            "depositCents": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "computedAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "paymentTerm": {
+                      "type": "string"
+                    },
+                    "document": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "issuerName",
+                        "mailingAddress",
+                        "validityDays",
+                        "termsDocumentId",
+                        "discountCategories"
+                      ],
+                      "properties": {
+                        "issuerName": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "mailingAddress": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "validityDays": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "termsDocumentId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "discountCategories": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "workPackages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "serviceCode",
+                          "position"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "serviceCode": {
+                            "type": "string"
+                          },
+                          "position": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "readiness": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "ready",
+                        "problems"
+                      ],
+                      "properties": {
+                        "ready": {
+                          "type": "boolean"
+                        },
+                        "problems": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "code"
+                            ],
+                            "properties": {
+                              "code": {
+                                "type": "string",
+                                "enum": [
+                                  "NOT_CONFIGURED",
+                                  "VERSION_NOT_EDITABLE",
+                                  "NO_LINES",
+                                  "QUANTITY_UNKNOWN",
+                                  "UNIT_PRICE_MISSING",
+                                  "DESCRIPTION_MISSING",
+                                  "LINE_NOT_POSITIVE",
+                                  "NOT_AN_OPTION",
+                                  "TOTAL_NOT_POSITIVE",
+                                  "UNSUPPORTED_CURRENCY",
+                                  "DISCOUNT_NOT_CONFIGURED",
+                                  "DISCOUNT_CATEGORY_UNKNOWN",
+                                  "TOTALS_OUTDATED"
+                                ]
+                              },
+                              "line": {
+                                "type": "integer"
+                              },
+                              "key": {
+                                "type": "string",
+                                "enum": [
+                                  "deposit.rule",
+                                  "discount.rule",
+                                  "discount.eligibility_verification",
+                                  "tax.mode",
+                                  "estimate.validity",
+                                  "estimate.publishing_roles",
+                                  "payment.term_default",
+                                  "payment.methods",
+                                  "payment.instructions",
+                                  "cancellation.rules",
+                                  "contact.hours",
+                                  "business.timezone",
+                                  "reminders.cadences",
+                                  "request.reopen_period",
+                                  "response.target",
+                                  "session.timings",
+                                  "uploads.limits",
+                                  "business.name",
+                                  "business.mailing_address",
+                                  "business.public_contact",
+                                  "verification.limits",
+                                  "messages.automatic",
+                                  "sms.help_reply",
+                                  "coverage.area",
+                                  "request.window_hours",
+                                  "estimate.visit_fee",
+                                  "legal.privacy_notice",
+                                  "legal.sms_terms",
+                                  "legal.website_terms",
+                                  "legal.sms_disclosure",
+                                  "legal.estimate_terms",
+                                  "ai.module"
+                                ]
+                              },
+                              "sourceIds": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "internal": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "lines",
+                            "baseMargin",
+                            "markupAssumptions",
+                            "estimatorNotes"
+                          ],
+                          "properties": {
+                            "lines": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "lineId",
+                                  "materialCostCents",
+                                  "laborCostCents",
+                                  "note"
+                                ],
+                                "properties": {
+                                  "lineId": {
+                                    "type": "string"
+                                  },
+                                  "materialCostCents": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ]
+                                  },
+                                  "laborCostCents": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ]
+                                  },
+                                  "note": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            },
+                            "baseMargin": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "cost",
+                                    "margin"
+                                  ],
+                                  "properties": {
+                                    "cost": {
+                                      "type": "integer"
+                                    },
+                                    "margin": {
+                                      "type": "integer"
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "markupAssumptions": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "estimatorNotes": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "canEdit": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "estimate.draft",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/estimate-builder.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/estimate-versions/{versionId}/draft": {
+      "put": {
+        "operationId": "saveEstimateDraft",
+        "summary": "Save the estimate draft",
+        "description": "Staff with estimate.draft, on a draft or in-review version of an open project (else 409 PROJECT_NOT_OPEN), with If-Match: the row version shown. Replaces the whole content (lines in order, options, texts, discount category; internal costs and notes only with estimate.view_internal_cost, kept when left out). The server computes every line amount half-up and the totals from the active configuration; client amounts are never read. An incomplete draft is saved with its totals empty; an invalid value is refused with field errors and nothing is stored. Returns the builder view.",
+        "tags": [
+          "estimates"
+        ],
+        "parameters": [
+          {
+            "name": "versionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "lines"
+                ],
+                "properties": {
+                  "lines": {
+                    "type": "array",
+                    "maxItems": 200,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "base",
+                            "alternate",
+                            "add_on"
+                          ]
+                        },
+                        "workPackageId": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "description": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "maxLength": 2000
+                        },
+                        "quantity": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "maxLength": 20
+                        },
+                        "unit": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "maxLength": 40
+                        },
+                        "quantitySource": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "measured_on_site",
+                            "reported_by_customer",
+                            null
+                          ]
+                        },
+                        "unitPriceCents": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "internalCost": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "properties": {
+                                "materialCostCents": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "laborCostCents": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "note": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "maxLength": 2000
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "discountCategory": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 40
+                  },
+                  "texts": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "assumptions": {
+                        "type": "array",
+                        "maxItems": 50,
+                        "items": {
+                          "type": "string",
+                          "maxLength": 1000
+                        }
+                      },
+                      "exclusions": {
+                        "type": "array",
+                        "maxItems": 50,
+                        "items": {
+                          "type": "string",
+                          "maxLength": 1000
+                        }
+                      },
+                      "customerResponsibilities": {
+                        "type": "array",
+                        "maxItems": 50,
+                        "items": {
+                          "type": "string",
+                          "maxLength": 1000
+                        }
+                      },
+                      "dependencies": {
+                        "type": "array",
+                        "maxItems": 50,
+                        "items": {
+                          "type": "string",
+                          "maxLength": 1000
+                        }
+                      },
+                      "scheduleAssumptions": {
+                        "type": "array",
+                        "maxItems": 50,
+                        "items": {
+                          "type": "string",
+                          "maxLength": 1000
+                        }
+                      }
+                    }
+                  },
+                  "internal": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "markupAssumptions": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 5000
+                          },
+                          "estimatorNotes": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 5000
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "estimateId",
+                    "estimateNumber",
+                    "version",
+                    "state",
+                    "rowVersion",
+                    "authoringMethod",
+                    "currency",
+                    "project",
+                    "customer",
+                    "property",
+                    "request",
+                    "preparedBy",
+                    "createdAt",
+                    "updatedAt",
+                    "lines",
+                    "texts",
+                    "discountCategory",
+                    "totals",
+                    "paymentTerm",
+                    "document",
+                    "workPackages",
+                    "readiness",
+                    "internal",
+                    "canEdit"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "estimateId": {
+                      "type": "string"
+                    },
+                    "estimateNumber": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "rowVersion": {
+                      "type": "integer"
+                    },
+                    "authoringMethod": {
+                      "type": "string",
+                      "enum": [
+                        "written",
+                        "uploaded"
+                      ]
+                    },
+                    "currency": {
+                      "type": "string",
+                      "enum": [
+                        "USD"
+                      ]
+                    },
+                    "project": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "reference",
+                        "state"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "reference": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "customer": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "name"
+                      ],
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "property": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "street",
+                        "unit",
+                        "city",
+                        "state",
+                        "zip"
+                      ],
+                      "properties": {
+                        "street": {
+                          "type": "string"
+                        },
+                        "unit": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "city": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "type": "string"
+                        },
+                        "zip": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "request": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "reference"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "reference": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "preparedBy": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "lines": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "position",
+                          "kind",
+                          "workPackageId",
+                          "serviceCode",
+                          "description",
+                          "quantity",
+                          "unit",
+                          "quantitySource",
+                          "unitPriceCents",
+                          "amountCents"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "position": {
+                            "type": "integer"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "base",
+                              "alternate",
+                              "add_on"
+                            ]
+                          },
+                          "workPackageId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "serviceCode": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "description": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "quantity": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "unit": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "quantitySource": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "unitPriceCents": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "texts": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "assumptions",
+                        "exclusions",
+                        "customerResponsibilities",
+                        "dependencies",
+                        "scheduleAssumptions"
+                      ],
+                      "properties": {
+                        "assumptions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "exclusions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "customerResponsibilities": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "dependencies": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "scheduleAssumptions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "discountCategory": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "totals": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "subtotalCents",
+                            "discount",
+                            "totalCents",
+                            "depositState",
+                            "depositCents",
+                            "computedAt"
+                          ],
+                          "properties": {
+                            "subtotalCents": {
+                              "type": "integer"
+                            },
+                            "discount": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "category",
+                                    "percentBps",
+                                    "amountCents"
+                                  ],
+                                  "properties": {
+                                    "category": {
+                                      "type": "string"
+                                    },
+                                    "percentBps": {
+                                      "type": "integer"
+                                    },
+                                    "amountCents": {
+                                      "type": "integer"
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "totalCents": {
+                              "type": "integer"
+                            },
+                            "depositState": {
+                              "type": "string",
+                              "enum": [
+                                "not_required",
+                                "required",
+                                "not_configured"
+                              ]
+                            },
+                            "depositCents": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "computedAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "paymentTerm": {
+                      "type": "string"
+                    },
+                    "document": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "issuerName",
+                        "mailingAddress",
+                        "validityDays",
+                        "termsDocumentId",
+                        "discountCategories"
+                      ],
+                      "properties": {
+                        "issuerName": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "mailingAddress": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "validityDays": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "termsDocumentId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "discountCategories": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "workPackages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "serviceCode",
+                          "position"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "serviceCode": {
+                            "type": "string"
+                          },
+                          "position": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "readiness": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "ready",
+                        "problems"
+                      ],
+                      "properties": {
+                        "ready": {
+                          "type": "boolean"
+                        },
+                        "problems": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "code"
+                            ],
+                            "properties": {
+                              "code": {
+                                "type": "string",
+                                "enum": [
+                                  "NOT_CONFIGURED",
+                                  "VERSION_NOT_EDITABLE",
+                                  "NO_LINES",
+                                  "QUANTITY_UNKNOWN",
+                                  "UNIT_PRICE_MISSING",
+                                  "DESCRIPTION_MISSING",
+                                  "LINE_NOT_POSITIVE",
+                                  "NOT_AN_OPTION",
+                                  "TOTAL_NOT_POSITIVE",
+                                  "UNSUPPORTED_CURRENCY",
+                                  "DISCOUNT_NOT_CONFIGURED",
+                                  "DISCOUNT_CATEGORY_UNKNOWN",
+                                  "TOTALS_OUTDATED"
+                                ]
+                              },
+                              "line": {
+                                "type": "integer"
+                              },
+                              "key": {
+                                "type": "string",
+                                "enum": [
+                                  "deposit.rule",
+                                  "discount.rule",
+                                  "discount.eligibility_verification",
+                                  "tax.mode",
+                                  "estimate.validity",
+                                  "estimate.publishing_roles",
+                                  "payment.term_default",
+                                  "payment.methods",
+                                  "payment.instructions",
+                                  "cancellation.rules",
+                                  "contact.hours",
+                                  "business.timezone",
+                                  "reminders.cadences",
+                                  "request.reopen_period",
+                                  "response.target",
+                                  "session.timings",
+                                  "uploads.limits",
+                                  "business.name",
+                                  "business.mailing_address",
+                                  "business.public_contact",
+                                  "verification.limits",
+                                  "messages.automatic",
+                                  "sms.help_reply",
+                                  "coverage.area",
+                                  "request.window_hours",
+                                  "estimate.visit_fee",
+                                  "legal.privacy_notice",
+                                  "legal.sms_terms",
+                                  "legal.website_terms",
+                                  "legal.sms_disclosure",
+                                  "legal.estimate_terms",
+                                  "ai.module"
+                                ]
+                              },
+                              "sourceIds": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "internal": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "lines",
+                            "baseMargin",
+                            "markupAssumptions",
+                            "estimatorNotes"
+                          ],
+                          "properties": {
+                            "lines": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "lineId",
+                                  "materialCostCents",
+                                  "laborCostCents",
+                                  "note"
+                                ],
+                                "properties": {
+                                  "lineId": {
+                                    "type": "string"
+                                  },
+                                  "materialCostCents": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ]
+                                  },
+                                  "laborCostCents": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ]
+                                  },
+                                  "note": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            },
+                            "baseMargin": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "cost",
+                                    "margin"
+                                  ],
+                                  "properties": {
+                                    "cost": {
+                                      "type": "integer"
+                                    },
+                                    "margin": {
+                                      "type": "integer"
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "markupAssumptions": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "estimatorNotes": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "canEdit": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "estimate.draft",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "estimate.save_draft",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/estimate-builder.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/estimates": {
+      "get": {
+        "operationId": "listEstimates",
+        "summary": "Estimates",
+        "description": "Staff with estimate.draft (Owner, Estimator). Estimates newest first, each with its latest version: number, project reference, customer name, version, state and the server-computed total (integer cents; null while the draft is incomplete). No internal cost or note.",
+        "tags": [
+          "estimates"
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "items",
+                    "nextCursor"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "estimateId",
+                          "number",
+                          "projectId",
+                          "projectReference",
+                          "customerName",
+                          "createdAt",
+                          "latest"
+                        ],
+                        "properties": {
+                          "estimateId": {
+                            "type": "string"
+                          },
+                          "number": {
+                            "type": "string"
+                          },
+                          "projectId": {
+                            "type": "string"
+                          },
+                          "projectReference": {
+                            "type": "string"
+                          },
+                          "customerName": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "latest": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "versionId",
+                              "version",
+                              "state",
+                              "totalCents",
+                              "updatedAt"
+                            ],
+                            "properties": {
+                              "versionId": {
+                                "type": "string"
+                              },
+                              "version": {
+                                "type": "integer"
+                              },
+                              "state": {
+                                "type": "string"
+                              },
+                              "totalCents": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              },
+                              "updatedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "estimate.draft",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": true,
+          "cache": "private, no-store",
+          "test": "test/integration/estimate-builder.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/holds/{holdId}/actions/cancel": {
       "post": {
         "operationId": "cancelHoldAsError",
@@ -5980,6 +7964,387 @@
         }
       }
     },
+    "/api/v1/staff/projects/{projectId}/estimates": {
+      "get": {
+        "operationId": "listProjectEstimates",
+        "summary": "A project's estimates",
+        "description": "Staff with estimate.draft. The estimates of one project with every version (state, total in integer cents), and whether the caller may Write an Estimate now (the project is open). The request record shows it.",
+        "tags": [
+          "estimates"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "projectId",
+                    "canWrite",
+                    "estimates"
+                  ],
+                  "properties": {
+                    "projectId": {
+                      "type": "string"
+                    },
+                    "canWrite": {
+                      "type": "boolean"
+                    },
+                    "estimates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "estimateId",
+                          "number",
+                          "versions"
+                        ],
+                        "properties": {
+                          "estimateId": {
+                            "type": "string"
+                          },
+                          "number": {
+                            "type": "string"
+                          },
+                          "versions": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "versionId",
+                                "version",
+                                "state",
+                                "totalCents",
+                                "updatedAt"
+                              ],
+                              "properties": {
+                                "versionId": {
+                                  "type": "string"
+                                },
+                                "version": {
+                                  "type": "integer"
+                                },
+                                "state": {
+                                  "type": "string"
+                                },
+                                "totalCents": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "updatedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "estimate.draft",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/estimate-builder.test.ts"
+        }
+      },
+      "post": {
+        "operationId": "writeEstimate",
+        "summary": "Write an Estimate",
+        "description": "Staff with estimate.draft, on an open project. Creates estimate <project reference>-E<n> with its first draft version, written in the staff app (HH-EST-11), copying the project payment term; the pending-estimate queue items of the project show the draft. No amount, price or message is created.",
+        "tags": [
+          "estimates"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "estimateId",
+                    "number",
+                    "versionId",
+                    "version",
+                    "rowVersion"
+                  ],
+                  "properties": {
+                    "estimateId": {
+                      "type": "string"
+                    },
+                    "number": {
+                      "type": "string"
+                    },
+                    "versionId": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "rowVersion": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "estimate.draft",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "estimate.create",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/estimate-builder.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/queue": {
       "get": {
         "operationId": "listActionQueue",
@@ -6002,6 +8367,7 @@
                 "visit_change_request",
                 "delivery_failed",
                 "case_open",
+                "estimate_to_write",
                 "deposit_waiver",
                 "start_work_exception",
                 "refund_request",
@@ -6117,6 +8483,7 @@
                               "visit_change_request",
                               "delivery_failed",
                               "case_open",
+                              "estimate_to_write",
                               "deposit_waiver",
                               "start_work_exception",
                               "refund_request",
@@ -6324,7 +8691,8 @@
                               "review_change",
                               "retry_delivery",
                               "open_case",
-                              "decide"
+                              "decide",
+                              "write_estimate"
                             ]
                           },
                           "link": {
@@ -6370,6 +8738,7 @@
                           "visit_change_request",
                           "delivery_failed",
                           "case_open",
+                          "estimate_to_write",
                           "deposit_waiver",
                           "start_work_exception",
                           "refund_request",
@@ -6504,6 +8873,7 @@
                 "visit_change_request",
                 "delivery_failed",
                 "case_open",
+                "estimate_to_write",
                 "deposit_waiver",
                 "start_work_exception",
                 "refund_request",
@@ -6619,6 +8989,7 @@
                               "visit_change_request",
                               "delivery_failed",
                               "case_open",
+                              "estimate_to_write",
                               "deposit_waiver",
                               "start_work_exception",
                               "refund_request",
@@ -6826,7 +9197,8 @@
                               "review_change",
                               "retry_delivery",
                               "open_case",
-                              "decide"
+                              "decide",
+                              "write_estimate"
                             ]
                           },
                           "link": {
@@ -6872,6 +9244,7 @@
                           "visit_change_request",
                           "delivery_failed",
                           "case_open",
+                          "estimate_to_write",
                           "deposit_waiver",
                           "start_work_exception",
                           "refund_request",
@@ -11863,6 +14236,7 @@
                               "legal.sms_terms",
                               "legal.website_terms",
                               "legal.sms_disclosure",
+                              "legal.estimate_terms",
                               "ai.module"
                             ]
                           },

@@ -24,6 +24,7 @@ export const QUEUE_ACTIONS = [
   'retry_delivery',
   'open_case',
   'decide',
+  'write_estimate',
 ] as const
 export type QueueAction = (typeof QUEUE_ACTIONS)[number]
 
@@ -123,6 +124,19 @@ export const QUEUE_ITEM_TYPES = [
     },
     action: 'open_case',
     screen: 'cases',
+  },
+  // Pending estimates (HH-OPS-01 "pending estimates"; TSK-0053): a request ready for an estimate, until its estimate is
+  // published (TSK-0055 moves the request on). Seen by the roles that write estimates; the link opens the request,
+  // where "Write an Estimate" starts the builder. Band and subject are PROPOSED.
+  {
+    id: 'estimate_to_write',
+    section: 'queue',
+    subject: 'request',
+    band: 'other',
+    view: 'estimate.draft',
+    reasons: ['ready_for_estimate', 'estimate_draft'],
+    action: 'write_estimate',
+    screen: 'requests',
   },
   // Owner Decisions (HH-OPS-01 "Owner, additionally"): each decision is owner-only in the matrix.
   {

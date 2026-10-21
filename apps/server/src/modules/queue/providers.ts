@@ -6,6 +6,8 @@ import type { Automation } from '../../platform/automation.js'
 import { openQueueItem, resolveQueueItem } from './items.js'
 
 export const REQUEST_SUBMITTED = 'request.submitted'
+/** Recorded by Prepare Online Estimate (TSK-0042) when a request is ready for its estimate. */
+export const REQUEST_READY_FOR_ESTIMATE = 'request.ready_for_estimate'
 
 /**
  * Brings a request's new_request item in line with the request and its first-response clock as they are now
@@ -86,6 +88,71 @@ export function newRequestQueueAutomation(): Automation {
   }
 }
 
+/**
+ * Brings a request's pending-estimate item (estimate_to_write) in line with the request as it is now (HH-OPS-01
+ * "pending estimates", TSK-0053): a request ready for its estimate, on an open project, has its one open item, with the
+ * reason "estimate draft" once a draft or in-review version of the project exists; any other request has none (resolved
+ * as handled). The provider below runs it from request.ready_for_estimate; the requests module runs it in the same
+ * transaction as every action that moves the request or closes or routes its project (Prepare Online Estimate, Ask a
+ * Question, Arrange Estimate Visit, Not a Fit) and as an assignment, and the estimates module as creating an estimate,
+ * so the item never shows a stale reason, status or assignee, and never outlives the request's readiness.
+ */
+export async function syncEstimateItem(tx: Tx, requestId: string): Promise<'open' | 'resolved' | 'missing'> {
+  const request = await tx
+    .selectFrom('intake.requests as r')
+    .innerJoin('crm.projects as p', 'p.id', 'r.project_id')
+    .select(['r.id', 'r.state', 'r.reference', 'r.project_id', 'r.responsible_staff_id', 'p.state as project_state'])
+    .where('r.id', '=', requestId)
+    .executeTakeFirst()
+  if (!request) return 'missing'
+  if (request.state !== 'ready_for_estimate' || request.project_state !== 'open') {
+    await resolveQueueItem(tx, { type: 'estimate_to_write', subjectId: request.id, resolution: 'handled' })
+    return 'resolved'
+  }
+  const draft = await tx
+    .selectFrom('estimating.estimate_versions')
+    .select('id')
+    .where('project_id', '=', request.project_id)
+    .where('state', 'in', ['draft', 'in_review'])
+    .limit(1)
+    .executeTakeFirst()
+  await openQueueItem(tx, {
+    type: 'estimate_to_write',
+    subjectId: request.id,
+    reason: draft ? 'estimate_draft' : 'ready_for_estimate',
+    projectId: request.project_id,
+    reference: request.reference,
+    status: request.state,
+    assignedStaffId: request.responsible_staff_id,
+  })
+  return 'open'
+}
+
+/** Pending estimates: a request marked ready for its estimate opens its estimate_to_write item (TSK-0053). */
+export function estimateToWriteQueueAutomation(): Automation {
+  return {
+    name: 'queue.estimate_to_write',
+    trigger: { kind: 'event', eventTypes: [REQUEST_READY_FOR_ESTIMATE] },
+    identity: 'system.queue',
+    inputs: {
+      description:
+        'the request id of the request.ready_for_estimate event; the request and its project as they are now',
+      version: 1,
+    },
+    idempotency: 'one open estimate_to_write item per request; a replay updates it, and a request moved on opens none',
+    effect: 'opens or updates the estimate_to_write queue item of a request ready for its estimate',
+    retry: { maxAttempts: 5, baseDelayMs: 1_000, maxDelayMs: 60_000 },
+    timeoutMs: 10_000,
+    exceptionOwner: 'estimator',
+    audit: { action: 'queue.item_opened' },
+    handle: async ({ tx, job }) => {
+      const id = job.target.id
+      if (!id) return 'cancelled'
+      return (await syncEstimateItem(tx, id)) === 'open' ? 'done' : 'cancelled'
+    },
+  }
+}
+
 export function queueAutomations(): Automation[] {
-  return [newRequestQueueAutomation()]
+  return [newRequestQueueAutomation(), estimateToWriteQueueAutomation()]
 }

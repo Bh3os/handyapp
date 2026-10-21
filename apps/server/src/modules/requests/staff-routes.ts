@@ -29,12 +29,12 @@ import type { Tx } from '@handyhub/db'
 import { heldScopes, type StaffActor } from '@handyhub/policy'
 import { sql } from 'kysely'
 import { ApiError } from '../../api/errors.js'
-import { pageSchema, toPage } from '../../api/pagination.js'
+import { instantIdCursor, pageSchema, toPage } from '../../api/pagination.js'
 import type { ApiContext, RouteDef } from '../../api/route.js'
 import { outbox } from '../../platform/outbox.js'
 import { currentContext } from '../../platform/request-context.js'
 import { syncDeliveryFailureOwner } from '../notifications/index.js'
-import { openQueueItem, syncNewRequestItem } from '../queue/index.js'
+import { openQueueItem, syncEstimateItem, syncNewRequestItem } from '../queue/index.js'
 import { DEFAULT_OBLIGATION_CHECKS, obligationFacts, type ObligationCheck } from './obligations.js'
 import { latestQualification, staffRequestView } from './staff-record.js'
 import { HAZARD_CATEGORIES, qualificationProblems, unqualifiedChecks, type Qualification } from '@handyhub/domain'
@@ -339,6 +339,9 @@ async function moveRequest(
   await syncNewRequestItem(tx, current.id)
   // The review-hold item shows the request's status too; it follows the action in the same transaction.
   await syncReviewHoldItem(tx, current.id)
+  // The pending-estimate item opens with Prepare Online Estimate and is resolved when the request leaves "ready for
+  // estimate" (Ask a Question, Arrange Estimate Visit), in the same transaction (HH-OPS-01).
+  await syncEstimateItem(tx, current.id)
   await outbox.add(tx, {
     type: input.outboxType,
     aggregate: { type: 'request', id: current.id, version: moved.version },
@@ -424,13 +427,9 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
       else if (q.responsible === 'unassigned') query = query.where('r.responsible_staff_id', 'is', null)
       else if (q.responsible !== undefined)
         query = query.where('r.responsible_staff_id', '=', q.responsible.toLowerCase())
-      const after = page.after
-      if (after !== undefined) {
-        const [at, id] = after
-        if (after.length !== 2 || typeof at !== 'string' || typeof id !== 'string' || !/^[0-9a-f-]{36}$/.test(id))
-          throw new ApiError('VALIDATION_FAILED', {
-            fieldErrors: [{ field: 'querystring.cursor', code: 'invalid', message: '' }],
-          })
+      if (page.after !== undefined) {
+        // Both parts checked strictly: a crafted cursor is a 400, never a failed cast (a 500).
+        const [at, id] = instantIdCursor(page.after)
         query = query.where(sql<boolean>`(r.submitted_at, r.id) < (${at}::timestamptz, ${id}::uuid)`)
       }
       const rows = await query
@@ -614,9 +613,10 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
           assigned_by: actor.userId,
         })
         .execute()
-      // Both of the request's items name the responsible person; neither keeps the previous one.
+      // The request's items name the responsible person; none keeps the previous one.
       await syncNewRequestItem(tx, current.id)
       await syncReviewHoldItem(tx, current.id)
+      await syncEstimateItem(tx, current.id)
       // The request's open delivery issues (a failed receipt) follow its new owner (TSK-0032, HH-OPS-02).
       await syncDeliveryFailureOwner(tx, { recordType: 'request', recordId: current.id, assignedStaffId: target })
       await ctx.audit({
@@ -963,6 +963,8 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
           reference: current.reference,
           status: routed.to,
         })
+        // The project is no longer open: its pending-estimate item leaves the queue (HH-OPS-01).
+        await syncEstimateItem(tx, current.id)
         await ctx.audit({
           target: { type: 'request', id: current.id, version },
           summary: {
@@ -1018,8 +1020,9 @@ export function staffRequestRoutes(deps: { obligationChecks?: readonly Obligatio
         internalNote,
       })
       await syncNewRequestItem(tx, current.id)
-      // A closed request keeps its holds as history; its review-hold item leaves the queue.
+      // A closed request keeps its holds as history; its review-hold and pending-estimate items leave the queue.
       await syncReviewHoldItem(tx, current.id)
+      await syncEstimateItem(tx, current.id)
       // The automatic notice that points the customer to the project (FACT-AUTOMATIC-MESSAGES row 7).
       await outbox.add(tx, {
         type: 'decision.not_a_fit_published',
