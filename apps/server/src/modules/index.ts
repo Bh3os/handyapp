@@ -9,6 +9,7 @@ import type { EnvironmentName } from '../config.js'
 import { estimatesModule } from './estimates/index.js'
 import { CUSTOMERS_MODULE } from './customers/index.js'
 import { inboxModule } from './inbox/index.js'
+import { loadoutsModule } from './loadouts/index.js'
 import { FINANCE_MODULE } from './finance/index.js'
 import { NOTIFICATIONS_MODULE } from './notifications/index.js'
 import { packetsModule } from './packets/index.js'
@@ -104,6 +105,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     sopsModule(deps.environment ? { environment: deps.environment } : {}),
     // TSK-0069: the versioned job packet, what changed since each person viewed it, and its audited print and PDF.
     packetsModule({ storage: deps.storage ?? null, accessCodes: (deps.accessCodeKey ?? null) !== null }),
+    // TSK-0071: loadout confirmation, critical shortages and their task blocks.
+    loadoutsModule(),
     // TSK-0097: staff management (the staff list, role and capability grants, offboarding and re-enabling).
     staffModule(),
     // TSK-0098: the audit-log screen (Owner every entry, Office their own actions; retention shown, never deleted).

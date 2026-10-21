@@ -194,7 +194,19 @@ export function packetPdfModel(input: PacketPdfInput): CustomerPdfModel {
     ),
     'packet.noEquipment',
   )
-  blocks.push({ kind: 'text', text: t('packet.materialsNotRecorded') })
+  // TSK-0071: the loadout list per service (item names only; confirmations are recorded in the app, online).
+  if (view.materials.state === 'listed')
+    for (const p of view.materials.packages)
+      list(
+        p.items.map((i) =>
+          t(i.criticality === 'required' ? 'loadout.print.required' : 'loadout.print.niceToHave', {
+            service: label('service', p.serviceCode),
+            name: i.name ?? i.key,
+          }),
+        ),
+        'loadout.notConfigured',
+      )
+  else blocks.push({ kind: 'text', text: t('packet.materialsNotRecorded') })
 
   heading('packet.section.dependencies')
   blocks.push({

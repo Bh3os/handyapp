@@ -105,6 +105,26 @@ export type PacketAccessCode = {
   readonly version: number
 }
 
+/**
+ * The loadout pinned on one work package (TSK-0071, HH-PKT-05): the item list a worker loads against, never its
+ * confirmations (those change by the minute and live in the loadout itself). `not_configured`: no list for the
+ * service.
+ */
+export type PacketLoadout = {
+  readonly workPackageId: string
+  readonly serviceCode: string
+  readonly state: 'pinned' | 'not_configured'
+  readonly loadoutVersionId: string | null
+  readonly version: number | null
+  readonly contentSha256: string | null
+  readonly items: readonly {
+    readonly key: string
+    readonly group: string | null
+    readonly name: string | null
+    readonly criticality: string
+  }[]
+}
+
 export type PacketContent = {
   readonly identity: {
     readonly projectId: string
@@ -154,6 +174,8 @@ export type PacketContent = {
       readonly equipment: readonly { readonly equipmentId: string; readonly name: string }[]
       readonly requested: readonly string[]
     }[]
+    /** TSK-0071: absent from the versions written before loadouts existed. */
+    readonly loadout?: readonly PacketLoadout[]
   }
   readonly dependencies: {
     readonly approvalId: string
@@ -335,6 +357,15 @@ export function packetChanges(before: PacketContent | null, after: PacketContent
 
   // Tools and equipment.
   if (!same(before.resources.visits, after.resources.visits)) out.push(change('resources', 'equipment_changed', false))
+  // The loadout list of each work package (TSK-0071). PROPOSED (OQ-LOADOUT-DETAILS): a new or changed list is a new
+  // version that is not critical (HH-PKT-02 names scope, hazards and SOP); a critical shortage is a task block, which
+  // the holds section reports as critical.
+  const oldLoadouts = byKey(before.resources.loadout ?? [], (l) => l.workPackageId)
+  for (const l of after.resources.loadout ?? []) {
+    const o = oldLoadouts.get(l.workPackageId)
+    if (o?.contentSha256 !== l.contentSha256 || o?.loadoutVersionId !== l.loadoutVersionId)
+      out.push(change('resources', 'loadout_changed', false, l.serviceCode, o?.version ?? null, l.version))
+  }
 
   // Dependencies: the deposit's state.
   const d0 = before.dependencies.deposit?.state ?? null

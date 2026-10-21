@@ -9,7 +9,7 @@
 // - Print: the server records and audits the print first; the print view carries the version and "Printed <time>;
 //   check the app for changes", and leaves out photos, code labels and any revealed code. Download PDF: the server's
 //   PDF, recorded and audited as an export.
-// - What no record holds is said, never filled in: no materials list yet, no approved care notes, the Owner's
+// - What no record holds is said, never filled in: a service without a loadout list (TSK-0071) says NOT CONFIGURED, no approved care notes, the Owner's
 //   escalation contact NOT CONFIGURED. The emergency section says emergency action never waits for the app.
 // - Your review (TSK-0072; HH-DATA-08, HH-WORK-10, T44, ENT-Acknowledgment): where the caller's own acknowledgment
 //   stands (needed, standing, no longer counting after a critical change, a removal or a disabled account) with what
@@ -118,6 +118,16 @@ export type JobPacketView = {
     blockingHolds: number
     liveVisits: number
   }
+  materials: {
+    state: 'listed' | 'not_recorded'
+    packages: {
+      workPackageId: string
+      serviceCode: string
+      state: 'pinned' | 'not_configured'
+      version: number | null
+      items: { key: string; group: string | null; name: string | null; criticality: string }[]
+    }[]
+  }
   communication: {
     siteContact: Detail | null
     stopWork: {
@@ -183,6 +193,7 @@ const CHANGE_KEYS: Record<string, StaffKey> = {
   hold_changed: 'packet.change.hold_changed',
   hold_ended: 'packet.change.hold_ended',
   equipment_changed: 'packet.change.equipment_changed',
+  loadout_changed: 'packet.change.loadout_changed',
   deposit_state: 'packet.change.deposit_state',
 }
 
@@ -196,7 +207,7 @@ export function changeText(t: T, c: Change): string {
         : codeLabel(t, 'propertyDetail', c.ref)
     if (c.section === 'holds') return codeLabel(t, 'hazardCategory', c.ref)
     if (c.section === 'scope' && c.code === 'text_changed') return codeLabel(t, 'scopeText', c.ref)
-    if (c.section === 'sop') return codeLabel(t, 'service', c.ref)
+    if (c.section === 'sop' || c.code === 'loadout_changed') return codeLabel(t, 'service', c.ref)
     return c.ref
   })()
   const value = (v: string | number | null): string | number => {
@@ -493,11 +504,13 @@ export function JobPacketPage({
   locale,
   fetchImpl,
   jobId,
+  href = (to) => to,
 }: {
   t: T
   locale: StaffLocale
   fetchImpl: Fetch
   jobId: string
+  href?: (to: string) => string
 }) {
   const ids = useId()
   const [view, setView] = useState<JobPacketView | null | undefined>(undefined)
@@ -887,7 +900,37 @@ export function JobPacketPage({
             )}
           </ul>
         )}
-        <StateView kind="empty" title={t('packet.materialsNotRecorded')} />
+        {/* TSK-0071: the loadout list per service; confirming and reporting happen on the loadout page. */}
+        {v.materials.state === 'listed' ? (
+          v.materials.packages.map((p) => (
+            <div key={p.workPackageId} data-testid="packet-loadout">
+              <h3 className="hh-h4">
+                {t('loadout.packetHeading', { service: codeLabel(t, 'service', p.serviceCode) })}
+              </h3>
+              {p.state === 'not_configured' ? (
+                <p>{t('loadout.notConfigured')}</p>
+              ) : (
+                <ul className="staff-request__list">
+                  {p.items.map((i) => (
+                    <li key={i.key}>
+                      <span lang="en">{i.name ?? i.key}</span>{' '}
+                      <StatusBadge tone={i.criticality === 'required' ? 'warning' : 'neutral'}>
+                        {codeLabel(t, 'loadoutCriticality', i.criticality)}
+                      </StatusBadge>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))
+        ) : (
+          <StateView kind="empty" title={t('packet.materialsNotRecorded')} />
+        )}
+        <p className="staff-packet__screen-only">
+          <a href={href(`/loadouts/${v.job.id}`)} data-testid="packet-loadout-link">
+            {t('loadout.open')}
+          </a>
+        </p>
       </Section>
 
       <Section id={section('dependencies')} title={t('packet.section.dependencies')}>

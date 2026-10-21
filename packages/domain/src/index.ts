@@ -184,7 +184,10 @@ export {
   type PacketSopPin,
   type PacketVisit,
   type PacketWorker,
+  type PacketLoadout,
 } from './packet.js'
+// TSK-0071: loadouts, critical shortages and their task blocks.
+export * from './loadout.js'
 export {
   holdExpiresAt,
   offerProblems,

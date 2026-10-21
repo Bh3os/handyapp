@@ -130,6 +130,7 @@ function view(over: Partial<JobPacketView> = {}): JobPacketView {
       blockingHolds: 0,
       liveVisits: 1,
     },
+    materials: { state: 'not_recorded', packages: [] },
     communication: {
       siteContact: null,
       stopWork: [
