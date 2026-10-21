@@ -1,0 +1,18 @@
+---
+// Error page (TSK-0023; HH-CUS-05): served by the server with status 500 (or 503 while a dependency is down) when a
+// public page cannot be produced. It names no cause and no internal detail. Kept out of search and the sitemap.
+import { customerTranslator } from '@handyhub/i18n'
+import SiteLayout from '../layouts/SiteLayout.astro'
+
+const t = customerTranslator()
+---
+
+<SiteLayout title={`${t.t('serverError.title')} | HandyHub`} noindex>
+  <section class="hh-error-page" aria-labelledby="server-error-title">
+    <div class="hh-site__wrap">
+      <h1 class="hh-display" id="server-error-title">{t.t('serverError.title')}</h1>
+      <p class="hh-lead">{t.t('error.INTERNAL')}</p>
+      <p><a class="hh-button" href="/">{t.t('site.homeLink')}</a></p>
+    </div>
+  </section>
+</SiteLayout>

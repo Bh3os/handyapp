@@ -7,6 +7,9 @@
 //   guarantee, years of experience and similar), 24/7 wording (OWN-DEC-02) and any surcharge or convenience fee
 //   (FACT-NO-SURCHARGE). Registered claims are allowed: "Prepared team" is approved wording although "team" is a
 //   blocked word. "Square" is a payment name (OWN-DEC-89) and is not blocked.
+// - TSK-0023 adds the availability, response-time, review, credential and price families (HH-BASE-04);
+//   tools/content-lint.mjs runs this lint over every customer text in CI (the catalog, the registry's service names,
+//   the site and portal source and, after a build, the built pages).
 
 export type Claim = {
   /** The customer catalog key that holds the sentence. */
@@ -77,6 +80,32 @@ export const BLOCKED: readonly { readonly pattern: RegExp; readonly reason: stri
   { pattern: /\bsurcharge|convenience fee|card fee|processing fee/i, reason: 'card surcharge (FACT-NO-SURCHARGE)' },
   { pattern: /\b(same-day|rush) (charge|fee)\b/i, reason: 'same-day charge (OWN-DEC-140)' },
   { pattern: /\b(testimonials?|five-star|5-star|\d stars?)\b/i, reason: 'unverified reviews (OWN-DEC-11)' },
+  // The claim families TSK-0023's content lint (tools/content-lint.mjs) adds, per HH-BASE-04: availability beyond the
+  // configured visit hours, response times beyond the owner's wording, reviews, credentials and prices.
+  {
+    pattern:
+      /\b(same[- ]day|next[- ]day) (service|visits?|appointments?|repairs?|availability)\b|\bemergenc(y|ies)\b|\bon[- ]call\b|\bopen now\b|\b(available|availability|appointments?|openings?|slots?) (today|tonight|now|anytime|any time|immediately)\b|\balways (open|available)\b|\bbook (now|instantly)\b|\binstant (booking|appointments?)\b|\bwalk-?ins?\b/i,
+    reason: 'unapproved availability claim (HH-BASE-04, FACT-HOURS)',
+  },
+  {
+    pattern:
+      /\b(within|in under|in less than|under)\s+(an?|one|two|three|a few|\d+)\s+(minutes?|mins?|hours?|hrs?|days?|business days?)\b|\b(fast|quick|rapid|prompt|immediate|instant) (response|reply|replies|callbacks?|turnaround)\b|\b(right away|immediately|asap)\b/i,
+    reason: 'unapproved response-time claim (HH-BASE-04, OWN-DEC-35, FACT-RESPONSE-TARGET)',
+  },
+  {
+    pattern:
+      /\b(customer|client|google|yelp|online|verified|our|\d+\+?) reviews\b|\breviews? (from|on)\b|\b(top[- ])?rated\b|\bratings?\b|\bstar rating\b|\b(happy|satisfied) (customers|clients|homeowners)\b|\bcustomer satisfaction\b|\btrusted by\b/i,
+    reason: 'unverified reviews (OWN-DEC-11, HH-BASE-04)',
+  },
+  {
+    pattern: /\b(accredit\w*|bbb|background[- ]check\w*|vetted|osha|epa|rrp)\b/i,
+    reason: 'unapproved credential (OWN-DEC-11, HH-BASE-04)',
+  },
+  {
+    pattern:
+      /\$\s?\d|\b\d+(\.\d+)?\s?(dollars|usd)\b|\bper (hour|hr|room|sq\.? ?ft|square (foot|feet))\b|\bhourly rates?\b|\bflat[- ](rate|fee)s?\b|\bstarting (at|from)\b|\b\d+\s?% off\b|\bdiscount\w*\b|\bcheap\w*\b|\b(lowest|low|best) prices?\b|\baffordabl\w*\b|\bno hidden (fees|costs)\b|\bfree (?!estimates?\b)[a-z]+/i,
+    reason: 'unapproved price claim (HH-BASE-04, RULE-NO-INVENTED-FACTS)',
+  },
 ]
 
 export type CopyProblem = { readonly text: string; readonly match: string; readonly reason: string }
