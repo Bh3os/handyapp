@@ -22,6 +22,7 @@ import {
   type EstimateProblem,
   isLineKind,
   type LineKind,
+  lineTotal,
   MoneyError,
   parseCents,
   quantity as parseQuantity,
@@ -96,6 +97,34 @@ function authorize(actor: StaffActor, action: Action, projectId: string): void {
 }
 
 const field = (f: string, code: string, message: string): FieldError => ({ field: f, code, message })
+
+/**
+ * Runs the totals, turning an amount past the exact integer range into field errors (nothing is stored), never a
+ * server error: each line whose own amount overflows is named; otherwise the sum is too large.
+ */
+function totalsOrFieldErrors<T>(
+  lines: readonly { quantity: Quantity | null; unitPrice: Cents | null }[],
+  errors: FieldError[],
+  compute: () => T,
+): T {
+  try {
+    return compute()
+  } catch (err) {
+    if (!(err instanceof MoneyError) || err.code !== 'OUT_OF_RANGE') throw err
+    const before = errors.length
+    lines.forEach((l, i) => {
+      if (l.quantity === null || l.unitPrice === null) return
+      try {
+        lineTotal(l.unitPrice, l.quantity)
+      } catch (e) {
+        if (!(e instanceof MoneyError) || e.code !== 'OUT_OF_RANGE') throw e
+        errors.push(field(`lines[${i}].unitPriceCents`, 'AMOUNT_TOO_LARGE', 'The line amount is too large.'))
+      }
+    })
+    if (errors.length === before) errors.push(field('lines', 'TOTAL_TOO_LARGE', 'The total is too large.'))
+    throw new ApiError('VALIDATION_FAILED', { fieldErrors: errors })
+  }
+}
 
 /** Creates estimate number <project reference>-E<n> with its first draft version (written or uploaded). */
 export async function createEstimate(
@@ -378,7 +407,9 @@ export async function saveDraft(
     unitPrice: l.unitPrice,
   }))
   const discountPercent: BasisPoints | null = discount.ok ? (discount.discount?.percent ?? null) : null
-  const priced = computeVersionTotals({ lines: pricedLines, policies, discountPercent })
+  const priced = totalsOrFieldErrors(lines, errors, () =>
+    computeVersionTotals({ lines: pricedLines, policies, discountPercent }),
+  )
   for (const p of priced.problems) {
     if (p.code === 'LINE_NOT_POSITIVE') {
       errors.push(field(`lines[${p.line}].unitPriceCents`, 'LINE_NOT_POSITIVE', 'The line amount must be above $0.00.'))

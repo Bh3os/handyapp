@@ -390,6 +390,20 @@ describe('[HH-EST-03][HH-DATA-02][T31] estimates and server-computed totals', ()
     expect(Number(count.n)).toBe(0)
   })
 
+  it('[HH-DATA-02][RULE-MONEY-CENTS] an amount past the exact integer range is a field error, never a server error', async () => {
+    const d = await newDraft()
+    const before = await versionRow(d.versionId)
+    // Each input is valid on its own; their product (or the sum of the lines) is not a safe integer of cents.
+    const line = await refused(
+      save(d.versionId, { lines: [{ description: 'Too large', quantity: '100000000', unitPriceCents: 100_000_000 }] }),
+    )
+    expect(line).toEqual({ status: 400, fields: ['lines[0].unitPriceCents:AMOUNT_TOO_LARGE'] })
+    const big = { description: 'Large', quantity: '1', unitPriceCents: 5_000_000_000_000_000 }
+    const sum = await refused(save(d.versionId, { lines: [big, big] }))
+    expect(sum).toEqual({ status: 400, fields: ['lines:TOTAL_TOO_LARGE'] })
+    expect(await versionRow(d.versionId)).toEqual(before)
+  })
+
   it('keeps line identity across saves and removes lines no longer listed', async () => {
     const d = await newDraft()
     await save(d.versionId, {
@@ -535,6 +549,35 @@ describe('[T24][HH-EST-03][HH-ARC-04] internal costs never reach a customer', ()
     const office = await staffEstimateVersion(t.db, staff.office, d.versionId)
     expect(office?.internal).toBeNull()
     expect(JSON.stringify(office)).not.toContain(SECRET_NOTE)
+  })
+
+  it('[RULE-SERVER-AUTHZ] another Estimator edits the draft but neither writes nor wipes its internal costs and notes', async () => {
+    const d = await costedVersion()
+    const view = await staffEstimateVersion(t.db, staff.estimator2, d.versionId)
+    const lineId = must(view?.lines[0]?.id)
+    // Sending internal values without estimate.view_internal_cost is refused, and nothing changes.
+    for (const input of [
+      { lines: [{ id: lineId, description: 'Edited', quantity: '1', unitPriceCents: 25_000, internalCost: null }] },
+      {
+        lines: [{ id: lineId, description: 'Edited', quantity: '1', unitPriceCents: 25_000 }],
+        internal: { estimatorNotes: 'Synthetic overwrite' },
+      },
+    ] satisfies DraftInput[]) {
+      expect((await refused(save(d.versionId, input, 'estimator2'))).status).toBe(403)
+    }
+    // A save that leaves them out keeps them as they are.
+    await save(
+      d.versionId,
+      { lines: [{ id: lineId, description: 'Edited by another estimator', quantity: '2', unitPriceCents: 25_000 }] },
+      'estimator2',
+    )
+    const back = await staffEstimateVersion(t.db, staff.estimator, d.versionId)
+    expect(back?.lines[0]?.description).toBe('Edited by another estimator')
+    expect(back?.internal).toMatchObject({
+      lines: [{ materialCostCents: 4_321, laborCostCents: 8_765, note: SECRET_NOTE }],
+      markupAssumptions: SECRET_MARKUP,
+      estimatorNotes: SECRET_ESTIMATOR,
+    })
   })
 })
 

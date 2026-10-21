@@ -42,6 +42,7 @@ type Item = {
   link: string
   dueAt: string | null
   clock: string | null
+  responseClock?: { state: string; targetMinutes: number | null; dueAt: string | null } | null
 }
 type ListBody = {
   items: Item[]
@@ -114,7 +115,14 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
   it('[HH-OPS-01][T26] office never sees Owner Decisions items, in either list', async () => {
     const office = await list('office')
     expect(office.sections).toEqual(['queue'])
-    expect(office.types).toEqual(['new_request', 'safety_hold', 'visit_change_request', 'delivery_failed', 'case_open'])
+    expect(office.types).toEqual([
+      'new_request',
+      'review_hold',
+      'safety_hold',
+      'visit_change_request',
+      'delivery_failed',
+      'case_open',
+    ])
     expect(office.items.map((i) => i.type)).not.toContain('deposit_waiver')
     expect(office.items.map((i) => i.id)).not.toContain(ownerOnly)
     expect((await get('office', '/api/v1/staff/queue/owner-decisions')).statusCode).toBe(403)
@@ -150,7 +158,7 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
     const est = await list('estimator')
     expect(est.sections).toEqual(['queue'])
     // Pending estimates (estimate_to_write, TSK-0053) are the Estimator's too.
-    expect(est.types).toEqual(['new_request', 'safety_hold', 'delivery_failed', 'estimate_to_write'])
+    expect(est.types).toEqual(['new_request', 'review_hold', 'safety_hold', 'delivery_failed', 'estimate_to_write'])
     expect(est.items.map((i) => i.type)).not.toContain('case_open')
     expect((await get('estimator', '/api/v1/staff/queue/owner-decisions')).statusCode).toBe(403)
   })
@@ -377,8 +385,16 @@ describe('new requests feed the queue from the outbox (TSK-0041, HH-OPS-01, TSK-
       action: 'review_request',
       link: `/requests/${request.id}`,
       clock: 'response_target',
-      dueAt: null,
     })
+    // TSK-0043: the due time is the first-response clock's internal target, read in business minutes.
+    const clock = await t.db
+      .selectFrom('intake.response_clocks')
+      .select(['due_at'])
+      .where('request_id', '=', request.id)
+      .executeTakeFirstOrThrow()
+    expect(item?.dueAt).toBe(clock.due_at?.toISOString())
+    expect(item?.responseClock).toMatchObject({ targetMinutes: 60, dueAt: clock.due_at?.toISOString() })
+    expect(['running', 'paused', 'overdue']).toContain(item?.responseClock?.state)
     // The estimator (request.view, PROPOSED) sees it too; the deep link opens the record header.
     expect((await list('estimator', `?reference=${reference}`)).items).toHaveLength(1)
     const record = await get('office', `/api/v1/staff/requests/${request.id}/summary`)
