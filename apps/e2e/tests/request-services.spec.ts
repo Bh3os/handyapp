@@ -19,6 +19,10 @@ async function start(page: Page, query = '') {
   await expect(page.getByRole('heading', { name: 'Step 1 of 5: Services' })).toBeFocused()
 }
 
+// This spec's own synthetic client address (RFC 5737): the request-form limit counts per network, and every spec
+// reaches the server from 127.0.0.1 (playwright.config.ts trusts one hop on that server).
+test.use({ extraHTTPHeaders: { 'x-forwarded-for': '198.51.100.13' } })
+
 test.describe('services step and service questions (TSK-0027)', () => {
   test.beforeEach(async ({ page }) => {
     test.skip(!databaseUrl, 'needs E2E_DATABASE_URL (a fresh PostgreSQL 16 database)')
