@@ -1,0 +1,35 @@
+---
+// The receipt page, /request/received/<ref> (TSK-0032; HH-INT-12, OWN-DEC-94). One static page for every reference:
+// the server serves it for any well-formed reference without looking it up, and the island shows the receipt only
+// from the record this browser tab kept when the server confirmed the save (src/request/receipt.ts). Private: never
+// indexed, and no referrer leaves it (hosts.ts). Below it, the same legal links as the request form.
+import '@handyhub/ui/styles.css'
+import '../../request/request.css'
+import { customerTranslator } from '@handyhub/i18n'
+import ReceiptPage from '../../request/ReceiptPage.tsx'
+import LegalLinks from '../../components/LegalLinks.astro'
+
+const t = customerTranslator()
+const title = t.t('request.title')
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title} | HandyHub</title>
+  </head>
+  <body>
+    <main class="hh-request-page">
+      <h1 class="hh-h1">{title}</h1>
+      <ReceiptPage client:only="react" />
+    </main>
+    <footer class="hh-request-legal">
+      <nav aria-label={t.t('site.footer.legalHeading')}>
+        <LegalLinks />
+      </nav>
+    </footer>
+  </body>
+</html>

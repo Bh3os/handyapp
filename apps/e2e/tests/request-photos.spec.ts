@@ -111,6 +111,10 @@ test.describe('request photos (TSK-0031)', () => {
     await expect(page.getByText('1 photo', { exact: true })).toBeVisible()
     await page.getByRole('button', { name: 'Send Estimate Request' }).click()
     await expect(page.getByRole('heading', { name: 'Your request is in.' })).toBeVisible()
-    await expect(page.getByText('Photos received: 1. Still processing: 0. Not included: 1.')).toBeVisible()
+    // TSK-0032 (HH-INT-12, OWN-DEC-94): the receipt shows received, processing and failed photos separately.
+    const receiptPhotos = page.getByRole('region', { name: 'Your photos' })
+    await expect(receiptPhotos.getByText('Received: 1')).toBeVisible()
+    await expect(receiptPhotos.getByText('Processing: 0')).toBeVisible()
+    await expect(receiptPhotos.getByText('Failed: 1')).toBeVisible()
   })
 })

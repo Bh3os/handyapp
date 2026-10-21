@@ -4,12 +4,16 @@
 import { loadServiceSeed, syncServices, withTx } from '@handyhub/db'
 import { createTestDatabase, type TestDatabase } from '@handyhub/db/testing'
 import type { FastifyInstance } from 'fastify'
+import { sql } from 'kysely'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildApp } from '../../src/app.js'
+import { encodeCursor } from '../../src/api/pagination.js'
 import { publishReadiness } from '../../src/modules/estimates/index.js'
+import { apiModules } from '../../src/modules/index.js'
 import { createStaffUser, setPasswordHash } from '../../src/modules/identity/accounts.js'
 import { hashPassword } from '../../src/modules/identity/passwords.js'
 import { estimateToWriteQueueAutomation } from '../../src/modules/queue/index.js'
+import { requestsModule } from '../../src/modules/requests/index.js'
 import { createAutomationRegistry } from '../../src/platform/automation.js'
 import { loadConfig, recordPolicyVersion, type ConfigKey } from '../../src/platform/config/index.js'
 import { createWorker } from '../../src/platform/jobs.js'
@@ -22,18 +26,23 @@ const roleOf = (p: Person) => p.replace(/2$/, '') as 'owner' | 'office' | 'estim
 
 let t: TestDatabase
 let app: FastifyInstance
+/** The same database where Not a Fit finds an obligation on the listed projects, so it routes to the Owner. */
+let owed: FastifyInstance
+const withAppointment = new Set<string>()
+const ids = {} as Record<Person, string>
 const cookies = {} as Record<Person, string>
 const csrf = {} as Record<Person, string>
+const owedSession = { cookie: '', csrf: '' }
 
-async function signIn(p: Person): Promise<[string, string]> {
-  const res = await app.inject({
+async function signIn(p: Person, server: FastifyInstance = app): Promise<[string, string]> {
+  const res = await server.inject({
     method: 'POST',
     url: '/api/v1/staff/auth/sign-in',
     payload: { email: `${p}-builder@example.test`, password: pw(1) },
   })
   expect(res.statusCode).toBe(200)
   const cookie = String(res.headers['set-cookie']).split(';')[0] as string
-  const session = await app.inject({ method: 'GET', url: '/api/v1/staff/auth/session', headers: { cookie } })
+  const session = await server.inject({ method: 'GET', url: '/api/v1/staff/auth/session', headers: { cookie } })
   return [cookie, session.json<{ csrfToken: string }>().csrfToken]
 }
 
@@ -41,6 +50,20 @@ beforeAll(async () => {
   t = await createTestDatabase()
   await syncServices(t.db, loadServiceSeed())
   app = await buildApp({ config: testConfig({ TRUST_PROXY_HOPS: '1' }), api: { db: t.db } })
+  const modules = apiModules({ secureCookies: false, mfaKey: null }).map((m) =>
+    m.name === 'requests'
+      ? requestsModule({
+          obligationChecks: [
+            {
+              fact: 'appointmentExists',
+              source: 'test',
+              check: async (_tx, projectId) => withAppointment.has(projectId),
+            },
+          ],
+        })
+      : m,
+  )
+  owed = await buildApp({ config: testConfig({ TRUST_PROXY_HOPS: '1' }), api: { db: t.db, modules } })
   const hash = await hashPassword(pw(1))
   await withTx(t.db, async (tx) => {
     for (const p of PEOPLE) {
@@ -52,11 +75,14 @@ beforeAll(async () => {
         issuedBy: 'test',
       })
       await setPasswordHash(tx, user.id, hash)
+      ids[p] = user.id
     }
   })
   for (const p of PEOPLE) [cookies[p], csrf[p]] = await signIn(p)
+  ;[owedSession.cookie, owedSession.csrf] = await signIn('owner', owed)
 })
 afterAll(async () => {
+  await owed?.close()
   await app?.close()
   await t?.drop()
 })
@@ -129,7 +155,12 @@ async function readyRequest() {
     row.state_version,
   )
   expect(moved.statusCode).toBe(200)
-  return { id: row.id, projectId: row.project_id, reference }
+  return {
+    id: row.id,
+    projectId: row.project_id,
+    reference,
+    requestVersion: moved.json<{ version: number }>().version,
+  }
 }
 
 type View = {
@@ -142,6 +173,7 @@ type View = {
   request: { id: string; reference: string } | null
   lines: { id: string; kind: string; workPackageId: string | null; amountCents: number | null }[]
   texts: Record<string, string[]>
+  discountCategory: string | null
   totals: {
     subtotalCents: number
     discount: { category: string; percentBps: number; amountCents: number } | null
@@ -583,5 +615,207 @@ describe('[RULE-SERVER-AUTHZ] only the Owner and Estimators write estimates; int
     const d = await newDraft()
     const v = await view('owner', d.versionId)
     expect(JSON.stringify(Object.keys(v))).not.toMatch(/licen|permit|credential|insur/i)
+  })
+})
+
+/** The request's estimate_to_write item (the open one, else the latest resolved one). */
+async function estimateItem(requestId: string) {
+  return t.db
+    .selectFrom('ops.queue_items')
+    .select(['reason', 'subject_status', 'assigned_staff_id', 'resolved_at', 'resolution'])
+    .where('type', '=', 'estimate_to_write')
+    .where('subject_id', '=', requestId)
+    .orderBy(sql`resolved_at IS NULL`, 'desc')
+    .orderBy('opened_at', 'desc')
+    .executeTakeFirst()
+}
+const action = (requestId: string, name: string) => `/api/v1/staff/requests/${requestId}/actions/${name}`
+
+describe('[HH-OPS-01] the pending-estimate item follows the request in the same transaction', () => {
+  it('opens with Prepare Online Estimate, before any worker runs', async () => {
+    const r = await readyRequest()
+    expect(await estimateItem(r.id)).toMatchObject({
+      reason: 'ready_for_estimate',
+      subject_status: 'ready_for_estimate',
+      resolved_at: null,
+    })
+  })
+
+  it('is resolved when Ask a Question moves the request to "needs information"', async () => {
+    const r = await readyRequest()
+    const res = await write('owner', 'POST', action(r.id, 'ask-question'), {}, r.requestVersion)
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toMatchObject({ state: 'needs_information' })
+    expect(await estimateItem(r.id)).toMatchObject({ resolved_at: expect.any(Date), resolution: 'handled' })
+  })
+
+  it('is resolved when Arrange Estimate Visit moves the request to "needs site visit"', async () => {
+    const r = await readyRequest()
+    const res = await write(
+      'owner',
+      'POST',
+      action(r.id, 'estimate-visit'),
+      { customerExplanation: 'Synthetic: we need to measure the wall.', workPackages: ['SVC-DW-01'] },
+      r.requestVersion,
+    )
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toMatchObject({ state: 'needs_site_visit' })
+    expect(await estimateItem(r.id)).toMatchObject({ resolved_at: expect.any(Date), resolution: 'handled' })
+  })
+
+  it('is resolved when Not a Fit closes the request and project, even with a draft written', async () => {
+    const d = await newDraft()
+    expect(await estimateItem(d.id)).toMatchObject({ reason: 'estimate_draft', resolved_at: null })
+    const res = await write(
+      'owner',
+      'POST',
+      action(d.id, 'not-a-fit'),
+      { category: 'coverage', customerReason: 'Synthetic: outside the service area.' },
+      d.requestVersion,
+    )
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toMatchObject({ projectState: 'closed' })
+    expect(await estimateItem(d.id)).toMatchObject({ resolved_at: expect.any(Date), resolution: 'handled' })
+    // The worker replaying request.ready_for_estimate opens nothing for the closed request.
+    const registry = createAutomationRegistry([estimateToWriteQueueAutomation()])
+    await createWorker({ db: t.db, registry }).runOnce()
+    expect(await estimateItem(d.id)).toMatchObject({ resolved_at: expect.any(Date) })
+  })
+
+  it('is resolved when Not a Fit routes the project to the Owner (an obligation exists)', async () => {
+    const r = await readyRequest()
+    withAppointment.add(r.projectId)
+    const res = await owed.inject({
+      method: 'POST',
+      url: action(r.id, 'not-a-fit'),
+      payload: { category: 'coverage', customerReason: 'Synthetic: outside the service area.' },
+      headers: {
+        cookie: owedSession.cookie,
+        'x-csrf-token': owedSession.csrf,
+        'idempotency-key': key('owed'),
+        'if-match': `"${r.requestVersion}"`,
+      },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toMatchObject({ outcome: 'routed_to_owner', state: 'ready_for_estimate' })
+    expect(await estimateItem(r.id)).toMatchObject({ resolved_at: expect.any(Date), resolution: 'handled' })
+  })
+
+  it('names the new responsible staff member after a reassignment', async () => {
+    const r = await readyRequest()
+    expect((await estimateItem(r.id))?.assigned_staff_id).not.toBe(ids.estimator2)
+    const res = await write(
+      'owner',
+      'PUT',
+      `/api/v1/staff/requests/${r.id}/responsible`,
+      { staffUserId: ids.estimator2 },
+      r.requestVersion,
+    )
+    expect(res.statusCode).toBe(200)
+    expect(await estimateItem(r.id)).toMatchObject({
+      assigned_staff_id: ids.estimator2,
+      subject_status: 'ready_for_estimate',
+      resolved_at: null,
+    })
+  })
+})
+
+describe('[RULE-SERVER-AUTHZ][HH-EST-05] a draft of a project that is no longer open is not written', () => {
+  it('after Not a Fit closes the project, saving the draft is refused with PROJECT_NOT_OPEN and nothing changes', async () => {
+    const d = await newDraft()
+    const v = await view('estimator', d.versionId)
+    const first = await write(
+      'estimator',
+      'PUT',
+      `/api/v1/staff/estimate-versions/${d.versionId}/draft`,
+      { lines: lines(v.workPackages).slice(0, 1) },
+      v.rowVersion,
+    )
+    expect(first.statusCode).toBe(200)
+    const before = first.json<View>()
+    const closed = await write(
+      'owner',
+      'POST',
+      action(d.id, 'not-a-fit'),
+      { category: 'coverage', customerReason: 'Synthetic: outside the service area.' },
+      d.requestVersion,
+    )
+    expect(closed.json()).toMatchObject({ projectState: 'closed' })
+    expect((await view('estimator', d.versionId)).canEdit).toBe(false)
+
+    const refused = await write(
+      'estimator',
+      'PUT',
+      `/api/v1/staff/estimate-versions/${d.versionId}/draft`,
+      { lines: lines(v.workPackages), discountCategory: 'military' },
+      before.rowVersion,
+    )
+    expect(refused.statusCode).toBe(409)
+    expect(refused.json()).toMatchObject({
+      error: {
+        code: 'CONFLICT',
+        fieldErrors: [expect.objectContaining({ field: 'projectId', code: 'PROJECT_NOT_OPEN' })],
+      },
+    })
+    // The Owner is refused too: no role writes a draft of a closed project.
+    const owner = await write(
+      'owner',
+      'PUT',
+      `/api/v1/staff/estimate-versions/${d.versionId}/draft`,
+      { lines: [] },
+      before.rowVersion,
+    )
+    expect(owner.statusCode).toBe(409)
+    const after = await view('estimator', d.versionId)
+    expect(after.rowVersion).toBe(before.rowVersion)
+    expect(after.lines).toEqual(before.lines)
+    expect(after.totals).toEqual(before.totals)
+    expect(after.discountCategory).toBeNull()
+    const audit = await t.db
+      .selectFrom('platform.audit_events')
+      .select('action')
+      .where('target_id', '=', d.versionId)
+      .orderBy('seq')
+      .execute()
+    expect(audit.map((a) => a.action)).toEqual(['estimate.create', 'estimate.save_draft'])
+  })
+})
+
+describe('[HH-API-05] the estimates list cursor', () => {
+  it('pages with the cursor it issued; a crafted cursor is a 400 VALIDATION_FAILED, never a server error', async () => {
+    await newDraft()
+    await newDraft()
+    const page1 = await get('owner', '/api/v1/staff/estimates?limit=1')
+    expect(page1.statusCode).toBe(200)
+    const one = page1.json<{ items: { estimateId: string }[]; nextCursor: string }>()
+    expect(one.nextCursor).toEqual(expect.any(String))
+    const page2 = await get('owner', `/api/v1/staff/estimates?limit=1&cursor=${one.nextCursor}`)
+    expect(page2.statusCode).toBe(200)
+    const two = page2.json<{ items: { estimateId: string }[] }>()
+    expect(two.items).toHaveLength(1)
+    expect(two.items[0]?.estimateId).not.toBe(one.items[0]?.estimateId)
+
+    const id = crypto.randomUUID()
+    for (const crafted of [
+      ['x', '-'.repeat(36)],
+      ['x', id],
+      ['2026-10-21 03:06:04.123456+00', '-'.repeat(36)],
+      ['2026-99-99 00:00:00+00', id],
+      ['2026-02-30 00:00:00+00', id],
+      ['2026-10-21 25:00:00+00', id],
+      ['2026-10-21 03:06:04+00', 'not-a-uuid'],
+      [12, id],
+      ['2026-10-21 03:06:04+00'],
+      ['2026-10-21 03:06:04+00', id, 'extra'],
+    ]) {
+      const res = await get('owner', `/api/v1/staff/estimates?cursor=${encodeCursor(crafted)}`)
+      expect(res.statusCode, JSON.stringify(crafted)).toBe(400)
+      expect(res.json()).toMatchObject({
+        error: { code: 'VALIDATION_FAILED', fieldErrors: [{ field: 'querystring.cursor', code: 'invalid' }] },
+      })
+    }
+    // The staff requests list checks its cursor the same way.
+    const requests = await get('owner', `/api/v1/staff/requests?cursor=${encodeCursor(['x', '-'.repeat(36)])}`)
+    expect(requests.statusCode).toBe(400)
   })
 })

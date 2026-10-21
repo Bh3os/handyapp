@@ -9,6 +9,7 @@ import Fastify, { type FastifyBaseLogger, type FastifyInstance, type FastifyRepl
 import { accessGateHook, FailureLimiter } from './access-gate.js'
 import type { Config } from './config.js'
 import { createDb, isPublicServiceSlug, publicServices, type Db } from '@handyhub/db'
+import { REFERENCE_PATTERN } from '@handyhub/domain/request-form'
 import { registerApi, type SurfaceResolvers } from './api/register.js'
 import type { ApiModule, ResolveActor } from './api/route.js'
 import { databaseReadiness, type ReadinessCheck } from './health.js'
@@ -253,6 +254,17 @@ export async function buildApp({
       if (route.kind === 'redirect') return reply.redirect(route.location, 301)
       if (route.kind === 'none') return reply.callNotFound()
       return reply.sendFile(path.relative(site, route.file), site)
+    }
+    // The receipt page (TSK-0032; HH-INT-12): one static page for every well-formed reference. It holds no request
+    // data: the browser that sent the request shows the receipt it was given; anywhere else the page says it is not
+    // available. A reference grants nothing, so the page is the same whether or not the reference exists.
+    const receiptUrl = /^\/request\/received\/([^/]+)$/.exec(url)
+    if (receiptUrl) {
+      const file = REFERENCE_PATTERN.test(receiptUrl[1] ?? '') ? fileIn(site, '/request/received.html') : null
+      if (!file) return reply.callNotFound()
+      return reply
+        .header('cache-control', 'no-store')
+        .sendFile(path.relative(site, file), site, { cacheControl: false })
     }
     // Service pages (TSK-0021; HH-CUS-02, OWN-DEC-84): the build holds a page for every registry service, and only a
     // service the site may show is served; a draft, or one not approved for production, is a 404. Unknown is not safe:

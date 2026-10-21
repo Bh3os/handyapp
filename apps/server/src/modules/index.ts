@@ -7,6 +7,7 @@ import type { ObjectStorage } from '../providers/index.js'
 import { COVERAGE_MODULE } from './coverage/index.js'
 import type { EnvironmentName } from '../config.js'
 import { estimatesModule } from './estimates/index.js'
+import { NOTIFICATIONS_MODULE } from './notifications/index.js'
 import { photosModule } from './photos/index.js'
 import { QUEUE_MODULE } from './queue/index.js'
 import { REQUESTS_MODULE } from './requests/index.js'
@@ -42,6 +43,7 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     QUEUE_MODULE,
     // TSK-0053: Write an Estimate and the staff builder; TSK-0054: Upload an Estimate and the customer PDF.
     estimatesModule({ storage: deps.storage ?? null, testMark: deps.environment !== 'production' }),
+    NOTIFICATIONS_MODULE,
     systemModule(deps.system ?? {}),
   ]
 }
