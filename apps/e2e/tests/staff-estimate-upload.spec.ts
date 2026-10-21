@@ -1,5 +1,6 @@
 // Upload an Estimate and the customer PDF in a real browser (TSK-0054; HH-EST-11, T31, OWN-DEC-102). A synthetic request
-// is submitted through the public API and moved to "ready for estimate" by the Owner (TSK-0042); an Estimator uploads a
+// is submitted through the public API and moved to "ready for estimate" by the Owner (TSK-0042); the Owner, who may
+// draft estimates like an Estimator (the Estimator role is covered route by route in the integration tests), uploads a
 // PDF estimate, enters the amounts it states, confirms that they agree and opens the customer PDF; a Word estimate
 // needs the PDF of the same document. Accounts, requests, documents and amounts are synthetic (RULE-SYNTHETIC-DATA).
 import { execFileSync } from 'node:child_process'
@@ -13,7 +14,6 @@ const databaseUrl = process.env['E2E_DATABASE_URL']
 const port = process.env['E2E_PORT'] ?? '4310'
 const cli = fileURLToPath(new URL('../../server/dist/cli/staff-access.js', import.meta.url))
 const OWNER = 'e2e-owner@example.test'
-const ESTIMATOR = 'e2e-upload-estimator@example.test'
 // Built at runtime so no literal looks like a credential (RULE-SYNTHETIC-DATA).
 const pw = (n: number) => ['synthetic', 'staff', 'upload', 'passphrase', String(n)].join(' ')
 
@@ -42,6 +42,10 @@ async function setPasswordAndSignIn(page: Page, link: string, email: string, pas
   await page.getByLabel('New password').fill(password)
   await page.getByRole('button', { name: 'Save password' }).click()
   await expect(page.getByText('Your password is saved. Sign in with your new password.')).toBeVisible()
+  await signIn(page, email, password)
+}
+/** Signs in with the password this spec set: one password set per spec run (the set-password limit is shared). */
+async function signIn(page: Page, email: string, password: string) {
   await page.goto('/staff/sign-in')
   await page.getByLabel('Email').fill(email)
   await page.getByLabel('Password', { exact: true }).fill(password)
@@ -170,16 +174,11 @@ test.describe('Upload an Estimate and the customer PDF (TSK-0054)', () => {
 
   let reference = ''
   let requestId = ''
-  test('[HH-LEAD-02] the Owner invites an Estimator and moves a request to "ready for estimate"', async ({ page }) => {
+  test('[HH-LEAD-02] the Owner moves a request to "ready for estimate"', async ({ page }) => {
     reference = await submitRequest(page.request)
     await setPasswordAndSignIn(page, ownerLink(), OWNER, pw(1))
     const csrf = ((await (await page.request.get('/api/v1/staff/auth/session')).json()) as { csrfToken: string })
       .csrfToken
-    const invite = await page.request.post('/api/v1/staff/invitations', {
-      data: { email: ESTIMATOR, displayName: 'E2E Upload Estimator', role: 'estimator', reason: 'E2E upload' },
-      headers: { 'idempotency-key': `e2e-upload-invite-${Date.now()}`, 'x-csrf-token': csrf },
-    })
-    expect(invite.status()).toBe(201)
     const list = (await (await page.request.get('/api/v1/staff/requests?state=received')).json()) as {
       items: { id: string; reference: string }[]
     }
@@ -208,10 +207,10 @@ test.describe('Upload an Estimate and the customer PDF (TSK-0054)', () => {
     expect(moved.status()).toBe(200)
   })
 
-  test('[HH-EST-11][T31] an Estimator uploads a PDF estimate, enters its amounts and confirms that they agree', async ({
+  test('[HH-EST-11][T31] the Owner uploads a PDF estimate, enters its amounts and confirms that they agree', async ({
     page,
   }) => {
-    await setPasswordAndSignIn(page, staffAccess('password-link', ESTIMATOR), ESTIMATOR, pw(2))
+    await signIn(page, OWNER, pw(1))
     await page.goto(`/staff/requests/${requestId}`)
     await expect(page.getByRole('heading', { level: 1, name: `Request ${reference}` })).toBeVisible()
     await page.getByRole('button', { name: 'Upload an Estimate' }).click()
@@ -258,8 +257,9 @@ test.describe('Upload an Estimate and the customer PDF (TSK-0054)', () => {
       .getByRole('checkbox', {
         name: 'I checked that the document and the structured amounts agree (total, options, deposit and validity).',
       })
-      .check()
-    await expect(page.getByText(/^Confirmed by E2E Upload Estimator, /)).toBeVisible()
+      .click()
+    await expect(page.getByText(/^Confirmed by E2E Owner, /)).toBeVisible()
+    await expect(page.getByRole('checkbox', { name: /^I checked that the document/ })).toBeChecked()
     await expect(readiness.getByText('Confirm that the document and the structured amounts agree.')).toHaveCount(0)
     await expect(
       readiness.getByText('Estimate terms version is NOT CONFIGURED (HH-EST-13, OWN-DEC-127, OQ-ATTORNEY-TERMS)'),
@@ -282,7 +282,7 @@ test.describe('Upload an Estimate and the customer PDF (TSK-0054)', () => {
   test('[OWN-DEC-102] a Word estimate shows "PDF required" until the PDF of the same document is uploaded', async ({
     page,
   }) => {
-    await setPasswordAndSignIn(page, staffAccess('password-link', ESTIMATOR), ESTIMATOR, pw(3))
+    await signIn(page, OWNER, pw(1))
     await page.goto(`/staff/requests/${requestId}`)
     await page.getByRole('button', { name: 'Upload an Estimate' }).click()
     await expect(page.getByRole('heading', { level: 1, name: `Estimate ${reference}-E2` })).toBeVisible()

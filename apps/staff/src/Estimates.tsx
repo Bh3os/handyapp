@@ -1033,6 +1033,8 @@ function DocumentsPanel({
   const ids = useId()
   const [pending, setPending] = useState<'original' | 'customer_pdf' | 'agreement' | null>(null)
   const [error, setError] = useState<string | null>(null)
+  /** The box as the person just set it, while the server records it; then the server's answer shows again. */
+  const [intended, setIntended] = useState<boolean | null>(null)
   const original = useRef<HTMLInputElement>(null)
   const pdf = useRef<HTMLInputElement>(null)
   const agreementKey = useRef<string | null>(null)
@@ -1059,6 +1061,7 @@ function DocumentsPanel({
 
   async function agree(confirmed: boolean) {
     setPending('agreement')
+    setIntended(confirmed)
     setError(null)
     agreementKey.current = agreementKey.current ?? idempotencyKey()
     const r = await call<BuilderView>(fetchImpl, `${base}/agreement`, {
@@ -1067,6 +1070,7 @@ function DocumentsPanel({
       headers: { 'idempotency-key': agreementKey.current, 'if-match': `"${view.rowVersion}"` },
     })
     setPending(null)
+    setIntended(null)
     if (r.ok || r.status < 500) agreementKey.current = null
     if (!r.ok) return setError(documentErrorText(t, r.error))
     onView(r.data)
@@ -1168,7 +1172,7 @@ function DocumentsPanel({
         <input
           id={`${ids}-agree`}
           type="checkbox"
-          checked={confirmed}
+          checked={intended ?? confirmed}
           disabled={pending !== null || !(confirmed ? editable : canConfirm)}
           onChange={(e) => void agree(e.target.checked)}
         />
