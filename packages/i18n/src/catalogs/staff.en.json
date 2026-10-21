@@ -1931,5 +1931,12 @@
   "enum.propertyChange.changed": "changed",
   "enum.propertyChange.cleared": "cleared",
   "enum.propertyChange.confirmed": "confirmed",
-  "property.revealRefused": "Only the owner, the office, or the worker assigned to today's visit at this property can reveal this code."
+  "property.revealRefused": "Only the owner, the office, or the worker assigned to today's visit at this property can reveal this code.",
+  "visits.blockers.title": "Not ready to confirm",
+  "visits.blockers.hint": "This tentative visit is not a booking. It can be confirmed once each of these is resolved:",
+  "enum.visitProblem.APPROVAL_NOT_ACTIVE": "The project's approval is no longer active (for example, it is under cancellation review), so this work visit cannot be confirmed.",
+  "enum.visitProblem.SCOPE_NOT_ACCEPTED": "The job has no accepted scope, so this work visit cannot be confirmed.",
+  "enum.visitProblem.REVIEW_HOLD_OPEN": "A review hold on this project is open or under review. No visit can be confirmed until the Owner resolves it.",
+  "enum.visitProblem.JOB_ON_HOLD": "The job is on Hold. No visit can be confirmed until the Owner sets Ready with a note.",
+  "enum.visitProblem.CRITICAL_HOLD_OPEN": "A critical safety hold is unresolved. No visit can be confirmed until it is resolved."
 }

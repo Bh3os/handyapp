@@ -75,6 +75,7 @@ export {
 } from './qualification.js'
 export {
   BLOCKING_HOLD_STATES,
+  CONFIRMATION_BLOCKING_HOLD_KINDS,
   HAZARD_CATEGORIES,
   HOLD_KINDS,
   HOLD_MACHINE,

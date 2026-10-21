@@ -4,6 +4,8 @@
 //   customer can instead ask for other times with an optional note, without restarting the request. The server
 //   rechecks the chosen window and confirms the visit in one step; when the window can no longer be kept, the page
 //   says so and shows the offer as it is now, so another window or other times can be chosen.
+// - TSK-0064 (HH-SCH-05, HH-SCH-06): when the server cannot confirm any time yet (the deposit is due, or another
+//   confirmation precondition is unmet) the page says so, that nothing is booked, and the times stay as offered.
 // - A confirmed visit shows its purpose (an Estimate visit approves no price, T37), the date and arrival window in the
 //   property's zone, the property address and the preparation instructions HandyHub wrote.
 // - English only, from the customer catalog; the wording no decision gives is PROPOSED (OQ-PORTAL-WORDING).
@@ -40,6 +42,8 @@ export const STATUS_LABEL: Record<AppointmentStatus, CustomerKey> = {
 const FAILURE: Record<OfferAnswerFailure, CustomerKey> = {
   unavailable_window: 'portal.appointment.offer.unavailable',
   closed: 'portal.appointment.offer.closed',
+  deposit_due: 'portal.appointment.offer.depositDue',
+  not_ready: 'portal.appointment.offer.notReady',
   fresh_verification: 'portal.estimate.failure.fresh_verification',
   not_applicable: 'portal.appointment.offer.closed',
   invalid: 'portal.appointment.offer.failed',

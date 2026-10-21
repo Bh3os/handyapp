@@ -1931,5 +1931,12 @@
   "enum.propertyChange.changed": "cambiado",
   "enum.propertyChange.cleared": "borrado",
   "enum.propertyChange.confirmed": "confirmado",
-  "property.revealRefused": "Solo el propietario, la oficina o el trabajador asignado a la visita de hoy en esta propiedad pueden mostrar este código."
+  "property.revealRefused": "Solo el propietario, la oficina o el trabajador asignado a la visita de hoy en esta propiedad pueden mostrar este código.",
+  "visits.blockers.title": "Aún no se puede confirmar",
+  "visits.blockers.hint": "Esta visita tentativa no es una reserva. Se podrá confirmar cuando se resuelva cada uno de estos puntos:",
+  "enum.visitProblem.APPROVAL_NOT_ACTIVE": "La aprobación del proyecto ya no está vigente (por ejemplo, está en revisión de cancelación); no se puede confirmar esta visita de trabajo.",
+  "enum.visitProblem.SCOPE_NOT_ACCEPTED": "El trabajo no tiene un alcance aceptado; no se puede confirmar esta visita de trabajo.",
+  "enum.visitProblem.REVIEW_HOLD_OPEN": "Hay una retención de revisión abierta o en revisión en este proyecto. No se puede confirmar ninguna visita hasta que el Propietario la resuelva.",
+  "enum.visitProblem.JOB_ON_HOLD": "El trabajo está en Retención. No se puede confirmar ninguna visita hasta que el Propietario marque Listo con una nota.",
+  "enum.visitProblem.CRITICAL_HOLD_OPEN": "Hay una retención crítica de seguridad sin resolver. No se puede confirmar ninguna visita hasta que se resuelva."
 }

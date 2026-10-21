@@ -579,6 +579,12 @@ export const LABEL_FAMILIES = {
     'OFFER_EXPIRED',
     'OFFER_WITHDRAWN',
     'OFFER_OTHER_TIMES_REQUESTED',
+    // TSK-0064: the confirmation preconditions (apps/server/src/modules/visits/preconditions.ts).
+    'APPROVAL_NOT_ACTIVE',
+    'SCOPE_NOT_ACCEPTED',
+    'REVIEW_HOLD_OPEN',
+    'JOB_ON_HOLD',
+    'CRITICAL_HOLD_OPEN',
   ],
   /** Window offer states (TSK-0063; @handyhub/domain/window-offer, migration 0053). */
   windowOfferState: ['open', 'selected', 'other_times_requested', 'withdrawn', 'expired'],

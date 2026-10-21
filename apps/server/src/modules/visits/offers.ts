@@ -31,6 +31,11 @@
 // - TSK-0059 (HH-SCH-06, HH-FIN-02, RULE-SAFETY-GATES): selecting a work-visit window confirms the visit, so the
 //   selection runs the deposit gate itself in its transaction, whatever gates the module was given, exactly as a staff
 //   confirmation does (visits.ts confirmVisit); an estimate visit never waits for a deposit.
+// - TSK-0064 (HH-SCH-06, HH-SCH-05, T36, T40): the selection runs every confirmation precondition of preconditions.ts
+//   (approval, deposit, the other gates, no blocking hold) in its transaction; when one is unmet nothing changes and
+//   the customer is told only that the time cannot be confirmed yet (SCHEDULING_NOT_READY), with the deposit when it
+//   is due, never a hold or a staff detail. PROPOSED: offering windows also needs the approval and no blocking hold,
+//   so a customer is never offered times that cannot be confirmed.
 import type { Db, Tx } from '@handyhub/db'
 import {
   holdExpiresAt,
@@ -54,8 +59,8 @@ import { alternatives, capacitySettings, evaluate, type ReservationRequest } fro
 import { notificationAutomation, type Destination, type NotificationProviders } from '../notifications/index.js'
 import { openQueueItem, resolveQueueItem } from '../queue/items.js'
 import { findProject } from '../records/index.js'
-import { confirmationDepositGate, depositGateProblem } from '../finance/deposit-gate.js'
-import { DEPOSIT_GATE, unmetGates, type WorkVisitGate } from './gates.js'
+import { unmetGates, type WorkVisitGate } from './gates.js'
+import { approvalProblems, blockingHoldProblems, confirmationPreconditions, customerRefusal } from './preconditions.js'
 import { factsOf, mayPlanWorkVisits, resolveEntry, storedWindow, type WindowEntry } from './visits.js'
 
 type Reader = Db | Tx
@@ -212,9 +217,12 @@ export async function offerWindows(
   if (new Set(equipmentIds).size !== equipmentIds.length)
     problems.push(field('body.equipmentIds', 'EQUIPMENT_REPEATED'))
   else if (equipmentIds.length < v.equipment.length) problems.push(field('body.equipmentIds', 'EQUIPMENT_NOT_ASSIGNED'))
+  problems.push(...(await approvalProblems(tx, v)))
   if (v.job_id !== null)
     for (const code of await unmetGates(tx, { jobId: v.job_id, projectId: v.project_id }, deps.gates))
       problems.push(field('job', code))
+  // TSK-0064 (PROPOSED): no times are offered while a hold blocks their confirmation.
+  problems.push(...(await blockingHoldProblems(tx, v.project_id)))
   if (v.expected_duration_minutes === null || v.required_workers === null)
     throw new ApiError('CONFLICT', { fieldErrors: problems })
 
@@ -531,9 +539,9 @@ export type Selection = {
  * visit takes the window and is confirmed, and the confirmation notice's event is written. Refusals: NOT_FOUND,
  * VALIDATION_FAILED (POSITION_UNKNOWN), CONFLICT on `offer` (OFFER_EXPIRED, OFFER_WITHDRAWN, OFFER_SELECTED,
  * OFFER_OTHER_TIMES_REQUESTED) or on `body.position` (WINDOW_UNAVAILABLE: the window can no longer be kept;
- * SCHEDULING_NOT_READY: a work visit's scheduling gate is unmet, with `deposit` DEPOSIT_REQUIRED or
- * DEPOSIT_REQUIREMENT_MISSING when the job's deposit is what is missing). A refusal changes nothing. The customer sees no
- * staff detail: a conflict names no worker or item.
+ * SCHEDULING_NOT_READY: a confirmation precondition is unmet (approval, deposit, a gate, a blocking hold), with
+ * `deposit` DEPOSIT_REQUIRED or DEPOSIT_REQUIREMENT_MISSING when the job's deposit is among them). A refusal changes
+ * nothing. The customer sees no staff detail: a conflict names no worker, item, hold or gate.
  */
 export async function selectWindow(
   tx: Tx,
@@ -573,27 +581,11 @@ export async function selectWindow(
   const window = storedWindow(option)
   const unavailable = () => new ApiError('CONFLICT', { fieldErrors: [field('body.position', 'WINDOW_UNAVAILABLE')] })
   if (window.startsAt.getTime() <= now.getTime()) throw unavailable()
-  // TSK-0059 (HH-SCH-06, HH-FIN-02, RULE-SAFETY-GATES): the selection confirms the visit, so the deposit gate runs
-  // here itself, in this transaction, for every work visit, whatever gates the module was given; an estimate visit
-  // never waits for a deposit. The other registered gates follow (the deposit gate is not asked twice).
-  const deposit = depositGateProblem(
-    await confirmationDepositGate(
-      tx,
-      v.job_id !== null && isWorkVisitPurpose(v.purpose) ? { kind: 'work', jobId: v.job_id } : { kind: 'estimate' },
-    ),
-  )
-  const unmet =
-    v.job_id === null
-      ? []
-      : await unmetGates(
-          tx,
-          { jobId: v.job_id, projectId: v.project_id },
-          deps.gates.filter((g) => g !== DEPOSIT_GATE),
-        )
-  if (deposit || unmet.length)
-    throw new ApiError('CONFLICT', {
-      fieldErrors: [field('body.position', 'SCHEDULING_NOT_READY'), ...(deposit ? [deposit] : [])],
-    })
+  // TSK-0064 (HH-SCH-06, RULE-SAFETY-GATES): the selection confirms the visit, so every confirmation precondition runs
+  // here, in this transaction: the approval and the deposit gate of TSK-0059 for a work visit (whatever gates the
+  // module was given; an estimate visit never waits for a deposit), the other registered gates and no blocking hold.
+  const unmet = await confirmationPreconditions(tx, v, deps.gates)
+  if (unmet.length) throw new ApiError('CONFLICT', { fieldErrors: customerRefusal(unmet) })
   // The window's holds are all still active (none ended early) and the team still passes every capacity rule.
   const holds = await tx
     .selectFrom('work.reservations')

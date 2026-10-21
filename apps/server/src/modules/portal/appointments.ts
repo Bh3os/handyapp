@@ -75,16 +75,18 @@ export function portalAppointmentRoutes(deps: PortalAppointmentDeps = {}): Route
       'The verified customer selects one window of an offer while it is held (HH-SCH-11, HH-LEAD-07; OWN-DEC-144: ' +
       'the configured hours from the offer). In one transaction under the offer lock the server rechecks the window ' +
       '(its holds are still active, the team still passes every capacity rule, a work visit still passes its ' +
-      "scheduling gates, and the job's deposit gate runs itself for every work visit, as for a staff confirmation: " +
-      "TSK-0059, HH-SCH-06), turns that window's holds into the confirmed reservations, releases the other windows, " +
+      'scheduling gates, and every confirmation precondition runs, as for a staff confirmation: the approval and the ' +
+      "job's deposit gate for a work visit, no blocking hold on the project; TSK-0059, TSK-0064, HH-SCH-06), turns " +
+      "that window's holds into the confirmed reservations, releases the other windows, " +
       'gives the visit that window and confirms it, and writes the committed event of the automatic confirmation ' +
       'notice (estimate_visit.reserved or appointment.reserved; wording NOT CONFIGURED). An Estimate visit stays on ' +
       'the project with no job and no price approval (T37). Of two tabs or customers racing for one offer exactly one ' +
       'succeeds; the other gets CONFLICT and nothing changes. Refusals: VALIDATION_FAILED POSITION_UNKNOWN; CONFLICT ' +
       'on `offer` (OFFER_EXPIRED: the hold time passed, OFFER_SELECTED, OFFER_WITHDRAWN, OFFER_OTHER_TIMES_REQUESTED) ' +
       'or on `body.position` (WINDOW_UNAVAILABLE: the window can no longer be kept, choose another or ask for other ' +
-      'times; SCHEDULING_NOT_READY, with `deposit` DEPOSIT_REQUIRED or DEPOSIT_REQUIREMENT_MISSING while the ' +
-      "job's deposit is due; an Estimate visit never waits for a deposit). " +
+      'times; SCHEDULING_NOT_READY: a confirmation precondition is unmet, with `deposit` DEPOSIT_REQUIRED or ' +
+      "DEPOSIT_REQUIREMENT_MISSING while the job's deposit is due and no hold or staff detail; an Estimate visit " +
+      'never waits for a deposit). ' +
       'The same customer selecting the same window again (a second tab) gets the same ' +
       'answer. Answers the refreshed Appointments tab. Any other project or offer is NOT_FOUND (T19).',
     audit: 'visit.select_window',

@@ -15,6 +15,9 @@
 //   the offer expires; its offers are listed with their windows, holds' expiry and notices. While an offer is open the
 //   visit is neither moved nor confirmed by staff: the customer selects, or staff withdraw the offer. A confirmed visit
 //   shows what happened to its automatic confirmation notice.
+// - TSK-0064 (HH-SCH-06, HH-SCH-05): a tentative visit lists every confirmation precondition the server says is still
+//   unmet (approval, deposit, a blocking hold, a missing visit fact) as "Not ready to confirm", and Confirm is offered
+//   only once nothing stops it. The server decides again on confirming.
 import {
   formatOffset,
   resolveLocalTime,
@@ -90,6 +93,8 @@ export type Visit = {
   /** TSK-0063: the window offers of the visit, newest first, and its confirmation notice's deliveries. */
   offers?: Offer[]
   notices?: Notice[]
+  /** TSK-0064: for a tentative visit, what still stops its confirmation (empty: nothing); null otherwise. */
+  confirmationBlockers?: { field: string; code: string }[] | null
   actions: { changeWindow: boolean; confirm?: boolean; offerWindows?: boolean }
 }
 
@@ -526,6 +531,17 @@ function VisitItem({
         </StatusBadge>
       </p>
       {visit.state === 'tentative' ? <p className="staff-request__hint">{t('visits.tentativeHint')}</p> : null}
+      {visit.state === 'tentative' && visit.confirmationBlockers?.length ? (
+        <div data-testid="visit-blockers">
+          <StateView
+            kind="blocked"
+            title={t('visits.blockers.title')}
+            reasons={[...new Set(visit.confirmationBlockers.map((b) => codeLabel(t, 'visitProblem', b.code)))]}
+          >
+            <p>{t('visits.blockers.hint')}</p>
+          </StateView>
+        </div>
+      ) : null}
       <dl className="staff-system__fields">
         <div>
           <dt>{t('visits.window')}</dt>

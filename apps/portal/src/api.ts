@@ -732,9 +732,11 @@ function failureOf(status: number, json: unknown): WriteFailure {
 /**
  * The customer's answer to offered windows (TSK-0063): the refreshed Appointments tab, or why nothing changed:
  * `unavailable_window` (that window can no longer be kept), `closed` (the offer was answered, withdrawn or expired:
- * the refreshed tab says which), or a general failure.
+ * the refreshed tab says which), `deposit_due` (TSK-0064: the work appointment cannot be confirmed until the deposit
+ * is received), `not_ready` (TSK-0064: another confirmation precondition is unmet; the server names no hold or staff
+ * detail), or a general failure. Nothing is booked in any of these.
  */
-export type OfferAnswerFailure = WriteFailure | 'unavailable_window' | 'closed'
+export type OfferAnswerFailure = WriteFailure | 'unavailable_window' | 'closed' | 'deposit_due' | 'not_ready'
 export type OfferAnswerResult = { ok: true; data: TabData } | { ok: false; failure: OfferAnswerFailure }
 async function answerOffer(
   fetchImpl: Fetch,
@@ -753,8 +755,15 @@ async function answerOffer(
     return data ? { ok: true, data } : { ok: false, failure: 'failed' }
   }
   const codes = fieldCodes(r.json)
-  if (r.status === 409 && (codes.includes('WINDOW_UNAVAILABLE') || codes.includes('SCHEDULING_NOT_READY')))
-    return { ok: false, failure: 'unavailable_window' }
+  if (r.status === 409 && codes.includes('SCHEDULING_NOT_READY'))
+    return {
+      ok: false,
+      failure:
+        codes.includes('DEPOSIT_REQUIRED') || codes.includes('DEPOSIT_REQUIREMENT_MISSING')
+          ? 'deposit_due'
+          : 'not_ready',
+    }
+  if (r.status === 409 && codes.includes('WINDOW_UNAVAILABLE')) return { ok: false, failure: 'unavailable_window' }
   if (r.status === 409) return { ok: false, failure: 'closed' }
   return { ok: false, failure: failureOf(r.status, r.json) }
 }
