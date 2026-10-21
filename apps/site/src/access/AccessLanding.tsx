@@ -5,19 +5,26 @@
 // - Without a link (or after a reload once it was used) the page shows the project this browser's session opens, if
 //   any; otherwise it says how to open a project. A link that opens nothing gets the same neutral page whatever the
 //   reason, with no project information.
+// - Neutral recovery (TSK-0035, HH-ID-09, HH-ID-06): that page, and the page without a link, offer to ask for a new
+//   link with the email or mobile phone on the request (and the reference when this tab holds no old link). The
+//   answer is the same whether or not anything matches. A code that can no longer be used (expired, or too many
+//   tries) gets its own neutral page that offers a new code; nothing about the project is shown on either.
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { Button, Field, StateView } from '@handyhub/ui'
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { minutesLeft, noticeText, type Channel, type Fetch, type Notice } from '../request/verification.js'
 import {
   accessApi,
   forgetToken,
+  recoveryNotice,
+  recoveryProblems,
   sentText,
   stateLabel,
   tabStorage,
   takeToken,
   type AccessChannel,
   type ProjectGlance,
+  type RecoveryForm,
 } from './access.js'
 
 const t = (key: CustomerKey, values?: Record<string, string | number>) => customerTranslator().t(key, values)
@@ -33,8 +40,9 @@ type Phase =
   | { kind: 'intro'; token: string }
   | { kind: 'choose'; token: string; channels: AccessChannel[] }
   | { kind: 'code'; token: string; channels: AccessChannel[]; channel: Channel; sentTo: string; minutes: number }
+  | { kind: 'ended'; token: string; channels: AccessChannel[] }
   | { kind: 'project'; glance: ProjectGlance }
-  | { kind: 'invalid' }
+  | { kind: 'recover'; token: string }
   | { kind: 'none' }
 
 function Project({ glance }: { glance: ProjectGlance }) {
@@ -68,14 +76,142 @@ function Project({ glance }: { glance: ProjectGlance }) {
   )
 }
 
-function Neutral({ title, text }: { title: CustomerKey; text: CustomerKey }) {
+function Neutral({ title, text, children }: { title: CustomerKey; text: CustomerKey; children?: ReactNode }) {
   return (
     <section className="hh-receipt" aria-labelledby="hh-access-neutral">
       <h2 id="hh-access-neutral" className="hh-h2" tabIndex={-1}>
         {t(title)}
       </h2>
       <p>{t(text)}</p>
+      {children}
     </section>
+  )
+}
+
+type RecoveryField = keyof RecoveryForm
+const RECOVERY_ERROR: Record<RecoveryField, CustomerKey> = {
+  contact: 'access.recover.error.contact',
+  reference: 'access.recover.error.reference',
+}
+
+/**
+ * Ask for a new link (TSK-0035, HH-ID-09). With the old link this tab holds, only the contact is asked for; without
+ * one, the reference from the receipt too. Every accepted request shows the same words.
+ */
+function Recovery({ token, fetchImpl }: { token: string | null; fetchImpl: Fetch }) {
+  const withReference = token === null
+  const [form, setForm] = useState<RecoveryForm>({ contact: '', reference: '' })
+  const [errors, setErrors] = useState<Partial<Record<RecoveryField, CustomerKey>>>({})
+  const [notice, setNotice] = useState<Notice | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [done, setDone] = useState(false)
+  const area = useRef<HTMLElement>(null)
+  const doneRef = useRef<HTMLParagraphElement>(null)
+
+  useEffect(() => {
+    if (done) doneRef.current?.focus()
+  }, [done])
+
+  const showErrors = (fields: RecoveryField[]) => {
+    setErrors(Object.fromEntries(fields.map((f) => [f, RECOVERY_ERROR[f]])))
+    // The first field with a problem takes the focus.
+    requestAnimationFrame(() => area.current?.querySelector<HTMLElement>(`[name="access-${fields[0]}"]`)?.focus())
+  }
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault()
+    if (busy) return
+    const problems = recoveryProblems(form, withReference)
+    if (problems.length > 0) return showErrors(problems)
+    setErrors({})
+    setNotice(null)
+    setBusy(true)
+    const r = await accessApi.reissue(fetchImpl, { token, ...form })
+    setBusy(false)
+    if (r.ok) return setDone(true)
+    if (r.field === 'invalid_contact') return showErrors(['contact'])
+    if (r.field === 'required') return showErrors(['reference'])
+    setNotice(recoveryNotice(r))
+  }
+
+  return (
+    <section ref={area} className="hh-receipt__section" aria-labelledby="hh-access-recover">
+      <h3 id="hh-access-recover" className="hh-h3">
+        {t('access.recover.title')}
+      </h3>
+      {done ? (
+        <p ref={doneRef} tabIndex={-1} role="status">
+          {t('access.recover.done')}
+        </p>
+      ) : (
+        <>
+          <p>{t('access.recover.text')}</p>
+          <form className="hh-verify__form hh-access__recover" onSubmit={(e) => void submit(e)} noValidate>
+            {withReference ? (
+              <Field
+                label={t('access.recover.reference')}
+                hint={t('access.recover.referenceHint')}
+                name="access-reference"
+                autoComplete="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+                maxLength={40}
+                value={form.reference}
+                onChange={(e) => setForm({ ...form, reference: e.target.value })}
+                {...(errors.reference ? { error: t(errors.reference) } : {})}
+              />
+            ) : null}
+            <Field
+              label={t('access.recover.contact')}
+              name="access-contact"
+              autoComplete="email"
+              spellCheck={false}
+              maxLength={320}
+              value={form.contact}
+              onChange={(e) => setForm({ ...form, contact: e.target.value })}
+              {...(errors.contact ? { error: t(errors.contact) } : {})}
+            />
+            <Button type="submit" pending={busy}>
+              {t('access.recover.submit')}
+            </Button>
+          </form>
+          <p role="status" className="hh-verify__notice">
+            {notice ? noticeText(notice) : ''}
+          </p>
+        </>
+      )}
+    </section>
+  )
+}
+
+function SendButtons({
+  channels,
+  busy,
+  current,
+  primary,
+  onSend,
+}: {
+  channels: AccessChannel[]
+  busy: string | null
+  current: Channel | null
+  primary: boolean
+  onSend: (channel: Channel) => void
+}) {
+  return (
+    <ul className="hh-access__channels">
+      {channels.map((c) => (
+        <li key={c.channel}>
+          <span>{c.destination}</span>{' '}
+          <Button
+            variant={primary ? 'primary' : 'secondary'}
+            pending={busy === `send-${c.channel}`}
+            onClick={() => onSend(c.channel)}
+          >
+            {current === c.channel ? t('request.verify.resend') : t(SEND_LABEL[c.channel])}
+          </Button>
+        </li>
+      ))}
+    </ul>
   )
 }
 
@@ -109,9 +245,10 @@ export default function AccessLanding({ fetchImpl = browserFetch }: { fetchImpl?
     area.current?.querySelector<HTMLElement>(phase.kind === 'code' ? 'input' : 'h2')?.focus()
   }, [phase.kind])
 
-  const invalid = () => {
+  // The link opens nothing (any reason): it is forgotten, and kept in this page only to name it in a reissue request.
+  const invalid = (token: string) => {
     forgetToken(tabStorage())
-    setPhase({ kind: 'invalid' })
+    setPhase({ kind: 'recover', token })
   }
 
   const open = async (token: string) => {
@@ -120,7 +257,7 @@ export default function AccessLanding({ fetchImpl = browserFetch }: { fetchImpl?
     const r = await accessApi.open(fetchImpl, token)
     setBusy(null)
     if (r.ok) return setPhase({ kind: 'choose', token, channels: r.data })
-    if (r.status === 404) return invalid()
+    if (r.status === 404) return invalid(token)
     setNotice(r.notice)
   }
 
@@ -131,7 +268,7 @@ export default function AccessLanding({ fetchImpl = browserFetch }: { fetchImpl?
     const r = await accessApi.send(fetchImpl, token, channel)
     setBusy(null)
     if (!r.ok) {
-      if (r.status === 404) return invalid()
+      if (r.status === 404) return invalid(token)
       return setNotice(r.notice)
     }
     setCode('')
@@ -155,7 +292,12 @@ export default function AccessLanding({ fetchImpl = browserFetch }: { fetchImpl?
     const r = await accessApi.exchange(fetchImpl, phase.token, phase.channel, code)
     setBusy(null)
     if (!r.ok) {
-      if (r.status === 404) return invalid()
+      if (r.status === 404) return invalid(phase.token)
+      // The code can no longer be used (expired, or too many tries): a neutral page that offers a new one.
+      if (r.field === 'code_ended') {
+        setCode('')
+        return setPhase({ kind: 'ended', token: phase.token, channels: phase.channels })
+      }
       return setCodeError(r.notice)
     }
     forgetToken(tabStorage())
@@ -215,34 +357,48 @@ export default function AccessLanding({ fetchImpl = browserFetch }: { fetchImpl?
               </form>
             </>
           ) : null}
-          <ul className="hh-access__channels">
-            {channels.map((c) => (
-              <li key={c.channel}>
-                <span>{c.destination}</span>{' '}
-                <Button
-                  variant={phase.kind === 'code' ? 'secondary' : 'primary'}
-                  pending={busy === `send-${c.channel}`}
-                  onClick={() => void send(token, channels, c.channel)}
-                >
-                  {phase.kind === 'code' && phase.channel === c.channel
-                    ? t('request.verify.resend')
-                    : t(SEND_LABEL[c.channel])}
-                </Button>
-              </li>
-            ))}
-          </ul>
+          <SendButtons
+            channels={channels}
+            busy={busy}
+            current={phase.kind === 'code' ? phase.channel : null}
+            primary={phase.kind !== 'code'}
+            onSend={(channel) => void send(token, channels, channel)}
+          />
         </section>
+      )
+      break
+    }
+    case 'ended': {
+      const { token, channels } = phase
+      body = (
+        <Neutral title="access.ended.title" text="access.ended.text">
+          <SendButtons
+            channels={channels}
+            busy={busy}
+            current={null}
+            primary
+            onSend={(channel) => void send(token, channels, channel)}
+          />
+        </Neutral>
       )
       break
     }
     case 'project':
       body = <Project glance={phase.glance} />
       break
-    case 'invalid':
-      body = <Neutral title="access.invalid.title" text="access.invalid.text" />
+    case 'recover':
+      body = (
+        <Neutral title="access.invalid.title" text="access.invalid.text">
+          <Recovery token={phase.token} fetchImpl={fetchImpl} />
+        </Neutral>
+      )
       break
     case 'none':
-      body = <Neutral title="access.none.title" text="access.none.text" />
+      body = (
+        <Neutral title="access.none.title" text="access.none.text">
+          <Recovery token={null} fetchImpl={fetchImpl} />
+        </Neutral>
+      )
       break
   }
 

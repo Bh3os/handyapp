@@ -2,6 +2,9 @@
 // server confirmed the save, at /request/received/<ref>, in the owner's wording, with photo outcomes as the server
 // recorded them and a failed photo retried without a new request; a reference alone shows nothing. The receipt email
 // is NOT CONFIGURED in this database (no approved wording), so the request stays saved and staff get a delivery issue.
+// Review fixes: a photo still uploading holds Send and then counts on the receipt; a Retry is announced and moves focus
+// sensibly; a reload shows the latest counts the tab learned, labelled with when they were taken; the receipt is kept
+// per browser tab and the page says so.
 // Every visitor, address, number and image is synthetic (RULE-SYNTHETIC-DATA).
 import { deflateSync } from 'node:zlib'
 import { AxeBuilder } from '@axe-core/playwright'
@@ -214,6 +217,20 @@ test.describe('the receipt (TSK-0032)', () => {
     await expect(receiptHeading).toBeFocused()
     await expect(page.getByText(`Request reference: ${reference}`)).toBeVisible()
     await expect(page.getByRole('region', { name: 'Your project at a glance' })).toContainText(email)
+    // Another tab of the same browser has no receipt: it is kept per tab, and the page says so (PROPOSED wording).
+    const otherTab = await context.newPage()
+    try {
+      await otherTab.goto(`/request/received/${reference}`)
+      await expect(otherTab.getByRole('heading', { name: "This receipt isn't available here" })).toBeVisible()
+      await expect(
+        otherTab.getByText(
+          'A receipt is shown only in the browser tab that sent the request, after the request was saved.',
+        ),
+      ).toBeVisible()
+      await expect(otherTab.locator('main')).not.toContainText(/Your request is in|Test Customer|Synthetic Way/)
+    } finally {
+      await otherTab.close()
+    }
     const other = await browser.newContext()
     try {
       const stranger = await other.newPage()
@@ -235,7 +252,7 @@ test.describe('the receipt (TSK-0032)', () => {
     expect(res?.headers()['cache-control']).toBe('no-store')
     await expect(page.getByRole('heading', { name: "This receipt isn't available here" })).toBeVisible()
     await expect(
-      page.getByText('A receipt is shown only in the browser that sent the request, after the request was saved.'),
+      page.getByText('A receipt is shown only in the browser tab that sent the request, after the request was saved.'),
     ).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Your request is in.' })).toHaveCount(0)
     await expect(page.getByRole('link', { name: 'Return Home' })).toHaveAttribute('href', '/')
@@ -248,36 +265,106 @@ test.describe('the receipt (TSK-0032)', () => {
   }) => {
     const email = 'receipt-photos-e2e@example.test'
     await start(page)
-    // The second photo's upload is cut off: it fails in the browser and never reaches the server.
+    // Of four photos two fail in the browser (their uploads are cut off and never reach the server) and the fourth is
+    // still uploading when the review is reached; the first retry of a failed photo is cut off too.
     let uploads = 0
-    await page.route('**/api/v1/public/request-drafts/photos', (route) => {
-      if (route.request().method() === 'POST' && ++uploads === 2) return route.abort('connectionreset')
+    let release = () => {}
+    const holding = new Promise<void>((resolve) => (release = resolve))
+    await page.route('**/api/v1/public/request-drafts/photos', async (route) => {
+      if (route.request().method() !== 'POST') return route.continue()
+      const n = ++uploads
+      if (n === 2 || n === 3 || n === 5) return route.abort('connectionreset')
+      if (n === 4) await holding
       return route.continue()
     })
     const input = page.locator('input[type="file"][name="photos"]')
-    await input.setInputFiles({ name: 'first.png', mimeType: 'image/png', buffer: png(201) })
     const items = page.locator('.hh-request__photo')
+    await input.setInputFiles({ name: 'first.png', mimeType: 'image/png', buffer: png(201) })
     await expect(items.nth(0).getByText('Saved')).toBeVisible({ timeout: 20_000 })
     await input.setInputFiles({ name: 'second.png', mimeType: 'image/png', buffer: png(202) })
     await expect(items.nth(1).getByText('Failed')).toBeVisible()
+    await input.setInputFiles({ name: 'third.png', mimeType: 'image/png', buffer: png(203) })
+    await expect(items.nth(2).getByText('Failed')).toBeVisible()
+    await input.setInputFiles({ name: 'fourth.png', mimeType: 'image/png', buffer: png(204) })
+    await expect(items.nth(3).getByText('Uploading')).toBeVisible()
     await finish(page, email)
-    await page.getByRole('button', { name: 'Send Estimate Request' }).click()
+
+    // A photo still uploading holds Send (TSK-0030), so it is never left out of the receipt; once it is saved the
+    // request goes with it.
+    const send = page.getByRole('button', { name: 'Send Estimate Request' })
+    await expect(send).toBeDisabled()
+    release()
+    const review = page.getByRole('region', { name: 'Photos', exact: true })
+    await expect(review.locator('.hh-request__photo').nth(3).getByText('Saved')).toBeVisible({ timeout: 20_000 })
+    await expect(send).toBeEnabled()
+    const submitted = page.waitForResponse(
+      (r) => r.request().method() === 'POST' && new URL(r.url()).pathname === '/api/v1/public/requests',
+    )
+    await send.click()
+    const headers = (await submitted).headers()
     await expect(page.getByRole('heading', { name: 'Your request is in.' })).toBeFocused()
 
     const photos = page.getByRole('region', { name: 'Your photos' })
-    await expect(photos.getByText('Received: 1')).toBeVisible()
+    await expect(photos.getByText('Received: 2')).toBeVisible()
     await expect(photos.getByText('Processing: 0')).toBeVisible()
-    await expect(photos.getByText('Failed: 1')).toBeVisible()
+    await expect(photos.getByText('Failed: 2')).toBeVisible()
     await expect(
       photos.getByText("You can retry a failed photo here. You don't need to send another request."),
     ).toBeVisible()
+    // Live counts: no "as of" label while this page can check them.
+    await expect(page.getByTestId('receipt-photos-as-of')).toHaveCount(0)
+    // The held photos are a live region, so a Retry's outcome is announced (HH-A11Y-01).
+    const held = photos.locator('ul.hh-request__photo-list')
+    await expect(held).toHaveAttribute('aria-live', 'polite')
+    const retries = photos.getByRole('button', { name: 'Retry' })
+    await expect(retries).toHaveCount(2)
     await axe(page)
-    await photos.getByRole('button', { name: 'Retry' }).click()
-    await expect(photos.getByText('Failed: 0')).toBeVisible()
-    await expect(photos.getByText('Received: 2')).toBeVisible({ timeout: 20_000 })
-    await expect(photos.getByRole('button', { name: 'Retry' })).toHaveCount(0)
 
-    // One request, holding both photos.
+    // A Retry that fails again stays in the list, failed, with its problem, and keeps the focus.
+    await retries.nth(0).focus()
+    await page.keyboard.press('Enter')
+    await expect.poll(() => uploads).toBe(5)
+    await expect(held.locator('li').nth(0)).toHaveAttribute('data-state', 'failed')
+    await expect(held.locator('li').nth(0).locator('.hh-field__error')).toBeVisible()
+    await expect(retries).toHaveCount(2)
+    await expect(retries.nth(0)).toBeFocused()
+    await expect(photos.getByText('Failed: 2')).toBeVisible()
+
+    // A Retry that succeeds removes the photo from the list: focus moves to the next held photo's Retry, and after the
+    // last one to the "Your photos" heading, never to the page.
+    await page.keyboard.press('Enter')
+    await expect(retries).toHaveCount(1)
+    await expect(retries.nth(0)).toBeFocused()
+    await page.keyboard.press('Enter')
+    await expect(retries).toHaveCount(0)
+    await expect(photos.getByRole('heading', { name: 'Your photos' })).toBeFocused()
+    await expect(photos.getByText('Failed: 0')).toBeVisible()
+    await expect(photos.getByText('Received: 4')).toBeVisible({ timeout: 20_000 })
+    await expect(photos.getByText('Processing: 0')).toBeVisible()
+    await axe(page)
+
+    // A reload shows the counts this tab last learned, labelled with when they were taken; no Retry without the photos.
+    await page.reload()
+    await expect(page.getByRole('heading', { name: 'Your request is in.' })).toBeFocused()
+    await expect(photos.getByText('Received: 4')).toBeVisible()
+    await expect(photos.getByText('Processing: 0')).toBeVisible()
+    await expect(photos.getByText('Failed: 0')).toBeVisible()
+    await expect(page.getByTestId('receipt-photos-as-of')).toHaveText(
+      /^These counts are from .+, the last time this page checked\.$/,
+    )
+    await expect(photos.getByRole('button', { name: 'Retry' })).toHaveCount(0)
+    // The tab keeps the receipt only: no upload capability is ever stored. Since TSK-0033 the receipt record keeps the
+    // request's receipt capability (contact verification, PROPOSED), and nothing else of the kind.
+    const uploadCapability = headers['upload-capability']
+    expect(uploadCapability).toBeTruthy()
+    const kept = await page.evaluate(() => JSON.stringify(Object.entries(window.sessionStorage)))
+    expect(kept).not.toContain(uploadCapability as string)
+    expect(kept).not.toMatch(/upload-?capability|blob:/i)
+    const stored = await page.evaluate(() => JSON.parse(window.sessionStorage.getItem('hh.request-receipt') ?? 'null'))
+    expect(stored?.capability).toBe(headers['receipt-capability'] ?? null)
+    await axe(page)
+
+    // One request, holding all four photos.
     const reference = new URL(page.url()).pathname.replace('/request/received/', '')
     const rows = await withDb((db) =>
       db
@@ -289,6 +376,8 @@ test.describe('the receipt (TSK-0032)', () => {
         .execute(),
     )
     expect(rows.map((r) => [r.reference, r.state])).toEqual([
+      [reference, 'ready'],
+      [reference, 'ready'],
       [reference, 'ready'],
       [reference, 'ready'],
     ])

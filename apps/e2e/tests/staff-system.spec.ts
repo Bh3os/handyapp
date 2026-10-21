@@ -10,6 +10,9 @@ import { expect, test, type Page } from '@playwright/test'
 
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const databaseUrl = process.env['E2E_DATABASE_URL']
+// This spec's own synthetic network (RFC 5737): the staff sign-in, reset and link limits count per network, so the
+// suite must not share one address (playwright.config.ts trusts one forwarded hop on the main server).
+const NETWORK = { 'x-forwarded-for': '198.51.100.33' }
 const port = process.env['E2E_PORT'] ?? '4310'
 const cli = fileURLToPath(new URL('../../server/dist/cli/staff-access.js', import.meta.url))
 const OWNER = 'e2e-owner@example.test'
@@ -50,6 +53,8 @@ async function axe(page: Page) {
   const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
   expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
 }
+
+test.use({ extraHTTPHeaders: NETWORK })
 
 test.describe('system health and configuration (TSK-0101, HH-NFR-02)', () => {
   test.describe.configure({ mode: 'serial' })
@@ -118,7 +123,7 @@ test.describe('system health and configuration (TSK-0101, HH-NFR-02)', () => {
   test('[RULE-SERVER-AUTHZ][HH-NFR-02] Office has no System health menu item and the server refuses its data', async ({
     browser,
   }) => {
-    const page = await (await browser.newContext()).newPage()
+    const page = await (await browser.newContext({ extraHTTPHeaders: NETWORK })).newPage()
     await setPassword(page, staffAccess('password-link', OFFICE), pw(2))
     await signIn(page, OFFICE, pw(2))
     await expect(

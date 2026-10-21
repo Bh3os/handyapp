@@ -2,14 +2,15 @@
 // Idempotency-Key header. Inside the write's own transaction:
 // 1. an advisory lock on (actor, operation, key) makes a concurrent duplicate wait for the first to finish;
 // 2. a live record with the same body hash returns the stored response (Idempotent-Replayed: true); a different body
-//    is IDEMPOTENCY_CONFLICT and nothing runs;
+//    is IDEMPOTENCY_CONFLICT and nothing runs (a route may name what the key already created in the conflict, read from
+//    the stored response: the public request submission returns the request's reference, HH-INT-10);
 // 3. otherwise the handler runs and the response is stored in the same transaction, so a crash after commit leaves a
 //    record the retry returns, and a rollback leaves none.
 import { createHash } from 'node:crypto'
 import type { Tx } from '@handyhub/db'
 import type { Actor } from '@handyhub/policy'
 import { sql } from 'kysely'
-import { ApiError } from './errors.js'
+import { ApiError, type ExistingResult } from './errors.js'
 
 /** PROPOSED retention of an idempotency record (engineering default; no owner decision needed). */
 export const IDEMPOTENCY_RETENTION_HOURS = 24
@@ -54,8 +55,11 @@ export function requestHash(parts: { params: unknown; query: unknown; body: unkn
 export type StoredResponse = { status: number; body: unknown }
 export type IdempotencyScope = { actorKey: string; operation: string; key: string; bodyHash: string }
 
+/** What a conflict may tell the caller about the write the key already made, read from its stored response body. */
+export type ConflictDetail = (storedBody: unknown) => ExistingResult | undefined
+
 /** Locks the scope and returns the stored response of a live record, or null when the operation must run. */
-export async function claim(tx: Tx, scope: IdempotencyScope): Promise<StoredResponse | null> {
+export async function claim(tx: Tx, scope: IdempotencyScope, detail?: ConflictDetail): Promise<StoredResponse | null> {
   const lockName = `idempotency|${scope.actorKey}|${scope.operation}|${scope.key}`
   await sql`SELECT pg_advisory_xact_lock(hashtextextended(${lockName}, 0))`.execute(tx)
   const row = await tx
@@ -67,7 +71,10 @@ export async function claim(tx: Tx, scope: IdempotencyScope): Promise<StoredResp
     .where('expires_at', '>', sql<Date>`now()`)
     .executeTakeFirst()
   if (!row) return null
-  if (row.body_hash !== scope.bodyHash) throw new ApiError('IDEMPOTENCY_CONFLICT')
+  if (row.body_hash !== scope.bodyHash) {
+    const existing = detail?.(row.response_body)
+    throw new ApiError('IDEMPOTENCY_CONFLICT', existing ? { existing } : {})
+  }
   return { status: row.response_status, body: row.response_body }
 }
 
