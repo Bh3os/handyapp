@@ -31,6 +31,7 @@ import { loadConfig } from '../../platform/config/index.js'
 import { outbox } from '../../platform/outbox.js'
 import { currentContext } from '../../platform/request-context.js'
 import { projectIdOf } from '../access/projects.js'
+import { stopProjectEstimateReminders } from '../estimates/reminders.js'
 import { customerReplied, ensureConversation, touchConversation } from '../inbox/conversations.js'
 import {
   bindReplyPhotos,
@@ -420,6 +421,9 @@ export function questionCustomerRoutes(deps: { now?: () => Date } = {}): RouteDe
         .execute()
       // Reminders stop immediately (OWN-DEC-101).
       await cancelOpenReminders(tx, { questionId: question.id })
+      // TSK-0060 (HH-EST-14): a reply to a question is a customer response: the project's waiting estimate reminder
+      // drafts stop with it.
+      await stopProjectEstimateReminders(tx, project.id)
       const stillOpen = await tx
         .selectFrom('intake.questions')
         .select('id')
@@ -560,6 +564,8 @@ export function questionCustomerRoutes(deps: { now?: () => Date } = {}): RouteDe
         .execute()
       await touchConversation(tx, conversationId, at, true)
       await customerReplied(tx, conversationId, p.id, at)
+      // TSK-0060 (HH-EST-14): a customer message stops the project's waiting estimate reminder drafts.
+      await stopProjectEstimateReminders(tx, p.id)
       await ctx.audit({
         target: { type: 'inbound_message', id: m.id },
         summary: { project: project.reference, conversation: conversationId, channel: 'portal' },

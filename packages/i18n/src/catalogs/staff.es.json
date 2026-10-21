@@ -779,6 +779,8 @@
   "enum.reminderReason.superseded": "Se publicó una versión más reciente",
   "enum.reminderReason.not_published": "La versión no está publicada",
   "enum.reminderReason.customer_responded": "El cliente respondió",
+  "enum.reminderReason.customer_message": "El cliente envió un mensaje",
+  "enum.reminderReason.question_replied": "El cliente respondió una pregunta",
   "enum.reminderReason.conversation_recorded": "Se registró una conversación con el cliente",
   "enum.reminderReason.project_not_open": "El proyecto ya no está abierto",
   "enum.reminderReason.dismissed": "Descartado por el personal",

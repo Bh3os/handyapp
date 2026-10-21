@@ -16,16 +16,20 @@
 // - Stop rules (HH-EST-14), checked when the draft is prepared, again when staff release it and again by the send job
 //   (the notifications module's send-time record check): the version accepted, declined, expired (also past its
 //   valid-until time), withdrawn or superseded; any customer response on the estimate since this version was
-//   published (Request Changes, Decline, Request an Updated Estimate); a conversation with the customer that staff
-//   recorded since then (PROPOSED); the project no longer open. Channel permission is rechecked at release and send
+//   published (Request Changes, Decline, Request an Updated Estimate); a customer message on the project since then
+//   (an email or text matched or linked to it, or written in the portal's Messages tab; an SMS keyword is consent,
+//   not a response); a reply to a staff question on the project since then (TSK-0051); a conversation with the
+//   customer that staff recorded since then (PROPOSED); the project no longer open. Channel permission is rechecked at release and send
 //   (HH-COM-05: an SMS STOP or a missing opt-in stops a text). A stopped draft is cancelled with its reason, and the
-//   lifecycle, response and approval (TSK-0057) transactions cancel waiting drafts at once (stopEstimateReminders).
+//   lifecycle, response and approval (TSK-0057) transactions cancel waiting drafts at once (stopEstimateReminders), as
+//   do the transactions in which a customer message lands on the project or a question reply is recorded
+//   (stopProjectEstimateReminders).
 // - Channel (PROPOSED): one draft per reminder, on the customer's preferred channel: a text when they prefer texts and
 //   the SMS opt-in is current, otherwise email (a call preference has no message channel).
 // - A failed delivery is a staff issue (the reminders panel and System health list it), never a customer
 //   non-response: nothing here counts a non-response, and the cadence is measured from publishing.
-// - Not built here (later tasks): customer messages and questions in the project thread (TSK-0049/TSK-0050) and
-//   complaints (cases, TSK-0093) do not exist yet; when they do, reminderStopReason checks them too.
+// - Not built here (later tasks): complaints (cases, TSK-0093) do not exist yet; when they do, reminderStopReason
+//   checks them too.
 import type { Db, Tx } from '@handyhub/db'
 import { decide, type StaffActor } from '@handyhub/policy'
 import { sql } from 'kysely'
@@ -59,6 +63,9 @@ export const REMINDER_STOP_REASONS = [
   'superseded',
   'not_published',
   'customer_responded',
+  // A customer message on the project (TSK-0049, TSK-0050, TSK-0051 portal messages) or a question reply (TSK-0051).
+  'customer_message',
+  'question_replied',
   'conversation_recorded',
   'project_not_open',
 ] as const
@@ -149,6 +156,27 @@ export async function reminderStopReason(db: Reader, versionId: string, now: Dat
     .limit(1)
     .executeTakeFirst()
   if (response) return 'customer_responded'
+  // Any customer message on the project since publishing: inbound email or text matched or linked to the project, or
+  // a message written in the portal; an SMS keyword (STOP, START, HELP) is consent, not a response.
+  const message = await db
+    .selectFrom('comms.messages')
+    .select('id')
+    .where('project_id', '=', v.project_id)
+    .where('direction', '=', 'inbound')
+    .where('link_state', 'in', ['matched', 'linked'])
+    .where('keyword', 'is', null)
+    .where('received_at', '>=', v.published_at)
+    .limit(1)
+    .executeTakeFirst()
+  if (message) return 'customer_message'
+  const reply = await db
+    .selectFrom('intake.question_replies')
+    .select('id')
+    .where('project_id', '=', v.project_id)
+    .where('created_at', '>=', v.published_at)
+    .limit(1)
+    .executeTakeFirst()
+  if (reply) return 'question_replied'
   const conversation = await db
     .selectFrom('intake.request_conversations')
     .select('id')
@@ -241,6 +269,22 @@ export async function stopEstimateReminders(tx: Tx, versionId: string): Promise<
     await cancelDraft(tx, row, reason, { kind: 'system' }, requestIdOf(versionId))
   await syncReminderItem(tx, versionId, 'stopped')
   return reason
+}
+
+/**
+ * Cancels the waiting reminder drafts of every published version of a project whose stop rule now applies: called in
+ * the transaction in which a customer message lands on the project (inbound matching, a staff link, a portal message)
+ * or a question reply is recorded (HH-EST-14). A released reminder not yet sent is stopped by its send-time check.
+ */
+export async function stopProjectEstimateReminders(tx: Tx, projectId: string): Promise<void> {
+  const versions = await tx
+    .selectFrom('estimating.estimate_versions')
+    .select('id')
+    .where('project_id', '=', projectId)
+    .where('state', '=', 'published')
+    .orderBy('id')
+    .execute()
+  for (const v of versions) await stopEstimateReminders(tx, v.id)
 }
 
 /** The send-time recheck of an estimate reminder (registered with the notifications module's release automation). */

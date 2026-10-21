@@ -28,6 +28,7 @@ import {
   resolveNeedsLinking,
   touchConversation,
 } from './conversations.js'
+import { stopProjectEstimateReminders } from '../estimates/reminders.js'
 import { SUPPORTED_INBOUND } from './intake.js'
 import { contactOf } from './matching.js'
 import { replyRoutes } from './replies.js'
@@ -822,6 +823,8 @@ const linkMessage: RouteDef = {
       nextVersion: version,
     })
     if (conversationId) await touchConversation(tx, conversationId, m.received_at, true)
+    // TSK-0060 (HH-EST-14): a customer message linked to the project stops its waiting estimate reminder drafts.
+    await stopProjectEstimateReminders(tx, project.id)
     if (m.conversation_id && m.conversation_id !== conversationId)
       await resolveCustomerRepliedIfQuiet(tx, m.conversation_id)
     await resolveNeedsLinking(tx, m.id)

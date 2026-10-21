@@ -593,6 +593,8 @@ export const LABEL_FAMILIES = {
     'superseded',
     'not_published',
     'customer_responded',
+    'customer_message',
+    'question_replied',
     'conversation_recorded',
     'project_not_open',
     'dismissed',
