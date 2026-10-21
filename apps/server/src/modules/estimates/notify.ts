@@ -65,6 +65,8 @@ export function estimateReadyAutomation(deps: EstimateReadyDeps): Automation {
         record: { type: 'estimate_version', id: v.id },
         recipients: [{ kind: 'customer_contact', id: v.contactId, destinations }],
         values: link ? { projectLink: link } : {},
+        // TSK-0049: the delivery records its project, so the email replies to the project's reply address.
+        projectId: v.project_id,
       }
     },
   })
