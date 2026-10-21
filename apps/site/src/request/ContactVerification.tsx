@@ -8,6 +8,8 @@
 //   capability; nothing about any other request, customer or account is ever asked for or shown.
 // - After a contact is verified, Create an Account is offered as optional. Accounts are not available yet (TSK-0036),
 //   so the button says so; "No thanks" hides the offer and changes nothing else.
+// - TSK-0034: a verified code also starts this browser's session for the request's one project; the receipt then
+//   offers View My Request.
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { Button, Field, StatusBadge } from '@handyhub/ui'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
@@ -42,9 +44,10 @@ type RowProps = {
   capability: string
   fetchImpl: Fetch
   onStatus: (s: ContactStatus) => void
+  onProjectAccess: () => void
 }
 
-function ChannelRow({ channel, status, capability, fetchImpl, onStatus }: RowProps) {
+function ChannelRow({ channel, status, capability, fetchImpl, onStatus, onProjectAccess }: RowProps) {
   const [code, setCode] = useState('')
   const [changing, setChanging] = useState(false)
   const [newEmail, setNewEmail] = useState('')
@@ -99,6 +102,8 @@ function ChannelRow({ channel, status, capability, fetchImpl, onStatus }: RowPro
     setChangeTo(null)
     onStatus(r.data.contact)
     setNotice({ key: r.data.changed ? 'request.verify.done.changed' : DONE[channel] })
+    // TSK-0034: the entered code also opened this browser's session for the project (View My Request).
+    if (r.data.projectAccess) onProjectAccess()
   }
 
   const change = status.change
@@ -232,6 +237,7 @@ export function ContactVerification({
   capability,
   declined,
   onDecline,
+  onProjectAccess = () => undefined,
   fetchImpl = browserFetch,
 }: {
   /** This tab's receipt capability; null when the page has none (the request is saved either way). */
@@ -240,6 +246,8 @@ export function ContactVerification({
   declined: boolean
   /** Called once the guest declined the offer (the page remembers it in this tab). */
   onDecline: () => void
+  /** TSK-0034: called when a verified code opened this browser's session for the request's project. */
+  onProjectAccess?: () => void
   fetchImpl?: Fetch
 }) {
   const [status, setStatus] = useState<ContactStatus | null>(null)
@@ -297,6 +305,7 @@ export function ContactVerification({
                 capability={capability}
                 fetchImpl={fetchImpl}
                 onStatus={setStatus}
+                onProjectAccess={onProjectAccess}
               />
             ))}
           </>

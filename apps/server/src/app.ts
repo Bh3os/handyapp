@@ -269,6 +269,16 @@ export async function buildApp({
         .header('cache-control', 'no-store')
         .sendFile(path.relative(site, file), site, { cacheControl: false })
     }
+    // The access link landing (TSK-0034; HH-ID-05, HH-ID-08): one static page. The link's token is in the fragment,
+    // which a browser never sends, so this GET reads nothing and changes nothing: a link-preview fetch consumes no
+    // grant, starts no session and sees no project. Never cached or indexed, and no referrer leaves it (hosts.ts).
+    if (url === '/access' || url === '/access/') {
+      const file = fileIn(site, '/access.html')
+      if (!file) return reply.callNotFound()
+      return reply
+        .header('cache-control', 'no-store')
+        .sendFile(path.relative(site, file), site, { cacheControl: false })
+    }
     // Service pages (TSK-0021; HH-CUS-02, OWN-DEC-84): the build holds a page for every registry service, and only a
     // service the site may show is served; a draft, or one not approved for production, is a 404. Unknown is not safe:
     // without a database no service page is served.

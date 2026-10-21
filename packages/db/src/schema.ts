@@ -130,6 +130,24 @@ export interface IdentityCustomerSessionsTable {
   expires_at: Timestamp
   revoked_at: Timestamp | null
   revoke_reason: string | null
+  grant_id: string | null
+}
+
+export interface IdentityProjectAccessGrantsTable {
+  id: string
+  project_id: string
+  contact_id: string
+  request_id: string
+  scope: string
+  issued_reason: string
+  nonce: string
+  token_hash: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  expires_at: Timestamp
+  last_verified_at: Timestamp | null
+  revoked_at: Timestamp | null
+  revoke_reason: string | null
+  revoked_by: string | null
 }
 
 export interface IdentityRateLimitsTable {
@@ -624,6 +642,7 @@ export interface Database {
   'crm.properties': CrmPropertiesTable
   'identity.auth_identities': IdentityAuthIdentitiesTable
   'identity.customer_sessions': IdentityCustomerSessionsTable
+  'identity.project_access_grants': IdentityProjectAccessGrantsTable
   'identity.rate_limits': IdentityRateLimitsTable
   'identity.role_grants': IdentityRoleGrantsTable
   'identity.staff_links': IdentityStaffLinksTable

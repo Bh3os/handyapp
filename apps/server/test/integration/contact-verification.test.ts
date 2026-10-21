@@ -296,7 +296,12 @@ describe('email and phone verified separately (TSK-0033, HH-INT-13, OWN-DEC-96)'
 
     const ok = await verify(s.cap, 'email', code)
     expect(ok.statusCode).toBe(200)
-    expect(ok.json<{ verified: unknown }>().verified).toEqual({ channel: 'email', changed: false })
+    expect(ok.json<{ verified: unknown }>().verified).toEqual({
+      channel: 'email',
+      changed: false,
+      // TSK-0034: the code also opened this browser's session for the request's project.
+      projectAccess: true,
+    })
     expect(await status(s.cap)).toEqual({
       email: { destination: 'e***@example.test', state: 'verified', available: true, change: null },
       phone: { destination: '***0143', state: 'unverified', available: false, change: null },
@@ -424,7 +429,11 @@ describe('Change Contact (TSK-0033, HH-INT-13, OWN-DEC-96)', () => {
     const code = await deliveredCode('fixed@example.test')
     expect(providers.fakes.email?.sent.filter((m) => m.to === 'typo@exmaple.test')).toEqual([])
     const ok = await verify(s.cap, 'email', code)
-    expect(ok.json<{ verified: unknown }>().verified).toEqual({ channel: 'email', changed: true })
+    expect(ok.json<{ verified: unknown }>().verified).toEqual({
+      channel: 'email',
+      changed: true,
+      projectAccess: true,
+    })
     expect(await status(s.cap)).toMatchObject({
       email: { destination: 'f***@example.test', state: 'verified', change: null },
     })
@@ -446,7 +455,7 @@ describe('Change Contact (TSK-0033, HH-INT-13, OWN-DEC-96)', () => {
     expect(view.contactVerification).toMatchObject({ email: 'verified', current: { email: 'fixed@example.test' } })
     expect((await audits(s.requestId)).map((e) => e.summary)).toEqual([
       { channel: 'email', change: true },
-      { channel: 'email', changed: true },
+      { channel: 'email', changed: true, projectAccess: true },
     ])
   })
 

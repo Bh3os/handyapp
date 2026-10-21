@@ -11,6 +11,274 @@
     }
   ],
   "paths": {
+    "/api/v1/customer/access/session": {
+      "get": {
+        "operationId": "getCustomerAccess",
+        "summary": "The projects this session opens",
+        "description": "For a live customer session: the references of the projects it opens (a guest link session: exactly one). Without a session, 401. Nothing about any other project, account or history.",
+        "tags": [
+          "access"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "projects"
+                  ],
+                  "properties": {
+                    "projects": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "reference"
+                        ],
+                        "properties": {
+                          "reference": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/project-access.test.ts"
+        }
+      }
+    },
+    "/api/v1/customer/projects/{reference}": {
+      "get": {
+        "operationId": "getCustomerProject",
+        "summary": "The opened project at a glance",
+        "description": "The project of the caller’s session, as the customer sent it: its reference, the services by their registry names, when it was sent and the request’s state code. A customer projection only (HH-PORT-01): no internal note, staff detail or other record. Any other project, an unknown reference or a malformed one is the same NOT_FOUND (T19), and the refusal is logged (AUTHZ_DENIED).",
+        "tags": [
+          "access"
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reference",
+                    "submittedAt",
+                    "requestState",
+                    "services",
+                    "notSure"
+                  ],
+                  "properties": {
+                    "reference": {
+                      "type": "string"
+                    },
+                    "submittedAt": {
+                      "type": "string"
+                    },
+                    "requestState": {
+                      "type": "string"
+                    },
+                    "services": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "notSure": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "request.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/project-access.test.ts"
+        }
+      }
+    },
     "/api/v1/customer/requests/{requestId}/photos": {
       "get": {
         "operationId": "listCustomerRequestPhotos",
@@ -160,6 +428,600 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/photos.test.ts"
+        }
+      }
+    },
+    "/api/v1/public/access/codes": {
+      "post": {
+        "operationId": "sendAccessCode",
+        "summary": "Send or resend the code for an access link",
+        "description": "Sends a one-time code (the automatic message contact.verification_code) for a live grant to its own contact: by email, or by text with that request’s current SMS opt-in. The code lifetime and the attempt, resend and per-address limits come from session.timings and verification.limits: a resend inside the cooldown or over a limit is a neutral 429 with Retry-After; while the code key or those values are NOT CONFIGURED, 503 and nothing is sent. A phone without the opt-in is a 400 (sms_not_permitted).",
+        "tags": [
+          "access"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "token",
+                  "channel"
+                ],
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "email",
+                      "phone"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "sent"
+                  ],
+                  "properties": {
+                    "sent": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "channel",
+                        "destination",
+                        "expiresAt"
+                      ],
+                      "properties": {
+                        "channel": {
+                          "type": "string",
+                          "enum": [
+                            "email",
+                            "phone"
+                          ]
+                        },
+                        "destination": {
+                          "type": "string"
+                        },
+                        "expiresAt": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "guest",
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "public-access-code",
+            "limit": 30,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "project_access.send_code",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/project-access.test.ts"
+        }
+      }
+    },
+    "/api/v1/public/access/exchange": {
+      "post": {
+        "operationId": "exchangeAccessLink",
+        "summary": "Open the project with the link and its code",
+        "description": "The explicit verified exchange (HH-ID-05): the code of the channel’s latest send for this grant. A match records the exact value as verified on the contact, records the grant’s verified time and starts a new customer session for the grant’s one project (Set-Cookie; any earlier session of this browser ends). Other projects of the same customer, email or phone are never attached (HH-ID-03). A wrong, expired, replaced, used or exhausted code is one neutral 400 (body.code, invalid_code); the attempt is counted and kept, so the configured attempt limit holds.",
+        "tags": [
+          "access"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "token",
+                  "channel",
+                  "code"
+                ],
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "email",
+                      "phone"
+                    ]
+                  },
+                  "code": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "project"
+                  ],
+                  "properties": {
+                    "project": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "reference"
+                      ],
+                      "properties": {
+                        "reference": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "guest",
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "public-access-exchange",
+            "limit": 60,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "project_access.exchange",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/project-access.test.ts"
+        }
+      }
+    },
+    "/api/v1/public/access/open": {
+      "post": {
+        "operationId": "openAccessLink",
+        "summary": "Open a project access link",
+        "description": "The visitor pressed Open on the access page (HH-ID-05). For a live grant: where its one-time code can go, masked (the grant’s own contact; the phone only by text with that request’s current SMS opt-in). Nothing else: no scope, address, financial detail or photo, and nothing changes (no code, no session, no consumption). An unknown, malformed, expired or revoked link is NOT_FOUND.",
+        "tags": [
+          "access"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "token"
+                ],
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "channels"
+                  ],
+                  "properties": {
+                    "channels": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "channel",
+                          "destination"
+                        ],
+                        "properties": {
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "email",
+                              "phone"
+                            ]
+                          },
+                          "destination": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "guest",
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "public-access-open",
+            "limit": 30,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "project_access.open",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/project-access.test.ts"
         }
       }
     },
@@ -1781,7 +2643,7 @@
       "post": {
         "operationId": "verifyReceiptContact",
         "summary": "Enter a verification code",
-        "description": "Checks the code of the channel’s latest send. A match marks that exact value verified (an email change then replaces the old address); the other channel is never touched. A wrong, expired, replaced, used or exhausted code is the same neutral 400 (field body.code, invalid_code); the attempt is counted and kept (the refusal commits), so the configured attempt limit holds. Verifying links nothing to any other record.",
+        "description": "Checks the code of the channel’s latest send. A match marks that exact value verified (an email change then replaces the old address); the other channel is never touched. A wrong, expired, replaced, used or exhausted code is the same neutral 400 (field body.code, invalid_code); the attempt is counted and kept (the refusal commits), so the configured attempt limit holds. Verifying links nothing to any other record. TSK-0034: a match also starts this browser’s customer session for the request’s one project (Set-Cookie; projectAccess true), from the project’s live access grant; a verified email change first revokes the project’s grants and their sessions and issues a new grant. Without a usable grant, projectAccess is false.",
         "tags": [
           "verification"
         ],
@@ -1833,7 +2695,8 @@
                       "additionalProperties": false,
                       "required": [
                         "channel",
-                        "changed"
+                        "changed",
+                        "projectAccess"
                       ],
                       "properties": {
                         "channel": {
@@ -1844,6 +2707,9 @@
                           ]
                         },
                         "changed": {
+                          "type": "boolean"
+                        },
+                        "projectAccess": {
                           "type": "boolean"
                         }
                       }
@@ -2075,7 +2941,7 @@
       "post": {
         "operationId": "submitRequest",
         "summary": "Send Estimate Request",
-        "description": "Guest or customer submission. One transaction creates a new customer, contact, property, project (not a job or appointment) and the request with its services and answers, plus one request.submitted outbox event. Never matched to existing customers. The same Idempotency-Key returns the same request; a changed body is a 409. Rate limited per client network with a neutral 429. Spam signals only flag the request for review. TSK-0032: when the draft’s photos were bound, the Upload-Capability response header carries a new capability scoped to this request’s photos only (token returned once, never stored with the replayable response), so the receipt can show their states and retry a failed photo without a new request (HH-INT-07, HH-INT-12). TSK-0033: the Receipt-Capability response header carries the receipt page’s capability for this request’s own contact verification and account-offer answer (returned once; a replayed response carries neither header).",
+        "description": "Guest or customer submission. One transaction creates a new customer, contact, property, project (not a job or appointment) and the request with its services and answers, plus one request.submitted outbox event. Never matched to existing customers. The same Idempotency-Key returns the same request; a changed body is a 409. Rate limited per client network with a neutral 429. Spam signals only flag the request for review. TSK-0032: when the draft’s photos were bound, the Upload-Capability response header carries a new capability scoped to this request’s photos only (token returned once, never stored with the replayable response), so the receipt can show their states and retry a failed photo without a new request (HH-INT-07, HH-INT-12). TSK-0033: the Receipt-Capability response header carries the receipt page’s capability for this request’s own contact verification and account-offer answer (returned once; a replayed response carries neither header). TSK-0034: the same transaction issues the project’s single-project access grant (HH-ID-04; token stored only as a hash), whose secure access link the automatic message project.access_link sends from request.submitted.",
         "tags": [
           "requests"
         ],
@@ -10766,6 +11632,7 @@
                               "business.mailing_address",
                               "business.public_contact",
                               "verification.limits",
+                              "access.grants",
                               "messages.automatic",
                               "sms.help_reply",
                               "coverage.area",

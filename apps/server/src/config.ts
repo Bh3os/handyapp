@@ -282,3 +282,14 @@ export function loadConfig(source: Readonly<Record<string, string | undefined>>)
     noindex: env !== 'production',
   }
 }
+
+/**
+ * The public site's base URL for links in customer messages (TSK-0034, the access link): PUBLIC_ORIGIN when two
+ * origins are configured; the local server in local and ci; otherwise undefined (NOT CONFIGURED: no link is made up).
+ */
+export function publicSiteUrl(config: Pick<Config, 'env' | 'hosts' | 'host' | 'port'>): string | undefined {
+  if (config.hosts.mode === 'split') return config.hosts.publicOrigin
+  if ((config.env === 'local' || config.env === 'ci') && config.port !== 0)
+    return `http://${config.host}:${config.port}`
+  return undefined
+}

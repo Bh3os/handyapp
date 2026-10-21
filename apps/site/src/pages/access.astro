@@ -1,0 +1,36 @@
+---
+// The access link landing, /access (TSK-0034; HH-ID-05, HH-ID-08, OWN-DEC-97). One static page: the link's token is
+// in the fragment, which never reaches the server, so serving this page reads and changes nothing (a link preview
+// consumes nothing). The island asks for Open, then a one-time code, before anything about a project is shown
+// (src/access/AccessLanding.tsx). Private: never indexed, never cached, and no referrer leaves it (hosts.ts, app.ts).
+import '@handyhub/ui/styles.css'
+import '../request/request.css'
+import { customerTranslator } from '@handyhub/i18n'
+import AccessLanding from '../access/AccessLanding.tsx'
+import LegalLinks from '../components/LegalLinks.astro'
+
+const t = customerTranslator()
+const title = t.t('access.title')
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="no-referrer" />
+    <title>{title} | HandyHub</title>
+  </head>
+  <body>
+    <main class="hh-request-page">
+      <h1 class="hh-h1">{title}</h1>
+      <AccessLanding client:only="react" />
+    </main>
+    <footer class="hh-request-legal">
+      <nav aria-label={t.t('site.footer.legalHeading')}>
+        <LegalLinks />
+      </nav>
+    </footer>
+  </body>
+</html>

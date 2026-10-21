@@ -8,7 +8,8 @@ import { COVERAGE_MODULE } from './coverage/index.js'
 import { NOTIFICATIONS_MODULE } from './notifications/index.js'
 import { photosModule } from './photos/index.js'
 import { QUEUE_MODULE } from './queue/index.js'
-import { REQUESTS_MODULE } from './requests/index.js'
+import { requestsModule } from './requests/index.js'
+import { accessModule } from './access/index.js'
 import { SITE_MODULE } from './site/index.js'
 import { systemModule, type SystemDeps } from './system/index.js'
 import { verificationModule } from './verification/index.js'
@@ -34,7 +35,8 @@ const NO_CODE_KEY: CodeKeySettings = { state: 'not_configured', missing: ['CODE_
 export function apiModules(deps: ModuleDeps): ApiModule[] {
   return [
     identityModule({ cookies: { secure: deps.secureCookies }, mfaKey: deps.mfaKey }),
-    REQUESTS_MODULE,
+    // TSK-0034: the submission issues the project's access grant with the code key.
+    requestsModule(deps.codeKey ? { codeKey: deps.codeKey } : {}),
     COVERAGE_MODULE,
     photosModule({ storage: deps.storage ?? null }),
     SITE_MODULE,
@@ -43,6 +45,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     systemModule(deps.system ?? {}),
     // TSK-0033: the receipt's contact verification and its account-offer answer.
     verificationModule({ codeKey: deps.codeKey ?? NO_CODE_KEY, trustProxyHops: deps.trustProxyHops ?? 0 }),
+    // TSK-0034: the project access link landing and the opened project.
+    accessModule({ codeKey: deps.codeKey ?? NO_CODE_KEY, trustProxyHops: deps.trustProxyHops ?? 0 }),
   ]
 }
 
