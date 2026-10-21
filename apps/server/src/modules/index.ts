@@ -4,6 +4,7 @@ import type { ApiModule } from '../api/route.js'
 import type { Secret } from '../providers/types.js'
 import { identityModule } from './identity/index.js'
 import type { ObjectStorage } from '../providers/index.js'
+import { COVERAGE_MODULE } from './coverage/index.js'
 import { photosModule } from './photos/index.js'
 import { QUEUE_MODULE } from './queue/index.js'
 import { REQUESTS_MODULE } from './requests/index.js'
@@ -22,6 +23,7 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
   return [
     identityModule({ cookies: { secure: deps.secureCookies }, mfaKey: deps.mfaKey }),
     REQUESTS_MODULE,
+    COVERAGE_MODULE,
     photosModule({ storage: deps.storage ?? null }),
     SITE_MODULE,
     QUEUE_MODULE,

@@ -13,6 +13,11 @@
       "@handyhub/source": "./src/request-form.ts",
       "types": "./dist/request-form.d.ts",
       "default": "./dist/request-form.js"
+    },
+    "./coverage": {
+      "@handyhub/source": "./src/coverage.ts",
+      "types": "./dist/coverage.d.ts",
+      "default": "./dist/coverage.js"
     }
   },
   "scripts": {

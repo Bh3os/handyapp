@@ -102,6 +102,7 @@ export interface CrmPropertiesTable {
   coverage_result: string
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   version: Generated<number>
+  coverage_rule_set: number | null
 }
 
 export interface IdentityAuthIdentitiesTable {
@@ -294,6 +295,7 @@ export interface IntakeRequestsTable {
   spam_signals: Generated<string[]>
   original_submission: Json
   responsible_staff_id: string | null
+  coverage_rule_set: number | null
 }
 
 export interface IntakeUploadCapabilitiesTable {
@@ -359,6 +361,26 @@ export interface PlatformConsentRecordsTable {
   evidence: ColumnType<JsonValue, string | undefined, string>
   recorded_by: string
   recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface PlatformCoverageRuleSetsTable {
+  version: number
+  status: Generated<string>
+  source: string
+  source_sha256: string
+  area_version: number
+  created_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  approved_by: string | null
+  approval_sources: string[] | null
+  approved_at: Timestamp | null
+}
+
+export interface PlatformCoverageRulesTable {
+  rule_set: number
+  zip5: string
+  disposition: string
+  counties: Generated<string[]>
 }
 
 export interface PlatformIdempotencyKeysTable {
@@ -548,6 +570,8 @@ export interface Database {
   'ops.queue_items': OpsQueueItemsTable
   'platform.audit_events': PlatformAuditEventsTable
   'platform.consent_records': PlatformConsentRecordsTable
+  'platform.coverage_rule_sets': PlatformCoverageRuleSetsTable
+  'platform.coverage_rules': PlatformCoverageRulesTable
   'platform.idempotency_keys': PlatformIdempotencyKeysTable
   'platform.jobs': PlatformJobsTable
   'platform.message_deliveries': PlatformMessageDeliveriesTable
