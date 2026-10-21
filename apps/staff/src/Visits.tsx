@@ -8,6 +8,9 @@
 // - Entering a window: the same rules as the server (@handyhub/domain/local-time) tell at once when a time does not
 //   exist (spring forward) or happens twice (fall back); a repeated time needs one of its two readings chosen. The
 //   server decides again and its refusal is shown.
+// - TSK-0062: a tentative visit with its planning facts entered is confirmed here by choosing its workers and items
+//   (Capacity.tsx); its reservations are listed with their review flags, and the ended ones as history. Moving a
+//   confirmed visit moves its reservations; a capacity conflict lists every problem and the alternatives.
 import {
   formatOffset,
   resolveLocalTime,
@@ -20,6 +23,7 @@ import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
+import { AlternativesView, Assignments, ConfirmVisit, spanText, type Alternatives } from './Capacity'
 import { codeLabel } from './Requests'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
@@ -50,6 +54,22 @@ export type Visit = {
   travelBufferMinutes: number | null
   requiredWorkers: number | null
   equipment: string[]
+  /** The range the visit reserves its team for (null until the expected work is entered). */
+  reservedRange?: { startsAt: string; endsAt: string } | null
+  assignments?: {
+    id: string
+    resource: string
+    worker: StaffRef | null
+    equipment: { id: string; name: string } | null
+    role: string | null
+    kind: string
+    startsAt: string
+    endsAt: string
+    holdExpiresAt: string | null
+    endedAt: string | null
+    endedReason: string | null
+    flags: string[]
+  }[]
   createdBy: StaffRef
   createdAt: string
   history: {
@@ -60,7 +80,7 @@ export type Visit = {
     setAt: string
     reason: string | null
   }[]
-  actions: { changeWindow: boolean }
+  actions: { changeWindow: boolean; confirm?: boolean }
 }
 
 export type ProjectVisits = {
@@ -216,14 +236,25 @@ function WindowFields({
   )
 }
 
-/** The server's refusal as messages per field, plus those for no field. */
-function errorsOf(t: T, error: ApiErrorBody): { fields: Record<string, string>; general: string[] } {
+/** The server's refusal as messages per field, plus those for no field (a worker or item named by the visit's team). */
+function errorsOf(t: T, error: ApiErrorBody, visit?: Visit): { fields: Record<string, string>; general: string[] } {
   const fields: Record<string, string> = {}
   const general: string[] = []
+  const team = new Map(
+    (visit?.assignments ?? []).flatMap((a) =>
+      a.worker
+        ? [[a.worker.id, a.worker.name ?? t('queue.unnamed')] as const]
+        : a.equipment
+          ? [[a.equipment.id, a.equipment.name] as const]
+          : [],
+    ),
+  )
   for (const f of error.fieldErrors) {
     const msg = codeLabel(t, 'visitProblem', f.code)
     const k = f.field.replace(/^body\./, '')
+    const subject = /^(?:workers|equipment)\.(.+)$/.exec(f.field)?.[1]
     if (['localDate', 'windowStart', 'windowEnd', 'startOffset', 'endOffset'].includes(k)) fields[k] = msg
+    else if (subject) general.push(t('capacity.about', { name: team.get(subject) ?? subject, problem: msg }))
     else general.push(msg)
   }
   if (error.fieldErrors.length === 0) general.push(codeLabel(t, 'visitProblem', error.code))
@@ -373,6 +404,7 @@ function ChangeWindow({
     general: [],
   })
   const [stale, setStale] = useState(false)
+  const [alternatives, setAlternatives] = useState<Alternatives | null>(null)
   const [pending, setPending] = useState(false)
   const key = useRef<string | null>(null)
   if (!open)
@@ -396,7 +428,8 @@ function ChangeWindow({
     if (r.ok || r.status < 500) key.current = null
     if (!r.ok) {
       if (r.error.code === 'STALE_VERSION') return setStale(true)
-      return setErrors(errorsOf(t, r.error))
+      setAlternatives(r.error.alternatives ?? null)
+      return setErrors(errorsOf(t, r.error, visit))
     }
     setOpen(false)
     onChanged(r.data)
@@ -425,7 +458,13 @@ function ChangeWindow({
           <p>{t('visits.stale')}</p>
         </StateView>
       ) : null}
-      {errors.general.length ? <StateView kind="error" title={t('visits.refused')} reasons={errors.general} /> : null}
+      {errors.general.length ? (
+        <StateView kind="error" title={t('visits.refused')} reasons={errors.general}>
+          {alternatives ? (
+            <AlternativesView t={t} locale={locale} zone={visit.window.timeZone} alternatives={alternatives} />
+          ) : null}
+        </StateView>
+      ) : null}
       <div className="hh-button-row">
         <Button type="submit" pending={pending}>
           {t('visits.change.submit')}
@@ -508,6 +547,12 @@ function VisitItem({
           <dd>{visit.equipment.length ? visit.equipment.join(', ') : notEntered}</dd>
         </div>
       </dl>
+      {visit.reservedRange ? (
+        <p className="staff-request__hint" data-testid="visit-reserved-range">
+          {t('capacity.reservedRange', { span: spanText(visit.reservedRange, visit.window.timeZone, locale) })}
+        </p>
+      ) : null}
+      <Assignments t={t} locale={locale} zone={visit.window.timeZone} assignments={visit.assignments ?? []} />
       {currentReason ? (
         <p className="staff-request__hint" data-testid="visit-window-reason">
           {t('visits.historyReason', { reason: currentReason })}
@@ -536,6 +581,16 @@ function VisitItem({
             ))}
           </ul>
         </div>
+      ) : null}
+      {visit.actions.confirm ? (
+        <ConfirmVisit<ProjectVisits>
+          key={`confirm-${visit.id}-${visit.version}`}
+          t={t}
+          locale={locale}
+          fetchImpl={fetchImpl}
+          visit={visit}
+          onConfirmed={onChanged}
+        />
       ) : null}
       {visit.actions.changeWindow ? (
         <ChangeWindow

@@ -44,7 +44,23 @@ export type ErrorEnvelope = {
      * reference of what the key already created, so a browser whose earlier answer was lost gets it back.
      */
     existing?: ExistingResult
+    /**
+     * CONFLICT of a reservation (TSK-0062, HH-SCH-04): what could be booked instead. Nothing was written; the caller
+     * chooses again.
+     */
+    alternatives?: CapacityAlternatives
   }
+}
+
+/**
+ * Alternatives offered with a capacity conflict (HH-SCH-04): other eligible workers and other equipment items free for
+ * the whole requested range, and the free periods of the visit's local day in which every requested worker and item
+ * is free for the whole reserved range (inside their working hours and the visit hours).
+ */
+export type CapacityAlternatives = {
+  workers: { id: string; name: string | null }[]
+  equipment: { id: string; name: string }[]
+  periods: { startsAt: string; endsAt: string }[]
 }
 
 /** What an idempotency key already created, as a conflict may name it: a public reference that grants nothing. */
@@ -61,6 +77,7 @@ export class ApiError extends Error {
       fieldErrors?: FieldError[]
       current?: { version: number; values?: Record<string, unknown> }
       existing?: ExistingResult
+      alternatives?: CapacityAlternatives
       headers?: Record<string, string>
     } = {},
   ) {
@@ -105,6 +122,43 @@ export const ERROR_SCHEMA = {
           additionalProperties: false,
           required: ['reference'],
           properties: { reference: { type: 'string' } },
+        },
+        alternatives: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['workers', 'equipment', 'periods'],
+          properties: {
+            workers: {
+              type: 'array',
+              items: {
+                type: 'object',
+                additionalProperties: false,
+                required: ['id', 'name'],
+                properties: { id: { type: 'string' }, name: { type: ['string', 'null'] } },
+              },
+            },
+            equipment: {
+              type: 'array',
+              items: {
+                type: 'object',
+                additionalProperties: false,
+                required: ['id', 'name'],
+                properties: { id: { type: 'string' }, name: { type: 'string' } },
+              },
+            },
+            periods: {
+              type: 'array',
+              items: {
+                type: 'object',
+                additionalProperties: false,
+                required: ['startsAt', 'endsAt'],
+                properties: {
+                  startsAt: { type: 'string', format: 'date-time' },
+                  endsAt: { type: 'string', format: 'date-time' },
+                },
+              },
+            },
+          },
         },
       },
     },

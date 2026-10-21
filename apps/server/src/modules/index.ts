@@ -17,6 +17,7 @@ import { QUEUE_MODULE } from './queue/index.js'
 import { requestsModule } from './requests/index.js'
 import { accessModule } from './access/index.js'
 import { accountsModule } from './accounts/index.js'
+import { capacityModule } from './capacity/index.js'
 import { portalModule } from './portal/index.js'
 import { questionsModule } from './questions/index.js'
 import { SITE_MODULE } from './site/index.js'
@@ -93,6 +94,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     questionsModule(),
     // TSK-0061: the visit model (tentative estimate and work visits, local windows in an IANA zone, window history).
     visitsModule(),
+    // TSK-0062: working hours, time off, equipment and the capacity of a day (reservations: the visits module).
+    capacityModule(),
     // TSK-0068: the SOP version pinned on each work package of a job, and the Owner's competent-review sign-off.
     sopsModule(deps.environment ? { environment: deps.environment } : {}),
   ]

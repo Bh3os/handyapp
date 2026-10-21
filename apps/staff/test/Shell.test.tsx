@@ -160,7 +160,8 @@ describe('staff language switch (TSK-0040, HH-OPS-04, HH-LANG-02)', () => {
     expect(JSON.parse(String(init.body))).toEqual({ locale: 'es' })
     expect((init.headers as Record<string, string>)['x-csrf-token']).toBe('synthetic-csrf-token')
     expect((screen.getByRole('searchbox', { name: 'Buscar' }) as HTMLInputElement).value).toBe('unsent synthetic draft')
-    expect(document.documentElement.lang).toBe('es')
+    // The page language is set by an effect after the Spanish render commits: wait for it.
+    await waitFor(() => expect(document.documentElement.lang).toBe('es'))
     expect(menu()[0]).toBe('Acciones pendientes')
   })
 

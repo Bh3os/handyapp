@@ -1,7 +1,7 @@
 // JSON schemas of the staff visit routes (TSK-0061; HH-API-01, HH-ARC-04). Input objects refuse unknown fields;
 // response objects list every field.
 import { VISIT_PURPOSES, VISIT_STATES } from '@handyhub/domain'
-import { VISIT_LIMITS } from './visits.js'
+import { CONFIRM_LIMITS, VISIT_LIMITS } from './visits.js'
 
 const UUID = {
   type: 'string',
@@ -66,6 +66,17 @@ export const WINDOW_BODY = {
   },
 } as const
 
+export const CONFIRM_BODY = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['workerIds'],
+  properties: {
+    workerIds: { type: 'array', minItems: 1, maxItems: CONFIRM_LIMITS.workers, items: UUID },
+    equipmentIds: { type: 'array', maxItems: CONFIRM_LIMITS.equipment, items: UUID },
+    reason: { type: 'string', maxLength: VISIT_LIMITS.reasonLength },
+  },
+} as const
+
 const NULLABLE_STRING = { type: ['string', 'null'] } as const
 const NULLABLE_INT = { type: ['integer', 'null'] } as const
 const STAFF_REF = {
@@ -118,6 +129,8 @@ const VISIT = {
     'travelBufferMinutes',
     'requiredWorkers',
     'equipment',
+    'reservedRange',
+    'assignments',
     'createdBy',
     'createdAt',
     'history',
@@ -136,6 +149,65 @@ const VISIT = {
     travelBufferMinutes: NULLABLE_INT,
     requiredWorkers: NULLABLE_INT,
     equipment: { type: 'array', items: { type: 'string' } },
+    reservedRange: {
+      anyOf: [
+        {
+          type: 'object',
+          additionalProperties: false,
+          required: ['startsAt', 'endsAt'],
+          properties: {
+            startsAt: { type: 'string', format: 'date-time' },
+            endsAt: { type: 'string', format: 'date-time' },
+          },
+        },
+        { type: 'null' },
+      ],
+    },
+    assignments: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: [
+          'id',
+          'resource',
+          'worker',
+          'equipment',
+          'role',
+          'kind',
+          'startsAt',
+          'endsAt',
+          'holdExpiresAt',
+          'endedAt',
+          'endedReason',
+          'flags',
+        ],
+        properties: {
+          id: { type: 'string' },
+          resource: { type: 'string', enum: ['worker', 'equipment'] },
+          worker: { anyOf: [STAFF_REF, { type: 'null' }] },
+          equipment: {
+            anyOf: [
+              {
+                type: 'object',
+                additionalProperties: false,
+                required: ['id', 'name'],
+                properties: { id: { type: 'string' }, name: { type: 'string' } },
+              },
+              { type: 'null' },
+            ],
+          },
+          role: NULLABLE_STRING,
+          kind: { type: 'string', enum: ['hold', 'confirmed'] },
+          startsAt: { type: 'string', format: 'date-time' },
+          endsAt: { type: 'string', format: 'date-time' },
+          holdExpiresAt: { type: ['string', 'null'] },
+          endedAt: { type: ['string', 'null'] },
+          endedReason: NULLABLE_STRING,
+          flags: { type: 'array', items: { type: 'string' } },
+        },
+      },
+    },
     createdBy: STAFF_REF,
     createdAt: { type: 'string', format: 'date-time' },
     history: {
@@ -157,8 +229,8 @@ const VISIT = {
     actions: {
       type: 'object',
       additionalProperties: false,
-      required: ['changeWindow'],
-      properties: { changeWindow: { type: 'boolean' } },
+      required: ['changeWindow', 'confirm'],
+      properties: { changeWindow: { type: 'boolean' }, confirm: { type: 'boolean' } },
     },
   },
 } as const

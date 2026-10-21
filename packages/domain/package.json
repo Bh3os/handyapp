@@ -33,6 +33,11 @@
       "@handyhub/source": "./src/local-time.ts",
       "types": "./dist/local-time.d.ts",
       "default": "./dist/local-time.js"
+    },
+    "./capacity": {
+      "@handyhub/source": "./src/capacity.ts",
+      "types": "./dist/capacity.d.ts",
+      "default": "./dist/capacity.js"
     }
   },
   "scripts": {
