@@ -81,6 +81,17 @@ export const CLAIMS: readonly Claim[] = [
       },
     ].map((c) => ({ ...c, source: 'owner, 2026-10-20', decision: 'OWN-DEC-135' })),
   )
+  // The website terms state the decided cancellation rule for a visit HandyHub cancels or moves (TSK-0024;
+  // FACT-CANCELLATION-RULES, OWN-DEC-134): "free reschedule" is the owner's rule, not a price claim. Its customer wording
+  // waits on attorney review (OQ-ATTORNEY-TERMS).
+  .concat([
+    {
+      key: 'legal.terms.cancellation.byHandyHub',
+      text: 'If HandyHub cancels or moves a visit, you choose a free reschedule or a full refund.',
+      source: 'owner, 2026-10-20',
+      decision: 'OWN-DEC-134',
+    },
+  ])
 
 /** Claim words and phrases that stay off customer text unless the claim is registered above. */
 export const BLOCKED: readonly { readonly pattern: RegExp; readonly reason: string }[] = [
@@ -129,9 +140,16 @@ export const BLOCKED: readonly { readonly pattern: RegExp; readonly reason: stri
 export type CopyProblem = { readonly text: string; readonly match: string; readonly reason: string }
 
 /** Problems in `text` after removing every registered claim (the allow-list). */
-export function copyProblems(text: string, claims: readonly Claim[] = CLAIMS): CopyProblem[] {
+export function copyProblems(
+  text: string,
+  claims: readonly Claim[] = CLAIMS,
+  allowed: readonly string[] = [],
+): CopyProblem[] {
   let rest = text
   for (const claim of claims) rest = rest.split(claim.text).join(' ')
+  // Exact values a page states from decided configuration (for example the amounts of the legal documents,
+  // statedAmounts in legal.ts), never a pattern: only that exact text is allowed.
+  for (const value of allowed) rest = rest.split(value).join(' ')
   const problems: CopyProblem[] = []
   for (const rule of BLOCKED) {
     const m = rule.pattern.exec(rest)

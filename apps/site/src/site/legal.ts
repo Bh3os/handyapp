@@ -38,6 +38,18 @@ export function legalValues(doc: LegalDocument): Record<string, string | number>
   return out
 }
 
+/**
+ * Every amount the legal documents state, formatted as the pages show it ("$1,000.00"). They come from the manifest's
+ * values, which an integration test keeps equal to the active configuration (decided values, RULE-DECIDED-VALUES-ACTIVE),
+ * so the copy lint allows exactly these amounts on rendered pages and still refuses any other price.
+ */
+export function statedAmounts(docs: readonly LegalDocument[] = LEGAL_DOCUMENTS): string[] {
+  const out = new Set<string>()
+  for (const doc of docs)
+    for (const [name, value] of Object.entries(doc.values)) if (name.endsWith('Cents')) out.add(formatUsd(cents(value)))
+  return [...out]
+}
+
 /** The draft date as "October 21, 2026", from the YYYY-MM-DD string (no time zone can move the day). */
 export function preparedOnText(iso: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)

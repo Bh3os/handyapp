@@ -197,7 +197,7 @@ export const PRIVACY_NOTICE: LegalDocument = {
     { id: 'changes', heading: 'legal.privacy.changes.heading', blocks: [p('legal.privacy.changes.text')] },
   ],
   values: { maxRequestPhotos: 10, requestDraftDays: 7 },
-  contentSha256: '5ed008ea955d654bcd37008a7ae9e45f009d9d49734ab44f13c1c62003938d18',
+  contentSha256: '9b38ab5f48f595035f02897b7f2f5e5680fe2fc8b7eb2c4c2396c17d0d3a3d0d',
   sources: [
     'HH-PRIV-04',
     'HH-PRIV-01',
@@ -287,7 +287,7 @@ export const SMS_TERMS: LegalDocument = {
     { id: 'changes', heading: 'legal.sms.changes.heading', blocks: [p('legal.sms.changes.text')] },
   ],
   values: {},
-  contentSha256: 'e90bae868d5de8ad9e5ab4c5e92d848099282742953170925bbf253649d62102',
+  contentSha256: '8c517ebdef86604da2cf6891d8231285c7c4909f39ccb2f2935271695c205948',
   sources: ['HH-COM-12', 'OWN-DEC-147', 'FACT-AUTOMATIC-MESSAGES', 'FACT-REMINDER-CADENCES', 'HH-INT-22', 'HH-COM-05'],
 }
 

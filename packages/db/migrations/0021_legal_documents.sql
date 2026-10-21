@@ -9,10 +9,10 @@
 --   The rows are marked proposed: the wording is drafted from the graph, not owner-approved.
 INSERT INTO platform.policy_version (key, version, state, value, proposed, source_ids, changed_by) VALUES
   ('legal.privacy_notice', 1, 'configured',
-   '{"documentId": "privacy-notice-1", "status": "draft", "attorneyReviewed": false, "preparedOn": "2026-10-21", "contentSha256": "5ed008ea955d654bcd37008a7ae9e45f009d9d49734ab44f13c1c62003938d18"}',
+   '{"documentId": "privacy-notice-1", "status": "draft", "attorneyReviewed": false, "preparedOn": "2026-10-21", "contentSha256": "9b38ab5f48f595035f02897b7f2f5e5680fe2fc8b7eb2c4c2396c17d0d3a3d0d"}',
    true, ARRAY['HH-PRIV-04', 'OWN-DEC-72', 'OWN-DEC-147', 'OQ-ATTORNEY-PRIVACY'], 'migration:0021'),
   ('legal.sms_terms', 1, 'configured',
-   '{"documentId": "sms-terms-1", "status": "draft", "attorneyReviewed": false, "preparedOn": "2026-10-21", "contentSha256": "e90bae868d5de8ad9e5ab4c5e92d848099282742953170925bbf253649d62102"}',
+   '{"documentId": "sms-terms-1", "status": "draft", "attorneyReviewed": false, "preparedOn": "2026-10-21", "contentSha256": "8c517ebdef86604da2cf6891d8231285c7c4909f39ccb2f2935271695c205948"}',
    true, ARRAY['HH-COM-12', 'OWN-DEC-147', 'OQ-ATTORNEY-PRIVACY'], 'migration:0021'),
   ('legal.website_terms', 1, 'configured',
    '{"documentId": "website-terms-1", "status": "draft", "attorneyReviewed": false, "preparedOn": "2026-10-21", "contentSha256": "de1b9a77f20c3afd511838688f47b6ff6af97b3d07cdd20ad20344b80dbc94f4"}',

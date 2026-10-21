@@ -19,7 +19,7 @@ import { REQUEST_FORM_SCHEMA } from '@handyhub/domain/request-form'
 import { CATALOGS, customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { describe, expect, it } from 'vitest'
 import { copyProblems } from '../src/site/claims.js'
-import { isDraft, LEGAL_DOCUMENTS, legalLinks, legalValues, preparedOnText } from '../src/site/legal.js'
+import { isDraft, LEGAL_DOCUMENTS, legalLinks, legalValues, preparedOnText, statedAmounts } from '../src/site/legal.js'
 
 const customer: Record<string, string> = CATALOGS['customer.en']
 const SRC = fileURLToPath(new URL('../src', import.meta.url))
@@ -259,7 +259,10 @@ describe('actual practice only; nothing invented (TSK-0024, HH-PRIV-04, RULE-NO-
   })
 
   it('[HH-BASE-04] every legal sentence passes the copy lint (the warranty sentences are registered claims)', () => {
-    for (const doc of LEGAL_DOCUMENTS) expect(copyProblems(text(doc)), doc.code).toEqual([])
+    for (const doc of LEGAL_DOCUMENTS) expect(copyProblems(text(doc), undefined, statedAmounts()), doc.code).toEqual([])
+    // Only the stated amounts are allowed, and only as exact text: any other price is still a problem.
+    expect(statedAmounts().sort()).toEqual(['$1,000.00', '$50.00'])
+    expect(copyProblems('A visit costs $75.00.', undefined, statedAmounts()).map((p) => p.match)).toEqual(['$7'])
   })
 
   it('[RULE-HUMAN-REVIEW] every pending note waits on a question that is still open in the graph', () => {
