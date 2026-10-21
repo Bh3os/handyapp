@@ -31,6 +31,21 @@ export type {
 } from './engine.js'
 export { NOT_A_FIT_CATEGORIES, REQUEST_CLOSED_STATES, REQUEST_MACHINE, REQUEST_STATES } from './request.js'
 export type { NotAFitCategory, RequestFacts, RequestState } from './request.js'
+export {
+  ACTION_EVENTS,
+  NOT_A_FIT_EVENTS,
+  QUALIFICATION_CHECKS,
+  QUALIFICATION_OUTCOMES,
+  REQUEST_ACTIONS,
+  unqualifiedChecks,
+} from './qualification.js'
+export type {
+  Qualification,
+  QualificationCheck,
+  QualificationEntry,
+  QualificationOutcome,
+  RequestAction,
+} from './qualification.js'
 export { PROJECT_MACHINE, PROJECT_STATES } from './project.js'
 export type { ProjectFacts, ProjectState } from './project.js'
 export type { ObligationFacts } from './guards.js'

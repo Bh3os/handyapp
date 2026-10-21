@@ -1,5 +1,6 @@
-// Requests module (TSK-0025; HH-INT-10, HH-INT-11, HH-ID-01, HH-INT-21). The public submission route, and the
-// staff record header the action queue's deep link opens (TSK-0041).
+// Requests module (TSK-0025; HH-INT-10, HH-INT-11, HH-ID-01, HH-INT-21). The public submission route, the staff
+// record header the action queue's deep link opens (TSK-0041), and the staff requests list, the original request
+// view, qualification and the four actions (TSK-0042, staff-routes.ts).
 import { readIdempotencyKey } from '../../api/idempotency.js'
 import type { ApiModule, RouteDef } from '../../api/route.js'
 import { publicServices, type RegistryEnvironment } from '@handyhub/db'
@@ -8,6 +9,8 @@ import { loadConfig } from '../../platform/config/index.js'
 import { currentContext } from '../../platform/request-context.js'
 import { photoLimits } from '../photos/photos.js'
 import { MAX_SERVICES, SUBMIT_BODY, SUBMIT_RESPONSE, type SubmitBody } from './schema.js'
+import type { ObligationCheck } from './obligations.js'
+import { staffRequestRoutes } from './staff-routes.js'
 import { staffRequestSummary } from './staff-summary.js'
 import { submitRequest } from './submit.js'
 
@@ -199,7 +202,17 @@ const publicServiceList: RouteDef = {
   },
 }
 
-export const REQUESTS_MODULE: ApiModule = {
-  name: 'requests',
-  routes: [submit, formSettings, publicServiceList, staffRequestSummary],
+export type RequestsDeps = {
+  /** The obligation checks for Not a Fit (obligations.ts); tests pass their own. */
+  obligationChecks?: readonly ObligationCheck[]
 }
+
+export function requestsModule(deps: RequestsDeps = {}): ApiModule {
+  return {
+    name: 'requests',
+    routes: [submit, formSettings, publicServiceList, staffRequestSummary, ...staffRequestRoutes(deps)],
+  }
+}
+
+export const REQUESTS_MODULE: ApiModule = requestsModule()
+export { DEFAULT_OBLIGATION_CHECKS, obligationFacts, type ObligationCheck } from './obligations.js'

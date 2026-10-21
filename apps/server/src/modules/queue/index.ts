@@ -11,7 +11,7 @@ import { QUEUE_ACTIONS, QUEUE_BANDS, QUEUE_ITEM_TYPES, QUEUE_SECTIONS, type Queu
 
 export { openQueueItem, resolveQueueItem, visibleSections, visibleTypes, listQueue } from './items.js'
 export type { OpenQueueItemInput, QueueFilters, QueueItemView } from './items.js'
-export { newRequestQueueAutomation, queueAutomations } from './providers.js'
+export { newRequestQueueAutomation, queueAutomations, syncNewRequestItem } from './providers.js'
 export { QUEUE_ITEM_TYPES, queueItemType, type QueueItemType } from './registry.js'
 
 /**

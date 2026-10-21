@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { App, routeOf } from '../src/App'
 import { duration, mergeRefresh, QueueHome, type QueueItem, type QueuePage } from '../src/Queue'
+import { requestDetail } from './request-fixture'
 
 afterEach(cleanup)
 
@@ -293,23 +294,18 @@ describe('deep links open the record (TSK-0041, HH-OPS-02)', () => {
     navigation: { home: 'queue', items: ['queue', 'requests', 'schedule'], search: [] },
   }
 
-  it('[HH-OPS-02] routes /<screen>/<id> to the record and shows the request header', async () => {
+  it('[HH-OPS-02] routes /<screen>/<id> to the record and shows the request', async () => {
     expect(routeOf(`/staff/requests/${REQUEST_ID}`, '/staff/')).toEqual({
       page: 'record',
       screen: 'requests',
       id: REQUEST_ID,
     })
     const fetchImpl = vi.fn(async (url: string) =>
-      url.endsWith('/summary')
-        ? json(200, {
-            id: REQUEST_ID,
-            reference: 'HH-7K2M9Q4D',
-            state: 'received',
-            submittedAt: NOW.toISOString(),
-            services: ['DW-01', 'PT-01'],
-            responsibleStaff: null,
-          })
-        : json(200, session),
+      url.endsWith(`/staff/requests/${REQUEST_ID}`)
+        ? json(200, requestDetail())
+        : url.endsWith('/photos')
+          ? json(200, { photos: [] })
+          : json(200, session),
     )
     render(
       <App
@@ -321,14 +317,16 @@ describe('deep links open the record (TSK-0041, HH-OPS-02)', () => {
     )
     await screen.findByRole('heading', { level: 1, name: 'Request HH-7K2M9Q4D' })
     expect(screen.getByText('Received')).toBeTruthy()
-    expect(screen.getByText('Patching & Repair, Residential Interior Painting')).toBeTruthy()
+    expect(screen.getByText(/Patching & Repair/)).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Requests' }).getAttribute('aria-current')).toBe('page')
-    expect(fetchImpl).toHaveBeenCalledWith(`/api/v1/staff/requests/${REQUEST_ID}/summary`, expect.anything())
+    expect(fetchImpl).toHaveBeenCalledWith(`/api/v1/staff/requests/${REQUEST_ID}`, expect.anything())
   })
 
   it('[HH-OPS-02][T68] a record the server refuses or does not have says so, without detail', async () => {
     const fetchImpl = vi.fn(async (url: string) =>
-      url.endsWith('/summary') ? json(404, { error: { code: 'NOT_FOUND', fieldErrors: [] } }) : json(200, session),
+      url.includes(`/staff/requests/${REQUEST_ID}`)
+        ? json(404, { error: { code: 'NOT_FOUND', fieldErrors: [] } })
+        : json(200, session),
     )
     render(
       <App

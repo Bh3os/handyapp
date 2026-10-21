@@ -233,5 +233,6 @@
   "service.faq.notProvided": "Questions and answers specific to this service have not been provided yet.",
   "service.related.heading": "Related services",
   "service.related.none": "No related services are listed yet.",
-  "service.allServices": "All services"
+  "service.allServices": "All services",
+  "decision.notAFit.customerMessage": "Thank you for considering HandyHub. We're unable to take on this project because {reason}."
 }
