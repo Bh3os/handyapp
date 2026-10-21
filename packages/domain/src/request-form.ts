@@ -192,6 +192,58 @@ export function localDate(now: Date, zone: string): string {
   return `${p['year']}-${p['month']}-${p['day']}`
 }
 
+/** A calendar date (YYYY-MM-DD) plus some days; calendar arithmetic only, so no DST change can shift it. */
+export function addDays(date: string, days: number): string {
+  const d = new Date(`${date}T12:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().slice(0, 10)
+}
+
+/** The first date the form offers: tomorrow in the property's local time (OWN-DEC-92, HH-INT-17). */
+export function firstPreferredDate(now: Date, zone: string): string {
+  return addDays(localDate(now, zone), 1)
+}
+
+/** Saturday or Sunday, for a calendar date (YYYY-MM-DD). */
+export function isWeekendDate(date: string): boolean {
+  const day = new Date(`${date}T12:00:00Z`).getUTCDay()
+  return day === 0 || day === 6
+}
+
+/** The windows that have hours of the day; Weekends and Any time do not (HH-INT-02). */
+export const DAY_WINDOWS = ['mornings', 'afternoons', 'evenings'] as const
+export type DayWindow = (typeof DAY_WINDOWS)[number]
+/** Hours as HH:MM, 24-hour clock, in the property's local time. */
+export type ClockRange = { readonly start: string; readonly end: string }
+/** The configured hours of each day window (request.window_hours; NOT CONFIGURED until the owner gives them). */
+export type WindowHours = Readonly<Record<DayWindow, ClockRange>>
+/** The visit hours (contact.hours, FACT-HOURS). */
+export type VisitHours = { readonly open: string; readonly close: string }
+/** A window the form offers, with its configured hours when there are any. */
+export type OfferedWindow = { code: (typeof TIME_WINDOWS)[number]; start?: string; end?: string }
+
+/**
+ * The windows the form offers (HH-INT-02, OWN-DEC-56): only those compatible with the configured visit hours. While
+ * the window hours are not configured no hours are shown and all five are offered, as every one of them fits the
+ * daily visit hours of FACT-HOURS. A configured day window outside the visit hours is not offered.
+ */
+export function offeredWindows(visit: VisitHours | null, hours: WindowHours | null): OfferedWindow[] {
+  if (!visit || !hours) return TIME_WINDOWS.map((code) => ({ code }))
+  return TIME_WINDOWS.flatMap((code): OfferedWindow[] => {
+    if (!(DAY_WINDOWS as readonly string[]).includes(code)) return [{ code }]
+    const h = hours[code as DayWindow]
+    const fits = h.start < h.end && h.start >= visit.open && h.end <= visit.close
+    return fits ? [{ code, start: h.start, end: h.end }] : []
+  })
+}
+
+/** "08:00" as "8 AM", "12:30" as "12:30 PM" (US English, the customer language). */
+export function formatClock(clock: string): string {
+  const [h = 0, m = 0] = clock.split(':').map(Number)
+  const hour = h % 12 === 0 ? 12 : h % 12
+  return `${hour}${m ? `:${String(m).padStart(2, '0')}` : ''} ${h < 12 ? 'AM' : 'PM'}`
+}
+
 const field = (name: string, code: string): FormFieldError => ({ field: `body.${name}`, code, message: '' })
 
 /** The checks JSON schema cannot express; every problem is reported at once, next to its field (HH-INT-09). */
@@ -256,6 +308,8 @@ export function semanticProblems(
     knownServices: ReadonlySet<string>
     /** Question keys per service (from the registry); when given, every answer must be one of the plan's questions. */
     questions?: ReadonlyMap<string, readonly string[]>
+    /** The windows the form offers (offeredWindows); when given, any other window is refused. */
+    windows?: readonly string[]
   },
 ) {
   const p: FormFieldError[] = []
@@ -305,6 +359,15 @@ export function semanticProblems(
     if (!valid || t.preferredDate <= opts.today) p.push(field('timing.preferredDate', 'minimum'))
   }
   if (t.windows.includes('any_time') && t.windows.length > 1) p.push(field('timing.windows', 'invalid'))
+  else if (opts.windows && t.windows.some((w) => !opts.windows?.includes(w))) p.push(field('timing.windows', 'enum'))
+  // Weekends must agree with the date: a weekday date with Weekends is refused; "I'm flexible" always agrees (HH-INT-02).
+  else if (
+    t.windows.includes('weekends') &&
+    t.preferredDate !== undefined &&
+    !Number.isNaN(Date.parse(`${t.preferredDate}T00:00:00Z`)) &&
+    !isWeekendDate(t.preferredDate)
+  )
+    p.push(field('timing.windows', 'weekendDate'))
   if (!normalizeUsPhone(body.contact.phone)) p.push(field('contact.phone', 'format'))
   return p
 }
