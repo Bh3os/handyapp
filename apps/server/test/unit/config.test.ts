@@ -85,6 +85,7 @@ describe('environment schema (TSK-0003, OWN-DEC-73, RULE-SYNTHETIC-DATA)', () =>
     expect(() => loadConfig({ HANDYHUB_ENV: 'ci', LOG_LEVEL: 'loud' })).toThrow(/LOG_LEVEL/)
     expect(loadConfig({ HANDYHUB_ENV: 'ci' })).toMatchObject({ port: 3000, host: '127.0.0.1', trustProxyHops: 0 })
     expect(Object.keys(ENV_VARS).sort()).toEqual([
+      'ACCESS_CODE_ENCRYPTION_KEY',
       'ACCESS_GATE_USERS',
       'BOOTSTRAP_OWNER_EMAIL',
       'BOOTSTRAP_OWNER_NAME',

@@ -272,6 +272,24 @@ export const LABEL_FAMILIES = {
   consentState: ['granted', 'withdrawn', 'none'],
   /** Fields a staff edit of a customer or contact changes (crm.record_changes). */
   recordField: ['displayName', 'fullName', 'email', 'phone', 'preferredChannel'],
+  /** Property records (TSK-0045; @handyhub/domain PROPERTY_DETAILS, DETAIL_SOURCES, ACCESS_SECRET_KINDS). */
+  propertyDetail: [
+    'address',
+    'property_type',
+    'site_contact',
+    'access_windows',
+    'access_notes',
+    'parking_loading',
+    'occupants_pets',
+    'restricted_areas',
+    'utilities',
+    'customer_preparation',
+    'site_flags',
+  ],
+  detailSource: ['request_form', 'customer_call', 'customer_message', 'site_visit', 'office_record'],
+  accessSecretKind: ['gate', 'lockbox', 'alarm', 'door', 'key_location', 'other'],
+  /** What a crm.property_changes entry records. */
+  propertyChange: ['changed', 'cleared', 'confirmed'],
   /** Message delivery states (HH-COM-02; platform.message_deliveries). */
   deliveryState: ['draft', 'queued', 'sent', 'delivered', 'failed', 'suppressed', 'cancelled'],
   /** Entries of a customer's activity history (apps/server/src/modules/customers/record.ts). */
