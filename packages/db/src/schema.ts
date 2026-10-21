@@ -257,6 +257,52 @@ export interface IntakeRequestAnswersTable {
   approximate: Generated<boolean>
 }
 
+export interface IntakeRequestAssignmentsTable {
+  id: Generated<string>
+  request_id: string
+  staff_user_id: string
+  previous_staff_user_id: string | null
+  assigned_by: string
+  assigned_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface IntakeRequestDecisionsTable {
+  id: Generated<string>
+  request_id: string
+  project_id: string
+  action: string
+  event: string
+  from_state: string
+  to_state: string
+  project_from_state: string | null
+  project_to_state: string | null
+  reason_category: string | null
+  customer_text: string | null
+  internal_note: string | null
+  decided_by: string
+  decided_at: ColumnType<Date, Date | string | undefined, Date | string>
+  request_version: number
+}
+
+export interface IntakeRequestNotesTable {
+  id: Generated<string>
+  request_id: string
+  project_id: string
+  author_staff_id: string
+  visibility: Generated<string>
+  body: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface IntakeRequestQualificationsTable {
+  id: Generated<string>
+  request_id: string
+  revision: number
+  checks: Json
+  recorded_by: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface IntakeRequestServicesTable {
   request_id: string
   position: number
@@ -543,6 +589,20 @@ export interface PlatformWebhookReceiptsTable {
   processed_at: Timestamp | null
 }
 
+export interface WorkWorkPackagesTable {
+  id: Generated<string>
+  project_id: string
+  request_id: string
+  service_id: string
+  service_version: number
+  position: number
+  state: Generated<string>
+  job_id: string | null
+  created_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
+}
+
 export interface Database {
   'catalog.service_versions': CatalogServiceVersionsTable
   'catalog.services': CatalogServicesTable
@@ -564,6 +624,10 @@ export interface Database {
   'identity.verification_codes': IdentityVerificationCodesTable
   'intake.photos': IntakePhotosTable
   'intake.request_answers': IntakeRequestAnswersTable
+  'intake.request_assignments': IntakeRequestAssignmentsTable
+  'intake.request_decisions': IntakeRequestDecisionsTable
+  'intake.request_notes': IntakeRequestNotesTable
+  'intake.request_qualifications': IntakeRequestQualificationsTable
   'intake.request_services': IntakeRequestServicesTable
   'intake.requests': IntakeRequestsTable
   'intake.upload_capabilities': IntakeUploadCapabilitiesTable
@@ -583,4 +647,5 @@ export interface Database {
   'platform.rate_counters': PlatformRateCountersTable
   'platform.schema_migration': PlatformSchemaMigrationTable
   'platform.webhook_receipts': PlatformWebhookReceiptsTable
+  'work.work_packages': WorkWorkPackagesTable
 }

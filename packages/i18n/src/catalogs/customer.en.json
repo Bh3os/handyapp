@@ -252,6 +252,7 @@
   "service.related.heading": "Related services",
   "service.related.none": "No related services are listed yet.",
   "service.allServices": "All services",
+  "decision.notAFit.customerMessage": "Thank you for considering HandyHub. We're unable to take on this project because {reason}.",
   "site.footer.legalHeading": "Legal",
   "legal.link.privacy": "Privacy Policy",
   "legal.link.smsTerms": "SMS Terms",

@@ -1,6 +1,8 @@
 // Request (lead) lifecycle (HH-STATE-01 "Request"; ENT-Request; OWN-DEC-100, OWN-DEC-101; FACT-REOPEN-PERIOD).
 //
 //   received -> reviewing -> needs_information / needs_site_visit / ready_for_estimate -> estimated
+//   Both estimating routes need the staff qualification recorded (TSK-0042, PROPOSED); a site visit also needs its
+//   short customer-facing explanation (OWN-DEC-99).
 //   terminal: declined ("Not a fit" with a reason category), outside_scope, not_served, withdrawn
 //   closed_no_response: only 24 h after the final unanswered-question reminder was actually sent; a customer reply
 //   within the reopen period reopens the same request for review (never restoring an expired estimate or appointment).
@@ -44,6 +46,10 @@ export type RequestFacts = ObligationFacts & {
   readonly notAFitCategory?: NotAFitCategory
   /** The written reason or evidence note for the decision. */
   readonly reason?: string
+  /** "Site visit needed": the short customer-facing explanation (OWN-DEC-99). */
+  readonly customerExplanation?: string
+  /** The qualification checks still without an outcome (TSK-0042, HH-LEAD-02); the server reads them. */
+  readonly missingChecks?: readonly string[]
   /** When the final unanswered-question reminder was actually sent (a failed delivery never counts). */
   readonly finalReminderSentAt?: Date
   /** Configured: hours after the final reminder before "Closed—no response" (24, OWN-DEC-101). */
@@ -72,6 +78,16 @@ const notAFitCategory: G = (f) => {
     return { code: 'REASON_CATEGORY_REQUIRED', message: 'A "Not a fit" reason category is required.' }
   }
   return f.notAFitCategory === 'other' ? reasonGiven(f.reason, 'The documented reason') : null
+}
+const explanation: G = (f) => reasonGiven(f.customerExplanation, 'A short customer-facing explanation')
+const qualified: G = (f) => {
+  if (f.missingChecks === undefined) return { code: 'FACTS_MISSING', message: 'The server must check: qualification.' }
+  return f.missingChecks.length === 0
+    ? null
+    : {
+        code: 'QUALIFICATION_INCOMPLETE',
+        message: `Record the qualification first; still unchecked: ${f.missingChecks.join(', ')}.`,
+      }
 }
 const finalReminderWaited: G = (f, now) =>
   hoursPassed(f.finalReminderSentAt, f.noResponseCloseHours, now, 'the final reminder was sent')
@@ -106,12 +122,16 @@ export const REQUEST_MACHINE = defineMachine({
       from: ['reviewing', 'ready_for_estimate'],
       to: 'needs_site_visit',
       actors: ['staff'],
+      guards: [qualified, explanation],
+      // The estimate-visit windows are offered next (HH-LEAD-07, TSK-0063).
+      effects: ['estimate_visit.windows_needed'],
     },
     {
       event: 'mark_ready_for_estimate',
       from: ['reviewing', 'needs_site_visit'],
       to: 'ready_for_estimate',
       actors: ['staff'],
+      guards: [qualified],
     },
     // An estimate version for the request was published (the estimate machine records the publish itself).
     { event: 'mark_estimated', from: ['ready_for_estimate'], to: 'estimated', actors: ['staff', 'system'] },

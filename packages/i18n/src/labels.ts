@@ -78,6 +78,7 @@ export const LABEL_FAMILIES = {
     'cancellation_outcome',
     'deletion_request',
     'invoice_overdue_decision',
+    'cancellation_review',
     'incident_notification',
   ],
   /** Why a queue item needs action (HH-OPS-02 "reason"). */
@@ -99,9 +100,64 @@ export const LABEL_FAMILIES = {
     'cancellation_outcome_requested',
     'deletion_requested',
     'overdue_owner_decision',
+    'not_a_fit_with_obligations',
   ],
   /** The one action button of a queue item (HH-OPS-02); it opens the record's screen. */
   queueAction: ['review_request', 'review_hold', 'review_change', 'retry_delivery', 'open_case', 'decide'],
+  /** Staff qualification of a request (TSK-0042; HH-LEAD-02). */
+  qualificationCheck: [
+    'coverage',
+    'service_fit',
+    'essential_facts',
+    'urgency',
+    'site_visit_need',
+    'staff_equipment',
+    'risk_flags',
+  ],
+  qualificationOutcome: ['ok', 'attention', 'not_checked'],
+  /** Not a Fit reason categories (OWN-DEC-100). */
+  notAFitCategory: ['coverage', 'outside_scope', 'specialist_assessment', 'other'],
+  /** The next step a request shows (TSK-0042, PROPOSED codes). */
+  requestNextStep: [
+    'qualify_and_choose',
+    'waiting_on_customer',
+    'offer_visit_windows',
+    'prepare_estimate',
+    'estimate_published',
+    'owner_review',
+    'closed',
+  ],
+  /** The four request actions and the Owner routing of Not a Fit (OWN-DEC-116, OWN-DEC-100). */
+  requestDecision: [
+    'ask_question',
+    'prepare_online_estimate',
+    'arrange_estimate_visit',
+    'not_a_fit',
+    'not_a_fit_owner_review',
+  ],
+  /** Project lifecycle states (the project.lifecycle machine, PROPOSED). */
+  projectState: ['open', 'approved', 'completed', 'closed', 'cancellation_review', 'canceled'],
+  /** Contact verification states, email and phone separately (OWN-DEC-96). */
+  verificationState: ['unverified', 'pending', 'verified', 'expired', 'failed'],
+  /** ZIP coverage outcomes (OWN-DEC-88). */
+  coverageResult: ['in_coverage', 'boundary', 'out_of_coverage', 'unknown'],
+  estimatePreference: ['online', 'site_visit', 'let_handyhub_decide'],
+  contactChannel: ['email', 'call', 'text'],
+  /** FACT-PROPERTY-TYPES (OWN-DEC-139). */
+  propertyType: ['house', 'apartment_condo', 'townhouse', 'rental_short_term'],
+  timeWindow: ['mornings', 'afternoons', 'evenings', 'weekends', 'any_time'],
+  photoState: ['quarantined', 'ready', 'rejected'],
+  /** Why the server refused a request action (the problem codes of @handyhub/domain and the requests module). */
+  requestRefusal: [
+    'INVALID_TRANSITION',
+    'QUALIFICATION_INCOMPLETE',
+    'PROJECT_NOT_OPEN',
+    'REASON_REQUIRED',
+    'REASON_CATEGORY_REQUIRED',
+    'OWNER_REVIEW_REQUIRED',
+    'FACTS_MISSING',
+    'ACTOR_NOT_ALLOWED',
+  ],
 } as const satisfies Record<string, readonly string[]>
 
 export type LabelFamily = keyof typeof LABEL_FAMILIES
