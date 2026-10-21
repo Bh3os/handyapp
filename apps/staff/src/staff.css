@@ -184,3 +184,135 @@
 .staff-conflict__table tr[data-differs] td {
   font-weight: 600;
 }
+
+/* Action queue (TSK-0041): one card per item with its one action; filters wrap on phones (no sideways scroll). */
+.staff-queue__section,
+.staff-queue__list-wrap {
+  display: grid;
+  gap: var(--hh-space-4);
+}
+
+.staff-queue__heading {
+  margin: var(--hh-space-4) 0 0;
+}
+
+.staff-queue__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--hh-space-3);
+  margin: 0;
+  padding: var(--hh-space-3);
+  border: var(--hh-hairline);
+  border-radius: var(--hh-radius-sm);
+  min-width: 0;
+}
+
+.staff-queue__filters legend {
+  font-weight: 600;
+  padding: 0 var(--hh-space-1);
+}
+
+.staff-queue__filters .hh-field {
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+
+.staff-queue__select {
+  display: grid;
+  gap: var(--hh-space-1);
+}
+
+.staff-queue__select select {
+  min-height: var(--hh-target);
+  font: inherit;
+  color: var(--hh-text);
+  background: var(--hh-surface);
+  border: 1px solid var(--hh-line-strong);
+  border-radius: var(--hh-radius-sm);
+  padding: 0 var(--hh-space-2);
+  max-width: 100%;
+}
+
+.staff-queue__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hh-space-3);
+}
+
+.staff-queue__refreshed {
+  margin: 0;
+  color: var(--hh-muted);
+}
+
+.staff-queue__items {
+  display: grid;
+  gap: var(--hh-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.staff-queue__item {
+  display: grid;
+  gap: var(--hh-space-2);
+  padding: var(--hh-space-4);
+  border: var(--hh-hairline);
+  border-radius: var(--hh-radius-sm);
+  background: var(--hh-surface);
+  overflow-wrap: anywhere;
+}
+
+.staff-queue__item[data-band='safety'] {
+  border-left: 4px solid currentColor;
+}
+
+.staff-queue__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hh-space-2);
+}
+
+.staff-queue__title {
+  margin: 0;
+}
+
+.staff-queue__reason,
+.staff-queue__masked {
+  margin: 0;
+}
+
+.staff-queue__masked {
+  font-style: italic;
+}
+
+.staff-queue__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hh-space-1) var(--hh-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.staff-queue__overdue {
+  font-weight: 600;
+}
+
+.staff-queue__action {
+  justify-self: start;
+}
+
+.staff-record {
+  display: grid;
+  grid-template-columns: minmax(8rem, max-content) minmax(0, 1fr);
+  gap: var(--hh-space-2) var(--hh-space-4);
+  margin: 0;
+}
+
+.staff-record dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
