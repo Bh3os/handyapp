@@ -1,0 +1,173 @@
+---
+// Service page (TSK-0021; HH-CUS-01, HH-CUS-02, OWN-DEC-51, OWN-DEC-66, OWN-DEC-84). One page per registry service; the
+// server serves it only when the site may show the service (a draft is a 404). Every sentence is the registry's or an
+// owner-approved fact (site/services.ts). The parts with no approved wording yet (the description, the preparation
+// steps, the service FAQs: OQ-SERVICE-DESCRIPTIONS) show a visible "Not provided yet" state, never filler copy. No
+// prices, durations, credentials, guarantees or reviews (HH-BASE-04). The request action opens the form with this
+// service preselected by its immutable ID (HH-CUS-01, HH-INT-15).
+import { customerTranslator } from '@handyhub/i18n'
+import SiteLayout from '../../layouts/SiteLayout.astro'
+import {
+  CATEGORY_LABEL,
+  considerations,
+  faqStructuredData,
+  relatedServices,
+  requestHref,
+  scopeFacts,
+  serviceLimits,
+  servicePath,
+  siteServices,
+  type SiteService,
+} from '../../site/services'
+
+export function getStaticPaths() {
+  return siteServices().map((service) => ({ params: { slug: service.slug }, props: { service } }))
+}
+
+interface Props {
+  service: SiteService
+}
+const { service } = Astro.props
+const t = customerTranslator()
+const limits = serviceLimits(service).map((k) => t.t(k))
+const limitsQuestion = t.t('service.limits.heading')
+const related = relatedServices(service)
+const glance = [
+  [t.t('service.glance.area'), t.t('service.glance.areaValue')],
+  [t.t('service.glance.pricing'), t.t('home.trust.pricing')],
+  [t.t('service.glance.estimates'), t.t('home.trust.estimates')],
+  [t.t('service.glance.visits'), t.t('home.trust.visits')],
+]
+const notProvided = t.t('service.notProvided')
+---
+
+<SiteLayout title={`${service.name} | HandyHub`}>
+  <script type="application/ld+json" is:inline set:html={faqStructuredData(limitsQuestion, limits.join(' '))} />
+  <article class="hh-service" data-service={service.id}>
+    <header class="hh-service__hero">
+      <div class="hh-site__wrap">
+        <nav aria-label={t.t('service.breadcrumb')} class="hh-service__crumbs">
+          <ol>
+            <li><a href="/services">{t.t('services.title')}</a></li>
+            <li>{t.t(CATEGORY_LABEL[service.category])}</li>
+          </ol>
+        </nav>
+        <h1 class="hh-display hh-service__title">{service.name}</h1>
+        <p class="hh-service__action">
+          <a class="hh-button" href={requestHref(service)} data-testid="service-cta">{t.t('site.cta.requestFree')}</a>
+        </p>
+      </div>
+    </header>
+    <div class="hh-site__wrap hh-service__layout">
+      <div class="hh-service__body">
+        <section aria-labelledby="included">
+          <h2 class="hh-h2" id="included">{t.t('service.included.heading')}</h2>
+          <p class="hh-service__missing" data-not-provided="description">
+            <span class="hh-badge hh-badge--warning">{notProvided}</span>
+            <span>{t.t('service.included.notProvided')}</span>
+          </p>
+          {
+            scopeFacts(service).length ? (
+              <ul class="hh-service__list" data-testid="scope-facts">
+                {scopeFacts(service).map((k) => (
+                  <li>{t.t(k)}</li>
+                ))}
+              </ul>
+            ) : null
+          }
+        </section>
+        <section aria-labelledby="estimate">
+          <h2 class="hh-h2" id="estimate">{t.t('service.estimate.heading')}</h2>
+          <p>{t.t('service.estimate.approach')}</p>
+          <p>{t.t('service.estimate.confirm')}</p>
+          <p>{t.t('home.trust.estimates')}</p>
+        </section>
+        <section aria-labelledby="prepare">
+          <h2 class="hh-h2" id="prepare">{t.t('service.prepare.heading')}</h2>
+          <p class="hh-service__missing" data-not-provided="preparation">
+            <span class="hh-badge hh-badge--warning">{notProvided}</span>
+            <span>{t.t('service.prepare.notProvided')}</span>
+          </p>
+        </section>
+        <section aria-labelledby="ask">
+          <h2 class="hh-h2" id="ask">{t.t('service.ask.heading')}</h2>
+          {
+            service.questions.length ? (
+              <>
+                <p>{t.t('service.ask.intro')}</p>
+                <ul class="hh-service__list" data-testid="questions">
+                  {service.questions.map((q) => (
+                    <li>{q}</li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <p>{t.t('service.ask.none')}</p>
+            )
+          }
+          <p>{t.t('service.ask.unknown')}</p>
+        </section>
+        <section aria-labelledby="considerations">
+          <h2 class="hh-h2" id="considerations">{t.t('service.considerations.heading')}</h2>
+          <ul class="hh-service__list" data-testid="considerations">
+            {considerations(service).map((k) => <li>{t.t(k)}</li>)}
+          </ul>
+        </section>
+        <section aria-labelledby="limits">
+          <h2 class="hh-h2" id="limits">{limitsQuestion}</h2>
+          <ul class="hh-service__list" data-testid="limits">
+            {limits.map((text) => <li>{text}</li>)}
+          </ul>
+        </section>
+        <section aria-labelledby="faq">
+          <h2 class="hh-h2" id="faq">{t.t('service.faq.heading')}</h2>
+          <p class="hh-service__missing" data-not-provided="faq">
+            <span class="hh-badge hh-badge--warning">{notProvided}</span>
+            <span>{t.t('service.faq.notProvided')}</span>
+          </p>
+        </section>
+        <section
+          aria-labelledby="related"
+          data-service-listing
+          data-listing-group
+          data-unavailable={t.t('error.UNAVAILABLE')}
+        >
+          <h2 class="hh-h2" id="related">{t.t('service.related.heading')}</h2>
+          <p class="hh-small" data-listing-status role="status">{t.t('site.footer.loading')}</p>
+          <ul class="hh-service__list" data-listing-list data-testid="related" hidden>
+            {
+              related.map((s) => (
+                <li data-service-id={s.id} hidden>
+                  <a href={servicePath(s)}>{s.name}</a>
+                </li>
+              ))
+            }
+          </ul>
+          <p class="hh-small hh-muted" data-listing-empty hidden>{t.t('service.related.none')}</p>
+        </section>
+        <p class="hh-service__action">
+          <a class="hh-button" href={requestHref(service)}>{t.t('site.cta.requestFree')}</a>
+          <a class="hh-service__back" href="/services">{t.t('service.allServices')}</a>
+        </p>
+      </div>
+      <aside class="hh-card hh-card--plate hh-service__glance" aria-labelledby="glance">
+        <h2 class="hh-service__glance-title" id="glance">{t.t('service.glance.heading')}</h2>
+        <dl data-testid="glance">
+          {
+            glance.map(([label, value]) => (
+              <div>
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </aside>
+    </div>
+  </article>
+</SiteLayout>
+
+<script>
+  import { loadListing } from '../../site/listing'
+  loadListing()
+</script>
