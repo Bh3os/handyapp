@@ -39,8 +39,16 @@ export type ErrorEnvelope = {
     retryable: boolean
     /** STALE_VERSION only: the current version and values, so the client can show them (HH-API-04). */
     current?: { version: number; values?: Record<string, unknown> }
+    /**
+     * IDEMPOTENCY_CONFLICT on a route that declares it (the public request submission, HH-INT-10): the public
+     * reference of what the key already created, so a browser whose earlier answer was lost gets it back.
+     */
+    existing?: ExistingResult
   }
 }
+
+/** What an idempotency key already created, as a conflict may name it: a public reference that grants nothing. */
+export type ExistingResult = { reference: string }
 
 /** An expected failure a handler or the framework raises; anything else becomes INTERNAL. */
 export class ApiError extends Error {
@@ -52,6 +60,7 @@ export class ApiError extends Error {
     readonly options: {
       fieldErrors?: FieldError[]
       current?: { version: number; values?: Record<string, unknown> }
+      existing?: ExistingResult
       headers?: Record<string, string>
     } = {},
   ) {
@@ -90,6 +99,12 @@ export const ERROR_SCHEMA = {
           additionalProperties: false,
           required: ['version'],
           properties: { version: { type: 'integer' }, values: { type: 'object', additionalProperties: true } },
+        },
+        existing: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['reference'],
+          properties: { reference: { type: 'string' } },
         },
       },
     },

@@ -5,6 +5,7 @@ import type { Secret } from '../providers/types.js'
 import { identityModule } from './identity/index.js'
 import type { ObjectStorage } from '../providers/index.js'
 import { COVERAGE_MODULE } from './coverage/index.js'
+import { ESTIMATES_MODULE } from './estimates/index.js'
 import { NOTIFICATIONS_MODULE } from './notifications/index.js'
 import { photosModule } from './photos/index.js'
 import { QUEUE_MODULE } from './queue/index.js'
@@ -25,7 +26,10 @@ export type ModuleDeps = {
   system?: SystemDeps
   /** The one-time-code key (TSK-0016, readCodeKey); unset: codes are NOT CONFIGURED for the receipt (TSK-0033). */
   codeKey?: CodeKeySettings
-  /** Proxies in front of the service (TRUST_PROXY_HOPS), for the client network the code limits count. */
+  /**
+   * Proxies in front of the service that append to X-Forwarded-For (TRUST_PROXY_HOPS); unset: 0. Staff auth limits
+   * and the receipt's code limits (TSK-0033) count the client network behind them.
+   */
   trustProxyHops?: number
 }
 
@@ -33,12 +37,18 @@ const NO_CODE_KEY: CodeKeySettings = { state: 'not_configured', missing: ['CODE_
 
 export function apiModules(deps: ModuleDeps): ApiModule[] {
   return [
-    identityModule({ cookies: { secure: deps.secureCookies }, mfaKey: deps.mfaKey }),
+    identityModule({
+      cookies: { secure: deps.secureCookies },
+      mfaKey: deps.mfaKey,
+      trustProxyHops: deps.trustProxyHops ?? 0,
+    }),
     REQUESTS_MODULE,
     COVERAGE_MODULE,
     photosModule({ storage: deps.storage ?? null }),
     SITE_MODULE,
     QUEUE_MODULE,
+    // TSK-0053: Write an Estimate and the staff builder.
+    ESTIMATES_MODULE,
     NOTIFICATIONS_MODULE,
     systemModule(deps.system ?? {}),
     // TSK-0033: the receipt's contact verification and its account-offer answer.

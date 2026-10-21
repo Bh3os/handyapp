@@ -448,3 +448,42 @@
   margin: 0;
   overflow-wrap: anywhere;
 }
+
+/* The estimate builder (TSK-0053): one fieldset per line inside its work package; amounts are the server's. */
+.staff-estimate__line {
+  display: grid;
+  gap: var(--hh-space-2);
+  margin: 0;
+  padding: var(--hh-space-3);
+  border: var(--hh-hairline);
+  border-radius: var(--hh-radius-sm);
+  min-width: 0;
+}
+
+.staff-estimate__line legend {
+  font-weight: 600;
+  padding: 0 var(--hh-space-1);
+}
+
+.staff-estimate__row {
+  display: grid;
+  gap: var(--hh-space-2) var(--hh-space-3);
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  align-items: start;
+}
+
+.staff-estimate__amount {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* An amount from the last save that an edit has made out of date: the text says so, and it loses its emphasis. */
+.staff-estimate__amount[data-outdated] {
+  font-weight: 400;
+  font-style: italic;
+}
+
+.staff-estimate__internal {
+  padding-top: var(--hh-space-2);
+  border-top: var(--hh-hairline);
+}
