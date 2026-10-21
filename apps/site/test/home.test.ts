@@ -70,11 +70,18 @@ describe('homepage wording (TSK-0020, HH-CUS-06, OWN-DEC-86)', () => {
   })
 
   it('[HH-CUS-06] every registered claim is the catalog value, cites the owner and its decision, and is on the page', () => {
+    // The homepage and payment wording (2026-10-12); the service-page limits of OWN-DEC-51 (2026-10-06, TSK-0021); the
+    // warranty sentences of the website terms (OWN-DEC-135, 2026-10-20, TSK-0024) and its cancellation rule (OWN-DEC-134).
+    const source: Record<string, string> = {
+      'OWN-DEC-86': 'owner, 2026-10-12',
+      'OWN-DEC-89': 'owner, 2026-10-12',
+      'OWN-DEC-51': 'owner, 2026-10-06',
+      'OWN-DEC-135': 'owner, 2026-10-20',
+      'OWN-DEC-134': 'owner, 2026-10-20',
+    }
     for (const claim of CLAIMS) {
       expect(customer[claim.key], claim.key).toBe(claim.text)
-      // The homepage and payment wording (2026-10-12); the service-page limits of OWN-DEC-51 (2026-10-06, TSK-0021).
-      expect(claim.source).toBe(claim.decision === 'OWN-DEC-51' ? 'owner, 2026-10-06' : 'owner, 2026-10-12')
-      expect(['OWN-DEC-86', 'OWN-DEC-89', 'OWN-DEC-51']).toContain(claim.decision)
+      expect(claim.source, claim.key).toBe(source[claim.decision])
       if (claim.key.startsWith('home.')) expect(page, claim.key).toContain(`'${claim.key}'`)
     }
     expect(CLAIMS.filter((c) => c.decision === 'OWN-DEC-86' && c.key.startsWith('home.'))).toHaveLength(3 + 1 + 12)

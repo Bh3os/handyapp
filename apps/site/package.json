@@ -15,6 +15,7 @@
     "@handyhub/db": "workspace:*",
     "@handyhub/domain": "workspace:*",
     "@handyhub/i18n": "workspace:*",
+    "@handyhub/money": "workspace:*",
     "@handyhub/ui": "workspace:*",
     "ajv": "^8.20.0",
     "astro": "^7.3.5",
