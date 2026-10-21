@@ -278,10 +278,12 @@ async function runRoute(
       const out = await route.handler(context(tx))
       if (route.audit !== 'none' && audited === 0)
         throw new Error(`${route.operationId}: a write route must record its audit event`)
-      if (scope) await store(tx, scope, { status: out.status ?? 200, body: out.body }, requestId)
+      if (scope && !out.refusal) await store(tx, scope, { status: out.status ?? 200, body: out.body }, requestId)
       return out
     })
   }
+  // Committed, then refused (ApiResult.refusal): answered by the error handler like any thrown ApiError.
+  if (result.refusal) throw result.refusal
 
   reply.status(result.status ?? 200)
   if (result.headers) reply.headers(result.headers)

@@ -82,6 +82,19 @@ describe('idempotency keys (TSK-0010, HH-API-04)', () => {
     const retry = await create('synthetic-key-failure', { name: 'Gamma', fail: true })
     expect(retry.headers['idempotent-replayed']).toBeUndefined()
   })
+
+  it('[HH-API-04][HH-ID-06] a committed refusal keeps its writes and audit, answers the error and stores no key (TSK-0033)', async () => {
+    const before = await count('public.api_widgets')
+    const audited = await count('platform.audit_events')
+    const refused = await create('synthetic-key-refusal', { name: 'Epsilon', refuse: true })
+    expect(refused.statusCode).toBe(409)
+    expect(refused.json<{ error: { code: string } }>().error.code).toBe('CONFLICT')
+    expect(await count('public.api_widgets')).toBe(before + 1)
+    expect(await count('platform.audit_events')).toBe(audited + 1)
+    const again = await create('synthetic-key-refusal', { name: 'Epsilon', refuse: true })
+    expect(again.headers['idempotent-replayed']).toBeUndefined()
+    expect(again.statusCode).toBe(409)
+  })
 })
 
 describe('expected versions (TSK-0010, HH-API-04)', () => {

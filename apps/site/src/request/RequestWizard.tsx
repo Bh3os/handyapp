@@ -395,6 +395,8 @@ export default function RequestWizard() {
     let reply: SendReply = 'network'
     // The request's own photo capability, returned once with a fresh save (TSK-0032); never kept in storage.
     let uploadCapability: string | null = null
+    // This request's own contact verification on the receipt (TSK-0033); absent on a replayed response.
+    let receiptCapability: string | null = null
     try {
       const res = await fetch('/api/v1/public/requests', {
         method: 'POST',
@@ -403,6 +405,7 @@ export default function RequestWizard() {
       })
       reply = { status: res.status, data: (await res.json().catch(() => null)) as SendData }
       uploadCapability = res.headers.get('upload-capability')
+      receiptCapability = res.headers.get('receipt-capability')
     } catch {
       // No answer: the outcome is unknown. The same key and body are kept, so trying again cannot create a second
       // request.
@@ -421,7 +424,7 @@ export default function RequestWizard() {
       // request saved nothing of this send: its receipt shows the reference only, with no photo count (TSK-0030).
       const notStored = outcome.kind === 'sent' ? photos.items.filter((i) => i.state === 'failed' && !i.id) : []
       const data = reply === 'network' ? null : reply.data
-      const record = receiptRecord({
+      const saved = receiptRecord({
         reference: outcome.reference,
         kind: outcome.kind,
         submittedAt: typeof data?.submittedAt === 'string' ? data.submittedAt : null,
@@ -431,6 +434,8 @@ export default function RequestWizard() {
         facts: { visitHours: settings.visitHours, responseMinutes: settings.responseMinutes },
         now: new Date(),
       })
+      // TSK-0033: the receipt capability, only with a fresh save (a key that had already created the request has none).
+      const record: ReceiptRecord = { ...saved, capability: outcome.kind === 'sent' ? receiptCapability : null }
       saveReceipt(tabStorage(), record)
       receiptPhotos.start({
         counts: record.photos,
@@ -471,7 +476,15 @@ export default function RequestWizard() {
 
   // The receipt: only from the server's confirmation of the save (HH-INT-12).
   if (phase === 'sent' && receipt)
-    return <Receipt record={receipt} photos={receiptPhotos} limits={settings.photos} headingRef={headingRef} />
+    return (
+      <Receipt
+        record={receipt}
+        photos={receiptPhotos}
+        limits={settings.photos}
+        headingRef={headingRef}
+        onRecord={setReceipt}
+      />
+    )
 
   const choose = (
     <Dialog

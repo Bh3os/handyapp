@@ -89,7 +89,8 @@ export type RequestDetail = {
     marketingOptIn: boolean
     contact: { fullName: string; email: string; phone: string }
   }
-  contactVerification: { email: string; phone: string }
+  /** The badges describe the contact's current values; a verified Change Contact (TSK-0033) can differ from those sent. */
+  contactVerification: { email: string; phone: string; current: { email: string; phone: string } }
   coverage: { result: string; ruleSet: number | null }
   responsibleStaff: StaffRef | null
   assignments: { staff: StaffRef; previous: StaffRef | null; by: StaffRef; at: string }[]
@@ -152,6 +153,15 @@ function problemOf(error: ApiErrorBody): Problem {
   if (error.code === 'CONFLICT') return { kind: 'refused', codes: error.fieldErrors.map((f) => f.code) }
   return { kind: 'error', code: error.code }
 }
+
+/** The contact's current email is the one sent, whatever its case (TSK-0033). */
+const sameEmail = (sent: string, current: string) => sent.trim().toLowerCase() === current.trim().toLowerCase()
+const phoneDigits = (p: string) => {
+  const d = p.replace(/\D/g, '')
+  return d.length === 11 && d.startsWith('1') ? d.slice(1) : d
+}
+/** The contact's current number (E.164) is the one sent, however it was typed. */
+const samePhone = (sent: string, current: string) => phoneDigits(sent) === phoneDigits(current)
 
 const name = (t: T, s: StaffRef | null) => (s ? (s.name ?? t('queue.unnamed')) : t('queue.unassigned'))
 
@@ -373,12 +383,18 @@ function Original({ t, view, photos }: { t: T; view: RequestDetail; photos: Phot
           <span className="staff-request__contact">{o.contact.fullName}</span>
           <span className="staff-request__contact">
             {o.contact.email}{' '}
+            {sameEmail(o.contact.email, view.contactVerification.current.email) ? null : (
+              <>{t('request.contactCurrent', { value: view.contactVerification.current.email })} </>
+            )}
             <StatusBadge tone={view.contactVerification.email === 'verified' ? 'success' : 'neutral'}>
               {t('request.emailBadge', { state: codeLabel(t, 'verificationState', view.contactVerification.email) })}
             </StatusBadge>
           </span>
           <span className="staff-request__contact">
             {o.contact.phone}{' '}
+            {samePhone(o.contact.phone, view.contactVerification.current.phone) ? null : (
+              <>{t('request.contactCurrent', { value: view.contactVerification.current.phone })} </>
+            )}
             <StatusBadge tone={view.contactVerification.phone === 'verified' ? 'success' : 'neutral'}>
               {t('request.phoneBadge', { state: codeLabel(t, 'verificationState', view.contactVerification.phone) })}
             </StatusBadge>

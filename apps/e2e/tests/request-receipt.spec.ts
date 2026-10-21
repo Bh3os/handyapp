@@ -294,7 +294,11 @@ test.describe('the receipt (TSK-0032)', () => {
     const review = page.getByRole('region', { name: 'Photos', exact: true })
     await expect(review.locator('.hh-request__photo').nth(3).getByText('Saved')).toBeVisible({ timeout: 20_000 })
     await expect(send).toBeEnabled()
+    const submitted = page.waitForResponse(
+      (r) => r.request().method() === 'POST' && new URL(r.url()).pathname === '/api/v1/public/requests',
+    )
     await send.click()
+    const headers = (await submitted).headers()
     await expect(page.getByRole('heading', { name: 'Your request is in.' })).toBeFocused()
 
     const photos = page.getByRole('region', { name: 'Your photos' })
@@ -346,9 +350,15 @@ test.describe('the receipt (TSK-0032)', () => {
       /^These counts are from .+, the last time this page checked\.$/,
     )
     await expect(photos.getByRole('button', { name: 'Retry' })).toHaveCount(0)
-    // The tab keeps the receipt only: no upload capability is ever stored.
+    // The tab keeps the receipt only: no upload capability is ever stored. Since TSK-0033 the receipt record keeps the
+    // request's receipt capability (contact verification, PROPOSED), and nothing else of the kind.
+    const uploadCapability = headers['upload-capability']
+    expect(uploadCapability).toBeTruthy()
     const kept = await page.evaluate(() => JSON.stringify(Object.entries(window.sessionStorage)))
-    expect(kept).not.toMatch(/capability|blob:/i)
+    expect(kept).not.toContain(uploadCapability as string)
+    expect(kept).not.toMatch(/upload-?capability|blob:/i)
+    const stored = await page.evaluate(() => JSON.parse(window.sessionStorage.getItem('hh.request-receipt') ?? 'null'))
+    expect(stored?.capability).toBe(headers['receipt-capability'] ?? null)
     await axe(page)
 
     // One request, holding all four photos.

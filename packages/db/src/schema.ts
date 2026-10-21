@@ -57,6 +57,8 @@ export interface CrmContactsTable {
   is_primary: Generated<boolean>
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   version: Generated<number>
+  email_verified_value: string | null
+  phone_verified_value: string | null
 }
 
 export interface CrmCustomerPropertiesTable {
@@ -355,6 +357,15 @@ export interface IntakePhotosTable {
   uploaded_at: ColumnType<Date, Date | string | undefined, Date | string>
   processed_at: Timestamp | null
   removed_at: Timestamp | null
+}
+
+export interface IntakeReceiptCapabilitiesTable {
+  id: string
+  token_hash: string
+  request_id: string
+  expires_at: Timestamp
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  revoked_at: Timestamp | null
 }
 
 export interface IntakeRequestAnswersTable {
@@ -808,6 +819,7 @@ export interface Database {
   'identity.verification_attempts': IdentityVerificationAttemptsTable
   'identity.verification_codes': IdentityVerificationCodesTable
   'intake.photos': IntakePhotosTable
+  'intake.receipt_capabilities': IntakeReceiptCapabilitiesTable
   'intake.request_answers': IntakeRequestAnswersTable
   'intake.request_assignments': IntakeRequestAssignmentsTable
   'intake.request_conversations': IntakeRequestConversationsTable

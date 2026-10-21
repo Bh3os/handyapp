@@ -25,6 +25,7 @@ import { customerTranslator } from '@handyhub/i18n'
 import { decide, type Action, type Actor } from '@handyhub/policy'
 import { responseClockView } from './clock-view.js'
 import { requestHolds } from './holds.js'
+import { contactBadges } from '../verification/contact-verification.js'
 
 type Reader = Db | Tx
 export type StaffRef = { id: string; name: string | null }
@@ -183,12 +184,23 @@ export async function staffRequestView(db: Reader, requestId: string, actor: Act
       'p.id as project_id',
       'p.reference as project_reference',
       'p.state as project_state',
+      'c.id as contact_id',
+      'c.email as contact_email',
+      'c.phone_e164 as contact_phone',
       'c.email_verification',
       'c.phone_verification',
     ])
     .where('r.id', '=', requestId)
     .executeTakeFirst()
   if (!r) return null
+  // TSK-0033: the badges show each channel's current state, a code that simply ran out included (HH-LEAD-01).
+  const badges = await contactBadges(db, {
+    id: r.contact_id,
+    email: r.contact_email,
+    phone_e164: r.contact_phone,
+    email_verification: r.email_verification,
+    phone_verification: r.phone_verification,
+  })
 
   const services = await db
     .selectFrom('intake.request_services as rs')
@@ -330,7 +342,9 @@ export async function staffRequestView(db: Reader, requestId: string, actor: Act
         phone: sent.contact?.phone ?? '',
       },
     },
-    contactVerification: { email: r.email_verification, phone: r.phone_verification },
+    // The badges belong to the contact's current values: after a verified Change Contact the email differs from the
+    // one sent, so the current value is shown with them (the original submission itself never changes).
+    contactVerification: { ...badges, current: { email: r.contact_email, phone: r.contact_phone } },
     coverage: { result: r.coverage_result, ruleSet: r.coverage_rule_set },
     responsibleStaff: ref(r.responsible_staff_id),
     assignments: assignments.map((a) => ({

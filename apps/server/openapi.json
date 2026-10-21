@@ -1139,11 +1139,943 @@
         }
       }
     },
+    "/api/v1/public/request-receipt/account-offer/decline": {
+      "post": {
+        "operationId": "declineAccountOffer",
+        "summary": "No thanks to Create an Account",
+        "description": "Records that the guest declined the optional account offer (HH-INT-14). It changes nothing else: the request, its contact and verification states, the project and the receipt capability stay exactly as they were, and guest access to the project is never reduced by it.",
+        "tags": [
+          "verification"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "guest",
+            "customer"
+          ],
+          "permission": "request.submit",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "public-account-offer",
+            "limit": 30,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "account_offer.decline",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/contact-verification.test.ts"
+        }
+      }
+    },
+    "/api/v1/public/request-receipt/contact": {
+      "get": {
+        "operationId": "getReceiptContact",
+        "summary": "The receipt's contact verification",
+        "description": "Under the Receipt-Capability header: the request's own email and phone, masked, each with its own verification state (unverified, pending, verified, expired, failed), whether a code can be sent on it (texts need this request’s SMS opt-in), and an email change waiting for its code. Never another record, account or history.",
+        "tags": [
+          "verification"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "email",
+                    "phone"
+                  ],
+                  "properties": {
+                    "email": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "destination",
+                        "state",
+                        "available",
+                        "change"
+                      ],
+                      "properties": {
+                        "destination": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "unverified",
+                            "pending",
+                            "verified",
+                            "expired",
+                            "failed"
+                          ]
+                        },
+                        "available": {
+                          "type": "boolean"
+                        },
+                        "change": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "additionalProperties": false,
+                          "required": [
+                            "destination",
+                            "state"
+                          ],
+                          "properties": {
+                            "destination": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "pending",
+                                "expired",
+                                "failed"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "phone": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "destination",
+                        "state",
+                        "available",
+                        "change"
+                      ],
+                      "properties": {
+                        "destination": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "unverified",
+                            "pending",
+                            "verified",
+                            "expired",
+                            "failed"
+                          ]
+                        },
+                        "available": {
+                          "type": "boolean"
+                        },
+                        "change": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "additionalProperties": false,
+                          "required": [
+                            "destination",
+                            "state"
+                          ],
+                          "properties": {
+                            "destination": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "pending",
+                                "expired",
+                                "failed"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "guest",
+            "customer"
+          ],
+          "permission": "request.submit",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/contact-verification.test.ts"
+        }
+      }
+    },
+    "/api/v1/public/request-receipt/contact/codes": {
+      "post": {
+        "operationId": "sendReceiptContactCode",
+        "summary": "Send or resend a verification code",
+        "description": "Sends a one-time code (the automatic message contact.verification_code, OWN-DEC-150) to the request’s email or, with this request’s SMS opt-in, by text to its phone. With `destination` (email only, while unverified) the code goes to the new address and the contact changes only when that code is entered (Change Contact). The code lifetime and the attempt, resend and per-address limits come from session.timings and verification.limits (TSK-0016): a resend inside the cooldown or over a limit is a neutral 429 with Retry-After; while the code key or those values are NOT CONFIGURED, 503 and nothing is sent. Refusals: 400 with already_verified, sms_not_permitted, invalid_destination or change_not_available.",
+        "tags": [
+          "verification"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "channel"
+                ],
+                "properties": {
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "email",
+                      "phone"
+                    ]
+                  },
+                  "destination": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 254
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "sent",
+                    "contact"
+                  ],
+                  "properties": {
+                    "sent": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "channel",
+                        "destination",
+                        "expiresAt",
+                        "change"
+                      ],
+                      "properties": {
+                        "channel": {
+                          "type": "string",
+                          "enum": [
+                            "email",
+                            "phone"
+                          ]
+                        },
+                        "destination": {
+                          "type": "string"
+                        },
+                        "expiresAt": {
+                          "type": "string"
+                        },
+                        "change": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "contact": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "email",
+                        "phone"
+                      ],
+                      "properties": {
+                        "email": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "destination",
+                            "state",
+                            "available",
+                            "change"
+                          ],
+                          "properties": {
+                            "destination": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "unverified",
+                                "pending",
+                                "verified",
+                                "expired",
+                                "failed"
+                              ]
+                            },
+                            "available": {
+                              "type": "boolean"
+                            },
+                            "change": {
+                              "type": [
+                                "object",
+                                "null"
+                              ],
+                              "additionalProperties": false,
+                              "required": [
+                                "destination",
+                                "state"
+                              ],
+                              "properties": {
+                                "destination": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "pending",
+                                    "expired",
+                                    "failed"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "phone": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "destination",
+                            "state",
+                            "available",
+                            "change"
+                          ],
+                          "properties": {
+                            "destination": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "unverified",
+                                "pending",
+                                "verified",
+                                "expired",
+                                "failed"
+                              ]
+                            },
+                            "available": {
+                              "type": "boolean"
+                            },
+                            "change": {
+                              "type": [
+                                "object",
+                                "null"
+                              ],
+                              "additionalProperties": false,
+                              "required": [
+                                "destination",
+                                "state"
+                              ],
+                              "properties": {
+                                "destination": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "pending",
+                                    "expired",
+                                    "failed"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "guest",
+            "customer"
+          ],
+          "permission": "request.submit",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "public-contact-code",
+            "limit": 30,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "contact_verification.send_code",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/contact-verification.test.ts"
+        }
+      }
+    },
+    "/api/v1/public/request-receipt/contact/verify": {
+      "post": {
+        "operationId": "verifyReceiptContact",
+        "summary": "Enter a verification code",
+        "description": "Checks the code of the channel’s latest send. A match marks that exact value verified (an email change then replaces the old address); the other channel is never touched. A wrong, expired, replaced, used or exhausted code is the same neutral 400 (field body.code, invalid_code); the attempt is counted and kept (the refusal commits), so the configured attempt limit holds. Verifying links nothing to any other record.",
+        "tags": [
+          "verification"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "channel",
+                  "code"
+                ],
+                "properties": {
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "email",
+                      "phone"
+                    ]
+                  },
+                  "code": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "verified",
+                    "contact"
+                  ],
+                  "properties": {
+                    "verified": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "channel",
+                        "changed"
+                      ],
+                      "properties": {
+                        "channel": {
+                          "type": "string",
+                          "enum": [
+                            "email",
+                            "phone"
+                          ]
+                        },
+                        "changed": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "contact": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "email",
+                        "phone"
+                      ],
+                      "properties": {
+                        "email": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "destination",
+                            "state",
+                            "available",
+                            "change"
+                          ],
+                          "properties": {
+                            "destination": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "unverified",
+                                "pending",
+                                "verified",
+                                "expired",
+                                "failed"
+                              ]
+                            },
+                            "available": {
+                              "type": "boolean"
+                            },
+                            "change": {
+                              "type": [
+                                "object",
+                                "null"
+                              ],
+                              "additionalProperties": false,
+                              "required": [
+                                "destination",
+                                "state"
+                              ],
+                              "properties": {
+                                "destination": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "pending",
+                                    "expired",
+                                    "failed"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "phone": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "destination",
+                            "state",
+                            "available",
+                            "change"
+                          ],
+                          "properties": {
+                            "destination": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "unverified",
+                                "pending",
+                                "verified",
+                                "expired",
+                                "failed"
+                              ]
+                            },
+                            "available": {
+                              "type": "boolean"
+                            },
+                            "change": {
+                              "type": [
+                                "object",
+                                "null"
+                              ],
+                              "additionalProperties": false,
+                              "required": [
+                                "destination",
+                                "state"
+                              ],
+                              "properties": {
+                                "destination": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "pending",
+                                    "expired",
+                                    "failed"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "guest",
+            "customer"
+          ],
+          "permission": "request.submit",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "public-contact-verify",
+            "limit": 60,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "contact_verification.verify",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/contact-verification.test.ts"
+        }
+      }
+    },
     "/api/v1/public/requests": {
       "post": {
         "operationId": "submitRequest",
         "summary": "Send Estimate Request",
-        "description": "Guest or customer submission. One transaction creates a new customer, contact, property, project (not a job or appointment) and the request with its services and answers, plus one request.submitted outbox event. Never matched to existing customers. The same Idempotency-Key returns the same request; a changed body is a 409. A key that already created a request, also after its idempotency record expired, is a 409 whose error names that request's reference (existing.reference) and writes nothing. Rate limited per client network with a neutral 429. Spam signals only flag the request for review. TSK-0032: when the draft’s photos were bound, the Upload-Capability response header carries a new capability scoped to this request’s photos only (token returned once, never stored with the replayable response), so the receipt can show their states and retry a failed photo without a new request (HH-INT-07, HH-INT-12).",
+        "description": "Guest or customer submission. One transaction creates a new customer, contact, property, project (not a job or appointment) and the request with its services and answers, plus one request.submitted outbox event. Never matched to existing customers. The same Idempotency-Key returns the same request; a changed body is a 409. A key that already created a request, also after its idempotency record expired, is a 409 whose error names that request's reference (existing.reference) and writes nothing. Rate limited per client network with a neutral 429. Spam signals only flag the request for review. TSK-0032: when the draft’s photos were bound, the Upload-Capability response header carries a new capability scoped to this request’s photos only (token returned once, never stored with the replayable response), so the receipt can show their states and retry a failed photo without a new request (HH-INT-07, HH-INT-12). TSK-0033: the Receipt-Capability response header carries the receipt page’s capability for this request’s own contact verification and account-offer answer (returned once; a replayed response carries neither header).",
         "tags": [
           "requests"
         ],
@@ -27131,7 +28063,8 @@
                       "additionalProperties": false,
                       "required": [
                         "email",
-                        "phone"
+                        "phone",
+                        "current"
                       ],
                       "properties": {
                         "email": {
@@ -27139,6 +28072,22 @@
                         },
                         "phone": {
                           "type": "string"
+                        },
+                        "current": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "email",
+                            "phone"
+                          ],
+                          "properties": {
+                            "email": {
+                              "type": "string"
+                            },
+                            "phone": {
+                              "type": "string"
+                            }
+                          }
                         }
                       }
                     },

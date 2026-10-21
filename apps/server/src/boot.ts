@@ -52,7 +52,8 @@ export async function boot(env: Readonly<Record<string, string | undefined>>, op
     },
     logger: options.logger ?? false,
     // The health and configuration views report the provider modes and which variables are set, never a value.
-    api: { ...(db ? { db } : {}), storage, system: { providers, variables: variableStates(env) } },
+    // The receipt's code routes and the code delivery job share one code key (TSK-0016, TSK-0033).
+    api: { ...(db ? { db } : {}), storage, codeKey, system: { providers, variables: variableStates(env) } },
   })
   const sent = createProviders(providers, { logger: app.log as unknown as Logger })
   const registry = createAutomationRegistry([

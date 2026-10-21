@@ -59,7 +59,11 @@ export function requestDetail(over: Partial<RequestDetail> = {}): RequestDetail 
       marketingOptIn: false,
       contact: { fullName: 'Synthetic Customer', email: 'synthetic@example.test', phone: '(502) 555-0101' },
     },
-    contactVerification: { email: 'verified', phone: 'unverified' },
+    contactVerification: {
+      email: 'verified',
+      phone: 'unverified',
+      current: { email: 'synthetic@example.test', phone: '+15025550101' },
+    },
     coverage: { result: 'out_of_coverage', ruleSet: 1 },
     responsibleStaff: null,
     assignments: [],

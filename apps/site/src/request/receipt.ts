@@ -15,10 +15,13 @@
 // - A key that had already created a request (TSK-0030: a 409 naming its reference) gets a receipt with that reference
 //   and the "already received" sentence only: what that request holds is not known here, so neither the project at a
 //   glance nor any photo count is shown for it.
+// - TSK-0033: the record also keeps the request's receipt capability (contact verification) and whether the guest
+//   declined the optional account offer.
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { nextStepsLines, REFERENCE_PATTERN, type VisitHours } from '@handyhub/domain/request-form'
 import type { FormService, FormValues, OfferedWindow } from './form.js'
 import { addressLines, CHANNEL_LABEL, dateText, labelOf, windowText } from './review.js'
+import { CAPABILITY_PATTERN } from './verification.js'
 
 const t = (key: CustomerKey, values?: Record<string, string | number>) => customerTranslator().t(key, values)
 
@@ -45,6 +48,15 @@ export type ReceiptRecord = {
   /** The key had already created this request with other details (TSK-0030): changes since were not included. */
   already?: boolean
   facts: ResponseFacts
+  /**
+   * TSK-0033: the receipt capability the server returned with the saved request (Receipt-Capability), for this
+   * request's own contact verification and the account-offer answer; null or absent when there is none. PROPOSED: it
+   * is kept with the receipt in this tab's sessionStorage, so a reload of the receipt can still verify; it reaches
+   * only this request's contact verification, and it ends with the tab or its expiry on the server.
+   */
+  capability?: string | null
+  /** TSK-0033: the guest declined the optional account offer in this tab. */
+  accountOffer?: 'declined'
 }
 
 /** One receipt per tab: the latest saved request. PROPOSED key name. */
@@ -136,6 +148,15 @@ export function withPhotoCounts(record: ReceiptRecord, photos: PhotoCounts, chec
   return { ...record, photos, photosCheckedAt: checkedAt }
 }
 
+/**
+ * The record after the guest declined the account offer (TSK-0033): on top of the tab's record as last written, when it
+ * is this request's, so photo counts written back since (T13) are kept.
+ */
+export function withAccountDeclined(stored: ReceiptRecord | null, record: ReceiptRecord): ReceiptRecord {
+  const latest = stored?.reference === record.reference ? stored : record
+  return { ...latest, accountOffer: 'declined' }
+}
+
 /** The time photo counts were taken, for "as of" wording; '' when it is not a readable time. */
 export function checkedAtText(iso: string | undefined, zone?: string): string {
   const at = iso ? new Date(iso) : null
@@ -206,7 +227,24 @@ export function parseReceipt(raw: unknown): ReceiptRecord | null {
   if (hours !== null && !(typeof hours === 'object' && isClock(hours['open']) && isClock(hours['close']))) return null
   const minutes = facts['responseMinutes']
   if (minutes !== null && !(isCount(minutes) && (minutes as number) > 0)) return null
+  const capability = r['capability']
+  if (
+    capability !== undefined &&
+    capability !== null &&
+    !(typeof capability === 'string' && CAPABILITY_PATTERN.test(capability))
+  )
+    return null
+  if (r['accountOffer'] !== undefined && r['accountOffer'] !== 'declined') return null
   return raw as ReceiptRecord
+}
+
+/** This tab's storage, where the receipt is kept for a reload of its page; null when blocked. */
+export function tabStorage(): Storage | null {
+  try {
+    return window.sessionStorage
+  } catch {
+    return null
+  }
 }
 
 /** Keeps the receipt in this tab; a browser without storage simply cannot show it again after a reload. */
