@@ -27,6 +27,11 @@ export type EmailMessage = {
   tags?: { name: string; value: string }[]
   /** The same key on every retry, so the provider never sends twice. */
   idempotencyKey: string
+  /**
+   * TSK-0049: the project's plus-addressed reply address (its reply token), so a reply threads back to the project.
+   * Unset: the configured EMAIL_REPLY_TO, if any.
+   */
+  replyTo?: string
 }
 
 export type SmsMessage = {
