@@ -494,6 +494,15 @@ describe('[HH-CUS-03][HH-SCH-06][OWN-DEC-179][OWN-DEC-167] a ZIP check is screen
       sql`UPDATE work.visits SET state = 'confirmed', version = version + 1 WHERE id = ${v.id}`.execute(t.db),
     ).rejects.toThrow(/verify the property address and county/)
     expect((await visitOf(p.projectId, v.id)).state).toBe('tentative')
+    // OWN-DEC-206: a SERVED ZIP whose verified address lies in a county outside the area is not eligible.
+    const pr = await property(p)
+    const outside = await verify('office', pr, { state: 'IN', county: 'Synthetic' })
+    expect(outside.json()).toMatchObject({ inArea: false })
+    expect(codes((await confirm('office', v)).body)).toEqual([['coverage', 'COUNTY_OUTSIDE_AREA']])
+    await expect(
+      sql`UPDATE work.visits SET state = 'confirmed', version = version + 1 WHERE id = ${v.id}`.execute(t.db),
+    ).rejects.toThrow(/outside the service area/)
+    expect((await visitOf(p.projectId, v.id)).state).toBe('tentative')
   })
 
   it('[RULE-SERVER-AUTHZ][OWN-DEC-167] only the confirming roles record the check, for the current address version, with the address checked', async () => {
