@@ -53,7 +53,20 @@ export type StagingStatus = {
   }[]
   freshData: { id: string; available: boolean; task: string | null }[]
   runs: Run[]
+  testAccounts: TestAccount[]
 }
+type TestAccount = {
+  id: string
+  kind: 'customer' | 'guest' | 'staff'
+  role: string | null
+  email: string
+  name: string
+  state: string
+  reusable: boolean | null
+  mfaEnrolled: boolean | null
+  receivesEmail: boolean | null
+}
+type AccountOutcome = { id: string; outcome: string; step: string | null; codes: string[] }
 type ResetResult = {
   runId: string
   seq: string
@@ -246,6 +259,100 @@ function ResetDialog({
   )
 }
 
+// TSK-0142 (HH-OPS-06, OWN-DEC-191): the Owner Acceptance Testing accounts, one fictional account per role. No
+// credential is ever shown here: staff accounts get an emailed invite link, the Customer signs in with an emailed code,
+// and on staging only an approved test address (TEST_EMAIL_DESTINATIONS) receives either.
+function TestAccounts({
+  t,
+  status,
+  fetchImpl,
+  onSession,
+  reload,
+}: {
+  t: T
+  status: StagingStatus
+  fetchImpl: Fetch
+  onSession?: (s: { csrfToken: string }) => void
+  reload: () => void
+}) {
+  const [reason, setReason] = useState(() => t('staging.accounts.defaultReason'))
+  const [outcomes, setOutcomes] = useState<AccountOutcome[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const w = useOwnerWrite(fetchImpl, onSession)
+  const missing = status.testAccounts.some((a) => a.state === 'not_created')
+  const create = () =>
+    void w.send<{ outcomes: AccountOutcome[] }>('/staff/staging/test-accounts', { reason: reason.trim() }, (r) => {
+      if (!r.ok) return setError(refusal(t, r.error))
+      setError(null)
+      setOutcomes(r.data.outcomes)
+      reload()
+    })
+  const unavailable = !status.identified ? t('staging.notIdentified') : undefined
+  return (
+    <section className="staff-system__section" aria-labelledby="staging-accounts" data-testid="staging-test-accounts">
+      <h3 id="staging-accounts" className="staff-queue__heading">
+        {t('staging.accounts.heading')}
+      </h3>
+      <p>{t('staging.accounts.intro')}</p>
+      <ul className="staff-queue__facts">
+        {status.testAccounts.map((a) => (
+          <li key={a.id} data-testid={`test-account-${a.id}`}>
+            <strong>{label(t, 'stagingTestAccount', a.id)}</strong>: {a.email} —{' '}
+            {label(t, 'stagingTestAccountState', a.state)}
+            {a.reusable === true ? ` — ${t('staging.accounts.reusable')}` : null}
+            {a.mfaEnrolled === true ? ` — ${t('staging.accounts.mfa')}` : null}
+            {a.receivesEmail === false ? (
+              <>
+                {' '}
+                <StatusBadge tone="warning">{t('staging.accounts.noEmail')}</StatusBadge>
+              </>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      <p className="staff-request__hint">{t('staging.accounts.howToSignIn')}</p>
+      <Field
+        multiline
+        label={t('staging.accounts.reason')}
+        name="test-accounts-reason"
+        value={reason}
+        maxLength={2000}
+        onChange={(e) => setReason(e.target.value)}
+      />
+      <div className="hh-button-row">
+        <Button
+          pending={w.pending}
+          onClick={create}
+          {...(unavailable
+            ? { disabledReason: unavailable }
+            : !missing
+              ? { disabledReason: t('staging.accounts.allCreated') }
+              : reason.trim() === ''
+                ? { disabledReason: t('staging.accounts.reasonRequired') }
+                : {})}
+        >
+          {t('staging.accounts.create')}
+        </Button>
+      </div>
+      <ReauthForm t={t} w={w} />
+      {error ? <StateView kind="error" title={error} /> : null}
+      {outcomes ? (
+        <ul className="staff-queue__facts" aria-live="polite" data-testid="test-account-outcomes">
+          {outcomes.map((o) => (
+            <li key={o.id}>
+              {t('staging.accounts.outcome', {
+                account: label(t, 'stagingTestAccount', o.id),
+                outcome: label(t, 'stagingTestAccountOutcome', o.outcome),
+              })}
+              {o.step ? ` — ${t('staging.fresh.blockedAt', { step: o.step, codes: o.codes.join(', ') })}` : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  )
+}
+
 function ReusableAccounts({
   t,
   status,
@@ -415,6 +522,13 @@ export function StagingTools({
           ))}
         </ul>
       </section>
+      <TestAccounts
+        t={t}
+        status={status}
+        fetchImpl={fetchImpl}
+        {...(onSession ? { onSession } : {})}
+        reload={() => void load()}
+      />
       <ReusableAccounts t={t} status={status} fetchImpl={fetchImpl} reload={() => void load()} />
       <section className="staff-system__section" aria-labelledby="staging-runs">
         <h3 id="staging-runs" className="staff-queue__heading">

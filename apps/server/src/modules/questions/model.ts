@@ -1,17 +1,18 @@
 // Staff questions: shared rules and reads (TSK-0051; HH-LEAD-03, HH-LEAD-06, HH-COM-05, HH-COM-06, ENT-Question,
 // OWN-DEC-98, OWN-DEC-101, FACT-REMINDER-CADENCES, FACT-REOPEN-PERIOD).
-// - A question's notice and its two reminders are deliveries of the notifications module whose subject names the
+// - A question's notice and its reminder are deliveries of the notifications module whose subject names the
 //   question: `question:<id>` for the automatic notice (one per question, channel and destination, so a retry never
-//   sends a second notice), `question:<id>:first` and `question:<id>:final` for the staff-released reminder drafts.
+//   sends a second notice) and `question:<id>:reminder` for the one automatic reminder (TSK-0121, OWN-DEC-153);
+//   `question:<id>:first` and `question:<id>:final` were the staff-released reminder drafts before it (history).
 // - The notice goes to the contact of the project's request: by email, and by text too when the request gave the SMS
 //   opt-in; the notifications module rechecks consent at send time, so a STOP suppresses the text (HH-COM-05).
 // - Its link opens the question in the portal (`/portal/p/<reference>#question-<id>`), which shows it only to a
 //   verified session of that project; the link itself grants nothing (HH-ID-04). Without a public site URL there is no
 //   truthful link and the template's value is left out (the delivery records template_values_missing).
-// - The cadence is the configured reminders.cadences.unansweredQuestion (first 24 h and final 48 h after the notice's
-//   successful send; close 24 h after the final reminder was actually sent, OWN-DEC-101) and the reopen period is
-//   request.reopen_period (30 days, FACT-REOPEN-PERIOD). While either is NOT CONFIGURED nothing is guessed: no
-//   reminder is drafted, and closing or reopening is refused.
+// - The cadence is the configured reminders.cadences.unansweredQuestion (one reminder 72 hours after the notice's
+//   successful send; "Closed—no response" 24 hours after that reminder was actually sent, OWN-DEC-153, OWN-DEC-208)
+//   and the reopen period is request.reopen_period (30 days, FACT-REOPEN-PERIOD). While either is NOT CONFIGURED
+//   nothing is guessed: no reminder is scheduled, and closing or reopening is refused.
 import type { Db, Tx } from '@handyhub/db'
 import { REQUEST_CLOSED_STATES, type RequestState } from '@handyhub/domain'
 import type { Config } from '../../platform/config/index.js'
@@ -27,8 +28,10 @@ export const QUESTION_REPLIED = 'question.customer_replied'
 
 export const QUESTION_KINDS = ['general', 'measurement'] as const
 export type QuestionKind = (typeof QUESTION_KINDS)[number]
-export const REMINDER_STAGES = ['first', 'final'] as const
-export type ReminderStage = (typeof REMINDER_STAGES)[number]
+/** The staff-released reminder stages before TSK-0121 (their deliveries are history). */
+export const DRAFT_REMINDER_STAGES = ['first', 'final'] as const
+/** `reminder`: the one automatic reminder (TSK-0121); `first` and `final`: the earlier staff-released drafts. */
+export type ReminderStage = 'reminder' | (typeof DRAFT_REMINDER_STAGES)[number]
 
 /** The longest question (the column's limit). */
 export const QUESTION_MAX_LENGTH = 2000
@@ -38,11 +41,15 @@ export const REPLY_MAX_LENGTH = 5000
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export const noticeSubject = (questionId: string) => `question:${questionId}`
-export const reminderSubject = (questionId: string, stage: ReminderStage) => `question:${questionId}:${stage}`
+export const reminderSubject = (questionId: string, stage: ReminderStage = 'reminder') =>
+  `question:${questionId}:${stage}`
+/** Every reminder subject of a question: the automatic one and the earlier drafts. */
+export const reminderSubjects = (questionId: string) =>
+  (['reminder', ...DRAFT_REMINDER_STAGES] as const).map((s) => reminderSubject(questionId, s))
 
 /** The question (and reminder stage) a delivery subject names, or null. */
 export function subjectOf(subject: string): { questionId: string; stage: ReminderStage | null } | null {
-  const m = /^question:([0-9a-f-]{36})(?::(first|final))?$/i.exec(subject)
+  const m = /^question:([0-9a-f-]{36})(?::(reminder|first|final))?$/i.exec(subject)
   if (!m || !UUID_RE.test(m[1] as string)) return null
   return { questionId: (m[1] as string).toLowerCase(), stage: (m[2] as ReminderStage | undefined) ?? null }
 }
@@ -54,16 +61,18 @@ export function questionLink(baseUrl: string | undefined, reference: string, que
 }
 
 export type Cadence = {
-  firstHours: number
-  finalHours: number
-  closeAfterFinalHours: number
-  contactHoursOnly: boolean
+  /** The reminder is due these elapsed hours after the notice's successful send (72). */
+  afterDeliveryHours: number
+  /** "Closed—no response" these hours after the reminder was actually sent (24). */
+  closeAfterReminderHours: number
 }
 
 /** reminders.cadences.unansweredQuestion, or null while NOT CONFIGURED. */
 export function questionCadence(config: Config): Cadence | null {
   const c = config.get('reminders.cadences')
-  return c.state === 'CONFIGURED' ? c.value.unansweredQuestion : null
+  if (c.state !== 'CONFIGURED') return null
+  const q = c.value.unansweredQuestion
+  return { afterDeliveryHours: q.afterDeliveryHours, closeAfterReminderHours: q.closeAfterReminderHours }
 }
 
 /** request.reopen_period in days, or null while NOT CONFIGURED. */

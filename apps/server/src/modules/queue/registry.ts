@@ -161,6 +161,8 @@ export const QUEUE_ITEM_TYPES = [
   // (PROPOSED). Resolved once the draft is released, dismissed or stopped (a reschedule or cancellation, or the
   // database when the visit leaves 'confirmed' another way, migration 0060). Seen by the roles that manage booked
   // visits; the link opens the visit on the board, whose reminder panel sends or dismisses it.
+  // TSK-0121 (OWN-DEC-153): the reminder is automatic; no item of this type is opened any more (migration 0075
+  // resolved the open ones). The type stays for the items already recorded.
   {
     id: 'appointment_reminder',
     section: 'queue',
@@ -243,6 +245,8 @@ export const QUEUE_ITEM_TYPES = [
   // per estimate version while a first or final unanswered-estimate reminder is a draft; it resolves once the draft is
   // released, dismissed or stopped. Seen by the roles that work on estimates (the link opens the version, whose
   // reminders panel releases or dismisses the draft); band and view action are PROPOSED.
+  // TSK-0121 (OWN-DEC-153): the reminder is automatic; no item of this type is opened any more (migration 0075
+  // resolved the open ones). The type stays for the items already recorded.
   {
     id: 'estimate_reminder',
     section: 'queue',
@@ -305,6 +309,8 @@ export const QUEUE_ITEM_TYPES = [
   // TSK-0051 (HH-LEAD-06, OWN-DEC-101): the reminder drafts of an unanswered question wait for release, prominently;
   // after the final one was actually sent and the configured hours passed, the item says the request may be closed.
   // Seen by the roles that release drafts (ROLE-MATRIX "Reply from a project, release drafts").
+  // TSK-0121 (OWN-DEC-153, OWN-DEC-208): the reminder is automatic, so only no_response_close_available is opened now
+  // (24 hours after the reminder was actually sent); the draft reasons stay for the items already recorded.
   {
     id: 'question_reminder',
     section: 'queue',
@@ -411,6 +417,19 @@ export const QUEUE_ITEM_TYPES = [
     action: 'decide',
     screen: 'schedule',
     path: 'start-review',
+  },
+  // TSK-0086 (HH-FIN-07, T59): money of a job's payments not applied to anything (an overpayment, or a deposit payment
+  // beyond the deposit) stays the customer's money for the Owner's credit or refund decision (TSK-0089 decides it).
+  // One item per job while any remains; seen by the Owner (payment.credit). Band PROPOSED.
+  {
+    id: 'unallocated_credit',
+    section: 'owner_decisions',
+    subject: 'job',
+    band: 'other',
+    view: 'payment.credit',
+    reasons: ['overpayment'],
+    action: 'decide',
+    screen: 'payments',
   },
   {
     id: 'refund_request',

@@ -463,16 +463,18 @@ export async function customerPlan(db: Reader, subject: PlanSubject, now = new D
     ).n,
   )
   add('privacy_requests', 'retain', privacyRequests, 'request_record', 'not_scheduled')
-  // Deposit records and recorded payments (TSK-0064) are protected evidence; no invoice is recorded yet (TSK-0085)
-  // and a payment taken outside the software cannot be ruled out: the Owner checks those.
+  // Deposit records, recorded payments (TSK-0064) and issued invoices (TSK-0085) are protected evidence; an invoice
+  // or a payment made outside the software cannot be ruled out: the Owner checks those.
   let payments = 0
   let deposits = 0
+  let invoices = 0
   for (const projectId of projectIds) {
     const f = await financialEvidence(db, { projectId })
     payments += f.payments
     deposits += f.deposits
+    invoices += f.invoices
   }
-  add('financial_records', 'retain', payments + deposits, 'protected_evidence', 'financial_records')
+  add('financial_records', 'retain', payments + deposits + invoices, 'protected_evidence', 'financial_records')
   add('financial_records', 'not_recorded', 0, null, 'financial_records')
 
   const checks: CheckOutcome[] = [

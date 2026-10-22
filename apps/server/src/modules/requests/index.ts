@@ -17,11 +17,29 @@ import { staffRequestSummary } from './staff-summary.js'
 import { responseFacts } from './receipt-email.js'
 import { submitRequest } from './submit.js'
 import type { CodeKeySettings } from '../identity/index.js'
+import { publicEffect, type LaunchEnvironment } from '@handyhub/domain'
+import { ApiError } from '../../api/errors.js'
+import { readLaunchPhase } from '../launch/state.js'
 
 /** PROPOSED (old repo, 32 D-32-08): 5 submissions per client network per hour; no owner value exists. */
 export const SUBMIT_RATE_LIMIT = { bucket: 'public-request-submit', limit: 5, windowSeconds: 3600 } as const
 
-const submitRoute = (codeKey: CodeKeySettings | undefined): RouteDef => ({
+/**
+ * TSK-0142 (HH-OPS-06, OWN-DEC-191): who may send a request here and now. Outside production every visitor is a named
+ * tester (the access gate) or the request comes from an isolated test system: testers_only, always accepted. In
+ * production the launch phase decides: closed in phase 1, invitation_only in phase 2 (no customer invitation exists in
+ * this build, so nothing is accepted from the public), open in phase 3. A phase that cannot be read is phase 1.
+ */
+export async function submissionState(db: Parameters<typeof readLaunchPhase>[0], environment: LaunchEnvironment) {
+  if (environment !== 'production') return publicEffect(environment, 'owner_acceptance_testing').submissions
+  try {
+    return publicEffect(environment, (await readLaunchPhase(db)).phase).submissions
+  } catch {
+    return 'closed' as const
+  }
+}
+
+const submitRoute = (codeKey: CodeKeySettings | undefined, environment: LaunchEnvironment): RouteDef => ({
   method: 'POST',
   path: '/public/requests',
   operationId: 'submitRequest',
@@ -39,7 +57,10 @@ const submitRoute = (codeKey: CodeKeySettings | undefined): RouteDef => ({
     'TSK-0033: the Receipt-Capability response header carries the receipt page’s capability for this request’s own ' +
     'contact verification and account-offer answer (returned once; a replayed response carries neither header). ' +
     'TSK-0034: the same transaction issues the project’s single-project access grant (HH-ID-04; token stored only ' +
-    'as a hash), whose secure access link the automatic message project.access_link sends from request.submitted.',
+    'as a hash), whose secure access link the automatic message project.access_link sends from request.submitted. ' +
+    'TSK-0142: in production the launch phase decides (launch.phase): before phase 3 (public) the submission is ' +
+    'refused with CONFLICT and the field error launch:SUBMISSIONS_CLOSED (phase 1) or launch:INVITATION_REQUIRED ' +
+    '(phase 2), audited, and nothing is written. Outside production (testers only) it is always accepted.',
   actors: ['guest', 'customer'],
   permission: 'request.submit',
   kind: 'write',
@@ -60,6 +81,12 @@ const submitRoute = (codeKey: CodeKeySettings | undefined): RouteDef => ({
   },
   handler: async (ctx) => {
     if (!ctx.tx) throw new Error('submitRequest runs inside its write transaction')
+    const state = await submissionState(ctx.tx, environment)
+    if (state === 'closed' || state === 'invitation_only') {
+      const code = state === 'closed' ? 'SUBMISSIONS_CLOSED' : 'INVITATION_REQUIRED'
+      await ctx.auditAlways({ target: { type: 'request' }, result: 'denied', reason: code, summary: { environment } })
+      throw new ApiError('CONFLICT', { fieldErrors: [{ field: 'launch', code, message: '' }] })
+    }
     const body = ctx.req.body as SubmitBody
     const out = await submitRequest(ctx.tx, body, {
       idempotencyKey: readIdempotencyKey(ctx.req.headers['idempotency-key']),
@@ -89,7 +116,7 @@ const submitRoute = (codeKey: CodeKeySettings | undefined): RouteDef => ({
 })
 
 /** The request form's settings, from configuration (TSK-0026): how long the browser keeps an unfinished draft. */
-const formSettings: RouteDef = {
+const formSettings = (environment: LaunchEnvironment): RouteDef => ({
   method: 'GET',
   path: '/public/request-form',
   operationId: 'getRequestFormSettings',
@@ -102,7 +129,10 @@ const formSettings: RouteDef = {
     'FACT-VISIT-FEE). Preferences only: nothing here is availability, a slot or a price. ' +
     'TSK-0032: the response target in minutes (response.target, FACT-RESPONSE-TARGET), which the receipt’s ' +
     '"What happens next?" wording states with the visit hours; null while NOT CONFIGURED (the receipt then states no ' +
-    'response time).',
+    'response time). ' +
+    'TSK-0142: submissions says whether the form takes requests here and now: testers_only (outside production: the ' +
+    'access gate or a test system) and open (production, phase 3) take them; closed (phase 1) and invitation_only ' +
+    '(phase 2) do not, and the form says so instead of asking for details it cannot send.',
   actors: ['guest', 'customer'],
   permission: 'request.submit',
   kind: 'read',
@@ -126,6 +156,7 @@ const formSettings: RouteDef = {
           'windows',
           'freeEstimates',
           'responseMinutes',
+          'submissions',
         ],
         properties: {
           draftDays: { type: ['integer', 'null'] },
@@ -159,6 +190,7 @@ const formSettings: RouteDef = {
           },
           freeEstimates: { type: 'boolean' },
           responseMinutes: { type: ['integer', 'null'] },
+          submissions: { type: 'string', enum: ['open', 'testers_only', 'invitation_only', 'closed'] },
         },
       },
     },
@@ -181,11 +213,12 @@ const formSettings: RouteDef = {
         // The free-estimate wording appears only while the configured policy says so (FACT-VISIT-FEE).
         freeEstimates: fee.state === 'CONFIGURED' && fee.value.policy === 'free',
         responseMinutes: responseFacts(config).responseMinutes,
+        submissions: await submissionState(ctx.db, environment),
       },
       headers: { 'cache-control': 'no-cache' },
     }
   },
-}
+})
 
 /** The services the public request form offers, with their questions (TSK-0027; HH-INT-15, HH-SVC-03, OWN-DEC-84). */
 const publicServiceList: RouteDef = {
@@ -270,14 +303,16 @@ export type RequestsDeps = {
   obligationChecks?: readonly ObligationCheck[]
   /** TSK-0034: the key behind project access links; unset: the submission issues no grant (NOT CONFIGURED). */
   codeKey?: CodeKeySettings
+  /** TSK-0142: the environment; in production the launch phase decides submissions. Unset: not production. */
+  environment?: LaunchEnvironment
 }
 
 export function requestsModule(deps: RequestsDeps = {}): ApiModule {
   return {
     name: 'requests',
     routes: [
-      submitRoute(deps.codeKey),
-      formSettings,
+      submitRoute(deps.codeKey, deps.environment ?? 'local'),
+      formSettings(deps.environment ?? 'local'),
       publicServiceList,
       staffRequestSummary,
       ...staffRequestRoutes(deps),

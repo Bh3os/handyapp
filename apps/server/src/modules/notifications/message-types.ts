@@ -38,6 +38,12 @@ export type MessageType = {
   ownerApproval?: true
   /** The classification of OWN-DEC-152 section 3.6; default transactional (customer) or internal (staff). */
   category?: MessageCategory
+  /**
+   * TSK-0122 (FACT-HOURS "not held to these hours"): a text of this type is never held to the recipient's permitted
+   * hours: the secure access link expires (OWN-DEC-65) and the On my way notice follows the worker's tap ("Any time",
+   * OWN-DEC-107). Codes and account security notices are never held by their category.
+   */
+  anyHour?: true
 }
 
 /**
@@ -88,6 +94,7 @@ const TYPES: readonly MessageType[] = [
     channels: both,
     triggerEvents: ['request.submitted', 'project.access_requested'],
     variables: vars('customerName', 'secureAccessLink', 'linkExpiration', 'accessLink'),
+    anyHour: true,
     sourceIds: ['OWN-DEC-65', 'OWN-DEC-97', 'OWN-DEC-151'],
   },
   {
@@ -226,6 +233,7 @@ const TYPES: readonly MessageType[] = [
     audience: 'customer',
     channels: both,
     triggerEvents: ['visit.on_my_way'],
+    anyHour: true,
     variables: vars(
       'customerName',
       'visitNumber',
@@ -246,7 +254,8 @@ const TYPES: readonly MessageType[] = [
     channels: both,
     triggerEvents: ['invoice.deposit_issued'],
     variables: vars('customerName', 'invoiceNumber', 'jobNumber', 'invoiceLink'),
-    supplied: [],
+    // TSK-0085: the deposit invoice's issue supplies every value (the link: the project's Documents tab).
+    supplied: ['customerName', 'invoiceNumber', 'jobNumber', 'invoiceLink'],
     sourceIds: ['OWN-DEC-151', 'OWN-DEC-152'],
   },
   {
@@ -266,7 +275,8 @@ const TYPES: readonly MessageType[] = [
     channels: both,
     triggerEvents: ['invoice.issued'],
     variables: vars('customerName', 'invoiceNumber', 'invoiceLink', 'projectLink'),
-    supplied: [],
+    // TSK-0085: the final invoice's issue supplies every value (the invoice link: the project's Documents tab).
+    supplied: ['customerName', 'invoiceNumber', 'invoiceLink', 'projectLink'],
     sourceIds: ['OWN-DEC-110', 'OWN-DEC-209'],
   },
   {
@@ -405,27 +415,29 @@ const TYPES: readonly MessageType[] = [
     ownerApproval: true,
     sourceIds: ['OWN-DEC-151', 'OWN-DEC-152'],
   },
-  // The unanswered-estimate and unanswered-question reminders are owner-worded (OWN-DEC-151); they stay
-  // staff-released drafts until TSK-0121 makes them automatic (OWN-DEC-153).
+  // TSK-0121 (OWN-DEC-153): the three routine reminders send automatically, in the owner's wording (OWN-DEC-151). Each is
+  // scheduled (one delivery per destination, due at its cadence) after the committed events listed here, and sent by
+  // the notify.release job at its time, after the send-time recheck of its record:
+  // - the unanswered-estimate reminder from the successful delivery of the version's estimate-ready notice;
+  // - the unanswered-question reminder from the successful delivery of the question notice;
+  // - the appointment reminder from a confirmed visit or a committed reschedule.
   {
     key: 'reminder.unanswered_estimate',
     templateId: 'estimate_reminder',
     audience: 'customer',
     channels: both,
-    triggerEvents: [],
+    triggerEvents: ['message.delivery_succeeded'],
     variables: vars('customerName', 'estimateNumber', 'estimateLink', 'projectLink'),
-    supplied: ['projectLink'],
-    sourceIds: ['OWN-DEC-132', 'FACT-REMINDER-CADENCES', 'OWN-DEC-151'],
+    sourceIds: ['OWN-DEC-153', 'FACT-REMINDER-CADENCES', 'OWN-DEC-151'],
   },
   {
     key: 'reminder.unanswered_question',
     templateId: 'question_reminder',
     audience: 'customer',
     channels: both,
-    triggerEvents: [],
+    triggerEvents: ['message.delivery_succeeded'],
     variables: vars('customerName', 'reference', 'projectLink'),
-    supplied: ['projectLink'],
-    sourceIds: ['OWN-DEC-101', 'FACT-REMINDER-CADENCES', 'OWN-DEC-151'],
+    sourceIds: ['OWN-DEC-153', 'FACT-REMINDER-CADENCES', 'OWN-DEC-151'],
   },
   // The service-quality follow-up (customer_follow_up, OWN-DEC-157): staff-released, built by TSK-0092.
   {
@@ -453,16 +465,17 @@ const TYPES: readonly MessageType[] = [
     sourceIds: [source, 'FACT-REMINDER-CADENCES'],
     ...(key === 'review.request' ? { category: 'marketing' as const } : {}),
   })),
-  // TSK-0067 (HH-COM-11, OWN-DEC-107): the appointment reminder draft holds the confirmed date and arrival window, the
-  // address and the approved preparation steps (when staff gave any) for staff review, and links to the project.
-  // TSK-0119 (OWN-DEC-158): the address is never rendered in the message; the owner's wording (appointment_reminder)
-  // uses the date, the window and its zone and the visit reference, wired by TSK-0121.
+  // TSK-0067, TSK-0121 (HH-COM-11, OWN-DEC-107, OWN-DEC-153): the appointment reminder, automatic 24 hours before every
+  // confirmed visit. TSK-0119 (OWN-DEC-158): the owner's wording (appointment_reminder) uses the date, the window and
+  // its zone and the visit reference; the address is never rendered. visitWindow, serviceAddress and preparationSteps
+  // were the values of the staff-released drafts of TSK-0067 (kept on those rows); the automatic reminder supplies
+  // none of them.
   {
     key: 'reminder.appointment',
     templateId: 'appointment_reminder',
     audience: 'customer',
     channels: both,
-    triggerEvents: [],
+    triggerEvents: ['appointment.reserved', 'estimate_visit.reserved', 'appointment.change_committed'],
     variables: vars(
       'customerName',
       'date',
@@ -475,8 +488,8 @@ const TYPES: readonly MessageType[] = [
       'preparationSteps',
       'projectLink',
     ),
-    supplied: ['visitWindow', 'serviceAddress', 'preparationSteps', 'projectLink'],
-    sourceIds: ['OWN-DEC-107', 'FACT-REMINDER-CADENCES', 'OWN-DEC-151', 'OWN-DEC-158'],
+    supplied: ['customerName', 'date', 'start', 'end', 'zone', 'visitNumber', 'projectLink'],
+    sourceIds: ['OWN-DEC-107', 'OWN-DEC-153', 'FACT-REMINDER-CADENCES', 'OWN-DEC-151', 'OWN-DEC-158'],
   },
 ]
 

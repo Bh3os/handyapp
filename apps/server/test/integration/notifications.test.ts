@@ -37,7 +37,12 @@ afterAll(async () => {
 const providers = () => {
   const p = createProviders(readProviderSettings({ HANDYHUB_ENV: 'ci' }))
   if (!p.fakes.email || !p.fakes.sms) throw new Error('ci uses the fakes')
-  return { providers: { email: p.email, sms: p.sms }, email: p.fakes.email, sms: p.fakes.sms }
+  // TSK-0122: texts are judged at a fixed noon in Louisville, never at the time the suite runs.
+  return {
+    providers: { email: p.email, sms: p.sms, clock: () => new Date('2026-10-20T16:00:00Z') },
+    email: p.fakes.email,
+    sms: p.fakes.sms,
+  }
 }
 let n = 0
 const rid = () => `req-notify-${++n}`
@@ -59,16 +64,19 @@ const tick = () => new Promise((r) => setTimeout(r, 15))
 const fastRetry = (a: Automation): Automation => ({ ...a, retry: { maxAttempts: 3, baseDelayMs: 1, maxDelayMs: 1 } })
 
 describe('the automatic-message list is configuration (TSK-0047, HH-COM-06, RULE-DECIDED-VALUES-ACTIVE)', () => {
-  it('is seeded active from FACT-AUTOMATIC-MESSAGES with its twenty-one customer messages and no reminder (TSK-0119)', async () => {
+  it('is seeded active from FACT-AUTOMATIC-MESSAGES with its customer messages, the routine reminders too (TSK-0121)', async () => {
     const config = await loadConfig(t.db)
     const entry = config.get('messages.automatic')
     expect(entry.state).toBe('CONFIGURED')
     if (entry.state !== 'CONFIGURED') return
     expect(entry.sourceIds).toContain('FACT-AUTOMATIC-MESSAGES')
-    expect(entry.value.customer).toHaveLength(21)
+    // The 21 of TSK-0119 and the three routine reminders of OWN-DEC-153 (TSK-0121, migration 0075).
+    expect(entry.value.customer).toHaveLength(24)
     const policy = automaticPolicy(config)
-    for (const k of ['staff.reply', 'reminder.unanswered_estimate', 'reminder.appointment', 'review.request'])
+    for (const k of ['staff.reply', 'reminder.unpaid_invoice', 'reminder.satisfaction_check', 'review.request'])
       expect(policy.isAutomatic(k), k).toBe(false)
+    for (const k of ['reminder.unanswered_estimate', 'reminder.unanswered_question', 'reminder.appointment'])
+      expect(policy.isAutomatic(k), k).toBe(true)
     const fact = readFileSync(new URL('../../../../kg/facts/FACT-AUTOMATIC-MESSAGES.md', import.meta.url), 'utf8')
     expect(fact.match(/^\| \d+ \|/gm)).toHaveLength(entry.value.customer.length)
     const ids = new Set(
@@ -380,15 +388,15 @@ describe('staff-released drafts (TSK-0047, HH-COM-06, HH-COM-09, T65, T66, T04)'
     ).rejects.toThrow(/does not declare/)
   })
 
-  it('queues an 11 PM question reminder until 8 AM, sends the estimate reminder at once, in English for a Spanish-locale sender', async () => {
+  it('[OWN-DEC-154] an 11 PM email goes at once; an 11 PM text waits for the permitted hours; English for a Spanish-locale sender', async () => {
     const f = providers()
     await withTx(t.db, async (tx) => {
-      for (const key of ['reminder.unanswered_question', 'reminder.unanswered_estimate'])
+      for (const channel of ['email', 'sms'] as const)
         await releaseTemplateVersion(tx, {
-          messageKey: key,
-          channel: 'email',
+          messageKey: 'reminder.unpaid_invoice',
+          channel,
           locale: 'en',
-          subject: 'Synthetic test subject',
+          subject: channel === 'email' ? 'Synthetic test subject' : null,
           body: 'Synthetic test body {projectLink}',
           translationReview: 'source',
           sourceIds: ['FACT-REMINDER-CADENCES'],
@@ -397,36 +405,45 @@ describe('staff-released drafts (TSK-0047, HH-COM-06, HH-COM-09, T65, T66, T04)'
     })
     const config = await loadConfig(t.db)
     const release = fastRetry(releaseAutomation(f.providers))
-    // 23:00 in America/Kentucky/Louisville: a future night for the question reminder (it must wait for 8 AM, so it
-    // is not due yet), a past night for the estimate reminder (it is released at once, so it is due now).
+    // 23:00 in America/Kentucky/Louisville: a future night for the text (it must wait for the permitted hours, so it
+    // is not due yet), a past night for the email (it goes at once, at any hour, so it is due now).
     const futureElevenPm = new Date('2026-12-01T04:00:00Z')
     const pastElevenPm = new Date('2026-10-10T03:00:00Z')
-    const draft = (messageKey: string, subjectKey: string) =>
+    const draft = (channel: 'email' | 'sms', subjectKey: string) =>
       withTx(t.db, (tx) =>
         createDraft(tx, {
           config,
-          messageKey,
+          messageKey: 'reminder.unpaid_invoice',
           subjectKey,
-          record: { type: 'question', id: subjectKey },
+          record: { type: 'invoice', id: subjectKey },
           recipient: { ...customer('customer-6@example.test'), staffLocale: 'es' },
-          destination: { channel: 'email', destination: 'customer-6@example.test', permission: 'preferred' },
+          destination:
+            channel === 'email'
+              ? { channel: 'email', destination: 'customer-6@example.test', permission: 'preferred' }
+              : { channel: 'sms', destination: '+15025550106', permission: 'permitted' },
           values: { projectLink: 'https://x.example/p' },
         }),
       )
-    const q = await draft('reminder.unanswered_question', 'question:q-9:first')
-    const e = await draft('reminder.unanswered_estimate', 'estimate:e-9:first')
+    const q = await draft('sms', 'invoice:i-9:text')
+    const e = await draft('email', 'invoice:i-9:email')
     const rel = (id: string, now: Date) =>
       withTx(t.db, (tx) =>
         releaseDraft(tx, { config, deliveryId: id, actor: office, automation: release, requestId: rid(), now }),
       )
-    expect((await rel(q.id, futureElevenPm)).runAt).toEqual(new Date('2026-12-01T13:00:00Z'))
+    // The recipient's zone is not recorded: the text waits for 9 AM Eastern (EST, 14:00 UTC), OWN-DEC-207.
+    expect((await rel(q.id, futureElevenPm)).runAt).toEqual(new Date('2026-12-01T14:00:00Z'))
     expect((await rel(e.id, pastElevenPm)).runAt).toEqual(pastElevenPm)
     await expect(rel(q.id, pastElevenPm)).rejects.toThrow(/not a draft/)
     await createWorker({ db: t.db, registry: createAutomationRegistry([release]) }).runOnce()
     expect(f.email.sent.map((m) => bodyOf(m.text))).toEqual(['Synthetic test body https://x.example/p'])
-    const [qRow] = await deliveries('question:q-9:first')
-    const [eRow] = await deliveries('estimate:e-9:first')
-    expect([qRow?.state, qRow?.locale, qRow?.released_by]).toEqual(['queued', 'en', 'staff-test-office'])
+    const [qRow] = await deliveries('invoice:i-9:text')
+    const [eRow] = await deliveries('invoice:i-9:email')
+    expect([qRow?.state, qRow?.locale, qRow?.released_by, qRow?.scheduled_at]).toEqual([
+      'queued',
+      'en',
+      'staff-test-office',
+      new Date('2026-12-01T14:00:00Z'),
+    ])
     expect([eRow?.state, eRow?.provider]).toEqual(['queued', 'fake'])
     const audited = await t.db
       .selectFrom('platform.audit_events')

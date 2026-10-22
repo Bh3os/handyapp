@@ -330,3 +330,5 @@ export type {
   PublicationInvalidationReason,
   PublicationSubject,
 } from './publication-approval.js'
+// TSK-0142: the launch phases and their switches (OWN-DEC-191).
+export * from './launch.js'

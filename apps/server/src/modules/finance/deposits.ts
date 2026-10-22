@@ -30,6 +30,7 @@ import { ApiError, type FieldError } from '../../api/errors.js'
 import { loadConfig } from '../../platform/config/index.js'
 import { FRESH_AUTH_MINUTES } from '../identity/sessions.js'
 import { syncDepositItem } from './deposit-queue.js'
+import { announcePaidInvoices, syncUnallocatedItem } from './money-events.js'
 
 type Reader = Db | Tx
 
@@ -268,7 +269,8 @@ export async function depositView(db: Reader, actor: StaffActor, jobId: string):
     verifiedCents: verified,
     pendingCents: pending,
     remainingCents: amount === null ? null : Math.max(0, amount - verified),
-    workScheduling: !r.required || r.state === 'satisfied' || r.state === 'waived' ? 'open' : 'blocked',
+    workScheduling:
+      !r.required || r.state === 'satisfied' || r.state === 'waived' || r.state === 'applied' ? 'open' : 'blocked',
     paymentLink:
       r.payment_link && r.payment_link_set_at
         ? { url: r.payment_link, setBy: ref(r.payment_link_set_by, names), setAt: r.payment_link_set_at.toISOString() }
@@ -401,18 +403,24 @@ const trimmed = (s: string | null | undefined) => {
   return v === '' ? null : v
 }
 
-/** Records a verified deposit payment and applies it to what the deposit still needs (see the header). */
-export async function recordDepositPayment(
-  tx: Tx,
-  actor: StaffActor,
-  jobId: string,
-  input: RecordPaymentInput,
-): Promise<RecordedPayment> {
-  if (!tx.isTransaction) throw new Error('recordDepositPayment runs inside the business transaction (withTx)')
-  const r = await requirementOfJob(tx, jobId, 'update')
-  if (!r) throw new ApiError('NOT_FOUND')
-  if (!r.required || r.amount_cents === null) throw conflict('DEPOSIT_NOT_REQUIRED')
+/** A payment as validated and normalized for recording (shared by deposit and invoice payments, TSK-0086). */
+export type CheckedPayment = {
+  method: PaymentMethod
+  amountCents: number
+  receivedOn: string
+  reference: string | null
+  payerName: string | null
+  collector: string
+  now: Date
+}
 
+/**
+ * Validates a payment to record (HH-FIN-09, HH-FIN-12): an accepted method (payment.methods), a positive amount in
+ * cents, a received date not after today in the business time zone, the reference a card payment or check needs, the
+ * payer of a check and an active collector; the same method and reference are refused twice (under an advisory lock,
+ * so a concurrent duplicate waits and is then refused by name). Runs in the recording transaction.
+ */
+export async function checkPaymentInput(tx: Tx, actor: StaffActor, input: RecordPaymentInput): Promise<CheckedPayment> {
   const config = await loadConfig(tx)
   const methods = config.get('payment.methods')
   if (methods.state !== 'CONFIGURED')
@@ -462,6 +470,23 @@ export async function recordDepositPayment(
       .executeTakeFirst()
     if (dup) throw conflict('DUPLICATE_PAYMENT', 'body.reference')
   }
+  return { method, amountCents: input.amountCents, receivedOn: input.receivedOn, reference, payerName, collector, now }
+}
+
+/** Records a verified deposit payment and applies it to what the deposit still needs (see the header). */
+export async function recordDepositPayment(
+  tx: Tx,
+  actor: StaffActor,
+  jobId: string,
+  input: RecordPaymentInput,
+): Promise<RecordedPayment> {
+  if (!tx.isTransaction) throw new Error('recordDepositPayment runs inside the business transaction (withTx)')
+  const r = await requirementOfJob(tx, jobId, 'update')
+  if (!r) throw new ApiError('NOT_FOUND')
+  if (!r.required || r.amount_cents === null) throw conflict('DEPOSIT_NOT_REQUIRED')
+  // TSK-0085: once credited to the final invoice the deposit takes no more money (the invoice does).
+  if (r.state === 'applied') throw conflict('DEPOSIT_APPLIED')
+  const { method, reference, payerName, collector, now } = await checkPaymentInput(tx, actor, input)
 
   // What the deposit still needs, counting checks still pending (allocations never exceed the deposit).
   const { verified, pending } = await amounts(tx, r.id)
@@ -497,6 +522,10 @@ export async function recordDepositPayment(
     })
     .execute()
   await syncDepositItem(tx, jobId)
+  // TSK-0086: a remainder is unallocated money for the Owner's credit or refund decision; a deposit invoice paid by
+  // this money announces it once.
+  await syncUnallocatedItem(tx, jobId)
+  await announcePaidInvoices(tx, jobId)
   const after = await requirementOfJob(tx, jobId)
   return {
     paymentId: payment.id,
@@ -513,19 +542,24 @@ export async function markCheckCleared(
   actor: StaffActor,
   paymentId: string,
 ): Promise<{ jobId: string; state: PaymentState; depositState: DepositState | null; version: number }> {
-  // The lock order of every deposit write: the requirement first, then the payment.
-  const target = await tx
+  // The lock order of every money write: the deposit requirement first, then the invoices, then the payment.
+  const targets = await tx
     .selectFrom('finance.payment_allocations')
-    .select('deposit_requirement_id')
+    .select(['deposit_requirement_id', 'invoice_id'])
     .where('payment_id', '=', paymentId)
-    .executeTakeFirst()
-  if (target)
+    .execute()
+  const requirements = targets.flatMap((a) => (a.deposit_requirement_id ? [a.deposit_requirement_id] : []))
+  const invoices = targets.flatMap((a) => (a.invoice_id ? [a.invoice_id] : []))
+  if (requirements.length)
     await tx
       .selectFrom('finance.deposit_requirements')
       .select('id')
-      .where('id', '=', target.deposit_requirement_id)
+      .where('id', 'in', requirements)
+      .orderBy('id')
       .forUpdate()
       .execute()
+  if (invoices.length)
+    await tx.selectFrom('finance.invoices').select('id').where('id', 'in', invoices).orderBy('id').forUpdate().execute()
   const p = await tx
     .selectFrom('finance.payments')
     .select(['id', 'job_id', 'method', 'state', 'collector_staff_id', 'version'])
@@ -544,6 +578,8 @@ export async function markCheckCleared(
     .returning(['state', 'version'])
     .executeTakeFirstOrThrow()
   await syncDepositItem(tx, p.job_id)
+  // TSK-0086: an invoice the cleared check pays in full is Paid now, announced once.
+  await announcePaidInvoices(tx, p.job_id)
   const r = await requirementOfJob(tx, p.job_id)
   return {
     jobId: p.job_id,

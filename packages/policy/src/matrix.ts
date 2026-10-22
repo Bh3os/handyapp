@@ -109,6 +109,10 @@ export const ACTIONS = [
   'check.mark_cleared',
   'check.mark_returned',
   'payment.reconcile',
+  // PROPOSED (TSK-0086, HH-FIN-06): recording a Square payout or a Square fee by hand is reconciliation work, so both
+  // sit in the reconcile row with the same cells (no "own collection" condition: neither is a customer payment).
+  'payout.record',
+  'fee.record',
   'deposit.waive',
   'payment.refund',
   'payment.credit',
@@ -520,16 +524,25 @@ export const MATRIX: readonly MatrixRow[] = [
   row(FINANCE, 'Mark a check cleared', ['check.mark_cleared'], {
     owner: Y('Y', { conditions: NOT_SELF_COLLECTED }),
   }),
-  row(FINANCE, 'Mark a check returned; reconcile', ['check.mark_returned', 'payment.reconcile'], {
-    owner: only('Y', {
-      'check.mark_returned': { scope: 'any' },
-      'payment.reconcile': { scope: 'any', conditions: NOT_SELF_COLLECTED },
-    }),
-    office: only('Y (P)', {
-      'check.mark_returned': { scope: 'any', ...P },
-      'payment.reconcile': { scope: 'any', conditions: NOT_SELF_COLLECTED, ...P },
-    }),
-  }),
+  row(
+    FINANCE,
+    'Mark a check returned; reconcile',
+    ['check.mark_returned', 'payment.reconcile', 'payout.record', 'fee.record'],
+    {
+      owner: only('Y', {
+        'check.mark_returned': { scope: 'any' },
+        'payment.reconcile': { scope: 'any', conditions: NOT_SELF_COLLECTED },
+        'payout.record': { scope: 'any' },
+        'fee.record': { scope: 'any' },
+      }),
+      office: only('Y (P)', {
+        'check.mark_returned': { scope: 'any', ...P },
+        'payment.reconcile': { scope: 'any', conditions: NOT_SELF_COLLECTED, ...P },
+        'payout.record': { scope: 'any', ...P },
+        'fee.record': { scope: 'any', ...P },
+      }),
+    },
+  ),
   row(
     FINANCE,
     '(any of the above for a payment they collected themselves)',

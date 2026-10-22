@@ -1063,3 +1063,28 @@
   margin-block: var(--hh-space-3);
   overflow-wrap: anywhere;
 }
+
+/* The job's invoices (TSK-0085): the lines of an invoice, description and amount. */
+.staff-invoice {
+  margin-block: var(--hh-space-3);
+}
+
+.staff-invoice__lines {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.staff-invoice__lines th,
+.staff-invoice__lines td {
+  text-align: left;
+  padding: var(--hh-space-2);
+  border-bottom: var(--hh-hairline);
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+
+.staff-invoice__lines th:last-child,
+.staff-invoice__lines td:last-child {
+  text-align: right;
+  white-space: nowrap;
+}

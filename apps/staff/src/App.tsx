@@ -32,6 +32,7 @@ import { StaffScreen } from './StaffManagement'
 import { StartReviewPage, StartWorkPage } from './StartWork'
 import { JobSafety, SafetyHoldPage, flushPendingStops } from './StopWork'
 import { StagingTools } from './StagingTools'
+import { LaunchPhaseSetting } from './LaunchPhase'
 import { ConfigurationScreen, HealthScreen } from './System'
 import { VisitTimesPage } from './VisitTimes'
 
@@ -287,6 +288,13 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
               <EstimatePublishingSetting t={t} fetchImpl={doFetch} />
               <ApprovalThresholdSetting
                 t={t}
+                fetchImpl={doFetch}
+                onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
+              />
+              {/* TSK-0142: the launch phase and its switches (the Owner only; phase 1 until the Owner approves more). */}
+              <LaunchPhaseSetting
+                t={t}
+                locale={locale}
                 fetchImpl={doFetch}
                 onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
               />

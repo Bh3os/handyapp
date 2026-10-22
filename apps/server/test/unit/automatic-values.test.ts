@@ -131,6 +131,9 @@ describe('[HH-COM-06][FACT-AUTOMATIC-MESSAGES] which messages are wired', () => 
       'staff_notice.customer_reply',
       // TSK-0077: the work-paused draft stores both of its values.
       'job.paused',
+      // TSK-0085: the invoice-ready and deposit-invoice notices of an issued invoice.
+      'invoice.deposit',
+      'invoice.ready',
     ]
     for (const key of wired) {
       const type = MESSAGE_TYPES.get(key)
@@ -143,13 +146,11 @@ describe('[HH-COM-06][FACT-AUTOMATIC-MESSAGES] which messages are wired', () => 
         key,
       ).toEqual([])
     }
-    // No event exists yet for these (TSK-0082, TSK-0084, TSK-0085, TSK-0087, TSK-0092; the estimate question
-    // answer has no record of its own).
+    // No event exists yet for these (TSK-0082, TSK-0084, TSK-0087, TSK-0092; the estimate question answer has no
+    // record of its own).
     for (const key of [
       'estimate.question_answered',
-      'invoice.deposit',
       'change_order.proposed',
-      'invoice.ready',
       'job.complete',
       'payment.receipt',
       'reminder.satisfaction_check',

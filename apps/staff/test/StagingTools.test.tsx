@@ -48,6 +48,41 @@ const STATUS: StagingStatus = {
     { id: 'change_order', available: false, task: 'TSK-0081' },
   ],
   runs: [],
+  testAccounts: [
+    {
+      id: 'customer',
+      kind: 'customer',
+      role: null,
+      email: 'oat-customer@example.test',
+      name: 'TEST DATA (fictional) Customer',
+      state: 'not_created',
+      reusable: false,
+      mfaEnrolled: null,
+      receivesEmail: true,
+    },
+    {
+      id: 'guest_customer',
+      kind: 'guest',
+      role: null,
+      email: 'oat-guest@example.test',
+      name: 'TEST DATA (fictional) Guest',
+      state: 'no_account',
+      reusable: null,
+      mfaEnrolled: null,
+      receivesEmail: false,
+    },
+    {
+      id: 'worker',
+      kind: 'staff',
+      role: 'worker',
+      email: 'oat-worker@example.test',
+      name: 'Test Worker (fictional)',
+      state: 'not_created',
+      reusable: null,
+      mfaEnrolled: false,
+      receivesEmail: true,
+    },
+  ],
 }
 
 function api(responses: Record<string, (init?: RequestInit) => Response>, locale: 'en' | 'es' = 'en') {
@@ -117,5 +152,35 @@ describe('Staging Tools on the Owner Dashboard (TSK-0141, HH-OPS-05)', () => {
     render(<App path="/staff/dashboard" base="/staff/" fetchImpl={fetchImpl} />)
     expect(await screen.findByText('STAGING / MODO DE PRUEBA')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Restablecer datos de prueba' })).toBeTruthy()
+  })
+
+  it('[HH-OPS-06] lists the test accounts without any credential and creates them with a reason (TSK-0142)', async () => {
+    let sent: unknown = null
+    const fetchImpl = api({
+      '/api/v1/staff/staging/test-accounts': (init) => {
+        sent = JSON.parse(String(init?.body))
+        return json(200, {
+          outcomes: [
+            { id: 'customer', outcome: 'created', step: null, codes: [] },
+            { id: 'guest_customer', outcome: 'no_account', step: null, codes: [] },
+            { id: 'worker', outcome: 'created', step: null, codes: [] },
+          ],
+          accounts: [],
+        })
+      },
+      '/api/v1/staff/staging/test-data': () => json(200, STATUS),
+    })
+    render(<App path="/staff/dashboard" base="/staff/" fetchImpl={fetchImpl} />)
+    const section = await screen.findByTestId('staging-test-accounts')
+    expect(within(screen.getByTestId('test-account-worker')).getByText(/oat-worker@example\.test/)).toBeTruthy()
+    expect(
+      within(screen.getByTestId('test-account-guest_customer')).getByText(
+        'Not an approved test address: email cannot arrive',
+      ),
+    ).toBeTruthy()
+    expect(section.textContent).not.toMatch(/password:/i)
+    fireEvent.click(within(section).getByRole('button', { name: 'Create the test accounts' }))
+    expect(await screen.findByText('Staff (Worker): created')).toBeTruthy()
+    expect(sent).toEqual({ reason: 'Owner Acceptance Testing on staging' })
   })
 })

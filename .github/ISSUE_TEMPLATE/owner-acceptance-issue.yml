@@ -1,0 +1,69 @@
+# Owner Acceptance Testing issue (TSK-0142; HH-OPS-06, OWN-DEC-191): the Owner's direct way to report a problem found on
+# staging. Synthetic test data only: never a password, code, invite link or real personal details (RULE-SYNTHETIC-DATA).
+name: Owner Acceptance Testing issue
+description: Report a problem found while testing HandyHub on staging (docs/owner-acceptance-testing.md).
+title: '[OAT] '
+labels: ['owner-acceptance-testing']
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Thank you for testing. Please never paste a password, a sign-in code, an invite or project link, or real
+        personal details here: use the fictional test accounts only.
+  - type: input
+    id: step
+    attributes:
+      label: Checklist step
+      description: The step number from docs/owner-acceptance-testing.md, for example A3 or D2.
+      placeholder: A3
+    validations:
+      required: true
+  - type: dropdown
+    id: role
+    attributes:
+      label: Signed in as
+      options:
+        - Customer (registered)
+        - Guest Customer (no account)
+        - Staff (Worker)
+        - Estimator
+        - Office
+        - Owner
+        - Not signed in
+    validations:
+      required: true
+  - type: input
+    id: page
+    attributes:
+      label: Page
+      description: The staging address of the page (no link that contains a code or token).
+      placeholder: https://handyhub-staging.onrender.com/request
+  - type: textarea
+    id: did
+    attributes:
+      label: What I did
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What I expected
+    validations:
+      required: true
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened
+      description: Screenshots are welcome (check they show only fictional test data).
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: How bad is it?
+      options:
+        - Blocks the journey
+        - Wrong but I can continue
+        - Cosmetic or wording
+    validations:
+      required: true
