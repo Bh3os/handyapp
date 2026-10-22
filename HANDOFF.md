@@ -248,6 +248,9 @@ full run.
 - Staging-only environment settings: `EMAIL_PROVIDER=log`, `STAGING_TOOLS=on`, `TEST_EMAIL_DESTINATIONS` (the owner's
   address; add the six `oat-<role>@example.test` test addresses for Owner Acceptance Testing), plus
   `MFA_ENCRYPTION_KEY` and the other keys already set in Render.
+- At every start the container runs the migrations, then loads the business configuration from the graph (the 26
+  services, the SOP versions, the loadout versions; repeat-safe), then starts the server (`Dockerfile` CMD, #97). A new
+  database without those syncs shows no services on the site or in the estimate request.
 - Auto-deploy appears to be off. Changing an environment variable, or a manual deploy in the Render dashboard, deploys
   the current `main`. After a deploy, check the logs to confirm the migrations applied and the server started.
 - **Reading an invite or password-reset link:** trigger the invite/reset in the staff app, then open Render → service →
