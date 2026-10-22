@@ -42,6 +42,13 @@ const STAFF_REF = {
 }
 const ADDRESS = obj({ street: S, unit: NS, city: S, state: S, zip: S })
 
+const COUNTY_VERIFICATION = {
+  type: ['object', 'null'],
+  additionalProperties: false,
+  required: ['state', 'county', 'inArea', 'addressVersion', 'verifiedBy', 'verifiedAt'],
+  properties: { state: S, county: S, inArea: B, addressVersion: I, verifiedBy: STAFF_REF, verifiedAt: S },
+}
+
 /** TSK-0123 (OWN-DEC-159): the property's zone, its state and what it rests on; zone null while unknown. */
 export const ZONE_STATE = obj({
   zone: NS,
@@ -75,6 +82,8 @@ export const PROPERTY_VIEW = obj({
     }),
   ),
   coverage: S,
+  coverageReason: NS,
+  countyVerification: COUNTY_VERIFICATION,
   createdAt: S,
   details: arr(
     obj({
@@ -130,7 +139,7 @@ export const PROPERTY_VIEW = obj({
     removed: arr(obj({ id: S, kind: S, label: NS, removedAt: S, removedBy: STAFF_REF, reason: S, createdAt: S })),
   }),
   history: arr(obj({ at: S, detail: S, action: S, source: S, by: STAFF_REF, reason: S })),
-  actions: obj({ edit: B, setAccessCodes: B, revealAccessCodes: B, verifyTimeZone: B }),
+  actions: obj({ edit: B, setAccessCodes: B, revealAccessCodes: B, verifyCounty: B, verifyTimeZone: B }),
 })
 
 export const ADDRESS_BODY = obj(
@@ -145,6 +154,20 @@ export const ADDRESS_BODY = obj(
   },
   ['street', 'city', 'state', 'zip', 'source', 'reason'],
 )
+
+/** TSK-0127: staff verified the complete address (this address version) and its county. */
+export const COUNTY_BODY = obj(
+  {
+    addressVersion: { type: 'integer', minimum: 1 },
+    addressChecked: { type: 'boolean', const: true },
+    state: { type: 'string', pattern: '^\\s*[A-Za-z]{2}\\s*$' },
+    county: { type: 'string', minLength: 1, maxLength: 100, pattern: '\\S' },
+    note: { type: ['string', 'null'], maxLength: 1000 },
+  },
+  ['addressVersion', 'addressChecked', 'state', 'county'],
+)
+
+export const COUNTY_RESULT = obj({ id: S, inArea: B, state: S, county: S, addressVersion: I })
 
 export const TYPE_BODY = obj({
   propertyType: { type: 'string', enum: ['house', 'apartment_condo', 'townhouse', 'rental_short_term'] },

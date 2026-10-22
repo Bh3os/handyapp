@@ -39,6 +39,7 @@ import { createWorker } from '../../src/platform/jobs.js'
 import { createProviders } from '../../src/providers/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
+import { verifyCountyOf } from '../fixtures/county.js'
 import { testConfig } from '../fixtures/env.js'
 import { verifyPropertyZone } from '../fixtures/zones.js'
 
@@ -208,6 +209,8 @@ async function project(): Promise<Project> {
     .select(['r.id', 'r.project_id', 'r.contact_id', 'p.property_id'])
     .where('r.reference', '=', reference)
     .executeTakeFirstOrThrow()
+  // TSK-0127: staff's address and county check, which a first confirmation needs.
+  await verifyCountyOf(t.db, row.project_id)
   // TSK-0123: the property's zone is unknown until verified; these tests plan visits, so it is verified first.
   await verifyPropertyZone(t.db, { projectId: row.project_id })
   const grant = await t.db

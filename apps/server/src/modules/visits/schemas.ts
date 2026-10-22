@@ -577,6 +577,31 @@ const VISIT = {
   },
 } as const
 
+/** TSK-0127: staff's verification of the property's address and county for its current address version. */
+export const COUNTY_VERIFICATION = {
+  anyOf: [
+    {
+      type: 'object',
+      additionalProperties: false,
+      required: ['state', 'county', 'inArea', 'addressVersion', 'verifiedBy', 'verifiedAt'],
+      properties: {
+        state: { type: 'string' },
+        county: { type: 'string' },
+        inArea: { type: 'boolean' },
+        addressVersion: { type: 'integer' },
+        verifiedBy: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['id', 'name'],
+          properties: { id: { type: 'string' }, name: { type: ['string', 'null'] } },
+        },
+        verifiedAt: { type: 'string' },
+      },
+    },
+    { type: 'null' },
+  ],
+} as const
+
 export const PROJECT_VISITS = {
   type: 'object',
   additionalProperties: false,
@@ -584,6 +609,7 @@ export const PROJECT_VISITS = {
     'projectId',
     'projectState',
     'timeZone',
+    'coverage',
     'businessTimeZone',
     'visitHours',
     'windowOffers',
@@ -598,6 +624,17 @@ export const PROJECT_VISITS = {
     projectState: { type: 'string' },
     // TSK-0123: the property's zone; null while it is unknown (no visit is planned until it is verified).
     timeZone: { type: ['string', 'null'] },
+    coverage: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['result', 'code', 'reason', 'countyVerification'],
+      properties: {
+        result: { type: 'string' },
+        code: { type: 'string' },
+        reason: { type: ['string', 'null'] },
+        countyVerification: COUNTY_VERIFICATION,
+      },
+    },
     businessTimeZone: {
       anyOf: [
         {

@@ -30,9 +30,10 @@ async function zipRule(db: Reader, zip: string) {
     .where('s.status', '=', 'active')
     .where('r.zip5', '=', z)
     .executeTakeFirst()
-  return row
-    ? { disposition: row.disposition as 'in_coverage' | 'boundary' | 'out_of_coverage', counties: row.counties }
-    : null
+  // TSK-0127 (migration 0067, OWN-DEC-179 rule 8): a rule may now be 'unknown' (a PO Box or Unique mailing ZIP), which
+  // never proves where a property is; its counties derive no zone, so the zone stays unknown like a ZIP without a rule.
+  if (!row || row.disposition === 'unknown') return null
+  return { disposition: row.disposition as 'in_coverage' | 'boundary' | 'out_of_coverage', counties: row.counties }
 }
 
 /**

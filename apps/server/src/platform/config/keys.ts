@@ -188,6 +188,11 @@ export const CONFIG_KEYS = {
       }),
     ),
   }),
+  // TSK-0127 (OWN-DEC-179 rules 4 and 13): the authoritative geographic source the ZIP dataset and property addresses
+  // are verified against: the ZIP-to-county relationship file and the address-to-county lookup. None is available to
+  // this build: NOT CONFIGURED, so the active rule set answers from the owner's dataset alone (verification
+  // 'not_configured') and `coverage import <file>` verifies it once the Census file is supplied.
+  'coverage.verification_source': shape({ zipToCounty: text, addressToCounty: text }),
   // TSK-0028 (HH-INT-02, OWN-DEC-92): the hours of the preferred windows, inside contact.hours. Not given by the owner:
   // NOT CONFIGURED (OQ-WINDOW-HOURS), so the form shows the five windows without hours.
   'request.window_hours': shape({

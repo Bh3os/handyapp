@@ -14,6 +14,7 @@ import { createStaffUser, setPasswordHash } from '../../src/modules/identity/acc
 import { hashPassword } from '../../src/modules/identity/passwords.js'
 import { disable } from '../../src/modules/staff/members.js'
 import { runWithContext } from '../../src/platform/request-context.js'
+import { verifyCountyOf } from '../fixtures/county.js'
 import { testConfig } from '../fixtures/env.js'
 import { verifyPropertyZone } from '../fixtures/zones.js'
 
@@ -173,6 +174,8 @@ async function siteVisitProject(): Promise<Project> {
     .select(['id', 'project_id'])
     .where('reference', '=', reference)
     .executeTakeFirstOrThrow()
+  // TSK-0127: staff's address and county check, which a first confirmation needs.
+  await verifyCountyOf(t.db, row.project_id)
   // TSK-0123: the property's zone is unknown until verified; these tests plan visits, so it is verified first.
   await verifyPropertyZone(t.db, { projectId: row.project_id })
   const p = { requestId: row.id, projectId: row.project_id, reference }

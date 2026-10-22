@@ -228,13 +228,25 @@ describe('property record: details, last-confirmed dates and address history (TS
     expect(v.formerAddresses).toEqual([])
     expect(v.requests).toEqual([expect.objectContaining({ reference: s.reference, formerAddress: false })])
     expect(v.customers).toHaveLength(1)
-    expect(v.actions).toEqual({ edit: true, setAccessCodes: true, revealAccessCodes: true, verifyTimeZone: true })
+    expect(v.actions).toEqual({
+      edit: true,
+      setAccessCodes: true,
+      revealAccessCodes: true,
+      verifyCounty: true,
+      verifyTimeZone: true,
+    })
   })
 
   it('[HH-CRM-02][RULE-SERVER-AUTHZ] roles: estimator reads without codes; a worker reaches no property; customers never', async () => {
     const est = await view('estimator', s.propertyId)
     expect(est.accessCodes).toEqual({ visible: false, store: 'available', items: [], removed: [] })
-    expect(est.actions).toEqual({ edit: false, setAccessCodes: false, revealAccessCodes: false, verifyTimeZone: false })
+    expect(est.actions).toEqual({
+      edit: false,
+      setAccessCodes: false,
+      revealAccessCodes: false,
+      verifyCounty: false,
+      verifyTimeZone: false,
+    })
     // No visit assignment exists yet: a worker sees no property (the address follows the visit window, OWN-DEC-40).
     expect((await get(`/staff/properties/${s.propertyId}`, staff.worker.cookie)).statusCode).toBe(403)
     // An altered ID finds nothing; a customer session never reaches the staff surface.

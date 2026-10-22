@@ -12692,7 +12692,7 @@
       "get": {
         "operationId": "checkCoverage",
         "summary": "ZIP coverage check",
-        "description": "Guest or customer. The outcome for a ZIP (in_coverage, boundary, out_of_coverage or unknown) and its message, from the active coverage rule set; unknown while no rule set is active (configured: false). Area eligibility only: never an appointment, availability, price or travel charge, and never a reason to refuse a request.",
+        "description": "Guest or customer. The outcome for a ZIP (in_coverage, boundary, out_of_coverage or unknown), its code (SERVED, EDGE, OUTSIDE, UNKNOWN) and its message, from the active coverage rule set; unknown while no rule set is active (configured: false). A PO Box or Unique ZIP is unknown with a note asking for the property ZIP (it never proves coverage). Area eligibility only: never an appointment, availability, price or travel charge, and never a reason to refuse a request.",
         "tags": [
           "coverage"
         ],
@@ -12718,8 +12718,10 @@
                   "required": [
                     "zip",
                     "outcome",
+                    "code",
                     "configured",
-                    "message"
+                    "message",
+                    "note"
                   ],
                   "properties": {
                     "zip": {
@@ -12734,11 +12736,26 @@
                         "unknown"
                       ]
                     },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "SERVED",
+                        "EDGE",
+                        "OUTSIDE",
+                        "UNKNOWN"
+                      ]
+                    },
                     "configured": {
                       "type": "boolean"
                     },
                     "message": {
                       "type": "string"
+                    },
+                    "note": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     }
                   }
                 }
@@ -27170,6 +27187,7 @@
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
+                                  "coverage.verification_source",
                                   "request.window_hours",
                                   "estimate.visit_fee",
                                   "legal.privacy_notice",
@@ -28725,6 +28743,7 @@
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
+                                  "coverage.verification_source",
                                   "request.window_hours",
                                   "estimate.visit_fee",
                                   "legal.privacy_notice",
@@ -30558,6 +30577,7 @@
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
+                                  "coverage.verification_source",
                                   "request.window_hours",
                                   "estimate.visit_fee",
                                   "legal.privacy_notice",
@@ -31967,6 +31987,7 @@
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
+                                  "coverage.verification_source",
                                   "request.window_hours",
                                   "estimate.visit_fee",
                                   "legal.privacy_notice",
@@ -33551,6 +33572,7 @@
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
+                                  "coverage.verification_source",
                                   "request.window_hours",
                                   "estimate.visit_fee",
                                   "legal.privacy_notice",
@@ -34960,6 +34982,7 @@
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
+                                  "coverage.verification_source",
                                   "request.window_hours",
                                   "estimate.visit_fee",
                                   "legal.privacy_notice",
@@ -36735,6 +36758,7 @@
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
+                                  "coverage.verification_source",
                                   "request.window_hours",
                                   "estimate.visit_fee",
                                   "legal.privacy_notice",
@@ -38332,6 +38356,7 @@
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
+                                  "coverage.verification_source",
                                   "request.window_hours",
                                   "estimate.visit_fee",
                                   "legal.privacy_notice",
@@ -39920,6 +39945,7 @@
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
+                                  "coverage.verification_source",
                                   "request.window_hours",
                                   "estimate.visit_fee",
                                   "legal.privacy_notice",
@@ -41513,6 +41539,7 @@
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
+                                  "coverage.verification_source",
                                   "request.window_hours",
                                   "estimate.visit_fee",
                                   "legal.privacy_notice",
@@ -43442,6 +43469,7 @@
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
+                                  "coverage.verification_source",
                                   "request.window_hours",
                                   "estimate.visit_fee",
                                   "legal.privacy_notice",
@@ -45030,6 +45058,7 @@
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
+                                  "coverage.verification_source",
                                   "request.window_hours",
                                   "estimate.visit_fee",
                                   "legal.privacy_notice",
@@ -46822,6 +46851,7 @@
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
+                                  "coverage.verification_source",
                                   "request.window_hours",
                                   "estimate.visit_fee",
                                   "legal.privacy_notice",
@@ -68459,6 +68489,7 @@
                     "projectId",
                     "projectState",
                     "timeZone",
+                    "coverage",
                     "businessTimeZone",
                     "visitHours",
                     "windowOffers",
@@ -68480,6 +68511,85 @@
                         "string",
                         "null"
                       ]
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "result",
+                        "code",
+                        "reason",
+                        "countyVerification"
+                      ],
+                      "properties": {
+                        "result": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "reason": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "countyVerification": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "state",
+                                "county",
+                                "inArea",
+                                "addressVersion",
+                                "verifiedBy",
+                                "verifiedAt"
+                              ],
+                              "properties": {
+                                "state": {
+                                  "type": "string"
+                                },
+                                "county": {
+                                  "type": "string"
+                                },
+                                "inArea": {
+                                  "type": "boolean"
+                                },
+                                "addressVersion": {
+                                  "type": "integer"
+                                },
+                                "verifiedBy": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "verifiedAt": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
                     },
                     "businessTimeZone": {
                       "anyOf": [
@@ -70117,6 +70227,7 @@
                     "projectId",
                     "projectState",
                     "timeZone",
+                    "coverage",
                     "businessTimeZone",
                     "visitHours",
                     "windowOffers",
@@ -70138,6 +70249,85 @@
                         "string",
                         "null"
                       ]
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "result",
+                        "code",
+                        "reason",
+                        "countyVerification"
+                      ],
+                      "properties": {
+                        "result": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "reason": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "countyVerification": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "state",
+                                "county",
+                                "inArea",
+                                "addressVersion",
+                                "verifiedBy",
+                                "verifiedAt"
+                              ],
+                              "properties": {
+                                "state": {
+                                  "type": "string"
+                                },
+                                "county": {
+                                  "type": "string"
+                                },
+                                "inArea": {
+                                  "type": "boolean"
+                                },
+                                "addressVersion": {
+                                  "type": "integer"
+                                },
+                                "verifiedBy": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "verifiedAt": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
                     },
                     "businessTimeZone": {
                       "anyOf": [
@@ -71685,6 +71875,8 @@
                     "zone",
                     "zoneHistory",
                     "coverage",
+                    "coverageReason",
+                    "countyVerification",
                     "createdAt",
                     "details",
                     "formerAddresses",
@@ -71886,6 +72078,66 @@
                     },
                     "coverage": {
                       "type": "string"
+                    },
+                    "coverageReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "countyVerification": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "state",
+                        "county",
+                        "inArea",
+                        "addressVersion",
+                        "verifiedBy",
+                        "verifiedAt"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string"
+                        },
+                        "county": {
+                          "type": "string"
+                        },
+                        "inArea": {
+                          "type": "boolean"
+                        },
+                        "addressVersion": {
+                          "type": "integer"
+                        },
+                        "verifiedBy": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        },
+                        "verifiedAt": {
+                          "type": "string"
+                        }
+                      }
                     },
                     "createdAt": {
                       "type": "string"
@@ -72421,6 +72673,7 @@
                         "edit",
                         "setAccessCodes",
                         "revealAccessCodes",
+                        "verifyCounty",
                         "verifyTimeZone"
                       ],
                       "properties": {
@@ -72431,6 +72684,9 @@
                           "type": "boolean"
                         },
                         "revealAccessCodes": {
+                          "type": "boolean"
+                        },
+                        "verifyCounty": {
                           "type": "boolean"
                         },
                         "verifyTimeZone": {
@@ -73891,6 +74147,252 @@
           "freshAuthMinutes": null,
           "csrf": "required_with_staff_session",
           "audit": "property.edit_address",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/properties.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/properties/{propertyId}/county-verification": {
+      "post": {
+        "operationId": "verifyPropertyCounty",
+        "summary": "Record the verified address and county of a property",
+        "description": "Staff with visit.confirm (Owner, Office). Records that staff checked the complete address of the current address version (addressChecked) and the county it lies in, with an optional note on how. The county is compared with the service area (coverage.area): inArea. A first visit is confirmed only after this, with the county inside the area; a later address change needs a new verification. If-Match is the property version; addressVersion must be the current one (ADDRESS_VERSION_CHANGED). The property version does not change.",
+        "tags": [
+          "properties"
+        ],
+        "parameters": [
+          {
+            "name": "propertyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "addressVersion",
+                  "addressChecked",
+                  "state",
+                  "county"
+                ],
+                "properties": {
+                  "addressVersion": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "addressChecked": {
+                    "type": "boolean",
+                    "const": true
+                  },
+                  "state": {
+                    "type": "string",
+                    "pattern": "^\\s*[A-Za-z]{2}\\s*$"
+                  },
+                  "county": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "pattern": "\\S"
+                  },
+                  "note": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 1000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "inArea",
+                    "state",
+                    "county",
+                    "addressVersion"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "inArea": {
+                      "type": "boolean"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "county": {
+                      "type": "string"
+                    },
+                    "addressVersion": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "visit.confirm",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "property.verify_county",
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/properties.test.ts"
@@ -76836,11 +77338,22 @@
                       "additionalProperties": false,
                       "required": [
                         "result",
+                        "code",
+                        "reason",
                         "ruleSet"
                       ],
                       "properties": {
                         "result": {
                           "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "reason": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
                         },
                         "ruleSet": {
                           "type": [
@@ -86460,6 +86973,7 @@
                               "messages.automatic",
                               "sms.help_reply",
                               "coverage.area",
+                              "coverage.verification_source",
                               "request.window_hours",
                               "estimate.visit_fee",
                               "legal.privacy_notice",
@@ -87892,6 +88406,7 @@
                     "projectId",
                     "projectState",
                     "timeZone",
+                    "coverage",
                     "businessTimeZone",
                     "visitHours",
                     "windowOffers",
@@ -87913,6 +88428,85 @@
                         "string",
                         "null"
                       ]
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "result",
+                        "code",
+                        "reason",
+                        "countyVerification"
+                      ],
+                      "properties": {
+                        "result": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "reason": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "countyVerification": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "state",
+                                "county",
+                                "inArea",
+                                "addressVersion",
+                                "verifiedBy",
+                                "verifiedAt"
+                              ],
+                              "properties": {
+                                "state": {
+                                  "type": "string"
+                                },
+                                "county": {
+                                  "type": "string"
+                                },
+                                "inArea": {
+                                  "type": "boolean"
+                                },
+                                "addressVersion": {
+                                  "type": "integer"
+                                },
+                                "verifiedBy": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "verifiedAt": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
                     },
                     "businessTimeZone": {
                       "anyOf": [
@@ -90049,6 +90643,7 @@
                     "projectId",
                     "projectState",
                     "timeZone",
+                    "coverage",
                     "businessTimeZone",
                     "visitHours",
                     "windowOffers",
@@ -90070,6 +90665,85 @@
                         "string",
                         "null"
                       ]
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "result",
+                        "code",
+                        "reason",
+                        "countyVerification"
+                      ],
+                      "properties": {
+                        "result": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "reason": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "countyVerification": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "state",
+                                "county",
+                                "inArea",
+                                "addressVersion",
+                                "verifiedBy",
+                                "verifiedAt"
+                              ],
+                              "properties": {
+                                "state": {
+                                  "type": "string"
+                                },
+                                "county": {
+                                  "type": "string"
+                                },
+                                "inArea": {
+                                  "type": "boolean"
+                                },
+                                "addressVersion": {
+                                  "type": "integer"
+                                },
+                                "verifiedBy": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "verifiedAt": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
                     },
                     "businessTimeZone": {
                       "anyOf": [
@@ -91676,6 +92350,7 @@
                     "projectId",
                     "projectState",
                     "timeZone",
+                    "coverage",
                     "businessTimeZone",
                     "visitHours",
                     "windowOffers",
@@ -91697,6 +92372,85 @@
                         "string",
                         "null"
                       ]
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "result",
+                        "code",
+                        "reason",
+                        "countyVerification"
+                      ],
+                      "properties": {
+                        "result": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "reason": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "countyVerification": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "state",
+                                "county",
+                                "inArea",
+                                "addressVersion",
+                                "verifiedBy",
+                                "verifiedAt"
+                              ],
+                              "properties": {
+                                "state": {
+                                  "type": "string"
+                                },
+                                "county": {
+                                  "type": "string"
+                                },
+                                "inArea": {
+                                  "type": "boolean"
+                                },
+                                "addressVersion": {
+                                  "type": "integer"
+                                },
+                                "verifiedBy": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "verifiedAt": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
                     },
                     "businessTimeZone": {
                       "anyOf": [
@@ -93881,6 +94635,7 @@
                     "projectId",
                     "projectState",
                     "timeZone",
+                    "coverage",
                     "businessTimeZone",
                     "visitHours",
                     "windowOffers",
@@ -93902,6 +94657,85 @@
                         "string",
                         "null"
                       ]
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "result",
+                        "code",
+                        "reason",
+                        "countyVerification"
+                      ],
+                      "properties": {
+                        "result": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "reason": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "countyVerification": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "state",
+                                "county",
+                                "inArea",
+                                "addressVersion",
+                                "verifiedBy",
+                                "verifiedAt"
+                              ],
+                              "properties": {
+                                "state": {
+                                  "type": "string"
+                                },
+                                "county": {
+                                  "type": "string"
+                                },
+                                "inArea": {
+                                  "type": "boolean"
+                                },
+                                "addressVersion": {
+                                  "type": "integer"
+                                },
+                                "verifiedBy": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "verifiedAt": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
                     },
                     "businessTimeZone": {
                       "anyOf": [
@@ -96036,6 +96870,7 @@
                     "projectId",
                     "projectState",
                     "timeZone",
+                    "coverage",
                     "businessTimeZone",
                     "visitHours",
                     "windowOffers",
@@ -96057,6 +96892,85 @@
                         "string",
                         "null"
                       ]
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "result",
+                        "code",
+                        "reason",
+                        "countyVerification"
+                      ],
+                      "properties": {
+                        "result": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "reason": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "countyVerification": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "state",
+                                "county",
+                                "inArea",
+                                "addressVersion",
+                                "verifiedBy",
+                                "verifiedAt"
+                              ],
+                              "properties": {
+                                "state": {
+                                  "type": "string"
+                                },
+                                "county": {
+                                  "type": "string"
+                                },
+                                "inArea": {
+                                  "type": "boolean"
+                                },
+                                "addressVersion": {
+                                  "type": "integer"
+                                },
+                                "verifiedBy": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "verifiedAt": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
                     },
                     "businessTimeZone": {
                       "anyOf": [
@@ -98999,6 +99913,7 @@
                     "projectId",
                     "projectState",
                     "timeZone",
+                    "coverage",
                     "businessTimeZone",
                     "visitHours",
                     "windowOffers",
@@ -99020,6 +99935,85 @@
                         "string",
                         "null"
                       ]
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "result",
+                        "code",
+                        "reason",
+                        "countyVerification"
+                      ],
+                      "properties": {
+                        "result": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "reason": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "countyVerification": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "state",
+                                "county",
+                                "inArea",
+                                "addressVersion",
+                                "verifiedBy",
+                                "verifiedAt"
+                              ],
+                              "properties": {
+                                "state": {
+                                  "type": "string"
+                                },
+                                "county": {
+                                  "type": "string"
+                                },
+                                "inArea": {
+                                  "type": "boolean"
+                                },
+                                "addressVersion": {
+                                  "type": "integer"
+                                },
+                                "verifiedBy": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "verifiedAt": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
                     },
                     "businessTimeZone": {
                       "anyOf": [
@@ -100610,6 +101604,7 @@
                     "projectId",
                     "projectState",
                     "timeZone",
+                    "coverage",
                     "businessTimeZone",
                     "visitHours",
                     "windowOffers",
@@ -100631,6 +101626,85 @@
                         "string",
                         "null"
                       ]
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "result",
+                        "code",
+                        "reason",
+                        "countyVerification"
+                      ],
+                      "properties": {
+                        "result": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "reason": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "countyVerification": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "state",
+                                "county",
+                                "inArea",
+                                "addressVersion",
+                                "verifiedBy",
+                                "verifiedAt"
+                              ],
+                              "properties": {
+                                "state": {
+                                  "type": "string"
+                                },
+                                "county": {
+                                  "type": "string"
+                                },
+                                "inArea": {
+                                  "type": "boolean"
+                                },
+                                "addressVersion": {
+                                  "type": "integer"
+                                },
+                                "verifiedBy": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "verifiedAt": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
                     },
                     "businessTimeZone": {
                       "anyOf": [

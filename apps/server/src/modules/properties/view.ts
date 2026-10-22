@@ -100,6 +100,7 @@ export async function staffPropertyView(
       'time_zone_counties',
       'time_zone_version',
       'coverage_result',
+      'coverage_reason',
       'created_at',
       'version',
       'address_version',
@@ -178,7 +179,17 @@ export async function staffPropertyView(
         .execute()
     : []
 
+  // TSK-0127 (final owner amendments 2026-10-22): staff's verification of the address and county, current address.
+  const county = await db
+    .selectFrom('crm.property_county_verifications')
+    .select(['state', 'county', 'in_area', 'address_version', 'verified_by', 'verified_at'])
+    .where('property_id', '=', id)
+    .where('address_version', '=', p.address_version)
+    .orderBy('seq', 'desc')
+    .limit(1)
+    .executeTakeFirst()
   const names = await staffNames(db, [
+    ...(county ? [county.verified_by] : []),
     ...details.map((d) => d.confirmed_by),
     ...addresses.map((a) => a.recorded_by),
     ...history.map((h) => h.changed_by),
@@ -216,6 +227,18 @@ export async function staffPropertyView(
       at: z.recorded_at.toISOString(),
     })),
     coverage: p.coverage_result,
+    // TSK-0127: why (null for a property checked before reasons existed).
+    coverageReason: p.coverage_reason,
+    countyVerification: county
+      ? {
+          state: county.state,
+          county: county.county,
+          inArea: county.in_area,
+          addressVersion: county.address_version,
+          verifiedBy: ref(county.verified_by) as StaffRef,
+          verifiedAt: county.verified_at.toISOString(),
+        }
+      : null,
     createdAt: p.created_at.toISOString(),
     details: PROPERTY_DETAILS.map((detail) => {
       const d = details.find((x) => x.detail === detail)
@@ -308,6 +331,8 @@ export async function staffPropertyView(
       // The role's permission; entering, replacing and revealing also need the store configured (`store`).
       setAccessCodes: mayAct.set,
       revealAccessCodes: mayAct.reveal,
+      // TSK-0127: the roles that confirm visits verify the address and county they need.
+      verifyCounty: allowed(actor, 'visit.confirm'),
       // TSK-0123: staff who edit the property record verify its zone.
       verifyTimeZone: allowed(actor, 'customer.edit'),
     },

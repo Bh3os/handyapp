@@ -52,7 +52,7 @@ export async function coverageOrUnknown(tx: Tx, zip: string, lookup = lookupCove
     return result
   } catch {
     await sql`ROLLBACK TO SAVEPOINT coverage_lookup`.execute(tx)
-    return { outcome: 'unknown', ruleSet: null }
+    return { outcome: 'unknown', ruleSet: null, reason: 'lookup_failed', zipCategory: null, counties: [] }
   }
 }
 
@@ -256,6 +256,7 @@ export async function submitRequest(
       ...newPropertyZone(propertyZone),
       coverage_result: coverage.outcome,
       coverage_rule_set: coverage.ruleSet,
+      coverage_reason: coverage.reason,
     })
     .returning('id')
     .executeTakeFirstOrThrow()
@@ -303,6 +304,7 @@ export async function submitRequest(
       marketing_opt_in: body.marketingOptIn,
       coverage_result: coverage.outcome,
       coverage_rule_set: coverage.ruleSet,
+      coverage_reason: coverage.reason,
       spam_suspected: spamSuspected,
       spam_signals: signals,
       original_submission: JSON.stringify(original),

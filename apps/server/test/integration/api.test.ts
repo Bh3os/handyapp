@@ -38,7 +38,12 @@ describe('idempotency keys (TSK-0010, HH-API-04)', () => {
     expect(again.headers['idempotent-replayed']).toBe('true')
     expect(again.json()).toEqual(first.json())
     expect(await count('public.api_widgets')).toBe(1)
-    const events = await t.db.selectFrom('platform.audit_events').select(['action', 'request_id']).execute()
+    // The migrations' own events (0067 records the ZIP dataset import) are not this request's.
+    const events = await t.db
+      .selectFrom('platform.audit_events')
+      .select(['action', 'request_id'])
+      .where('request_id', 'not like', 'migration:%')
+      .execute()
     expect(events.map((e) => e.action)).toEqual(['widget.create'])
   })
 

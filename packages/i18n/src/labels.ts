@@ -255,6 +255,7 @@ export const LABEL_FAMILIES = {
     'messages.automatic',
     'sms.help_reply',
     'coverage.area',
+    'coverage.verification_source',
     'request.window_hours',
     'estimate.visit_fee',
     'legal.privacy_notice',
@@ -330,6 +331,19 @@ export const LABEL_FAMILIES = {
   verificationState: ['unverified', 'pending', 'verified', 'expired', 'failed'],
   /** ZIP coverage outcomes (OWN-DEC-88). */
   coverageResult: ['in_coverage', 'boundary', 'out_of_coverage', 'unknown'],
+  /** Why a ZIP has its coverage outcome (TSK-0127, OWN-DEC-179; @handyhub/domain COVERAGE_REASONS, PROPOSED codes). */
+  coverageReason: [
+    'dataset_one_county',
+    'dataset_several_counties',
+    'mailing_zip',
+    'source_inside',
+    'source_partly_inside',
+    'source_outside',
+    'source_missing',
+    'not_listed',
+    'not_configured',
+    'lookup_failed',
+  ],
   estimatePreference: ['online', 'site_visit', 'let_handyhub_decide'],
   contactChannel: ['email', 'call', 'text'],
   /** FACT-PROPERTY-TYPES (OWN-DEC-139). */
@@ -657,6 +671,10 @@ export const LABEL_FAMILIES = {
     'REVIEW_HOLD_OPEN',
     'JOB_ON_HOLD',
     'CRITICAL_HOLD_OPEN',
+    // TSK-0127 (final owner amendments 2026-10-22): the address and county check before a first confirmation.
+    'COUNTY_NOT_VERIFIED',
+    'COUNTY_OUTSIDE_AREA',
+    'ADDRESS_VERSION_CHANGED',
     // TSK-0066: reschedule, reassign, cancel and the customer's change requests (apps/server/src/modules/visits/changes.ts).
     'INITIATOR_REQUIRED',
     'CAUSE_REQUIRED',
