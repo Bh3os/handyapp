@@ -1010,3 +1010,9 @@
   overflow-wrap: anywhere;
   max-width: 100%;
 }
+/* Message states are full sentences ("Approved wording released; values not wired yet"):
+   they wrap on a phone instead of widening the page. */
+.staff-messages .hh-badge {
+  white-space: normal;
+  max-width: 100%;
+}
