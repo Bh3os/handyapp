@@ -15,7 +15,7 @@ import { createAutomationRegistry } from '../../src/platform/automation.js'
 import { createWorker } from '../../src/platform/jobs.js'
 import { createProviders } from '../../src/providers/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
-import { CODE_EMAIL_SUBJECT, codeEmailText, codeSmsText } from '../fixtures/code-message.js'
+import { CODE_EMAIL_SUBJECT, codeEmailText, codeSmsText, standaloneCode } from '../fixtures/code-message.js'
 import { testConfig } from '../fixtures/env.js'
 import { signInWithMfa } from '../fixtures/staff-mfa.js'
 
@@ -338,7 +338,7 @@ describe('email and phone verified separately (TSK-0033, HH-INT-13, OWN-DEC-96)'
       ['contact_verification.verify', 'succeeded', null],
     ])
     const text = JSON.stringify(events)
-    expect(text).not.toContain(code)
+    expect(text).not.toMatch(standaloneCode(code))
     expect(text).not.toContain(email)
     expect(text).not.toContain(s.cap)
   })

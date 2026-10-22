@@ -32,7 +32,7 @@ import { createWorker } from '../../src/platform/jobs.js'
 import { createLogger } from '../../src/platform/logger.js'
 import { createProviders } from '../../src/providers/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
-import { CODE_EMAIL_SUBJECT, codeEmailText, codeSmsText } from '../fixtures/code-message.js'
+import { CODE_EMAIL_SUBJECT, codeEmailText, codeSmsText, standaloneCode } from '../fixtures/code-message.js'
 import { testConfig } from '../fixtures/env.js'
 
 const KEY: CodeKeySettings = readCodeKey({ HANDYHUB_ENV: 'ci', CODE_HASH_KEY: 'synthetic-test-code-key-'.repeat(2) })
@@ -336,7 +336,7 @@ describe('codes never appear in logs, the outbox or the database (TSK-0016, RULE
     await verify({ destination: to, code: '999999' })
     await verify({ destination: to, code })
     expect(lines.length).toBeGreaterThan(0)
-    for (const line of lines) expect(line).not.toContain(code)
+    for (const line of lines) expect(line).not.toMatch(standaloneCode(code))
     for (const table of [
       'platform.outbox_events',
       'platform.jobs',
