@@ -366,7 +366,8 @@ export type TermsCheck =
 /**
  * Whether a version's pinned terms may be accepted now: the current recorded version of legal.estimate_terms names
  * the same document, this software holds that document's wording with the recorded content hash, and the recorded
- * version is in effect for real customers (approved and attorney-reviewed, PROPOSED rule of estimateTermsInEffect).
+ * version is in effect for real customers (estimateTermsInEffect: approved, and attorney-reviewed or, for a version that
+ * needs no attorney review, carrying the owner's sign-off; TSK-0144, OWN-DEC-187).
  */
 export async function termsForApproval(db: Reader, pinned: string | null): Promise<TermsCheck> {
   const entry = (await loadConfig(db)).get('legal.estimate_terms')
@@ -374,7 +375,7 @@ export async function termsForApproval(db: Reader, pinned: string | null): Promi
   if (entry.state !== 'CONFIGURED' || !doc || pinned === null) return { ok: false, code: 'TERMS_NOT_CONFIGURED' }
   if (entry.value.documentId !== pinned) return { ok: false, code: 'TERMS_NOT_CURRENT' }
   if (entry.value.contentSha256 !== doc.contentSha256) return { ok: false, code: 'TERMS_NOT_CONFIGURED' }
-  if (!estimateTermsInEffect(entry.value)) return { ok: false, code: 'TERMS_NOT_IN_EFFECT' }
+  if (!estimateTermsInEffect(entry.value, doc)) return { ok: false, code: 'TERMS_NOT_IN_EFFECT' }
   return { ok: true, documentId: pinned, sha256: doc.contentSha256, policyVersion: entry.version }
 }
 

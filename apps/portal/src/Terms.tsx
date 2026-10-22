@@ -4,9 +4,12 @@
 //   configuration by a server test). The server decides which document a version pinned and whether its recorded
 //   version matches this exact wording; the portal only shows a document it holds under that ID.
 // - While the terms are not approved for real customers they carry the banner "TEST — wording pending owner approval
-//   for real customer use" and say they are not in effect: unapproved wording is never presented as binding.
+//   for real customer use" and say they are not in effect: unapproved wording is never presented as binding. TSK-0144:
+//   v1.0 is approved by the owner (OWN-DEC-187), so its own page carries no banner; on an estimate the server's
+//   recorded state decides, and staging documents keep their TEST mark.
 // - Shown two ways (HH-EST-13): an expandable section on the estimate, and a page of its own (/portal/terms/<id>).
 import {
+  estimateTermsApproved,
   estimateTermsDocument,
   legalDocument,
   type EstimateTermsDocument,
@@ -113,7 +116,7 @@ export function TermsPage({ documentId }: { documentId: string }) {
           <h1 id="portal-terms-title" className="hh-h2">
             {t(doc.title as CustomerKey)}
           </h1>
-          {doc.status !== 'approved' || !doc.attorneyReviewed ? <NotInEffect /> : null}
+          {estimateTermsApproved(doc) ? null : <NotInEffect />}
           <TermsText doc={doc} level={2} />
         </article>
       ) : (
