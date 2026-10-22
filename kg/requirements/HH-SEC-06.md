@@ -11,6 +11,7 @@ links:
   uses: ["[[ENT-AuditEvent]]", "[[FACT-RETENTION-SCHEDULE]]"]
   tested_by: ["[[T28]]", "[[T64]]", "[[T74]]"]
   part_of: ["[[S09]]"]
+  related: ["[[OWN-DEC-202]]"]
 source: "guide 25.3; OWN-DEC-123"
 ---
 Audited automatically (each module emits its events):
@@ -35,3 +36,5 @@ Rules ([[OWN-DEC-123]]):
 - Audit records are kept 7 years ([[FACT-RETENTION-SCHEDULE]], [[OWN-DEC-142]]), then go to the owner's deletion-review queue; records under a case or legal hold are kept until the hold ends. They are never deleted automatically.
 
 **Changed by [[OWN-DEC-164]] (2026-10-21):** deletion after 7 years is possible only through the retention workflow of [[HH-SEC-08]]; editing stays impossible.
+
+**Changed by [[OWN-DEC-202]] (2026-10-22):** MFA enrolment, factor reset and recovery-code use stay audited; enrolment is now mandatory.

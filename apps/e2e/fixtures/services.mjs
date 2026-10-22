@@ -1,7 +1,15 @@
 // e2e set-up for the request form (TSK-0027): loads the service registry into the e2e database and shows a fixed set of
 // services on the test site (public_status 'staging'), so the services step has something to choose. Synthetic test
 // set-up only: it refuses to run outside HANDYHUB_ENV=ci, and only ever touches the E2E_DATABASE_URL database.
-import { createDb, loadServiceSeed, loadSopSeed, syncServices, syncSops } from '@handyhub/db'
+import {
+  createDb,
+  loadLoadoutSeed,
+  loadServiceSeed,
+  loadSopSeed,
+  syncLoadouts,
+  syncServices,
+  syncSops,
+} from '@handyhub/db'
 
 if (process.env['HANDYHUB_ENV'] !== 'ci' || !process.env['DATABASE_URL']) {
   process.stderr.write('fixtures/services.mjs runs only for the ci e2e database\n')
@@ -35,6 +43,8 @@ try {
     db,
     loadSopSeed().filter((s) => s.serviceId !== E2E_SERVICE_WITHOUT_SOP),
   )
+  // TSK-0071: the loadout lists of every service (business configuration from the FACT-INVENTORY nodes).
+  await syncLoadouts(db, loadLoadoutSeed())
 } finally {
   await db.destroy()
 }

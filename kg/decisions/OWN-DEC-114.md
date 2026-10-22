@@ -1,15 +1,17 @@
 ---
 id: OWN-DEC-114
 type: decision
-title: Staff sign in with email and password; ZITADEL removed; MFA optional
+title: "Staff sign in with email and password; ZITADEL removed; MFA optional (MFA clause replaced by OWN-DEC-202: MFA mandatory)"
 status: active
 area: security
 links:
   supersedes: ["[[OWN-DEC-27]]"]
-  related: ["[[OWN-DEC-63]]", "[[OWN-DEC-73]]", "[[OWN-DEC-123]]", "[[ROLE-MATRIX]]", "[[HH-STAFF-01]]", "[[HH-STAFF-02]]", "[[HH-STAFF-03]]", "[[HH-SEC-02]]", "[[HH-SEC-06]]", "[[OWN-DEC-200]]"]
+  related: ["[[OWN-DEC-63]]", "[[OWN-DEC-73]]", "[[OWN-DEC-123]]", "[[ROLE-MATRIX]]", "[[HH-STAFF-01]]", "[[HH-STAFF-02]]", "[[HH-STAFF-03]]", "[[HH-SEC-02]]", "[[HH-SEC-06]]", "[[OWN-DEC-200]]", "[[OWN-DEC-202]]", "[[TSK-0154]]"]
   uses: ["[[FACT-AUTOMATIC-MESSAGES]]", "[[INT-Resend]]", "[[ENT-StaffUser]]"]
 source: "owner-answers-verbatim 2026-10-12T19:16:01.591Z [S0 Sign-in]; decision-briefs 2026-10-12T19:16:35"
 ---
+Partly replaced by [[OWN-DEC-202]] (2026-10-22): the clause "MFA is optional, recommended for privileged accounts" (with its recommendation banner and RISK) is replaced; MFA is mandatory for every active staff account (Owner, Office/Dispatcher, Estimator, Worker). The rest of this decision stands. Built by [[TSK-0154]].
+
 Partly replaced by [[OWN-DEC-200]] (2026-10-21): reactivating a disabled staff account needs a verified reset link and the Owner's permission review.
 
 Owner, 2026-10-12, staff journey S0, signing in.

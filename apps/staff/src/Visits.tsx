@@ -52,6 +52,8 @@ export type VisitWindow = {
 
 export type Visit = {
   id: string
+  /** TSK-0066: the visit's number inside its project. */
+  number?: number
   purpose: 'site_estimate' | 'service' | 'follow_up' | 'return_work'
   state: string
   version: number
@@ -112,10 +114,14 @@ export type ProjectVisits = {
   job: { id: string; scopeVersion: number | null } | null
   schedulingTask: { state: string } | null
   actions: { planEstimateVisit: boolean; planWorkVisit: boolean }
+  /** TSK-0070: the caller may open each started visit's Arrived and Finished times (the Owner). */
+  visitTimes?: boolean
   visits: Visit[]
 }
 
 const WORK_PURPOSES = ['service', 'follow_up', 'return_work'] as const
+/** TSK-0070: the visits that went on the way have Arrived and Finished times. */
+const STARTED: readonly string[] = ['en_route', 'arrived', 'completed']
 const bcp47 = (locale: StaffLocale) => (locale === 'es' ? 'es-US' : 'en-US')
 const name = (t: T, s: StaffRef) => s.name ?? t('queue.unnamed')
 
@@ -802,6 +808,19 @@ export function ProjectVisitsSection({
           ))}
         </ul>
       )}
+      {data.visitTimes && href && data.visits.some((v) => STARTED.includes(v.state)) ? (
+        <p data-testid="visit-times-links">
+          {t('visits.timesTitle')}{' '}
+          {data.visits
+            .filter((v) => STARTED.includes(v.state))
+            .map((v, i) => (
+              <span key={v.id}>
+                {i > 0 ? ', ' : null}
+                <a href={href(`/visit-times/${v.id}`)}>{t('visits.timesLink', { number: v.number ?? i + 1 })}</a>
+              </span>
+            ))}
+        </p>
+      ) : null}
       <PlanForm
         key={`${data.visits.length}-${data.actions.planEstimateVisit}-${data.actions.planWorkVisit}`}
         t={t}

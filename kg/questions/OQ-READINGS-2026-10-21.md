@@ -2,12 +2,15 @@
 id: OQ-READINGS-2026-10-21
 type: question
 title: "Interpretations made while recording the 2026-10-21 owner answers"
-status: open
+status: superseded
 area: ops
 links:
   related: ["[[OWN-DEC-153]]", "[[OWN-DEC-163]]", "[[OWN-DEC-169]]", "[[OWN-DEC-172]]", "[[OWN-DEC-173]]", "[[OWN-DEC-175]]", "[[OWN-DEC-179]]", "[[OWN-DEC-188]]", "[[OWN-DEC-193]]", "[[OWN-DEC-200]]", "[[HH-COM-15]]", "[[HH-EST-16]]"]
+  superseded_by: ["[[OWN-DEC-202]]", "[[OWN-DEC-203]]", "[[OWN-DEC-204]]", "[[OWN-DEC-205]]", "[[OWN-DEC-206]]", "[[OWN-DEC-207]]", "[[OWN-DEC-208]]"]
 source: "owner answers 2026-10-21 (R1-R12)"
 ---
+**Answered (owner, rounds 13 and 14, 2026-10-22):** all 13 readings confirmed as final owner decisions, with amendments. Reading 1 by [[OWN-DEC-202]] (MFA mandatory for every active staff account); 4 by [[OWN-DEC-203]] (credit lines with a positive magnitude and a negative effect); 5 by [[OWN-DEC-204]] (effective contract value, splitting across the project history, substance over document type); 6 by [[OWN-DEC-205]] (federal holidays excluded); 7 by [[OWN-DEC-206]] (ZIP-only results preliminary); 8 by [[OWN-DEC-207]] (9 AM–9 PM Eastern fallback); 2, 3, 9, 10, 11, 12 and 13 approved as written by [[OWN-DEC-208]]. Listed in the Business Rules Registry (`kg/maps/MAP-BUSINESS-RULES-REGISTRY.md`).
+
 **Question:** does the owner confirm these readings, chosen where the answers left a gap or two answers pulled apart? Each is used as PROPOSED until confirmed; each is a small configuration or code change.
 
 1. **H1 staff sign-in ([[OWN-DEC-200]]):** there is no external staff identity provider ([[OWN-DEC-114]] removed ZITADEL); "use the existing authorized staff identity provider" is read as keeping the app's own email-and-password sign-in with optional MFA as built; disabling clears the password, so reactivation goes through a verified reset link plus a permission review.

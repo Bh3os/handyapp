@@ -11,6 +11,7 @@ links:
   constrained_by: ["[[RULE-SERVER-AUTHZ]]", "[[RULE-MONEY-CENTS]]"]
   uses: ["[[INT-Bird]]", "[[INT-Resend]]", "[[INT-Square]]", "[[INT-R2]]"]
   tested_by: ["[[T11]]", "[[T17]]", "[[T33]]"]
+  related: ["[[OWN-DEC-202]]"]
 source: "guide 24.1-24.3; OWN-DEC ids as linked"
 ---
 The operations below are semantic contracts. Paths are proposals; what matters is one domain handler per operation, shared by every client.
@@ -96,3 +97,5 @@ Sample approval contract:
 ```
 
 `expectedTotalMinor` is the total the customer saw, never an authorized input price. The server recalculates the published options, compares, checks access and freshness, and commits acceptance, job and outbox in one transaction. It rejects an altered total, an expired or superseded revision and IDs from another project. A retry returns the same logical acceptance and job reference.
+
+**Changed by [[OWN-DEC-202]] (2026-10-22):** staff MFA enrolment and challenge are mandatory before any other staff route ([[TSK-0154]]).

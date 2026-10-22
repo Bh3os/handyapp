@@ -27,6 +27,7 @@ import {
 import { withTx } from '@handyhub/db'
 import { sql } from 'kysely'
 import { canonicalJson } from '../estimates/approval.js'
+import { ensureLoadoutPins, loadoutPackages } from '../loadouts/store.js'
 
 type Reader = Db | Tx
 
@@ -188,6 +189,9 @@ export async function packetContent(db: Reader, jobId: string): Promise<PacketCo
     .orderBy('id')
     .execute()
 
+  // TSK-0071: the loadout list pinned on each package (the items only; the confirmations live in the loadout).
+  const loadouts = await loadoutPackages(db, jobId)
+
   const deposit = await db
     .selectFrom('finance.deposit_requirements')
     .select(['required', 'state'])
@@ -294,6 +298,17 @@ export async function packetContent(db: Reader, jobId: string): Promise<PacketCo
           .map((r) => ({ equipmentId: r.equipment_id as string, name: r.name ?? '' })),
         requested: [...(v.equipment ?? [])],
       })),
+      loadout: loadouts.map((l) => ({
+        workPackageId: l.workPackageId,
+        serviceCode: l.serviceCode,
+        state: l.pin ? ('pinned' as const) : ('not_configured' as const),
+        loadoutVersionId: l.pin?.loadoutVersionId ?? null,
+        version: l.pin?.version ?? null,
+        contentSha256: l.pin?.contentSha256 ?? null,
+        items: (l.pin?.content.groups ?? []).flatMap((g) =>
+          g.items.map((i) => ({ key: i.key, group: g.heading, name: i.name, criticality: i.criticality })),
+        ),
+      })),
     },
     dependencies: {
       approvalId: job.approval_id,
@@ -383,6 +398,8 @@ export async function latestPacket(db: Reader, jobId: string): Promise<PacketRow
 export async function refreshJobPacket(db: Db | Tx, jobId: string, now = new Date()): Promise<PacketRow | null> {
   return withTx(db, async (tx) => {
     await sql`SELECT pg_advisory_xact_lock(hashtextextended(${`work.job_packet:${jobId}`}, 0))`.execute(tx)
+    // TSK-0071: a package of a service with a loadout version gets it pinned before the packet names it.
+    await ensureLoadoutPins(tx, jobId)
     const content = await packetContent(tx, jobId)
     if (!content) return null
     const digest = sha256(canonicalJson(content))

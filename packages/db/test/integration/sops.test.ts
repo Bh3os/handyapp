@@ -164,7 +164,7 @@ describe('SOP versions (TSK-0068, HH-PKT-03, ENT-SOPVersion)', () => {
   })
 
   it('the seeders load the SOP versions after the service registry', async () => {
-    expect(SEEDERS.map((s) => s.name)).toEqual(['service-registry', 'sop-versions'])
+    expect(SEEDERS.map((s) => s.name)).toEqual(['service-registry', 'sop-versions', 'loadout-versions'])
     const fresh = await createTestDatabase()
     try {
       await runSeeders(fresh.db, SEEDERS, { environment: 'ci' })

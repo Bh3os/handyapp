@@ -5,11 +5,13 @@ title: Messages that send automatically; everything else is staff-released
 status: active
 area: messaging
 links:
-  decided_by: ["[[OWN-DEC-65]]", "[[OWN-DEC-95]]", "[[OWN-DEC-98]]", "[[OWN-DEC-99]]", "[[OWN-DEC-100]]", "[[OWN-DEC-102]]", "[[OWN-DEC-105]]", "[[OWN-DEC-107]]", "[[OWN-DEC-110]]", "[[OWN-DEC-111]]", "[[OWN-DEC-114]]", "[[OWN-DEC-119]]"]
+  decided_by: ["[[OWN-DEC-65]]", "[[OWN-DEC-95]]", "[[OWN-DEC-98]]", "[[OWN-DEC-99]]", "[[OWN-DEC-100]]", "[[OWN-DEC-102]]", "[[OWN-DEC-105]]", "[[OWN-DEC-107]]", "[[OWN-DEC-110]]", "[[OWN-DEC-111]]", "[[OWN-DEC-114]]", "[[OWN-DEC-119]]", "[[OWN-DEC-209]]", "[[OWN-DEC-210]]"]
   uses: ["[[INT-Resend]]", "[[INT-Bird]]"]
   related: ["[[OWN-DEC-96]]", "[[OWN-DEC-97]]", "[[OWN-DEC-103]]", "[[OWN-DEC-120]]", "[[OWN-DEC-124]]", "[[HH-COM-04]]", "[[HH-COM-05]]", "[[HH-AUTO-01]]"]
 source: "OWN-DEC-65, 95-111, 114, 119, 120; decision-briefs 2026-10-12T18:43-19:32"
 ---
+**Changed by [[OWN-DEC-209]] and [[OWN-DEC-210]] (2026-10-22):** the verification code, question notice, estimate ready, invoice ready, not-a-fit, appointment changed and on-the-way messages get owner-authorized templates in the 21-template style (28 templates in all); unpaid-invoice reminders become automatic, 3 and 7 calendar days after the due date, with the safeguards of [[OWN-DEC-210]], and leave the staff-released list. [[TSK-0119]] and [[TSK-0091]] update the numbered table and the seeded `messages.automatic` value together.
+
 **Changed by [[OWN-DEC-151]], [[OWN-DEC-152]], [[OWN-DEC-153]], [[OWN-DEC-155]], [[OWN-DEC-156]], [[OWN-DEC-157]], [[OWN-DEC-158]] (2026-10-21):** the list below is replaced as follows; [[TSK-0119]] updates the numbered table and the seeded `messages.automatic` value together.
 - Automatic (customer): request received; verification code; secure access link; question notice; estimate-visit options; estimate visit confirmed; not-a-fit notice; estimate ready; estimate question answered (after staff release the answer); estimate reminder (3 days); question reminder (3 days); estimate approval confirmation (link only); work-appointment windows; work appointment confirmed; appointment reminder (24 hours before); appointment changed; visit cancelled; on the way; deposit invoice; proposed change; invoice ready; job complete (authorized final completion only); payment receipt (each confirmed recorded payment, partial payments say so); account email changed (old and new verified address).
 - Released by staff: staff replies (Send is the release); the service-quality follow-up 48 hours after completion; review requests and marketing (consent needed); deletion-outcome notices; unpaid-invoice reminders until [[OQ-MESSAGES-OUTSIDE-THE-21]] is answered; repeat-service reminders.

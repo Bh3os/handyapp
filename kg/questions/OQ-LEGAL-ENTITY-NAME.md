@@ -15,3 +15,5 @@ source: "OWN-DEC-126; owner-answers-verbatim 2026-10-05T16:15 [Legal entity], 16
 - **Until answered:** documents show "Handyhub LLC"; nothing claims a registration status.
 
 - **2026-10-21 ([[OWN-DEC-186]], [[OWN-DEC-190]]):** the attorney is available (packet [[TSK-0143]]); the 10DLC registration uses ODD JOBS & MORE LLC with the brand HandyHub.
+
+- **2026-10-22 ([[TSK-0143]]):** review packet ready: `docs/review-packets/attorney.md` question A-06; `docs/review-packets/cpa.md` question C-10.
