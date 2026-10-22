@@ -39,6 +39,7 @@ import { KEPT_TABLES } from '../../src/modules/staging/reset.js'
 import { recordPolicyVersion } from '../../src/platform/config/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { testConfig } from '../fixtures/env.js'
+import { signInWithMfa } from '../fixtures/staff-mfa.js'
 
 const KEY: CodeKeySettings = readCodeKey({
   HANDYHUB_ENV: 'ci',
@@ -58,7 +59,8 @@ const csrf = {} as Record<Person, string>
 const ids = {} as Record<Person, string>
 
 async function signInStaff(p: Person, target = app): Promise<[string, string]> {
-  const res = await target.inject({
+  // Staff MFA is mandatory (TSK-0154, OWN-DEC-202): the helper enrols or answers the second factor.
+  const res = await signInWithMfa(target, {
     method: 'POST',
     url: '/api/v1/staff/auth/sign-in',
     headers: { 'x-forwarded-for': '198.51.100.141' },
