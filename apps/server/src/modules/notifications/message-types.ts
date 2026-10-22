@@ -244,7 +244,8 @@ const TYPES: readonly MessageType[] = [
       'arrivalWindow',
       'projectLink',
     ),
-    supplied: [],
+    // TSK-0070 supplies the workers' first names and the window; the owner wording's values are wired by TSK-0120.
+    supplied: ['workerFirstNames', 'arrivalWindow'],
     sourceIds: ['OWN-DEC-107', 'OWN-DEC-209'],
   },
   {

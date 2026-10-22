@@ -687,7 +687,8 @@ describe('[HH-SCH-08][HH-PORT-07][T65] On my way: the assigned worker’s tap, o
       .where('subject_key', '=', `visit_on_my_way:${visitId}`)
       .execute()
     expect(deliveries).toEqual([
-      { message_key: 'visit.on_the_way', channel: 'email', state: 'failed', error_code: 'template_not_configured' },
+      // TSK-0119: the on_the_way email wording (OWN-DEC-209) is released; its values are wired by TSK-0120.
+      { message_key: 'visit.on_the_way', channel: 'email', state: 'failed', error_code: 'template_values_not_wired' },
       { message_key: 'visit.on_the_way', channel: 'sms', state: 'failed', error_code: 'template_not_configured' },
     ])
 

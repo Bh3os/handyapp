@@ -2,8 +2,9 @@
 // OWN-DEC-126, FACT-AUTOMATIC-MESSAGES). A guest opens the project with the secure link and a code; this spec's
 // Estimator publishes an estimate at or under the deposit threshold; the customer approves it and sees the owner's next
 // step ("Estimate approved—choose your work appointment."), then the approval receipt PDF once the server's job has
-// issued it, in the estimate view and in Documents. The receipt message has no owner-approved wording: it is recorded
-// as template_not_configured per destination, never as sent, and staff see that on the estimate.
+// issued it, in the estimate view and in Documents. The receipt message is not sent: its email wording is released but
+// its values are not wired yet (TSK-0119) and texts have no wording; each destination is recorded as not sent, never as
+// sent, and staff see that on the estimate.
 // No estimate terms version is recorded by the migrations, and v1.0 is not approved for real customers (approval
 // answers NOT CONFIGURED everywhere). To exercise the flow, this spec records a synthetic "approved and
 // attorney-reviewed" v1.0 for its own run only and restores NOT CONFIGURED afterwards: a test fixture, never the

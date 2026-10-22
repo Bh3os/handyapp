@@ -1,7 +1,8 @@
 // The receipt in a real browser (TSK-0032; HH-INT-12, HH-INT-20, HH-INT-07, T01, T12, T13): shown only after the
 // server confirmed the save, at /request/received/<ref>, in the owner's wording, with photo outcomes as the server
 // recorded them and a failed photo retried without a new request; a reference alone shows nothing. The receipt email
-// is NOT CONFIGURED in this database (no approved wording), so the request stays saved and staff get a delivery issue.
+// is not sent in this database (TSK-0119: its wording is released, its values are wired by TSK-0120), so the request
+// stays saved and staff get a delivery issue.
 // Review fixes: a photo still uploading holds Send and then counts on the receipt; a Retry is announced and moves focus
 // sensibly; a reload shows the latest counts the tab learned, labelled with when they were taken; the receipt is kept
 // per browser tab and the page says so.
@@ -169,7 +170,7 @@ test.describe('the receipt (TSK-0032)', () => {
     await expect(page.locator('main')).not.toContainText(/View My Request|Create an Account|\$|booked|earlier project/i)
     await axe(page)
 
-    // Saved once: the request exists; the receipt email has no approved wording, so its delivery is recorded as not
+    // Saved once: the request exists; the receipt email's values are not wired yet, so its delivery is recorded as not
     // sent, and staff get one delivery issue while the request stays in their queue.
     const saved = await withDb((db) =>
       db
