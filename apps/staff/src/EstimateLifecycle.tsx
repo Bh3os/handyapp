@@ -21,6 +21,7 @@ import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useEffect, useId, useRef, useState, type MouseEvent } from 'react'
 import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
 import { JobDeposit } from './JobDeposit'
+import { JobInvoices } from './JobInvoices'
 import { codeLabel } from './Requests'
 
 type T = (key: StaffKey, values?: Record<string, string | number | Date>) => string
@@ -572,7 +573,11 @@ export function EstimateLifecycle<V extends VersionLike>({
             ) : null}
           </dl>
           {lc.customerApproval.jobId ? (
-            <JobDeposit t={t} fetchImpl={fetchImpl} jobId={lc.customerApproval.jobId} />
+            <>
+              <JobDeposit t={t} fetchImpl={fetchImpl} jobId={lc.customerApproval.jobId} />
+              {/* TSK-0085, TSK-0086: the job's invoices. */}
+              <JobInvoices t={t} fetchImpl={fetchImpl} jobId={lc.customerApproval.jobId} />
+            </>
           ) : null}
         </div>
       ) : (

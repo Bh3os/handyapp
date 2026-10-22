@@ -273,11 +273,12 @@ describe('[HH-COM-13] the owner templates are released template versions', () =>
       state: 'ready',
       unwired: [],
     })
-    // TSK-0120 wired the receipt; the deposit invoice waits for its event (TSK-0085).
+    // TSK-0120 wired the receipt and TSK-0085 the deposit invoice; job complete waits for its event (TSK-0092).
     expect(await templateReadiness(t.db, 'request.receipt', 'email', 'en')).toEqual({ state: 'ready', unwired: [] })
-    expect(await templateReadiness(t.db, 'invoice.deposit', 'email', 'en')).toEqual({
+    expect(await templateReadiness(t.db, 'invoice.deposit', 'email', 'en')).toEqual({ state: 'ready', unwired: [] })
+    expect(await templateReadiness(t.db, 'job.complete', 'email', 'en')).toEqual({
       state: 'not_wired',
-      unwired: ['customerName', 'invoiceLink', 'invoiceNumber', 'jobNumber'],
+      unwired: ['customerName', 'jobNumber'],
     })
     expect(await templateReadiness(t.db, 'reminder.repeat_service', 'email', 'en')).toEqual({
       state: 'not_configured',
@@ -366,25 +367,25 @@ describe('[HH-COM-14][HH-COM-13] sending records the template, the layout and ev
 
   it('[HH-COM-13] released wording whose values are not wired fails visibly, naming them, and never sends', async () => {
     const f = providers()
-    // The deposit invoice's event does not exist yet (TSK-0085): its resolver supplies nothing.
+    // The job-complete event does not exist yet (TSK-0092): its resolver supplies nothing.
     const automation = notificationAutomation({
-      messageKey: 'invoice.deposit',
+      messageKey: 'job.complete',
       providers: f.providers,
       resolve: async () => ({
-        subjectKey: 'invoice:tpl-2',
-        record: { type: 'invoice', id: 'tpl-2' },
+        subjectKey: 'job:tpl-2',
+        record: { type: 'job', id: 'tpl-2' },
         recipients: [recipient('templates-2@example.test')],
         values: {},
       }),
     })
-    await event('invoice.deposit_issued', 'tpl-2')
+    await event('job.completion_authorized', 'tpl-2')
     await createWorker({ db: t.db, registry: createAutomationRegistry([automation]) }).runOnce()
     expect(f.email.calls).toEqual([])
-    expect(await deliveryOf('invoice:tpl-2')).toMatchObject({
+    expect(await deliveryOf('job:tpl-2')).toMatchObject({
       state: 'failed',
       error_code: 'template_values_not_wired',
-      missing_variables: ['customerName', 'invoiceLink', 'invoiceNumber', 'jobNumber'],
-      template_id: 'deposit_invoice',
+      missing_variables: ['customerName', 'jobNumber'],
+      template_id: 'job_complete',
     })
   })
 
@@ -471,11 +472,11 @@ describe('[HH-COM-14][RULE-SERVER-AUTHZ] the staff message views', () => {
     const sent = items.find((i) => i['templateId'] === 'question_notice' && i['errorCode'] === null)
     expect(sent).toMatchObject({ lifecycle: 'PROVIDER_ACCEPTED', intercepted: true, release: 'automatic', attempts: 1 })
     expect((sent?.['history'] as unknown[]).length).toBe(1)
-    const notWired = items.find((i) => i['templateId'] === 'deposit_invoice')
+    const notWired = items.find((i) => i['templateId'] === 'job_complete')
     expect(notWired).toMatchObject({
       lifecycle: 'FAILED',
       errorCode: 'template_values_not_wired',
-      missingVariables: ['customerName', 'invoiceLink', 'invoiceNumber', 'jobNumber'],
+      missingVariables: ['customerName', 'jobNumber'],
     })
     expect(res.body).not.toContain('templates-1@example.test')
     expect(res.body).not.toContain('Sam')
@@ -514,7 +515,7 @@ describe('[HH-COM-14][RULE-SERVER-AUTHZ] the staff message views', () => {
     expect(by('request.receipt')?.versions).toEqual([
       expect.objectContaining({ channel: 'email', locale: 'en', readiness: 'ready', unwired: [] }),
     ])
-    expect(by('invoice.deposit')?.versions).toContainEqual(
+    expect(by('job.complete')?.versions).toContainEqual(
       expect.objectContaining({ channel: 'email', locale: 'en', readiness: 'not_wired' }),
     )
     expect(by('staff_notice.customer_reply')?.versions.map((v) => v.locale)).toEqual(['en', 'es'])

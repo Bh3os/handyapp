@@ -12,7 +12,7 @@ import { CUSTOMERS_MODULE } from './customers/index.js'
 import { inboxModule } from './inbox/index.js'
 import { loadoutsModule } from './loadouts/index.js'
 import { fieldModule } from './field/index.js'
-import { FINANCE_MODULE } from './finance/index.js'
+import { financeModule } from './finance/index.js'
 import { NOTIFICATIONS_MODULE } from './notifications/index.js'
 import { packetsModule } from './packets/index.js'
 import { photosModule } from './photos/index.js'
@@ -86,7 +86,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     // TSK-0130: the Owner's approval before publishing over the threshold, its queue and the threshold setting.
     APPROVALS_MODULE,
     // TSK-0059: the deposit requirement, recorded deposit payments, the Owner's waiver (the gate is called by visits).
-    FINANCE_MODULE,
+    // TSK-0085, TSK-0086: invoices drafted from the approved scope, issued after the quality review; the ledger.
+    financeModule({ storage: deps.storage ?? null }),
     NOTIFICATIONS_MODULE,
     systemModule(deps.system ?? {}),
     // TSK-0033: the receipt's contact verification and its account-offer answer.

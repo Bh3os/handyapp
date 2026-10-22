@@ -631,13 +631,91 @@ export interface FinanceDepositWaiversTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface FinanceInvoiceDepositCreditsTable {
+  id: Generated<string>
+  invoice_id: string
+  job_id: string
+  deposit_requirement_id: string
+  amount_cents: Int8
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface FinanceInvoiceDocumentsTable {
+  id: Generated<string>
+  invoice_id: string
+  project_id: string
+  object_key: string
+  content_type: string
+  byte_size: number
+  sha256: string
+  test_mark: boolean
+  renderer_version: number
+  issued_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface FinanceInvoiceLinesTable {
+  id: Generated<string>
+  invoice_id: string
+  position: number
+  kind: string
+  source: string
+  source_position: number | null
+  line_kind: string | null
+  service_code: string | null
+  description: string
+  quantity: string | null
+  unit: string | null
+  unit_price_cents: Int8 | null
+  amount_cents: Int8
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface FinanceInvoicesTable {
+  id: Generated<string>
+  project_id: string
+  job_id: string
+  kind: string
+  state: Generated<string>
+  approval_id: string
+  scope_snapshot_id: string | null
+  scope_version: number | null
+  deposit_requirement_id: string | null
+  currency: Generated<string>
+  charges_cents: Int8
+  credit_lines_cents: ColumnType<string, bigint | number | string | undefined, bigint | number | string>
+  subtotal_cents: Int8
+  discount_cents: ColumnType<string, bigint | number | string | undefined, bigint | number | string>
+  discount_category: string | null
+  discount_percent_bps: number | null
+  total_cents: Int8
+  deposit_credit_cents: ColumnType<string, bigint | number | string | undefined, bigint | number | string>
+  payment_term: string
+  payment_term_text: string
+  test_mark: boolean
+  prepared_by: string | null
+  prepared_at: ColumnType<Date, Date | string | undefined, Date | string>
+  sequence: number | null
+  number: string | null
+  issued_at: Timestamp | null
+  issued_by: string | null
+  issuer_name: string | null
+  issuer_mailing_address: string[] | null
+  public_phone: string | null
+  public_email: string | null
+  payment_instructions: Json | null
+  policy_versions: Json | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
+}
+
 export interface FinancePaymentAllocationsTable {
   id: Generated<string>
   payment_id: string
-  deposit_requirement_id: string
+  deposit_requirement_id: string | null
   amount_cents: Int8
   allocated_by: string
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  invoice_id: string | null
 }
 
 export interface FinancePaymentsTable {
@@ -655,6 +733,50 @@ export interface FinancePaymentsTable {
   state: string
   cleared_by: string | null
   cleared_at: Timestamp | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
+}
+
+export interface FinancePayoutsTable {
+  id: Generated<string>
+  provider: string
+  reference: string
+  amount_cents: Int8
+  currency: Generated<string>
+  paid_out_on: string
+  recorded_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface FinanceProviderFeesTable {
+  id: Generated<string>
+  provider: string
+  payment_id: string | null
+  payout_id: string | null
+  amount_cents: Int8
+  currency: Generated<string>
+  incurred_on: string
+  reference: string | null
+  recorded_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface FinanceRefundsTable {
+  id: Generated<string>
+  project_id: string
+  job_id: string
+  type: string
+  payment_id: string | null
+  invoice_id: string | null
+  amount_cents: Int8
+  reason: string
+  requested_by: string
+  state: string
+  approved_by: string | null
+  approved_at: Timestamp | null
+  staff_session_id: string | null
+  authenticated_at: Timestamp | null
+  provider_confirmation: string | null
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   version: Generated<number>
 }
@@ -1930,8 +2052,15 @@ export interface Database {
   'estimating.publication_approvals': EstimatingPublicationApprovalsTable
   'finance.deposit_requirements': FinanceDepositRequirementsTable
   'finance.deposit_waivers': FinanceDepositWaiversTable
+  'finance.invoice_deposit_credits': FinanceInvoiceDepositCreditsTable
+  'finance.invoice_documents': FinanceInvoiceDocumentsTable
+  'finance.invoice_lines': FinanceInvoiceLinesTable
+  'finance.invoices': FinanceInvoicesTable
   'finance.payment_allocations': FinancePaymentAllocationsTable
   'finance.payments': FinancePaymentsTable
+  'finance.payouts': FinancePayoutsTable
+  'finance.provider_fees': FinanceProviderFeesTable
+  'finance.refunds': FinanceRefundsTable
   'identity.auth_identities': IdentityAuthIdentitiesTable
   'identity.customer_account_changes': IdentityCustomerAccountChangesTable
   'identity.customer_accounts': IdentityCustomerAccountsTable

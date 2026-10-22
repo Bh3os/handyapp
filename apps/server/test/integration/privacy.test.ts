@@ -31,6 +31,7 @@ import { recordPolicyVersion } from '../../src/platform/config/index.js'
 import { createWorker } from '../../src/platform/jobs.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { testConfig } from '../fixtures/env.js'
+import { reviewOutcome, standInQualityReview } from '../fixtures/quality-review.js'
 import { signInWithMfa } from '../fixtures/staff-mfa.js'
 
 const KEY: CodeKeySettings = readCodeKey({
@@ -580,6 +581,58 @@ describe('the Owner Delete action on a review entry (TSK-0100, HH-PRIV-05, HH-DA
       .where('review_id', '=', entry.id)
       .executeTakeFirstOrThrow()
     expect(decision).toMatchObject({ decision: 'archive', blockers: ['protected_evidence'], decided_by: ids.owner })
+  })
+
+  it('[HH-PRIV-05][HH-DATA-09][HH-FIN-04] delete blocked by an issued invoice archives instead', async () => {
+    const e = await withdrawnEstimate()
+    await scan(later(2, 2))
+    const entry = await entryFor(e.estimateId)
+    const revised = await write('estimator', `/staff/estimate-versions/${e.versionId}/revise`, {})
+    expect(revised.statusCode, revised.body).toBeLessThan(300)
+    await publish(revised.json<{ versionId: string }>().versionId)
+    await approve(e, 2, await customerCookie(e))
+    const job = await t.db
+      .selectFrom('work.jobs as j')
+      .innerJoin('estimating.approvals as a', 'a.id', 'j.approval_id')
+      .select(['j.id'])
+      .where('a.estimate_id', '=', e.estimateId)
+      .executeTakeFirstOrThrow()
+    // A draft is working data: before issue the check is still the Owner's (never "none found").
+    const prepared = await write('office', `/staff/jobs/${job.id}/invoices/final-draft`, {})
+    expect(prepared.statusCode, prepared.body).toBe(200)
+    const draft = prepared.json<{ final: { id: string; version: number } }>().final
+    const before = (await get('owner', `/staff/retention-reviews/${entry.id}/deletion`)).json<{
+      target: { checks: { check: string; result: string; count?: number }[] }
+    }>()
+    expect(before.target.checks).toContainEqual({ check: 'issued_invoices', result: 'not_recorded' })
+    // Issued after the review passes (the stand-in of fixtures/quality-review.ts, this throwaway database only).
+    await standInQualityReview(t.db)
+    await reviewOutcome(t.db, job.id, 'passed')
+    const issued = await write('office', `/staff/invoices/${draft.id}/issue`, {}, draft.version)
+    expect(issued.statusCode, issued.body).toBe(200)
+
+    const preview = (await get('owner', `/staff/retention-reviews/${entry.id}/deletion`)).json<{
+      target: { blockers: string[]; checks: { check: string; result: string; count?: number }[]; confirm: string[] }
+    }>()
+    expect(preview.target.checks).toContainEqual({ check: 'issued_invoices', result: 'found', count: 1 })
+    expect(preview.target.blockers).toContain('protected_evidence')
+    expect(preview.target.confirm).not.toContain('issued_invoices')
+    const res = await write('owner', `/staff/retention-reviews/${entry.id}/delete`, {
+      reason: 'Synthetic: confirm anyway.',
+      confirmedChecks: ALL_CHECKS,
+    })
+    expect(res.statusCode).toBe(409)
+    expect(res.json<{ error: { fieldErrors: { code: string }[] } }>().error.fieldErrors.map((f) => f.code)).toContain(
+      'PROTECTED_EVIDENCE',
+    )
+    expect(await count('finance.invoices', 'id', draft.id)).toBe(1)
+    expect(await count('estimating.estimates', 'id', e.estimateId)).toBe(1)
+    const archived = await write('owner', `/staff/retention-reviews/${entry.id}/archive`, {
+      reason: 'Synthetic: kept as invoice evidence.',
+    })
+    expect(archived.statusCode, archived.body).toBe(200)
+    expect(archived.json()).toMatchObject({ status: { state: 'archived' }, blockers: ['protected_evidence'] })
+    expect(await count('finance.invoices', 'id', draft.id)).toBe(1)
   })
 
   it('[HH-PRIV-05] an open hold blocks deletion; requests and audit entries are not erased; Keep longer comes back', async () => {
