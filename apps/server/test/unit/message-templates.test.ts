@@ -184,14 +184,17 @@ describe('[HH-COM-13][OWN-DEC-158] release checks refuse what a template may nev
   })
 
   it('[HH-COM-13] knows which released variables a resolver does not supply yet', () => {
-    expect(suppliedVariables(messageType('request.receipt'))).not.toContain('customerName')
+    // TSK-0120 wired the events that exist today; a message whose event does not exist yet (the deposit invoice,
+    // TSK-0085) still supplies nothing.
+    expect(suppliedVariables(messageType('request.receipt'))).toContain('customerName')
+    expect(suppliedVariables(messageType('invoice.deposit'))).toEqual([])
     expect(
       unwiredVariables({
-        messageKey: 'request.receipt',
-        subject: 'HandyHub | We have #{reference}',
-        body: 'Hi {customerName},\n\n#{reference}',
+        messageKey: 'invoice.deposit',
+        subject: 'HandyHub | Deposit Invoice #{invoiceNumber}',
+        body: 'Hi {customerName},\n\n#{jobNumber} {invoiceLink}',
       }),
-    ).toEqual(['customerName'])
+    ).toEqual(['customerName', 'invoiceLink', 'invoiceNumber', 'jobNumber'])
     expect(
       unwiredVariables({ messageKey: 'question.notice', subject: null, body: 'Hi {customerName}, {projectLink}' }),
     ).toEqual([])
@@ -351,6 +354,11 @@ describe('[HH-COM-14][HH-COM-02] the message lifecycle reuses the stored deliver
     expect(lifecycleOf(row({ state: 'delivered', provider: 'resend' }), now)).toBe('DELIVERED')
     expect(lifecycleOf(row({ state: 'delivered', provider: 'fake' }), now)).toBe('PROVIDER_ACCEPTED')
     expect(isIntercepted({ provider: 'fake' })).toBe(true)
+    // TSK-0112: the staging log sender is a test provider too: its messages are never DELIVERED.
+    expect(lifecycleOf(row({ state: 'delivered', provider: 'log' }), now)).toBe('PROVIDER_ACCEPTED')
+    expect(lifecycleOf(row({ provider: 'log', provider_message_id: 'log-email-1' }), now)).toBe('PROVIDER_ACCEPTED')
+    expect(isIntercepted({ provider: 'log' })).toBe(true)
+    expect(isIntercepted({ provider: 'resend' })).toBe(false)
     expect(lifecycleOf(row({ state: 'failed' }), now)).toBe('FAILED')
     expect(lifecycleOf(row({ state: 'suppressed' }), now)).toBe('SUPPRESSED')
     expect(lifecycleOf(row({ state: 'cancelled', error_code: 'record_changed' }), now)).toBe('CANCELLED')

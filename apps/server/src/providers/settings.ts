@@ -3,6 +3,8 @@
 // - local and ci default to the in-memory fakes; a real provider is used only when explicitly selected.
 // - staging and production have no default: until the owner selects a provider and sets every variable it needs,
 //   the channel is NOT CONFIGURED (named missing variables, never a fake success). Fakes are refused there.
+// - EMAIL_PROVIDER=log (TSK-0112): staging, local and ci only; production refuses to start with it (ConfigError). It
+//   needs TEST_EMAIL_DESTINATIONS and writes each allowed email to the server log instead of sending it.
 // - A webhook signing secret that is unset leaves that provider's inbound channel "not configured".
 import { ConfigError, ENVIRONMENTS, type EnvironmentName } from '../config.js'
 import { Secret } from './types.js'
@@ -11,7 +13,11 @@ export type Environment = EnvironmentName
 
 /** Every provider variable, with what it is for. Values live in Render, never in the repository. */
 export const PROVIDER_ENV_VARS = {
-  EMAIL_PROVIDER: 'fake (local and ci only) or resend. Default: fake in local and ci, not configured elsewhere.',
+  EMAIL_PROVIDER:
+    'fake (local and ci only), log (staging, local and ci; refused in production) or resend. Default: fake in local ' +
+    'and ci, not configured elsewhere. log writes each email to an approved test address (TEST_EMAIL_DESTINATIONS, ' +
+    'required) to the server log as STAGING_EMAIL_LOGGED, so invite and reset links can be read there; nothing is ' +
+    'sent and it is never shown as delivered.',
   RESEND_API_KEY: 'Resend API key. Secret.',
   EMAIL_FROM: 'Sender address on the verified Resend domain.',
   EMAIL_REPLY_TO: 'Optional reply-to address.',
@@ -38,6 +44,8 @@ export const PROVIDER_ENV_VARS = {
 export type NotConfigured = { adapter: 'not_configured'; missing: string[] }
 export type EmailSettings =
   | { adapter: 'fake' }
+  /** Staging, local and ci only (refused in production): the message is written to the server log, never sent. */
+  | { adapter: 'log' }
   | { adapter: 'resend'; apiKey: Secret; from: string; replyTo: string | null; apiBaseUrl: string }
   | NotConfigured
 export type SmsSettings =
@@ -61,6 +69,9 @@ export type ProviderSettings = {
   /** Approved test destinations (set by the owner); every non-production send must match one. */
   testDestinations: { emails: string[]; phones: string[] }
 }
+
+/** The environments where EMAIL_PROVIDER=log may be selected; production refuses to start with it. */
+export const LOG_EMAIL_ENVIRONMENTS: readonly Environment[] = ['local', 'ci', 'staging']
 
 const E164 = /^\+[1-9]\d{7,14}$/
 const EMAIL = /^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/
@@ -124,8 +135,22 @@ export function readProviderSettings(env: NodeJS.ProcessEnv = process.env): Prov
   if (!(ENVIRONMENTS as readonly string[]).includes(environment ?? ''))
     throw new ConfigError(`HANDYHUB_ENV must be one of ${ENVIRONMENTS.join(', ')}`)
 
+  const testDestinations = {
+    emails: list(env['TEST_EMAIL_DESTINATIONS'], EMAIL, 'TEST_EMAIL_DESTINATIONS').map((e) => e.toLowerCase()),
+    phones: list(env['TEST_PHONE_DESTINATIONS'], E164, 'TEST_PHONE_DESTINATIONS'),
+  }
+
   let email: EmailSettings = { adapter: 'not_configured', missing: ['EMAIL_PROVIDER'] }
-  const emailChoice = choose(env, 'EMAIL_PROVIDER', environment, 'resend')
+  const logEmail = env['EMAIL_PROVIDER'] === 'log'
+  if (logEmail) {
+    // TSK-0112: the staging log sender. Production never starts with it (an allowlist, so no new environment slips in).
+    if (!LOG_EMAIL_ENVIRONMENTS.includes(environment))
+      throw new ConfigError(`EMAIL_PROVIDER=log is allowed only in ${LOG_EMAIL_ENVIRONMENTS.join(', ')}`)
+    email = testDestinations.emails.length
+      ? { adapter: 'log' }
+      : { adapter: 'not_configured', missing: ['TEST_EMAIL_DESTINATIONS'] }
+  }
+  const emailChoice = logEmail ? 'none' : choose(env, 'EMAIL_PROVIDER', environment, 'resend')
   if (emailChoice === 'fake') email = { adapter: 'fake' }
   if (emailChoice === 'real') {
     const r = required(env, ['RESEND_API_KEY', 'EMAIL_FROM'])
@@ -182,9 +207,6 @@ export function readProviderSettings(env: NodeJS.ProcessEnv = process.env): Prov
       resend: secretOrNull(env['RESEND_WEBHOOK_SECRET']),
     },
     inbound: { emailAddress: inboundAddress(env['INBOUND_EMAIL_ADDRESS']) },
-    testDestinations: {
-      emails: list(env['TEST_EMAIL_DESTINATIONS'], EMAIL, 'TEST_EMAIL_DESTINATIONS').map((e) => e.toLowerCase()),
-      phones: list(env['TEST_PHONE_DESTINATIONS'], E164, 'TEST_PHONE_DESTINATIONS'),
-    },
+    testDestinations,
   }
 }

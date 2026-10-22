@@ -8,14 +8,22 @@
 //   in the fragment, which no browser sends to a server (HH-ID-08).
 // - Recipients: the grant's contact by email, and by text too when the request gave the SMS opt-in (the send-time
 //   consent recheck still suppresses a text after STOP); the customer's preferred channel is marked preferred.
-// - The wording is a released template version of project.access_link. No owner wording exists for it (OWN-DEC-97
-//   gives what it does, not its text), so none is seeded: every delivery records template_not_configured and staff get
-//   a delivery issue with Retry, while the request and its grant stay saved (OQ-ACCESS-LINK-WORDING). Nothing is shown
-//   as sent that was not. Without a public site URL the link value is left out, so a template that needs it fails
-//   visibly (template_values_missing) instead of linking somewhere invented.
+// - The wording is the owner's secure_access_link (OWN-DEC-151, migration 0065); TSK-0120 supplies its values: the
+//   first name, the link and its expiry (24 hours, OWN-DEC-160) in the project's display zone. Without a public site
+//   URL the link value is left out, so the delivery fails visibly (template_values_missing) instead of linking
+//   somewhere invented. The access link is never held by hours or reminder queues: it goes when its event commits.
 import type { Automation } from '../../platform/automation.js'
 import type { CodeKeySettings } from '../identity/index.js'
-import { notificationAutomation, type Destination, type NotificationProviders } from '../notifications/index.js'
+import { loadConfig } from '../../platform/config/index.js'
+import {
+  firstNameOf,
+  instantText,
+  notificationAutomation,
+  present,
+  projectDisplayZone,
+  type Destination,
+  type NotificationProviders,
+} from '../notifications/index.js'
 import { accessLink, accessToken, grantForSend } from './grants.js'
 
 export const ACCESS_LINK_MESSAGE_KEY = 'project.access_link'
@@ -50,6 +58,7 @@ export function accessLinkAutomation(deps: AccessLinkDeps): Automation {
           'r.responsible_staff_id',
           'r.preferred_channel',
           'r.sms_opt_in',
+          'c.full_name',
           'c.email',
           'c.phone_e164',
         ])
@@ -72,10 +81,19 @@ export function accessLinkAutomation(deps: AccessLinkDeps): Automation {
             ]
           : []),
       ]
-      const values: Record<string, string> =
+      const link =
         deps.codeKey.state === 'configured' && deps.publicSiteUrl
-          ? { accessLink: accessLink(deps.publicSiteUrl, accessToken(deps.codeKey.key, grant.id, grant.nonce)) }
-          : {}
+          ? accessLink(deps.publicSiteUrl, accessToken(deps.codeKey.key, grant.id, grant.nonce))
+          : null
+      // TSK-0120 (OWN-DEC-151, OWN-DEC-158, OWN-DEC-159): the first name, the link and its expiry in the project's
+      // display zone (the property's known zone, else the business zone).
+      const zone = await projectDisplayZone(tx, grant.projectId, await loadConfig(tx))
+      const values = present({
+        customerName: firstNameOf(r.full_name),
+        secureAccessLink: link,
+        accessLink: link,
+        linkExpiration: zone ? instantText(grant.expiresAt, zone) : null,
+      })
       return {
         subjectKey: `grant:${grant.id}`,
         record: { type: 'project', id: grant.projectId },

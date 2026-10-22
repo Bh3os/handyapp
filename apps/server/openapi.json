@@ -98763,6 +98763,1236 @@
         }
       }
     },
+    "/api/v1/staff/staging/test-data": {
+      "get": {
+        "operationId": "getStagingTestData",
+        "summary": "Staging Tools: Test Data Management",
+        "description": "STAGING ONLY: registered only in a staging or isolated local or ci test environment with STAGING_TOOLS=on (never in production, where the path does not exist). Owner only (dashboard.view, and the Owner role checked again). The environment checks (environment, flag, access gate in staging, the database marked as a test database and never as production), whether a reset is running, what a reset would remove now by category with counts (stored files counted separately), what it keeps with counts, the designated reusable test accounts, the fresh-data scenarios (available, or not yet with the task that builds them), the words to type and the latest five runs of the protected staging trail. Counts and codes only. Reads only.",
+        "tags": [
+          "staging"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "environment",
+                    "identified",
+                    "checks",
+                    "running",
+                    "confirmationPhrase",
+                    "freshAuthMinutes",
+                    "removed",
+                    "total",
+                    "preserved",
+                    "reusableAccounts",
+                    "freshData",
+                    "runs"
+                  ],
+                  "properties": {
+                    "environment": {
+                      "type": "string",
+                      "enum": [
+                        "local",
+                        "ci",
+                        "staging"
+                      ]
+                    },
+                    "identified": {
+                      "type": "boolean"
+                    },
+                    "checks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "ok"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "enum": [
+                              "environment",
+                              "flag",
+                              "access_gate",
+                              "database_host",
+                              "database_marked",
+                              "database_never_production",
+                              "database_name"
+                            ]
+                          },
+                          "ok": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "running": {
+                      "type": "boolean"
+                    },
+                    "confirmationPhrase": {
+                      "type": "string",
+                      "enum": [
+                        "RESET TEST DATA"
+                      ]
+                    },
+                    "freshAuthMinutes": {
+                      "type": "integer"
+                    },
+                    "removed": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "count"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "enum": [
+                              "customers",
+                              "properties",
+                              "requests",
+                              "estimates",
+                              "appointments",
+                              "jobs",
+                              "payments",
+                              "conversations",
+                              "notifications",
+                              "attachments",
+                              "pending_messages",
+                              "sessions",
+                              "workflow",
+                              "customer_accounts",
+                              "customer_records",
+                              "idempotency_records",
+                              "stored_files"
+                            ]
+                          },
+                          "count": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "preserved": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "count"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "enum": [
+                              "staff_accounts",
+                              "role_grants",
+                              "staff_sessions",
+                              "reusable_test_accounts",
+                              "services",
+                              "service_versions",
+                              "sop_versions",
+                              "loadout_versions",
+                              "configuration_versions",
+                              "message_templates",
+                              "coverage_rule_sets",
+                              "coverage_rules",
+                              "coverage_zip_datasets",
+                              "coverage_zip_entries",
+                              "equipment",
+                              "worker_schedules",
+                              "working_hours",
+                              "time_off",
+                              "schema_migrations",
+                              "audit_events"
+                            ]
+                          },
+                          "count": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "reusableAccounts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "accountId",
+                          "email",
+                          "phone",
+                          "state",
+                          "designatedAt"
+                        ],
+                        "properties": {
+                          "accountId": {
+                            "type": "string"
+                          },
+                          "email": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "phone": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "state": {
+                            "type": "string"
+                          },
+                          "designatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "freshData": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "available",
+                          "task"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "enum": [
+                              "guest_customer_request",
+                              "registered_customer",
+                              "estimate_awaiting_approval",
+                              "estimate_visit",
+                              "approved_estimate",
+                              "test_payment",
+                              "confirmed_work_visit",
+                              "customer_conversation",
+                              "job_in_progress",
+                              "completed_job",
+                              "change_order",
+                              "test_invoice"
+                            ]
+                          },
+                          "available": {
+                            "type": "boolean"
+                          },
+                          "task": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "runs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "seq",
+                          "mode",
+                          "state",
+                          "requestedAt",
+                          "finishedAt",
+                          "requestedBy",
+                          "removedTotal",
+                          "checks",
+                          "errors",
+                          "seeding"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "seq": {
+                            "type": "string"
+                          },
+                          "mode": {
+                            "type": "string",
+                            "enum": [
+                              "reset",
+                              "reset_and_seed"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "running",
+                              "completed",
+                              "failed"
+                            ]
+                          },
+                          "requestedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "finishedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "requestedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "removedTotal": {
+                            "type": "integer"
+                          },
+                          "checks": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "ok",
+                                "details"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "enum": [
+                                    "cleared_tables_empty",
+                                    "test_accounts_removed",
+                                    "nothing_left_to_send",
+                                    "preserved_unchanged",
+                                    "reusable_accounts_intact",
+                                    "relationships_intact",
+                                    "reusable_sign_in"
+                                  ]
+                                },
+                                "ok": {
+                                  "type": "boolean"
+                                },
+                                "details": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "errors": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "code",
+                                "detail"
+                              ],
+                              "properties": {
+                                "code": {
+                                  "type": "string"
+                                },
+                                "detail": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "seeding": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "state",
+                                  "outcomes"
+                                ],
+                                "properties": {
+                                  "state": {
+                                    "type": "string",
+                                    "enum": [
+                                      "completed",
+                                      "partial",
+                                      "failed"
+                                    ]
+                                  },
+                                  "outcomes": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "state",
+                                        "references",
+                                        "step",
+                                        "codes",
+                                        "task"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string",
+                                          "enum": [
+                                            "guest_customer_request",
+                                            "registered_customer",
+                                            "estimate_awaiting_approval",
+                                            "estimate_visit",
+                                            "approved_estimate",
+                                            "test_payment",
+                                            "confirmed_work_visit",
+                                            "customer_conversation",
+                                            "job_in_progress",
+                                            "completed_job",
+                                            "change_order",
+                                            "test_invoice"
+                                          ]
+                                        },
+                                        "state": {
+                                          "type": "string",
+                                          "enum": [
+                                            "created",
+                                            "blocked",
+                                            "not_available",
+                                            "failed"
+                                          ]
+                                        },
+                                        "references": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "step": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "codes": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "task": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "dashboard.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staging-reset.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/staging/test-data/reset": {
+      "post": {
+        "operationId": "resetStagingTestData",
+        "summary": "Reset Test Data, or Reset & Create Fresh Test Data",
+        "description": "STAGING ONLY (see getStagingTestData; never registered in production). Owner only (records.delete, PROPOSED mapping, and the Owner role checked again) with a password entered within the fresh sign-in window and the typed words RESET TEST DATA (confirmation; anything else is VALIDATION_FAILED and changes nothing). Refused with CONFLICT STAGING_NOT_IDENTIFIED unless every environment check passes and the database itself is a marked test database that never served production (in staging: the staging database itself; in local or ci: a database on this machine), with CONFLICT RESET_RUNNING while another reset holds the lock, and with CONFLICT RESET_SENDS_IN_FLIGHT while a message job is being sent (retry when it has finished). One transaction removes every test record (customers except designated reusable test accounts, requests, estimates and revisions, appointments and bookings, jobs, assignments and visits, payments, deposits and receipts, conversations and notifications, photos and documents, pending messages and scheduled reminders, customer sessions and project links, queue and privacy workflow records) and keeps staff accounts and roles, the service catalog, SOPs, configuration, message templates, ZIP coverage, equipment and working hours, the audit log and the staging trail; stored files are removed by a job after the commit (those removal jobs, and pending ones from before, are kept). The outcome is checked before the commit (cleared, nothing left to send, kept records unchanged, relationships, reusable accounts) and audited in the same transaction; any failure rolls everything back and is recorded as a failed run. A repeated reset is safe; a retry with the same Idempotency-Key after a committed reset is answered with that run. freshData: afterwards the fictional scenarios are created through the server’s own routes, each reported as created, blocked (with the refusal codes) or not available yet. Counts, codes and public references only.",
+        "tags": [
+          "staging"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "confirmation",
+                  "freshData"
+                ],
+                "properties": {
+                  "confirmation": {
+                    "type": "string",
+                    "maxLength": 60
+                  },
+                  "freshData": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "runId",
+                    "seq",
+                    "mode",
+                    "state",
+                    "removed",
+                    "preservedBefore",
+                    "preservedAfter",
+                    "checks",
+                    "errors",
+                    "storedFileJobs",
+                    "seeding"
+                  ],
+                  "properties": {
+                    "runId": {
+                      "type": "string"
+                    },
+                    "seq": {
+                      "type": "string"
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "reset",
+                        "reset_and_seed"
+                      ]
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "completed",
+                        "failed"
+                      ]
+                    },
+                    "removed": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "count"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "enum": [
+                              "customers",
+                              "properties",
+                              "requests",
+                              "estimates",
+                              "appointments",
+                              "jobs",
+                              "payments",
+                              "conversations",
+                              "notifications",
+                              "attachments",
+                              "pending_messages",
+                              "sessions",
+                              "workflow",
+                              "customer_accounts",
+                              "customer_records",
+                              "idempotency_records",
+                              "stored_files"
+                            ]
+                          },
+                          "count": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "preservedBefore": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "count"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "enum": [
+                              "staff_accounts",
+                              "role_grants",
+                              "staff_sessions",
+                              "reusable_test_accounts",
+                              "services",
+                              "service_versions",
+                              "sop_versions",
+                              "loadout_versions",
+                              "configuration_versions",
+                              "message_templates",
+                              "coverage_rule_sets",
+                              "coverage_rules",
+                              "coverage_zip_datasets",
+                              "coverage_zip_entries",
+                              "equipment",
+                              "worker_schedules",
+                              "working_hours",
+                              "time_off",
+                              "schema_migrations",
+                              "audit_events"
+                            ]
+                          },
+                          "count": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "preservedAfter": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "count"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "enum": [
+                              "staff_accounts",
+                              "role_grants",
+                              "staff_sessions",
+                              "reusable_test_accounts",
+                              "services",
+                              "service_versions",
+                              "sop_versions",
+                              "loadout_versions",
+                              "configuration_versions",
+                              "message_templates",
+                              "coverage_rule_sets",
+                              "coverage_rules",
+                              "coverage_zip_datasets",
+                              "coverage_zip_entries",
+                              "equipment",
+                              "worker_schedules",
+                              "working_hours",
+                              "time_off",
+                              "schema_migrations",
+                              "audit_events"
+                            ]
+                          },
+                          "count": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "checks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "ok",
+                          "details"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "enum": [
+                              "cleared_tables_empty",
+                              "test_accounts_removed",
+                              "nothing_left_to_send",
+                              "preserved_unchanged",
+                              "reusable_accounts_intact",
+                              "relationships_intact",
+                              "reusable_sign_in"
+                            ]
+                          },
+                          "ok": {
+                            "type": "boolean"
+                          },
+                          "details": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "code",
+                          "detail"
+                        ],
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "storedFileJobs": {
+                      "type": "integer"
+                    },
+                    "seeding": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state",
+                            "outcomes"
+                          ],
+                          "properties": {
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "completed",
+                                "partial",
+                                "failed"
+                              ]
+                            },
+                            "outcomes": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "state",
+                                  "references",
+                                  "step",
+                                  "codes",
+                                  "task"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "enum": [
+                                      "guest_customer_request",
+                                      "registered_customer",
+                                      "estimate_awaiting_approval",
+                                      "estimate_visit",
+                                      "approved_estimate",
+                                      "test_payment",
+                                      "confirmed_work_visit",
+                                      "customer_conversation",
+                                      "job_in_progress",
+                                      "completed_job",
+                                      "change_order",
+                                      "test_invoice"
+                                    ]
+                                  },
+                                  "state": {
+                                    "type": "string",
+                                    "enum": [
+                                      "created",
+                                      "blocked",
+                                      "not_available",
+                                      "failed"
+                                    ]
+                                  },
+                                  "references": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "step": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "codes": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "task": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "records.delete",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": 5,
+          "csrf": "required_with_staff_session",
+          "audit": "staging.reset_test_data",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staging-reset.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/staging/test-data/reusable-accounts": {
+      "post": {
+        "operationId": "setReusableTestAccount",
+        "summary": "Designate or release a reusable test account",
+        "description": "STAGING ONLY (see getStagingTestData; never registered in production). Owner only (records.delete, PROPOSED mapping). Names an active customer account by its sign-in email: reusable true keeps it (with its customer and contact records) through every later reset so it can sign in again; false lets the next reset remove it. The database must be a marked test database (CONFLICT STAGING_NOT_IDENTIFIED otherwise); an email that names no active account is NOT_FOUND.",
+        "tags": [
+          "staging"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "email",
+                  "reusable"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 320
+                  },
+                  "reusable": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "accountId",
+                    "reusable"
+                  ],
+                  "properties": {
+                    "accountId": {
+                      "type": "string"
+                    },
+                    "reusable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "records.delete",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "staging.designate_test_account",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staging-reset.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/system/configuration": {
       "get": {
         "operationId": "getSystemConfiguration",

@@ -56,13 +56,26 @@ services:
       # NOT CONFIGURED (codes cannot be entered or revealed) (TSK-0045, HH-CRM-03).
       - key: ACCESS_CODE_ENCRYPTION_KEY
         sync: false
+      # Staging Tools (TSK-0141, OWN-DEC-191): Reset Test Data in the Owner Dashboard. Staging only: the server refuses
+      # this variable in production, and a reset also needs the database to be marked staging and never production.
+      - key: STAGING_TOOLS
+        value: 'on'
+      # Email (TSK-0112): no email provider is set up yet, so invites and resets cannot be sent. Staging only, the owner
+      # may set in Render EMAIL_PROVIDER=log with TEST_EMAIL_DESTINATIONS=<the approved test addresses, comma
+      # separated>: each email to one of those addresses is written to the service log as STAGING_EMAIL_LOGGED (address,
+      # subject and text, so the invite or reset link can be read there); nothing is sent, every other address is
+      # suppressed, and production refuses to start with it. Replace it with EMAIL_PROVIDER=resend once a domain exists.
       # Proxies that append to X-Forwarded-For in front of the service; set once measured on Render (default 0).
       - key: TRUST_PROXY_HOPS
         sync: false
 
 databases:
   - name: handyhub-staging-db
-    databaseName: handyhub_staging_db
+    # Render appends a random 4-character suffix to the database name each time the database is recreated (now
+    # handyhub_staging_db_vdqz). Staging Tools (TSK-0141) accept a staging reset only on a database named
+    # handyhub_staging_db or handyhub_staging_db_<4 lower-case letters or digits> (@handyhub/db
+    # STAGING_DATABASE_PATTERN, migration 0070), a prefix no production database uses.
+    databaseName: handyhub_staging_db_vdqz
     user: handyhub_staging_db_user
     plan: free
     region: ohio

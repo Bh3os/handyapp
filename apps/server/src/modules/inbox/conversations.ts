@@ -7,6 +7,8 @@
 //   `customer_replied` item per conversation, resolved when staff mark the replies handled.
 import type { Tx } from '@handyhub/db'
 import { sql } from 'kysely'
+import { outbox } from '../../platform/outbox.js'
+import { currentContext } from '../../platform/request-context.js'
 import { openQueueItem, resolveQueueItem } from '../queue/items.js'
 import type { MatchRule, NeedsLinkingReason } from './matching.js'
 
@@ -59,10 +61,17 @@ async function projectFacts(tx: Tx, projectId: string): Promise<ProjectFacts> {
   return { id: p.id, reference: p.reference, responsible }
 }
 
-/** Opens (or refreshes) the conversation's "customer replied" item. */
+/** TSK-0120: the committed event of the first customer message since staff last handled the conversation. */
+export const CONVERSATION_REPLIED_EVENT = 'conversation.customer_replied'
+
+/**
+ * Opens (or refreshes) the conversation's "customer replied" item. TSK-0120 (OWN-DEC-152 staff_customer_replied,
+ * grouped): when the item is newly opened, the committed conversation.customer_replied event notifies the responsible
+ * staff member once; further messages while it stays open refresh the item and notify no one again.
+ */
 export async function customerReplied(tx: Tx, conversationId: string, projectId: string, at: Date): Promise<void> {
   const p = await projectFacts(tx, projectId)
-  await openQueueItem(tx, {
+  const item = await openQueueItem(tx, {
     type: 'customer_replied',
     subjectId: conversationId,
     reason: 'customer_replied',
@@ -72,6 +81,14 @@ export async function customerReplied(tx: Tx, conversationId: string, projectId:
     assignedStaffId: p.responsible,
     openedAt: at,
   })
+  if (item.created)
+    await outbox.add(tx, {
+      type: CONVERSATION_REPLIED_EVENT,
+      aggregate: { type: 'conversation', id: conversationId },
+      payload: { itemId: item.id, projectId: p.id, at: at.toISOString() },
+      idempotencyKey: `${CONVERSATION_REPLIED_EVENT}:${item.id}`,
+      requestId: currentContext()?.requestId ?? `conversation-replied:${item.id}`,
+    })
 }
 
 export async function openNeedsLinking(tx: Tx, messageId: string, at: Date): Promise<void> {

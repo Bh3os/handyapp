@@ -26,6 +26,7 @@ import { customerExport, customerPlan } from '../../src/modules/privacy/index.js
 import { PRIVACY_EXPORT } from '../../src/modules/records/index.js'
 import {
   appointmentChangedAutomation,
+  visitCancelledAutomation,
   scheduleChangeStaffAutomation,
   visitsModule,
   type WorkVisitGate,
@@ -42,6 +43,8 @@ import { verifyPropertyZone } from '../fixtures/zones.js'
 import { signInWithMfa, TEST_MFA_KEY } from '../fixtures/staff-mfa.js'
 
 const ZONE = 'America/Kentucky/Louisville'
+/** TSK-0120: the synthetic public site the portal links point at. */
+const SITE = 'https://site.example.test'
 const KEY: CodeKeySettings = readCodeKey({
   HANDYHUB_ENV: 'ci',
   CODE_HASH_KEY: ['synthetic', 'changes', 'code', 'key', 'for', 'tests', 'only', '0066'].join('-'),
@@ -494,7 +497,8 @@ const noticeWorker = () =>
   createWorker({
     db: t.db,
     registry: createAutomationRegistry([
-      appointmentChangedAutomation({ providers: { email: providers.email, sms: providers.sms } }),
+      appointmentChangedAutomation({ providers: { email: providers.email, sms: providers.sms }, publicSiteUrl: SITE }),
+      visitCancelledAutomation({ providers: { email: providers.email, sms: providers.sms }, publicSiteUrl: SITE }),
       scheduleChangeStaffAutomation({ providers: { email: providers.email, sms: null } }),
     ]),
   })
@@ -509,6 +513,16 @@ const deliveries = (subjects: string[]) =>
     .where('subject_key', 'in', subjects)
     .orderBy('seq')
     .execute()
+/** The emails the ci test provider took for this project's customer (TSK-0120). */
+async function emailsTo(projectId: string) {
+  const c = await t.db
+    .selectFrom('intake.requests as r')
+    .innerJoin('crm.contacts as c', 'c.id', 'r.contact_id')
+    .select('c.email')
+    .where('r.project_id', '=', projectId)
+    .executeTakeFirstOrThrow()
+  return (providers.fakes.email?.sent ?? []).filter((m) => m.to === c.email)
+}
 const changeRows = (visitId: string) =>
   t.db.selectFrom('work.visit_changes').selectAll().where('visit_id', '=', visitId).orderBy('changed_at').execute()
 
@@ -631,8 +645,8 @@ describe('[HH-PORT-04][T25] a customer request keeps the confirmed visit until s
       request: null,
     })
 
-    // After commit: "Appointment changed" once (recorded, never sent: TSK-0119 released the email wording, whose values
-    // TSK-0120 wires; texts have no wording) and the worker's notice.
+    // After commit: "Appointment changed" once (TSK-0120: the owner-authorized email with the revised, confirmed
+    // appointment; texts have no wording until A2P 10DLC) and the worker's notice (no approved wording yet).
     const [change] = await changeRows(v.id)
     await runNotices()
     await runNotices()
@@ -640,7 +654,7 @@ describe('[HH-PORT-04][T25] a customer request keeps the confirmed visit until s
     expect(
       sent.filter((d) => d.message_key === 'appointment.changed').map((d) => [d.channel, d.state, d.error_code]),
     ).toEqual([
-      ['email', 'failed', 'template_values_not_wired'],
+      ['email', 'queued', null],
       ['sms', 'failed', 'template_not_configured'],
     ])
     expect(
@@ -648,7 +662,13 @@ describe('[HH-PORT-04][T25] a customer request keeps the confirmed visit until s
         .filter((d) => d.message_key === 'staff_notice.schedule_change')
         .map((d) => [d.recipient_id, d.state, d.error_code]),
     ).toEqual([[ids.ann, 'failed', 'template_not_configured']])
-    expect(providers.fakes.email?.sent ?? []).toEqual([])
+    const emails = await emailsTo(p.projectId)
+    expect(emails.map((m) => m.subject)).toEqual([
+      `HandyHub | Your Appointment #${p.reference}-V${v.number} Has Been Updated`,
+    ])
+    expect(emails[0]?.text).toContain('has been updated, and the revised appointment is confirmed.')
+    expect(emails[0]?.text).toMatch(/Arrival window: 1:00 PM – 2:00 PM \((EDT|EST|CDT|CST)\)/)
+    expect(emails[0]?.text).toContain(`${SITE}/portal/p/${p.reference}`)
     expect(providers.fakes.sms?.sent ?? []).toEqual([])
   })
 
@@ -858,6 +878,42 @@ describe("[HH-PORT-04][HH-SCH-07][T25] cancellations follow FACT-CANCELLATION-RU
     expect(await openItems('cancellation_outcome', p.projectId)).toEqual([])
     const again = await cancel('office', v, { reason: 'Synthetic.', initiator: 'customer' }, v.version + 1)
     expect(codes(again.body)).toEqual([['state', 'VISIT_NOT_CONFIRMED']])
+
+    // TSK-0120 (OWN-DEC-152 R2-Q2, scenario H): after commit, the visit-cancelled notice once by email; never the
+    // appointment-changed notice; a replay sends nothing more.
+    const [change] = await changeRows(v.id)
+    await runNotices()
+    await runNotices()
+    const sent = await deliveries([`visit_change:${change?.id}`])
+    expect(
+      sent
+        .filter((d) => d.message_key !== 'staff_notice.schedule_change')
+        .map((d) => [d.message_key, d.channel, d.state]),
+    ).toEqual([
+      ['visit.cancelled', 'email', 'queued'],
+      ['visit.cancelled', 'sms', 'failed'],
+    ])
+    const emails = await emailsTo(p.projectId)
+    expect(emails.map((m) => m.subject)).toEqual([`HandyHub | Visit #${p.reference}-V${v.number} Cancelled`])
+    expect(emails[0]?.text).toMatch(/^Hi Synthetic,\n\nThis is to confirm that your scheduled HandyHub visit #/)
+  })
+
+  it('[HH-SCH-07][OWN-DEC-152] a reschedule never sends the visit-cancelled notice', async () => {
+    const p = await siteVisitProject()
+    const v = await bookedVisit(p, 'site_estimate', day(26), 'ben')
+    const moved = await move('office', v, {
+      localDate: day(27),
+      windowStart: '10:00',
+      windowEnd: '11:00',
+      reason: 'Synthetic: moved.',
+      initiator: 'customer',
+    })
+    expect(moved.statusCode, moved.body).toBe(200)
+    const [change] = await changeRows(v.id)
+    await runNotices()
+    const keys = (await deliveries([`visit_change:${change?.id}`])).map((d) => d.message_key)
+    expect(keys).not.toContain('visit.cancelled')
+    expect(keys).toContain('appointment.changed')
   })
 })
 
@@ -925,15 +981,12 @@ describe('[HH-SCH-07][T42] reschedule and reassignment update everyone; stale wr
     expect(
       new Set(sent.filter((d) => d.message_key === 'staff_notice.schedule_change').map((d) => d.recipient_id)),
     ).toEqual(new Set([ids.ann, ids.cal]))
-    // Nothing sends: the customer's email wording is not wired yet (TSK-0119), texts and staff notices have no wording.
+    // TSK-0120: the customer's email is sent; texts and staff notices have no wording yet.
     expect(
-      sent.every(
-        (d) =>
-          d.state === 'failed' &&
-          d.error_code ===
-            (d.message_key === 'appointment.changed' && d.channel === 'email'
-              ? 'template_values_not_wired'
-              : 'template_not_configured'),
+      sent.every((d) =>
+        d.message_key === 'appointment.changed' && d.channel === 'email'
+          ? d.state === 'queued' && d.error_code === null
+          : d.state === 'failed' && d.error_code === 'template_not_configured',
       ),
     ).toBe(true)
     // The customer's appointment is the same date and window: a reassignment does not move it.

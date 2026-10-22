@@ -273,9 +273,11 @@ describe('[HH-COM-13] the owner templates are released template versions', () =>
       state: 'ready',
       unwired: [],
     })
-    expect(await templateReadiness(t.db, 'request.receipt', 'email', 'en')).toEqual({
+    // TSK-0120 wired the receipt; the deposit invoice waits for its event (TSK-0085).
+    expect(await templateReadiness(t.db, 'request.receipt', 'email', 'en')).toEqual({ state: 'ready', unwired: [] })
+    expect(await templateReadiness(t.db, 'invoice.deposit', 'email', 'en')).toEqual({
       state: 'not_wired',
-      unwired: ['customerName'],
+      unwired: ['customerName', 'invoiceLink', 'invoiceNumber', 'jobNumber'],
     })
     expect(await templateReadiness(t.db, 'reminder.repeat_service', 'email', 'en')).toEqual({
       state: 'not_configured',
@@ -364,24 +366,25 @@ describe('[HH-COM-14][HH-COM-13] sending records the template, the layout and ev
 
   it('[HH-COM-13] released wording whose values are not wired fails visibly, naming them, and never sends', async () => {
     const f = providers()
+    // The deposit invoice's event does not exist yet (TSK-0085): its resolver supplies nothing.
     const automation = notificationAutomation({
-      messageKey: 'request.receipt',
+      messageKey: 'invoice.deposit',
       providers: f.providers,
       resolve: async () => ({
-        subjectKey: 'request:tpl-2',
-        record: { type: 'request', id: 'tpl-2' },
+        subjectKey: 'invoice:tpl-2',
+        record: { type: 'invoice', id: 'tpl-2' },
         recipients: [recipient('templates-2@example.test')],
-        values: { reference: 'HH-0000TEST', services: 'Synthetic', summary: 'Synthetic', nextSteps: 'Synthetic' },
+        values: {},
       }),
     })
-    await event('request.submitted', 'tpl-2')
+    await event('invoice.deposit_issued', 'tpl-2')
     await createWorker({ db: t.db, registry: createAutomationRegistry([automation]) }).runOnce()
     expect(f.email.calls).toEqual([])
-    expect(await deliveryOf('request:tpl-2')).toMatchObject({
+    expect(await deliveryOf('invoice:tpl-2')).toMatchObject({
       state: 'failed',
       error_code: 'template_values_not_wired',
-      missing_variables: ['customerName'],
-      template_id: 'request_received',
+      missing_variables: ['customerName', 'invoiceLink', 'invoiceNumber', 'jobNumber'],
+      template_id: 'deposit_invoice',
     })
   })
 
@@ -468,11 +471,11 @@ describe('[HH-COM-14][RULE-SERVER-AUTHZ] the staff message views', () => {
     const sent = items.find((i) => i['templateId'] === 'question_notice' && i['errorCode'] === null)
     expect(sent).toMatchObject({ lifecycle: 'PROVIDER_ACCEPTED', intercepted: true, release: 'automatic', attempts: 1 })
     expect((sent?.['history'] as unknown[]).length).toBe(1)
-    const notWired = items.find((i) => i['templateId'] === 'request_received')
+    const notWired = items.find((i) => i['templateId'] === 'deposit_invoice')
     expect(notWired).toMatchObject({
       lifecycle: 'FAILED',
       errorCode: 'template_values_not_wired',
-      missingVariables: ['customerName'],
+      missingVariables: ['customerName', 'invoiceLink', 'invoiceNumber', 'jobNumber'],
     })
     expect(res.body).not.toContain('templates-1@example.test')
     expect(res.body).not.toContain('Sam')
@@ -509,8 +512,11 @@ describe('[HH-COM-14][RULE-SERVER-AUTHZ] the staff message views', () => {
     expect(by('staff.reply')?.release).toBe('staff')
     expect(by('contact.verification_code')?.category).toBe('authentication')
     expect(by('request.receipt')?.versions).toEqual([
-      expect.objectContaining({ channel: 'email', locale: 'en', readiness: 'not_wired', unwired: ['customerName'] }),
+      expect.objectContaining({ channel: 'email', locale: 'en', readiness: 'ready', unwired: [] }),
     ])
+    expect(by('invoice.deposit')?.versions).toContainEqual(
+      expect.objectContaining({ channel: 'email', locale: 'en', readiness: 'not_wired' }),
+    )
     expect(by('staff_notice.customer_reply')?.versions.map((v) => v.locale)).toEqual(['en', 'es'])
     expect(by('reminder.repeat_service')?.versions.every((v) => v.readiness === 'not_configured')).toBe(true)
     expect(body.variables.find((v) => v.name === 'customerName')).toMatchObject({

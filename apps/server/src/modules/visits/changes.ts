@@ -12,11 +12,14 @@
 //   (HH-ARC-08). After commit it triggers the automatic "Appointment changed" notice (FACT-AUTOMATIC-MESSAGES #11) and
 //   the staff notice to every affected worker (the old and the new team). One notice per change: the change id is the
 //   subject, so retries and double submissions never duplicate it. At send time the visit is read again: a change
-//   that a newer one superseded, or a visit no longer confirmed, sends nothing to the customer (stale). Neither
-//   wording is approved yet, so each delivery is recorded as failed with template_not_configured and staff see the
-//   delivery issue with Retry; a failed delivery never rolls back the schedule.
-// - A cancellation is not on the automatic list: it notifies the affected workers only (the staff notice); the
-//   customer sees the canceled appointment in the portal, and anything sent to them is a staff message.
+//   that a newer one superseded, or a visit no longer confirmed, sends nothing to the customer (stale). TSK-0120: the
+//   customer notice (appointment_changed, OWN-DEC-209) is sent with its values; the staff notice has no approved
+//   wording yet (template_not_configured). A failed delivery is a delivery issue with Retry and never rolls back the
+//   schedule.
+// - TSK-0120 (OWN-DEC-152 R2-Q2): a committed cancellation sends the automatic visit_cancelled notice to the customer
+//   once (the change id is its subject) and notifies the affected workers (the staff notice); the customer also sees
+//   the cancelled appointment in the portal at once. A reschedule never sends it. The "Appointment changed" wording is
+//   the owner-authorized appointment_changed (OWN-DEC-209), with its values supplied.
 // - The customer's "Request to Reschedule" and "Request Cancellation" (HH-PORT-04) record the intent, an optional reason
 //   and (reschedule) preferred times, open the visit's change-request queue item, and never change the booking. Staff
 //   confirm a reschedule request by moving the visit (the window route with the request) or a cancellation request by
@@ -41,7 +44,6 @@ import {
   needsOwnerAction,
   onSiteRange,
   reservedRange,
-  windowText,
   type CancellationInitiator,
   type CancellationOutcome,
   type HandyhubCause,
@@ -68,11 +70,18 @@ import {
   type ReservationRequest,
 } from '../capacity/resources.js'
 import { depositView } from '../finance/deposits.js'
-import { notificationAutomation, type NotificationProviders } from '../notifications/index.js'
+import {
+  firstNameOf,
+  notificationAutomation,
+  portalLink,
+  present,
+  valuesFor,
+  type NotificationProviders,
+} from '../notifications/index.js'
 import { openQueueItem, resolveQueueItem } from '../queue/items.js'
 import { findProject } from '../records/index.js'
 import type { WorkVisitGate } from './gates.js'
-import { destinationsOf, requestOf } from './offers.js'
+import { destinationsOf, requestOf, visitValues } from './offers.js'
 import { confirmationPreconditions } from './preconditions.js'
 import { stopAppointmentReminders } from './reminders.js'
 import { factsOf, storedWindow } from './visits.js'
@@ -84,6 +93,8 @@ const field = (f: string, code: string): FieldError => ({ field: f, code, messag
 export const CHANGE_COMMITTED_EVENT = 'appointment.change_committed'
 export const APPOINTMENT_CHANGED_NOTICE = 'appointment.changed'
 export const SCHEDULE_CHANGE_STAFF_NOTICE = 'staff_notice.schedule_change'
+/** TSK-0120 (OWN-DEC-152 R2-Q2): the automatic notice of a committed cancellation (never a reschedule). */
+export const VISIT_CANCELLED_NOTICE = 'visit.cancelled'
 export const CHANGE_REQUEST_QUEUE_TYPE = 'visit_change_request'
 export const WORK_CANCELLATION_QUEUE_TYPE = 'visit_cancellation_review'
 
@@ -947,7 +958,12 @@ export async function customerRequestsOf(db: Reader, visitIds: readonly string[]
 
 // --- Notices (FACT-AUTOMATIC-MESSAGES #11 and the staff schedule-change notice) ---------------------------------------
 
-export type ChangeNoticeDeps = { providers: NotificationProviders; staffAppUrl?: string | undefined }
+export type ChangeNoticeDeps = {
+  providers: NotificationProviders
+  staffAppUrl?: string | undefined
+  /** TSK-0120: the public site's base URL for the portal link; undefined while not configured. */
+  publicSiteUrl?: string | undefined
+}
 
 async function changeOf(tx: Tx, job: { payload: unknown }) {
   const p = job.payload as { changeId?: unknown } | null
@@ -976,9 +992,46 @@ export function appointmentChangedAutomation(deps: ChangeNoticeDeps): Automation
         subjectKey: `visit_change:${c.id}`,
         record: { type: 'visit', id: v.id },
         recipients: [{ kind: 'customer_contact', id: r.contactId, destinations: destinationsOf(r) }],
-        // Customer messages are English (RULE-LANGUAGES); the secure project link is not supplied yet.
-        values: { visitWindow: windowText(storedWindow(v), 'en-US') },
+        // Customer messages are English (RULE-LANGUAGES). TSK-0120: the revised, confirmed appointment as it is now.
+        values: valuesFor(APPOINTMENT_CHANGED_NOTICE, {
+          customerName: firstNameOf(r.full_name),
+          ...visitValues(v, r.reference),
+          projectLink: portalLink(deps.publicSiteUrl, r.reference),
+        }),
         failureItem: { reference: r.reference, projectId: v.project_id, assignedStaffId: r.responsible_staff_id },
+        projectId: v.project_id,
+      }
+    },
+  })
+}
+
+/**
+ * #14 "Visit cancelled" (OWN-DEC-152 R2-Q2), TSK-0120: once per committed cancellation, after commit; never for a
+ * reschedule, a reassignment, a cancellation request or a draft. At send time the visit must still be cancelled (it
+ * stays so: a cancelled visit is never booked again). The cancellation's own transaction already cancelled the visit's
+ * waiting reminders (stopAppointmentReminders), so no reminder follows it.
+ */
+export function visitCancelledAutomation(deps: ChangeNoticeDeps): Automation {
+  return notificationAutomation({
+    messageKey: VISIT_CANCELLED_NOTICE,
+    providers: deps.providers,
+    resolve: async ({ tx, job }) => {
+      const c = await changeOf(tx, job)
+      if (!c || c.kind !== 'canceled') return 'stale'
+      const v = await tx.selectFrom('work.visits').selectAll().where('id', '=', c.visit_id).executeTakeFirst()
+      if (!v || v.state !== 'canceled' || v.version !== c.to_version) return 'stale'
+      const r = await requestOf(tx, v.project_id)
+      if (!r) return 'stale'
+      return {
+        subjectKey: `visit_change:${c.id}`,
+        record: { type: 'visit', id: v.id },
+        recipients: [{ kind: 'customer_contact', id: r.contactId, destinations: destinationsOf(r) }],
+        values: present({
+          customerName: firstNameOf(r.full_name),
+          visitNumber: visitValues(v, r.reference).visitNumber,
+        }),
+        failureItem: { reference: r.reference, projectId: v.project_id, assignedStaffId: r.responsible_staff_id },
+        projectId: v.project_id,
       }
     },
   })

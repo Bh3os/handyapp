@@ -25,10 +25,12 @@ import { apiModules } from '../../src/modules/index.js'
 import { portalModule } from '../../src/modules/portal/index.js'
 import { disable } from '../../src/modules/staff/members.js'
 import {
+  appointmentConfirmedAutomation,
   estimateVisitConfirmedAutomation,
   estimateVisitOptionsAutomation,
   visitsModule,
   windowOfferExpiryAutomation,
+  workVisitOptionsAutomation,
   type WorkVisitGate,
 } from '../../src/modules/visits/index.js'
 import { expireOfferIfDue } from '../../src/modules/visits/offers.js'
@@ -43,6 +45,9 @@ import { verifyCountyOf } from '../fixtures/county.js'
 import { testConfig } from '../fixtures/env.js'
 import { verifyPropertyZone } from '../fixtures/zones.js'
 import { signInWithMfa, TEST_MFA_KEY } from '../fixtures/staff-mfa.js'
+
+/** TSK-0120: the synthetic public site the portal links point at. */
+const SITE = 'https://site.example.test'
 
 const ZONE = 'America/Kentucky/Louisville'
 const KEY: CodeKeySettings = readCodeKey({
@@ -1048,11 +1053,11 @@ describe('[HH-SCH-11][OWN-DEC-105][T37] work visits use the same mechanism after
     expect(codes(gatedRes.body)).toContainEqual(['job', 'SYNTHETIC_GATE_UNMET'])
     blockedJobs.delete(jobId)
     const { offer: o } = await offered(p, v, threeWindows(day(15)), ['ann'])
-    // The automatic list names no notice for work-visit windows (OQ-WORK-WINDOW-OFFER-NOTICE): none is triggered.
-    expect(o.noticeKey).toBeNull()
+    // TSK-0120 (OWN-DEC-156): publishing work windows triggers the automatic work-appointment windows notice.
+    expect(o.noticeKey).toBe('work_visit.options')
     expect(
-      await t.db.selectFrom('platform.outbox_events').select('id').where('aggregate_id', '=', o.id).execute(),
-    ).toEqual([])
+      await t.db.selectFrom('platform.outbox_events').select('type').where('aggregate_id', '=', o.id).execute(),
+    ).toEqual([{ type: 'work_visit.windows_published' }])
     const tab = await appointmentsTab(p)
     expect(tab.offers).toEqual([expect.objectContaining({ purpose: 'work_visit', status: 'open' })])
     expect((await select(p, 1, 3)).statusCode).toBe(200)
@@ -1068,6 +1073,61 @@ describe('[HH-SCH-11][OWN-DEC-105][T37] work visits use the same mechanism after
     expect(events.map((e) => e.type)).toEqual(['appointment.reserved'])
     expect((await appointmentsTab(p)).appointments?.map((a) => [a.purpose, a.status])).toEqual([
       ['work_visit', 'confirmed'],
+    ])
+
+    // TSK-0120 (OWN-DEC-152 scenario D): the windows notice and, after the booking committed, the confirmation, once
+    // each, by email with the owner's wording and its values (texts have no wording until A2P 10DLC).
+    const providers = createProviders(readProviderSettings({ HANDYHUB_ENV: 'ci' }))
+    const deps = { providers: { email: providers.email, sms: providers.sms }, publicSiteUrl: SITE }
+    const worker = createWorker({
+      db: t.db,
+      registry: createAutomationRegistry([workVisitOptionsAutomation(deps), appointmentConfirmedAutomation(deps)]),
+    })
+    for (let i = 0; i < 4; i++) await worker.runOnce()
+    const sent = (providers.fakes.email?.sent ?? []).filter((m) => m.text.includes(p.reference))
+    // The offer was selected before its notice ran: an offer no longer open sends no windows notice (stale).
+    expect(sent.map((m) => m.subject)).toEqual(['HandyHub | Your Work Appointment Is Confirmed'])
+    const text = sent[0]?.text ?? ''
+    expect(text).toMatch(/^Hi Synthetic,\n\nGreat news! Your HandyHub work appointment has been confirmed\./)
+    expect(text).toContain(`Job reference: ${p.reference}`)
+    expect(text).toContain('Service: ')
+    expect(text).toMatch(/Arrival window: \d{1,2}:\d{2} [AP]M – \d{1,2}:\d{2} [AP]M \((EDT|EST|CDT|CST)\)/)
+    expect(text).toContain(`${SITE}/portal/p/${p.reference}`)
+    expect(text).not.toMatch(/\$|Synthetic Offer Lane/)
+    expect(providers.fakes.sms?.sent ?? []).toEqual([])
+    for (let i = 0; i < 2; i++) await worker.runOnce()
+    expect((providers.fakes.email?.sent ?? []).filter((m) => m.text.includes(p.reference))).toHaveLength(1)
+  })
+
+  it('[HH-SCH-11][OWN-DEC-156][HH-COM-06] publishing work windows sends the windows notice once, with the 24-hour hold', async () => {
+    const p = await siteVisitProject()
+    await approve(p)
+    const v = await planVisit(p, { date: day(19), purpose: 'service' })
+    const { offer: o } = await offered(p, v, threeWindows(day(19)), ['ann'])
+    const providers = createProviders(readProviderSettings({ HANDYHUB_ENV: 'ci' }))
+    const worker = createWorker({
+      db: t.db,
+      registry: createAutomationRegistry([
+        workVisitOptionsAutomation({ providers: { email: providers.email, sms: providers.sms }, publicSiteUrl: SITE }),
+      ]),
+    })
+    for (let i = 0; i < 3; i++) await worker.runOnce()
+    const sent = (providers.fakes.email?.sent ?? []).filter((m) => m.text.includes(p.reference))
+    expect(sent.map((m) => m.subject)).toEqual(['HandyHub | Choose Your Work Appointment'])
+    expect(sent[0]?.text).toContain(`We're ready to schedule your project #${p.reference}.`)
+    expect(sent[0]?.text).toContain(`${SITE}/portal/p/${p.reference}/appointments`)
+    expect(sent[0]?.text).toMatch(
+      /held for 24 hours, until [A-Z][a-z]+ \d{1,2}, \d{4} at \d{1,2}:\d{2} [AP]M (EDT|EST|CDT|CST)\./,
+    )
+    const rows = await t.db
+      .selectFrom('platform.message_deliveries')
+      .select(['channel', 'state', 'error_code'])
+      .where('subject_key', '=', `window_offer:${o.id}`)
+      .orderBy('channel')
+      .execute()
+    expect(rows).toEqual([
+      { channel: 'email', state: 'queued', error_code: null },
+      { channel: 'sms', state: 'failed', error_code: 'template_not_configured' },
     ])
   })
 })
@@ -1192,12 +1252,13 @@ describe('[RULE-SERVER-AUTHZ][T19] offers are authorized on the server', () => {
   })
 })
 
-describe('[FACT-AUTOMATIC-MESSAGES][OWN-DEC-99] the automatic notices are recorded truthfully', () => {
-  it('[FACT-AUTOMATIC-MESSAGES][HH-COM-06][HH-COM-13] options and confirmation notices: email wording released but not wired, texts NOT CONFIGURED; never sent, shown to staff', async () => {
+describe('[FACT-AUTOMATIC-MESSAGES][OWN-DEC-99] the automatic notices are sent once and recorded truthfully', () => {
+  it('[FACT-AUTOMATIC-MESSAGES][HH-COM-06][HH-COM-13][TSK-0120] options and confirmation notices: the owner wording by email, once each; texts NOT CONFIGURED', async () => {
     const providers = createProviders(readProviderSettings({ HANDYHUB_ENV: 'ci' }))
+    const deps = { providers: { email: providers.email, sms: providers.sms }, publicSiteUrl: SITE }
     const registry = createAutomationRegistry([
-      estimateVisitOptionsAutomation({ providers: { email: providers.email, sms: providers.sms } }),
-      estimateVisitConfirmedAutomation({ providers: { email: providers.email, sms: providers.sms } }),
+      estimateVisitOptionsAutomation(deps),
+      estimateVisitConfirmedAutomation(deps),
     ])
     const p = await siteVisitProject()
     const v = await planVisit(p, { date: day(17) })
@@ -1207,33 +1268,50 @@ describe('[FACT-AUTOMATIC-MESSAGES][OWN-DEC-99] the automatic notices are record
     await worker.runOnce()
     const offerNotices = (await visitOf(p.projectId, v.id)).offers[0]?.notices
     expect(offerNotices).toEqual([
-      // TSK-0119: the owner's email wording is released; its values are wired by TSK-0120. Texts have no wording yet.
-      {
-        messageKey: 'estimate_visit.options',
-        channel: 'email',
-        state: 'failed',
-        errorCode: 'template_values_not_wired',
-      },
+      // TSK-0120: the owner's email wording with its values, handed to the ci test provider. Texts have no wording.
+      { messageKey: 'estimate_visit.options', channel: 'email', state: 'queued', errorCode: null },
       { messageKey: 'estimate_visit.options', channel: 'sms', state: 'failed', errorCode: 'template_not_configured' },
     ])
+    const ours = () => (providers.fakes.email?.sent ?? []).filter((m) => m.text.includes(p.reference))
+    const options = ours()
+    expect(options.map((m) => m.subject)).toEqual(['HandyHub | Choose a Time for Your Estimate Visit'])
+    expect(options[0]?.text).toContain(`appointment options for request #${p.reference}.`)
+    expect(options[0]?.text).toContain(`${SITE}/portal/p/${p.reference}/appointments`)
+    expect(options[0]?.text).toMatch(
+      /available until [A-Z][a-z]+ \d{1,2}, \d{4} at \d{1,2}:\d{2} [AP]M (EDT|EST|CDT|CST)\./,
+    )
+    // No confirmation before the booking: selecting is what reserves the visit.
     expect(await select(p, 1, 1)).toMatchObject({ statusCode: 200 })
     await worker.runOnce()
     await worker.runOnce()
     const visit = await visitOf(p.projectId, v.id)
     expect(visit.notices.map((n) => [n.messageKey, n.channel, n.state, n.errorCode])).toEqual([
-      ['estimate_visit.confirmed', 'email', 'failed', 'template_values_not_wired'],
+      ['estimate_visit.confirmed', 'email', 'queued', null],
       ['estimate_visit.confirmed', 'sms', 'failed', 'template_not_configured'],
     ])
-    expect(providers.fakes.email?.sent ?? []).toEqual([])
+    const confirmed = ours().slice(1)
+    expect(confirmed.map((m) => m.subject)).toEqual(['HandyHub | Your Estimate Visit Is Confirmed'])
+    expect(confirmed[0]?.text).toMatch(
+      /^Hi Synthetic,\n\nYour on-site estimate appointment with HandyHub has been confirmed\./,
+    )
+    const { number } = await t.db
+      .selectFrom('work.visits')
+      .select('number')
+      .where('id', '=', v.id)
+      .executeTakeFirstOrThrow()
+    expect(confirmed[0]?.text).toContain(`Reference: ${p.reference}-V${number}`)
+    expect(confirmed[0]?.text).toMatch(/Date: [A-Z][a-z]+day, [A-Z][a-z]+ \d{1,2}, \d{4}/)
+    expect(confirmed[0]?.text).toMatch(/Arrival window: 9:00 AM – \d{1,2}:\d{2} [AP]M \((EDT|EST|CDT|CST)\)/)
+    // Never an address or an amount (OWN-DEC-158).
+    expect(`${confirmed[0]?.text}${options[0]?.text}`).not.toMatch(/Synthetic Offer Lane|\$/)
     expect(providers.fakes.sms?.sent ?? []).toEqual([])
-    // Staff see the delivery issue as not configured.
+    // The texts that cannot send yet are shown to staff as not configured.
     const issues = await t.db
       .selectFrom('ops.queue_items')
       .select('reason')
       .where('type', '=', 'delivery_failed')
       .where('reference', '=', p.reference)
       .execute()
-    expect(issues.length).toBeGreaterThan(0)
     expect(new Set(issues.map((i) => i.reason))).toEqual(new Set(['delivery_not_configured']))
     // A replayed event sends nothing twice: still one delivery per channel and subject.
     await worker.runOnce()
@@ -1243,6 +1321,7 @@ describe('[FACT-AUTOMATIC-MESSAGES][OWN-DEC-99] the automatic notices are record
       .where('subject_key', 'in', [`window_offer:${o.id}`, `visit:${v.id}`])
       .execute()
     expect(rows).toHaveLength(4)
+    expect(ours()).toHaveLength(2)
   })
 })
 

@@ -15,12 +15,12 @@
 //   or failing retries and, at the last attempt, is a failed job the Office owns in System health. The approval
 //   itself is never undone by anything here.
 // - The message: approval.receipt, an automatic message on the configured list (FACT-AUTOMATIC-MESSAGES #9), once per
-//   approval and destination (email, and text when the customer gave a number). Its wording has no owner approval and
-//   no template version exists, so every delivery records template_not_configured (never sent) and opens one staff
-//   delivery issue with Retry, while the approval and the receipt stay as they are. The secure project link it would
-//   carry is not supplied (as for estimate.ready), so no invented link is ever sent. The PDF is not attached: email
-//   bodies carry no amounts and no private details; the customer reads and downloads it through verified project
-//   access (PROPOSED, OQ-APPROVAL-RECEIPT-MESSAGE).
+//   approval and destination (email, and text when the customer gave a number). Its wording is the owner's
+//   estimate_approval_confirmation (OWN-DEC-151, OWN-DEC-155, migration 0065): TSK-0120 supplies the first name, the
+//   estimate number and the project's portal link, so the email is sent; texts have no wording until A2P 10DLC and
+//   are recorded as template_not_configured. A failed delivery opens one staff delivery issue with Retry, while the
+//   approval and the receipt stay as they are. The PDF is not attached (OWN-DEC-155): email bodies carry no amounts
+//   and no private details; the customer reads and downloads it through verified project access.
 // - The next step (OWN-DEC-105, HH-EST-12): deposit required and not satisfied: "Estimate approved—pay your deposit to
 //   proceed with scheduling."; otherwise "Estimate approved—choose your work appointment." A deposit is satisfied or
 //   waived only by TSK-0059's records (finance.deposit_requirements, its verified payments and the Owner's waiver),
@@ -35,7 +35,14 @@ import type { Automation } from '../../platform/automation.js'
 import { loadConfig } from '../../platform/config/index.js'
 import type { ObjectStorage } from '../../providers/index.js'
 import { customerDeposit } from '../finance/deposits.js'
-import { notificationAutomation, type Destination, type NotificationProviders } from '../notifications/index.js'
+import {
+  firstNameOf,
+  notificationAutomation,
+  portalLink,
+  present,
+  type Destination,
+  type NotificationProviders,
+} from '../notifications/index.js'
 import { ESTIMATE_APPROVED_EVENT } from './approval.js'
 import { discountRowLabel, renderPdfModel, type CustomerPdfModel, type PdfBlock } from './customer-pdf.js'
 import { DOCUMENT_URL_SECONDS, type CustomerEstimateLine } from './projections.js'
@@ -448,7 +455,11 @@ export function approvalReceiptDocumentAutomation(storage: ObjectStorage | null)
 }
 
 /** The automatic approval receipt message (FACT-AUTOMATIC-MESSAGES #9): once per approval and destination. */
-export function approvalReceiptNoticeAutomation(deps: { providers: NotificationProviders }): Automation {
+export function approvalReceiptNoticeAutomation(deps: {
+  providers: NotificationProviders
+  /** TSK-0120: the public site's base URL for the portal link; undefined while not configured. */
+  publicSiteUrl?: string | undefined
+}): Automation {
   return notificationAutomation({
     messageKey: APPROVAL_RECEIPT_MESSAGE_KEY,
     providers: deps.providers,
@@ -459,12 +470,17 @@ export function approvalReceiptNoticeAutomation(deps: { providers: NotificationP
         .selectFrom('estimating.approvals as a')
         .innerJoin('intake.requests as r', 'r.project_id', 'a.project_id')
         .innerJoin('crm.contacts as c', 'c.id', 'r.contact_id')
+        .innerJoin('estimating.estimates as e', 'e.id', 'a.estimate_id')
+        .innerJoin('crm.projects as p', 'p.id', 'a.project_id')
         .select([
           'a.id',
           'a.project_id',
+          'e.number',
+          'p.reference as projectReference',
           'r.reference',
           'r.responsible_staff_id',
           'c.id as contactId',
+          'c.full_name',
           'c.email',
           'c.phone_e164',
           'c.preferred_channel',
@@ -491,8 +507,12 @@ export function approvalReceiptNoticeAutomation(deps: { providers: NotificationP
         subjectKey: `estimate_approval:${a.id}`,
         record: { type: 'estimate_approval', id: a.id },
         recipients: [{ kind: 'customer_contact', id: a.contactId, destinations }],
-        // The secure project link is not supplied: no truthful link exists for this message yet (see the header).
-        values: {},
+        // TSK-0120 (OWN-DEC-155): the confirmation links to the project only; the PDF stays in Documents.
+        values: present({
+          customerName: firstNameOf(a.full_name),
+          estimateNumber: a.number,
+          projectLink: portalLink(deps.publicSiteUrl, a.projectReference),
+        }),
         failureItem: { reference: a.reference, projectId: a.project_id, assignedStaffId: a.responsible_staff_id },
         // TSK-0049: the delivery belongs to the project (its reply address and conversation).
         projectId: a.project_id,

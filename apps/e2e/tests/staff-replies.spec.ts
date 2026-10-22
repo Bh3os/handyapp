@@ -184,14 +184,15 @@ test.describe('staff replies and the portal Messages tab (TSK-0050, HH-COM-08, H
       await expect(composer.getByTestId('reply-hours')).toHaveText(
         /contact hours \(08:00–22:00, America\/Kentucky\/Louisville\)/,
       )
-      await expect(composer.getByText(/No approved wording for reply emails yet/)).toBeVisible()
+      // TSK-0120: the reply email is the owner's staff_reply_wrapper with its values: no missing-wording notice.
+      await expect(composer.getByText(/No approved wording for reply emails yet/)).toHaveCount(0)
       await axe(staff)
       const text = `Synthetic e2e reply ${tag}: we can come on Tuesday morning.`
       await composer.getByLabel('Reply').fill(text)
       await composer.getByRole('button', { name: 'Send' }).click()
       await expect(composer.getByText("Reply sent. It is on the customer's project page.")).toBeVisible()
-      // The reply is in the conversation with its truthful delivery: waiting for the contact hours, or not sent
-      // because the reply wording's values are not wired yet (TSK-0119) (never shown as sent).
+      // The reply is in the conversation with its truthful delivery: waiting for the contact hours, or queued with the
+      // ci test provider (TSK-0120), never shown as sent or delivered.
       const thread = staff.getByRole('region', { name: 'Customer messages' })
       const sent = thread.getByRole('listitem', { name: 'E2E Replies Office' })
       await expect(sent.getByText(text)).toBeVisible()
@@ -200,9 +201,8 @@ test.describe('staff replies and the portal Messages tab (TSK-0050, HH-COM-08, H
         await expect(
           thread
             .getByRole('listitem', { name: 'E2E Replies Office' })
-            .getByText(
-              /Not sent: the approved wording is released, but this message does not supply its values yet\.|Sends at .+ \(contact hours\)\./,
-            ),
+            .getByText(/^Queued$|Sends at .+ \(contact hours\)\./)
+            .first(),
         ).toBeVisible({ timeout: 1000 })
       }).toPass({ timeout: 20_000 })
       await expect(thread.getByText(/^Sent$|^Delivered$/)).toHaveCount(0)
