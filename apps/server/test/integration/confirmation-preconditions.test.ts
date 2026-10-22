@@ -605,6 +605,8 @@ describe('[HH-CUS-03][HH-SCH-06][OWN-DEC-179][OWN-DEC-167] a ZIP check is screen
       pr.version,
     )
     expect(moved.statusCode, moved.body).toBe(200)
+    // TSK-0123: the new address derives the zone again (unknown here), so it is verified again before planning.
+    await verifyPropertyZone(t.db, { projectId: p.projectId })
     const v = await planVisit(p, 'site_estimate', day(14))
     expect((await visitOf(p.projectId, v.id)).confirmationBlockers).toEqual([
       { field: 'coverage', code: 'COUNTY_NOT_VERIFIED' },
