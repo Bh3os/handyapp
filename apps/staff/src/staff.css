@@ -1016,3 +1016,50 @@
   white-space: normal;
   max-width: 100%;
 }
+
+/* TSK-0077: Call 911 first, then Stop Work / Report Hazard, prominent on every screen of an active job; large touch
+   targets, wrapping text on a phone. */
+.staff-start__emergency {
+  border: 2px solid var(--hh-danger);
+  border-radius: var(--hh-radius-sm);
+  padding: var(--hh-space-3);
+  margin-block: var(--hh-space-3);
+  background: var(--hh-danger-tint);
+}
+.staff-start__call911 {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  padding-inline: var(--hh-space-4);
+  border-radius: var(--hh-radius-sm);
+  background: var(--hh-surface);
+  border: 2px solid var(--hh-danger);
+  color: var(--hh-danger-text);
+  font-weight: 700;
+  font-size: 1.125rem;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.staff-stop {
+  border: var(--hh-hairline);
+  border-radius: var(--hh-radius-sm);
+  padding: var(--hh-space-3);
+  margin-block: var(--hh-space-3);
+}
+.staff-stop__open.hh-button {
+  min-height: 48px;
+  width: 100%;
+  font-size: 1.0625rem;
+  font-weight: 700;
+}
+.staff-stop__guidance {
+  border-left: 4px solid var(--hh-danger);
+  padding-left: var(--hh-space-3);
+  margin-block: var(--hh-space-3);
+}
+.staff-stop__result,
+.staff-stop__notice,
+.staff-stop__reports > li {
+  margin-block: var(--hh-space-3);
+  overflow-wrap: anywhere;
+}

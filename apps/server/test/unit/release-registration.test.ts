@@ -5,6 +5,7 @@ import { Writable } from 'node:stream'
 import { describe, expect, it } from 'vitest'
 import { buildAutomations, RELEASE_RECORD_CHECKS, releaseFailureItem } from '../../src/automations.js'
 import { estimateReminderRecordCheck } from '../../src/modules/estimates/index.js'
+import { workPausedRecordCheck } from '../../src/modules/hazards/index.js'
 import { replyRecordCheck } from '../../src/modules/inbox/index.js'
 import { questionRecordCheck } from '../../src/modules/questions/index.js'
 import { appointmentReminderRecordCheck } from '../../src/modules/visits/index.js'
@@ -26,7 +27,15 @@ describe('the notify.release registration (TSK-0050, TSK-0051, TSK-0060, TSK-006
     // Estimate reminders (their version), staff replies (their project and contact), question reminders (their
     // question): each record type has exactly its own feature's check.
     // TSK-0067 (HH-COM-11): appointment reminders (their visit).
-    expect(Object.keys(RELEASE_RECORD_CHECKS).sort()).toEqual(['estimate_version', 'project', 'question', 'visit'])
+    // TSK-0077 (OWN-DEC-152): the work-paused notice (its report, sent only while the report's hold still blocks).
+    expect(Object.keys(RELEASE_RECORD_CHECKS).sort()).toEqual([
+      'estimate_version',
+      'hazard_report',
+      'project',
+      'question',
+      'visit',
+    ])
+    expect(RELEASE_RECORD_CHECKS['hazard_report']).toBe(workPausedRecordCheck)
     expect(RELEASE_RECORD_CHECKS['visit']).toBe(appointmentReminderRecordCheck)
     expect(RELEASE_RECORD_CHECKS['estimate_version']).toBe(estimateReminderRecordCheck)
     expect(RELEASE_RECORD_CHECKS['project']).toBe(replyRecordCheck)

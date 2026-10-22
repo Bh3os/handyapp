@@ -44,6 +44,7 @@ import {
   workVisitOptionsAutomation,
 } from './modules/visits/index.js'
 import { notAFitNoticeAutomation } from './modules/requests/not-a-fit-notice.js'
+import { workPausedDraftAutomation, workPausedRecordCheck } from './modules/hazards/index.js'
 import { objectErasureAutomation } from './modules/privacy/log.js'
 import type { CodeKeySettings } from './modules/identity/index.js'
 import type { RecordChecks, ReleaseFailureItem } from './modules/notifications/index.js'
@@ -71,6 +72,8 @@ export const RELEASE_RECORD_CHECKS: RecordChecks = {
   project: replyRecordCheck,
   question: questionRecordCheck,
   visit: appointmentReminderRecordCheck,
+  // TSK-0077: a released work-paused notice is sent only while its report's critical hold still blocks.
+  hazard_report: workPausedRecordCheck,
 }
 
 /**
@@ -147,6 +150,8 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
       },
       publicSiteUrl: deps.publicSiteUrl,
     }),
+    // TSK-0077: a committed Stop Work drafts the Owner-released work-paused notice (never automatic, OWN-DEC-152).
+    workPausedDraftAutomation(),
     // TSK-0041: action queue items from the modules' committed events.
     ...queueAutomations(),
     // TSK-0059: an approval whose job needs a deposit opens its deposit_due item (deposits to collect, S01).

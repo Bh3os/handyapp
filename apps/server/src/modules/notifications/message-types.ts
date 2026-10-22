@@ -391,7 +391,9 @@ const TYPES: readonly MessageType[] = [
     variables: vars('customerName', 'reference', 'staffDisplayName', 'staffMessage', 'replyText', 'projectLink'),
     sourceIds: ['OWN-DEC-120', 'OWN-DEC-151'],
   },
-  // The Owner reviews and releases the work-paused notice (OWN-DEC-152 section 3.2); TSK-0077 builds its draft.
+  // The Owner reviews and releases the work-paused notice (OWN-DEC-152 section 3.2). TSK-0077: a Stop Work / Report
+  // Hazard drafts it after the report commits, with the customer's first name and the job's reference stored on the
+  // draft; it is never automatic and never sent until the Owner releases it.
   {
     key: 'job.paused',
     templateId: 'work_paused',
@@ -399,7 +401,7 @@ const TYPES: readonly MessageType[] = [
     channels: both,
     triggerEvents: [],
     variables: vars('customerName', 'jobNumber'),
-    supplied: [],
+    supplied: ['customerName', 'jobNumber'],
     ownerApproval: true,
     sourceIds: ['OWN-DEC-151', 'OWN-DEC-152'],
   },

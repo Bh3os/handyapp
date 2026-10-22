@@ -161,6 +161,9 @@ export const ACTIONS = [
   'incident.view_restricted',
   'case.refer_professional',
   'case.close',
+  // PROPOSED (TSK-0077): the Owner's review of a non-critical issue report (ENT-IssueReport "Owner reviews") closes a
+  // field problem the way the Owner closes a case, so it sits in the case-closure row with the same cell.
+  'issue_report.review',
   'privacy.request_export',
   'privacy.request_correction',
   'privacy.request_deletion',
@@ -644,7 +647,9 @@ export const MATRIX: readonly MatrixRow[] = [
     worker: every('Own report only', 'own_staff'),
     customer: no('— (acknowledgement, progress, next step)'),
   }),
-  row(STAFF, 'Professional referral, case closure', ['case.refer_professional', 'case.close'], { owner: Y() }),
+  row(STAFF, 'Professional referral, case closure', ['case.refer_professional', 'case.close', 'issue_report.review'], {
+    owner: Y(),
+  }),
   row(
     STAFF,
     'Request export, correction or deletion',

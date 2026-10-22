@@ -718,6 +718,33 @@ export const TABLES = {
     categories: [A],
     protectedEvidence: true,
   },
+  // TSK-0077 (ENT-IssueReport, HH-WORK-08, HH-WORK-09, HH-CHG-04, OWN-DEC-143): Stop Work, hazard and issue reports.
+  'work.issue_reports': {
+    holds:
+      'Stop Work / Report Hazard and issue reports: what was reported, its severity and text, the affected work ' +
+      'packages, the critical hold it wrote, an on-site resolution, who and when; injury and incident details ' +
+      'restricted to the Owner and the reporter',
+    classes: ['request_details', 'incident'],
+    categories: [J, S],
+  },
+  'work.issue_report_photos': {
+    holds: "Photos of a report (metadata; the files are in R2), taken only when safe, with the report's visibility",
+    classes: ['photos', 'incident'],
+    categories: [J, S],
+    vendors: ['r2'],
+  },
+  'work.issue_report_reviews': {
+    holds: "The Owner's review of a non-critical issue report: who, when and an optional note",
+    classes: ['request_details'],
+    categories: [J, S],
+  },
+  'work.stabilization_records': {
+    holds:
+      'Emergency stabilization of a Stop Work: trigger, actions, why necessary, evidence, Owner and customer ' +
+      'notification times and the follow-up',
+    classes: ['request_details', 'incident'],
+    categories: [J, S],
+  },
   'work.jobs': { holds: 'Jobs of approved projects', classes: ['request_details'], categories: [J, A] },
   'work.loadout_checks': {
     holds:

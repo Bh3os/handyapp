@@ -70,6 +70,8 @@ export const LABEL_FAMILIES = {
     'new_request',
     'review_hold',
     'safety_hold',
+    // TSK-0077: a worker's non-critical issue report waiting for the Owner's review.
+    'field_issue',
     'visit_change_request',
     'appointment_reminder',
     'delivery_failed',
@@ -169,6 +171,9 @@ export const LABEL_FAMILIES = {
     'job_on_hold',
     'site_condition_differs',
     'start_work_exception_follow_up',
+    // TSK-0077: a worker's issue report, resolved on site or waiting for the Owner.
+    'issue_reported',
+    'issue_resolved_on_site',
   ],
   /** The one action button of a queue item (HH-OPS-02); it opens the record's screen. */
   queueAction: [
@@ -190,6 +195,7 @@ export const LABEL_FAMILIES = {
     'review_shortage',
     'verify_time_zone',
     'review_job_hold',
+    'review_issue',
   ],
   /**
    * System health (TSK-0101; HH-NFR-02): the checks, their states, metrics and notes, as the server's health report
@@ -826,6 +832,9 @@ export const LABEL_FAMILIES = {
     'visit',
     // TSK-0073, TSK-0074: Start Work, site checks, before photos and the administrative exceptions.
     'work',
+    // TSK-0077: Stop Work / Report Hazard, issue reports, their photos, stabilization and the Owner's review.
+    'hazard',
+    'issue_report',
   ],
   /** Retention schedule categories (TSK-0099; apps/server/src/modules/retention/schedule.ts, FACT-RETENTION-SCHEDULE). */
   retentionCategory: [
@@ -1395,6 +1404,59 @@ export const LABEL_FAMILIES = {
     'amountCents',
   ],
   followUpState: ['none', 'open', 'resolved'],
+  // TSK-0077: Stop Work / Report Hazard and issue reports (@handyhub/domain hazard.ts).
+  hazardKind: [
+    'gas_leak',
+    'live_wiring',
+    'hazardous_material',
+    'structural',
+    'licensed_trade',
+    'injury',
+    'other_unsafe',
+  ],
+  hazardGuidance: [
+    'evacuate_call_from_safe_place',
+    'never_gas_repair',
+    'keep_people_away',
+    'call_owner',
+    'never_touch_wiring',
+    'do_not_disturb_material',
+    'stop_affected_work',
+    'no_licensed_work',
+    'call_911_serious_injury',
+  ],
+  hazardReviewer: [
+    'gas_utility_or_licensed_gas_professional',
+    'licensed_electrician',
+    'qualified_hazardous_materials_assessor',
+    'structural_engineer',
+    'licensed_trade_professional',
+    'owner_professional_referral',
+    'qualified_safety_reviewer',
+  ],
+  issueCategory: [
+    'unsafe_condition',
+    'scope_mismatch',
+    'hidden_damage',
+    'material_problem',
+    'missing_equipment',
+    'access_problem',
+    'customer_change',
+    'weather',
+    'product_defect',
+    'incident',
+  ],
+  issueSeverity: ['critical', 'major', 'minor'],
+  reportProblem: [
+    'RESOLVE_ON_SITE_NOT_OFFERED',
+    'SAFETY_HOLD_OPEN',
+    'NOT_WITHIN_TRAINING_AND_SCOPE',
+    'RESOLUTION_INCOMPLETE',
+    'NOT_A_STOP',
+    'REVIEWED_THROUGH_HOLD',
+    'ALREADY_REVIEWED',
+    'NOTICE_NOT_DRAFT',
+  ],
 } as const satisfies Record<string, readonly string[]>
 
 export type LabelFamily = keyof typeof LABEL_FAMILIES

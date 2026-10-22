@@ -88,6 +88,8 @@ export {
 export type { HazardCategory, HoldFacts, HoldKind, HoldState, JobHoldCategory } from './hold.js'
 // TSK-0073, TSK-0074: the Start Work gate and its three owner-approved administrative exceptions.
 export * from './start-gate.js'
+// TSK-0077: Stop Work, Report Hazard and issue reports.
+export * from './hazard.js'
 export {
   addBusinessMinutes,
   BusinessHoursError,

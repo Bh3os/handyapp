@@ -33,7 +33,7 @@ data the schedule does not name (OQ-RETENTION-UNSCHEDULED).
 | Configuration and content (PROPOSED) | Decided values, service content, templates and rules, versioned | Staff by role; the Owner changes them | Versioned, append-only, citing their decisions; no customer data |
 | Technical records (PROPOSED) | Delivery, queues, limits and idempotency | Authorized technical and administrative scope | Hashed keys; redacted; no secrets |
 
-Not stored by the software yet: Incident, Worker timestamps, Analytics.
+Not stored by the software yet: Worker timestamps, Analytics.
 
 ## Vendor destinations
 
@@ -209,6 +209,9 @@ Data owner for every category: the Owner, who decides each deletion-review entry
 | `work.equipment` | Shared equipment items | Configuration and content | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
 | `work.gate_exceptions` | Start Work administrative exceptions: the worker's reason and evidence (a payment provider's transaction reference for a deposit), the Owner's decision, follow-up owner and deadline, and how it ended | Visits and scheduling | `job_records`, `safety_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
 | `work.holds` | Review and safety holds and loadout task blocks with their resolution and reviewer | Request and project details | `requests_not_converted`, `job_records`, `safety_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
+| `work.issue_report_photos` | Photos of a report (metadata; the files are in R2), taken only when safe, with the report's visibility | Interior and work photos, Incident | `job_records`, `safety_records` | Owner's deletion review after the period; nothing deleted automatically | Render, R2 |
+| `work.issue_report_reviews` | The Owner's review of a non-critical issue report: who, when and an optional note | Request and project details | `job_records`, `safety_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
+| `work.issue_reports` | Stop Work / Report Hazard and issue reports: what was reported, its severity and text, the affected work packages, the critical hold it wrote, an on-site resolution, who and when; injury and incident details restricted to the Owner and the reporter | Request and project details, Incident | `job_records`, `safety_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
 | `work.job_packet_acknowledgment_invalidations` | Why and when a packet acknowledgment stopped counting: a critical packet version, the end of the worker's assignment or a disabled account (once each) | Visits and scheduling | `job_records`, `safety_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
 | `work.job_packet_acknowledgments` | A worker's own acknowledgment of one job packet version: who, when, the version, its content digest, the scope version and the SOP versions it covered | Visits and scheduling | `job_records`, `safety_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
 | `work.job_packet_exports` | Every print and PDF export of a job packet: who, when, which version, the latest version then | Logs and audit | `job_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
@@ -220,6 +223,7 @@ Data owner for every category: the Owner, who decides each deletion-review entry
 | `work.reservation_flags` | Appointments flagged by an availability change | Visits and scheduling | `requests_not_converted`, `job_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
 | `work.reservations` | Staff and equipment reserved for a visit | Visits and scheduling | `requests_not_converted`, `job_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
 | `work.scheduling_tasks` | Scheduling tasks of a job | Visits and scheduling | `job_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
+| `work.stabilization_records` | Emergency stabilization of a Stop Work: trigger, actions, why necessary, evidence, Owner and customer notification times and the follow-up | Request and project details, Incident | `job_records`, `safety_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
 | `work.start_gate_evaluations` | Each Start Work attempt: every prerequisite with its missing items and resolution owners, the outcome, the packet, scope and SOP versions and the exceptions used | Visits and scheduling | `job_records`, `safety_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
 | `work.start_site_checks` | A worker's site checks before Start Work (property, access, customer present, hazards reviewed, site as described or different with their note) | Request and project details | `job_records`, `safety_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
 | `work.time_off` | Recorded staff time off | Staff accounts | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
