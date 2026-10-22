@@ -1243,6 +1243,7 @@ export interface PlatformMessageDeliveriesTable {
   sent_at: Timestamp | null
   consent_decision: string | null
   missing_variables: Generated<string[]>
+  text_window: string | null
 }
 
 export interface PlatformMessageDeliveryAttemptsTable {

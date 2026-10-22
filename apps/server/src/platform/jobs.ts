@@ -60,6 +60,37 @@ export async function scheduleJob(
   return { created: row !== undefined }
 }
 
+/**
+ * TSK-0122: another run of the running job's own automation, for the same event, target and payload, at a later time
+ * (a text waiting for the recipient's permitted hours). `key` is the full job key, unique per effect, so scheduling it
+ * twice creates one job. Its effect stays the automation's own, so its idempotency and send-time rechecks apply.
+ */
+export async function scheduleFollowUp(
+  tx: Tx,
+  job: JobView,
+  input: { key: string; runAt: Date; requestId?: string },
+): Promise<{ created: boolean }> {
+  if (!tx.isTransaction) throw new Error('scheduleFollowUp must run inside the business transaction (withTx)')
+  const row = await tx
+    .insertInto('platform.jobs')
+    .values({
+      automation: job.automation,
+      job_key: input.key.slice(0, 300),
+      outbox_event_id: job.eventId,
+      event_type: job.eventType,
+      target_type: job.target.type,
+      target_id: job.target.id,
+      payload: JSON.stringify(job.payload ?? {}),
+      request_id: input.requestId ?? job.requestId,
+      run_at: input.runAt,
+      max_attempts: job.maxAttempts ?? 5,
+    })
+    .onConflict((oc) => oc.column('job_key').doNothing())
+    .returning('id')
+    .executeTakeFirst()
+  return { created: row !== undefined }
+}
+
 type JobRow = {
   id: string
   automation: string

@@ -23,6 +23,10 @@
 //   contact hours again and is rechecked against its question at send time).
 // - TSK-0067 (HH-COM-11, OWN-DEC-107 "record delivery failures for staff"): so is a failed released appointment
 //   reminder (inside the contact hours, rechecked against its visit at send time).
+// - TSK-0121, TSK-0122 (OWN-DEC-153, OWN-DEC-154): the routine reminders are scheduled automatic deliveries sent by
+//   notify.release; a failed one (estimate, question or appointment reminder) is retried the same way, by a new
+//   notify.release job, rechecked against its record at send time. Every retry goes at once by email and at the next
+//   allowed time of the recipient's permitted hours by text.
 import { randomUUID } from 'node:crypto'
 import { sql } from 'kysely'
 import { ApiError } from '../../api/errors.js'
@@ -52,9 +56,8 @@ const retryDelivery: RouteDef = {
     'automatic message again, only when it never reached the provider: a new job of the message’s own automation ' +
     'sends it, rechecking the automatic list, the template, consent and the record, under the same provider ' +
     'idempotency key, so a retry sends at most one message. A failed staff reply (TSK-0050) is released again the ' +
-    'same way, at its release time (inside the contact hours while replies.contact_hours holds replies to them), and ' +
-    'so is a failed released question reminder (TSK-0051) or appointment reminder (TSK-0067), inside the contact ' +
-    'hours. A ' +
+    'same way, and so is a failed estimate, question or appointment reminder (TSK-0121): an email at once, a text at ' +
+    'the next allowed time of the recipient’s permitted hours (TSK-0122). A ' +
     'delivery that is not failed (queued, sent, suppressed), any other staff-released draft, a message no longer ' +
     'on the automatic list or a delivery without an open ' +
     'delivery issue is a CONFLICT; so is an uncertain provider outcome (fieldErrors code OUTCOME_UNKNOWN), which is ' +
@@ -138,6 +141,8 @@ const retryDelivery: RouteDef = {
         'outbox_event_id',
         'record_type',
         'record_id',
+        'recipient_kind',
+        'recipient_id',
       ])
       .where('id', '=', deliveryId)
       .forUpdate()
@@ -146,7 +151,8 @@ const retryDelivery: RouteDef = {
     // The provider may already have sent it: reconciled against the provider's record, never sent again blindly.
     if (row.state === 'failed' && isOutcomeUnknown(row.error_code))
       throw new ApiError('CONFLICT', { fieldErrors: [{ field: 'state', code: 'OUTCOME_UNKNOWN', message: '' }] })
-    if (row.release === 'staff_released' && RETRYABLE_RELEASED.has(row.message_key)) return retryReply(ctx, tx, row)
+    if (RETRYABLE_RELEASED.has(row.message_key) && (row.release === 'staff_released' || row.outbox_event_id === null))
+      return retryReply(ctx, tx, row)
     if (
       row.release !== 'automatic' ||
       row.state !== 'failed' ||
@@ -207,11 +213,12 @@ const retryDelivery: RouteDef = {
 }
 
 /**
- * Staff-released messages whose failed delivery has a Retry: the staff reply, the question reminder (TSK-0051) and the
- * appointment reminder (TSK-0067, rechecked against its visit at send time).
+ * Messages sent by notify.release whose failed delivery has a Retry: the staff reply, and the routine reminders
+ * (TSK-0121: automatic, scheduled; before it staff-released), each rechecked against its record at send time.
  */
 const RETRYABLE_RELEASED: ReadonlySet<string> = new Set([
   STAFF_REPLY_MESSAGE_KEY,
+  'reminder.unanswered_estimate',
   'reminder.unanswered_question',
   'reminder.appointment',
 ])
@@ -223,6 +230,8 @@ type RetryRow = {
   id: string
   message_key: string
   channel: string
+  recipient_kind: string
+  recipient_id: string | null
   state: string
   attempts: number
   error_code: string | null
@@ -244,7 +253,7 @@ async function retryReply(ctx: ApiContext, tx: Tx, row: RetryRow): Promise<ApiRe
     .executeTakeFirst()
   if (!issue)
     throw new ApiError('CONFLICT', { fieldErrors: [{ field: 'state', code: 'NO_DELIVERY_ISSUE', message: '' }] })
-  const runAt = releaseTime(await loadConfig(tx), row.message_key, new Date())
+  const runAt = await releaseTime(tx, await loadConfig(tx), row, new Date())
   await tx
     .updateTable('platform.message_deliveries')
     .set({

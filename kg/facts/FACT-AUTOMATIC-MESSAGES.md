@@ -44,8 +44,11 @@ source: "OWN-DEC-65, 95-111, 114, 119, 120; decision-briefs 2026-10-12T18:43-19:
 | 19 | Job complete | authorized final completion only | `job_complete` | [[OWN-DEC-152]] |
 | 20 | Payment receipt | each confirmed, recorded payment (a partial payment says so) | `payment_receipt` | [[OWN-DEC-111]], [[OWN-DEC-152]] |
 | 21 | Account email changed | sign-in email change completed (old and new verified address) | `account_email_changed` | [[OWN-DEC-151]], [[OWN-DEC-152]] |
+| 22 | Estimate reminder (one, 3 days after successful delivery, while pending) | the version's estimate-ready notice delivered | `estimate_reminder` | [[OWN-DEC-153]], [[OWN-DEC-151]] |
+| 23 | Question reminder (one, 3 days after the notice was delivered, while unanswered) | the question notice delivered | `question_reminder` | [[OWN-DEC-153]], [[OWN-DEC-151]] |
+| 24 | Appointment reminder (24 hours before; none for a visit booked less than 24 hours ahead) | a visit confirmed or a reschedule committed | `appointment_reminder` | [[OWN-DEC-153]], [[OWN-DEC-151]] |
 
-The estimate reminder, the question reminder and the appointment reminder ([[OWN-DEC-153]]) join this list when [[TSK-0121]] makes them automatic; until then they stay staff-released drafts with their owner-worded templates. A message whose template is released but whose values its event does not supply yet is recorded as failed (`template_values_not_wired`) and shown to staff, never sent ([[HH-COM-13]]); [[TSK-0120]] wires the events that exist today.
+The estimate reminder, the question reminder and the appointment reminder ([[OWN-DEC-153]]) join this list when [[TSK-0121]] makes them automatic; until then they stay staff-released drafts with their owner-worded templates. **Built by [[TSK-0121]] (2026-10-22):** rows 22-24, `messages.automatic` version 3 (migration 0075); each is scheduled at its cadence and rechecked against its record when it sends. A message whose template is released but whose values its event does not supply yet is recorded as failed (`template_values_not_wired`) and shown to staff, never sent ([[HH-COM-13]]); [[TSK-0120]] wires the events that exist today.
 
 Staff accounts (automatic): invitation and password-reset emails ([[OWN-DEC-114]]).
 

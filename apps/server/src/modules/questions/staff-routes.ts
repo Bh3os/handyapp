@@ -2,7 +2,6 @@
 // C04, OWN-DEC-98, OWN-DEC-101, RULE-SERVER-AUTHZ).
 //   GET  /staff/requests/:requestId/questions                                  the questions, replies and reminders
 //   POST /staff/requests/:requestId/questions                                  publish a question (the release)
-//   POST /staff/requests/:requestId/questions/:questionId/reminders/:stage/release   release a reminder draft
 //   POST /staff/requests/:requestId/questions/replies-reviewed                 mark the customer's replies reviewed
 //   POST /staff/requests/:requestId/actions/close-no-response                  "Closed—no response"
 // - Publishing is the staff release (OWN-DEC-98): in one transaction the question is kept exactly as written, the
@@ -10,12 +9,14 @@
 //   visit or ready-for-estimate request too), and question.published is recorded for the automatic notice. The
 //   composer carries the hazard guard: staff confirm that the question never asks the customer to inspect a hazardous
 //   area (PROPOSED: a required confirmation beside the warning). Card numbers are refused.
-// - A reminder draft is released by staff; the send waits for the daily contact hours (reminders.cadences
-//   .unansweredQuestion.contactHoursOnly, HH-COM-09) and is rechecked at send time (questionRecordCheck).
+// - TSK-0121 (OWN-DEC-153): the one reminder of an unanswered question is automatic, 3 days after the notice was
+//   delivered; nobody releases it (the release route of TSK-0051 is gone). Staff see it scheduled, sent, failed or
+//   cancelled; an email goes at any hour and a text waits for the recipient's permitted hours (TSK-0122).
 // - Closing "Closed—no response" (PROPOSED permission request.close_no_response, the request-handling row) is open only
-//   while the request waits on the customer, 24 hours (configured) after the final reminder of every unanswered
-//   question was actually sent and while that send still stands, and never with accepted work, an appointment or money
-//   received (OWNER_REVIEW_REQUIRED; accepted, scheduled or paid work is never cancelled under this rule).
+//   while the request waits on the customer, 24 hours (configured) after the reminder of every unanswered question was
+//   actually sent and while that send still stands (a failed reminder is a delivery issue for staff follow-up), and
+//   never with accepted work, an appointment or money received (OWNER_REVIEW_REQUIRED; OWN-DEC-197 E4, OWN-DEC-208:
+//   accepted, scheduled or paid work is never cancelled under this rule).
 import { apply, type RequestState } from '@handyhub/domain'
 import { withTx, type Db, type Tx } from '@handyhub/db'
 import { looksLikeCardNumber } from '@handyhub/domain'
@@ -27,7 +28,6 @@ import { loadConfig, type Config } from '../../platform/config/index.js'
 import { projectInScope } from '../../platform/data-scope.js'
 import { outbox } from '../../platform/outbox.js'
 import { currentContext } from '../../platform/request-context.js'
-import { releaseAutomation, releaseDraft, releaseTime } from '../notifications/index.js'
 import { resolveQueueItem, syncEstimateItem, syncNewRequestItem } from '../queue/index.js'
 import { syncReviewHoldItem } from '../requests/holds.js'
 import { DEFAULT_OBLIGATION_CHECKS, obligationFacts, type ObligationCheck } from '../requests/obligations.js'
@@ -41,13 +41,10 @@ import {
   QUESTION_PUBLISHED,
   QUESTION_REMINDER,
   questionCadence,
-  REMINDER_STAGES,
-  reminderSubject,
+  reminderSubjects,
   reopenPeriodDays,
-  sentNow,
   UUID_RE,
   type QuestionKind,
-  type ReminderStage,
 } from './model.js'
 
 const TEST = 'test/integration/questions.test.ts'
@@ -72,7 +69,11 @@ const arr = (items: unknown) => ({ type: 'array', items })
 const REQUEST_PARAMS = obj({ requestId: UUID })
 const STAFF = obj({ id: S, name: NS })
 const DELIVERY = obj({ id: S, channel: S, state: S, errorCode: NS, sendAt: NS, retry: B })
-/** The progress of one reminder stage: not yet due, drafted, released (queued), sent, failed or cancelled. */
+/**
+ * The progress of a question's reminder: not scheduled (no successful notice yet), scheduled (due later, or a text
+ * waiting for its permitted hours), queued (due now), sent, failed or cancelled; draft for a staff-released draft of
+ * before TSK-0121 that is still listed.
+ */
 export const REMINDER_STATES = ['not_scheduled', 'scheduled', 'draft', 'queued', 'sent', 'failed', 'cancelled'] as const
 const QUESTION = obj({
   id: S,
@@ -87,16 +88,12 @@ const QUESTION = obj({
     sentAt: NS,
     deliveries: arr(DELIVERY),
   }),
-  reminders: arr(
-    obj({
-      stage: { type: 'string', enum: [...REMINDER_STAGES] },
-      state: { type: 'string', enum: [...REMINDER_STATES] },
-      dueAt: NS,
-      sentAt: NS,
-      canRelease: B,
-      deliveries: arr(DELIVERY),
-    }),
-  ),
+  reminder: obj({
+    state: { type: 'string', enum: [...REMINDER_STATES] },
+    dueAt: NS,
+    sentAt: NS,
+    deliveries: arr(DELIVERY),
+  }),
   reply: nobj({
     text: NS,
     notSure: B,
@@ -115,7 +112,7 @@ const QUESTIONS_VIEW = obj({
   canPublish: B,
   repliesWaiting: B,
   canMarkReviewed: B,
-  cadence: nobj({ firstHours: I, finalHours: I, closeAfterFinalHours: I, contactHoursOnly: B }),
+  cadence: nobj({ afterDeliveryHours: I, closeAfterReminderHours: I }),
   close: obj({
     allowed: B,
     available: B,
@@ -137,8 +134,6 @@ const PUBLISH_BODY = {
   },
 } as const
 const PUBLISH_RESULT = obj({ questionId: S, requestId: S, state: S, version: I, moved: B })
-const RELEASE_PARAMS = obj({ requestId: UUID, questionId: UUID, stage: { type: 'string', enum: [...REMINDER_STAGES] } })
-const RELEASE_RESULT = obj({ released: I, sendAt: S, heldForContactHours: B })
 const CLOSE_BODY = {
   type: 'object',
   additionalProperties: false,
@@ -261,32 +256,46 @@ const PUBLISH_FROM: readonly RequestState[] = [
 async function closeFacts(db: Db | Tx, requestId: string, config: Config, now: Date) {
   const open = await db
     .selectFrom('intake.questions')
-    .select(['id', 'final_reminder_sent_at'])
+    .select(['id', 'first_reminder_sent_at', 'final_reminder_sent_at'])
     .where('request_id', '=', requestId)
     .where('state', '=', 'published')
     .execute()
   let finalSentAt: Date | undefined
   let everyFinalSent = open.length > 0
   for (const q of open) {
-    // Actually sent, and still standing (a delivery that failed after it was accepted never counts).
-    if (!q.final_reminder_sent_at || !(await sentNow(db, QUESTION_REMINDER, reminderSubject(q.id, 'final')))) {
+    // The single reminder (TSK-0121; a staff-released one sent before it counts as that reminder), actually sent and
+    // still standing: a delivery that failed after it was accepted never counts (OWN-DEC-208: staff follow-up).
+    const sentAt = q.final_reminder_sent_at ?? q.first_reminder_sent_at
+    if (!sentAt || !(await reminderStands(db, q.id))) {
       everyFinalSent = false
       continue
     }
-    if (!finalSentAt || q.final_reminder_sent_at.getTime() > finalSentAt.getTime())
-      finalSentAt = q.final_reminder_sent_at
+    if (!finalSentAt || sentAt.getTime() > finalSentAt.getTime()) finalSentAt = sentAt
   }
   const cadence = questionCadence(config)
   return {
     openQuestions: open.length,
     finalReminderSentAt: everyFinalSent ? finalSentAt : undefined,
-    noResponseCloseHours: cadence?.closeAfterFinalHours,
+    noResponseCloseHours: cadence?.closeAfterReminderHours,
     availableAt:
       everyFinalSent && finalSentAt && cadence
-        ? new Date(finalSentAt.getTime() + cadence.closeAfterFinalHours * HOUR_MS)
+        ? new Date(finalSentAt.getTime() + cadence.closeAfterReminderHours * HOUR_MS)
         : null,
     now,
   }
+}
+
+/** Whether a reminder of the question is sent or delivered now (any of its subjects). */
+async function reminderStands(db: Db | Tx, questionId: string): Promise<boolean> {
+  const row = await db
+    .selectFrom('platform.message_deliveries')
+    .select('id')
+    .where('message_key', '=', QUESTION_REMINDER)
+    .where('subject_key', 'in', reminderSubjects(questionId))
+    .where('state', 'in', ['sent', 'delivered'])
+    .limit(1)
+    .executeTakeFirst()
+  return row !== undefined
 }
 
 /** Every open reminder of the request's questions (or of one question) is cancelled: nothing old goes out. */
@@ -300,7 +309,13 @@ export async function cancelOpenReminders(tx: Tx, where: { requestId: string } |
   if (ids.length === 0) return 0
   const res = await tx
     .updateTable('platform.message_deliveries')
-    .set({ state: 'cancelled', error_code: 'record_changed', updated_at: sql<Date>`now()` })
+    .set({
+      state: 'cancelled',
+      error_code: 'record_changed',
+      cancelled_by: 'system',
+      cancelled_at: sql<Date>`now()`,
+      updated_at: sql<Date>`now()`,
+    })
     .where('message_key', '=', QUESTION_REMINDER)
     .where('record_type', '=', 'question')
     .where('record_id', 'in', ids)
@@ -350,12 +365,14 @@ function deliveryView(d: DeliveryRow) {
   }
 }
 
-function stageState(rows: readonly DeliveryRow[], due: Date | null): (typeof REMINDER_STATES)[number] {
+function stageState(rows: readonly DeliveryRow[], due: Date | null, now: Date): (typeof REMINDER_STATES)[number] {
   if (rows.length === 0) return due ? 'scheduled' : 'not_scheduled'
   const has = (s: string) => rows.some((r) => r.state === s)
-  if (has('draft')) return 'draft'
-  if (has('queued')) return 'queued'
   if (has('sent') || has('delivered')) return 'sent'
+  if (has('draft')) return 'draft'
+  // A queued reminder due later (or a text waiting for its permitted hours) is scheduled.
+  if (rows.some((r) => r.state === 'queued' && r.send_at && r.send_at.getTime() > now.getTime())) return 'scheduled'
+  if (has('queued')) return 'queued'
   if (has('failed') || has('suppressed')) return 'failed'
   return 'cancelled'
 }
@@ -363,8 +380,6 @@ function stageState(rows: readonly DeliveryRow[], due: Date | null): (typeof REM
 export function questionStaffRoutes(deps: QuestionStaffDeps = {}): RouteDef[] {
   const now = deps.now ?? (() => new Date())
   const checks = deps.obligationChecks ?? DEFAULT_OBLIGATION_CHECKS
-  // Scheduling needs only the declaration; the worker's own instance (automations.ts) sends.
-  const release = releaseAutomation({ email: null, sms: null })
 
   const view: RouteDef = {
     method: 'GET',
@@ -375,9 +390,9 @@ export function questionStaffRoutes(deps: QuestionStaffDeps = {}): RouteDef[] {
       'Staff with request.view, inside the caller’s scope (otherwise NOT_FOUND). The questions published in the ' +
       'request’s project, oldest first, each exactly as written with its author and time, its automatic notice ' +
       '(pending, sent, failed, with each delivery and Retry for a definite failure: a failed notice never starts the ' +
-      'reminders), its two reminder stages (not scheduled, scheduled with the due time measured from the notice’s ' +
-      'successful send, draft, released and waiting, sent, failed or cancelled, and whether this caller may release ' +
-      'it) and the customer’s reply exactly as written ("I’m not sure", the attached photos and their states, and ' +
+      'reminders), its one automatic reminder (TSK-0121: not scheduled, scheduled with the due time 3 days after the ' +
+      'notice’s successful send, queued, sent, failed or cancelled, with each delivery; a text waits for the ' +
+      'recipient’s permitted hours) and the customer’s reply exactly as written ("I’m not sure", the attached photos and their states, and ' +
       'whether it reopened the request). Also whether this caller may publish, whether replies wait for review, the ' +
       'configured cadence, whether "Closed—no response" is possible now (with the unmet requirements and when it ' +
       'becomes possible) and the reopen period.',
@@ -435,11 +450,7 @@ export function questionStaffRoutes(deps: QuestionStaffDeps = {}): RouteDef[] {
         .orderBy('q.id')
         .execute()
       const ids = questions.map((q) => q.id)
-      const subjects = ids.flatMap((id) => [
-        noticeSubject(id),
-        reminderSubject(id, 'first'),
-        reminderSubject(id, 'final'),
-      ])
+      const subjects = ids.flatMap((id) => [noticeSubject(id), ...reminderSubjects(id)])
       const deliveries: DeliveryRow[] = subjects.length
         ? ((await ctx.db
             .selectFrom('platform.message_deliveries as d')
@@ -482,10 +493,6 @@ export function questionStaffRoutes(deps: QuestionStaffDeps = {}): RouteDef[] {
         : []
       const owner = r.responsible_staff_id
       const res = { projectId: r.project_id, owner }
-      const mayRelease = allowed(actor, 'message.release_draft', res)
-      const replyable = !['declined', 'outside_scope', 'not_served', 'withdrawn', 'closed_no_response'].includes(
-        r.state,
-      )
       const out = questions.map((q) => {
         const notice = deliveries.filter((d) => d.subject_key === noticeSubject(q.id))
         const reply = replies.find((x) => x.question_id === q.id)
@@ -507,25 +514,21 @@ export function questionStaffRoutes(deps: QuestionStaffDeps = {}): RouteDef[] {
             sentAt: iso(q.notice_sent_at),
             deliveries: notice.map(deliveryView),
           },
-          reminders: REMINDER_STAGES.map((stage) => {
-            const rows = deliveries.filter((d) => d.subject_key === reminderSubject(q.id, stage))
+          reminder: (() => {
+            const subjects = reminderSubjects(q.id)
+            const rows = deliveries.filter((d) => subjects.includes(d.subject_key))
             const due =
               q.notice_sent_at && cadence
-                ? new Date(
-                    q.notice_sent_at.getTime() +
-                      (stage === 'first' ? cadence.firstHours : cadence.finalHours) * HOUR_MS,
-                  )
+                ? new Date(q.notice_sent_at.getTime() + cadence.afterDeliveryHours * HOUR_MS)
                 : null
-            const state = q.state === 'answered' && rows.length === 0 ? 'cancelled' : stageState(rows, due)
+            const state = q.state === 'answered' && rows.length === 0 ? 'cancelled' : stageState(rows, due, t)
             return {
-              stage,
               state: q.state === 'answered' && state === 'scheduled' ? ('cancelled' as const) : state,
               dueAt: iso(due),
-              sentAt: iso(stage === 'first' ? q.first_reminder_sent_at : q.final_reminder_sent_at),
-              canRelease: mayRelease && replyable && q.state === 'published' && rows.some((d) => d.state === 'draft'),
+              sentAt: iso(q.final_reminder_sent_at ?? q.first_reminder_sent_at),
               deliveries: rows.map(deliveryView),
             }
-          }),
+          })(),
           reply: reply
             ? {
                 text: reply.body,
@@ -717,88 +720,6 @@ export function questionStaffRoutes(deps: QuestionStaffDeps = {}): RouteDef[] {
     },
   }
 
-  const releaseReminder: RouteDef = {
-    method: 'POST',
-    path: '/staff/requests/:requestId/questions/:questionId/reminders/:stage/release',
-    operationId: 'releaseQuestionReminder',
-    summary: 'Release a question reminder',
-    description:
-      'Staff with message.release_draft on the request (an Estimator only for requests they are responsible for), ' +
-      'inside the caller’s scope (otherwise NOT_FOUND). Releases the drafted reminder of one stage (first or final) ' +
-      'of an unanswered question: each draft (email, and text with the SMS opt-in) is sent by a notify.release job at ' +
-      'its release time, inside the daily contact hours (HH-COM-09; released outside them it waits for the opening), ' +
-      'after the send-time recheck (an answered question or a closed request cancels it, HH-COM-05). Without released ' +
-      'reminder wording the send is recorded as not configured with a delivery issue, never as sent. CONFLICT ' +
-      'QUESTION_ANSWERED (the drafts are cancelled), REQUEST_CLOSED or NO_DRAFT.',
-    actors: ['staff'],
-    permission: 'message.release_draft',
-    kind: 'write',
-    idempotency: 'required',
-    expectedVersion: 'none',
-    rateLimit: 'none',
-    audit: 'question.reminder_release',
-    pagination: false,
-    test: TEST,
-    resource: requestResource,
-    schema: { params: RELEASE_PARAMS, response: { 200: RELEASE_RESULT } },
-    handler: async (ctx) => {
-      const tx = ctx.tx as Tx
-      const actor = staffActor(ctx)
-      const { questionId, stage } = ctx.req.params as { questionId: string; stage: ReminderStage }
-      const current = await lockRequest(tx, ctx.scope, requestIdOf(ctx))
-      const q = await tx
-        .selectFrom('intake.questions')
-        .select(['id', 'state'])
-        .where('id', '=', questionId)
-        .where('request_id', '=', current.id)
-        .forUpdate()
-        .executeTakeFirst()
-      if (!q) throw new ApiError('NOT_FOUND')
-      if (q.state !== 'published') {
-        await cancelOpenReminders(tx, { questionId: q.id })
-        await syncReminderItem(tx, current.id)
-        throw refused('QUESTION_ANSWERED')
-      }
-      if (['declined', 'outside_scope', 'not_served', 'withdrawn', 'closed_no_response'].includes(current.state))
-        throw refused('REQUEST_CLOSED')
-      const drafts = await tx
-        .selectFrom('platform.message_deliveries')
-        .select('id')
-        .where('message_key', '=', QUESTION_REMINDER)
-        .where('subject_key', '=', reminderSubject(q.id, stage))
-        .where('state', '=', 'draft')
-        .orderBy('seq')
-        .execute()
-      if (drafts.length === 0) throw refused('NO_DRAFT')
-      const config = await loadConfig(tx)
-      const t = now()
-      let sendAt = releaseTime(config, QUESTION_REMINDER, t)
-      for (const d of drafts) {
-        const out = await releaseDraft(tx, {
-          config,
-          deliveryId: d.id,
-          actor: { kind: 'staff', id: actor.userId, roles: actor.roles },
-          automation: release,
-          requestId: correlation(ctx),
-          now: t,
-        })
-        sendAt = out.runAt
-      }
-      await syncReminderItem(tx, current.id)
-      await ctx.audit({
-        target: { type: 'question', id: q.id },
-        summary: { requestId: current.id, stage, released: drafts.length, sendAt: sendAt.toISOString() },
-      })
-      return {
-        body: {
-          released: drafts.length,
-          sendAt: sendAt.toISOString(),
-          heldForContactHours: sendAt.getTime() > t.getTime(),
-        },
-      }
-    },
-  }
-
   const reviewed: RouteDef = {
     method: 'POST',
     path: '/staff/requests/:requestId/questions/replies-reviewed',
@@ -950,7 +871,7 @@ export function questionStaffRoutes(deps: QuestionStaffDeps = {}): RouteDef[] {
     },
   }
 
-  return [view, publish, reviewed, releaseReminder, close]
+  return [view, publish, reviewed, close]
 }
 
 /** Whether the project has accepted work, an appointment or money received (the read view, in a read transaction). */

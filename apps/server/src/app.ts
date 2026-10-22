@@ -15,6 +15,7 @@ import type { ApiModule, ResolveActor } from './api/route.js'
 import { databaseReadiness, type ReadinessCheck } from './health.js'
 import { ANY_HOST_PATHS, contentSecurityPolicy, fileIn, hostSide, inlineHashes, securityHeaders } from './hosts.js'
 import { apiModules } from './modules/index.js'
+import { LaunchGate } from './modules/launch/index.js'
 import type { SystemDeps } from './modules/system/index.js'
 import { countyPagePaths, countyRoute, productionRobots, sitemapXml, staticSitePages } from './search.js'
 import type { ObjectStorage } from './providers/index.js'
@@ -90,8 +91,14 @@ export async function buildApp({
     styles: [...new Set(hashes.flatMap((h) => h.styles))].sort(),
   })
   const headers = securityHeaders(config, csp)
+  // TSK-0142 (HH-OPS-06, OWN-DEC-191): in production search indexing is on only in launch phase 3 (public); before
+  // that, and whenever the phase cannot be read, every response is noindex and robots.txt disallows everything.
+  // Outside production config.noindex already holds for every response.
+  let launchGate: LaunchGate | null = null
+  const indexingOn = async (): Promise<boolean> =>
+    !config.noindex && launchGate !== null && (await launchGate.phase()) === 'public'
   app.addHook('onSend', async (req, reply, payload) => {
-    headers(req, reply)
+    headers(req, reply, { noindex: !(await indexingOn()) })
     return payload
   })
 
@@ -115,6 +122,7 @@ export async function buildApp({
   const db =
     api?.db ?? (config.databaseUrl ? createDb(config.databaseUrl, { applicationName: 'handyapp-api' }) : undefined)
   if (ownDb && db) app.addHook('onClose', async () => db.destroy())
+  if (db && config.env === 'production') launchGate = new LaunchGate(db)
   // The caller per surface (TSK-0017): the staff API reads only the staff session (TSK-0014); the public and customer
   // APIs read only the customer session (TSK-0016). Otherwise a guest.
   const resolveActor: ResolveActor | SurfaceResolvers | undefined =
@@ -136,13 +144,16 @@ export async function buildApp({
         environment: config.env,
         trustProxyHops: config.trustProxyHops,
         staging: stagingToolsEnvironment(config),
+        launchGate,
+        ...(api?.system?.providers ? { testEmailDestinations: api.system.providers.testDestinations.emails } : {}),
         ...(api?.system ? { system: api.system } : {}),
         ...(api?.codeKey ? { codeKey: api.codeKey } : {}),
       }),
     ...(resolveActor ? { resolveActor } : {}),
   })
 
-  // Robots (TSK-0023): staging, and the staff host everywhere, disallow everything; production names the sitemap.
+  // Robots (TSK-0023): staging, and the staff host everywhere, disallow everything; production names the sitemap once
+  // launch phase 3 turns search indexing on (TSK-0142), and disallows everything before.
   const site = config.siteDir && existsSync(config.siteDir) ? path.resolve(config.siteDir) : undefined
   const staff = config.staffDir && existsSync(config.staffDir) ? path.resolve(config.staffDir) : undefined
   const portal = config.portalDir && existsSync(config.portalDir) ? path.resolve(config.portalDir) : undefined
@@ -156,7 +167,8 @@ export async function buildApp({
       ? config.hosts.publicOrigin
       : `${https ? 'https' : req.protocol}://${req.headers.host ?? `${config.host}:${config.port}`}`
   app.get('/robots.txt', async (req, reply) => {
-    if (config.noindex || req.hostSide === 'staff') return reply.type('text/plain; charset=utf-8').send(NOINDEX_ROBOTS)
+    if (!(await indexingOn()) || req.hostSide === 'staff')
+      return reply.type('text/plain; charset=utf-8').send(NOINDEX_ROBOTS)
     if (!site) return reply.callNotFound()
     return reply.type('text/plain; charset=utf-8').send(productionRobots(publicOrigin(req)))
   })
@@ -205,6 +217,8 @@ export async function buildApp({
   const staticPages = site ? staticSitePages(site) : []
   app.get('/sitemap.xml', async (req, reply) => {
     if (!site || req.hostSide === 'staff') return reply.callNotFound()
+    // TSK-0142: production lists nothing for search engines before launch phase 3.
+    if (config.env === 'production' && !(await indexingOn())) return reply.callNotFound()
     let services: string[] = []
     if (db) {
       try {

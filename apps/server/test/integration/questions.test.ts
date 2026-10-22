@@ -16,16 +16,13 @@ import { startCustomerSession } from '../../src/modules/identity/customer-sessio
 import { hashPassword } from '../../src/modules/identity/passwords.js'
 import { replyFailureItem, replyRecordCheck } from '../../src/modules/inbox/index.js'
 import { apiModules } from '../../src/modules/index.js'
-import {
-  deliveryStatusAutomation,
-  releaseAutomation,
-  releaseTemplateVersion,
-} from '../../src/modules/notifications/index.js'
+import { deliveryStatusAutomation, releaseAutomation } from '../../src/modules/notifications/index.js'
 import { photoProcessAutomation } from '../../src/modules/photos/index.js'
 import {
   questionAutomations,
   questionRecordCheck,
   questionReminderFailureItem,
+  questionReminderValues,
   questionsModule,
 } from '../../src/modules/questions/index.js'
 import { responseClockAutomation } from '../../src/modules/requests/response-clock.js'
@@ -52,11 +49,9 @@ if (!providers.email || !providers.sms || !providers.fakes.email || !providers.f
 const fakeEmail = providers.fakes.email
 const fakeSms = providers.fakes.sms
 
-// The business clock of the question routes: 10:00 and 23:00 in Louisville (EST, UTC-5), in the past, so a job
-// scheduled at that instant runs at once (the worker runs what is due by the real clock).
+// The business clock of the question routes: 10:00 in Louisville (EST, UTC-5), in the past, so a job scheduled at that
+// instant runs at once (the worker runs what is due by the real clock).
 const TEN_AM = new Date('2026-01-15T15:00:00Z')
-const ELEVEN_PM = new Date('2026-01-16T04:00:00Z')
-const NEXT_EIGHT_AM = new Date('2026-01-16T13:00:00Z')
 let clock = TEN_AM
 const HOUR = 3_600_000
 const DAY = 24 * HOUR
@@ -68,19 +63,19 @@ const staff = {} as Record<StaffRole, { id: string; cookie: string; csrf: string
 const booked = new Set<string>()
 
 const fast = (a: Automation): Automation => ({ ...a, retry: { maxAttempts: 2, baseDelayMs: 1, maxDelayMs: 1 } })
+// TSK-0122: the send jobs judge the permitted text hours at a fixed 10 AM, never at the time the suite runs.
+const senders = { email: providers.email, sms: providers.sms, clock: () => TEN_AM }
 const automations = [
   fast(
-    releaseAutomation(
-      { email: providers.email, sms: providers.sms },
-      {
-        recordChecks: { project: replyRecordCheck, question: questionRecordCheck },
-        failureItem: async (tx, row) =>
-          (await replyFailureItem(tx, row)) ?? (await questionReminderFailureItem(tx, row)),
-      },
-    ),
+    releaseAutomation(senders, {
+      recordChecks: { project: replyRecordCheck, question: questionRecordCheck },
+      failureItem: async (tx, row) => (await replyFailureItem(tx, row)) ?? (await questionReminderFailureItem(tx, row)),
+      // TSK-0121: the automatic reminder's owner wording, its values read when it sends.
+      values: questionReminderValues(SITE),
+    }),
   ),
   ...questionAutomations({
-    providers: { email: providers.email, sms: providers.sms },
+    providers: senders,
     publicSiteUrl: SITE,
     staffAppUrl: 'http://127.0.0.1:4999/staff',
   }).map(fast),
@@ -193,13 +188,12 @@ type StaffView = {
       sentAt: string | null
       deliveries: { id: string; state: string; errorCode: string | null; retry: boolean }[]
     }
-    reminders: {
-      stage: string
+    reminder: {
       state: string
       dueAt: string | null
-      canRelease: boolean
-      deliveries: { id: string; state: string }[]
-    }[]
+      sentAt: string | null
+      deliveries: { id: string; channel: string; state: string; errorCode: string | null; retry: boolean }[]
+    }
     reply: {
       text: string | null
       notSure: boolean
@@ -292,10 +286,6 @@ const jobsOf = (automation: string, questionId: string) =>
     .where('target_id', '=', questionId)
     .orderBy('job_key')
     .execute()
-/** A scheduled job is due now (the worker runs what is due by the real clock). */
-const dueNow = (automation: string, questionId: string, key?: string) =>
-  sql`UPDATE platform.jobs SET run_at = now() WHERE automation = ${automation} AND target_id = ${questionId}
-    AND state = 'queued' ${key ? sql`AND job_key LIKE ${`%${key}`}` : sql``}`.execute(t.db)
 /** The provider reports the subject's handed-over deliveries sent (a status webhook): the send is successful now. */
 async function reportSent(subject: string) {
   for (const d of await deliveriesOf(subject)) {
@@ -319,37 +309,21 @@ async function reportSent(subject: string) {
   }
   await drain()
 }
-const releaseReminderWording = () =>
-  withTx(t.db, async (tx) => {
-    // Synthetic wording for the tests only: the real reminder wording is the owner's (OQ-QUESTION-WORDING).
-    for (const channel of ['email', 'sms'] as const)
-      await releaseTemplateVersion(tx, {
-        messageKey: 'reminder.unanswered_question',
-        channel,
-        locale: 'en',
-        subject: channel === 'email' ? 'Synthetic test reminder subject' : null,
-        body: 'Synthetic test reminder: {projectLink}',
-        translationReview: 'source',
-        sourceIds: ['TSK-0051'],
-        releasedBy: 'staff-synthetic-owner',
-      })
-  })
-/** A question whose notice was sent, with both reminder drafts made and the final one sent: ready to close. */
+/** Time passes: the question's reminder deliveries (sent by notify.release) become due now. */
+const reminderDue = (questionId: string) =>
+  sql`UPDATE platform.jobs SET run_at = now() WHERE automation = 'notify.release' AND state = 'queued'
+    AND target_id IN (SELECT id::text FROM platform.message_deliveries
+                      WHERE subject_key = ${`question:${questionId}:reminder`})`.execute(t.db)
+/** A question whose notice was sent and whose one automatic reminder was actually sent: ready to close a day later. */
 async function throughFinalReminder(p: Submitted, text: string) {
   const res = await publish(p, text)
   expect(res.statusCode, res.body).toBe(201)
   const id = res.json<{ questionId: string }>().questionId
   await drain()
   await reportSent(`question:${id}`)
-  await dueNow('questions.reminder_draft', id)
+  await reminderDue(id)
   await drain()
-  for (const stage of ['first', 'final']) {
-    const r = await write('office', `/staff/requests/${p.requestId}/questions/${id}/reminders/${stage}/release`, {})
-    expect(r.statusCode, r.body).toBe(200)
-  }
-  await drain()
-  await reportSent(`question:${id}:first`)
-  await reportSent(`question:${id}:final`)
+  await reportSent(`question:${id}:reminder`)
   const q = await questionRow(id)
   expect(q.final_reminder_sent_at).not.toBeNull()
   return { id, finalSentAt: q.final_reminder_sent_at as Date }
@@ -466,7 +440,7 @@ describe('publishing a question is the release; its notice is automatic (TSK-005
     expect(mails.some((m) => m.text.includes('ceiling'))).toBe(false)
     // Handed to the provider is not yet sent: no reminder is scheduled until the provider reports the send.
     expect((await staffView(p)).questions.map((q) => q.notice.state)).toEqual(['pending', 'pending'])
-    expect(await jobsOf('questions.reminder_draft', q1)).toEqual([])
+    expect(await deliveriesOf(`question:${q1}:reminder`)).toEqual([])
     await reportSent(`question:${q1}`)
     await reportSent(`question:${q2}`)
     // No text opt-in: no text is sent.
@@ -483,10 +457,15 @@ describe('publishing a question is the release; its notice is automatic (TSK-005
       .where('request_id', '=', p.requestId)
       .executeTakeFirstOrThrow()
     expect(clockRow.stop_kind).toBe('response_sent')
-    // The reminder clock starts at the notice's successful send: first 24 h, final 48 h after it.
+    // TSK-0121 (OWN-DEC-153): the reminder clock starts at the notice's successful send: one automatic reminder,
+    // 72 hours after it (email only: no text opt-in), sent by its own job.
     const sentAt = (await questionRow(q1)).notice_sent_at as Date
-    const jobs = await jobsOf('questions.reminder_draft', q1)
-    expect(jobs.map((j) => j.run_at.getTime() - sentAt.getTime())).toEqual([48 * HOUR, 24 * HOUR])
+    const reminder = await deliveriesOf(`question:${q1}:reminder`)
+    expect(reminder.map((d) => [d.channel, d.state, d.release])).toEqual([['email', 'queued', 'automatic']])
+    expect((reminder[0]?.scheduled_at as Date).getTime() - sentAt.getTime()).toBe(72 * HOUR)
+    const jobs = await jobsOf('notify.release', reminder[0]?.id as string)
+    expect(jobs.map((j) => j.run_at.getTime() - sentAt.getTime())).toEqual([72 * HOUR])
+    expect(await jobsOf('questions.reminder_draft', q1)).toEqual([])
     // The audit event never holds the text.
     const audit = await t.db
       .selectFrom('platform.audit_events')
@@ -646,7 +625,7 @@ describe('unanswered questions: reminders, contact hours and Closed—no respons
     const [d] = await deliveriesOf(`question:${id}`)
     expect([d?.state, d?.error_code]).toEqual(['failed', 'synthetic_bounce'])
     expect((await questionRow(id)).notice_sent_at).toBeNull()
-    expect(await jobsOf('questions.reminder_draft', id)).toEqual([])
+    expect(await deliveriesOf(`question:${id}:reminder`)).toEqual([])
     // The question is kept and the failure is a delivery issue with Retry on the request.
     expect(await openItems('delivery_failed', d?.id as string)).toEqual([
       expect.objectContaining({
@@ -665,10 +644,10 @@ describe('unanswered questions: reminders, contact hours and Closed—no respons
     await reportSent(`question:${id}`)
     const q = await questionRow(id)
     expect(q.notice_sent_at).not.toBeNull()
-    expect(await jobsOf('questions.reminder_draft', id)).toHaveLength(2)
+    expect((await deliveriesOf(`question:${id}:reminder`)).map((d) => d.state)).toEqual(['queued'])
   })
 
-  it('[HH-LEAD-06][HH-COM-09][T65] reminder drafts are staff-released: 11 PM waits for 8 AM; no wording means not sent; a reply stops them', async () => {
+  it('[HH-LEAD-06][OWN-DEC-153][T65] one automatic reminder 3 days after the notice: sent once in the owner wording; texts stay off', async () => {
     clock = TEN_AM
     const p = await submit('questions-reminders@example.test', '(502) 555-0155', { smsOptIn: true })
     const id = (await publish(p, 'Synthetic: which room is it?')).json<{ questionId: string }>().questionId
@@ -678,89 +657,81 @@ describe('unanswered questions: reminders, contact hours and Closed—no respons
     expect(fakeSms.sent.filter((m) => m.to === '+15025550155').map((m) => m.text)).toEqual([
       `${NOTICE} ${SITE}/portal/p/${p.reference}#question-${id}`,
     ])
-    // Not due yet: nothing is drafted. Due: the first drafts appear, prominently in the queue.
-    expect((await staffView(p)).questions[0]?.reminders.map((r) => r.state)).toEqual(['scheduled', 'scheduled'])
-    await dueNow('questions.reminder_draft', id, ':first')
-    await drain()
-    const drafts = await deliveriesOf(`question:${id}:first`)
-    expect(drafts.map((d) => [d.channel, d.state, d.release])).toEqual([
-      ['email', 'draft', 'staff_released'],
-      ['sms', 'draft', 'staff_released'],
-    ])
-    expect(await openItems('question_reminder', p.requestId)).toEqual([
-      expect.objectContaining({ reason: 'question_reminder_first', assigned_staff_id: staff.office.id }),
-    ])
+    // Scheduled, by email and by text; nobody releases it and no queue item asks anyone to (OWN-DEC-153).
+    const sentAt = (await questionRow(id)).notice_sent_at as Date
     let view = await staffView(p)
-    expect(view.questions[0]?.reminders[0]).toMatchObject({ stage: 'first', state: 'draft', canRelease: true })
-    // A Worker never releases; released at 11 PM it waits for the 8 AM opening (contact hours, HH-COM-09).
-    expect(
-      (await write('worker', `/staff/requests/${p.requestId}/questions/${id}/reminders/first/release`, {})).statusCode,
-    ).toBe(403)
-    clock = ELEVEN_PM
-    const released = await write('office', `/staff/requests/${p.requestId}/questions/${id}/reminders/first/release`, {})
-    expect(released.statusCode, released.body).toBe(200)
-    expect(released.json()).toEqual({ released: 2, sendAt: NEXT_EIGHT_AM.toISOString(), heldForContactHours: true })
-    expect(await openItems('question_reminder', p.requestId)).toEqual([])
-    // The opening comes; the owner's email wording is released but its values are wired by TSK-0121, and texts have no
-    // wording, so nothing is sent and staff see a delivery issue.
-    await drain()
-    const sent = await deliveriesOf(`question:${id}:first`)
-    expect(sent.map((d) => [d.state, d.error_code])).toEqual([
-      ['failed', 'template_values_not_wired'],
-      ['failed', 'template_not_configured'],
+    expect(view.questions[0]?.reminder).toMatchObject({
+      state: 'scheduled',
+      dueAt: new Date(sentAt.getTime() + 72 * HOUR).toISOString(),
+      sentAt: null,
+    })
+    expect(view.questions[0]?.reminder.deliveries.map((d) => [d.channel, d.state])).toEqual([
+      ['email', 'queued'],
+      ['sms', 'queued'],
     ])
-    expect(await openItems('delivery_failed', sent[0]?.id as string)).toEqual([
+    expect(await openItems('question_reminder', p.requestId)).toEqual([])
+    for (const stage of ['first', 'final'])
+      expect(
+        (await write('office', `/staff/requests/${p.requestId}/questions/${id}/reminders/${stage}/release`, {}))
+          .statusCode,
+      ).toBe(404)
+    // Its time comes: the email goes once in the owner's question_reminder wording; texts have no wording until
+    // A2P 10DLC, so the text is recorded as not sent with a delivery issue, never as sent.
+    const before = fakeEmail.sent.length
+    await reminderDue(id)
+    await drain()
+    const sent = fakeEmail.sent.slice(before).filter((m) => m.to === p.email)
+    expect(sent.map((m) => m.subject)).toEqual([`HandyHub | We Need Your Response for Request #${p.reference}`])
+    expect(bodyOf(sent[0]?.text)).toContain(`${SITE}/portal/p/${p.reference}#question-${id}`)
+    const rows = await deliveriesOf(`question:${id}:reminder`)
+    expect(rows.map((d) => [d.channel, d.state, d.error_code])).toEqual([
+      ['email', 'queued', null],
+      ['sms', 'failed', 'template_not_configured'],
+    ])
+    expect(await openItems('delivery_failed', rows[1]?.id as string)).toEqual([
       expect.objectContaining({ reason: 'delivery_not_configured', reference: p.reference }),
     ])
-    expect((await questionRow(id)).first_reminder_sent_at).toBeNull()
-    // With wording, Retry sends it once, and the send is recorded.
-    await releaseReminderWording()
+    // Handed over is not sent: the send is recorded when the provider reports it.
+    expect((await questionRow(id)).final_reminder_sent_at).toBeNull()
+    await reportSent(`question:${id}:reminder`)
+    const q = await questionRow(id)
+    expect(q.final_reminder_sent_at).not.toBeNull()
+    expect(q.first_reminder_sent_at).toBeNull()
+    // "Closed—no response" 24 hours after the reminder was actually sent (OWN-DEC-208).
+    const close = await jobsOf('questions.close_available', id)
+    expect(close.map((j) => j.run_at.getTime() - (q.final_reminder_sent_at as Date).getTime())).toEqual([24 * HOUR])
+    view = await staffView(p)
+    expect(view.questions[0]?.reminder).toMatchObject({ state: 'sent' })
+    // Running the send again sends nothing more (one reminder per subject and destination).
+    await sql`UPDATE platform.jobs SET state = 'queued', run_at = now(), attempts = 0, finished_at = NULL
+      WHERE automation = 'notify.release' AND target_id = ${rows[0]?.id as string}`.execute(t.db)
+    await drain()
+    expect(fakeEmail.sent.slice(before).filter((m) => m.to === p.email)).toHaveLength(1)
+  })
+
+  it('[HH-LEAD-06][HH-COM-05][OWN-DEC-153] a reply before the reminder is due cancels it; nothing is sent', async () => {
     clock = TEN_AM
-    expect((await write('office', `/staff/message-deliveries/${sent[0]?.id}/retry`, {})).statusCode).toBe(200)
-    await sql`UPDATE platform.jobs SET run_at = now() WHERE target_id = ${sent[0]?.id} AND state = 'queued'`.execute(
-      t.db,
-    )
+    const p = await submit('questions-reminder-reply@example.test', '(502) 555-0161')
+    const id = (await publish(p, 'Synthetic: is it the kitchen ceiling?')).json<{ questionId: string }>().questionId
     await drain()
-    expect(
-      fakeEmail.sent.filter((m) => m.to === p.email && m.subject === 'Synthetic test reminder subject'),
-    ).toHaveLength(1)
-    expect((await questionRow(id)).first_reminder_sent_at).toBeNull()
-    await reportSent(`question:${id}:first`)
-    expect((await questionRow(id)).first_reminder_sent_at).not.toBeNull()
-    // The final drafts, released; the customer replies before they go out: they are cancelled, nothing is sent.
-    await dueNow('questions.reminder_draft', id, ':final')
-    await drain()
-    clock = ELEVEN_PM
-    expect(
-      (await write('office', `/staff/requests/${p.requestId}/questions/${id}/reminders/final/release`, {})).statusCode,
-    ).toBe(200)
+    await reportSent(`question:${id}`)
+    expect((await deliveriesOf(`question:${id}:reminder`)).map((d) => d.state)).toEqual(['queued'])
     const cookie = await customerCookie(p)
-    expect((await replyTo(cookie, p, id, { text: 'Synthetic: the hallway.' })).statusCode).toBe(201)
-    expect((await deliveriesOf(`question:${id}:final`)).map((d) => [d.state, d.error_code])).toEqual([
-      ['cancelled', 'record_changed'],
-      ['cancelled', 'record_changed'],
-    ])
+    expect((await replyTo(cookie, p, id, { text: 'Synthetic: yes, the kitchen.' })).statusCode).toBe(201)
+    expect((await deliveriesOf(`question:${id}:reminder`)).map((d) => [d.state, d.error_code, d.cancelled_by])).toEqual(
+      [['cancelled', 'record_changed', 'system']],
+    )
+    const before = fakeEmail.sent.length
     await sql`UPDATE platform.jobs SET run_at = now() WHERE automation = 'notify.release' AND state = 'queued'`.execute(
       t.db,
     )
     await drain()
-    expect(
-      fakeEmail.sent.filter((m) => m.to === p.email && m.subject === 'Synthetic test reminder subject'),
-    ).toHaveLength(1)
-    view = await staffView(p)
-    expect(view.questions[0]?.reminders.map((r) => r.state)).toEqual(['sent', 'cancelled'])
-    // Answered: a release is refused.
-    expect(
-      (await write('office', `/staff/requests/${p.requestId}/questions/${id}/reminders/final/release`, {})).json(),
-    ).toMatchObject({
-      error: { code: 'CONFLICT', fieldErrors: [{ code: 'QUESTION_ANSWERED' }] },
-    })
-    clock = TEN_AM
+    expect(fakeEmail.sent.slice(before).filter((m) => m.to === p.email)).toEqual([])
+    expect((await staffView(p)).questions[0]?.reminder.state).toBe('cancelled')
   })
 
-  it('[HH-LEAD-06][T30] Closed—no response only 24 h after the final reminder was actually sent; a reply within 30 days reopens the same request', async () => {
+  it('[HH-LEAD-06][T30][OWN-DEC-208] Closed—no response only 24 h after the reminder was actually sent; a reply within 30 days reopens the same request', async () => {
     clock = TEN_AM
-    await releaseReminderWording().catch(() => undefined)
     const p = await submit('questions-close@example.test', '(502) 555-0156')
     const { finalSentAt } = await throughFinalReminder(p, 'Synthetic: can you send a wider photo?')
     // Too early: the configured 24 hours have not passed since the final reminder was actually sent.
@@ -794,7 +765,7 @@ describe('unanswered questions: reminders, contact hours and Closed—no respons
     const closed = await write(
       'office',
       `/staff/requests/${p.requestId}/actions/close-no-response`,
-      { internalNote: 'Synthetic: no answer after both reminders.' },
+      { internalNote: 'Synthetic: no answer after the reminder.' },
       { version: view.version },
     )
     expect(closed.statusCode, closed.body).toBe(200)
