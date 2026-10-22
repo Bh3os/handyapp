@@ -8,6 +8,7 @@ links:
   decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-123]]", "[[OWN-DEC-05]]", "[[OWN-DEC-141]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[FACT-SESSION-TIMINGS]]"]
+  related: ["[[OWN-DEC-202]]"]
 source: "guide 22.1 StaffMembership; OWN-DEC-114, OWN-DEC-123; vault 05 section 5.1"
 ---
 A named staff member's account and field profile. One person may hold several role grants ([[ENT-RoleGrant]]).
@@ -23,3 +24,5 @@ A named staff member's account and field profile. One person may hold several ro
 - Availability changes flag affected visits; they never cancel them.
 
 **Who may change:** the Owner invites, assigns roles, sets hours, disables, revokes sessions and starts recovery; each user edits only their own name, locale, password and MFA factor.
+
+**Changed by [[OWN-DEC-202]] (2026-10-22):** the MFA factor (TOTP) is required for every active account, no longer optional; `active` means enrolled, an account without a factor enrols at its next sign-in; disabling removes the factor and recovery codes.

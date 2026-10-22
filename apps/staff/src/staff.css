@@ -882,6 +882,43 @@
 .staff-packet__code {
   overflow-wrap: anywhere;
 }
+/* TSK-0071: the job loadout. Item text is the vault file's own wording, so long lines wrap. */
+.staff-loadout__package li,
+.staff-loadout__group {
+  overflow-wrap: anywhere;
+}
+.staff-loadout__report {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hh-space-2) var(--hh-space-4);
+  align-items: center;
+  border: 0;
+  padding: 0;
+  margin: var(--hh-space-2) 0 0;
+}
+.staff-loadout__choice {
+  display: inline-flex;
+  gap: var(--hh-space-2);
+  align-items: center;
+  min-height: 44px;
+}
+.staff-loadout__form {
+  display: grid;
+  gap: var(--hh-space-2);
+  max-width: 40rem;
+}
+.staff-loadout__form fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hh-space-2) var(--hh-space-4);
+  border: 0;
+  padding: 0;
+}
+.staff-loadout__block-actions {
+  display: grid;
+  gap: var(--hh-space-3);
+  margin-top: var(--hh-space-2);
+}
 @media print {
   .staff-packet__print-only {
     display: block;
@@ -904,6 +941,52 @@
   .staff-packet__section {
     break-inside: avoid-page;
   }
+}
+
+/* TSK-0070: My Day (HH-OFF-09): one card per visit, the next action as a 48 px button on a phone. */
+.staff-myday__list {
+  display: grid;
+  gap: var(--hh-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.staff-myday__visit {
+  padding: var(--hh-space-4);
+  border: var(--hh-hairline);
+  border-radius: var(--hh-radius-sm);
+  background: var(--hh-surface);
+  overflow-wrap: anywhere;
+}
+.staff-myday__sub {
+  margin: var(--hh-space-3) 0 var(--hh-space-1);
+  font-size: 1rem;
+}
+.staff-myday__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hh-space-2);
+  margin-top: var(--hh-space-3);
+}
+.staff-myday__action.hh-button {
+  min-height: 48px;
+  min-width: 48px;
+  flex: 1 1 12rem;
+  font-size: 1.0625rem;
+}
+.staff-times {
+  overflow-x: auto;
+}
+.staff-times table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.staff-times th,
+.staff-times td {
+  padding: var(--hh-space-2);
+  border-bottom: var(--hh-hairline);
+  text-align: left;
+  vertical-align: top;
 }
 
 /* TSK-0119: message delivery and template previews. The email preview is a sandboxed frame of the rendered HTML. */

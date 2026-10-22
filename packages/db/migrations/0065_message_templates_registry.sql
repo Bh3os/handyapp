@@ -8,8 +8,8 @@
 --   applied, and the names (never the values) of the variables a failed render was missing.
 -- - platform.message_delivery_attempts: the retry history, one append-only row per send attempt with what happened.
 -- - The owner-worded email templates are released (English; the staff notice also in Spanish, AI-reviewed). Their
---   wording is the owner's (OWN-DEC-151 section 4) or was written under the owner's 2026-10-22 answer "Write them,
---   approved" (recorded PROPOSED in OQ-MESSAGES-OUTSIDE-THE-21 until its decision node exists). Text-message versions
+--   wording is the owner's (OWN-DEC-151 section 4) or was written under the owner's authorization of OWN-DEC-209
+--   (2026-10-22; the wording is listed in OQ-MESSAGES-OUTSIDE-THE-21 for the Owner's review). Text-message versions
 --   are unchanged: texts stay off until A2P 10DLC (OWN-DEC-190).
 -- - messages.automatic version 2 lists the automatic customer messages of FACT-AUTOMATIC-MESSAGES; the three routine
 --   reminders join it when TSK-0121 makes them automatic.
@@ -536,8 +536,8 @@ For your security, do not share sign-in codes or account access links with anyon
 
 The HandyHub Team$b$, ARRAY['OWN-DEC-151', 'HH-ID-11']);
 
--- The seven further messages, written in the owner's style under the owner's 2026-10-22 answer ("Write them,
--- approved"; confirmed the same day), recorded PROPOSED in OQ-MESSAGES-OUTSIDE-THE-21. The verification code greets
+-- The seven further messages (OWN-DEC-209), written in the owner's style under the owner's authorization and listed in
+-- OQ-MESSAGES-OUTSIDE-THE-21 for the Owner's review. The verification code greets
 -- "Hi there," always: the contact is not verified yet when the code is sent.
 SELECT pg_temp.release('contact.verification_code', 'customer', 'en', 'verification_code',
 $s$HandyHub | Your Verification Code$s$,
@@ -549,7 +549,7 @@ Enter this code where you requested it. For your security, do not share this cod
 
 If you didn't request this code, you can safely ignore this email.
 
-The HandyHub Team$b$, ARRAY['OQ-MESSAGES-OUTSIDE-THE-21', 'OWN-DEC-150']);
+The HandyHub Team$b$, ARRAY['OWN-DEC-209', 'OQ-MESSAGES-OUTSIDE-THE-21', 'OWN-DEC-150']);
 
 SELECT pg_temp.release('question.notice', 'customer', 'en', 'question_notice',
 $s$HandyHub | We Have a Question About Your Request #{reference}$s$,
@@ -563,7 +563,7 @@ You can view the question and reply securely through your project page:
 
 Your answer helps us move your request to the next step.
 
-The HandyHub Team$b$, ARRAY['OQ-MESSAGES-OUTSIDE-THE-21', 'OWN-DEC-98']);
+The HandyHub Team$b$, ARRAY['OWN-DEC-209', 'OQ-MESSAGES-OUTSIDE-THE-21', 'OWN-DEC-98']);
 
 SELECT pg_temp.release('estimate.ready', 'customer', 'en', 'estimate_ready',
 $s$HandyHub | Your Estimate #{estimateNumber} Is Ready$s$,
@@ -579,7 +579,7 @@ If you have questions about your estimate, please contact us. We're happy to hel
 
 Thank you for considering HandyHub!
 
-The HandyHub Team$b$, ARRAY['OQ-MESSAGES-OUTSIDE-THE-21', 'OWN-DEC-102']);
+The HandyHub Team$b$, ARRAY['OWN-DEC-209', 'OQ-MESSAGES-OUTSIDE-THE-21', 'OWN-DEC-102']);
 
 SELECT pg_temp.release('invoice.ready', 'customer', 'en', 'invoice_ready',
 $s$HandyHub | Your Invoice #{invoiceNumber} Is Ready$s$,
@@ -595,7 +595,7 @@ If you have questions about your invoice, please contact our team.
 
 Thank you for choosing HandyHub!
 
-The HandyHub Team$b$, ARRAY['OQ-MESSAGES-OUTSIDE-THE-21', 'OWN-DEC-110']);
+The HandyHub Team$b$, ARRAY['OWN-DEC-209', 'OQ-MESSAGES-OUTSIDE-THE-21', 'OWN-DEC-110']);
 
 SELECT pg_temp.release('decision.not_a_fit', 'customer', 'en', 'not_a_fit',
 $s$HandyHub | Update on Your Request #{reference}$s$,
@@ -611,7 +611,7 @@ You can view the details of this decision through your secure project page:
 
 We appreciate your interest in HandyHub and your understanding.
 
-The HandyHub Team$b$, ARRAY['OQ-MESSAGES-OUTSIDE-THE-21', 'OWN-DEC-100']);
+The HandyHub Team$b$, ARRAY['OWN-DEC-209', 'OQ-MESSAGES-OUTSIDE-THE-21', 'OWN-DEC-100']);
 
 SELECT pg_temp.release('appointment.changed', 'customer', 'en', 'appointment_changed',
 $s$HandyHub | Your Appointment #{visitNumber} Has Been Updated$s$,
@@ -631,7 +631,7 @@ You can review your appointment and project details here:
 
 If the new time doesn't work for you, please contact us as soon as possible.
 
-The HandyHub Team$b$, ARRAY['OQ-MESSAGES-OUTSIDE-THE-21', 'OWN-DEC-119']);
+The HandyHub Team$b$, ARRAY['OWN-DEC-209', 'OQ-MESSAGES-OUTSIDE-THE-21', 'OWN-DEC-119']);
 
 SELECT pg_temp.release('visit.on_the_way', 'customer', 'en', 'on_the_way',
 $s$HandyHub | Our Team Is on the Way$s$,
@@ -649,7 +649,7 @@ You can review your visit details here:
 
 {projectLink}
 
-The HandyHub Team$b$, ARRAY['OQ-MESSAGES-OUTSIDE-THE-21', 'OWN-DEC-107']);
+The HandyHub Team$b$, ARRAY['OWN-DEC-209', 'OQ-MESSAGES-OUTSIDE-THE-21', 'OWN-DEC-107']);
 
 DROP FUNCTION pg_temp.release(text, text, text, text, text, text, text[]);
 

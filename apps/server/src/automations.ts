@@ -11,6 +11,7 @@ import {
   estimateReminderRecordCheck,
   estimateResponseNoticeAutomations,
 } from './modules/estimates/index.js'
+import { onTheWayAutomation } from './modules/field/index.js'
 import { depositQueueAutomation } from './modules/finance/index.js'
 import { deliveryStatusAutomation, linkHostsOf, releaseAutomation } from './modules/notifications/index.js'
 import { photoProcessAutomation } from './modules/photos/index.js'
@@ -177,6 +178,9 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
       providers: { email: deps.providers.email, sms: null, linkHosts },
       staffAppUrl: deps.staffAppUrl,
     }),
+    // TSK-0070: an assigned worker's accepted On my way sends the automatic on-the-way notice once (#12, wording NOT
+    // CONFIGURED: each delivery records template_not_configured).
+    onTheWayAutomation({ providers: { email: deps.providers.email, sms: deps.providers.sms } }),
     // TSK-0067: the appointment reminder draft of each confirmed visit's window, at the configured interval before it
     // (staff-released, never automatic); its send-time check is the visit entry of RELEASE_RECORD_CHECKS.
     ...appointmentReminderAutomations({ publicSiteUrl: deps.publicSiteUrl }),

@@ -16,3 +16,5 @@ source: "OWN-DEC-05; owner-answers-verbatim 2026-10-05T16:29 [Subs: app] [Subs: 
 - **Until answered:** subcontractor features follow the worker role only; no subcontractor-specific workflow is built.
 
 - **2026-10-21 ([[OWN-DEC-188]]):** subcontractors are paid outside the app; the hiring trigger and the agreement wording stay open (attorney and CPA packets).
+
+- **2026-10-22 ([[TSK-0143]]):** review packet ready: `docs/review-packets/attorney.md` question A-16; `docs/review-packets/cpa.md` question C-07; `docs/review-packets/insurance.md` question I-03.

@@ -9,8 +9,8 @@
 //   variable of any type (HH-COM-04, HH-CRM-03).
 // - Trigger event names are PROPOSED contracts for the tasks that emit those events.
 // - TSK-0119 (HH-COM-13, OWN-DEC-151, OWN-DEC-152, OWN-DEC-158): every variable comes from the one registry
-//   (variables.ts). `templateId` is the owner's template ID (OWN-DEC-151 section 4, and the seven messages of the
-//   owner's 2026-10-22 answer, OQ-MESSAGES-OUTSIDE-THE-21); `supplied` lists the variables the message's resolver
+//   (variables.ts). `templateId` is the owner's template ID (OWN-DEC-151 section 4, and the seven messages of
+//   OWN-DEC-209, whose wording is listed in OQ-MESSAGES-OUTSIDE-THE-21); `supplied` lists the variables the message's resolver
 //   supplies today. A released template that needs a variable outside `supplied` is not wired yet: its delivery is
 //   recorded as failed (template_values_not_wired) and staff see it, until the task that wires the message adds the
 //   values (TSK-0120 automatic delivery, TSK-0121 reminders, the tasks that build the events). `ownerApproval`: the
@@ -78,7 +78,7 @@ const TYPES: readonly MessageType[] = [
     // codeLifetimeMinutes: the configured code lifetime as text (TSK-0016), so the template never hard-codes it.
     variables: vars('verificationCode', 'codeLifetimeMinutes'),
     category: 'authentication',
-    sourceIds: ['OWN-DEC-65', 'OWN-DEC-96', 'OWN-DEC-150'],
+    sourceIds: ['OWN-DEC-65', 'OWN-DEC-96', 'OWN-DEC-150', 'OWN-DEC-209'],
   },
   {
     key: 'project.access_link',
@@ -97,7 +97,7 @@ const TYPES: readonly MessageType[] = [
     channels: both,
     triggerEvents: ['question.published'],
     variables: vars('customerName', 'reference', 'projectLink'),
-    sourceIds: ['OWN-DEC-98'],
+    sourceIds: ['OWN-DEC-98', 'OWN-DEC-209'],
   },
   {
     key: 'estimate_visit.options',
@@ -136,7 +136,7 @@ const TYPES: readonly MessageType[] = [
     triggerEvents: ['decision.not_a_fit_published'],
     variables: vars('customerName', 'reference', 'projectLink'),
     supplied: [],
-    sourceIds: ['OWN-DEC-100'],
+    sourceIds: ['OWN-DEC-100', 'OWN-DEC-209'],
   },
   {
     key: 'estimate.ready',
@@ -145,7 +145,7 @@ const TYPES: readonly MessageType[] = [
     channels: both,
     triggerEvents: ['estimate.version_published'],
     variables: vars('customerName', 'estimateNumber', 'projectLink'),
-    sourceIds: ['OWN-DEC-102'],
+    sourceIds: ['OWN-DEC-102', 'OWN-DEC-209'],
   },
   {
     key: 'estimate.question_answered',
@@ -215,7 +215,7 @@ const TYPES: readonly MessageType[] = [
       'projectLink',
     ),
     supplied: ['visitWindow'],
-    sourceIds: ['OWN-DEC-119'],
+    sourceIds: ['OWN-DEC-119', 'OWN-DEC-209'],
   },
   {
     key: 'visit.cancelled',
@@ -245,7 +245,7 @@ const TYPES: readonly MessageType[] = [
       'projectLink',
     ),
     supplied: [],
-    sourceIds: ['OWN-DEC-107'],
+    sourceIds: ['OWN-DEC-107', 'OWN-DEC-209'],
   },
   {
     key: 'invoice.deposit',
@@ -275,7 +275,7 @@ const TYPES: readonly MessageType[] = [
     triggerEvents: ['invoice.issued'],
     variables: vars('customerName', 'invoiceNumber', 'invoiceLink', 'projectLink'),
     supplied: [],
-    sourceIds: ['OWN-DEC-110'],
+    sourceIds: ['OWN-DEC-110', 'OWN-DEC-209'],
   },
   {
     key: 'job.complete',

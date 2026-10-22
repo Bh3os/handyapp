@@ -14,3 +14,5 @@ source: "OWN-DEC-70"
 - **Until answered:** the owner's schedule applies as configured; nothing is deleted automatically; regulated employee records are excluded from routine deletion.
 
 - **2026-10-21 ([[OWN-DEC-186]], [[OWN-DEC-177]]):** the CPA and the attorney are available (packets [[TSK-0143]]); add the provisional periods of [[OWN-DEC-177]], the kinds still unscheduled, and the reviewed table mapping ([[OWN-DEC-201]]).
+
+- **2026-10-22 ([[TSK-0143]]):** review packet ready: `docs/review-packets/attorney.md` questions A-11, A-14 and A-15; `docs/review-packets/cpa.md` questions C-05 and C-06; `docs/review-packets/insurance.md` question I-06.

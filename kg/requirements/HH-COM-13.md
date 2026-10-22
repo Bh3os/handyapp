@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: messaging
 links:
-  decided_by: ["[[OWN-DEC-151]]", "[[OWN-DEC-158]]"]
+  decided_by: ["[[OWN-DEC-151]]", "[[OWN-DEC-158]]", "[[OWN-DEC-209]]"]
   depends_on: ["[[HH-COM-04]]"]
   constrained_by: ["[[RULE-NO-INVENTED-FACTS]]", "[[RULE-LANGUAGES]]"]
   uses: ["[[ENT-Message]]", "[[ENT-PolicyVersion]]", "[[FACT-PUBLIC-CONTACT]]"]
@@ -21,3 +21,5 @@ source: "OWN-DEC-151, OWN-DEC-158 (new behaviour; no guide id)"
 - Content rules ([[OWN-DEC-158]]): the first name in the greeting ("Hi there," when missing) and non-sensitive reference numbers are allowed; amounts, property addresses, access codes, tokens and private details never appear.
 - A branded, mobile-responsive layout with a plain-text alternative and the footer contact read from configuration ([[FACT-PUBLIC-CONTACT]]).
 - Tests cover all 21 templates: subject, wording, substitutions, no unresolved placeholder, HTML and text rendering, links and fallbacks.
+
+**Changed by [[OWN-DEC-209]] (2026-10-22):** the registry holds 28 templates (the 21 plus seven), all rendered through the same variable registry.

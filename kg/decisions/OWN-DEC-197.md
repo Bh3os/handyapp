@@ -5,7 +5,7 @@ title: "Rules Review E: 'I'm not sure' beyond measurements; closing for no respo
 status: active
 area: intake
 links:
-  related: ["[[OWN-DEC-192]]", "[[OWN-DEC-153]]", "[[FACT-REOPEN-PERIOD]]", "[[HH-LEAD-06]]", "[[OQ-QUESTION-HANDLING]]"]
+  related: ["[[OWN-DEC-192]]", "[[OWN-DEC-153]]", "[[FACT-REOPEN-PERIOD]]", "[[HH-LEAD-06]]", "[[OQ-QUESTION-HANDLING]]", "[[OWN-DEC-208]]"]
 source: "owner answers 2026-10-21 R12 (Rules Review)"
 ---
 Owner answer (round 12, Rules Review), section verbatim:
@@ -29,3 +29,5 @@ Effect:
 - E4: "Closed—no response" checks the reminder policy ([[OWN-DEC-153]]), the reminder's actual delivery state and that no work was accepted, no appointment exists and no money was received; a queued but unsent reminder never counts; delivery failures go to staff review.
 - E5: the approved reopen period stays (30 days, [[FACT-REOPEN-PERIOD]]); after it, staff may reopen with authorization, or the customer is clearly guided to send a new request. No other expiry is invented.
 - Built by [[TSK-0148]].
+
+**Confirmed by [[OWN-DEC-208]] (2026-10-22):** E4 together with reading 3: "Closed—no response" is available 24 hours after the single question reminder was actually sent; not if that reminder failed to deliver (staff follow-up instead), the customer replied, an appointment exists, work was accepted or a payment was recorded.

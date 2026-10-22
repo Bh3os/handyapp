@@ -5,7 +5,7 @@ title: "After acceptance every contractual change is a change order; the accepte
 status: active
 area: approval
 links:
-  related: ["[[OWN-DEC-108]]", "[[OWN-DEC-118]]", "[[OWN-DEC-145]]", "[[HH-CHG-01]]", "[[HH-PORT-05]]", "[[HH-EST-04]]"]
+  related: ["[[OWN-DEC-108]]", "[[OWN-DEC-118]]", "[[OWN-DEC-145]]", "[[HH-CHG-01]]", "[[HH-PORT-05]]", "[[HH-EST-04]]", "[[OWN-DEC-203]]"]
 source: "owner answers 2026-10-21 R5-Q4"
 ---
 Owner answer (round 5, question 4), option chosen "Always a change order (Recommended)":
@@ -40,3 +40,5 @@ Effect:
 - A rejected or expired change order never cancels the job; resulting feasibility or safety issues are escalated for review. Routine appointment rescheduling uses the scheduling workflow unless it changes contractual obligations. Clerical errors found after acceptance use a documented correction or a change order, never a silent edit.
 - The customer sees the original approved estimate, every approved change order and the current authorized total in the portal; sensitive approvals ask for fresh verification; duplicate approvals are prevented.
 - Answers [[OQ-REVISE-ACCEPTED-ESTIMATE]]. Built by [[TSK-0081]] and [[TSK-0082]].
+
+**Confirmed by [[OWN-DEC-203]] (2026-10-22), amended:** the credit reading is final in the owner's words: a credit change order reduces the effective contractual total; credit lines are explicit credits with a positive magnitude and a negative financial effect, while charge lines stay above $0.00; invoices, deposits, discounts, tax where applicable, balances, refunds and reports account for the reduction; the original approved document and the adjustment history are kept; no accidental negative customer charge.
