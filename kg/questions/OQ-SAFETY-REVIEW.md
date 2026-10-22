@@ -15,3 +15,5 @@ source: "OWN-DEC-17, 33, 38, 79, 108; owner-answers-verbatim 2026-10-05T17:47 [F
 - **Until answered:** production use of a service's checklist needs the reviewer sign-off; unknown is treated as unsafe; licensed-trade and hazardous work gets no procedure ([[RULE-HUMAN-REVIEW]]).
 
 - **2026-10-21 ([[OWN-DEC-186]], [[OWN-DEC-172]]):** the owner says a safety reviewer is available; the safety packet ([[TSK-0143]]) adds the escalation procedure and its Spanish text and the care notes withheld for safety.
+
+- **2026-10-22 ([[TSK-0143]]):** review packet ready: `docs/review-packets/safety.md` questions S-01 to S-13 (the 26 SOP versions, hold release and void rules, the Spanish escalation instruction of [[OWN-DEC-172]], care notes withheld under [[OWN-DEC-180]]).
