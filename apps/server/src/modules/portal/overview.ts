@@ -114,6 +114,30 @@ async function overviewFor(db: Reader, project: { id: string; reference: string 
           : null
     entries.push({ kind, at: d.decided_at, text })
   }
+  // TSK-0070 (HH-PORT-07): each visit's recorded "On my way" (the tap that moved it) and its first recorded "Arrived",
+  // at their server times; nothing before a worker records them, and no worker, ETA or location.
+  const visitTaps = await db
+    .selectFrom('work.visits as v')
+    .leftJoin('work.visit_departures as d', (j) => j.onRef('d.visit_id', '=', 'v.id').on('d.moved_visit', '=', true))
+    .select([
+      'v.id',
+      'd.recorded_at as departed_at',
+      (eb) =>
+        eb
+          .selectFrom('work.time_stamps as s')
+          .select((x) => x.fn.min('s.recorded_at').as('first'))
+          .whereRef('s.visit_id', '=', 'v.id')
+          .where('s.kind', '=', 'arrived')
+          .as('arrived_at'),
+    ])
+    .where('v.project_id', '=', project.id)
+    .where('v.state', 'in', ['en_route', 'arrived', 'completed'])
+    .execute()
+  for (const v of visitTaps) {
+    if (v.departed_at) entries.push({ kind: 'on_the_way', at: new Date(v.departed_at), text: null })
+    if (v.arrived_at) entries.push({ kind: 'arrived', at: new Date(v.arrived_at), text: null })
+  }
+  entries.sort((a, b) => a.at.getTime() - b.at.getTime())
   // TSK-0051: a "Closed—no response" request within its reopen period, with a question still open, can be reopened by
   // the customer's reply (FACT-REOPEN-PERIOD).
   let reopenByReply = false

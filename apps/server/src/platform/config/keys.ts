@@ -234,6 +234,9 @@ export const CONFIG_KEYS = {
   // holdHours from the offer; staff offer minWindows to maxWindows windows at a time. Decided values, seeded active by
   // migration 0053.
   'scheduling.window_offers': shape({ holdHours: int(1, 24 * 366), minWindows: int(1, 10), maxWindows: int(1, 10) }),
+  // TSK-0070 (OWN-DEC-107, HH-SCH-08): the assigned worker may tap "On my way" from this many minutes before the
+  // arrival window starts (three hours). A decided value, seeded active by migration 0062.
+  'visit.on_my_way': shape({ earliestMinutesBefore: int(1, 24 * 60) }),
   // TSK-0123 (OWN-DEC-159, FACT-SERVICE-AREA): the IANA zone of each service-area county, from which a property's zone
   // is derived (its ZIP's counties must all map to one zone). No authoritative county-to-zone list is in the
   // repository: NOT CONFIGURED (migration 0066, OQ-COUNTY-TIME-ZONES) until one is supplied. Each zone must be an
@@ -252,7 +255,7 @@ export const CONFIG_KEYS = {
     if (new Set(names).size !== names.length) fail(`${p}.counties`, 'a county is listed twice')
     return value
   },
-  // TSK-0123 (HH-COM-15; final owner amendments 2026-10-22, reading 8): the window a non-urgent text may be sent in when
+  // TSK-0123 (OWN-DEC-207, HH-COM-15; final owner amendments 2026-10-22): the window a non-urgent text may be sent in when
   // the recipient's own zone cannot be established (9 AM–9 PM in the business Eastern zone). Applied by TSK-0122.
   'sms.unknown_zone_hours': shape({
     open: clock,

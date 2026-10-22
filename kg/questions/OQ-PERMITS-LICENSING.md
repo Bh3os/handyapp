@@ -15,3 +15,5 @@ source: "OWN-DEC-03, 18, 37, 82"
 - **Until answered:** an unresolved requirement is a blocking Hold on the affected job; nothing claims a license.
 
 - **2026-10-21 ([[OWN-DEC-186]]):** the attorney is available; the question is in the attorney packet ([[TSK-0143]]).
+
+- **2026-10-22 ([[TSK-0143]]):** review packet ready: `docs/review-packets/attorney.md` question A-08; `docs/review-packets/safety.md` question S-14.

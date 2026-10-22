@@ -418,7 +418,7 @@ type PacketBody = {
   }
   holds: { category: string; note: string; state: string }[]
   dependencies: { deposit: { state: string } | null; blockingHolds: number }
-  materials: { state: string }
+  materials: { state: string; packages: unknown[] }
   careNotes: { state: string }
   communication: { escalationContact: { state: string }; stopWork: { items: unknown[] }[] }
   actions: { revealAccessCodes: boolean }
@@ -522,7 +522,11 @@ describe('[HH-PKT-01][HH-PKT-02][HH-PKT-07] the versioned job packet', () => {
     expect(first.holds).toEqual([])
     expect(first.dependencies).toMatchObject({ deposit: { state: 'not_required' }, blockingHolds: 0 })
     // What no record holds is said, never filled in.
-    expect(first.materials).toEqual({ state: 'not_recorded' })
+    // TSK-0071: no loadout list is loaded in this database, so each package's list says NOT CONFIGURED.
+    expect(first.materials).toEqual({
+      state: 'not_recorded',
+      packages: [expect.objectContaining({ serviceCode: 'DW-01', state: 'not_configured', items: [] })],
+    })
     expect(first.careNotes).toEqual({ state: 'none_approved' })
     expect(first.communication.escalationContact).toEqual({ state: 'not_configured' })
     expect(first.site.details).toEqual([])

@@ -35,6 +35,8 @@ export const QUEUE_ACTIONS = [
   'review_deposit',
   // TSK-0097: reassign a visit flagged by an availability change.
   'reassign_visit',
+  // TSK-0071: provide a missing or damaged loadout item, or approve a substitute.
+  'review_shortage',
   // TSK-0123: record the zone of a property whose zone is unknown.
   'verify_time_zone',
 ] as const
@@ -69,6 +71,11 @@ export type QueueItemType = {
   readonly action: QueueAction
   /** The screen of the record the item's action and deep link open: `/<screen>/<subject id>`. */
   readonly screen: QueueScreen
+  /**
+   * The record's page below the screen when it is not `/<screen>/<id>` (TSK-0071: a job's loadout, `/loadouts/<job>`,
+   * shown under the screen's menu entry).
+   */
+  readonly path?: string
   /** The item's due time is the first-response clock (HH-LEAD-05): labelled an internal target, never a promise. */
   readonly clock?: 'response_target'
 }
@@ -311,6 +318,21 @@ export const QUEUE_ITEM_TYPES = [
     action: 'reassign_visit',
     screen: 'schedule',
   },
+  // TSK-0071 (HH-PKT-06): a critical loadout shortage blocks Start Work on its work package until the Owner provides the
+  // item or approves a substitute. One item per job while any of its task blocks blocks, opened in the same
+  // transaction as the worker's report and resolved with the last block. Seen by the block's owner (job_hold.set_ready:
+  // the Owner); band and view are PROPOSED (OQ-LOADOUT-DETAILS).
+  {
+    id: 'loadout_shortage',
+    section: 'queue',
+    subject: 'job',
+    band: 'time_sensitive',
+    view: 'job_hold.set_ready',
+    reasons: ['critical_shortage'],
+    action: 'review_shortage',
+    screen: 'schedule',
+    path: 'loadouts',
+  },
   // TSK-0123 (OWN-DEC-159 item 13): a property whose zone is unknown while one of its projects is open, flagged for
   // verification; no visit is planned on it until its zone is known. Opened and resolved by the database in the same
   // transaction as the zone or the project changes (migration 0066, ops.sync_property_zone_item). Seen by the roles
@@ -432,7 +454,7 @@ export function queueItemType(id: string): QueueItemType | undefined {
 
 /** The deep link of an item: the record's screen in the staff app. */
 export function deepLink(type: QueueItemType, subjectId: string): string {
-  return `/${type.screen}/${encodeURIComponent(subjectId)}`
+  return `/${type.path ?? type.screen}/${encodeURIComponent(subjectId)}`
 }
 
 /** Sort rank of a band; an item past its due time ranks as time-sensitive (overdue) at the least. */

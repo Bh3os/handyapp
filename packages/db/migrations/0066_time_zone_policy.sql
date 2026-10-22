@@ -28,13 +28,13 @@ INSERT INTO platform.policy_version (key, version, state, value, proposed, sourc
   ('geo.county_time_zones', 1, 'not_configured', NULL, false,
    ARRAY['OWN-DEC-159', 'FACT-SERVICE-AREA', 'OQ-COUNTY-TIME-ZONES'], 'migration:0066');
 
--- 2b. The text window for a recipient whose own zone cannot be established (HH-COM-15; final owner amendments
+-- 2b. The text window for a recipient whose own zone cannot be established (OWN-DEC-207, HH-COM-15; final owner amendments
 --     2026-10-22, reading 8): non-urgent texts only between 9 AM and 9 PM Eastern, in the business zone id. The
 --     recipient's verified zone is used whenever there is one; applying either window to deliveries is TSK-0122.
 INSERT INTO platform.policy_version (key, version, state, value, proposed, source_ids, changed_by, change_reason) VALUES
   ('sms.unknown_zone_hours', 1, 'configured', '{"open": "09:00", "close": "21:00", "zone": "America/Kentucky/Louisville"}',
-   false, ARRAY['HH-COM-15', 'OWN-DEC-159', 'OQ-READINGS-2026-10-21'], 'migration:0066',
-   'Final owner amendments 2026-10-22 (reading 8): 9 AM-9 PM Eastern when the recipient zone is unknown');
+   false, ARRAY['OWN-DEC-207', 'HH-COM-15', 'OWN-DEC-159'], 'migration:0066',
+   'OWN-DEC-207 (final owner amendments 2026-10-22): 9 AM-9 PM Eastern when the recipient zone is unknown');
 
 -- 3. The property's zone.
 CREATE FUNCTION crm.zone_status_ok(status text) RETURNS boolean LANGUAGE sql IMMUTABLE AS $$

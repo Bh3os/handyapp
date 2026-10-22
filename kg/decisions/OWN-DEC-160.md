@@ -6,7 +6,7 @@ status: active
 area: portal
 links:
   uses: ["[[FACT-SESSION-TIMINGS]]"]
-  related: ["[[OWN-DEC-97]]", "[[OWN-DEC-63]]", "[[OWN-DEC-71]]", "[[OWN-DEC-141]]", "[[HH-ID-14]]"]
+  related: ["[[OWN-DEC-97]]", "[[OWN-DEC-63]]", "[[OWN-DEC-71]]", "[[OWN-DEC-141]]", "[[HH-ID-14]]", "[[OWN-DEC-208]]"]
 source: "owner answers 2026-10-21 R3-Q3"
 ---
 Owner answer (round 3, question 3), option chosen "24 hours for secure access-link expiration" with a permanent customer project-access experience:
@@ -71,3 +71,5 @@ Effect:
 - Email links are short-lived, revocable and project-scoped; every project and document request is authorized; reference numbers never expose data; claiming and recovery are protected; access is logged.
 - Language: English only. The "English and Spanish" of item 6 is replaced by the later answer [[OWN-DEC-162]].
 - Answers [[OQ-ACCESS-LINK-LIFETIME]]. Built by [[TSK-0124]].
+
+**Confirmed by [[OWN-DEC-208]] (2026-10-22):** reading 13 is final: the customer dashboard is English only.

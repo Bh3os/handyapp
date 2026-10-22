@@ -1,6 +1,6 @@
 // JSON schemas of the job packet routes (TSK-0069; HH-API-01, HH-ARC-04). Input objects refuse unknown fields; response
 // objects list every field, so nothing else (an access code above all) can reach a response.
-import { PACKET_SECTIONS } from '@handyhub/domain'
+import { ACKNOWLEDGMENT_INVALIDATIONS, ACKNOWLEDGMENT_STATES, PACKET_SECTIONS } from '@handyhub/domain'
 
 const UUID = {
   type: 'string',
@@ -35,6 +35,16 @@ export const PRINT_BODY = {
   additionalProperties: false,
   required: ['version', 'format'],
   properties: { version: { type: 'integer', minimum: 1 }, format: { type: 'string', enum: ['print'] } },
+} as const
+/** An acknowledgment names the exact version and content the worker reviewed (TSK-0072). */
+export const ACKNOWLEDGE_BODY = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['version', 'contentSha256'],
+  properties: {
+    version: { type: 'integer', minimum: 1 },
+    contentSha256: { type: 'string', pattern: '^[0-9a-f]{64}$' },
+  },
 } as const
 export const PDF_QUERY = {
   type: 'object',
@@ -165,7 +175,18 @@ export const PACKET_VIEW = obj({
     blockingHolds: INT,
     liveVisits: INT,
   }),
-  materials: obj({ state: { type: 'string', enum: ['not_recorded'] } }),
+  materials: obj({
+    state: { type: 'string', enum: ['listed', 'not_recorded'] },
+    packages: arr(
+      obj({
+        workPackageId: STR,
+        serviceCode: STR,
+        state: { type: 'string', enum: ['pinned', 'not_configured'] },
+        version: INT_OR_NULL,
+        items: arr(obj({ key: STR, group: STR_OR_NULL, name: STR_OR_NULL, criticality: STR })),
+      }),
+    ),
+  }),
   careNotes: obj({ state: { type: 'string', enum: ['none_approved'] } }),
   communication: obj({
     siteContact: { ...DETAIL, type: ['object', 'null'] },
@@ -176,12 +197,52 @@ export const PACKET_VIEW = obj({
   }),
 })
 
-/** The packet view with what the caller may do on it (the Reveal button; the server decides again on the reveal). */
+const ACK_STATE = { type: 'string', enum: [...ACKNOWLEDGMENT_STATES] } as const
+const INVALIDATION_REASON = { type: 'string', enum: [...ACKNOWLEDGMENT_INVALIDATIONS] } as const
+const TIME_OR_NULL = { type: ['string', 'null'], format: 'date-time' } as const
+
+/** Where the caller's own acknowledgment stands, and each assigned worker's (TSK-0072, HH-DATA-08, HH-WORK-10). */
+const ACKNOWLEDGMENTS = obj({
+  mine: obj({
+    state: ACK_STATE,
+    assigned: { type: 'boolean' },
+    acknowledgment: obj({ version: INT, acknowledgedAt: TIME }, true),
+    invalidation: obj({ reason: INVALIDATION_REASON, version: INT_OR_NULL, invalidatedAt: TIME }, true),
+    changesSince: arr(CHANGE),
+  }),
+  team: arr(
+    obj({
+      staffUserId: STR,
+      name: STR_OR_NULL,
+      state: ACK_STATE,
+      version: INT_OR_NULL,
+      acknowledgedAt: TIME_OR_NULL,
+      invalidation: { type: ['string', 'null'], enum: [...ACKNOWLEDGMENT_INVALIDATIONS, null] },
+    }),
+  ),
+})
+
+/**
+ * The packet view with where acknowledgments stand and what the caller may do on it (the Reveal button and the
+ * acknowledgment; the server decides again when either is pressed).
+ */
 export const PACKET_VIEW_WITH_ACTIONS = {
   ...PACKET_VIEW,
-  required: [...PACKET_VIEW.required, 'actions'],
-  properties: { ...PACKET_VIEW.properties, actions: obj({ revealAccessCodes: { type: 'boolean' } }) },
+  required: [...PACKET_VIEW.required, 'acknowledgments', 'actions'],
+  properties: {
+    ...PACKET_VIEW.properties,
+    acknowledgments: ACKNOWLEDGMENTS,
+    actions: obj({ revealAccessCodes: { type: 'boolean' }, acknowledge: { type: 'boolean' } }),
+  },
 } as const
+
+export const ACKNOWLEDGED = obj({
+  acknowledgmentId: STR,
+  version: INT,
+  acknowledgedAt: TIME,
+  created: { type: 'boolean' },
+  state: ACK_STATE,
+})
 
 export const VERSIONS_VIEW = obj({
   versions: arr(obj({ version: INT, generatedAt: TIME, critical: { type: 'boolean' }, changes: arr(CHANGE) })),
@@ -207,6 +268,8 @@ export const MY_PACKETS = obj({
       lastViewedVersion: INT_OR_NULL,
       changedSinceViewed: { type: 'boolean' },
       criticalSinceViewed: { type: 'boolean' },
+      acknowledgment: ACK_STATE,
+      acknowledgedVersion: INT_OR_NULL,
       visits: arr(
         obj({
           visitId: STR,

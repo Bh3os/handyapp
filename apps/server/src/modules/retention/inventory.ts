@@ -167,6 +167,12 @@ export const TABLES = {
     classes: ['configuration'],
     categories: [NS],
   },
+  'catalog.loadout_versions': {
+    holds: 'Imported loadout lists per service: the vault inventory groups, items and review notes, verbatim',
+    classes: ['configuration'],
+    categories: [NS],
+    protectedEvidence: true,
+  },
   'catalog.sop_versions': {
     holds: 'Imported SOP versions: checklist stages, stop-work section, hazard and quality digests, competent review',
     classes: ['configuration'],
@@ -603,9 +609,23 @@ export const TABLES = {
   },
   'work.equipment': { holds: 'Shared equipment items', classes: ['configuration'], categories: [NS] },
   'work.holds': {
-    holds: 'Review and safety holds with their resolution and reviewer',
+    holds: 'Review and safety holds and loadout task blocks with their resolution and reviewer',
     classes: ['request_details'],
     categories: [R, J, S],
+  },
+  'work.job_packet_acknowledgment_invalidations': {
+    holds:
+      "Why and when a packet acknowledgment stopped counting: a critical packet version, the end of the worker's " +
+      'assignment or a disabled account (once each)',
+    classes: ['scheduling'],
+    categories: [J, S],
+  },
+  'work.job_packet_acknowledgments': {
+    holds:
+      "A worker's own acknowledgment of one job packet version: who, when, the version, its content digest, the " +
+      'scope version and the SOP versions it covered',
+    classes: ['scheduling'],
+    categories: [J, S],
   },
   'work.job_packet_exports': {
     holds: 'Every print and PDF export of a job packet: who, when, which version, the latest version then',
@@ -631,6 +651,13 @@ export const TABLES = {
     protectedEvidence: true,
   },
   'work.jobs': { holds: 'Jobs of approved projects', classes: ['request_details'], categories: [J, A] },
+  'work.loadout_checks': {
+    holds:
+      'What workers stated about each loadout item (loaded, missing, damaged) with their notes, and the approved ' +
+      'substitutes; who and when',
+    classes: ['request_details'],
+    categories: [J, S],
+  },
   'work.reservation_flags': {
     holds: 'Appointments flagged by an availability change',
     classes: ['scheduling'],
@@ -643,11 +670,30 @@ export const TABLES = {
   },
   'work.scheduling_tasks': { holds: 'Scheduling tasks of a job', classes: ['scheduling'], categories: [J] },
   'work.time_off': { holds: 'Recorded staff time off', classes: ['staff_account'], categories: [NS] },
+  // TSK-0070 (HH-WORK-06, ENT-TimeStamp): Arrived and Finished per worker; the Owner's corrections keep the original.
+  'work.time_stamp_corrections': {
+    holds:
+      "The Owner's corrections of a worker's Arrived or Finished: the value set, the value replaced and the reason",
+    classes: ['scheduling', 'staff_account'],
+    categories: [J],
+  },
+  'work.time_stamps': {
+    holds:
+      "Each assigned worker's Arrived and Finished time per visit (server time; device time when sent); no pay data",
+    classes: ['scheduling', 'staff_account'],
+    categories: [J],
+  },
   'work.visit_change_requests': {
     holds:
       "Customers' reschedule and cancellation requests of a visit: the customer's reason and preferred times, outcome",
     classes: ['scheduling', 'request_details'],
     categories: [R, J],
+  },
+  // TSK-0070 (HH-SCH-08): each assigned worker's "On my way" tap; the tap that moved the visit is marked.
+  'work.visit_departures': {
+    holds: "Each assigned worker's On my way tap per visit, and whether it moved the visit on the way",
+    classes: ['scheduling'],
+    categories: [J],
   },
   'work.visit_changes': {
     holds:
@@ -674,6 +720,11 @@ export const TABLES = {
     holds: 'Window offers of a tentative visit: hold expiry, policy version, outcome',
     classes: ['scheduling'],
     categories: [R, J],
+  },
+  'work.work_package_loadouts': {
+    holds: 'The loadout version pinned on each work package of a job',
+    classes: ['request_details'],
+    categories: [J],
   },
   'work.work_package_sop_pins': {
     holds: 'The SOP version and digests pinned on each work package of a job, or NOT CONFIGURED',

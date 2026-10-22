@@ -15,3 +15,5 @@ source: "OWN-DEC-83, 128"
 - **Until answered:** keep tax disabled; never state or imply exemption; never invent a rate.
 
 - **2026-10-21 ([[OWN-DEC-186]]):** the owner says the CPA is available; the question is in the CPA packet ([[TSK-0143]]).
+
+- **2026-10-22 ([[TSK-0143]]):** review packet ready: `docs/review-packets/cpa.md` question C-01.

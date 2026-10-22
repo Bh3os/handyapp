@@ -6,7 +6,7 @@ status: active
 area: scheduling
 links:
   constrained_by: ["[[RULE-SAFETY-GATES]]", "[[RULE-HUMAN-REVIEW]]"]
-  related: ["[[OWN-DEC-192]]", "[[HH-SCH-06]]", "[[OQ-CONFIRMATION-PRECONDITIONS]]"]
+  related: ["[[OWN-DEC-192]]", "[[HH-SCH-06]]", "[[OQ-CONFIRMATION-PRECONDITIONS]]", "[[OWN-DEC-208]]"]
 source: "owner answers 2026-10-21 R12 (Rules Review)"
 ---
 Owner answer (round 12, Rules Review), section verbatim:
@@ -31,3 +31,5 @@ Effect:
 - A2: estimate visits need no approved job (estimates are free and come before a job exists); work visits need an approved estimate and job plus every confirmation check. Staff publish options only when the visit type meets its own conditions. Replaces A2 as built (approval required for every offer).
 - A4: a completed job allows a follow-up visit only under an existing contractual obligation, a warranty ([[FACT-WARRANTY]]), the punch-list process or an approved return-work authorization; new paid work needs an approved estimate or change order ([[OWN-DEC-169]]).
 - Built by [[TSK-0145]].
+
+**Confirmed by [[OWN-DEC-208]] (2026-10-22):** the A1 reading is final: while an intake hold is open, only a visit the Owner authorizes as a hazard-evaluation inspection, naming the qualified person and the safety conditions, can be confirmed; the hold stays open.

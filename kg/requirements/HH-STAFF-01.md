@@ -1,12 +1,12 @@
 ---
 id: HH-STAFF-01
 type: requirement
-title: Invite-only staff accounts with direct email-and-password sign-in and optional MFA
+title: "Invite-only staff accounts with direct email-and-password sign-in and optional MFA (MFA mandatory since OWN-DEC-202)"
 status: active
 priority: P0
 area: staff
 links:
-  decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-123]]", "[[OWN-DEC-73]]", "[[OWN-DEC-133]]", "[[OWN-DEC-141]]"]
+  decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-123]]", "[[OWN-DEC-73]]", "[[OWN-DEC-133]]", "[[OWN-DEC-141]]", "[[OWN-DEC-202]]"]
   depends_on: ["[[HH-SEC-02]]", "[[HH-INT-11]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]", "[[RULE-SYNTHETIC-DATA]]"]
   uses: ["[[ENT-StaffUser]]", "[[ENT-RoleGrant]]", "[[ENT-AuditEvent]]", "[[INT-Resend]]", "[[INT-Render]]", "[[FACT-SESSION-TIMINGS]]"]
@@ -36,3 +36,5 @@ Owner controls and migration:
 - The first Owner account on a fresh deployment is created through a safe bootstrap with no secrets in chat or files (for example a one-time command in the host shell that prints a single-use, short-lived set-password link, or an owner-set bootstrap email variable that sends one invite only while no Owner exists). Secrets and tokens are never logged.
 - The staging access gate stays separate from staff sign-in and unchanged. Customer passwordless sign-in is unaffected.
 - Sign-in, failed sign-in, reset, disable and role changes are audited ([[HH-STAFF-08]]).
+
+**Changed by [[OWN-DEC-202]] (2026-10-22):** the MFA section above is replaced. MFA is mandatory for every active staff account (Owner, Office/Dispatcher, Estimator, Worker): an account without a factor enrols TOTP at its next sign-in, before any staff screen; no staff route or operation is served without completed MFA, whatever the role, flag or configuration; the recommendation banner and the RISK about accounts without MFA no longer apply. A lost factor is reset by the Owner (sessions revoked, new enrollment). Offboarding clears the password and removes the factor; reactivation uses a secure single-use link, the Owner's permission review and a new enrollment. Fresh authentication uses password re-entry plus TOTP. Built by [[TSK-0154]].

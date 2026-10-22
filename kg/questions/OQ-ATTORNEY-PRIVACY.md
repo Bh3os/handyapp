@@ -15,3 +15,5 @@ source: "OWN-DEC-72, 114, 129"
 - **Until answered:** production release is blocked; staging takes synthetic data only.
 
 - **2026-10-21 ([[OWN-DEC-186]]):** the owner says the attorney is available; the attorney packet ([[TSK-0143]]) adds the privacy-request obligations ([[OWN-DEC-175]]), export exceptions ([[OWN-DEC-201]]) and the SMS consent wording ([[OWN-DEC-190]]).
+
+- **2026-10-22 ([[TSK-0143]]):** review packet ready: `docs/review-packets/attorney.md` questions A-01 (the three public documents), A-10 (privacy-request obligations), A-12 (SMS consent wording), A-17 (export exceptions) and A-18 (account deletion versus business records).

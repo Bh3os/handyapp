@@ -85,6 +85,7 @@ export const LABEL_FAMILIES = {
     'question_reminder',
     'deposit_due',
     'visit_flagged',
+    'loadout_shortage',
     // TSK-0123: a property whose time zone is unknown.
     'property_time_zone',
     'deposit_waiver',
@@ -143,6 +144,7 @@ export const LABEL_FAMILIES = {
     'availability_changed',
     'equipment_retired',
     'work_cancellation_requested',
+    'critical_shortage',
     // TSK-0067: an appointment reminder draft waiting for release.
     'appointment_reminder',
     // TSK-0123: the property's time zone is unknown.
@@ -165,6 +167,7 @@ export const LABEL_FAMILIES = {
     'open_conversation',
     'review_deposit',
     'reassign_visit',
+    'review_shortage',
     'verify_time_zone',
   ],
   /**
@@ -268,6 +271,7 @@ export const LABEL_FAMILIES = {
     'retention.job_records',
     'retention.safety_records',
     'scheduling.window_offers',
+    'visit.on_my_way',
     'geo.county_time_zones',
     'sms.unknown_zone_hours',
     'ai.module',
@@ -557,6 +561,8 @@ export const LABEL_FAMILIES = {
   visitPurpose: ['site_estimate', 'service', 'follow_up', 'return_work'],
   /** Visit states (ENT-Visit): tentative -> confirmed -> en_route -> arrived -> completed; expired, canceled, no_access. */
   visitState: ['tentative', 'confirmed', 'en_route', 'arrived', 'completed', 'expired', 'canceled', 'no_access'],
+  /** TSK-0070 (HH-WORK-06): how one Arrived or Finished value stands (@handyhub/domain STAMP_STATUSES). */
+  stampStatus: ['recorded', 'corrected', 'pending', 'missing'],
   /**
    * Why the server refused a visit window or plan (TSK-0061; apps/server/src/modules/visits/visits.ts and
    * @handyhub/domain/local-time WindowProblem), and the error codes shown when no field is named.
@@ -718,6 +724,7 @@ export const LABEL_FAMILIES = {
     'incident',
     'job_hold',
     'job_packet',
+    'loadout',
     'message',
     'notification',
     'payment',
@@ -961,7 +968,14 @@ export const LABEL_FAMILIES = {
     'empty',
   ],
   /** Potential hazards or restricted scope found at intake (TSK-0043, HH-LEAD-04; PROPOSED categories). */
-  hazardCategory: ['hazardous_material', 'licensed_trade', 'structural', 'permit_licensing', 'other'],
+  hazardCategory: [
+    'hazardous_material',
+    'licensed_trade',
+    'structural',
+    'permit_licensing',
+    'other',
+    'critical_resource',
+  ],
   /** Hold states (ENT-Hold). */
   holdState: ['open', 'under_review', 'resolved', 'canceled_as_error'],
   /** The first-response clock as staff read it (TSK-0043, HH-LEAD-05). */
@@ -1080,6 +1094,31 @@ export const LABEL_FAMILIES = {
     'holds',
     'resources',
     'dependencies',
+  ],
+  /** Where a worker's own packet acknowledgment stands, and why one stopped counting (TSK-0072). */
+  acknowledgmentState: ['acknowledged', 'required', 'invalidated', 'not_assigned'],
+  acknowledgmentInvalidation: ['critical_change', 'assignment_removed', 'account_disabled'],
+  /** What a worker states about a loadout item, and the Owner's approved substitute (TSK-0071, HH-PKT-05). */
+  loadoutStatus: ['loaded', 'missing', 'damaged', 'substitute_approved'],
+  /** Required and nice-to-have loadout items (HH-PKT-05). */
+  loadoutCriticality: ['required', 'nice_to_have'],
+  /** A work package's loadout readiness (TSK-0071; @handyhub/domain LOADOUT_READINESS). */
+  loadoutReadiness: ['ready', 'not_confirmed', 'blocked', 'not_configured'],
+  /** What an approved substitute affects (HH-PKT-06). */
+  substituteImpact: ['safety', 'appearance', 'specification', 'price', 'warranty'],
+  /** How a task block is resolved (TSK-0071, PROPOSED). */
+  taskBlockResolution: ['item_provided', 'substitute_approved'],
+  /** Why a loadout statement or a task block resolution was refused (TSK-0071). */
+  loadoutProblem: [
+    'ITEM_NOT_CONFIRMED_LOADED',
+    'SUBSTITUTE_REQUIRED',
+    'IMPACTS_REQUIRED',
+    'CHANGE_ORDER_REQUIRED',
+    'UNKNOWN_ITEM',
+    'NOT_CONFIGURED',
+    'INVALID_TRANSITION',
+    'REASON_REQUIRED',
+    'REVIEWER_REQUIRED',
   ],
   /** Why the Owner's record of a competent-review sign-off was refused (TSK-0068). */
   sopSignOffProblem: ['REVIEWER_REQUIRED', 'QUALIFICATION_REQUIRED', 'REASON_REQUIRED', 'INVALID_TRANSITION'],

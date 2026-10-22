@@ -105,6 +105,26 @@ export type PacketAccessCode = {
   readonly version: number
 }
 
+/**
+ * The loadout pinned on one work package (TSK-0071, HH-PKT-05): the item list a worker loads against, never its
+ * confirmations (those change by the minute and live in the loadout itself). `not_configured`: no list for the
+ * service.
+ */
+export type PacketLoadout = {
+  readonly workPackageId: string
+  readonly serviceCode: string
+  readonly state: 'pinned' | 'not_configured'
+  readonly loadoutVersionId: string | null
+  readonly version: number | null
+  readonly contentSha256: string | null
+  readonly items: readonly {
+    readonly key: string
+    readonly group: string | null
+    readonly name: string | null
+    readonly criticality: string
+  }[]
+}
+
 export type PacketContent = {
   readonly identity: {
     readonly projectId: string
@@ -155,6 +175,8 @@ export type PacketContent = {
       readonly equipment: readonly { readonly equipmentId: string; readonly name: string }[]
       readonly requested: readonly string[]
     }[]
+    /** TSK-0071: absent from the versions written before loadouts existed. */
+    readonly loadout?: readonly PacketLoadout[]
   }
   readonly dependencies: {
     readonly approvalId: string
@@ -336,6 +358,15 @@ export function packetChanges(before: PacketContent | null, after: PacketContent
 
   // Tools and equipment.
   if (!same(before.resources.visits, after.resources.visits)) out.push(change('resources', 'equipment_changed', false))
+  // The loadout list of each work package (TSK-0071). PROPOSED (OQ-LOADOUT-DETAILS): a new or changed list is a new
+  // version that is not critical (HH-PKT-02 names scope, hazards and SOP); a critical shortage is a task block, which
+  // the holds section reports as critical.
+  const oldLoadouts = byKey(before.resources.loadout ?? [], (l) => l.workPackageId)
+  for (const l of after.resources.loadout ?? []) {
+    const o = oldLoadouts.get(l.workPackageId)
+    if (o?.contentSha256 !== l.contentSha256 || o?.loadoutVersionId !== l.loadoutVersionId)
+      out.push(change('resources', 'loadout_changed', false, l.serviceCode, o?.version ?? null, l.version))
+  }
 
   // Dependencies: the deposit's state.
   const d0 = before.dependencies.deposit?.state ?? null
@@ -353,4 +384,40 @@ export function hasCriticalChange(changes: readonly PacketChange[]): boolean {
 export function changedSections(changes: readonly PacketChange[]): PacketSection[] {
   const set = new Set(changes.map((c) => c.section))
   return PACKET_SECTIONS.filter((s) => set.has(s))
+}
+
+// Acknowledgments (TSK-0072; HH-DATA-08, HH-WORK-10, HH-PKT-02, HH-CHG-03, T44, ENT-Acknowledgment,
+// RULE-SAFETY-GATES): a worker's own confirmation of one packet version. It stands while the worker stays assigned and
+// no later version is critical; a critical version, the end of the worker's assignment or a disabled account ends it
+// (recorded once by the database, migration 0064). Nobody inherits one, and it never releases a hold: the Start Job
+// gate (TSK-0073) reads it next to every other check.
+
+/** Where one worker's acknowledgment of a job's packet stands. */
+export const ACKNOWLEDGMENT_STATES = ['acknowledged', 'required', 'invalidated', 'not_assigned'] as const
+export type AcknowledgmentState = (typeof ACKNOWLEDGMENT_STATES)[number]
+
+/** Why an acknowledgment stopped counting. */
+export const ACKNOWLEDGMENT_INVALIDATIONS = ['critical_change', 'assignment_removed', 'account_disabled'] as const
+export type AcknowledgmentInvalidation = (typeof ACKNOWLEDGMENT_INVALIDATIONS)[number]
+
+export type AcknowledgmentFacts = {
+  /** The person is assigned to the job now (an active confirmed reservation on a live visit, inside its window). */
+  readonly assigned: boolean
+  /** The person's latest acknowledgment of the job: its version and whether the database recorded its end. */
+  readonly latest: { readonly version: number; readonly invalidated: boolean } | null
+  /** The job's packet versions marked critical. */
+  readonly criticalVersions: readonly number[]
+}
+
+/**
+ * Where a worker's acknowledgment stands: not assigned (nothing to acknowledge, nothing counts), never given
+ * (required), ended (invalidated: its end was recorded, or a later version is critical even before that is recorded),
+ * or standing (acknowledged). Only `acknowledged` satisfies the review part of the Start Job gate.
+ */
+export function acknowledgmentState(f: AcknowledgmentFacts): AcknowledgmentState {
+  if (!f.assigned) return 'not_assigned'
+  if (!f.latest) return 'required'
+  const { version, invalidated } = f.latest
+  if (invalidated || f.criticalVersions.some((v) => v > version)) return 'invalidated'
+  return 'acknowledged'
 }

@@ -590,6 +590,7 @@ export const PROJECT_VISITS = {
     'job',
     'schedulingTask',
     'actions',
+    'visitTimes',
     'visits',
   ],
   properties: {
@@ -663,6 +664,8 @@ export const PROJECT_VISITS = {
       required: ['planEstimateVisit', 'planWorkVisit'],
       properties: { planEstimateVisit: { type: 'boolean' }, planWorkVisit: { type: 'boolean' } },
     },
+    // TSK-0070: the caller may open each started visit's Arrived and Finished times (visit.correct_timestamps).
+    visitTimes: { type: 'boolean' },
     visits: { type: 'array', items: VISIT },
   },
 } as const

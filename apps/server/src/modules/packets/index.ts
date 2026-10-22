@@ -6,6 +6,7 @@
 //   POST /staff/jobs/:jobId/packet/exports   records and audits a print of a version (the staff app then prints it)
 //   GET  /staff/jobs/:jobId/packet/pdf       the printable PDF of a version, recorded and audited as an export
 //   GET  /staff/my/job-packets               the caller's own assigned jobs with their packet version and changes
+//   POST /staff/jobs/:jobId/packet/acknowledgments  the caller's own acknowledgment of the latest version (TSK-0072)
 // - Authorization: job.view_packet (ROLE-MATRIX "View job packet": Owner and Office Y, Estimator P, Worker A). A worker
 //   reaches a job only while assigned to one of its live visits, inside the access window (assignments.ts and
 //   jobInScope): a worker removed by a reassignment is refused on the next request. Printing and the PDF use the same
@@ -15,8 +16,12 @@
 //   request that reads it; nobody writes packet content.
 // - No access code is ever in a packet, a response, an audit summary or an export (HH-PKT-07, HH-OFF-02): the reveal
 //   stays the separate, online, audited flow of the properties module.
-// - A view or an export is not an acknowledgment and releases nothing: holds and the Start Job gate are untouched
-//   (TSK-0072 and TSK-0073 build those on top of the versions recorded here).
+// - A view or an export is not an acknowledgment and releases nothing: holds and the Start Job gate are untouched.
+// - Acknowledgments (TSK-0072; HH-DATA-08, HH-WORK-10, T44, ENT-Acknowledgment): a worker acknowledges the latest
+//   version personally, only while assigned to the job (PROPOSED, OQ-PACKET-ACKNOWLEDGMENT: the "View job packet"
+//   permission plus that assignment; the matrix has no acknowledgment row). A critical version, the end of the
+//   worker's assignment or a disabled account ends it, once, in the same transaction (migration 0064); nobody
+//   inherits one and it releases nothing. The packet answers where the caller's and each assigned worker's stands.
 import type { Db, Tx } from '@handyhub/db'
 import { withTx } from '@handyhub/db'
 import { packetChanges, PACKET_VISIT_STATES, type PacketContent } from '@handyhub/domain'
@@ -31,10 +36,13 @@ import { loadConfig } from '../../platform/config/index.js'
 import { jobInScope } from '../../platform/data-scope.js'
 import { currentContext } from '../../platform/request-context.js'
 import type { ObjectStorage } from '../../providers/index.js'
+import { acknowledge, acknowledgmentStatus, assignedNow, teamAcknowledgments } from './acknowledgments.js'
 import { jobAssignments, propertyVisitFacts } from './assignments.js'
 import { packetVersion, refreshJobPacket, type PacketRow } from './content.js'
 import { renderPacketPdf } from './pdf.js'
 import {
+  ACKNOWLEDGE_BODY,
+  ACKNOWLEDGED,
   EXPORT_RECORDED,
   FILE,
   JOB_PARAMS,
@@ -48,11 +56,19 @@ import {
 } from './schemas.js'
 import { lastViewed, packetView } from './view.js'
 
+export {
+  acknowledgmentStatus,
+  assignedNow,
+  latestAcknowledgment,
+  packetAcknowledgment,
+  teamAcknowledgments,
+} from './acknowledgments.js'
 export { jobAssignments, propertyVisitFacts } from './assignments.js'
 export { latestPacket, packetContent, refreshJobPacket } from './content.js'
 export { packetPdfModel, renderPacketPdf } from './pdf.js'
 
 const TEST = 'test/integration/job-packets.test.ts'
+const ACK_TEST = 'test/integration/packet-acknowledgments.test.ts'
 const PDF_TYPE = 'application/pdf'
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -134,7 +150,10 @@ export function packetsModule(deps: PacketsDeps = {}): ApiModule {
       'version when its records changed). Answers the version, its first-generated, last-updated and checked times, ' +
       'whether it is the latest, "What changed since you reviewed this?" against the version the caller last viewed, ' +
       'and every section of HH-PKT-01 from stored records only (no price, never an access code: a code is revealed ' +
-      'separately, online, on the visit date). What no record holds is marked, never filled in.',
+      'separately, online, on the visit date). What no record holds is marked, never filled in. Also where the ' +
+      "caller's own acknowledgment stands (acknowledged, required, invalidated by a critical change, a removed " +
+      'assignment or a disabled account, or not assigned) with what changed since the acknowledged version, and ' +
+      "each assigned worker's state. Nobody inherits another person's acknowledgment.",
     kind: 'read',
     idempotency: 'none',
     expectedVersion: 'none',
@@ -160,7 +179,17 @@ export function packetsModule(deps: PacketsDeps = {}): ApiModule {
         accessCodes &&
         decide(actor, 'access_code.reveal', facts, { now, online: true, ...(today ? { today } : {}) }).effect ===
           'allow'
-      return { body: { ...body, actions: { revealAccessCodes } }, headers: { 'cache-control': 'no-store' } }
+      const assigned = (await assignedNow(ctx.db, row.jobId, now)).includes(actor.userId)
+      const mine = await acknowledgmentStatus(ctx.db, row, actor.userId, assigned)
+      const team = await teamAcknowledgments(ctx.db, row, now)
+      return {
+        body: {
+          ...body,
+          acknowledgments: { mine, team },
+          actions: { revealAccessCodes, acknowledge: assigned && mine.state !== 'acknowledged' },
+        },
+        headers: { 'cache-control': 'no-store' },
+      }
     },
   }
 
@@ -363,8 +392,8 @@ export function packetsModule(deps: PacketsDeps = {}): ApiModule {
     description:
       "Staff with schedule.view_my_day: only the caller's own assignments (active confirmed reservations on live " +
       "work visits whose service day has not ended), grouped by job, with the packet's current version (brought up " +
-      'to date first), the version the caller last viewed and whether it changed since then, critically or not. ' +
-      "Nothing about another person's assignments.",
+      'to date first), the version the caller last viewed and whether it changed since then, critically or not, and ' +
+      "where the caller's own acknowledgment stands. Nothing about another person's assignments.",
     actors: ['staff'],
     permission: 'schedule.view_my_day',
     kind: 'read',
@@ -405,6 +434,9 @@ export function packetsModule(deps: PacketsDeps = {}): ApiModule {
         .orderBy('v.number')
         .execute()
       const jobs = [...new Set(rows.map((r) => r.job_id as string))]
+      const now = new Date()
+      const assigned: string[] = []
+      for (const jobId of jobs) if ((await assignedNow(ctx.db, jobId, now)).includes(actor.userId)) assigned.push(jobId)
       const packets = []
       for (const jobId of jobs) {
         const row = await refreshJobPacket(ctx.db, jobId)
@@ -417,6 +449,7 @@ export function packetsModule(deps: PacketsDeps = {}): ApiModule {
             ? packetChanges(before.content as PacketContent, row.content).some((c) => c.critical)
             : false
         }
+        const ack = await acknowledgmentStatus(ctx.db, row, actor.userId, assigned.includes(jobId))
         packets.push({
           jobId,
           projectReference: row.content.identity.projectReference,
@@ -424,6 +457,8 @@ export function packetsModule(deps: PacketsDeps = {}): ApiModule {
           lastViewedVersion: seen?.version ?? null,
           changedSinceViewed: seen !== null && seen.version !== row.version,
           criticalSinceViewed: critical,
+          acknowledgment: ack.state,
+          acknowledgedVersion: ack.acknowledgment?.version ?? null,
           visits: rows
             .filter((r) => r.job_id === jobId)
             .map((r) => ({
@@ -443,5 +478,62 @@ export function packetsModule(deps: PacketsDeps = {}): ApiModule {
     },
   }
 
-  return { name: 'packets', routes: [view, versions, recordView, print, pdf, mine] }
+  const acknowledgeRoute: RouteDef = {
+    ...common,
+    method: 'POST',
+    path: '/staff/jobs/:jobId/packet/acknowledgments',
+    operationId: 'acknowledgeJobPacket',
+    summary: "Record the caller's own acknowledgment of the latest packet version",
+    description:
+      'Staff with job.view_packet who are themselves assigned to the job right now (an active confirmed reservation ' +
+      'on a live visit, inside its access window; PROPOSED: the matrix has no acknowledgment row). Records that the ' +
+      'caller personally reviewed the given version: it must be the latest one with the exact content digest the ' +
+      'caller read (else CONFLICT PACKET_CHANGED: review the new version). Personal: nobody acknowledges for another ' +
+      'person and nobody inherits one (CONFLICT NOT_ASSIGNED for anyone not assigned). Acknowledging the standing ' +
+      'version again adds nothing (200). Also records the view of that version. A critical change, the end of the ' +
+      "caller's assignment or a disabled account later ends it, once. It never releases a hold and is not the Start " +
+      'Job gate by itself. Audited.',
+    kind: 'write',
+    idempotency: 'none',
+    expectedVersion: 'none',
+    audit: 'job_packet.acknowledge',
+    test: ACK_TEST,
+    schema: { params: JOB_PARAMS, body: ACKNOWLEDGE_BODY, response: { 200: ACKNOWLEDGED, 201: ACKNOWLEDGED } },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const actor = staff(ctx)
+      // Brought up to date under the job's packet lock, held until commit: no version can slip in between.
+      const latest = await currentPacket(ctx, tx)
+      const { version, contentSha256 } = ctx.req.body as { version: number; contentSha256: string }
+      if (version !== latest.version || contentSha256 !== latest.contentSha256)
+        throw new ApiError('CONFLICT', {
+          fieldErrors: [{ field: 'body.version', code: 'PACKET_CHANGED', message: '' }],
+        })
+      const now = new Date()
+      if (!(await assignedNow(tx, latest.jobId, now)).includes(actor.userId))
+        throw new ApiError('CONFLICT', { fieldErrors: [{ field: 'assignment', code: 'NOT_ASSIGNED', message: '' }] })
+      const ack = await acknowledge(tx, { row: latest, staffUserId: actor.userId, requestId: requestIdOf(ctx) })
+      if (ack.created)
+        await tx
+          .insertInto('work.job_packet_views')
+          .values({ packet_id: latest.id, job_id: latest.jobId, version: latest.version, staff_user_id: actor.userId })
+          .execute()
+      await ctx.audit({
+        target: { type: 'job_packet', id: latest.jobId, version: latest.version },
+        summary: { version: latest.version, created: ack.created, scopeVersion: latest.content.scope.version },
+      })
+      return {
+        status: ack.created ? 201 : 200,
+        body: {
+          acknowledgmentId: ack.id,
+          version: ack.version,
+          acknowledgedAt: ack.acknowledgedAt,
+          created: ack.created,
+          state: 'acknowledged',
+        },
+      }
+    },
+  }
+
+  return { name: 'packets', routes: [view, versions, recordView, print, pdf, mine, acknowledgeRoute] }
 }

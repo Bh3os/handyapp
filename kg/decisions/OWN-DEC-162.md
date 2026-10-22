@@ -5,7 +5,7 @@ title: "Customer side English only; staff side in Spanish for Spanish-speaking e
 status: active
 area: i18n
 links:
-  related: ["[[OWN-DEC-45]]", "[[OWN-DEC-79]]", "[[RULE-LANGUAGES]]", "[[HH-LANG-01]]"]
+  related: ["[[OWN-DEC-45]]", "[[OWN-DEC-79]]", "[[RULE-LANGUAGES]]", "[[HH-LANG-01]]", "[[OWN-DEC-208]]"]
 source: "owner answers 2026-10-21 R4-Q1"
 ---
 Owner answer (round 4, question 1), option chosen "Keep English only" for all customer-facing experiences:
@@ -55,3 +55,5 @@ Effect:
 - The staff portal is in Spanish for Spanish-speaking employees: navigation, assignments, schedules, buttons, instructions, alerts and workflows, and complete Spanish SOPs, hazards, safety instructions, emergency procedures, tools and materials guidance, keeping technical terms where clarity and safety need them. Safety translations are reviewed and validated before field use ([[OWN-DEC-79]], [[HH-LANG-04]]).
 - Customer messages are professional English. Converting Spanish staff drafts into English for staff review is an AI feature deferred to wave 2 ([[OWN-DEC-166]]); unreviewed AI translations never reach customers; the original draft and the released English version are both kept.
 - Both experiences are tested on private staging. Built by [[TSK-0102]] and [[TSK-0103]].
+
+**Confirmed by [[OWN-DEC-208]] (2026-10-22):** reading 13 is final: the customer side (including the registered customer's dashboard) and the Owner Dashboard are English; worker-side screens, including safety text and the emergency instruction, are available in Spanish. English-only customer content was retained again in round 14 ([[OWN-DEC-212]]).
