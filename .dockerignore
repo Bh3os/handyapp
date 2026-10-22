@@ -1,7 +1,11 @@
 **/node_modules
 **/dist
 **/.astro
-**/coverage
+# Test-coverage reports only: a bare **/coverage would also drop source folders named coverage
+# (apps/site/src/coverage, apps/server/src/modules/coverage) and break the image build.
+/coverage
+apps/*/coverage
+packages/*/coverage
 **/playwright-report
 **/test-results
 reports
