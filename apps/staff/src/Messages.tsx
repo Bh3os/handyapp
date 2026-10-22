@@ -363,7 +363,12 @@ function Templates({ t, fetchImpl }: { t: T; fetchImpl: Fetch }) {
       {shown ? <PreviewPanel t={t} fetchImpl={fetchImpl} {...shown} onClose={() => setShown(null)} /> : null}
       <ol className="staff-queue__items" aria-label={t('messages.templates.list')}>
         {data.templates.map((m) => (
-          <li key={m.messageKey} className="staff-queue__item" aria-labelledby={`${ids}-${m.messageKey}`}>
+          <li
+            key={m.messageKey}
+            className="staff-queue__item"
+            aria-labelledby={`${ids}-${m.messageKey}`}
+            data-template-key={m.messageKey}
+          >
             <div className="staff-queue__head">
               <h2 id={`${ids}-${m.messageKey}`} className="staff-queue__title">
                 <code>{m.messageKey}</code>

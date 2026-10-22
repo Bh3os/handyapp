@@ -144,13 +144,16 @@ test.describe('message delivery and templates (TSK-0119)', () => {
       await expect(p.getByRole('heading', { level: 1, name: 'Message delivery' })).toBeVisible()
       await p.getByLabel('Project reference').fill(reference)
       await p.getByRole('button', { name: 'Apply' }).click()
-      const items = p.getByRole('list', { name: 'Messages' }).locator('li[data-message-key]')
+      // The project's messages: its receipt (and its access link, also not wired yet).
+      const items = p.getByRole('list', { name: 'Messages' }).locator('li[data-message-key="request.receipt"]')
       await expect(items).toHaveCount(1)
       const item = items.first()
       await expect(item.getByText('request.receipt')).toBeVisible()
       await expect(item.getByText('Failed', { exact: true })).toBeVisible()
       await expect(
-        item.getByText('Not sent: the approved wording is released, but this message does not supply its values yet.'),
+        item.getByText('Not sent: the approved wording is released, but this message does not supply its values yet.', {
+          exact: true,
+        }),
       ).toBeVisible()
       await expect(item.getByText('Values: customerName')).toBeVisible()
       await expect(item.getByText(/^Email to m•••@example\.test$/)).toBeVisible()
@@ -160,7 +163,8 @@ test.describe('message delivery and templates (TSK-0119)', () => {
       // The owner wording, with sample values only, in a sandboxed frame; nothing is sent by previewing.
       await p.getByRole('tab', { name: 'Templates' }).click()
       const templates = p.getByRole('list', { name: 'Message templates' })
-      const receipt = templates.getByRole('listitem').filter({ hasText: 'Template ID request_received' })
+      const receipt = templates.locator('li[data-template-key="request.receipt"]')
+      await expect(receipt.getByText('Template ID request_received')).toBeVisible()
       await expect(receipt).toHaveCount(1)
       await expect(receipt.getByText('Approved wording released; values not wired yet')).toBeVisible()
       await receipt.getByRole('button', { name: 'Preview' }).click()
