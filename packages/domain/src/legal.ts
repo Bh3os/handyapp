@@ -717,12 +717,14 @@ export function estimateTermsDocument(documentId: string | null | undefined): Es
  * The recorded value of terms v1.0 with the owner's sign-off (TSK-0144, OWN-DEC-187): what migration 0073 records as
  * the active version of legal.estimate_terms. An integration test keeps the migration's row equal to it.
  */
+// Plain literals (not read from ESTIMATE_TERMS) so bundles that do not use the terms can leave them out; a test keeps
+// them equal to ESTIMATE_TERMS.
 export const ESTIMATE_TERMS_V1_RECORD = {
-  documentId: ESTIMATE_TERMS.documentId,
+  documentId: 'estimate-terms-1',
   status: 'approved',
   attorneyReviewed: false,
-  preparedOn: ESTIMATE_TERMS.preparedOn,
-  contentSha256: ESTIMATE_TERMS.contentSha256,
+  preparedOn: '2026-10-21',
+  contentSha256: 'c4103d986b8131af92e3733de2d69fefda1a49f57c3665f2faa05b445b8827e3',
   ownerSignOff: ESTIMATE_TERMS_V1_SIGN_OFF,
 } as const
 

@@ -108,6 +108,11 @@ describe('[HH-EST-13][OWN-DEC-187][T33] the owner sign-off of estimate terms v1.
     expect(entry).toMatchObject({ state: 'CONFIGURED', version: 2, proposed: false })
     if (entry.state !== 'CONFIGURED') throw new Error('the sign-off is recorded')
     expect(entry.value).toEqual(ESTIMATE_TERMS_V1_RECORD)
+    expect(ESTIMATE_TERMS_V1_RECORD).toMatchObject({
+      documentId: ESTIMATE_TERMS.documentId,
+      preparedOn: ESTIMATE_TERMS.preparedOn,
+      contentSha256: ESTIMATE_TERMS.contentSha256,
+    })
     expect(entry.sourceIds).toEqual(['OWN-DEC-187', 'HH-EST-13', 'OWN-DEC-127', 'OQ-ATTORNEY-TERMS'])
     expect(ESTIMATE_TERMS_V1_SIGN_OFF).toEqual({
       by: 'owner',
