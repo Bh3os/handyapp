@@ -1,4 +1,5 @@
 kg/_index.json
+kg/_index.json.*.tmp
 node_modules/
 dist/
 # Test coverage reports (not source folders named coverage, such as the ZIP coverage modules).
