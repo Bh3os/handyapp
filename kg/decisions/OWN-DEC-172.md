@@ -7,7 +7,7 @@ area: safety
 links:
   constrained_by: ["[[RULE-SAFETY-GATES]]", "[[RULE-HUMAN-REVIEW]]"]
   uses: ["[[FACT-SVC-ESCALATION-PATH]]"]
-  related: ["[[OWN-DEC-80]]", "[[OWN-DEC-149]]", "[[HH-WORK-13]]", "[[HH-PKT-09]]"]
+  related: ["[[OWN-DEC-80]]", "[[OWN-DEC-149]]", "[[HH-WORK-13]]", "[[HH-PKT-09]]", "[[OWN-DEC-208]]"]
 source: "owner answers 2026-10-21 R6-Q3"
 ---
 Owner answer (round 6, question 3), option chosen "Other: Owner-First Escalation with Emergency Exception". The owner's phone number given with the answer is personal data: it is entered by the Owner in their own staff profile and is not stored in the repository.
@@ -70,3 +70,5 @@ Effect:
 - Incident reports, escalation actions, owner decisions and authorizations are recorded; tests cover emergency and non-emergency cases, an unreachable Owner, safety holds and the Spanish mobile text.
 - Fills `<owner decision: emergency contact>` and `<owner decision: escalation order>` of [[FACT-SVC-ESCALATION-PATH]] ([[OQ-PACKET-DETAILS]]). The SOP wording itself stays pending competent safety review ([[OQ-SAFETY-REVIEW]]).
 - Built by [[TSK-0129]]; the Stop Work guidance with [[TSK-0077]].
+
+**Confirmed by [[OWN-DEC-208]] (2026-10-22):** reading 10 is final: the 2026-10-05 backup contact is not part of the procedure and work stays paused while the Owner is unreachable; a serious emergency always means calling 911 at once, without waiting for the Owner's permission.

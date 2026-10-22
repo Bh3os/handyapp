@@ -5,7 +5,7 @@ title: "Messages the 21 owner templates do not cover"
 status: open
 area: messaging
 links:
-  related: ["[[OWN-DEC-151]]", "[[OWN-DEC-152]]", "[[OWN-DEC-153]]", "[[OWN-DEC-175]]", "[[FACT-AUTOMATIC-MESSAGES]]"]
+  related: ["[[OWN-DEC-151]]", "[[OWN-DEC-152]]", "[[OWN-DEC-153]]", "[[OWN-DEC-175]]", "[[FACT-AUTOMATIC-MESSAGES]]", "[[OWN-DEC-209]]", "[[OWN-DEC-210]]"]
 source: "owner answers 2026-10-21 (gap found while recording R1-R2)"
 ---
 **Question:** the 21 templates of [[OWN-DEC-151]] leave out several messages the software already sends or drafts. Which wording, subject and release apply to them?
@@ -17,3 +17,5 @@ source: "owner answers 2026-10-21 (gap found while recording R1-R2)"
 
 - **Who answers:** the owner.
 - **Until answered:** messages with released wording keep sending as they are; messages without wording stay NOT CONFIGURED (recorded as `template_not_configured` with a staff delivery issue, never shown as sent); unpaid-invoice reminders stay staff-released drafts; the privacy acknowledgment shows in the portal only.
+
+**Answered in part (2026-10-22):** items 1 and 2 by [[OWN-DEC-209]] (the seven templates, wording written in the style of the 21 under the owner's authorization); item 3 by [[OWN-DEC-210]] (automatic reminders 3 and 7 days after the due date). Item 4 (the privacy-request acknowledgment and outcome notice) stays open.

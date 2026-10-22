@@ -5,10 +5,12 @@ title: Unpaid balance: reminders at 24 h and 3 days, then "Overdue—owner decis
 status: active
 area: payments
 links:
-  related: ["[[OWN-DEC-78]]", "[[OWN-DEC-110]]", "[[OWN-DEC-115]]", "[[HH-COM-05]]", "[[HH-FIN-13]]", "[[HH-FIN-14]]", "[[HH-AUTO-02]]"]
+  related: ["[[OWN-DEC-78]]", "[[OWN-DEC-110]]", "[[OWN-DEC-115]]", "[[HH-COM-05]]", "[[HH-FIN-13]]", "[[HH-FIN-14]]", "[[HH-AUTO-02]]", "[[OWN-DEC-210]]"]
   uses: ["[[FACT-REMINDER-CADENCES]]", "[[FACT-HOURS]]", "[[FACT-TIMEZONE]]"]
 source: "owner-answers-verbatim 2026-10-12T19:09:51.058Z [10.3 Unpaid]; decision-briefs 2026-10-12T19:10:30"
 ---
+Partly replaced by [[OWN-DEC-210]] (2026-10-22): the reminders become automatic, 3 and 7 calendar days after the due date (no longer staff-released drafts at 24 hours and 3 days after issue), each once; they stop on payment (partial payments suspend them), dispute, payment plan, refund or credit review and collection hold; further collection follow-up is staff-released. No late fees, interest, automatic collections or write-offs, and the "Overdue—owner decision" item, stay.
+
 Owner, 2026-10-12, journey Step 10.3, unpaid balance.
 
 Question asked:
