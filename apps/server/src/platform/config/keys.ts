@@ -58,7 +58,6 @@ const shape =
 const hours = int(0, 24 * 366)
 const messageCode: Parser<string> = (v, p) =>
   typeof v === 'string' && /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/.test(v) ? v : fail(p, 'expected a message type code')
-const contactHoursOnly = { contactHoursOnly: bool }
 
 const matching =
   (pattern: RegExp, what: string): Parser<string> =>
@@ -72,6 +71,30 @@ const legalDocument = shape({
   preparedOn: matching(/^\d{4}-\d{2}-\d{2}$/, 'a date YYYY-MM-DD'),
   contentSha256: matching(/^[0-9a-f]{64}$/, 'a SHA-256 hex digest'),
 })
+
+/**
+ * One version of the estimate terms (TSK-0056, TSK-0144): a legal document version, with the owner's sign-off when the
+ * owner approved it (OWN-DEC-187). A sign-off is only recorded on an approved version; it names the owner and the
+ * decision node, never a staff user (OWN-DEC-128).
+ */
+const ownerSignOff = shape({
+  by: exactly('owner'),
+  decisionId: matching(/^OWN-DEC-[0-9]+$/, 'an owner decision ID such as OWN-DEC-187'),
+  source: text,
+  signedOn: matching(/^\d{4}-\d{2}-\d{2}$/, 'a date YYYY-MM-DD'),
+  wording: text,
+})
+type EstimateTermsVersion = ReturnType<typeof legalDocument> & {
+  readonly ownerSignOff?: ReturnType<typeof ownerSignOff>
+}
+const estimateTermsVersion = (v: unknown, p: string): EstimateTermsVersion => {
+  if (v === null || typeof v !== 'object' || Array.isArray(v) || !Object.hasOwn(v, 'ownerSignOff'))
+    return legalDocument(v, p)
+  const { ownerSignOff: signOff, ...rest } = v as Record<string, unknown>
+  const doc = legalDocument(rest, p)
+  if (doc.status !== 'approved') fail(`${p}.ownerSignOff`, 'a sign-off is recorded only on an approved version')
+  return { ...doc, ownerSignOff: ownerSignOff(signOff, `${p}.ownerSignOff`) }
+}
 
 /** One retention category's period (TSK-0099): what starts it, and the owner's deletion review after it. */
 const retentionPeriod = <const A extends string>(after: A, decidedYears: number) =>
@@ -122,23 +145,31 @@ export const CONFIG_KEYS = {
   'cancellation.rules': shape({ rescheduleFree: bool, noticeHours: hours, lateCancellationCents: int() }),
   'contact.hours': shape({ days: exactly('every_day'), open: clock, close: clock }),
   'business.timezone': shape({ zone: text }),
+  // TSK-0121 (OWN-DEC-153, OWN-DEC-157, FACT-REMINDER-CADENCES; migration 0075): the routine reminders send automatically:
+  // one estimate reminder a number of hours after the version was successfully delivered, one question reminder after
+  // the notice was delivered ("Closed—no response" the configured hours after that reminder was actually sent), and
+  // the appointment reminder before every confirmed visit (none for a visit booked less than that ahead). The
+  // satisfaction check, unpaid-invoice and repeat-service reminders stay staff-released (their tasks change them).
+  // When a message may go out by channel is messages.delivery_hours (TSK-0122), not a per-cadence flag.
   'reminders.cadences': shape({
-    unansweredEstimate: shape({ firstHours: hours, finalHours: hours, ...contactHoursOnly }),
+    unansweredEstimate: shape({ afterDeliveryHours: hours, release: exactly('automatic') }),
     unansweredQuestion: shape({
-      firstHours: hours,
-      finalHours: hours,
-      closeAfterFinalHours: hours,
-      ...contactHoursOnly,
+      afterDeliveryHours: hours,
+      closeAfterReminderHours: hours,
+      release: exactly('automatic'),
     }),
-    appointment: shape({ hoursBefore: hours, ...contactHoursOnly }),
-    satisfaction: shape({ daysAfterCompletion: int(0, 366), ...contactHoursOnly }),
-    unpaidInvoice: shape({ firstHours: hours, finalHours: hours, ...contactHoursOnly }),
-    repeatService: shape({ schedule: exactly('customer_agreed'), ...contactHoursOnly }),
+    appointment: shape({ hoursBefore: hours, release: exactly('automatic') }),
+    satisfaction: shape({ daysAfterCompletion: int(0, 366), release: exactly('staff') }),
+    unpaidInvoice: shape({ firstHours: hours, finalHours: hours, release: exactly('staff') }),
+    repeatService: shape({ schedule: exactly('customer_agreed'), release: exactly('staff') }),
   }),
   'request.reopen_period': shape({ days: int(0, 3660) }),
-  // TSK-0050 (HH-COM-09, FACT-HOURS, OWN-DEC-120): whether a staff reply's email or text waits for contact.hours when
-  // Send is pressed outside them. PROPOSED (migration 0046): no decision names replies explicitly.
-  'replies.contact_hours': shape({ ...contactHoursOnly }),
+  // TSK-0122 (OWN-DEC-152 sections 3.3 and 3.4, OWN-DEC-154, OWN-DEC-207, HH-COM-15; migration 0075): when a message may
+  // go out, by channel. Emails (automatic messages and released staff replies) at any hour; a non-urgent text only
+  // inside contact.hours in the recipient's own zone, or inside sms.unknown_zone_hours when that zone is unknown.
+  // Codes, account security notices, access links and the On my way notice never wait. It replaces the PROPOSED
+  // replies.contact_hours of TSK-0050, which held reply emails too.
+  'messages.delivery_hours': shape({ email: exactly('any_hour'), text: exactly('recipient_permitted_hours') }),
   'response.target': shape({ minutes: int(1, 24 * 60), countedWithin: exactly('contact_hours') }),
   'session.timings': shape({
     staffInviteLinkHours: hours,
@@ -217,10 +248,9 @@ export const CONFIG_KEYS = {
   'legal.sms_disclosure': legalDocument,
   // TSK-0053 (HH-EST-13, OWN-DEC-127): the estimate terms each published version carries. NOT CONFIGURED (migration
   // 0028); publish readiness names it while it is missing. TSK-0056 wrote terms v1.0 (ESTIMATE_TERMS of
-  // @handyhub/domain/legal, documentId estimate-terms-1, owner review pending) but records no version of this key:
-  // recording it is the owner's legal-document sign-off (OQ-TERMS-OWNER-APPROVAL), and the customer view shows its
-  // wording only while the recorded content hash matches.
-  'legal.estimate_terms': legalDocument,
+  // @handyhub/domain/legal, documentId estimate-terms-1); the customer view shows its wording only while the recorded
+  // content hash matches. TSK-0144 (OWN-DEC-187): migration 0073 records v1.0 as approved with the owner's sign-off.
+  'legal.estimate_terms': estimateTermsVersion,
   // TSK-0098 (HH-SEC-06, OWN-DEC-142, OWN-DEC-70): how long audit records are kept (7 years), then the owner's
   // deletion-review queue. Automatic deletion is not a value this shape accepts, and holds always keep records.
   'retention.audit_log': shape({
@@ -277,6 +307,11 @@ export const CONFIG_KEYS = {
   // customer invitations, public submissions and search indexing all off); only the Owner moves it, with a recorded
   // approval, one step forward or back to an earlier phase (the database refuses anything else as well).
   'launch.phase': shape({ phase: oneOf(LAUNCH_PHASES) }),
+  // TSK-0122 (OWN-DEC-190, OWN-DEC-152 section 3.4, HH-COM-15; migration 0075): the global switch of live texts. Off until
+  // the A2P 10DLC registration and its consent requirements are complete: no text reaches a carrier; each one is
+  // recorded as failed (sms_disabled) for staff to see. The local and ci fakes and the staging log sender are test
+  // interceptors, not carriers, so they are not held by it.
+  'sms.live_delivery': shape({ enabled: bool }),
   // RULE-AI-WAVE2: only `false` is a valid value; the database refuses anything else as well.
   'ai.module': shape({ enabled: exactly(false) }),
 } as const satisfies Record<string, Parser<unknown>>

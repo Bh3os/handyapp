@@ -36,7 +36,8 @@ beforeAll(async () => {
   t = await createTestDatabase()
   // Synthetic template versions for the drafts these tests release (the real wording is the owner's, T74).
   await withTx(t.db, async (tx) => {
-    for (const messageKey of ['reminder.appointment', 'review.request', 'reminder.unpaid_invoice'])
+    // TSK-0121: the appointment reminder is automatic now; the unpaid-invoice reminder stays a staff-released draft.
+    for (const messageKey of ['review.request', 'reminder.unpaid_invoice'])
       for (const channel of ['email', 'sms'] as const)
         await releaseTemplateVersion(tx, {
           messageKey,
@@ -57,7 +58,13 @@ afterAll(async () => {
 const fakes = () => {
   const p = createProviders(readProviderSettings({ HANDYHUB_ENV: 'ci' }))
   if (!p.fakes.email || !p.fakes.sms || !p.email || !p.sms) throw new Error('ci uses the fakes')
-  return { providers: { email: p.email, sms: p.sms }, email: p.fakes.email, sms: p.fakes.sms }
+  // TSK-0122: texts are judged at a fixed noon in Louisville (inside every permitted window), never at the time the
+  // suite runs; the hours themselves are tested in delivery-hours.test.ts.
+  return {
+    providers: { email: p.email, sms: p.sms, clock: () => new Date('2026-10-20T16:00:00Z') },
+    email: p.fakes.email,
+    sms: p.fakes.sms,
+  }
 }
 const optIn = (
   phone: string,
@@ -283,7 +290,7 @@ describe('retries never double-send (TSK-0048, HH-COM-02, T66)', () => {
     const automation = fastRetry(
       notificationAutomation({
         messageKey: 'question.notice',
-        providers: { email: f.providers.email, sms: flaky },
+        providers: { email: f.providers.email, sms: flaky, clock: f.providers.clock },
         resolve: async () => ({
           subjectKey: `question:${id}`,
           record: { type: 'question', id },
@@ -348,10 +355,10 @@ describe('send-time rechecks of consent and record state (TSK-0048, HH-COM-05, T
     const f = fakes()
     const release = releaseAutomation(f.providers)
     const subject = await releaseReminder({
-      messageKey: 'reminder.appointment',
+      messageKey: 'reminder.unpaid_invoice',
       channel: 'sms',
       destination: '+15025550120',
-      record: { type: 'visit', id: 'v-no-opt-in' },
+      record: { type: 'invoice', id: 'inv-no-opt-in' },
       release,
     })
     await drain([release])
@@ -364,10 +371,10 @@ describe('send-time rechecks of consent and record state (TSK-0048, HH-COM-05, T
     await optIn('+15025550121')
     const release = releaseAutomation(f.providers)
     const subject = await releaseReminder({
-      messageKey: 'reminder.appointment',
+      messageKey: 'reminder.unpaid_invoice',
       channel: 'sms',
       destination: '+15025550121',
-      record: { type: 'visit', id: 'v-stop' },
+      record: { type: 'invoice', id: 'inv-stop' },
       release,
     })
     await receive('bird', 'evt-stop-1', {
@@ -453,12 +460,12 @@ describe('send-time rechecks of consent and record state (TSK-0048, HH-COM-05, T
   it('a current record with consent sends once', async () => {
     const f = fakes()
     await optIn('+15025550123')
-    const release = releaseAutomation(f.providers, { recordChecks: { visit: async () => 'current' } })
+    const release = releaseAutomation(f.providers, { recordChecks: { invoice: async () => 'current' } })
     const subject = await releaseReminder({
-      messageKey: 'reminder.appointment',
+      messageKey: 'reminder.unpaid_invoice',
       channel: 'sms',
       destination: '+15025550123',
-      record: { type: 'visit', id: 'v-ok' },
+      record: { type: 'invoice', id: 'inv-ok' },
       release,
     })
     await drain([release])

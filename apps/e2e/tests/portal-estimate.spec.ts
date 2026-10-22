@@ -401,11 +401,14 @@ test.describe('the customer estimate view, terms v1.0, Request Changes and Decli
     }
   })
 
-  test('[HH-EST-13] the estimate terms on a page of their own, numbered, marked as not in effect', async ({ page }) => {
+  test('[HH-EST-13][OWN-DEC-187] the estimate terms on a page of their own, numbered, without the banner after the owner sign-off', async ({
+    page,
+  }) => {
     await page.goto(`/portal/terms/${ESTIMATE_TERMS.documentId}`)
     await expect(page.getByRole('heading', { level: 1, name: 'Estimate Terms' })).toBeVisible()
-    await expect(page.getByText('TEST — wording pending owner approval for real customer use')).toBeVisible()
-    await expect(page.getByText('These terms are a draft and are not in effect yet.', { exact: false })).toBeVisible()
+    // TSK-0144: the owner approved v1.0 (OWN-DEC-187): no "wording pending owner approval" banner on its own page.
+    await expect(page.getByText('TEST — wording pending owner approval for real customer use')).toHaveCount(0)
+    await expect(page.getByText('These terms are a draft and are not in effect yet.', { exact: false })).toHaveCount(0)
     await expect(page.locator('.portal-terms__sections > li')).toHaveCount(14)
     await expect(page.getByText('Estimates and invoices are issued under the name Handyhub LLC.')).toBeVisible()
     await axe(page)

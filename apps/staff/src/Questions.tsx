@@ -6,9 +6,10 @@
 //   release: the automatic notice goes out with no second approval. The draft and its idempotency key are kept in
 //   sessionStorage until the server accepts it, so a failure or a reload never loses it and a retry publishes once.
 // - Each question: its text, author and time; its notice (sent, pending or failed, per channel, with Retry for a
-//   definite failure: a failed notice never starts the reminders); its two reminder stages with their due times and
-//   Release for a drafted one (released outside the daily contact hours it waits for the opening); and the customer's
-//   reply exactly as written, "I'm not sure", its photos' states, and whether it reopened the request.
+//   definite failure: a failed notice never starts the reminder); its one automatic reminder (TSK-0121, OWN-DEC-153:
+//   3 days after the notice was delivered; scheduled, sent, failed or cancelled, with Retry for a definite failure; an
+//   email at any hour, a text inside the customer's permitted hours); and the customer's reply exactly as written,
+//   "I'm not sure", its photos' states, and whether it reopened the request.
 // - "Closed—no response": offered to the roles that may close, with the server's unmet requirements written out
 //   while it is not possible yet, and the request's version (If-Match). The reopen period is shown once closed.
 // The server decides everything again; this screen only offers what it says is open now.
@@ -43,14 +44,12 @@ export type QuestionsView = {
     state: 'published' | 'answered'
     answeredAt: string | null
     notice: { state: 'pending' | 'sent' | 'failed'; sentAt: string | null; deliveries: Delivery[] }
-    reminders: {
-      stage: 'first' | 'final'
+    reminder: {
       state: string
       dueAt: string | null
       sentAt: string | null
-      canRelease: boolean
       deliveries: Delivery[]
-    }[]
+    }
     reply: {
       text: string | null
       notSure: boolean
@@ -62,7 +61,7 @@ export type QuestionsView = {
   canPublish: boolean
   repliesWaiting: boolean
   canMarkReviewed: boolean
-  cadence: { firstHours: number; finalHours: number; closeAfterFinalHours: number; contactHoursOnly: boolean } | null
+  cadence: { afterDeliveryHours: number; closeAfterReminderHours: number } | null
   close: { allowed: boolean; available: boolean; reasons: string[]; availableAt: string | null }
   reopen: { days: number | null; closedAt: string | null; until: string | null }
   maxLength: number
@@ -226,9 +225,8 @@ export function RequestQuestions({
       {view.cadence ? (
         <p className="staff-request__hint" data-testid="question-cadence">
           {t('questions.cadence', {
-            first: view.cadence.firstHours,
-            final: view.cadence.finalHours,
-            close: view.cadence.closeAfterFinalHours,
+            hours: view.cadence.afterDeliveryHours,
+            close: view.cadence.closeAfterReminderHours,
           })}
         </p>
       ) : (
@@ -282,49 +280,28 @@ export function RequestQuestions({
                 <p className="staff-request__hint">{t('questions.noticeFailedHint')}</p>
               ) : null}
             </div>
-            <ul className="staff-questions__reminders" aria-label={t('questions.reminders')}>
-              {q.reminders.map((r) => (
-                <li key={r.stage}>
-                  <strong>{codeLabel(t, 'reminderStage', r.stage)}</strong>{' '}
-                  <StatusBadge tone={REMINDER_TONE[r.state] ?? 'neutral'}>
-                    {codeLabel(t, 'reminderState', r.state)}
-                  </StatusBadge>{' '}
-                  {r.dueAt && (r.state === 'scheduled' || r.state === 'draft')
-                    ? t('questions.dueAt', { time: when(r.dueAt) })
-                    : null}
-                  {r.sentAt ? t('questions.sentAt', { time: when(r.sentAt) }) : null}
-                  <Deliveries
-                    t={t}
-                    when={when}
-                    deliveries={r.deliveries}
-                    pending={pending}
-                    onRetry={async (id) => {
-                      if (await act(`retry-${id}`, `/staff/message-deliveries/${encodeURIComponent(id)}/retry`))
-                        await load()
-                    }}
-                  />
-                  {r.canRelease ? (
-                    <Button
-                      variant="secondary"
-                      pending={pending === `release-${q.id}-${r.stage}`}
-                      onClick={async () => {
-                        if (
-                          await act(
-                            `release-${q.id}-${r.stage}`,
-                            `${base}/questions/${q.id}/reminders/${r.stage}/release`,
-                          )
-                        ) {
-                          setMessage({ kind: 'success', title: t('questions.released') })
-                          await load()
-                        }
-                      }}
-                    >
-                      {t('questions.release', { stage: codeLabel(t, 'reminderStage', r.stage) })}
-                    </Button>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
+            <div className="staff-questions__reminders" data-testid="question-reminder">
+              <p>
+                <strong>{t('questions.reminder')}</strong>{' '}
+                <StatusBadge tone={REMINDER_TONE[q.reminder.state] ?? 'neutral'}>
+                  {codeLabel(t, 'reminderState', q.reminder.state)}
+                </StatusBadge>{' '}
+                {q.reminder.dueAt && q.reminder.state === 'scheduled'
+                  ? t('questions.dueAt', { time: when(q.reminder.dueAt) })
+                  : null}
+                {q.reminder.sentAt ? t('questions.sentAt', { time: when(q.reminder.sentAt) }) : null}
+              </p>
+              <Deliveries
+                t={t}
+                when={when}
+                deliveries={q.reminder.deliveries}
+                pending={pending}
+                onRetry={async (id) => {
+                  if (await act(`retry-${id}`, `/staff/message-deliveries/${encodeURIComponent(id)}/retry`))
+                    await load()
+                }}
+              />
+            </div>
             {q.reply ? (
               <div className="staff-questions__reply">
                 <p>

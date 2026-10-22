@@ -23,13 +23,16 @@ const OPTIONS: ReplyOptions = {
     { channel: 'sms', destination: '+15025550100', preferred: false, available: false, reason: 'no_opt_in' },
   ],
   defaultChannel: 'email',
-  contactHours: {
-    state: 'closed',
-    applies: true,
-    open: '08:00',
-    close: '22:00',
-    zone: 'America/Kentucky/Louisville',
-    sendAt: '2026-10-21T12:00:00.000Z',
+  deliveryHours: {
+    email: { sendAt: '2026-10-21T03:00:00.000Z' },
+    text: {
+      state: 'closed',
+      open: '09:00',
+      close: '21:00',
+      zone: 'America/Kentucky/Louisville',
+      basis: 'unknown_zone_fallback',
+      sendAt: '2026-10-21T13:00:00.000Z',
+    },
   },
   templates: { email: 'not_configured', sms: 'not_configured' },
   maxLength: 2000,
@@ -107,10 +110,11 @@ const show = (fetchImpl: ReturnType<typeof api>, id = CONV, tr = t, locale: 'en'
       href={(to) => `/staff${to}`}
     />,
   )
-const composer = () => screen.findByRole('region', { name: 'Reply to the customer' })
+// The first render loads the conversation and the reply options: allow for a slow, loaded test machine.
+const composer = () => screen.findByRole('region', { name: 'Reply to the customer' }, { timeout: 5000 })
 
 describe('the reply composer (TSK-0050, HH-COM-08, OWN-DEC-120)', () => {
-  it('[HH-COM-08][HH-COM-09] the preferred permitted channel, the contact hours and missing wording are said before Send', async () => {
+  it('[HH-COM-08][HH-COM-15] the preferred permitted channel, when it goes out and missing wording are said before Send', async () => {
     show(api(routes()))
     const c = await composer()
     expect(within(c).getByText('To Synthetic Customer')).toBeTruthy()
@@ -119,8 +123,9 @@ describe('the reply composer (TSK-0050, HH-COM-08, OWN-DEC-120)', () => {
     expect(email.checked).toBe(true)
     expect(sms.disabled).toBe(true)
     expect(within(c).getByText(/no text opt-in/)).toBeTruthy()
-    expect(within(c).getByTestId('reply-hours').textContent).toMatch(
-      /^Outside contact hours \(08:00–22:00, America\/Kentucky\/Louisville\): the email or text waits until .+\. The reply shows on the customer's project page at once\.$/,
+    // TSK-0122 (OWN-DEC-154): the email goes at once, at any hour.
+    expect(within(c).getByTestId('reply-hours').textContent).toBe(
+      "The email goes out at once, at any hour. The reply shows on the customer's project page at once.",
     )
     expect(within(c).getByText(/No approved wording for reply emails yet/)).toBeTruthy()
     const send = within(c).getByRole('button', { name: 'Send' }) as HTMLButtonElement
@@ -151,6 +156,10 @@ describe('the reply composer (TSK-0050, HH-COM-08, OWN-DEC-120)', () => {
         "The customer's preferred channel (Text) can't be used: the customer opted out. Choose another permitted channel.",
       ),
     ).toBeTruthy()
+    // TSK-0122 (OWN-DEC-207): no channel chosen yet: both are said; the unverified zone holds texts to 9 AM–9 PM Eastern.
+    expect(within(c).getByTestId('reply-hours').textContent).toMatch(
+      /^The email goes out at once, at any hour\. .+ The customer's time zone is not verified, so texts go only between 09:00 and 21:00 \(America\/Kentucky\/Louisville\); a text waits until .+\.$/,
+    )
     const email = within(c).getByRole('radio', { name: /Email to/ }) as HTMLInputElement
     expect(email.checked).toBe(false)
     fireEvent.change(within(c).getByLabelText('Reply'), { target: { value: 'Synthetic reply.' } })
@@ -207,7 +216,9 @@ describe('the reply composer (TSK-0050, HH-COM-08, OWN-DEC-120)', () => {
       within(items[0] as HTMLElement).getByText('Not sent: no approved wording for this message yet.'),
     ).toBeTruthy()
     expect(within(items[1] as HTMLElement).getByText('Queued')).toBeTruthy()
-    expect(within(items[1] as HTMLElement).getByText(/^Sends at .+ \(contact hours\)\.$/)).toBeTruthy()
+    expect(
+      within(items[1] as HTMLElement).getByText(/^Sends at .+ \(the customer's permitted text hours\)\.$/),
+    ).toBeTruthy()
     expect(within(items[1] as HTMLElement).queryByRole('button', { name: 'Try again' })).toBeNull()
     fireEvent.click(within(items[0] as HTMLElement).getByRole('button', { name: 'Try again' }))
     await waitFor(() => expect(write).toHaveBeenCalled())

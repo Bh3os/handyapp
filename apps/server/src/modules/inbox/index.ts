@@ -55,7 +55,7 @@ export {
   channelRefusal,
   defaultChannel,
   replyContact,
-  replyContactHours,
+  replyDeliveryHours,
   replyFailureItem,
   replyRecordCheck,
   replyValues,

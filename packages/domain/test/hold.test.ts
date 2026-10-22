@@ -63,7 +63,13 @@ describe('hold states (ENT-Hold, HH-WORK-02)', () => {
   })
 
   it('[OWN-DEC-38][OWN-DEC-137][RULE-SAFETY-GATES] nobody releases a critical hold they raised; a review hold may be', () => {
-    const critical = { ...OK, kind: 'critical_safety' as const }
+    // TSK-0074: a critical safety hold's release also records its evidence and the reviewer's qualification.
+    const critical = {
+      ...OK,
+      kind: 'critical_safety' as const,
+      evidence: 'Synthetic: the utility ticket',
+      reviewerQualification: 'Synthetic: licensed technician',
+    }
     expect(run('under_review', 'resolve', critical)).toMatchObject({
       ok: false,
       problems: [{ code: 'OWN_CRITICAL_HOLD' }],

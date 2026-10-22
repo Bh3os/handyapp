@@ -1,14 +1,16 @@
-// Appointment reminders without a database (TSK-0067; HH-COM-11, HH-COM-09, FACT-REMINDER-CADENCES, OWN-DEC-107,
-// RULE-DECIDED-VALUES-ACTIVE, T65). Configuration values here are synthetic stand-ins for the seeded rows.
+// Appointment reminders without a database (TSK-0067, TSK-0121; HH-COM-11, HH-COM-15, FACT-REMINDER-CADENCES,
+// OWN-DEC-153, OWN-DEC-107, OWN-DEC-159, RULE-DECIDED-VALUES-ACTIVE, T41, T65). Configuration values here are synthetic
+// stand-ins for the seeded rows.
 import { describe, expect, it } from 'vitest'
-import { messageType, releaseTime, templateProblems } from '../../src/modules/notifications/index.js'
+import { messageType, templateProblems } from '../../src/modules/notifications/index.js'
 import {
   APPOINTMENT_REMINDER_STOP_REASONS,
   appointmentReminderCadence,
   appointmentReminderDueAt,
   appointmentReminderSubject,
+  bookedAheadEnough,
 } from '../../src/modules/visits/index.js'
-import { addressLine, windowVersionOf } from '../../src/modules/visits/reminders.js'
+import { windowVersionOf } from '../../src/modules/visits/reminders.js'
 import { LABEL_FAMILIES } from '@handyhub/i18n'
 import type { Config, ConfigEntry, ConfigKey } from '../../src/platform/config/index.js'
 
@@ -28,12 +30,12 @@ function fakeConfig(entries: Partial<Record<ConfigKey, unknown>>): Config {
   return { get, entries: () => [] }
 }
 const CADENCES = {
-  unansweredEstimate: { firstHours: 24, finalHours: 72, contactHoursOnly: false },
-  unansweredQuestion: { firstHours: 24, finalHours: 48, closeAfterFinalHours: 24, contactHoursOnly: true },
-  appointment: { hoursBefore: 24, contactHoursOnly: true },
-  satisfaction: { daysAfterCompletion: 2, contactHoursOnly: true },
-  unpaidInvoice: { firstHours: 24, finalHours: 72, contactHoursOnly: true },
-  repeatService: { schedule: 'customer_agreed', contactHoursOnly: true },
+  unansweredEstimate: { afterDeliveryHours: 72, release: 'automatic' },
+  unansweredQuestion: { afterDeliveryHours: 72, closeAfterReminderHours: 24, release: 'automatic' },
+  appointment: { hoursBefore: 24, release: 'automatic' },
+  satisfaction: { daysAfterCompletion: 2, release: 'staff' },
+  unpaidInvoice: { firstHours: 24, finalHours: 72, release: 'staff' },
+  repeatService: { schedule: 'customer_agreed', release: 'staff' },
 }
 const SEEDED = {
   'contact.hours': { days: 'every_day', open: '08:00', close: '22:00' },
@@ -42,30 +44,33 @@ const SEEDED = {
 }
 const H = 3_600_000
 
-describe('appointment reminder cadence (TSK-0067, HH-COM-11)', () => {
-  it('[HH-COM-11][FACT-REMINDER-CADENCES][OWN-DEC-107] 24 hours before the arrival window; at once when that time has passed', () => {
+describe('appointment reminder cadence (TSK-0067, TSK-0121, HH-COM-11)', () => {
+  it('[HH-COM-11][FACT-REMINDER-CADENCES][OWN-DEC-153] automatic, 24 elapsed hours before the arrival window', () => {
     const c = appointmentReminderCadence(fakeConfig(SEEDED))
-    expect(c).toEqual({ state: 'CONFIGURED', version: 3, proposed: false, hoursBefore: 24, contactHoursOnly: true })
+    expect(c).toEqual({ state: 'CONFIGURED', version: 3, proposed: false, hoursBefore: 24 })
     const starts = new Date('2026-10-30T13:00:00Z')
-    expect(appointmentReminderDueAt(starts, 24, new Date('2026-10-21T12:00:00Z'))).toEqual(
-      new Date(starts.getTime() - 24 * H),
-    )
-    // Confirmed 10 hours ahead: the draft is due now.
-    const now = new Date(starts.getTime() - 10 * H)
-    expect(appointmentReminderDueAt(starts, 24, now)).toEqual(now)
+    expect(appointmentReminderDueAt(starts, 24)).toEqual(new Date(starts.getTime() - 24 * H))
+  })
+
+  it('[OWN-DEC-153][T41][OWN-DEC-159] across a DST change it is 24 real hours before, one local hour off', () => {
+    // 9:00 AM EST on Sunday 1 November 2026 (the fall-back day): 24 hours before is 10:00 AM EDT on 31 October.
+    const fallBack = new Date('2026-11-01T14:00:00Z')
+    expect(appointmentReminderDueAt(fallBack, 24)).toEqual(new Date('2026-10-31T14:00:00Z'))
+    // 9:00 AM CDT on Sunday 8 March 2026 (spring forward, Central): 24 hours before is 8:00 AM CST on 7 March.
+    const springForward = new Date('2026-03-08T14:00:00Z')
+    expect(appointmentReminderDueAt(springForward, 24)).toEqual(new Date('2026-03-07T14:00:00Z'))
+  })
+
+  it('[OWN-DEC-153] no "24-hour" reminder for a visit booked less than 24 hours ahead', () => {
+    const starts = new Date('2026-10-30T13:00:00Z')
+    expect(bookedAheadEnough(starts, new Date(starts.getTime() - 25 * H), 24)).toBe(true)
+    expect(bookedAheadEnough(starts, new Date(starts.getTime() - 24 * H), 24)).toBe(true)
+    expect(bookedAheadEnough(starts, new Date(starts.getTime() - 24 * H + 1), 24)).toBe(false)
+    expect(bookedAheadEnough(starts, new Date(starts.getTime() - 10 * H), 24)).toBe(false)
   })
 
   it('[RULE-DECIDED-VALUES-ACTIVE] NOT CONFIGURED stays NOT CONFIGURED; no interval is made up', () => {
     expect(appointmentReminderCadence(fakeConfig({}))).toEqual({ state: 'NOT_CONFIGURED', version: 1 })
-  })
-
-  it('[HH-COM-09][T65] a reminder released at 11 PM waits for 8 AM in the business zone', () => {
-    // 23:00 EDT on 20 October 2026, and the next 8 AM (12:00 UTC).
-    expect(releaseTime(fakeConfig(SEEDED), 'reminder.appointment', new Date('2026-10-21T03:00:00Z'))).toEqual(
-      new Date('2026-10-21T12:00:00Z'),
-    )
-    const noon = new Date('2026-10-20T16:00:00Z')
-    expect(releaseTime(fakeConfig(SEEDED), 'reminder.appointment', noon)).toEqual(noon)
   })
 })
 
@@ -77,18 +82,23 @@ describe('appointment reminder subjects and content (TSK-0067)', () => {
     expect(windowVersionOf('estimate_reminder:x:first')).toBeNull()
   })
 
-  it('[HH-COM-11] the address as one line, without an empty unit', () => {
-    expect(addressLine({ street: '1 Synthetic Way', unit: null, city: 'Testville', state: 'ky', zip: '40000' })).toBe(
-      '1 Synthetic Way, Testville, KY 40000',
-    )
-    expect(
-      addressLine({ street: '1 Synthetic Way', unit: 'Apt 2', city: 'Testville', state: 'KY', zip: '40000' }),
-    ).toBe('1 Synthetic Way, Apt 2, Testville, KY 40000')
-  })
-
   it("[HH-COM-11][HH-COM-04][OWN-DEC-158] the message declares the owner wording's values; the address is never rendered", () => {
     const type = messageType('reminder.appointment')
-    expect(type).toMatchObject({ audience: 'customer', triggerEvents: [], templateId: 'appointment_reminder' })
+    expect(type).toMatchObject({
+      audience: 'customer',
+      triggerEvents: ['appointment.reserved', 'estimate_visit.reserved', 'appointment.change_committed'],
+      templateId: 'appointment_reminder',
+    })
+    // TSK-0121: the automatic reminder supplies the owner wording's values, never the address.
+    expect([...(type.supplied ?? [])].sort()).toEqual([
+      'customerName',
+      'date',
+      'end',
+      'projectLink',
+      'start',
+      'visitNumber',
+      'zone',
+    ])
     expect(Object.keys(type.variables).sort()).toEqual([
       'customerName',
       'date',

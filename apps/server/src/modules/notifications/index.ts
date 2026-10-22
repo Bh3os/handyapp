@@ -2,8 +2,22 @@
 // TSK-0120: the values automatic messages supply, values.ts): message types, the automatic-message policy, versioned
 // templates and deliveries.
 // TSK-0032: failed deliveries open a staff retry item; NOTIFICATIONS_MODULE holds the staff Retry route (retry.ts).
+// TSK-0122: when each channel may deliver (delivery-hours.ts); TSK-0121: scheduled automatic reminders (deliveries.ts).
 export { nextContactTime, zonedTimeToUtc } from './contact-hours.js'
 export { recipientTextHours, recipientTimeZone } from './recipient-zone.js'
+export {
+  deliveryRuleConfigured,
+  deliveryTime,
+  heldToTextHours,
+  insideTextWindow,
+  liveTextsEnabled,
+  nextTextTime,
+  textWindowFor,
+  WAITING_TEXT_HOURS,
+  type DeliveryTime,
+  type TextWindow,
+  type TextWindowBasis,
+} from './delivery-hours.js'
 export {
   createDraft,
   deliveryIdempotencyKey,
@@ -17,7 +31,8 @@ export {
   releaseAutomation,
   releaseDraft,
   releaseTime,
-  heldToContactHours,
+  cancelWaitingDeliveries,
+  scheduleAutomaticDelivery,
   STAFF_REPLY_MESSAGE_KEY,
   type ReleaseFailureItem,
   type ReleaseValues,
@@ -119,6 +134,7 @@ export {
 } from './templates.js'
 export {
   businessZone,
+  contactDestinations,
   dateText,
   estimatePageLink,
   instantText,

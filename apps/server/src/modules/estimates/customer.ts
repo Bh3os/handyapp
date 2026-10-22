@@ -127,7 +127,7 @@ export async function pinnedTerms(
   const recorded = (await legalVersions(db, 'legal.estimate_terms')).find((v) => v.documentId === documentId)
   // Only the exact wording the recorded version names is ever shown (its content hash).
   if (!recorded || recorded.contentSha256 !== doc.contentSha256) return { documentId, state: 'not_configured' }
-  return { documentId, state: estimateTermsInEffect(recorded) ? 'in_effect' : 'not_in_effect' }
+  return { documentId, state: estimateTermsInEffect(recorded, doc) ? 'in_effect' : 'not_in_effect' }
 }
 
 export type CustomerEstimateDetail = {
