@@ -1095,7 +1095,8 @@ describe('[HH-SCH-04][HH-SCH-05] work visits use the same mechanism', () => {
     expect(await visitOf(p.projectId, v.id)).toMatchObject({ state: 'tentative', version: v.version })
     // Verified money (20% of $1,500.00 in cash) opens it.
     const paid = await staffWrite('office', 'POST', `/api/v1/staff/jobs/${job}/deposit/payments`, {
-      receivedOn: new Date().toISOString().slice(0, 10),
+      // The business date (migration 0005's zone), as the server's IN_FUTURE check reads it, not the UTC date.
+      receivedOn: localDateOf(new Date(), 'America/Kentucky/Louisville'),
       method: 'cash',
       amountCents: 30_000,
     })

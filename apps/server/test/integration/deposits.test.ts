@@ -347,12 +347,13 @@ const deposit = async (jobId: string, who: Person = 'office') => {
 const gate = (jobId: string) => withTx(t.db, (tx) => confirmationDepositGate(tx, { kind: 'work', jobId }))
 const pay = (who: Person, jobId: string, body: Record<string, unknown>) =>
   staffWrite(who, 'POST', `/api/v1/staff/jobs/${jobId}/deposit/payments`, {
-    receivedOn: new Date().toISOString().slice(0, 10),
+    // The business date (migration 0005's zone), as the server's IN_FUTURE check reads it, not the UTC date.
+    receivedOn: localDateOf(new Date(), 'America/Kentucky/Louisville'),
     ...body,
   })
 // Synthetic, clearly fake transaction references, built from parts.
 const ref = (what: string) => ['SYNTH', what, String(++seq), randomUUID().slice(0, 8)].join('-')
-const today = () => new Date().toISOString().slice(0, 10)
+const today = () => localDateOf(new Date(), 'America/Kentucky/Louisville')
 
 describe('[HH-FIN-02][T36][FACT-DEPOSIT-RULE][RULE-MONEY-CENTS] the deposit applies only under the rule, pinned at approval', () => {
   it('no deposit at exactly $1,000.00; 20% half-up just above it; over the threshold only because of a selected option', async () => {
