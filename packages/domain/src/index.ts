@@ -255,3 +255,32 @@ export function apply<K extends MachineKey>(
     EventOf<M<K>>
   >
 }
+// TSK-0130 (HH-EST-16, OWN-DEC-173): the Owner approval policy for publishing estimates and, later, change orders.
+export {
+  evaluateChangeOrderPublication,
+  evaluateEstimatePublication,
+  marginOf,
+  PUBLICATION_APPROVAL_BASES,
+  PUBLICATION_APPROVAL_FLAGS,
+  PUBLICATION_APPROVAL_REASONS,
+  PUBLICATION_APPROVAL_STATES,
+  PUBLICATION_INVALIDATION_REASONS,
+  PUBLICATION_SUBJECTS,
+} from './publication-approval.js'
+export type {
+  ApprovalThreshold,
+  ChangeOrderPublicationFacts,
+  CostFacts,
+  CreditPolicy,
+  EstimatePublicationFacts,
+  LinkedDocument,
+  Margin,
+  PriceAdjustment,
+  PublicationApprovalBasis,
+  PublicationApprovalFlag,
+  PublicationApprovalReason,
+  PublicationApprovalState,
+  PublicationEvaluation,
+  PublicationInvalidationReason,
+  PublicationSubject,
+} from './publication-approval.js'

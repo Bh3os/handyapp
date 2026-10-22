@@ -160,6 +160,8 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       'invoice_overdue_decision',
       'cancellation_review',
       'visit_cancellation_review',
+      // TSK-0130: estimates waiting for the Owner's approval before publishing (estimate.approve_publication).
+      'estimate_publication_approval',
       'incident_notification',
     ])
     expect(decisions.items.map((i) => [i.type, i.reason, i.action])).toEqual(

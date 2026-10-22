@@ -51,6 +51,7 @@ import { customerPdfInput, renderCustomerPdf } from './customer-pdf.js'
 import { PDF_TYPE } from './document-content.js'
 import { isUuid, saveDraft, TEXT_LISTS, type DraftInput } from './model.js'
 import { discountFor, pricingPolicies } from './pricing.js'
+import { estimatePublicationGate } from './owner-approval.js'
 import { publishReadiness, type PublishProblem } from './readiness.js'
 import { stopEstimateReminders } from './reminders.js'
 import { estimateResponses, resolveResponsesOnRevision } from './responses.js'
@@ -200,6 +201,8 @@ export type PublishResult = {
   superseded: { versionId: string; version: number } | null
   customerPdf: { sha256: string; byteSize: number }
   requestsEstimated: string[]
+  /** TSK-0130: the Owner's approval this publication used, or null when none was needed. */
+  ownerApproval: { approvalId: string; basis: 'request' | 'owner_publication'; reasons: string[] } | null
 }
 
 /**
@@ -233,6 +236,9 @@ export async function publishVersion(
   )
   if (!moved.ok) throw refusal(moved, readiness.problems)
   if (!deps.storage) throw new ApiError('NOT_CONFIGURED', { fieldErrors: [field('storage', 'STORAGE_NOT_CONFIGURED')] })
+  // TSK-0130 (HH-EST-16, OWN-DEC-173): over the Owner approval threshold, or flagged, only with the Owner's approval
+  // of this exact content; the Owner's own publication is the approval (PROPOSED). Under the project's publication lock.
+  const gate = await estimatePublicationGate(tx, actor, versionId, row.project_id, config)
   // Readiness passed, so these values are configured; read them from the same snapshot.
   const validity = config.get('estimate.validity')
   const terms = config.get('legal.estimate_terms')
@@ -357,6 +363,9 @@ export async function publishVersion(
     superseded: previous ? { versionId: previous.id, version: previous.version } : null,
     customerPdf: { sha256, byteSize: bytes.length },
     requestsEstimated: estimated,
+    ownerApproval: gate.required
+      ? { approvalId: gate.approvalId, basis: gate.basis, reasons: [...gate.evaluation.reasons] }
+      : null,
   }
 }
 

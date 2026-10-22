@@ -326,6 +326,13 @@ export const TABLES = {
     classes: ['estimate_approval'],
     categories: [E, A],
   },
+  'estimating.publication_approvals': {
+    holds:
+      "Owner approvals before publishing over the threshold: the version's price digest, totals and known costs in " +
+      'cents, the reasons, the linked project documents, who asked and decided, when, the comment',
+    classes: ['estimate_approval', 'staff_account'],
+    categories: [E, A],
+  },
   'finance.deposit_requirements': {
     holds: "A job's deposit obligation in cents, its state and the staff-pasted Square payment link",
     classes: ['payment_reference'],

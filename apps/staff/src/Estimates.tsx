@@ -28,6 +28,7 @@ import { call, idempotencyKey, upload, type ApiErrorBody, type Fetch } from './a
 import { ConflictBanner, conflictOf, type Conflict } from './ConflictBanner'
 import { EstimateLifecycle, type Lifecycle } from './EstimateLifecycle'
 import { EstimateReminders } from './EstimateReminders'
+import { EstimateOwnerApproval, type OwnerApprovalState } from './OwnerApproval'
 import { codeLabel } from './Requests'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
@@ -145,6 +146,8 @@ export type BuilderView = {
   canEdit: boolean
   /** TSK-0055: what publishing pinned, the lifecycle actions and the version history. */
   lifecycle?: Lifecycle
+  /** TSK-0130 (HH-EST-16): the Owner's approval before publishing over the threshold. */
+  ownerApproval?: OwnerApprovalState | null
 }
 
 const usd = (c: number) => formatUsd(cents(c))
@@ -1227,6 +1230,8 @@ export function EstimateBuilder({ t, fetchImpl, id, go, href }: { t: TD; fetchIm
         )}
         <p className="staff-request__hint">{t('estimate.readinessHint')}</p>
       </Panel>
+      {/* TSK-0130: the Owner's approval before publishing over the threshold. */}
+      <EstimateOwnerApproval t={t} fetchImpl={fetchImpl} view={view} onView={(next) => (show(next), setSaved(false))} />
       <EstimateLifecycle
         t={t}
         fetchImpl={fetchImpl}

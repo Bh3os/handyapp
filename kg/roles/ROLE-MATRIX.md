@@ -39,6 +39,7 @@ These are server rules, enforced by one policy point on every read, write, searc
 | Write or upload an estimate draft | Y | — | Y | — | — | — |
 | Publish an estimate version | Y | — | Y while the publishing policy grants it | — | — | — |
 | Change who may publish | Y | — | — | — | — | — |
+| Approve or reject publishing over the Owner approval threshold | Y | — | — | — | — | — |
 | Revise (new version), withdraw, expire, record a decline | Y | Record decline only (P) | Y | — | — | — |
 | View internal cost, markup and margin | Y | — | Own estimates (P) | — | — | — |
 | Approve, decline or request changes | — | — | — | — | V (fresh verification) | — |
@@ -119,3 +120,5 @@ These are server rules, enforced by one policy point on every read, write, searc
 | Edit or delete audit events | — | — | — | — | — | — |
 
 **Changed by [[OWN-DEC-164]], [[OWN-DEC-195]], [[OWN-DEC-200]] (2026-10-21):** audit editing stays refused for every role, and an owner-only audit-retention action is added by [[TSK-0135]]; routine customer-authorized work-visit cancellations within policy move to Office by [[TSK-0140]]; cash collection needs an explicit Owner grant to a trained Worker by [[TSK-0151]]. Each change updates this table and the policy data in the same pull request.
+
+**Changed by [[OWN-DEC-173]] (2026-10-21):** publishing an estimate or change order above [[FACT-OWNER-APPROVAL-THRESHOLD]] needs the Owner's approval first; the row "Approve or reject publishing over the Owner approval threshold" is the Owner's alone, and changing the threshold is "Change policy values" (F) ([[TSK-0130]]).

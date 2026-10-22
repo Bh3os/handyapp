@@ -86,6 +86,8 @@ type VersionLike = {
   rowVersion: number
   readiness: { ready: boolean }
   lifecycle?: Lifecycle
+  /** TSK-0130: whether publishing waits for the Owner's approval. */
+  ownerApproval?: { status: string; actions: { publishApproves: boolean } } | null
 }
 
 type Pending = 'publish' | 'request-review' | 'return-to-draft' | 'withdraw' | 'expire' | 'record-decline' | 'revise'
@@ -210,6 +212,12 @@ export function EstimateLifecycle<V extends VersionLike>({
   const fmt = (iso: string) => t('estimate.lifecycle.when', { time: new Date(iso) })
   const name = (r: StaffRef | null) => (r ? (r.name ?? t('queue.unnamed')) : '—')
   const notReady = a.publish && !view.readiness.ready
+  // TSK-0130 (HH-EST-16): over the threshold, only the Owner's approval (or the Owner's own publication) lets it out.
+  const oaStatus = view.ownerApproval?.status
+  const awaitingOwner =
+    a.publish &&
+    (oaStatus === 'required' || oaStatus === 'pending' || oaStatus === 'rejected') &&
+    !view.ownerApproval?.actions.publishApproves
 
   return (
     <section className="staff-request__section" aria-labelledby={`${ids}-lifecycle`} data-testid="estimate-lifecycle">
@@ -299,7 +307,11 @@ export function EstimateLifecycle<V extends VersionLike>({
             </div>
           ) : (
             <Button
-              {...(notReady ? { disabledReason: t('estimate.lifecycle.publishNotReady') } : {})}
+              {...(notReady
+                ? { disabledReason: t('estimate.lifecycle.publishNotReady') }
+                : awaitingOwner
+                  ? { disabledReason: t('estimate.lifecycle.publishNeedsOwner') }
+                  : {})}
               onClick={() => (setAsk('publish'), setRefused(null), setDone(null))}
             >
               {t('estimate.lifecycle.publish')}
