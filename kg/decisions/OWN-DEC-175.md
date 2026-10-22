@@ -6,8 +6,8 @@ status: active
 area: privacy
 links:
   constrained_by: ["[[RULE-HUMAN-REVIEW]]"]
-  uses: ["[[FACT-PRIVACY-REQUEST-TARGETS]]"]
-  related: ["[[OWN-DEC-113]]", "[[OWN-DEC-71]]", "[[HH-PRIV-03]]", "[[HH-PRIV-07]]"]
+  uses: ["[[FACT-PRIVACY-REQUEST-TARGETS]]", "[[FACT-BUSINESS-CALENDAR]]"]
+  related: ["[[OWN-DEC-113]]", "[[OWN-DEC-71]]", "[[HH-PRIV-03]]", "[[HH-PRIV-07]]", "[[OWN-DEC-205]]"]
 source: "owner answers 2026-10-21 R7-Q2"
 ---
 Owner answer (round 7, question 2), option chosen "Within 30 days (Recommended)":
@@ -41,3 +41,5 @@ Effect:
 - The 30 days is an internal customer-service commitment, not a statement of what the law requires. Attorney review of the Kentucky and Indiana obligations comes before production ([[OQ-ATTORNEY-PRIVACY]]).
 - The wording of the automatic acknowledgment is not given ([[OQ-MESSAGES-OUTSIDE-THE-21]]).
 - Answers the response-deadline part of [[OQ-PRIVACY-REQUESTS]]. Built by [[TSK-0136]].
+
+**Confirmed by [[OWN-DEC-205]] (2026-10-22), amended:** business days are Monday to Friday excluding the 11 US federal holidays and their observed dates ([[FACT-BUSINESS-CALENDAR]]), a configurable internal calendar that never overrides statutory deadlines or legal definitions. Replaces the PROPOSED "holidays not excluded".

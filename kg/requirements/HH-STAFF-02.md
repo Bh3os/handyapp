@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: staff
 links:
-  decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-123]]", "[[OWN-DEC-200]]"]
+  decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-123]]", "[[OWN-DEC-200]]", "[[OWN-DEC-202]]"]
   depends_on: ["[[HH-STAFF-01]]", "[[HH-OPS-01]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[ENT-StaffUser]]", "[[ENT-RoleGrant]]", "[[ENT-Visit]]", "[[ENT-AuditEvent]]"]
@@ -20,3 +20,5 @@ source: "guide 10.1 HH-STAFF-02; OWN-DEC-114, OWN-DEC-123"
 - Their upcoming assignments are flagged for reassignment as queue items ([[HH-OPS-01]]); they are never silently cancelled. The person is removed from future capacity.
 
 **Changed by [[OWN-DEC-200]] (2026-10-21):** reactivation needs a verified reset link and the Owner's permission review; earlier roles are not restored automatically.
+
+**Changed by [[OWN-DEC-202]] (2026-10-22):** offboarding also invalidates previous credentials (password cleared, MFA factor and recovery codes removed); reactivation uses a secure single-use link, the Owner's permission review and a new MFA enrollment before access is restored ([[TSK-0154]]).

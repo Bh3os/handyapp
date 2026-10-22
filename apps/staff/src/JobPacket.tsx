@@ -9,8 +9,13 @@
 // - Print: the server records and audits the print first; the print view carries the version and "Printed <time>;
 //   check the app for changes", and leaves out photos, code labels and any revealed code. Download PDF: the server's
 //   PDF, recorded and audited as an export.
-// - What no record holds is said, never filled in: no materials list yet, no approved care notes, the Owner's
+// - What no record holds is said, never filled in: a service without a loadout list (TSK-0071) says NOT CONFIGURED, no approved care notes, the Owner's
 //   escalation contact NOT CONFIGURED. The emergency section says emergency action never waits for the app.
+// - Your review (TSK-0072; HH-DATA-08, HH-WORK-10, T44, ENT-Acknowledgment): where the caller's own acknowledgment
+//   stands (needed, standing, no longer counting after a critical change, a removal or a disabled account) with what
+//   changed since the acknowledged version, and, for an assigned worker, a personal acknowledgment of this exact
+//   version (a checkbox, then the button; the server refuses anyone not assigned and a version that changed). Each
+//   assigned worker's state is listed; nobody acknowledges for another person. It releases no hold.
 import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { Button, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
@@ -113,6 +118,16 @@ export type JobPacketView = {
     blockingHolds: number
     liveVisits: number
   }
+  materials: {
+    state: 'listed' | 'not_recorded'
+    packages: {
+      workPackageId: string
+      serviceCode: string
+      state: 'pinned' | 'not_configured'
+      version: number | null
+      items: { key: string; group: string | null; name: string | null; criticality: string }[]
+    }[]
+  }
   communication: {
     siteContact: Detail | null
     stopWork: {
@@ -121,8 +136,26 @@ export type JobPacketView = {
       items: { id: string; text: string; line: number | null }[]
     }[]
   }
-  actions: { revealAccessCodes: boolean }
+  acknowledgments: {
+    mine: {
+      state: AckState
+      assigned: boolean
+      acknowledgment: { version: number; acknowledgedAt: string } | null
+      invalidation: { reason: string; version: number | null; invalidatedAt: string } | null
+      changesSince: Change[]
+    }
+    team: {
+      staffUserId: string
+      name: string | null
+      state: AckState
+      version: number | null
+      acknowledgedAt: string | null
+      invalidation: string | null
+    }[]
+  }
+  actions: { revealAccessCodes: boolean; acknowledge: boolean }
 }
+type AckState = 'acknowledged' | 'required' | 'invalidated' | 'not_assigned'
 
 const bcp47 = (locale: StaffLocale) => (locale === 'es' ? 'es-US' : 'en-US')
 
@@ -160,6 +193,7 @@ const CHANGE_KEYS: Record<string, StaffKey> = {
   hold_changed: 'packet.change.hold_changed',
   hold_ended: 'packet.change.hold_ended',
   equipment_changed: 'packet.change.equipment_changed',
+  loadout_changed: 'packet.change.loadout_changed',
   deposit_state: 'packet.change.deposit_state',
 }
 
@@ -173,7 +207,7 @@ export function changeText(t: T, c: Change): string {
         : codeLabel(t, 'propertyDetail', c.ref)
     if (c.section === 'holds') return codeLabel(t, 'hazardCategory', c.ref)
     if (c.section === 'scope' && c.code === 'text_changed') return codeLabel(t, 'scopeText', c.ref)
-    if (c.section === 'sop') return codeLabel(t, 'service', c.ref)
+    if (c.section === 'sop' || c.code === 'loadout_changed') return codeLabel(t, 'service', c.ref)
     return c.ref
   })()
   const value = (v: string | number | null): string | number => {
@@ -309,17 +343,174 @@ function AccessCode({
   )
 }
 
+const ACK_TONE = {
+  acknowledged: 'success',
+  required: 'warning',
+  invalidated: 'danger',
+  not_assigned: 'neutral',
+} as const
+
+function ChangeList({ t, changes }: { t: T; changes: Change[] }) {
+  return (
+    <ul className="staff-request__list">
+      {changes.map((c, i) => (
+        <li key={i} data-change={c.code} data-critical={c.critical || undefined}>
+          <strong>{codeLabel(t, 'packetSection', c.section)}</strong>: {changeText(t, c)}{' '}
+          {c.critical ? <StatusBadge tone="danger">{t('packet.changes.criticalBadge')}</StatusBadge> : null}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+/** The caller's own review of the packet, and each assigned worker's state (TSK-0072). */
+function Review({
+  t,
+  fetchImpl,
+  view,
+  when,
+  onChanged,
+}: {
+  t: T
+  fetchImpl: Fetch
+  view: JobPacketView
+  when: (iso: string) => string
+  onChanged: () => Promise<void>
+}) {
+  const ids = useId()
+  const [checked, setChecked] = useState(false)
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState<StaffKey | null>(null)
+  const { mine, team } = view.acknowledgments
+  const version = view.packet.version
+  useEffect(() => setChecked(false), [version])
+
+  async function acknowledge() {
+    setPending(true)
+    const r = await call(fetchImpl, `/staff/jobs/${encodeURIComponent(view.job.id)}/packet/acknowledgments`, {
+      method: 'POST',
+      body: { version, contentSha256: view.packet.contentSha256 },
+    })
+    setPending(false)
+    if (!r.ok) {
+      const changed = r.error.fieldErrors.some((f) => f.code === 'PACKET_CHANGED')
+      setError(changed ? 'packet.ack.changed' : 'packet.ack.failed')
+      if (changed) await onChanged()
+      return
+    }
+    setError(null)
+    await onChanged()
+  }
+
+  const reasonKey: Record<string, StaffKey> = {
+    critical_change: 'packet.ack.invalidatedCritical',
+    assignment_removed: 'packet.ack.invalidatedRemoved',
+    account_disabled: 'packet.ack.invalidatedDisabled',
+  }
+  return (
+    <section
+      className="staff-request__section staff-packet__screen-only"
+      aria-labelledby={`${ids}-title`}
+      data-testid="packet-review"
+      data-state={mine.state}
+    >
+      <h2 id={`${ids}-title`} className="staff-queue__heading">
+        {t('packet.ack.title')}
+      </h2>
+      {mine.state === 'not_assigned' ? (
+        <p>{t('packet.ack.notAssigned')}</p>
+      ) : mine.state === 'required' ? (
+        <StateView kind="blocked" title={t('packet.ack.required')}>
+          <p>{t('packet.ack.requiredBody')}</p>
+        </StateView>
+      ) : mine.state === 'invalidated' ? (
+        <StateView kind="blocked" title={t('packet.ack.invalidated', { version: mine.acknowledgment?.version ?? 0 })}>
+          <p>
+            {t(reasonKey[mine.invalidation?.reason ?? 'critical_change'] ?? 'packet.ack.invalidatedCritical', {
+              version: mine.invalidation?.version ?? version,
+            })}
+          </p>
+        </StateView>
+      ) : (
+        <p data-testid="packet-acknowledged">
+          <StatusBadge tone="success">{codeLabel(t, 'acknowledgmentState', 'acknowledged')}</StatusBadge>{' '}
+          {t('packet.ack.acknowledged', {
+            version: mine.acknowledgment?.version ?? version,
+            time: mine.acknowledgment ? when(mine.acknowledgment.acknowledgedAt) : '',
+          })}
+        </p>
+      )}
+      {mine.changesSince.length > 0 && mine.acknowledgment ? (
+        <>
+          <p>
+            {mine.state === 'acknowledged'
+              ? t('packet.ack.changedSince')
+              : t('packet.ack.criticalSince', { version: mine.acknowledgment.version })}
+          </p>
+          <ChangeList t={t} changes={mine.changesSince} />
+        </>
+      ) : null}
+      {view.actions.acknowledge ? (
+        <>
+          <div className="staff-estimate__agree">
+            <input
+              id={`${ids}-confirm`}
+              type="checkbox"
+              checked={checked}
+              onChange={(e) => (setChecked(e.target.checked), setError(null))}
+            />
+            <label htmlFor={`${ids}-confirm`}>{t('packet.ack.confirm')}</label>
+          </div>
+          <div className="hh-button-row">
+            <Button
+              pending={pending}
+              {...(checked ? {} : { disabledReason: t('packet.ack.checkFirst') })}
+              onClick={() => void acknowledge()}
+            >
+              {t('packet.ack.button', { version })}
+            </Button>
+          </div>
+        </>
+      ) : null}
+      {error ? <StateView kind="error" title={t(error)} /> : null}
+      <p className="staff-request__hint">{t('packet.ack.releasesNothing')}</p>
+      <h3 className="hh-h5">{t('packet.ack.team')}</h3>
+      {team.length === 0 ? (
+        <p>{t('packet.ack.noTeam')}</p>
+      ) : (
+        <ul className="staff-request__list" data-testid="packet-review-team">
+          {team.map((w) => (
+            <li key={w.staffUserId} data-state={w.state}>
+              {w.name ?? t('packet.unnamed')}:{' '}
+              <StatusBadge tone={ACK_TONE[w.state]}>
+                {w.version !== null && w.state === 'acknowledged'
+                  ? t('packet.ack.teamVersion', {
+                      state: codeLabel(t, 'acknowledgmentState', w.state),
+                      version: w.version,
+                    })
+                  : codeLabel(t, 'acknowledgmentState', w.state)}
+              </StatusBadge>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}
+
 /** The packet of one job, as the server answers it now. */
 export function JobPacketPage({
   t,
   locale,
   fetchImpl,
   jobId,
+  href = (to) => to,
 }: {
   t: T
   locale: StaffLocale
   fetchImpl: Fetch
   jobId: string
+  href?: (to: string) => string
 }) {
   const ids = useId()
   const [view, setView] = useState<JobPacketView | null | undefined>(undefined)
@@ -451,17 +642,12 @@ export function JobPacketPage({
               </StateView>
             ) : null}
             <p>{t('packet.changes.since', { from: v.review.fromVersion ?? 0, to: v.packet.version })}</p>
-            <ul className="staff-request__list">
-              {v.review.changes.map((c, i) => (
-                <li key={i} data-change={c.code} data-critical={c.critical || undefined}>
-                  <strong>{codeLabel(t, 'packetSection', c.section)}</strong>: {changeText(t, c)}{' '}
-                  {c.critical ? <StatusBadge tone="danger">{t('packet.changes.criticalBadge')}</StatusBadge> : null}
-                </li>
-              ))}
-            </ul>
+            <ChangeList t={t} changes={v.review.changes} />
           </>
         )}
       </section>
+
+      <Review t={t} fetchImpl={fetchImpl} view={v} when={when} onChanged={load} />
 
       <Section id={section('identity')} title={t('packet.section.identity')}>
         <dl className="staff-system__fields">
@@ -714,7 +900,37 @@ export function JobPacketPage({
             )}
           </ul>
         )}
-        <StateView kind="empty" title={t('packet.materialsNotRecorded')} />
+        {/* TSK-0071: the loadout list per service; confirming and reporting happen on the loadout page. */}
+        {v.materials.state === 'listed' ? (
+          v.materials.packages.map((p) => (
+            <div key={p.workPackageId} data-testid="packet-loadout">
+              <h3 className="hh-h4">
+                {t('loadout.packetHeading', { service: codeLabel(t, 'service', p.serviceCode) })}
+              </h3>
+              {p.state === 'not_configured' ? (
+                <p>{t('loadout.notConfigured')}</p>
+              ) : (
+                <ul className="staff-request__list">
+                  {p.items.map((i) => (
+                    <li key={i.key}>
+                      <span lang="en">{i.name ?? i.key}</span>{' '}
+                      <StatusBadge tone={i.criticality === 'required' ? 'warning' : 'neutral'}>
+                        {codeLabel(t, 'loadoutCriticality', i.criticality)}
+                      </StatusBadge>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))
+        ) : (
+          <StateView kind="empty" title={t('packet.materialsNotRecorded')} />
+        )}
+        <p className="staff-packet__screen-only">
+          <a href={href(`/loadouts/${v.job.id}`)} data-testid="packet-loadout-link">
+            {t('loadout.open')}
+          </a>
+        </p>
       </Section>
 
       <Section id={section('dependencies')} title={t('packet.section.dependencies')}>
@@ -784,6 +1000,8 @@ type MyPacket = {
   lastViewedVersion: number | null
   changedSinceViewed: boolean
   criticalSinceViewed: boolean
+  acknowledgment: AckState
+  acknowledgedVersion: number | null
   visits: {
     visitId: string
     number: number
@@ -794,7 +1012,7 @@ type MyPacket = {
   }[]
 }
 
-/** The caller's own assigned jobs with their packets (shown on My Day until TSK-0070 builds the full screen). */
+/** The caller's own assigned jobs with their packets, below the visits of My Day (TSK-0070). */
 export function MyJobPackets({ t, fetchImpl, href }: { t: T; fetchImpl: Fetch; href: (to: string) => string }) {
   const ids = useId()
   const [packets, setPackets] = useState<MyPacket[] | null | undefined>(undefined)
@@ -805,14 +1023,10 @@ export function MyJobPackets({ t, fetchImpl, href }: { t: T; fetchImpl: Fetch; h
     })()
   }, [fetchImpl])
   return (
-    <section className="staff-screen" aria-labelledby={`${ids}-title`} data-testid="my-job-packets">
-      <h1 id={`${ids}-title`} className="hh-h3">
-        {t('nav.my-day')}
-      </h1>
-      <StateView kind="empty" title={t('shell.notBuilt')}>
-        <p>{t('packet.mine.notBuiltBody')}</p>
-      </StateView>
-      <h2 className="staff-queue__heading">{t('packet.mine.title')}</h2>
+    <section className="staff-request__section" aria-labelledby={`${ids}-title`} data-testid="my-job-packets">
+      <h2 id={`${ids}-title`} className="staff-queue__heading">
+        {t('packet.mine.title')}
+      </h2>
       {packets === undefined ? (
         <StateView kind="loading" title={t('packet.loading')} />
       ) : packets === null ? (
@@ -831,7 +1045,10 @@ export function MyJobPackets({ t, fetchImpl, href }: { t: T; fetchImpl: Fetch; h
                 <StatusBadge tone="danger">{t('packet.mine.critical')}</StatusBadge>
               ) : p.changedSinceViewed ? (
                 <StatusBadge tone="warning">{t('packet.mine.changed')}</StatusBadge>
-              ) : null}
+              ) : null}{' '}
+              <StatusBadge tone={ACK_TONE[p.acknowledgment]}>
+                {codeLabel(t, 'acknowledgmentState', p.acknowledgment)}
+              </StatusBadge>
               <ul>
                 {p.visits.map((x) => (
                   <li key={x.visitId}>

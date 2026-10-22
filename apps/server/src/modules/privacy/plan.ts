@@ -23,6 +23,12 @@
 //   released, sent or cancelled; record 'visit') stay with the visits in the job records. They name a visit, never an
 //   estimate version, so an estimate deleted from the same project leaves them as they are (targets.ts removes only
 //   the unreleased reminder drafts of the estimate's own versions).
+// - field records (TSK-0070 migration 0062, TSK-0071 migration 0063, TSK-0072 migration 0064): the On my way
+//   departures, the Arrived and Finished times with the Owner's corrections, the loadout list pinned on each work
+//   package with every loaded / missing / damaged statement, and the packet acknowledgments with their ends are job
+//   records of the requester's jobs and visits, retained with them (all append-only). A loadout task block is a hold,
+//   counted with the safety records. They name a visit, a job or a work package of a job, never an estimate version:
+//   an estimate never accepted has no job, so none is ever removed with one.
 // - exclude: other contacts of the same customer (third-party data, PROPOSED: neither exported nor deleted here). The
 //   search covers the requester's own projects: those of their requests and of their login accounts' links.
 // - financial records: the deposit records and recorded payments of the requester's projects (TSK-0064) are
@@ -320,6 +326,26 @@ export async function customerPlan(db: Reader, subject: PlanSubject, now = new D
             WHERE j.project_id = ANY(${sql.val(inProjects)}::uuid[])))::text AS n`.execute(db)
     ).rows[0]?.n,
   )
+  // The field records of those jobs and visits (TSK-0070, TSK-0071, TSK-0072) stay with the job records.
+  const fieldRecords = n(
+    (
+      await sql<{ n: string }>`SELECT (
+          (SELECT count(*) FROM work.visit_departures k JOIN work.visits v ON v.id = k.visit_id
+            WHERE v.project_id = ANY(${sql.val(inProjects)}::uuid[]))
+        + (SELECT count(*) FROM work.time_stamps k JOIN work.visits v ON v.id = k.visit_id
+            WHERE v.project_id = ANY(${sql.val(inProjects)}::uuid[]))
+        + (SELECT count(*) FROM work.time_stamp_corrections k JOIN work.visits v ON v.id = k.visit_id
+            WHERE v.project_id = ANY(${sql.val(inProjects)}::uuid[]))
+        + (SELECT count(*) FROM work.work_package_loadouts k JOIN work.jobs j ON j.id = k.job_id
+            WHERE j.project_id = ANY(${sql.val(inProjects)}::uuid[]))
+        + (SELECT count(*) FROM work.loadout_checks k JOIN work.jobs j ON j.id = k.job_id
+            WHERE j.project_id = ANY(${sql.val(inProjects)}::uuid[]))
+        + (SELECT count(*) FROM work.job_packet_acknowledgments k JOIN work.jobs j ON j.id = k.job_id
+            WHERE j.project_id = ANY(${sql.val(inProjects)}::uuid[]))
+        + (SELECT count(*) FROM work.job_packet_acknowledgment_invalidations k JOIN work.jobs j ON j.id = k.job_id
+            WHERE j.project_id = ANY(${sql.val(inProjects)}::uuid[])))::text AS n`.execute(db)
+    ).rows[0]?.n,
+  )
   // The appointment reminders of those visits (TSK-0067: message deliveries of the visit record) stay with them.
   const visitReminders = await db
     .selectFrom('platform.message_deliveries as d')
@@ -332,7 +358,7 @@ export async function customerPlan(db: Reader, subject: PlanSubject, now = new D
   add(
     'job_records',
     'retain',
-    jobs + visits + visitChanges + packets + visitReminders.length,
+    jobs + visits + visitChanges + packets + fieldRecords + visitReminders.length,
     'active_record',
     'job_records',
   )

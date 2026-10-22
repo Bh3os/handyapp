@@ -15,3 +15,5 @@ source: "OWN-DEC-127; decision-briefs 2026-10-12T19:54"
 - **Until answered:** v1.0 contains none of them; a negative-list test enforces it.
 
 - **2026-10-21 ([[OWN-DEC-186]], [[OWN-DEC-161]]):** the owner says the attorney is available (packet [[TSK-0143]]); late-cancellation enforcement ([[OWN-DEC-161]]) waits for this review.
+
+- **2026-10-22 ([[TSK-0143]]):** review packet ready: `docs/review-packets/attorney.md` questions A-02 (clauses left out), A-03 (late-cancellation enforcement, [[OWN-DEC-161]]) and A-05 (warranty wording).

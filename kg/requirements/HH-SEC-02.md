@@ -1,12 +1,12 @@
 ---
 id: HH-SEC-02
 type: requirement
-title: Transport, authentication, cookies, CSRF, session lifecycle and least privilege; MFA optional for staff
+title: "Transport, authentication, cookies, CSRF, session lifecycle and least privilege; MFA optional for staff (MFA mandatory since OWN-DEC-202)"
 status: active
 priority: P0
 area: security
 links:
-  decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-63]]", "[[OWN-DEC-73]]", "[[OWN-DEC-123]]", "[[OWN-DEC-133]]", "[[OWN-DEC-141]]"]
+  decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-63]]", "[[OWN-DEC-73]]", "[[OWN-DEC-123]]", "[[OWN-DEC-133]]", "[[OWN-DEC-141]]", "[[OWN-DEC-202]]"]
   depends_on: ["[[HH-ARC-06]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[ENT-StaffUser]]", "[[INT-Resend]]", "[[FACT-SESSION-TIMINGS]]"]
@@ -34,3 +34,5 @@ Staff sign-in ([[OWN-DEC-114]]):
 Customers: account sign-in with a one-time code to a verified email or phone, no password ([[OWN-DEC-63]]); guest access through verified, project-scoped sessions; codes are hashed, expire after 10 minutes and are attempt-limited.
 
 The staging access gate stays separate from staff and customer sign-in ([[OWN-DEC-73]]).
+
+**Changed by [[OWN-DEC-202]] (2026-10-22):** staff MFA is mandatory for every active staff account, never optional; the server refuses every staff route and operation until the second factor is completed (a pre-MFA session reaches only enrollment and the challenge); the optional-MFA bullet and its RISK are replaced. Offboarding invalidates previous credentials (password cleared, factor removed); reactivation goes through a secure link and the Owner's permission review. Built by [[TSK-0154]].

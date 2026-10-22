@@ -6,10 +6,10 @@ status: active
 priority: P1
 area: privacy
 links:
-  decided_by: ["[[OWN-DEC-175]]", "[[OWN-DEC-201]]"]
+  decided_by: ["[[OWN-DEC-175]]", "[[OWN-DEC-201]]", "[[OWN-DEC-205]]"]
   depends_on: ["[[HH-PRIV-03]]"]
   constrained_by: ["[[RULE-HUMAN-REVIEW]]"]
-  uses: ["[[FACT-PRIVACY-REQUEST-TARGETS]]", "[[ENT-PrivacyRequest]]", "[[ENT-QueueItem]]", "[[ENT-Message]]"]
+  uses: ["[[FACT-PRIVACY-REQUEST-TARGETS]]", "[[ENT-PrivacyRequest]]", "[[ENT-QueueItem]]", "[[ENT-Message]]", "[[FACT-BUSINESS-CALENDAR]]"]
   part_of: ["[[C11]]", "[[S11]]"]
 source: "OWN-DEC-175 (new behaviour; no guide id)"
 ---
@@ -18,3 +18,5 @@ source: "OWN-DEC-175 (new behaviour; no guide id)"
 - Nothing is rejected or closed automatically when a date passes; an extension is an Owner decision with a recorded reason and a customer notice.
 - The Owner Dashboard lists pending requests with their dates and overdue alerts.
 - Identity is verified in proportion to the request's risk before any disclosure, correction, export or deletion ([[OWN-DEC-201]]).
+
+**Changed by [[OWN-DEC-205]] (2026-10-22):** the 3-business-day date is computed on [[FACT-BUSINESS-CALENDAR]] (Monday to Friday, federal holidays and observed dates excluded, configurable); the legal deadline field stays separate and is never derived from it.

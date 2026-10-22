@@ -259,7 +259,20 @@ export async function packetView(
       blockingHolds: c.holds.holds.length,
       liveVisits: c.schedule.visits.length,
     },
-    materials: { state: 'not_recorded' as const },
+    // TSK-0071: the loadout list of each package (what to load; confirming happens in the loadout). A package of a
+    // service without a list says NOT CONFIGURED; a version written before loadouts existed has none.
+    materials: {
+      state: (c.resources.loadout ?? []).some((l) => l.state === 'pinned')
+        ? ('listed' as const)
+        : ('not_recorded' as const),
+      packages: (c.resources.loadout ?? []).map((l) => ({
+        workPackageId: l.workPackageId,
+        serviceCode: l.serviceCode,
+        state: l.state,
+        version: l.version,
+        items: l.items.map((i) => ({ key: i.key, group: i.group, name: i.name, criticality: i.criticality })),
+      })),
+    },
     careNotes: { state: 'none_approved' as const },
     communication: {
       siteContact,

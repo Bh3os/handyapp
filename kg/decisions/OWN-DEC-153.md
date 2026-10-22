@@ -7,7 +7,7 @@ area: messaging
 links:
   supersedes: ["[[OWN-DEC-78]]", "[[OWN-DEC-132]]"]
   uses: ["[[FACT-REMINDER-CADENCES]]", "[[FACT-REOPEN-PERIOD]]"]
-  related: ["[[OWN-DEC-101]]", "[[OWN-DEC-107]]", "[[OWN-DEC-112]]", "[[OWN-DEC-113]]"]
+  related: ["[[OWN-DEC-101]]", "[[OWN-DEC-107]]", "[[OWN-DEC-112]]", "[[OWN-DEC-113]]", "[[OWN-DEC-208]]"]
 source: "owner answers 2026-10-21 R3-Q1"
 ---
 Owner answer (round 3, question 1), option chosen "Automatic, as in my spec (Recommended)":
@@ -45,3 +45,5 @@ Effect:
 - Staff replies stay staff-released ([[OWN-DEC-154]]); work-pause notices stay owner-approved ([[OWN-DEC-152]]).
 - Not covered by this answer: unpaid-invoice reminders ([[OWN-DEC-112]]) stay staff-released drafts until the owner decides ([[OQ-MESSAGES-OUTSIDE-THE-21]]); the service-quality follow-up is [[OWN-DEC-157]]; repeat-service reminders stay as [[OWN-DEC-113]].
 - Values: [[FACT-REMINDER-CADENCES]]. Built by [[TSK-0121]].
+
+**Confirmed by [[OWN-DEC-208]] (2026-10-22):** the reading is final: "Closed—no response" is available 24 hours after the single question reminder was actually sent; not if that reminder failed to deliver (staff follow-up instead), the customer replied, an appointment exists, work was accepted or a payment was recorded.

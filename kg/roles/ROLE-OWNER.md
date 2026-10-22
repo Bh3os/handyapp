@@ -8,6 +8,7 @@ links:
   decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-28]]", "[[OWN-DEC-38]]", "[[OWN-DEC-64]]", "[[OWN-DEC-76]]", "[[OWN-DEC-77]]", "[[OWN-DEC-118]]", "[[OWN-DEC-123]]", "[[OWN-DEC-137]]", "[[OWN-DEC-138]]", "[[OWN-DEC-143]]"]
   constrained_by: ["[[RULE-SAFETY-GATES]]", "[[RULE-SERVER-AUTHZ]]"]
   part_of: ["[[ROLE-MATRIX]]"]
+  related: ["[[OWN-DEC-202]]"]
 source: "guide 10.2 Owner/admin; vault 27 ROLE-009; OWN-DEC-28, 38, 64, 76, 77, 114, 118, 123"
 ---
 The business owner and the only administrator. At launch the Owner also holds the office, estimating and finance functions and may do field work (then works under the same gates as any worker).
@@ -17,3 +18,5 @@ The business owner and the only administrator. At launch the Owner also holds th
 - Limits that apply even to the Owner: no bypass of the Start Work gate, critical holds or stop-work rights; never releases a critical safety hold they raised (the Owner may set Ready on any job-level Hold / Ready note, including their own, [[OWN-DEC-137]]); never edits audit events; protected records are archived or voided, never deleted.
 
 Full permissions: [[ROLE-MATRIX]].
+
+**Changed by [[OWN-DEC-202]] (2026-10-22):** MFA is mandatory for the Owner account, as for every active staff account; the RISK of a privileged account without MFA no longer applies.

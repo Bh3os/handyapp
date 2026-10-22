@@ -65,6 +65,13 @@ export {
   type SyncResult,
 } from './services.js'
 export {
+  loadLoadoutSeed,
+  LOADOUTS_SEED_FILE,
+  syncLoadouts,
+  type LoadoutSeed,
+  type LoadoutSyncResult,
+} from './loadouts.js'
+export {
   loadSopSeed,
   pinJobSops,
   SOPS_SEED_FILE,

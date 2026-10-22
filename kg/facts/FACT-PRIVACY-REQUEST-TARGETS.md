@@ -6,6 +6,7 @@ status: active
 area: privacy
 links:
   decided_by: ["[[OWN-DEC-175]]"]
+  uses: ["[[FACT-BUSINESS-CALENDAR]]"]
 source: "OWN-DEC-175; owner answers 2026-10-21 R7-Q2"
 ---
 **Value:**
@@ -15,3 +16,5 @@ source: "OWN-DEC-175; owner answers 2026-10-21 R7-Q2"
 - The applicable legal deadline is tracked separately and is not this target; nothing closes automatically when the target passes.
 
 The 30 days is an internal customer-service commitment, not a statement of the law (attorney review, [[OQ-ATTORNEY-PRIVACY]]).
+
+**Changed by [[OWN-DEC-205]] (2026-10-22):** "business days" here are counted on the internal calendar of [[FACT-BUSINESS-CALENDAR]]; the legal deadline is never computed from it.
