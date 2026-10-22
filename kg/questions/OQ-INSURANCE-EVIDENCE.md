@@ -14,3 +14,5 @@ source: "owner-answers-verbatim 2026-10-05T16:18 [Insurance], 16:29 [Subs: proof
 - **Until answered:** nothing says or implies the business is insured; terms v1.0 contain no insurance statement; damage and injury cases go to the owner, who handles any insurer contact ([[OWN-DEC-124]]).
 
 - **2026-10-21 ([[OWN-DEC-186]]):** the owner says an insurance broker is available; the insurance packet ([[TSK-0143]]) carries this question.
+
+- **2026-10-22 ([[TSK-0143]]):** review packet ready: `docs/review-packets/insurance.md` questions I-01 to I-04.
