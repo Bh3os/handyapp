@@ -14,7 +14,6 @@ import { ESTIMATE_TERMS } from '@handyhub/domain/legal'
 import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildApp } from '../../src/app.js'
-import { approveRuleSet, importRuleSet } from '../../src/modules/coverage/coverage.js'
 import { createStaffUser, setPasswordHash } from '../../src/modules/identity/accounts.js'
 import { startCustomerSession } from '../../src/modules/identity/customer-sessions.js'
 import { readCodeKey, type CodeKeySettings } from '../../src/modules/identity/index.js'
@@ -23,7 +22,7 @@ import { recipientTextHours, recipientTimeZone } from '../../src/modules/notific
 import { appointmentReminderDueAt } from '../../src/modules/visits/reminders.js'
 import { loadConfig, recordPolicyVersion, type ConfigKey } from '../../src/platform/config/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
-import { SYNTHETIC_RELATIONSHIP_FILE, SYNTHETIC_ZIPS } from '../fixtures/coverage.js'
+import { DATASET_ZIPS, SYNTHETIC_ZIPS } from '../fixtures/coverage.js'
 import { testConfig } from '../fixtures/env.js'
 
 const EASTERN = 'America/Kentucky/Louisville'
@@ -490,22 +489,18 @@ describe('[OWN-DEC-159][T41] Central and Eastern properties, DST gaps and repeat
 })
 
 describe('[OWN-DEC-159] a zone derived from the ZIP code’s counties, and reset when the address changes', () => {
-  beforeAll(async () => {
-    await withTx(t.db, (tx) =>
-      importRuleSet(tx, { fileText: SYNTHETIC_RELATIONSHIP_FILE, source: 'synthetic', createdBy: 'test' }),
-    )
-    await withTx(t.db, (tx) => approveRuleSet(tx, { version: 1, approvedBy: 'owner', sources: ['TEST-SYNTHETIC'] }))
-  })
+  // TSK-0127: migration 0067 activates the rule set of the owner's ZIP dataset (OWN-DEC-179), so these tests use its
+  // rules (DATASET_ZIPS) rather than importing a synthetic file; a synthetic 999xx ZIP has no rule.
 
   it('[RULE-NO-INVENTED-FACTS] with no county list nothing is derived', async () => {
-    const p = await submit(SYNTHETIC_ZIPS.inCoverage)
+    const p = await submit(DATASET_ZIPS.served)
     expect((await property(p.propertyId)).zone).toMatchObject({ status: 'unknown', basis: 'county_map_not_configured' })
   })
 
-  it('[OWN-DEC-159] every county mapped to one zone derives it; a boundary or unlisted county stays unknown', async () => {
-    // A synthetic test configuration: one county of the synthetic file, mapped for this test only.
+  it('[OWN-DEC-159] every county mapped to one zone derives it; a boundary, mailing or unlisted county stays unknown', async () => {
+    // A synthetic test configuration: one county of the dataset, mapped for this test only.
     await setConfig('geo.county_time_zones', { counties: [{ state: 'KY', county: 'Jefferson', zone: EASTERN }] })
-    const derived = await submit(SYNTHETIC_ZIPS.inCoverage)
+    const derived = await submit(DATASET_ZIPS.served)
     const view = await property(derived.propertyId)
     expect(view.zone).toEqual({
       zone: EASTERN,
@@ -516,12 +511,20 @@ describe('[OWN-DEC-159] a zone derived from the ZIP code’s counties, and reset
       version: 1,
     })
     expect(await queueItem(derived.propertyId)).toEqual([])
-    const boundary = await submit(SYNTHETIC_ZIPS.boundary)
+    const boundary = await submit(DATASET_ZIPS.severalCounties)
     expect((await property(boundary.propertyId)).zone).toMatchObject({ status: 'unknown', basis: 'zip_boundary' })
-    const unlisted = await submit('99903', 'in')
+    const unlisted = await submit(DATASET_ZIPS.servedIndiana, 'in')
     expect((await property(unlisted.propertyId)).zone).toMatchObject({ status: 'unknown', basis: 'county_not_mapped' })
+    // TSK-0127 (OWN-DEC-179 rule 8): a PO Box ZIP of a mapped county is a mailing ZIP; it never proves where the
+    // property is, so no zone is derived from its county.
+    const mailing = await submit(DATASET_ZIPS.poBox)
+    expect((await property(mailing.propertyId)).zone).toMatchObject({
+      status: 'unknown',
+      basis: 'no_zip_rule',
+      zone: null,
+    })
     const outside = await submit(SYNTHETIC_ZIPS.outside)
-    expect((await property(outside.propertyId)).zone).toMatchObject({ status: 'unknown', basis: 'zip_outside_area' })
+    expect((await property(outside.propertyId)).zone).toMatchObject({ status: 'unknown', basis: 'no_zip_rule' })
     // The list naming the county with another zone refuses a verification that disagrees with it.
     const v = await property(derived.propertyId)
     const res = await staffWrite(
@@ -548,7 +551,7 @@ describe('[OWN-DEC-159] a zone derived from the ZIP code’s counties, and reset
         street: '9 Synthetic Moved Lane',
         city: 'Testville',
         state: 'KY',
-        zip: SYNTHETIC_ZIPS.boundary,
+        zip: DATASET_ZIPS.severalCounties,
         source: 'customer_call',
         reason: 'Synthetic: the customer gave a new address',
       },
