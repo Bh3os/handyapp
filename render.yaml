@@ -55,6 +55,11 @@ services:
       # NOT CONFIGURED (codes cannot be entered or revealed) (TSK-0045, HH-CRM-03).
       - key: ACCESS_CODE_ENCRYPTION_KEY
         sync: false
+      # Email (TSK-0112): no email provider is set up yet, so invites and resets cannot be sent. Staging only, the owner
+      # may set in Render EMAIL_PROVIDER=log with TEST_EMAIL_DESTINATIONS=<the approved test addresses, comma
+      # separated>: each email to one of those addresses is written to the service log as STAGING_EMAIL_LOGGED (address,
+      # subject and text, so the invite or reset link can be read there); nothing is sent, every other address is
+      # suppressed, and production refuses to start with it. Replace it with EMAIL_PROVIDER=resend once a domain exists.
       # Proxies that append to X-Forwarded-For in front of the service; set once measured on Render (default 0).
       - key: TRUST_PROXY_HOPS
         sync: false

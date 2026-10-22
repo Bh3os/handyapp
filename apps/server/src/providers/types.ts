@@ -42,8 +42,20 @@ export type SmsMessage = {
   idempotencyKey: string
 }
 
+/**
+ * Test providers (TSK-0119, OWN-DEC-152 section 14): a message handed to one of them reached no real inbox or phone,
+ * so it is never shown as delivered. `fake` is the in-memory sender of local and ci; `log` is the staging-only email
+ * sender that writes the message to the server log (TSK-0112, HH-COM-03).
+ */
+export const TEST_PROVIDERS: readonly string[] = ['fake', 'log']
+
+/** Whether a recorded provider name is a test provider. */
+export function isTestProvider(provider: string | null | undefined): boolean {
+  return provider !== null && provider !== undefined && TEST_PROVIDERS.includes(provider)
+}
+
 export interface EmailSender {
-  readonly provider: 'resend' | 'fake'
+  readonly provider: 'resend' | 'fake' | 'log'
   send(message: EmailMessage): Promise<SendOutcome>
 }
 
