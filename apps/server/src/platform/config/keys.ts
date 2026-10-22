@@ -3,7 +3,7 @@
 // 0005 from the fact and decision nodes they cite. Every row read from the database is validated strictly against
 // its key's shape; an unknown key, an unknown field or a wrong type fails closed. Money is integer cents.
 
-import { isSupportedZone } from '@handyhub/domain'
+import { isSupportedZone, LAUNCH_PHASES } from '@handyhub/domain'
 
 export class ConfigShapeError extends Error {
   override name = 'ConfigShapeError'
@@ -273,6 +273,10 @@ export const CONFIG_KEYS = {
     close: clock,
     zone: (z, q) => (isSupportedZone(z) ? z : fail(q, 'expected an Eastern or Central IANA zone')),
   }),
+  // TSK-0142 (OWN-DEC-191, HH-OPS-06): the launch phase in force. Migration 0076 seeds phase 1 (owner_acceptance_testing:
+  // customer invitations, public submissions and search indexing all off); only the Owner moves it, with a recorded
+  // approval, one step forward or back to an earlier phase (the database refuses anything else as well).
+  'launch.phase': shape({ phase: oneOf(LAUNCH_PHASES) }),
   // RULE-AI-WAVE2: only `false` is a valid value; the database refuses anything else as well.
   'ai.module': shape({ enabled: exactly(false) }),
 } as const satisfies Record<string, Parser<unknown>>

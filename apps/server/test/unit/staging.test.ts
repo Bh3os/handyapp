@@ -66,6 +66,8 @@ describe('the reset’s table lists and the contract (TSK-0141)', () => {
   it('[HH-OPS-05] the contract marks every staging route STAGING ONLY, Owner-scoped and audited', () => {
     const routes = MODULES.find((m) => m.name === 'staging')?.routes ?? []
     expect(routes.map((r) => r.operationId).sort()).toEqual([
+      // TSK-0142: the Owner Acceptance Testing accounts.
+      'createStagingTestAccounts',
       'getStagingTestData',
       'resetStagingTestData',
       'setReusableTestAccount',
@@ -74,6 +76,9 @@ describe('the reset’s table lists and the contract (TSK-0141)', () => {
     const reset = routes.find((r) => r.operationId === 'resetStagingTestData')
     expect(reset?.freshAuthMinutes).toBeGreaterThan(0)
     expect(reset?.idempotency).toBe('required')
+    const accounts = routes.find((r) => r.operationId === 'createStagingTestAccounts')
+    expect(accounts?.freshAuthMinutes).toBeGreaterThan(0)
+    expect(accounts?.audit).toBe('staging.create_test_accounts')
   })
 
   it('[HH-LANG-03] every code the screen shows has an EN and ES label family', () => {

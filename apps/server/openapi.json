@@ -13492,7 +13492,7 @@
       "get": {
         "operationId": "getRequestFormSettings",
         "summary": "Request form settings",
-        "description": "Public read of the configured request-draft period (session.timings.requestDraftDays, FACT-SESSION-TIMINGS), the business time zone, the service limit and the photo limits (uploads.limits). draftDays is null while the value is NOT CONFIGURED; the wizard then keeps no draft. TSK-0028: the visit hours (contact.hours, FACT-HOURS), the preferred windows offered with their configured hours (request.window_hours; no hours while NOT CONFIGURED) and whether estimates are free (estimate.visit_fee, FACT-VISIT-FEE). Preferences only: nothing here is availability, a slot or a price. TSK-0032: the response target in minutes (response.target, FACT-RESPONSE-TARGET), which the receipt’s \"What happens next?\" wording states with the visit hours; null while NOT CONFIGURED (the receipt then states no response time).",
+        "description": "Public read of the configured request-draft period (session.timings.requestDraftDays, FACT-SESSION-TIMINGS), the business time zone, the service limit and the photo limits (uploads.limits). draftDays is null while the value is NOT CONFIGURED; the wizard then keeps no draft. TSK-0028: the visit hours (contact.hours, FACT-HOURS), the preferred windows offered with their configured hours (request.window_hours; no hours while NOT CONFIGURED) and whether estimates are free (estimate.visit_fee, FACT-VISIT-FEE). Preferences only: nothing here is availability, a slot or a price. TSK-0032: the response target in minutes (response.target, FACT-RESPONSE-TARGET), which the receipt’s \"What happens next?\" wording states with the visit hours; null while NOT CONFIGURED (the receipt then states no response time). TSK-0142: submissions says whether the form takes requests here and now: testers_only (outside production: the access gate or a test system) and open (production, phase 3) take them; closed (phase 1) and invitation_only (phase 2) do not, and the form says so instead of asking for details it cannot send.",
         "tags": [
           "requests"
         ],
@@ -13513,7 +13513,8 @@
                     "visitHours",
                     "windows",
                     "freeEstimates",
-                    "responseMinutes"
+                    "responseMinutes",
+                    "submissions"
                   ],
                   "properties": {
                     "draftDays": {
@@ -13604,6 +13605,15 @@
                       "type": [
                         "integer",
                         "null"
+                      ]
+                    },
+                    "submissions": {
+                      "type": "string",
+                      "enum": [
+                        "open",
+                        "testers_only",
+                        "invitation_only",
+                        "closed"
                       ]
                     }
                   }
@@ -15049,7 +15059,7 @@
       "post": {
         "operationId": "submitRequest",
         "summary": "Send Estimate Request",
-        "description": "Guest or customer submission. One transaction creates a new customer, contact, property, project (not a job or appointment) and the request with its services and answers, plus one request.submitted outbox event. Never matched to existing customers. The same Idempotency-Key returns the same request; a changed body is a 409. A key that already created a request, also after its idempotency record expired, is a 409 whose error names that request's reference (existing.reference) and writes nothing. Rate limited per client network with a neutral 429. Spam signals only flag the request for review. TSK-0032: when the draft’s photos were bound, the Upload-Capability response header carries a new capability scoped to this request’s photos only (token returned once, never stored with the replayable response), so the receipt can show their states and retry a failed photo without a new request (HH-INT-07, HH-INT-12). TSK-0033: the Receipt-Capability response header carries the receipt page’s capability for this request’s own contact verification and account-offer answer (returned once; a replayed response carries neither header). TSK-0034: the same transaction issues the project’s single-project access grant (HH-ID-04; token stored only as a hash), whose secure access link the automatic message project.access_link sends from request.submitted.",
+        "description": "Guest or customer submission. One transaction creates a new customer, contact, property, project (not a job or appointment) and the request with its services and answers, plus one request.submitted outbox event. Never matched to existing customers. The same Idempotency-Key returns the same request; a changed body is a 409. A key that already created a request, also after its idempotency record expired, is a 409 whose error names that request's reference (existing.reference) and writes nothing. Rate limited per client network with a neutral 429. Spam signals only flag the request for review. TSK-0032: when the draft’s photos were bound, the Upload-Capability response header carries a new capability scoped to this request’s photos only (token returned once, never stored with the replayable response), so the receipt can show their states and retry a failed photo without a new request (HH-INT-07, HH-INT-12). TSK-0033: the Receipt-Capability response header carries the receipt page’s capability for this request’s own contact verification and account-offer answer (returned once; a replayed response carries neither header). TSK-0034: the same transaction issues the project’s single-project access grant (HH-ID-04; token stored only as a hash), whose secure access link the automatic message project.access_link sends from request.submitted. TSK-0142: in production the launch phase decides (launch.phase): before phase 3 (public) the submission is refused with CONFLICT and the field error launch:SUBMISSIONS_CLOSED (phase 1) or launch:INVITATION_REQUIRED (phase 2), audited, and nothing is written. Outside production (testers only) it is always accepted.",
         "tags": [
           "requests"
         ],
@@ -26953,6 +26963,7 @@
                                   "visit.on_my_way",
                                   "geo.county_time_zones",
                                   "sms.unknown_zone_hours",
+                                  "launch.phase",
                                   "ai.module"
                                 ]
                               },
@@ -29072,6 +29083,7 @@
                                   "visit.on_my_way",
                                   "geo.county_time_zones",
                                   "sms.unknown_zone_hours",
+                                  "launch.phase",
                                   "ai.module"
                                 ]
                               },
@@ -31471,6 +31483,7 @@
                                   "visit.on_my_way",
                                   "geo.county_time_zones",
                                   "sms.unknown_zone_hours",
+                                  "launch.phase",
                                   "ai.module"
                                 ]
                               },
@@ -33443,6 +33456,7 @@
                                   "visit.on_my_way",
                                   "geo.county_time_zones",
                                   "sms.unknown_zone_hours",
+                                  "launch.phase",
                                   "ai.module"
                                 ]
                               },
@@ -35591,6 +35605,7 @@
                                   "visit.on_my_way",
                                   "geo.county_time_zones",
                                   "sms.unknown_zone_hours",
+                                  "launch.phase",
                                   "ai.module"
                                 ]
                               },
@@ -37563,6 +37578,7 @@
                                   "visit.on_my_way",
                                   "geo.county_time_zones",
                                   "sms.unknown_zone_hours",
+                                  "launch.phase",
                                   "ai.module"
                                 ]
                               },
@@ -39902,6 +39918,7 @@
                                   "visit.on_my_way",
                                   "geo.county_time_zones",
                                   "sms.unknown_zone_hours",
+                                  "launch.phase",
                                   "ai.module"
                                 ]
                               },
@@ -42063,6 +42080,7 @@
                                   "visit.on_my_way",
                                   "geo.county_time_zones",
                                   "sms.unknown_zone_hours",
+                                  "launch.phase",
                                   "ai.module"
                                 ]
                               },
@@ -44215,6 +44233,7 @@
                                   "visit.on_my_way",
                                   "geo.county_time_zones",
                                   "sms.unknown_zone_hours",
+                                  "launch.phase",
                                   "ai.module"
                                 ]
                               },
@@ -46367,6 +46386,7 @@
                                   "visit.on_my_way",
                                   "geo.county_time_zones",
                                   "sms.unknown_zone_hours",
+                                  "launch.phase",
                                   "ai.module"
                                 ]
                               },
@@ -48524,6 +48544,7 @@
                                   "visit.on_my_way",
                                   "geo.county_time_zones",
                                   "sms.unknown_zone_hours",
+                                  "launch.phase",
                                   "ai.module"
                                 ]
                               },
@@ -51018,6 +51039,7 @@
                                   "visit.on_my_way",
                                   "geo.county_time_zones",
                                   "sms.unknown_zone_hours",
+                                  "launch.phase",
                                   "ai.module"
                                 ]
                               },
@@ -53170,6 +53192,7 @@
                                   "visit.on_my_way",
                                   "geo.county_time_zones",
                                   "sms.unknown_zone_hours",
+                                  "launch.phase",
                                   "ai.module"
                                 ]
                               },
@@ -55527,6 +55550,7 @@
                                   "visit.on_my_way",
                                   "geo.county_time_zones",
                                   "sms.unknown_zone_hours",
+                                  "launch.phase",
                                   "ai.module"
                                 ]
                               },
@@ -66640,6 +66664,766 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/job-packets.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/launch": {
+      "get": {
+        "operationId": "getLaunchPhase",
+        "summary": "Launch phase and its switches",
+        "description": "The Owner only (dashboard.view, and the Owner role checked again). The launch phase in force (launch.phase: owner_acceptance_testing, invited_customers or public; phase 1 when it cannot be read), the switches it sets (invited customers, public submissions, search indexing: all off in phase 1), what they mean in this environment (outside production nothing is public whatever the phase: testers only, never indexed), the moves the Owner may make with the words to type for each, and the history of phase decisions with who made them and the approval they recorded. ETag: the configuration version. Reads only.",
+        "tags": [
+          "launch"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "environment",
+                    "phase",
+                    "phaseNumber",
+                    "version",
+                    "changedAt",
+                    "changedBy",
+                    "approval",
+                    "switches",
+                    "effect",
+                    "moves",
+                    "freshAuthMinutes",
+                    "history"
+                  ],
+                  "properties": {
+                    "environment": {
+                      "type": "string",
+                      "enum": [
+                        "local",
+                        "ci",
+                        "staging",
+                        "production"
+                      ]
+                    },
+                    "phase": {
+                      "type": "string",
+                      "enum": [
+                        "owner_acceptance_testing",
+                        "invited_customers",
+                        "public"
+                      ]
+                    },
+                    "phaseNumber": {
+                      "type": "integer",
+                      "enum": [
+                        1,
+                        2,
+                        3
+                      ]
+                    },
+                    "version": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "changedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "changedBy": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "approval": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "switches": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "on"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "enum": [
+                              "invited_customers",
+                              "public_submissions",
+                              "search_indexing"
+                            ]
+                          },
+                          "on": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "effect": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "submissions",
+                        "indexing"
+                      ],
+                      "properties": {
+                        "submissions": {
+                          "type": "string",
+                          "enum": [
+                            "open",
+                            "invitation_only",
+                            "closed",
+                            "testers_only"
+                          ]
+                        },
+                        "indexing": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "moves": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "to",
+                          "confirmation"
+                        ],
+                        "properties": {
+                          "to": {
+                            "type": "string",
+                            "enum": [
+                              "owner_acceptance_testing",
+                              "invited_customers",
+                              "public"
+                            ]
+                          },
+                          "confirmation": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "freshAuthMinutes": {
+                      "type": "integer"
+                    },
+                    "history": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "version",
+                          "phase",
+                          "changedAt",
+                          "changedBy",
+                          "approval"
+                        ],
+                        "properties": {
+                          "version": {
+                            "type": "integer"
+                          },
+                          "phase": {
+                            "type": "string",
+                            "enum": [
+                              "owner_acceptance_testing",
+                              "invited_customers",
+                              "public"
+                            ]
+                          },
+                          "changedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "changedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "approval": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "dashboard.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/launch-phase.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/launch/phase": {
+      "put": {
+        "operationId": "setLaunchPhase",
+        "summary": "Move the launch phase (the Owner only)",
+        "description": "The Owner only (policy_values.change: a fresh sign-in within 5 minutes, and the Owner role checked again), with If-Match: the configuration version shown, the words to type for this move (confirmation, from getLaunchPhase) and the Owner’s written approval (reason). Moves one step forward (phase 1 to 2 after the Owner approves Owner Acceptance Testing, 2 to 3 after the Owner approves the invited-customer launch) or back to any earlier phase; anything else is VALIDATION_FAILED (SAME_PHASE, SKIPS_A_PHASE, confirmation_mismatch) and changes nothing. Records the next launch.phase version citing OWN-DEC-191 with the approval as its reason, and an audit event with the old and new phase, in one transaction; the database refuses a change that is not the Owner’s, not recorded or not one allowed step. Refusals are audited too.",
+        "tags": [
+          "launch"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "phase",
+                  "confirmation",
+                  "reason"
+                ],
+                "properties": {
+                  "phase": {
+                    "type": "string",
+                    "enum": [
+                      "owner_acceptance_testing",
+                      "invited_customers",
+                      "public"
+                    ]
+                  },
+                  "confirmation": {
+                    "type": "string",
+                    "maxLength": 60
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "environment",
+                    "phase",
+                    "phaseNumber",
+                    "version",
+                    "changedAt",
+                    "changedBy",
+                    "approval",
+                    "switches",
+                    "effect",
+                    "moves",
+                    "freshAuthMinutes",
+                    "history"
+                  ],
+                  "properties": {
+                    "environment": {
+                      "type": "string",
+                      "enum": [
+                        "local",
+                        "ci",
+                        "staging",
+                        "production"
+                      ]
+                    },
+                    "phase": {
+                      "type": "string",
+                      "enum": [
+                        "owner_acceptance_testing",
+                        "invited_customers",
+                        "public"
+                      ]
+                    },
+                    "phaseNumber": {
+                      "type": "integer",
+                      "enum": [
+                        1,
+                        2,
+                        3
+                      ]
+                    },
+                    "version": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "changedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "changedBy": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "approval": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "switches": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "on"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "enum": [
+                              "invited_customers",
+                              "public_submissions",
+                              "search_indexing"
+                            ]
+                          },
+                          "on": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "effect": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "submissions",
+                        "indexing"
+                      ],
+                      "properties": {
+                        "submissions": {
+                          "type": "string",
+                          "enum": [
+                            "open",
+                            "invitation_only",
+                            "closed",
+                            "testers_only"
+                          ]
+                        },
+                        "indexing": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "moves": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "to",
+                          "confirmation"
+                        ],
+                        "properties": {
+                          "to": {
+                            "type": "string",
+                            "enum": [
+                              "owner_acceptance_testing",
+                              "invited_customers",
+                              "public"
+                            ]
+                          },
+                          "confirmation": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "freshAuthMinutes": {
+                      "type": "integer"
+                    },
+                    "history": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "version",
+                          "phase",
+                          "changedAt",
+                          "changedBy",
+                          "approval"
+                        ],
+                        "properties": {
+                          "version": {
+                            "type": "integer"
+                          },
+                          "phase": {
+                            "type": "string",
+                            "enum": [
+                              "owner_acceptance_testing",
+                              "invited_customers",
+                              "public"
+                            ]
+                          },
+                          "changedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "changedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "approval": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "policy_values.change",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": 5,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "launch.change_phase",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/launch-phase.test.ts"
         }
       }
     },
@@ -98763,6 +99547,317 @@
         }
       }
     },
+    "/api/v1/staff/staging/test-accounts": {
+      "post": {
+        "operationId": "createStagingTestAccounts",
+        "summary": "Create the Owner Acceptance Testing accounts",
+        "description": "STAGING ONLY (see getStagingTestData; never registered in production). Owner only (staff.invite: a fresh sign-in, and the Owner role checked again). Refused with CONFLICT STAGING_NOT_IDENTIFIED unless every environment check passes. Creates each fictional test account that does not exist yet (TSK-0142): Worker, Estimator, Office and Owner as invited staff accounts with their role, each sent a single-use invite link through the outbox (on staging only an approved test address receives it; no password is set or returned); the Customer as a registered customer account made through the public request, contact verification and account offer, designated reusable so resets keep it. The Guest Customer has no account by design. An existing account is left as it is, so repeating is safe. Answers one outcome per account (created, exists, blocked with the step and refusal codes, or no_account) and the accounts as getStagingTestData shows them. Audited. No credential is ever part of the answer.",
+        "tags": [
+          "staging"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "outcomes",
+                    "accounts"
+                  ],
+                  "properties": {
+                    "outcomes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "outcome",
+                          "step",
+                          "codes"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "enum": [
+                              "customer",
+                              "guest_customer",
+                              "worker",
+                              "estimator",
+                              "office",
+                              "owner"
+                            ]
+                          },
+                          "outcome": {
+                            "type": "string",
+                            "enum": [
+                              "created",
+                              "exists",
+                              "blocked",
+                              "no_account"
+                            ]
+                          },
+                          "step": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "codes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "accounts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "kind",
+                          "role",
+                          "email",
+                          "name",
+                          "state",
+                          "reusable",
+                          "mfaEnrolled",
+                          "receivesEmail"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "enum": [
+                              "customer",
+                              "guest_customer",
+                              "worker",
+                              "estimator",
+                              "office",
+                              "owner"
+                            ]
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "customer",
+                              "guest",
+                              "staff"
+                            ]
+                          },
+                          "role": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "owner",
+                              "office",
+                              "estimator",
+                              "worker",
+                              null
+                            ]
+                          },
+                          "email": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "not_created",
+                              "invited",
+                              "active",
+                              "disabled",
+                              "no_account"
+                            ]
+                          },
+                          "reusable": {
+                            "type": [
+                              "boolean",
+                              "null"
+                            ]
+                          },
+                          "mfaEnrolled": {
+                            "type": [
+                              "boolean",
+                              "null"
+                            ]
+                          },
+                          "receivesEmail": {
+                            "type": [
+                              "boolean",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "staff.invite",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": 5,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "staging.create_test_accounts",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/owner-acceptance.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/staging/test-data": {
       "get": {
         "operationId": "getStagingTestData",
@@ -98792,7 +99887,8 @@
                     "preserved",
                     "reusableAccounts",
                     "freshData",
-                    "runs"
+                    "runs",
+                    "testAccounts"
                   ],
                   "properties": {
                     "environment": {
@@ -99226,6 +100322,92 @@
                                   }
                                 }
                               }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "testAccounts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "kind",
+                          "role",
+                          "email",
+                          "name",
+                          "state",
+                          "reusable",
+                          "mfaEnrolled",
+                          "receivesEmail"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "enum": [
+                              "customer",
+                              "guest_customer",
+                              "worker",
+                              "estimator",
+                              "office",
+                              "owner"
+                            ]
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "customer",
+                              "guest",
+                              "staff"
+                            ]
+                          },
+                          "role": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "owner",
+                              "office",
+                              "estimator",
+                              "worker",
+                              null
+                            ]
+                          },
+                          "email": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "not_created",
+                              "invited",
+                              "active",
+                              "disabled",
+                              "no_account"
+                            ]
+                          },
+                          "reusable": {
+                            "type": [
+                              "boolean",
+                              "null"
+                            ]
+                          },
+                          "mfaEnrolled": {
+                            "type": [
+                              "boolean",
+                              "null"
+                            ]
+                          },
+                          "receivesEmail": {
+                            "type": [
+                              "boolean",
+                              "null"
                             ]
                           }
                         }
@@ -100093,6 +101275,7 @@
                               "visit.on_my_way",
                               "geo.county_time_zones",
                               "sms.unknown_zone_hours",
+                              "launch.phase",
                               "ai.module"
                             ]
                           },

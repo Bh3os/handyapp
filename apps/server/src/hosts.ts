@@ -107,7 +107,7 @@ export const HSTS = 'max-age=31536000'
 
 export function securityHeaders(config: Config, csp: string) {
   const https = config.env === 'staging' || config.env === 'production'
-  return (req: FastifyRequest, reply: FastifyReply): void => {
+  return (req: FastifyRequest, reply: FastifyReply, opts: { noindex?: boolean } = {}): void => {
     const side = req.hostSide ?? 'any'
     const url = req.url.split('?')[0] ?? '/'
     reply.header('x-content-type-options', 'nosniff')
@@ -123,8 +123,10 @@ export function securityHeaders(config: Config, csp: string) {
     reply.header('cross-origin-opener-policy', 'same-origin')
     reply.header('referrer-policy', isPrivatePath(side, url) ? 'no-referrer' : 'strict-origin-when-cross-origin')
     if (https) reply.header('strict-transport-security', HSTS)
-    // Staging is noindex everywhere; the staff host and private routes are noindex in every environment.
-    if (config.noindex || isPrivatePath(side, url)) reply.header('x-robots-tag', 'noindex, nofollow')
+    // Staging is noindex everywhere; the staff host and private routes are noindex in every environment; production is
+    // noindex until launch phase 3 (opts.noindex, TSK-0142).
+    if (config.noindex || opts.noindex === true || isPrivatePath(side, url))
+      reply.header('x-robots-tag', 'noindex, nofollow')
   }
 }
 
