@@ -8,6 +8,7 @@
 // The view actions of the queue section and the screens are PROPOSED mappings (the matrix names who acts, not who
 // sees a list); the Owner Decisions types use the owner-only action of each decision as the matrix states it.
 // Labels come from the staff catalogs (label families queueItemType, queueReason and queueAction).
+import { PUBLICATION_APPROVAL_REASONS } from '@handyhub/domain'
 import type { Action } from '@handyhub/policy'
 
 export const QUEUE_SECTIONS = ['queue', 'owner_decisions'] as const
@@ -37,11 +38,22 @@ export const QUEUE_ACTIONS = [
   'reassign_visit',
   // TSK-0071: provide a missing or damaged loadout item, or approve a substitute.
   'review_shortage',
+  // TSK-0123: record the zone of a property whose zone is unknown.
+  'verify_time_zone',
 ] as const
 export type QueueAction = (typeof QUEUE_ACTIONS)[number]
 
 /** Staff app screens a deep link may open (packages/policy NAV_ITEMS ids). */
-export type QueueScreen = 'requests' | 'schedule' | 'inbox' | 'cases' | 'payments' | 'customers' | 'estimates'
+export type QueueScreen =
+  | 'requests'
+  | 'schedule'
+  | 'inbox'
+  | 'cases'
+  | 'payments'
+  | 'customers'
+  | 'estimates'
+  // TSK-0123: a property record (below the customer records in the menu).
+  | 'properties'
 
 export type QueueItemType = {
   readonly id: string
@@ -322,6 +334,20 @@ export const QUEUE_ITEM_TYPES = [
     screen: 'schedule',
     path: 'loadouts',
   },
+  // TSK-0123 (OWN-DEC-159 item 13): a property whose zone is unknown while one of its projects is open, flagged for
+  // verification; no visit is planned on it until its zone is known. Opened and resolved by the database in the same
+  // transaction as the zone or the project changes (migration 0066, ops.sync_property_zone_item). Seen by the roles
+  // that edit property records, who verify the zone there. Band and view are PROPOSED.
+  {
+    id: 'property_time_zone',
+    section: 'queue',
+    subject: 'property',
+    band: 'other',
+    view: 'customer.edit',
+    reasons: ['time_zone_unknown'],
+    action: 'verify_time_zone',
+    screen: 'properties',
+  },
   // Owner Decisions (HH-OPS-01 "Owner, additionally"): each decision is owner-only in the matrix.
   {
     id: 'deposit_waiver',
@@ -406,6 +432,21 @@ export const QUEUE_ITEM_TYPES = [
     reasons: ['work_cancellation_requested'],
     action: 'decide',
     screen: 'schedule',
+  },
+  // TSK-0130 (HH-EST-16, OWN-DEC-173): an estimate version waiting for the Owner's approval before it is published
+  // (over the threshold, the project's documents together over it, or flagged). One item per version while its
+  // approval is pending; resolved when the Owner decides, when a change of price or scope invalidates it, or when the
+  // Owner publishes it. The link opens the version, whose Owner approval panel shows the details and the decision.
+  // Change-order approvals (TSK-0082) add their own type.
+  {
+    id: 'estimate_publication_approval',
+    section: 'owner_decisions',
+    subject: 'estimate_version',
+    band: 'time_sensitive',
+    view: 'estimate.approve_publication',
+    reasons: [...PUBLICATION_APPROVAL_REASONS],
+    action: 'decide',
+    screen: 'estimates',
   },
   {
     id: 'incident_notification',

@@ -27,7 +27,8 @@ describe('queue item types (TSK-0041, HH-OPS-01)', () => {
   it('[HH-OPS-01] each type names a matrix action, a staff screen and only its own restricted reasons', () => {
     for (const type of QUEUE_ITEM_TYPES) {
       expect(ACTIONS).toContain(type.view)
-      expect(NAV_IDS).toContain(type.screen)
+      // A property record (TSK-0123) sits below the customer records: the same menu entry (apps/staff App.tsx).
+      expect(NAV_IDS).toContain(type.screen === 'properties' ? 'customers' : type.screen)
       const restricted = 'restricted' in type ? type.restricted : undefined
       if (restricted) {
         expect(ACTIONS).toContain(restricted.action)
@@ -83,6 +84,22 @@ describe('queue item types (TSK-0041, HH-OPS-01)', () => {
     const type = queueItemType('appointment_reminder')
     if (!type) throw new Error('appointment_reminder is declared')
     expect([type.subject, type.action, deepLink(type, 'v1')]).toEqual(['visit', 'release_reminder', '/schedule/v1'])
+  })
+
+  it("[HH-EST-16][HH-OPS-01] estimates waiting for the Owner's approval are Owner Decisions, the Owner's alone (TSK-0130)", () => {
+    expect(visibleTypes(staff('owner'), 'owner_decisions').all).toContain('estimate_publication_approval')
+    for (const role of ['office', 'estimator', 'worker'] as const) {
+      const v = visibleTypes(staff(role), 'owner_decisions')
+      expect([...v.all, ...v.own]).not.toContain('estimate_publication_approval')
+    }
+    const type = queueItemType('estimate_publication_approval')
+    if (!type) throw new Error('estimate_publication_approval is declared')
+    expect([type.section, type.subject, type.action, deepLink(type, 'v1')]).toEqual([
+      'owner_decisions',
+      'estimate_version',
+      'decide',
+      '/estimates/v1',
+    ])
   })
 
   it('[HH-OPS-01] an item past its due time ranks as time-sensitive at the least', () => {

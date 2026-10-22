@@ -61,7 +61,13 @@ import { openQueueItem, resolveQueueItem } from '../queue/items.js'
 import { findProject } from '../records/index.js'
 import { customerRequestsOf } from './changes.js'
 import { unmetGates, type WorkVisitGate } from './gates.js'
-import { approvalProblems, blockingHoldProblems, confirmationPreconditions, customerRefusal } from './preconditions.js'
+import {
+  approvalProblems,
+  blockingHoldProblems,
+  confirmationPreconditions,
+  countyVerificationProblems,
+  customerRefusal,
+} from './preconditions.js'
 import { factsOf, mayPlanWorkVisits, resolveEntry, storedWindow, type WindowEntry } from './visits.js'
 
 type Reader = Db | Tx
@@ -224,6 +230,9 @@ export async function offerWindows(
       problems.push(field('job', code))
   // TSK-0064 (PROPOSED): no times are offered while a hold blocks their confirmation.
   problems.push(...(await blockingHoldProblems(tx, v.project_id)))
+  // TSK-0127 (final owner amendments 2026-10-22, PROPOSED like the holds): no times are offered before staff verify
+  // the property's address and county, since the selection could not confirm them.
+  problems.push(...(await countyVerificationProblems(tx, v.project_id)))
   if (v.expected_duration_minutes === null || v.required_workers === null)
     throw new ApiError('CONFLICT', { fieldErrors: problems })
 
@@ -585,7 +594,10 @@ export async function selectWindow(
   // TSK-0064 (HH-SCH-06, RULE-SAFETY-GATES): the selection confirms the visit, so every confirmation precondition runs
   // here, in this transaction: the approval and the deposit gate of TSK-0059 for a work visit (whatever gates the
   // module was given; an estimate visit never waits for a deposit), the other registered gates and no blocking hold.
-  const unmet = await confirmationPreconditions(tx, v, deps.gates)
+  const unmet = [
+    ...(await confirmationPreconditions(tx, v, deps.gates)),
+    ...(await countyVerificationProblems(tx, v.project_id)),
+  ]
   if (unmet.length) throw new ApiError('CONFLICT', { fieldErrors: customerRefusal(unmet) })
   // The window's holds are all still active (none ended early) and the team still passes every capacity rule.
   const holds = await tx

@@ -3,6 +3,8 @@
 // 0005 from the fact and decision nodes they cite. Every row read from the database is validated strictly against
 // its key's shape; an unknown key, an unknown field or a wrong type fails closed. Money is integer cents.
 
+import { isSupportedZone } from '@handyhub/domain'
+
 export class ConfigShapeError extends Error {
   override name = 'ConfigShapeError'
 }
@@ -100,6 +102,12 @@ export const CONFIG_KEYS = {
   'tax.mode': shape({ mode: oneOf(['no_tax_line']) }),
   'estimate.validity': shape({ days: int(1, 365), from: exactly('published') }),
   'estimate.publishing_roles': shape({ roles: listOf(oneOf(['owner', 'office', 'estimator', 'worker'])) }),
+  // TSK-0130 (FACT-OWNER-APPROVAL-THRESHOLD, OWN-DEC-173): publishing an estimate or a change order above this needs the
+  // Owner's approval first; "greater than", so exactly the threshold needs none. The Owner changes it (audited).
+  'owner_approval.threshold': shape({ thresholdCents: int(1), comparison: exactly('greater_than') }),
+  // TSK-0130 (final owner amendments 2026-10-22 to OWN-DEC-173): a discretionary credit from this amount needs the
+  // Owner's approval. No amount is decided for "material": PROPOSED 1 cent, so every discretionary credit (proposed).
+  'owner_approval.discretionary_credit': shape({ materialFromCents: int(1) }),
   'payment.term_default': shape({ term: oneOf(['due_on_receipt']) }),
   'payment.methods': shape({
     methods: listOf(oneOf(['square_payment_link', 'square_tap_to_pay', 'cash', 'check', 'zelle', 'cash_app', 'chime'])),
@@ -186,6 +194,11 @@ export const CONFIG_KEYS = {
       }),
     ),
   }),
+  // TSK-0127 (OWN-DEC-179 rules 4 and 13): the authoritative geographic source the ZIP dataset and property addresses
+  // are verified against: the ZIP-to-county relationship file and the address-to-county lookup. None is available to
+  // this build: NOT CONFIGURED, so the active rule set answers from the owner's dataset alone (verification
+  // 'not_configured') and `coverage import <file>` verifies it once the Census file is supplied.
+  'coverage.verification_source': shape({ zipToCounty: text, addressToCounty: text }),
   // TSK-0028 (HH-INT-02, OWN-DEC-92): the hours of the preferred windows, inside contact.hours. Not given by the owner:
   // NOT CONFIGURED (OQ-WINDOW-HOURS), so the form shows the five windows without hours.
   'request.window_hours': shape({
@@ -235,6 +248,31 @@ export const CONFIG_KEYS = {
   // TSK-0070 (OWN-DEC-107, HH-SCH-08): the assigned worker may tap "On my way" from this many minutes before the
   // arrival window starts (three hours). A decided value, seeded active by migration 0062.
   'visit.on_my_way': shape({ earliestMinutesBefore: int(1, 24 * 60) }),
+  // TSK-0123 (OWN-DEC-159, FACT-SERVICE-AREA): the IANA zone of each service-area county, from which a property's zone
+  // is derived (its ZIP's counties must all map to one zone). No authoritative county-to-zone list is in the
+  // repository: NOT CONFIGURED (migration 0066, OQ-COUNTY-TIME-ZONES) until one is supplied. Each zone must be an
+  // Eastern or Central IANA zone; a county is named once.
+  'geo.county_time_zones': (v: unknown, p: string) => {
+    const value = shape({
+      counties: listOf(
+        shape({
+          state: (s, q) => (typeof s === 'string' && /^[A-Z]{2}$/.test(s) ? s : fail(q, 'expected a state code')),
+          county: text,
+          zone: (z, q) => (isSupportedZone(z) ? z : fail(q, 'expected an Eastern or Central IANA zone')),
+        }),
+      ),
+    })(v, p)
+    const names = value.counties.map((c) => `${c.state}:${c.county}`)
+    if (new Set(names).size !== names.length) fail(`${p}.counties`, 'a county is listed twice')
+    return value
+  },
+  // TSK-0123 (OWN-DEC-207, HH-COM-15; final owner amendments 2026-10-22): the window a non-urgent text may be sent in when
+  // the recipient's own zone cannot be established (9 AM–9 PM in the business Eastern zone). Applied by TSK-0122.
+  'sms.unknown_zone_hours': shape({
+    open: clock,
+    close: clock,
+    zone: (z, q) => (isSupportedZone(z) ? z : fail(q, 'expected an Eastern or Central IANA zone')),
+  }),
   // RULE-AI-WAVE2: only `false` is a valid value; the database refuses anything else as well.
   'ai.module': shape({ enabled: exactly(false) }),
 } as const satisfies Record<string, Parser<unknown>>

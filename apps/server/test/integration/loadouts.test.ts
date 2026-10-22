@@ -31,7 +31,9 @@ import { readCodeKey, type CodeKeySettings } from '../../src/modules/identity/in
 import { hashPassword } from '../../src/modules/identity/passwords.js'
 import { recordPolicyVersion } from '../../src/platform/config/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
+import { verifyCountyOf } from '../fixtures/county.js'
 import { testConfig } from '../fixtures/env.js'
+import { verifyPropertyZone } from '../fixtures/zones.js'
 
 const ZONE = 'America/Kentucky/Louisville'
 const KEY: CodeKeySettings = readCodeKey({
@@ -202,6 +204,10 @@ async function project(): Promise<Project> {
     .select(['r.id', 'r.project_id', 'r.contact_id'])
     .where('r.reference', '=', reference)
     .executeTakeFirstOrThrow()
+  // TSK-0127: staff's address and county check, which a first confirmation needs.
+  await verifyCountyOf(t.db, row.project_id)
+  // TSK-0123: the property's zone is unknown until verified; these tests plan visits, so it is verified first.
+  await verifyPropertyZone(t.db, { projectId: row.project_id })
   const grant = await t.db
     .selectFrom('identity.project_access_grants')
     .select('id')

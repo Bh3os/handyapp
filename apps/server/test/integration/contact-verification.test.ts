@@ -15,12 +15,13 @@ import { createAutomationRegistry } from '../../src/platform/automation.js'
 import { createWorker } from '../../src/platform/jobs.js'
 import { createProviders } from '../../src/providers/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
+import { CODE_EMAIL_SUBJECT, codeEmailText, codeSmsText } from '../fixtures/code-message.js'
 import { testConfig } from '../fixtures/env.js'
 
 const KEY: CodeKeySettings = readCodeKey({ HANDYHUB_ENV: 'ci', CODE_HASH_KEY: 'synthetic-receipt-code-key-'.repeat(2) })
 const pw = ['synthetic', 'verification', 'passphrase', 'one'].join(' ')
-const OWNER_WORDING = (code: string) =>
-  `Your HandyHub verification code is ${code}. It expires in 10 minutes. If you did not ask for this code, you can ignore this message.`
+// TSK-0119: the email is the owner-style verification_code wording; the text keeps the OWN-DEC-150 wording.
+const OWNER_WORDING = codeSmsText
 
 let t: TestDatabase
 let app: FastifyInstance
@@ -276,8 +277,8 @@ describe('email and phone verified separately (TSK-0033, HH-INT-13, OWN-DEC-96)'
     expect((await contactRow(s.contactId)).email_verification).toBe('pending')
     const code = await deliveredCode(email)
     expect(lastText(email)).toMatchObject({
-      subject: 'Your HandyHub verification code',
-      text: OWNER_WORDING(code),
+      subject: CODE_EMAIL_SUBJECT,
+      text: codeEmailText(code),
     })
 
     const bad = await verify(s.cap, 'email', wrong(code))
@@ -658,7 +659,7 @@ describe('an existing email reveals nothing and links nothing (TSK-0033, T16, T2
     expect(sent.statusCode).toBe(202)
     expect(shape(sent.json())).toEqual(shape(sentFresh.json()))
     const code = await deliveredCode(email)
-    expect(lastText(email)?.text).toBe(OWNER_WORDING(code))
+    expect(lastText(email)?.text).toBe(codeEmailText(code))
     const verified = await verify(cap, 'email', code)
     const verifiedFresh = await verify(freshCap, 'email', await deliveredCode('never-seen@example.test'))
     expect(verified.statusCode).toBe(200)

@@ -21,18 +21,19 @@ export function useOwnerWrite(fetchImpl: Fetch, onSession?: (s: { csrfToken: str
     body: unknown,
     done: (r: OwnerWriteResult<R>) => void,
     headers: Record<string, string> = {},
+    method: 'POST' | 'PUT' = 'POST',
   ): Promise<void> {
     setPending(true)
     key.current = key.current ?? idempotencyKey()
     const r = await call<R>(fetchImpl, path, {
-      method: 'POST',
+      method,
       body,
       headers: { 'idempotency-key': key.current, ...headers },
     })
     setPending(false)
     if (r.ok || r.status < 500) key.current = null
     if (!r.ok && r.error.code === 'FRESH_AUTH_REQUIRED') {
-      setReauth(() => () => send(path, body, done, headers))
+      setReauth(() => () => send(path, body, done, headers, method))
       return
     }
     setReauth(null)

@@ -21,6 +21,12 @@
 // PROPOSED (OQ-CONFIRMATION-PRECONDITIONS): an intake review hold blocks confirmation of every visit of its project,
 // estimate visits included; the customer is told only that the time cannot be confirmed yet (and, when it is the
 // deposit, that it is due), never which hold or why.
+// Final owner amendments 2026-10-22 (TSK-0127, OWN-DEC-179, OWN-DEC-167): a ZIP-only coverage outcome is preliminary
+// screening. A visit is confirmed (by staff or by the customer's selection) and windows are offered only once staff
+// have verified the property's complete address and its county for its current address version, and that county is
+// in the service area (coverage: COUNTY_NOT_VERIFIED, COUNTY_OUTSIDE_AREA; an outside county needs the Owner's
+// exception, TSK-0126). Migration 0067 refuses the same confirmation in the database and records the verification.
+// Moving or reassigning an already confirmed visit does not ask again.
 import type { Db, Tx } from '@handyhub/db'
 import { BLOCKING_HOLD_STATES, CONFIRMATION_BLOCKING_HOLD_KINDS, isWorkVisitPurpose } from '@handyhub/domain'
 import type { FieldError } from '../../api/errors.js'
@@ -87,6 +93,30 @@ export async function blockingHoldProblems(db: Reader, projectId: string): Promi
     .orderBy('id')
     .execute()
   return rows.map((r) => field(`holds.${r.id}`, HOLD_CODES[r.kind as keyof typeof HOLD_CODES] ?? 'CRITICAL_HOLD_OPEN'))
+}
+
+/** The newest county verification of the project's property for its current address version, or null. */
+export async function currentCountyVerification(db: Reader, projectId: string) {
+  return (
+    (await db
+      .selectFrom('crm.projects as pj')
+      .innerJoin('crm.properties as p', 'p.id', 'pj.property_id')
+      .innerJoin('crm.property_county_verifications as v', (j) =>
+        j.onRef('v.property_id', '=', 'p.id').onRef('v.address_version', '=', 'p.address_version'),
+      )
+      .select(['v.id', 'v.state', 'v.county', 'v.in_area', 'v.address_version', 'v.verified_by', 'v.verified_at'])
+      .where('pj.id', '=', projectId)
+      .orderBy('v.seq', 'desc')
+      .limit(1)
+      .executeTakeFirst()) ?? null
+  )
+}
+
+/** The county check of a first confirmation: verified for the current address, and in the service area. */
+export async function countyVerificationProblems(db: Reader, projectId: string): Promise<FieldError[]> {
+  const v = await currentCountyVerification(db, projectId)
+  if (!v) return [field('coverage', 'COUNTY_NOT_VERIFIED')]
+  return v.in_area ? [] : [field('coverage', 'COUNTY_OUTSIDE_AREA')]
 }
 
 /**

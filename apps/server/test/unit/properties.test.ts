@@ -60,7 +60,9 @@ describe('property record contract (TSK-0045, HH-CRM-02, HH-CRM-03)', () => {
     expect(routes.map((r) => r.operationId)).toEqual([
       'getStaffProperty',
       'editPropertyAddress',
+      'verifyPropertyCounty',
       'editPropertyType',
+      'verifyPropertyTimeZone',
       'editPropertyDetail',
       'confirmPropertyDetail',
       'addAccessCode',

@@ -21,3 +21,22 @@ export const SYNTHETIC_RELATIONSHIP_FILE = [
   row('99904', '21903', 'Synthetic County', 100),
   '',
 ].join('\n')
+
+/**
+ * ZIPs of the owner's dataset (OWN-DEC-179, migration 0067): business data from the decision, not personal data. Each
+ * stands for one rule of the dataset-only rule set (verification NOT CONFIGURED).
+ */
+export const DATASET_ZIPS = {
+  /** Jefferson County, KY, Standard: SERVED. */
+  served: '40202',
+  /** Floyd County, IN, Standard: SERVED. */
+  servedIndiana: '47150',
+  /** Jefferson + Oldham, KY: EDGE. */
+  severalCounties: '40241',
+  /** Clark + Floyd + Washington, IN: EDGE. */
+  severalCountiesIndiana: '47106',
+  /** Jefferson County, KY, PO Box: UNKNOWN. */
+  poBox: '40201',
+  /** Jefferson County, KY, Unique: UNKNOWN. */
+  unique: '40225',
+} as const

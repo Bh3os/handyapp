@@ -309,7 +309,12 @@ BEGIN
     'work.visit_windows', 'work.visits', 'work.window_offer_options', 'work.window_offers',
     'work.work_package_sop_pins', 'work.work_packages',
     'work.visit_departures', 'work.time_stamps', 'work.time_stamp_corrections', 'work.work_package_loadouts',
-    'work.loadout_checks'
+    'work.loadout_checks',
+    -- Migrations 0065-0068 (TSK-0119, TSK-0123, TSK-0127, TSK-0130): append-only test records with no TRUNCATE
+    -- guard of their own; their configuration and reference data (template versions, the ZIP dataset, rule sets,
+    -- policy versions) is kept.
+    'platform.message_delivery_attempts', 'crm.property_time_zones', 'crm.property_county_verifications',
+    'estimating.publication_approvals'
   ] LOOP
     EXECUTE format(
       'CREATE TRIGGER %I BEFORE TRUNCATE ON %s FOR EACH STATEMENT WHEN (NOT staging.reset_permitted()) '

@@ -4,6 +4,7 @@
 // visibility class, possible duplicates (suggestions for review, never merged or linked here) and the activity
 // history. Staff text is English or Spanish (staff catalogs); the server decides every read and write and sends only
 // what the person's role may see (a restricted note arrives masked).
+import { ZONE_CHOICES, zoneFamily } from '@handyhub/domain/zones'
 import { LABEL_FAMILIES, type StaffKey, type StaffLocale } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
@@ -47,6 +48,8 @@ export type CustomerDetail = {
     email: string
     phone: string
     preferredChannel: string
+    /** TSK-0123: the contact's own zone for texts; unknown is flagged, never assumed. */
+    timeZone: { state: 'known' | 'unknown'; zone: string | null; family: string | null }
     isPrimary: boolean
     version: number
     verification: { email: string; phone: string }
@@ -516,6 +519,14 @@ function Contacts({ ctx }: { ctx: Ctx }) {
             </dd>
             <dt>{t('customer.preferredChannel')}</dt>
             <dd>{codeLabel(t, 'contactChannel', c.preferredChannel)}</dd>
+            <dt>{t('customer.contactZone')}</dt>
+            <dd data-testid="contact-zone">
+              {c.timeZone.state === 'known' && c.timeZone.zone ? (
+                t('zone.value', { zone: c.timeZone.zone, family: codeLabel(t, 'zoneFamily', c.timeZone.family ?? '') })
+              ) : (
+                <StatusBadge tone="warning">{t('customer.contactZoneUnknown')}</StatusBadge>
+              )}
+            </dd>
             <dt>{t('customer.permissionSms')}</dt>
             <dd>{permissionText(t, when, c.permissions.sms)}</dd>
             <dt>{t('customer.permissionMarketingEmail')}</dt>
@@ -552,6 +563,7 @@ function Contacts({ ctx }: { ctx: Ctx }) {
             </p>
           ) : null}
           {view.actions.edit && c.customerId === view.id ? <EditContact ctx={ctx} contact={c} /> : null}
+          {view.actions.edit && c.customerId === view.id ? <ContactZone ctx={ctx} contact={c} /> : null}
           {view.actions.recordWithdrawal && c.customerId === view.id ? <Withdrawal ctx={ctx} contact={c} /> : null}
         </article>
       ))}
@@ -622,6 +634,73 @@ function EditContact({ ctx, contact }: { ctx: Ctx; contact: Contact }) {
         maxLength={1000}
         required
         onChange={set('reason')}
+      />
+      {form.error ? <StateView kind="error" title={form.error} /> : null}
+      <div className="hh-button-row">
+        <Button type="submit" pending={form.pending}>
+          {t('customer.save')}
+        </Button>
+        <Button variant="quiet" onClick={() => setOpen(false)}>
+          {t('customer.cancel')}
+        </Button>
+      </div>
+    </form>
+  )
+}
+
+/** TSK-0123 (OWN-DEC-159 item 5): records the zone the contact receives texts in, as the customer gave it. */
+function ContactZone({ ctx, contact }: { ctx: Ctx; contact: Contact }) {
+  const { t, view } = ctx
+  const ids = useId()
+  const [open, setOpen] = useState(false)
+  const [zone, setZone] = useState(contact.timeZone.zone ?? '')
+  const [reason, setReason] = useState('')
+  const form = useForm(ctx)
+  if (!open)
+    return (
+      <p>
+        <Button variant="quiet" onClick={() => setOpen(true)}>
+          {t('customer.contactZoneSet')}
+        </Button>
+      </p>
+    )
+  return (
+    <form
+      className="staff-request__form"
+      aria-label={t('customer.contactZoneSet')}
+      onSubmit={(e) => {
+        e.preventDefault()
+        void form.run(
+          () =>
+            ctx.write(
+              `/staff/customers/${view.id}/contacts/${contact.id}/time-zone`,
+              'PUT',
+              { timeZone: zone === '' ? null : zone, reason },
+              contact.version,
+            ),
+          () => setOpen(false),
+        )
+      }}
+    >
+      <p className="staff-request__hint">{t('customer.contactZoneHint')}</p>
+      <div className="staff-queue__select">
+        <label htmlFor={`${ids}-zone`}>{t('zone.field')}</label>
+        <select id={`${ids}-zone`} value={zone} onChange={(e) => setZone(e.target.value)}>
+          <option value="">{t('customer.contactZoneNone')}</option>
+          {ZONE_CHOICES.map((z) => (
+            <option key={z} value={z}>
+              {t('zone.value', { zone: z, family: codeLabel(t, 'zoneFamily', zoneFamily(z) ?? '') })}
+            </option>
+          ))}
+        </select>
+      </div>
+      <Field
+        label={t('customer.reason')}
+        hint={t('customer.reasonHint')}
+        value={reason}
+        maxLength={1000}
+        required
+        onChange={(e) => setReason(e.target.value)}
       />
       {form.error ? <StateView kind="error" title={form.error} /> : null}
       <div className="hh-button-row">

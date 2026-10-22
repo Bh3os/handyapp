@@ -17,7 +17,7 @@
 // - Idempotent across a lost reply: the run names the request's idempotency scope, and a retry of a completed run is
 //   answered with that run (findCompletedRun) instead of resetting again.
 // - Kept: staff accounts, roles and grants, staff sessions, the service catalog and SOP versions, configuration
-//   (policy versions), message templates, coverage (ZIP) rules, equipment, working hours and time off, the audit log,
+//   (policy versions), message templates, coverage (ZIP) rules and the ZIP dataset, equipment, working hours and time off, the audit log,
 //   schema migrations, rate limits, the staging trail itself and the designated reusable test accounts.
 import { withTx, type Db, type Tx } from '@handyhub/db'
 import { sql } from 'kysely'
@@ -53,6 +53,9 @@ export const CLEARED_CATEGORIES = {
     'crm.property_changes',
     'crm.access_instruction_secrets',
     'crm.access_code_reveals',
+    // TSK-0123 (0066): the zone history of each property; TSK-0127 (0067): staff's address-and-county checks.
+    'crm.property_time_zones',
+    'crm.property_county_verifications',
   ],
   requests: [
     'crm.projects',
@@ -81,6 +84,8 @@ export const CLEARED_CATEGORIES = {
     'estimating.customer_responses',
     'estimating.approval_selections',
     'estimating.approvals',
+    // TSK-0130 (0068): the Owner's publication approvals of estimate versions.
+    'estimating.publication_approvals',
   ],
   appointments: [
     'work.visits',
@@ -124,7 +129,12 @@ export const CLEARED_CATEGORIES = {
     'comms.project_reply_tokens',
     'platform.webhook_receipts',
   ],
-  notifications: ['platform.message_deliveries', 'platform.message_delivery_events'],
+  // TSK-0119 (0065): every provider attempt of a delivery.
+  notifications: [
+    'platform.message_deliveries',
+    'platform.message_delivery_events',
+    'platform.message_delivery_attempts',
+  ],
   attachments: ['intake.photos', 'intake.question_reply_photos'],
   pending_messages: ['platform.outbox_events', 'platform.jobs'],
   sessions: [
@@ -194,6 +204,9 @@ export const PRESERVED = {
   message_templates: 'platform.message_template_versions',
   coverage_rule_sets: 'platform.coverage_rule_sets',
   coverage_rules: 'platform.coverage_rules',
+  // TSK-0127 (0067): the owner's service-area ZIP dataset (OWN-DEC-179), versioned policy data.
+  coverage_zip_datasets: 'platform.coverage_zip_datasets',
+  coverage_zip_entries: 'platform.coverage_zip_entries',
   equipment: 'work.equipment',
   worker_schedules: 'work.worker_schedules',
   working_hours: 'work.working_hours',

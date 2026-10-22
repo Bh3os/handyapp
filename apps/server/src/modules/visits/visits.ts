@@ -36,6 +36,7 @@
 //   The customer's selection of a work-visit window confirms the visit, so it runs the same deposit gate in its
 //   transaction (offers.ts).
 import { withTx, type Db, type Tx } from '@handyhub/db'
+import { COVERAGE_CODE, type CoverageOutcome } from '@handyhub/domain/coverage'
 import {
   canChangeWindow,
   onSiteRange,
@@ -70,7 +71,12 @@ import {
 } from './changes.js'
 import { unmetGates, WORK_VISIT_GATES, type WorkVisitGate } from './gates.js'
 import { noticesOf, recordReserved, staffOffers, windowOfferPolicy } from './offers.js'
-import { confirmationPreconditions, WORK_VISIT_PROJECT_STATES } from './preconditions.js'
+import {
+  confirmationPreconditions,
+  countyVerificationProblems,
+  currentCountyVerification,
+  WORK_VISIT_PROJECT_STATES,
+} from './preconditions.js'
 
 export { WORK_VISIT_PROJECT_STATES } from './preconditions.js'
 
@@ -204,7 +210,7 @@ export const visitHoursOf = (config: Config) => {
   return h.state === 'CONFIGURED' ? { open: h.value.open, close: h.value.close } : null
 }
 
-type ProjectRow = { id: string; state: string; property_id: string; time_zone: string }
+type ProjectRow = { id: string; state: string; property_id: string; time_zone: string | null }
 
 async function lockedProject(tx: Tx, projectId: string): Promise<ProjectRow> {
   const p = await tx
@@ -554,6 +560,8 @@ export async function confirmVisit(
   // the deposit gate of TSK-0059 for a work visit (run here whatever gates the module was given; an estimate visit
   // never waits for a deposit), the other registered gates and no blocking hold on the project.
   problems.push(...(await confirmationPreconditions(tx, v, deps.gates)))
+  // TSK-0127 (final owner amendments 2026-10-22): the property's address and county verified by staff.
+  problems.push(...(await countyVerificationProblems(tx, v.project_id)))
   // Without the expected work there is no range to check or offer alternatives for.
   if (v.expected_duration_minutes === null || v.required_workers === null)
     throw new ApiError('CONFLICT', { fieldErrors: problems })
@@ -605,6 +613,21 @@ export async function confirmVisit(
 }
 
 type StaffRef = { id: string; name: string | null }
+
+/** The property's county verification for its current address, for the visits view (null while none). */
+async function countyVerificationView(db: Reader, projectId: string) {
+  const v = await currentCountyVerification(db, projectId)
+  if (!v) return null
+  const by = (await staffNames(db, [v.verified_by])).get(v.verified_by) ?? { id: v.verified_by, name: null }
+  return {
+    state: v.state,
+    county: v.county,
+    inArea: v.in_area,
+    addressVersion: v.address_version,
+    verifiedBy: by,
+    verifiedAt: new Date(v.verified_at).toISOString(),
+  }
+}
 
 export async function staffNames(db: Reader, ids: string[]): Promise<Map<string, StaffRef>> {
   const wanted = [...new Set(ids)]
@@ -675,6 +698,7 @@ export async function confirmationBlockers(
   if (v.expected_duration_minutes === null) out.push(field('visit.expectedDurationMinutes', 'DURATION_NOT_ENTERED'))
   if (v.required_workers === null) out.push(field('visit.requiredWorkers', 'WORKERS_NOT_ENTERED'))
   out.push(...(await withTx(db, (tx) => confirmationPreconditions(tx, v, gates))))
+  out.push(...(await countyVerificationProblems(db, v.project_id)))
   return out
 }
 
@@ -723,7 +747,7 @@ export function visitActions(
       c.hours &&
       c.offerPolicy &&
       facts &&
-      !blockers.some((b) => b.field === 'approval' || b.field.startsWith('holds.')) &&
+      !blockers.some((b) => b.field === 'approval' || b.field === 'coverage' || b.field.startsWith('holds.')) &&
       !openOffer,
   }
 }
@@ -744,7 +768,7 @@ export async function projectVisits(
   const project = await db
     .selectFrom('crm.projects as p')
     .innerJoin('crm.properties as pr', 'pr.id', 'p.property_id')
-    .select(['p.id', 'p.state', 'pr.time_zone'])
+    .select(['p.id', 'p.state', 'pr.time_zone', 'pr.coverage_result', 'pr.coverage_reason'])
     .where('p.id', '=', projectId)
     .executeTakeFirst()
   if (!project) throw new ApiError('NOT_FOUND')
@@ -878,6 +902,14 @@ export async function projectVisits(
     projectId: project.id,
     projectState: project.state,
     timeZone: project.time_zone,
+    // TSK-0127 (OWN-DEC-179, OWN-DEC-167): the property's coverage, shown beside visit confirmation; staff, not the
+    // checker, accept it (the recorded site checks are TSK-0126).
+    coverage: {
+      result: project.coverage_result,
+      code: COVERAGE_CODE[project.coverage_result as CoverageOutcome],
+      reason: project.coverage_reason,
+      countyVerification: await countyVerificationView(db, project.id),
+    },
     businessTimeZone: business ? { zone: business.value.zone, proposed: business.proposed } : null,
     visitHours: hours,
     windowOffers: offerPolicy

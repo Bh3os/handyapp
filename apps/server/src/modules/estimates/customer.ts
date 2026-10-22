@@ -23,7 +23,8 @@
 import type { Db, Tx } from '@handyhub/db'
 import { estimateTermsDocument, estimateTermsInEffect } from '@handyhub/domain/legal'
 import type { CustomerActor, DataScope } from '@handyhub/policy'
-import { loadConfig } from '../../platform/config/index.js'
+import { customerDisplayZone, knownPropertyZone } from '@handyhub/domain'
+import { loadConfig, type Config } from '../../platform/config/index.js'
 import type { ObjectStorage } from '../../providers/index.js'
 import { legalVersions } from '../legal/index.js'
 import { findProject } from '../records/index.js'
@@ -137,6 +138,8 @@ export type CustomerEstimateDetail = {
   issuerName: string | null
   publishedAt: Date
   validUntil: Date | null
+  /** TSK-0123: the property's zone, or the business zone (business: true) while the property's zone is unknown. */
+  validUntilZone: { zone: string; business: boolean } | null
   lines: {
     position: number
     kind: string
@@ -177,6 +180,23 @@ export type CustomerEstimateDetail = {
   actions: { requestChanges: boolean; decline: boolean; requestUpdate: boolean }
   freshVerification: boolean
   responses: ResponseRecord[]
+}
+
+/**
+ * The zone a version's expiry is shown in (TSK-0123; OWN-DEC-159 item 12): computed in business time (the stored
+ * valid-until instant), shown in the property's own zone when it is known, otherwise in the business zone, said so.
+ */
+async function validityZone(db: Reader, projectId: string, config: Config) {
+  const p = await db
+    .selectFrom('crm.projects as p')
+    .innerJoin('crm.properties as pr', 'pr.id', 'p.property_id')
+    .select(['pr.time_zone', 'pr.time_zone_status'])
+    .where('p.id', '=', projectId)
+    .executeTakeFirst()
+  const business = config.get('business.timezone')
+  const known = p ? knownPropertyZone({ zone: p.time_zone, status: p.time_zone_status }) : null
+  if (business.state !== 'CONFIGURED') return known ? { zone: known, business: false } : null
+  return customerDisplayZone(known, business.value.zone)
 }
 
 /**
@@ -234,6 +254,7 @@ export async function customerEstimateDetail(
     issuerName: name.state === 'CONFIGURED' ? name.value.documentName : null,
     publishedAt: new Date(c.publishedAt),
     validUntil: c.validUntil ? new Date(c.validUntil) : null,
+    validUntilZone: await validityZone(db, row.project_id, config),
     lines: c.lines.map((l) => ({
       position: l.position,
       kind: l.kind,

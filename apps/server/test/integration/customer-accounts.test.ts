@@ -292,6 +292,9 @@ async function enableContactNotice() {
   })
   const list = (await loadConfig(t.db)).get('messages.automatic')
   if (list.state !== 'CONFIGURED') throw new Error('messages.automatic is seeded')
+  // TSK-0119: version 2 of the list already makes the notice automatic (OWN-DEC-152); the synthetic version above,
+  // newer than the owner wording whose values TSK-0120 wires, is what makes it ready in this test database.
+  if (list.value.customer.includes('account.contact_changed')) return
   await recordPolicyVersion(t.db, {
     key: 'messages.automatic',
     value: { ...list.value, customer: [...list.value.customer, 'account.contact_changed'] },

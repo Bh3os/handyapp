@@ -5,6 +5,8 @@
 // for a short time and never kept anywhere in the browser (no storage, no cache; the value lives only in this
 // screen's memory and is dropped when the time is up, the tab is hidden or the screen closes). Staff text is English
 // or Spanish (staff catalogs); the server decides every read and write.
+import { SERVICE_AREA } from '@handyhub/domain/areas'
+import { ZONE_CHOICES, zoneFamily } from '@handyhub/domain/zones'
 import { LABEL_FAMILIES, type StaffKey, type StaffLocale } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type MouseEvent, type ReactNode } from 'react'
@@ -15,14 +17,47 @@ type T = (key: StaffKey, values?: Record<string, string | number>) => string
 type StaffRef = { id: string; name: string | null }
 type Address = { street: string; unit: string | null; city: string; state: string; zip: string }
 
+export type CountyVerification = {
+  state: string
+  county: string
+  inArea: boolean
+  addressVersion: number
+  verifiedBy: StaffRef
+  verifiedAt: string
+}
+
 export type PropertyDetailView = {
   id: string
   version: number
   address: Address
   addressVersion: number
   propertyType: string
-  timeZone: string
+  /** TSK-0123: null while the zone is unknown (flagged for verification, never assumed). */
+  timeZone: string | null
+  zone: {
+    zone: string | null
+    status: 'unknown' | 'derived' | 'verified'
+    basis: string
+    family: string | null
+    counties: string[]
+    version: number
+  }
+  zoneHistory: {
+    version: number
+    zone: string | null
+    status: string
+    basis: string
+    counties: string[]
+    previousZone: string | null
+    reason: string | null
+    by: StaffRef | null
+    at: string
+  }[]
   coverage: string
+  /** TSK-0127: why the property has its coverage outcome (null before reasons were recorded). */
+  coverageReason?: string | null
+  /** TSK-0127: staff's verification of the address and county for the current address version; null while none. */
+  countyVerification?: CountyVerification | null
   createdAt: string
   details: {
     detail: string
@@ -76,7 +111,13 @@ export type PropertyDetailView = {
     }[]
   }
   history: { at: string; detail: string; action: string; source: string; by: StaffRef | null; reason: string }[]
-  actions: { edit: boolean; setAccessCodes: boolean; revealAccessCodes: boolean }
+  actions: {
+    edit: boolean
+    setAccessCodes: boolean
+    revealAccessCodes: boolean
+    verifyCounty?: boolean
+    verifyTimeZone: boolean
+  }
 }
 
 export type Revealed = {
@@ -116,6 +157,9 @@ function writeError(t: T, error: ApiErrorBody): string {
   if (codes.includes('ACCESS_CODE_REMOVED')) return t('property.codeRemovedAlready')
   if (codes.includes('ACCESS_CODE_UNREADABLE')) return t('property.codeUnreadable')
   if (codes.includes('DETAIL_NOT_RECORDED')) return t('property.detailNotRecorded')
+  if (codes.includes('ADDRESS_VERSION_CHANGED')) return t('property.stale')
+  if (codes.includes('ZONE_NOT_SUPPORTED')) return t('zone.notSupported')
+  if (codes.includes('ZONE_COUNTY_MISMATCH')) return t('zone.countyMismatch')
   if (error.code === 'VALIDATION_FAILED') return t('customer.invalid')
   if (error.code === 'FORBIDDEN') return t('error.FORBIDDEN')
   if (error.code === 'RATE_LIMITED') return t('property.revealLimited')
@@ -244,13 +288,20 @@ export function PropertyRecord({
         <dt>{t('property.type')}</dt>
         <dd>{codeLabel(t, 'propertyType', view.propertyType)}</dd>
         <dt>{t('property.coverage')}</dt>
-        <dd>{codeLabel(t, 'coverageResult', view.coverage)}</dd>
+        <dd data-testid="property-coverage">
+          {codeLabel(t, 'coverageResult', view.coverage)}
+          {view.coverageReason ? ` · ${codeLabel(t, 'coverageReason', view.coverageReason)}` : ''}
+        </dd>
         <dt>{t('property.timeZone')}</dt>
-        <dd>{view.timeZone}</dd>
+        <dd data-testid="property-zone">
+          <ZoneText t={t} zone={view.zone.zone} family={view.zone.family} />
+        </dd>
         <dt>{t('property.created')}</dt>
         <dd>{ctx.when(view.createdAt)}</dd>
       </dl>
       <AddressSection ctx={ctx} />
+      <CountySection ctx={ctx} />
+      <TimeZoneSection ctx={ctx} />
       <Details ctx={ctx} />
       {view.accessCodes.visible ? <AccessCodes ctx={ctx} /> : null}
       <Customers ctx={ctx} />
@@ -353,6 +404,132 @@ function ConfirmForm({ ctx, detail, label }: { ctx: Ctx; detail: string; label: 
       {form.error ? <StateView kind="error" title={form.error} /> : null}
       <FormButtons t={t} pending={form.pending} onCancel={() => setOpen(false)} />
     </form>
+  )
+}
+
+/** The verification text of a recorded county check (TSK-0127), shown here and beside visit confirmation. */
+export function countyVerificationText(t: T, v: CountyVerification, when: (iso: string) => string): string {
+  return t(v.inArea ? 'property.county.verifiedInside' : 'property.county.verifiedOutside', {
+    county: v.county,
+    state: v.state,
+    name: v.verifiedBy.name ?? t('property.staffMember'),
+    time: when(v.verifiedAt),
+    version: v.addressVersion,
+  })
+}
+
+const OTHER_COUNTY = 'other'
+
+/**
+ * TSK-0127 (final owner amendments 2026-10-22): a ZIP check is preliminary screening. Staff check the complete address
+ * of the current address version and record its county before a first visit can be confirmed.
+ */
+function CountySection({ ctx }: { ctx: Ctx }) {
+  const { t, view, when } = ctx
+  const ids = useId()
+  const [open, setOpen] = useState(false)
+  const [choice, setChoice] = useState('')
+  const [state, setState] = useState('')
+  const [county, setCounty] = useState('')
+  const [checked, setChecked] = useState(false)
+  const [note, setNote] = useState('')
+  const form = useForm(ctx)
+  const current = view.countyVerification ?? null
+  const picked = SERVICE_AREA.find((c) => `${c.state}:${c.county}` === choice)
+  const ready = checked && (picked !== undefined || (choice === OTHER_COUNTY && state.trim() && county.trim()))
+  return (
+    <Section id="property-county" title={t('property.county.title')}>
+      <p className="staff-request__hint">{t('property.county.hint')}</p>
+      <p data-testid="property-county">
+        {current ? countyVerificationText(t, current, when) : t('property.county.none')}
+      </p>
+      {view.actions.verifyCounty && !open ? (
+        <Button variant="secondary" onClick={() => setOpen(true)}>
+          {t('property.county.record')}
+        </Button>
+      ) : null}
+      {open ? (
+        <form
+          className="staff-request__form"
+          aria-label={t('property.county.record')}
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (!ready) return
+            void form.run(
+              () =>
+                ctx.write(
+                  `/staff/properties/${view.id}/county-verification`,
+                  'POST',
+                  {
+                    addressVersion: view.addressVersion,
+                    addressChecked: true,
+                    state: picked ? picked.state : state.trim(),
+                    county: picked ? picked.county : county.trim(),
+                    note: note.trim() === '' ? null : note.trim(),
+                  },
+                  { version: view.version },
+                ),
+              () => (setOpen(false), setChecked(false), setNote('')),
+            )
+          }}
+        >
+          <p>{formatAddress(view.address)}</p>
+          <div className="staff-queue__select">
+            <label htmlFor={`${ids}-county`}>{t('property.county.county')}</label>
+            <select id={`${ids}-county`} value={choice} required onChange={(e) => setChoice(e.target.value)}>
+              <option value="">{t('property.county.choose')}</option>
+              {SERVICE_AREA.map((c) => (
+                <option key={`${c.state}:${c.county}`} value={`${c.state}:${c.county}`}>
+                  {t('property.county.name', { county: c.county, state: c.state })}
+                </option>
+              ))}
+              <option value={OTHER_COUNTY}>{t('property.county.other')}</option>
+            </select>
+          </div>
+          {choice === OTHER_COUNTY ? (
+            <>
+              <Field
+                label={t('property.state')}
+                value={state}
+                maxLength={2}
+                required
+                onChange={(e) => setState(e.target.value)}
+              />
+              <Field
+                label={t('property.county.otherName')}
+                value={county}
+                maxLength={100}
+                required
+                onChange={(e) => setCounty(e.target.value)}
+              />
+            </>
+          ) : null}
+          <label className="staff-request__check">
+            <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} />{' '}
+            {t('property.county.addressChecked')}
+          </label>
+          <Field
+            label={t('property.county.note')}
+            value={note}
+            maxLength={1000}
+            onChange={(e) => setNote(e.target.value)}
+          />
+          {form.error ? <StateView kind="error" title={form.error} /> : null}
+          <div className="hh-button-row">
+            <Button
+              type="submit"
+              pending={form.pending}
+              {...(ready ? {} : { disabledReason: t('property.county.needed') })}
+            >
+              {t('property.county.record')}
+            </Button>
+            <Button variant="quiet" onClick={() => setOpen(false)}>
+              {t('customer.cancel')}
+            </Button>
+          </div>
+        </form>
+      ) : null}
+    </Section>
   )
 }
 
@@ -470,6 +647,107 @@ function AddressSection({ ctx }: { ctx: Ctx }) {
       ) : (
         <p>{t('property.noFormerAddresses')}</p>
       )}
+    </Section>
+  )
+}
+
+/** A zone as staff read it: "America/Chicago (Central time)", or Unknown (OWN-DEC-159 item 6: the zone is always named). */
+export function ZoneText({ t, zone, family }: { t: T; zone: string | null; family: string | null }) {
+  if (!zone) return <StatusBadge tone="warning">{t('zone.unknown')}</StatusBadge>
+  return <>{t('zone.value', { zone, family: codeLabel(t, 'zoneFamily', family ?? '') })}</>
+}
+
+/**
+ * TSK-0123 (OWN-DEC-159): the property's zone, its state and what it rests on, the verification form (zone and the
+ * county of the verified address, with a reason) and the zone history.
+ */
+function TimeZoneSection({ ctx }: { ctx: Ctx }) {
+  const { t, view, when } = ctx
+  const ids = useId()
+  const [open, setOpen] = useState(false)
+  const [zone, setZone] = useState<string>(view.zone.zone ?? ZONE_CHOICES[0])
+  const [county, setCounty] = useState('')
+  const [reason, setReason] = useState('')
+  const form = useForm(ctx)
+  const z = view.zone
+  return (
+    <Section id="property-time-zone" title={t('zone.title')}>
+      <p data-testid="property-zone-state">
+        <ZoneText t={t} zone={z.zone} family={z.family} />{' '}
+        <StatusBadge tone={z.status === 'verified' ? 'success' : z.status === 'derived' ? 'info' : 'warning'}>
+          {codeLabel(t, 'zoneStatus', z.status)}
+        </StatusBadge>
+      </p>
+      <p className="staff-request__hint">
+        {codeLabel(t, 'zoneBasis', z.basis)}
+        {z.counties.length ? ` ${t('zone.counties', { counties: z.counties.join(', ') })}` : ''}
+      </p>
+      {z.status === 'unknown' ? <StateView kind="blocked" title={t('zone.unknownHint')} /> : null}
+      {view.actions.verifyTimeZone && !open ? (
+        <div className="hh-button-row">
+          <Button variant="secondary" onClick={() => setOpen(true)}>
+            {t('zone.verify')}
+          </Button>
+        </div>
+      ) : null}
+      {open ? (
+        <form
+          className="staff-request__form"
+          aria-label={t('zone.verify')}
+          onSubmit={(e) => {
+            e.preventDefault()
+            void form.run(
+              () =>
+                ctx.write(
+                  `/staff/properties/${view.id}/time-zone`,
+                  'PUT',
+                  { timeZone: zone, county, reason },
+                  { version: view.version },
+                ),
+              () => (setOpen(false), setReason(''), setCounty('')),
+            )
+          }}
+        >
+          <p className="staff-request__hint">{t('zone.verifyHint')}</p>
+          <div className="staff-queue__select">
+            <label htmlFor={`${ids}-zone`}>{t('zone.field')}</label>
+            <select id={`${ids}-zone`} value={zone} onChange={(e) => setZone(e.target.value)}>
+              {ZONE_CHOICES.map((c) => (
+                <option key={c} value={c}>
+                  {t('zone.value', { zone: c, family: codeLabel(t, 'zoneFamily', zoneFamily(c) ?? '') })}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Field
+            label={t('zone.county')}
+            hint={t('zone.countyHint', { state: view.address.state })}
+            value={county}
+            maxLength={60}
+            required
+            onChange={(e) => setCounty(e.target.value)}
+          />
+          <ReasonField t={t} value={reason} onChange={setReason} />
+          {form.error ? <StateView kind="error" title={form.error} /> : null}
+          <FormButtons t={t} pending={form.pending} onCancel={() => setOpen(false)} />
+        </form>
+      ) : null}
+      <h3 className="hh-h5">{t('zone.history')}</h3>
+      <ul className="staff-request__list" data-testid="property-zone-history">
+        {view.zoneHistory.map((h) => (
+          <li key={h.version}>
+            {t('zone.historyEntry', {
+              n: h.version,
+              zone: h.zone ?? t('zone.unknown'),
+              status: codeLabel(t, 'zoneStatus', h.status),
+              basis: codeLabel(t, 'zoneBasis', h.basis),
+              time: when(h.at),
+            })}
+            {h.previousZone ? ` ${t('zone.replaced', { zone: h.previousZone })}` : ''}
+            {h.reason ? ` ${t('zone.historyReason', { name: who(t, h.by), reason: h.reason })}` : ''}
+          </li>
+        ))}
+      </ul>
     </Section>
   )
 }

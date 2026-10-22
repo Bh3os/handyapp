@@ -98,7 +98,7 @@ export type RequestDetail = {
   }
   /** The badges describe the contact's current values; a verified Change Contact (TSK-0033) can differ from those sent. */
   contactVerification: { email: string; phone: string; current: { email: string; phone: string } }
-  coverage: { result: string; ruleSet: number | null }
+  coverage: { result: string; code?: string; reason?: string | null; ruleSet: number | null }
   responsibleStaff: StaffRef | null
   assignments: { staff: StaffRef; previous: StaffRef | null; by: StaffRef; at: string }[]
   qualification: {
@@ -477,7 +477,10 @@ function Original({ t, view, photos }: { t: T; view: RequestDetail; photos: Phot
           {p.unit ? `, ${p.unit}` : ''}, {p.city}, {p.state} {p.zip} ({codeLabel(t, 'propertyType', p.propertyType)})
         </dd>
         <dt>{t('request.coverage')}</dt>
-        <dd>{codeLabel(t, 'coverageResult', view.coverage.result)}</dd>
+        <dd data-testid="request-coverage">
+          {codeLabel(t, 'coverageResult', view.coverage.result)}
+          {view.coverage.reason ? ` · ${codeLabel(t, 'coverageReason', view.coverage.reason)}` : ''}
+        </dd>
         <dt>{t('request.timing')}</dt>
         <dd>
           {o.timing.flexible || !o.timing.preferredDate

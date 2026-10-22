@@ -122,11 +122,18 @@ export async function createFreshTestData(deps: FreshDataDeps): Promise<Scenario
   // Each booked visit takes a later day than the one before, so the fictional appointments never compete for a worker.
   let firstDay = 2
 
-  const zip = async (tx: Tx): Promise<string> => {
-    const { rows } = await sql<{ zip5: string }>`SELECT zip5 FROM platform.coverage_rules
-      WHERE disposition = 'in_coverage' ORDER BY rule_set DESC, zip5 LIMIT 1`.execute(tx)
-    // A ZIP outside every list is "coverage unknown": the request is still taken, for staff to review.
-    return rows[0]?.zip5 ?? '40000'
+  // A Kentucky ZIP of the active coverage rules that lies in one service county (SERVED), with that county: the
+  // fictional property's address uses the ZIP, and staff's address-and-county check records the county the rules
+  // name for it (TSK-0127). A ZIP outside every list is "coverage unknown": the request is still taken, for staff to
+  // review, and no county is known for it.
+  const zip = async (tx: Tx): Promise<{ zip5: string; county: string | null }> => {
+    const { rows } = await sql<{ zip5: string; county: string }>`SELECT r.zip5, r.counties[1] AS county
+      FROM platform.coverage_rules r JOIN platform.coverage_rule_sets s ON s.version = r.rule_set
+      WHERE s.status = 'active' AND r.disposition = 'in_coverage' AND cardinality(r.counties) = 1
+        AND r.counties[1] LIKE 'KY:%'
+      ORDER BY r.zip5 LIMIT 1`.execute(tx)
+    const row = rows[0]
+    return row ? { zip5: row.zip5, county: row.county.slice(3) } : { zip5: '40000', county: null }
   }
 
   const services = async (tx: Tx): Promise<string[]> => {
@@ -162,7 +169,7 @@ export async function createFreshTestData(deps: FreshDataDeps): Promise<Scenario
         unit: `Test ${tag}`,
         city: 'Testville',
         state: 'KY',
-        zip: await zip(tx),
+        zip: (await zip(tx)).zip5,
         propertyType: 'house',
       },
       timing: { flexible: true, needHelpToday: false, windows: ['mornings'] },
@@ -362,6 +369,57 @@ export async function createFreshTestData(deps: FreshDataDeps): Promise<Scenario
     return true
   }
 
+  /**
+   * Staff's property checks before a visit, through the property routes (audited like any staff change): the
+   * property's time zone (TSK-0123, OWN-DEC-159: an unknown zone plans nothing) and the address-and-county check a
+   * first confirmation needs (TSK-0127, OWN-DEC-167). The fictional property lies in the county the coverage rules
+   * name for its ZIP, in the business zone (PROPOSED for test data only, never a statement about a real address).
+   */
+  async function propertyChecked(tx: Tx, projectId: string, zone: string) {
+    const area = await zip(tx)
+    if (!area.county) throw new Blocked('verify_county', ['NOT_CONFIGURED', 'coverage.rules'])
+    const property = async () =>
+      tx
+        .selectFrom('crm.projects as pj')
+        .innerJoin('crm.properties as p', 'p.id', 'pj.property_id')
+        .select(['p.id', 'p.version', 'p.address_version', 'p.time_zone_status'])
+        .where('pj.id', '=', projectId)
+        .executeTakeFirstOrThrow()
+    let p = await property()
+    if (p.time_zone_status === 'unknown')
+      await step('verify_time_zone', () =>
+        invoke(tx, 'verifyPropertyTimeZone', {
+          params: { propertyId: p.id },
+          body: { timeZone: zone, county: area.county, reason: `${FICTIONAL}: the test property's time zone.` },
+          version: p.version,
+          as: owner,
+        }),
+      )
+    p = await property()
+    const checked = await tx
+      .selectFrom('crm.property_county_verifications')
+      .select('id')
+      .where('property_id', '=', p.id)
+      .where('address_version', '=', p.address_version)
+      .where('in_area', '=', true)
+      .executeTakeFirst()
+    if (!checked)
+      await step('verify_county', () =>
+        invoke(tx, 'verifyPropertyCounty', {
+          params: { propertyId: p.id },
+          body: {
+            addressVersion: p.address_version,
+            addressChecked: true,
+            state: 'KY',
+            county: area.county,
+            note: `${FICTIONAL}: the county of the test property's ZIP code in the coverage rules.`,
+          },
+          version: p.version,
+          as: owner,
+        }),
+      )
+  }
+
   /** A tentative visit planned and confirmed with an eligible worker inside their hours and the visit hours. */
   async function booked(tx: Tx, projectId: string, purpose: 'site_estimate' | 'service') {
     const config = await loadConfig(tx)
@@ -369,6 +427,7 @@ export async function createFreshTestData(deps: FreshDataDeps): Promise<Scenario
     const hours = config.get('contact.hours')
     if (zone.state !== 'CONFIGURED' || hours.state !== 'CONFIGURED')
       throw new Blocked('plan_visit', ['NOT_CONFIGURED', 'business.timezone|contact.hours'])
+    await propertyChecked(tx, projectId, zone.value.zone)
     const minutes = (hm: string) => Number(hm.slice(0, 2)) * 60 + Number(hm.slice(3, 5))
     const workers = await tx
       .selectFrom('identity.staff_users as u')

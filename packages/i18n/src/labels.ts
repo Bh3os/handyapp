@@ -86,6 +86,8 @@ export const LABEL_FAMILIES = {
     'deposit_due',
     'visit_flagged',
     'loadout_shortage',
+    // TSK-0123: a property whose time zone is unknown.
+    'property_time_zone',
     'deposit_waiver',
     'start_work_exception',
     'refund_request',
@@ -94,6 +96,8 @@ export const LABEL_FAMILIES = {
     'invoice_overdue_decision',
     'cancellation_review',
     'visit_cancellation_review',
+    // TSK-0130: an estimate version waiting for the Owner's approval before publishing.
+    'estimate_publication_approval',
     'incident_notification',
   ],
   /** Why a queue item needs action (HH-OPS-02 "reason"). */
@@ -145,6 +149,21 @@ export const LABEL_FAMILIES = {
     'critical_shortage',
     // TSK-0067: an appointment reminder draft waiting for release.
     'appointment_reminder',
+    // TSK-0130: why a document waits for the Owner's approval before publishing.
+    'threshold_not_configured',
+    'over_threshold',
+    'options_over_threshold',
+    'change_order_adjustment',
+    'revised_project_value',
+    'combined_project_total',
+    'adjustment_over_threshold',
+    'negative_margin',
+    'discretionary_discount',
+    'discretionary_credit',
+    'refund',
+    'undocumented_correction',
+    // TSK-0123: the property's time zone is unknown.
+    'time_zone_unknown',
   ],
   /** The one action button of a queue item (HH-OPS-02); it opens the record's screen. */
   queueAction: [
@@ -164,6 +183,7 @@ export const LABEL_FAMILIES = {
     'review_deposit',
     'reassign_visit',
     'review_shortage',
+    'verify_time_zone',
   ],
   /**
    * System health (TSK-0101; HH-NFR-02): the checks, their states, metrics and notes, as the server's health report
@@ -227,6 +247,8 @@ export const LABEL_FAMILIES = {
     'tax.mode',
     'estimate.validity',
     'estimate.publishing_roles',
+    'owner_approval.threshold',
+    'owner_approval.discretionary_credit',
     'payment.term_default',
     'payment.methods',
     'payment.instructions',
@@ -250,6 +272,7 @@ export const LABEL_FAMILIES = {
     'messages.automatic',
     'sms.help_reply',
     'coverage.area',
+    'coverage.verification_source',
     'request.window_hours',
     'estimate.visit_fee',
     'legal.privacy_notice',
@@ -267,8 +290,25 @@ export const LABEL_FAMILIES = {
     'retention.safety_records',
     'scheduling.window_offers',
     'visit.on_my_way',
+    'geo.county_time_zones',
+    'sms.unknown_zone_hours',
     'ai.module',
   ],
+  /** A property's time-zone state and what it rests on (TSK-0123; @handyhub/domain zones.ts). */
+  zoneStatus: ['unknown', 'derived', 'verified'],
+  zoneBasis: [
+    'zip_counties',
+    'verified_county',
+    'no_zip_rule',
+    'zip_outside_area',
+    'zip_boundary',
+    'county_map_not_configured',
+    'county_not_mapped',
+    'counties_disagree',
+    'assumption_withdrawn',
+  ],
+  /** The supported US zone families (OWN-DEC-159: Eastern and Central). */
+  zoneFamily: ['eastern', 'central'],
   /** Staff qualification of a request (TSK-0042; HH-LEAD-02). */
   qualificationCheck: [
     'coverage',
@@ -308,6 +348,19 @@ export const LABEL_FAMILIES = {
   verificationState: ['unverified', 'pending', 'verified', 'expired', 'failed'],
   /** ZIP coverage outcomes (OWN-DEC-88). */
   coverageResult: ['in_coverage', 'boundary', 'out_of_coverage', 'unknown'],
+  /** Why a ZIP has its coverage outcome (TSK-0127, OWN-DEC-179; @handyhub/domain COVERAGE_REASONS, PROPOSED codes). */
+  coverageReason: [
+    'dataset_one_county',
+    'dataset_several_counties',
+    'mailing_zip',
+    'source_inside',
+    'source_partly_inside',
+    'source_outside',
+    'source_missing',
+    'not_listed',
+    'not_configured',
+    'lookup_failed',
+  ],
   estimatePreference: ['online', 'site_visit', 'let_handyhub_decide'],
   contactChannel: ['email', 'call', 'text'],
   /** FACT-PROPERTY-TYPES (OWN-DEC-139). */
@@ -382,6 +435,9 @@ export const LABEL_FAMILIES = {
     'template_not_configured',
     'channel_not_configured',
     'template_values_missing',
+    // TSK-0119: released wording whose values are not wired yet; a value that is not acceptable (a link host).
+    'template_values_not_wired',
+    'template_values_invalid',
     'sms_no_opt_in',
     'sms_opted_out',
     'record_changed',
@@ -522,6 +578,16 @@ export const LABEL_FAMILIES = {
     'VERSION_EDITABLE',
     'NO_NEWER_VERSION',
     'FACTS_MISSING',
+    // TSK-0130 (HH-EST-16): the Owner's approval before publishing.
+    'OWNER_APPROVAL_REQUIRED',
+    'OWNER_APPROVAL_PENDING',
+    'OWNER_APPROVAL_REJECTED',
+    'OWNER_APPROVAL_NOT_REQUIRED',
+    'TOTALS_INCOMPLETE',
+    'VERSION_NOT_EDITABLE',
+    'APPROVAL_NOT_PENDING',
+    'COMMENT_REQUIRED',
+    'OWNER_MFA_REQUIRED',
   ],
   /**
    * The customer's responses to an estimate version (TSK-0056, HH-EST-09; migration 0043,
@@ -535,6 +601,29 @@ export const LABEL_FAMILIES = {
    * deliveryState and deliveryError families above.
    */
   deliveryChannel: ['email', 'sms'],
+  /** TSK-0119 (HH-COM-14, OWN-DEC-152 section 7): the message lifecycle (apps/server/src/modules/notifications/lifecycle.ts). */
+  messageLifecycle: [
+    'DRAFT',
+    'PENDING_APPROVAL',
+    'APPROVED',
+    'SCHEDULED',
+    'QUEUED',
+    'SENDING',
+    'PROVIDER_ACCEPTED',
+    'DELIVERED',
+    'FAILED',
+    'CANCELLED',
+    'EXPIRED',
+    'SUPPRESSED',
+  ],
+  /** TSK-0119 (OWN-DEC-152 section 3.6): message classification (notifications/message-types.ts). */
+  messageCategory: ['authentication', 'account_security', 'transactional', 'internal', 'marketing'],
+  /** TSK-0119: who releases a message (automatic by messages.automatic, staff, or the Owner). */
+  messageRelease: ['automatic', 'staff', 'owner'],
+  /** TSK-0119 (HH-COM-13): whether a released template can send today (notifications/templates.ts). */
+  messageReadiness: ['ready', 'not_configured', 'not_wired'],
+  /** TSK-0119: the staff view's message groups (notifications/lifecycle.ts LIFECYCLE_GROUPS). */
+  messageGroup: ['waiting', 'sent', 'failed', 'stopped'],
   /** Visit purposes (TSK-0061, ENT-Visit; migration 0049): the Estimate visit and the three work visits. */
   visitPurpose: ['site_estimate', 'service', 'follow_up', 'return_work'],
   /** Visit states (ENT-Visit): tentative -> confirmed -> en_route -> arrived -> completed; expired, canceled, no_access. */
@@ -609,6 +698,10 @@ export const LABEL_FAMILIES = {
     'REVIEW_HOLD_OPEN',
     'JOB_ON_HOLD',
     'CRITICAL_HOLD_OPEN',
+    // TSK-0127 (final owner amendments 2026-10-22): the address and county check before a first confirmation.
+    'COUNTY_NOT_VERIFIED',
+    'COUNTY_OUTSIDE_AREA',
+    'ADDRESS_VERSION_CHANGED',
     // TSK-0066: reschedule, reassign, cancel and the customer's change requests (apps/server/src/modules/visits/changes.ts).
     'INITIATOR_REQUIRED',
     'CAUSE_REQUIRED',
@@ -710,6 +803,7 @@ export const LABEL_FAMILIES = {
     'portal',
     'project_access',
     'property',
+    'publication_approval',
     'question',
     'queue',
     'request',
@@ -1001,6 +1095,8 @@ export const LABEL_FAMILIES = {
     'template_not_configured',
     'channel_not_configured',
     'template_values_missing',
+    'template_values_not_wired',
+    'template_values_invalid',
     'record_changed',
     // TSK-0067 (HH-COM-11): why an appointment reminder is not drafted or sent
     // (apps/server/src/modules/visits/reminders.ts APPOINTMENT_REMINDER_STOP_REASONS).
@@ -1074,6 +1170,28 @@ export const LABEL_FAMILIES = {
     'resources',
     'dependencies',
   ],
+  /**
+   * TSK-0130 (HH-EST-16, OWN-DEC-173): why publishing waits for the Owner, an approval record's state, the builder's
+   * status, how an approval came about and why it stopped counting (@handyhub/domain publication-approval.ts).
+   */
+  publicationApprovalReason: [
+    'threshold_not_configured',
+    'over_threshold',
+    'options_over_threshold',
+    'change_order_adjustment',
+    'revised_project_value',
+    'combined_project_total',
+    'adjustment_over_threshold',
+    'negative_margin',
+    'discretionary_discount',
+    'discretionary_credit',
+    'refund',
+    'undocumented_correction',
+  ],
+  publicationApprovalState: ['pending', 'approved', 'rejected', 'invalidated'],
+  publicationApprovalStatus: ['closed', 'incomplete', 'not_required', 'required', 'pending', 'approved', 'rejected'],
+  publicationApprovalBasis: ['request', 'owner_publication'],
+  publicationInvalidation: ['content_changed', 'not_required'],
   /** Where a worker's own packet acknowledgment stands, and why one stopped counting (TSK-0072). */
   acknowledgmentState: ['acknowledged', 'required', 'invalidated', 'not_assigned'],
   acknowledgmentInvalidation: ['critical_change', 'assignment_removed', 'account_disabled'],
@@ -1134,6 +1252,8 @@ export const LABEL_FAMILIES = {
     'message_templates',
     'coverage_rule_sets',
     'coverage_rules',
+    'coverage_zip_datasets',
+    'coverage_zip_entries',
     'equipment',
     'worker_schedules',
     'working_hours',

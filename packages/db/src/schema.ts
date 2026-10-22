@@ -214,6 +214,7 @@ export interface CrmContactsTable {
   version: Generated<number>
   email_verified_value: string | null
   phone_verified_value: string | null
+  time_zone: string | null
 }
 
 export interface CrmCustomerNotesTable {
@@ -264,12 +265,17 @@ export interface CrmPropertiesTable {
   state: string
   zip: string
   property_type: string
-  time_zone: string
+  time_zone: string | null
   coverage_result: string
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   version: Generated<number>
   coverage_rule_set: number | null
   address_version: Generated<number>
+  time_zone_status: Generated<string>
+  time_zone_basis: Generated<string>
+  time_zone_counties: Generated<string[]>
+  time_zone_version: Generated<number>
+  coverage_reason: string | null
 }
 
 export interface CrmPropertyAddressesTable {
@@ -299,6 +305,20 @@ export interface CrmPropertyChangesTable {
   changed_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface CrmPropertyCountyVerificationsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  property_id: string
+  address_version: number
+  state: string
+  county: string
+  in_area: boolean
+  area_version: number
+  note: string | null
+  verified_by: string
+  verified_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface CrmPropertyDetailsTable {
   property_id: string
   detail: string
@@ -307,6 +327,19 @@ export interface CrmPropertyDetailsTable {
   confirmed_at: Timestamp
   confirmed_by: string | null
   version: Generated<number>
+}
+
+export interface CrmPropertyTimeZonesTable {
+  property_id: string
+  zone_version: number
+  time_zone: string | null
+  status: string
+  basis: string
+  counties: Generated<string[]>
+  previous_zone: string | null
+  reason: string | null
+  recorded_by: string | null
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
 export interface CrmRecordChangesTable {
@@ -530,6 +563,44 @@ export interface EstimatingEstimatesTable {
   number: string
   created_by: string
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface EstimatingPublicationApprovalsTable {
+  id: Generated<string>
+  subject_type: string
+  subject_id: string
+  estimate_version_id: string | null
+  project_id: string
+  reference: string
+  document_version: number
+  content_digest: string
+  state: string
+  basis: string
+  reasons: string[]
+  flags: Generated<string[]>
+  proposed_total_cents: Int8
+  highest_total_cents: Int8 | null
+  subtotal_cents: Int8 | null
+  discount_cents: Int8 | null
+  discount_category: string | null
+  adjustment_cents: Int8 | null
+  revised_project_value_cents: Int8 | null
+  combined_project_cents: Int8
+  threshold_cents: Int8 | null
+  threshold_version: number | null
+  labor_cost_cents: Int8 | null
+  material_cost_cents: Int8 | null
+  costs_complete: boolean | null
+  linked: ColumnType<JsonValue, string | undefined, string>
+  requested_by: string
+  requested_at: ColumnType<Date, Date | string | undefined, Date | string>
+  decided_by: string | null
+  decided_at: Timestamp | null
+  decision_comment: string | null
+  invalidated_at: Timestamp | null
+  invalidated_reason: string | null
+  used_at: Timestamp | null
+  row_version: Generated<number>
 }
 
 export interface FinanceDepositRequirementsTable {
@@ -959,6 +1030,7 @@ export interface IntakeRequestsTable {
   original_submission: Json
   responsible_staff_id: string | null
   coverage_rule_set: number | null
+  coverage_reason: string | null
 }
 
 export interface IntakeResponseClocksTable {
@@ -1068,6 +1140,8 @@ export interface PlatformCoverageRuleSetsTable {
   approved_by: string | null
   approval_sources: string[] | null
   approved_at: Timestamp | null
+  dataset_version: number | null
+  verification: Generated<string>
 }
 
 export interface PlatformCoverageRulesTable {
@@ -1075,6 +1149,25 @@ export interface PlatformCoverageRulesTable {
   zip5: string
   disposition: string
   counties: Generated<string[]>
+  zip_category: string | null
+  reason: string | null
+}
+
+export interface PlatformCoverageZipDatasetsTable {
+  version: number
+  source: string
+  source_ids: string[]
+  stated_counts: Json
+  content_sha256: string
+  created_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface PlatformCoverageZipEntriesTable {
+  dataset: number
+  zip5: string
+  category: string | null
+  counties: string[]
 }
 
 export interface PlatformIdempotencyKeysTable {
@@ -1144,6 +1237,24 @@ export interface PlatformMessageDeliveriesTable {
   project_id: string | null
   cancelled_by: string | null
   cancelled_at: Timestamp | null
+  template_id: string | null
+  layout_version: number | null
+  scheduled_at: Timestamp | null
+  sent_at: Timestamp | null
+  consent_decision: string | null
+  missing_variables: Generated<string[]>
+}
+
+export interface PlatformMessageDeliveryAttemptsTable {
+  id: GeneratedAlways<string>
+  delivery_id: string
+  attempt: number
+  state: string
+  error_code: string | null
+  provider: string | null
+  provider_message_id: string | null
+  template_version: number | null
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
 export interface PlatformMessageDeliveryEventsTable {
@@ -1169,6 +1280,7 @@ export interface PlatformMessageTemplateVersionsTable {
   source_ids: string[]
   released_by: string
   released_at: ColumnType<Date, Date | string | undefined, Date | string>
+  template_id: string | null
 }
 
 export interface PlatformMessageTemplatesTable {
@@ -1683,6 +1795,7 @@ export interface WorkVisitsTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   updated_at: ColumnType<Date, Date | string | undefined, Date | string>
   number: Generated<number>
+  county_verification_id: string | null
 }
 
 export interface WorkWindowOfferOptionsTable {
@@ -1799,7 +1912,9 @@ export interface Database {
   'crm.properties': CrmPropertiesTable
   'crm.property_addresses': CrmPropertyAddressesTable
   'crm.property_changes': CrmPropertyChangesTable
+  'crm.property_county_verifications': CrmPropertyCountyVerificationsTable
   'crm.property_details': CrmPropertyDetailsTable
+  'crm.property_time_zones': CrmPropertyTimeZonesTable
   'crm.record_changes': CrmRecordChangesTable
   'crm.record_links': CrmRecordLinksTable
   'estimating.approval_receipts': EstimatingApprovalReceiptsTable
@@ -1812,6 +1927,7 @@ export interface Database {
   'estimating.estimate_version_internals': EstimatingEstimateVersionInternalsTable
   'estimating.estimate_versions': EstimatingEstimateVersionsTable
   'estimating.estimates': EstimatingEstimatesTable
+  'estimating.publication_approvals': EstimatingPublicationApprovalsTable
   'finance.deposit_requirements': FinanceDepositRequirementsTable
   'finance.deposit_waivers': FinanceDepositWaiversTable
   'finance.payment_allocations': FinancePaymentAllocationsTable
@@ -1853,9 +1969,12 @@ export interface Database {
   'platform.consent_records': PlatformConsentRecordsTable
   'platform.coverage_rule_sets': PlatformCoverageRuleSetsTable
   'platform.coverage_rules': PlatformCoverageRulesTable
+  'platform.coverage_zip_datasets': PlatformCoverageZipDatasetsTable
+  'platform.coverage_zip_entries': PlatformCoverageZipEntriesTable
   'platform.idempotency_keys': PlatformIdempotencyKeysTable
   'platform.jobs': PlatformJobsTable
   'platform.message_deliveries': PlatformMessageDeliveriesTable
+  'platform.message_delivery_attempts': PlatformMessageDeliveryAttemptsTable
   'platform.message_delivery_events': PlatformMessageDeliveryEventsTable
   'platform.message_template_versions': PlatformMessageTemplateVersionsTable
   'platform.message_templates': PlatformMessageTemplatesTable

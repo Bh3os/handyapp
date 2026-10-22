@@ -1,9 +1,12 @@
 // Operations command for the ZIP coverage rules (TSK-0022; ENT-CoverageRule, OWN-DEC-37, OQ-SERVICE-AREA-ZIPS). Run in
 // the host shell with DATABASE_URL set:
 //   node apps/server/dist/cli/coverage.js status
+//       the rule sets, and each ZIP dataset (TSK-0127, OWN-DEC-179) with its stated counts, its recount and every
+//       difference between them
 //   node apps/server/dist/cli/coverage.js import <relationship-file> [source label]
 //       derives a PROPOSED rule set from the Census ZCTA-to-county relationship file and coverage.area, and prints
-//       the in-coverage and boundary ZIPs for the owner to review; the checker keeps answering from the active set
+//       the in-coverage and boundary ZIPs for the owner to review; the checker keeps answering from the active set.
+//       With a ZIP dataset (migration 0067) the file verifies it, and every discrepancy is printed (OWN-DEC-179).
 //   node apps/server/dist/cli/coverage.js approve <version> <approved by> <decision id>...
 //       records the owner's confirmation and makes that set active (the previous one is superseded)
 // Each change is audited. The file is never edited or guessed at: its SHA-256 is stored with the rule set.
@@ -12,7 +15,8 @@ import { readFileSync } from 'node:fs'
 import { basename } from 'node:path'
 import { createDb, withTx } from '@handyhub/db'
 import { loadConfig } from '../config.js'
-import { approveRuleSet, importRuleSet, RuleSetError } from '../modules/coverage/coverage.js'
+import { countDiscrepancies } from '@handyhub/domain/coverage'
+import { approveRuleSet, datasetStatus, importRuleSet, RuleSetError } from '../modules/coverage/coverage.js'
 import { audit } from '../platform/audit.js'
 import { runWithContext } from '../platform/request-context.js'
 
@@ -35,14 +39,30 @@ try {
     if (command === 'status') {
       const sets = await db
         .selectFrom('platform.coverage_rule_sets')
-        .select(['version', 'status', 'source', 'area_version', 'approved_by', 'approved_at'])
+        .select(['version', 'status', 'source', 'area_version', 'approved_by', 'approved_at', 'verification'])
         .orderBy('version')
         .execute()
       if (sets.length === 0) out('No coverage rule set: every ZIP is the unknown outcome (NOT CONFIGURED).')
       for (const s of sets)
         out(
-          `v${s.version} ${s.status} area v${s.area_version} ${s.source}${s.approved_by ? ` approved by ${s.approved_by}` : ''}`,
+          `v${s.version} ${s.status} area v${s.area_version} ${s.source}${s.approved_by ? ` approved by ${s.approved_by}` : ''}` +
+            (s.verification === 'not_configured' ? ' (verification NOT CONFIGURED)' : ''),
         )
+      for (const d of await datasetStatus(db)) {
+        const problems = countDiscrepancies(d.stated, d.counted)
+        out(`ZIP dataset v${d.version} ${d.source} sha256 ${d.sha256}`)
+        out(
+          `  ${d.counted.unique} unique ZIP codes; one county ${d.counted.singleCounty.total} (Standard ` +
+            `${d.counted.singleCounty.standard}, PO Box ${d.counted.singleCounty.poBox}, Unique ` +
+            `${d.counted.singleCounty.unique}); several counties ${d.counted.multiCounty.total} ` +
+            `(${Object.entries(d.counted.multiCounty.byState)
+              .map(([k, n]) => `${k} ${n}`)
+              .join(', ')})`,
+        )
+        out(
+          problems.length ? `  Differs from the stated counts: ${problems.join('; ')}` : '  Matches the stated counts.',
+        )
+      }
       return
     }
     if (command === 'import') {
@@ -59,15 +79,25 @@ try {
           actor,
           action: 'coverage.import_rules',
           target: { type: 'coverage_rule_set', id: String(s.version), version: s.version },
-          summary: { areaVersion: s.areaVersion, ...s.counts },
+          summary: {
+            areaVersion: s.areaVersion,
+            datasetVersion: s.datasetVersion,
+            discrepancies: s.discrepancies.length,
+            ...s.counts,
+          },
         })
         return s
       })
       out(`Proposed rule set v${summary.version} from coverage.area v${summary.areaVersion}:`)
       out(
-        `  in_coverage ${summary.counts.in_coverage}, boundary ${summary.counts.boundary}, out_of_coverage ${summary.counts.out_of_coverage}`,
+        `  in_coverage ${summary.counts.in_coverage}, boundary ${summary.counts.boundary}, out_of_coverage ${summary.counts.out_of_coverage}, unknown ${summary.counts.unknown}`,
       )
-      for (const r of summary.inArea) out(`  ${r.zip5} ${r.disposition} ${r.counties.join(', ')}`)
+      for (const r of summary.inArea) out(`  ${r.zip5} ${r.disposition} ${r.reason} ${r.counties.join(', ')}`)
+      if (summary.datasetVersion !== null) {
+        out(`Verified ZIP dataset v${summary.datasetVersion}: ${summary.discrepancies.length} discrepancies`)
+        for (const d of summary.discrepancies)
+          out(`  ${d.zip5} ${d.kind} dataset [${d.dataset.join(', ')}] source [${d.source.join(', ')}]`)
+      }
       out('Not used until approved: coverage approve <version> <approved by> <decision id>')
       return
     }

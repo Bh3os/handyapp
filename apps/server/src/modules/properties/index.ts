@@ -17,7 +17,14 @@
 // since it only erases), and the property record says so.
 import { randomUUID } from 'node:crypto'
 import type { Db, Tx } from '@handyhub/db'
-import { looksLikeAccessCode, looksLikeCardNumber, sameAddress, type PropertyTextDetail } from '@handyhub/domain'
+import {
+  countyRef,
+  looksLikeAccessCode,
+  looksLikeCardNumber,
+  sameAddress,
+  verificationProblems,
+  type PropertyTextDetail,
+} from '@handyhub/domain'
 import type { Actor, Resource, StaffActor } from '@handyhub/policy'
 import { sql } from 'kysely'
 import { ApiError } from '../../api/errors.js'
@@ -26,10 +33,13 @@ import { propertyInScope } from '../../platform/data-scope.js'
 import { currentContext } from '../../platform/request-context.js'
 import type { Secret } from '../../providers/types.js'
 import { propertyVisitFacts } from '../packets/assignments.js'
+import { loadConfig, requireConfigured } from '../../platform/config/index.js'
 import { coverageOrUnknown } from '../requests/submit.js'
 import {
   ADDRESS_BODY,
   CODE_BODY,
+  COUNTY_BODY,
+  COUNTY_RESULT,
   CODE_CREATED,
   CODE_PARAMS,
   CODE_REMOVE_BODY,
@@ -44,9 +54,11 @@ import {
   REVEALED,
   TYPE_BODY,
   VERSION_RESULT,
+  ZONE_BODY,
 } from './schemas.js'
 import { openAccessCode, sealAccessCode } from './seal.js'
 import { staffPropertyView, UUID_RE } from './view.js'
+import { countyZones, derivePropertyZone, recordPropertyZone, type ZoneState } from './zones.js'
 
 export { openAccessCode, sealAccessCode } from './seal.js'
 export { staffPropertyView } from './view.js'
@@ -126,6 +138,8 @@ type LockedProperty = {
   state: string
   zip: string
   propertyType: string
+  zoneVersion: number
+  zone: ZoneState
 }
 
 /** Locks a property inside the caller's scope; outside it, or unknown, NOT_FOUND and nothing changes. */
@@ -144,6 +158,11 @@ async function lockProperty(tx: Tx, ctx: ApiContext): Promise<LockedProperty> {
       'p.state',
       'p.zip',
       'p.property_type',
+      'p.time_zone',
+      'p.time_zone_status',
+      'p.time_zone_basis',
+      'p.time_zone_counties',
+      'p.time_zone_version',
     ])
     .where('p.id', '=', propertyId)
     .where(propertyInScope('p.id', ctx.scope))
@@ -160,6 +179,13 @@ async function lockProperty(tx: Tx, ctx: ApiContext): Promise<LockedProperty> {
     state: row.state,
     zip: row.zip,
     propertyType: row.property_type,
+    zoneVersion: row.time_zone_version,
+    zone: {
+      zone: row.time_zone,
+      status: row.time_zone_status as ZoneState['status'],
+      basis: row.time_zone_basis,
+      counties: row.time_zone_counties,
+    },
   }
 }
 
@@ -348,7 +374,16 @@ const editAddress = writeRoute({
       address_version: addressVersion,
       coverage_result: coverage.outcome,
       coverage_rule_set: coverage.ruleSet,
+      coverage_reason: coverage.reason,
     })
+    // TSK-0123 (OWN-DEC-159): a zone verified for the old location no longer holds; it is derived again from the new
+    // ZIP, or unknown (flagged for verification).
+    const derived = await derivePropertyZone(tx, next.zip, await loadConfig(tx))
+    const zoneVersion = await recordPropertyZone(
+      tx,
+      { id: p.id, zoneVersion: p.zoneVersion, zone: p.zone.zone, state: p.zone },
+      derived,
+    )
     await confirmDetail(tx, p.id, 'address', actor.userId, b.source)
     await tx
       .insertInto('crm.property_changes')
@@ -366,10 +401,87 @@ const editAddress = writeRoute({
     // The audit names the change and the reason, never the address itself.
     await ctx.audit({
       target: { type: 'property', id: p.id, version },
-      summary: { detail: 'address', changed: true, addressVersion, coverage: coverage.outcome },
+      summary: {
+        detail: 'address',
+        changed: true,
+        addressVersion,
+        coverage: coverage.outcome,
+        zoneStatus: derived.status,
+        zoneVersion,
+      },
       reason,
     })
     return { body: { id: p.id, version }, version }
+  },
+})
+
+// TSK-0127 (final owner amendments 2026-10-22; OWN-DEC-179, OWN-DEC-167): a ZIP-only coverage outcome is preliminary
+// screening. Staff verify the complete property address and its county for the current address version before any
+// visit is confirmed (visits/preconditions.ts; migration 0067 refuses it in the database). The county is compared
+// with coverage.area: inside, the confirmation may go ahead; outside, it needs the Owner's exception (TSK-0126). The
+// verification is a new row each time; nothing is overwritten. The county is what staff checked against an official
+// record of their choice: no geographic source is configured in the software (coverage.verification_source).
+const verifyCounty = writeRoute({
+  method: 'POST',
+  path: '/staff/properties/:propertyId/county-verification',
+  operationId: 'verifyPropertyCounty',
+  summary: 'Record the verified address and county of a property',
+  description:
+    'Staff with visit.confirm (Owner, Office). Records that staff checked the complete address of the current ' +
+    'address version (addressChecked) and the county it lies in, with an optional note on how. The county is ' +
+    'compared with the service area (coverage.area): inArea. A first visit is confirmed only after this, with the ' +
+    'county inside the area; a later address change needs a new verification. If-Match is the property version; ' +
+    'addressVersion must be the current one (ADDRESS_VERSION_CHANGED). The property version does not change.',
+  permission: 'visit.confirm',
+  audit: 'property.verify_county',
+  expectedVersion: 'required',
+  params: PROPERTY_PARAMS,
+  body: COUNTY_BODY,
+  response: { 200: COUNTY_RESULT },
+  handler: async (ctx) => {
+    const tx = ctx.tx as Tx
+    const actor = staffActor(ctx)
+    const p = await lockProperty(tx, ctx)
+    expectVersion(ctx, p.version)
+    const b = ctx.req.body as { addressVersion: number; state: string; county: string; note?: string | null }
+    if (b.addressVersion !== p.addressVersion)
+      throw new ApiError('CONFLICT', {
+        fieldErrors: [{ field: 'body.addressVersion', code: 'ADDRESS_VERSION_CHANGED', message: '' }],
+      })
+    const note = (b.note ?? '').trim()
+    if (note && (looksLikeAccessCode(note) || looksLikeCardNumber(note)))
+      throw invalid('body.note', 'looks_like_access_code')
+    const area = requireConfigured((await loadConfig(tx)).get('coverage.area'))
+    const state = b.state.trim().toUpperCase()
+    const entered = b.county
+      .trim()
+      .replace(/\s+county$/i, '')
+      .trim()
+    if (!entered) throw invalid('body.county')
+    const match = area.value.counties.find((c) => c.state === state && c.county.toLowerCase() === entered.toLowerCase())
+    const county = match?.county ?? entered
+    const row = await tx
+      .insertInto('crm.property_county_verifications')
+      .values({
+        property_id: p.id,
+        address_version: p.addressVersion,
+        state,
+        county,
+        in_area: match !== undefined,
+        area_version: area.version,
+        note: note || null,
+        verified_by: actor.userId,
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow()
+    await ctx.audit({
+      target: { type: 'property', id: p.id, version: p.version },
+      summary: { addressVersion: p.addressVersion, state, county, inArea: match !== undefined },
+    })
+    return {
+      body: { id: row.id, inArea: match !== undefined, state, county, addressVersion: p.addressVersion },
+      version: p.version,
+    }
   },
 })
 
@@ -419,6 +531,78 @@ const editType = writeRoute({
     await ctx.audit({
       target: { type: 'property', id: p.id, version },
       summary: { detail: 'property_type', changed: true, from: p.propertyType, to: propertyType },
+      reason,
+    })
+    return { body: { id: p.id, version }, version }
+  },
+})
+
+const verifyZone = writeRoute({
+  method: 'PUT',
+  path: '/staff/properties/:propertyId/time-zone',
+  operationId: 'verifyPropertyTimeZone',
+  summary: 'Verify a property’s time zone',
+  description:
+    'TSK-0123 (OWN-DEC-159, HH-SCH-02): staff with customer.edit (Owner; Office with a reason) record the property’s ' +
+    'IANA zone from the county of its verified address. The zone must be an Eastern or Central zone (read from the ' +
+    'time-zone data, never a fixed offset): ZONE_NOT_SUPPORTED otherwise; when the configured county list ' +
+    '(geo.county_time_zones) names the county with another zone, ZONE_COUNTY_MISMATCH. The zone history keeps every ' +
+    'earlier state; the staff queue flag of an unknown zone resolves. Visits already planned keep the zone they were ' +
+    'planned in. If-Match is the property version.',
+  permission: 'customer.edit',
+  audit: 'property.verify_time_zone',
+  expectedVersion: 'required',
+  params: PROPERTY_PARAMS,
+  body: ZONE_BODY,
+  response: { 200: VERSION_RESULT },
+  handler: async (ctx) => {
+    const tx = ctx.tx as Tx
+    const actor = staffActor(ctx)
+    const p = await lockProperty(tx, ctx)
+    expectVersion(ctx, p.version)
+    const b = ctx.req.body as { timeZone: string; county: string }
+    const reason = reasonOf(ctx)
+    const county = b.county.trim().replace(/ County$/i, '')
+    const config = await loadConfig(tx)
+    const problems = verificationProblems({ zone: b.timeZone, state: p.state, county }, countyZones(config))
+    if (problems.length)
+      throw new ApiError('VALIDATION_FAILED', {
+        fieldErrors: problems.map((code) => ({
+          field: code === 'COUNTY_REQUIRED' ? 'body.county' : 'body.timeZone',
+          code,
+          message: '',
+        })),
+      })
+    const next = {
+      zone: b.timeZone,
+      status: 'verified' as const,
+      basis: 'verified_county',
+      counties: [countyRef(p.state, county)],
+    }
+    const before = p.zone
+    const zoneVersion = await recordPropertyZone(
+      tx,
+      { id: p.id, zoneVersion: p.zoneVersion, zone: p.zone.zone, state: p.zone },
+      { ...next, reason, recordedBy: actor.userId },
+    )
+    if (zoneVersion === p.zoneVersion) {
+      await ctx.audit({
+        target: { type: 'property', id: p.id, version: p.version },
+        summary: { detail: 'time_zone', changed: false },
+      })
+      return { body: { id: p.id, version: p.version }, version: p.version }
+    }
+    const version = await bumpProperty(tx, p)
+    await ctx.audit({
+      target: { type: 'property', id: p.id, version },
+      summary: {
+        detail: 'time_zone',
+        changed: true,
+        from: { zone: before.zone, status: before.status },
+        to: { zone: next.zone, status: next.status },
+        counties: next.counties,
+        zoneVersion,
+      },
       reason,
     })
     return { body: { id: p.id, version }, version }
@@ -837,7 +1021,9 @@ export function propertiesRoutes(deps: PropertiesDeps): RouteDef[] {
   return [
     detailRoute(deps),
     editAddress,
+    verifyCounty,
     editType,
+    verifyZone,
     editDetail,
     confirmDetailRoute,
     addCode(deps),

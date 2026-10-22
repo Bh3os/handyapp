@@ -14,6 +14,8 @@ import { createDb } from '@handyhub/db'
 import { addLocalDays, localDateOf } from '@handyhub/domain/local-time'
 import { expect, test, type Browser, type Page } from '@playwright/test'
 import { accessTokenFor, codeFor } from '../codes.js'
+import { verifyCountyOf } from '../county.js'
+import { verifyPropertyZone } from '../zones.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
 const port = process.env['E2E_PORT'] ?? '4310'
@@ -77,6 +79,10 @@ async function sendRequest(page: Page) {
       .where('r.reference', '=', reference)
       .executeTakeFirstOrThrow(),
   )
+  // TSK-0127: staff's address and county check, which a first confirmation needs.
+  await verifyCountyOf(databaseUrl as string, row.project_id)
+  // TSK-0123: a new property's zone is unknown; this spec plans visits, so its zone is recorded first.
+  await withDb((db) => verifyPropertyZone(db, row.project_id))
   return {
     reference,
     requestId: row.request_id,

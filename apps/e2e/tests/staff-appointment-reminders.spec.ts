@@ -14,6 +14,8 @@ import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { addLocalDays, localDateOf } from '@handyhub/domain/local-time'
 import { expect, test, type APIRequestContext, type Browser, type Page } from '@playwright/test'
+import { verifyCountyOf } from '../county.js'
+import { verifyPropertyZone } from '../zones.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
 const port = process.env['E2E_PORT'] ?? '4310'
@@ -78,6 +80,10 @@ async function sendRequest(request: APIRequestContext) {
       .where('reference', '=', reference)
       .executeTakeFirstOrThrow(),
   )
+  // TSK-0127: staff's address and county check, which a first confirmation needs.
+  await verifyCountyOf(databaseUrl as string, row.project_id)
+  // TSK-0123: a new property's zone is unknown; this spec plans visits, so its zone is recorded first.
+  await withDb((db) => verifyPropertyZone(db, row.project_id))
   return { reference, requestId: row.id, projectId: row.project_id }
 }
 
@@ -301,17 +307,20 @@ test.describe('Appointment reminder drafts (TSK-0067)', () => {
       await expect(list.getByText('None were given with the offered windows.')).toBeVisible()
       await axe(p)
 
-      // Sent by staff: it goes out inside the contact hours; with no approved wording it is recorded as not sent.
+      // Sent by staff: it goes out inside the contact hours. The owner's wording is released (TSK-0119) but its values are
+      // wired by TSK-0121, so it is recorded as not sent.
       await panel.getByRole('button', { name: 'Send reminder' }).click()
       await expect(panel.getByText('Released for delivery. Its outcome shows here.')).toBeVisible()
       const [first] = await deliveries(v.id)
       await sendNow(first?.id as string)
       await expect
         .poll(async () => (await deliveries(v.id)).map((d) => [d.state, d.error_code]), { timeout: 15_000 })
-        .toEqual([['failed', 'template_not_configured']])
+        .toEqual([['failed', 'template_values_not_wired']])
       await p.reload()
       await expect(list.getByText('Not sent', { exact: true })).toBeVisible()
-      await expect(list.getByText('Reason: No approved wording for this message yet (not configured)')).toBeVisible()
+      await expect(
+        list.getByText('Reason: The approved wording is released, but its values are not supplied yet'),
+      ).toBeVisible()
       await expect(list.getByText(/^Sent by E2E Reminders Office, /)).toBeVisible()
       const queue = async (type: string) =>
         (
@@ -365,7 +374,7 @@ test.describe('Appointment reminder drafts (TSK-0067)', () => {
       )
       expect(cancelled.status()).toBe(200)
       expect((await deliveries(v.id)).map((d) => [d.state, d.error_code, d.provider_message_id])).toEqual([
-        ['failed', 'template_not_configured', null],
+        ['failed', 'template_values_not_wired', null],
         ['cancelled', 'visit_canceled', null],
       ])
       expect(await queue('appointment_reminder')).toEqual([])
@@ -376,7 +385,7 @@ test.describe('Appointment reminder drafts (TSK-0067)', () => {
       }
       expect(shown.stoppedBy).toBe('visit_canceled')
       expect(shown.reminders.map((r) => [r.state, r.reason, r.actions.release])).toEqual([
-        ['failed', 'template_not_configured', false],
+        ['failed', 'template_values_not_wired', false],
         ['cancelled', 'visit_canceled', false],
       ])
     } finally {

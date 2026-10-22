@@ -115,6 +115,26 @@ export function day(iso: string): string {
   return Number.isNaN(d.getTime()) ? '' : new Intl.DateTimeFormat('en-US', { dateStyle: 'long' }).format(d)
 }
 
+/**
+ * The end of an estimate's validity with its time and zone (TSK-0123; OWN-DEC-159 item 12): "November 4, 2026, 11:59 PM
+ * EST", in the property's zone, or in business time said so while the property's zone is unknown.
+ */
+export function validUntilText(iso: string, zone: { zone: string; business: boolean } | null): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  if (!zone) return day(iso)
+  const text = new Intl.DateTimeFormat('en-US', {
+    timeZone: zone.zone,
+    dateStyle: 'long',
+    timeStyle: 'short',
+  }).format(d)
+  const name = new Intl.DateTimeFormat('en-US', { timeZone: zone.zone, timeZoneName: 'short' })
+    .formatToParts(d)
+    .find((p) => p.type === 'timeZoneName')?.value
+  const at = `${text} ${name ?? zone.zone}`
+  return zone.business ? t('portal.estimate.validUntilBusiness', { time: at }) : at
+}
+
 export const estimatePath = (reference: string, number: string, version: number) =>
   `/portal/p/${encodeURIComponent(reference)}/documents/${encodeURIComponent(number)}/${version}`
 
@@ -174,7 +194,9 @@ function Content({ e }: { e: EstimateDetail }) {
         <dt>{t('estimatePdf.published')}</dt>
         <dd>{day(e.publishedAt)}</dd>
         <dt>{t('estimatePdf.validUntil')}</dt>
-        <dd>{e.validUntil ? day(e.validUntil) : t('estimatePdf.notProvided')}</dd>
+        <dd data-testid="estimate-valid-until">
+          {e.validUntil ? validUntilText(e.validUntil, e.validUntilZone) : t('estimatePdf.notProvided')}
+        </dd>
       </dl>
       {e.document ? (
         <p>

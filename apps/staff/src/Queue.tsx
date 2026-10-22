@@ -11,6 +11,7 @@ import { labelKey, type StaffKey, type StaffLocale } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge, type StatusTone } from '@handyhub/ui'
 import { useCallback, useEffect, useRef, useState, type FormEvent, type MouseEvent } from 'react'
 import { call, idempotencyKey, type Fetch } from './api'
+import { PublicationApprovalQueue } from './OwnerApproval'
 import { clockText, clockTime, type ResponseClock } from './ResponseClock'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
@@ -135,6 +136,8 @@ export function QueueHome(props: QueueHomeProps) {
             {props.t('queue.ownerDecisions')}
           </h2>
           <QueueList {...props} section="owner_decisions" path="/staff/queue/owner-decisions" />
+          {/* TSK-0130 (HH-EST-16): the approval queue with each document's price, costs, margin and reason. */}
+          <PublicationApprovalQueue t={props.t} fetchImpl={props.fetchImpl} go={props.go} href={props.href} />
         </section>
       ) : null}
     </section>

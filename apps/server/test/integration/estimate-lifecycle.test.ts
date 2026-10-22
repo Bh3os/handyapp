@@ -623,7 +623,8 @@ describe('[HH-EST-04][C05] what publishing pins, stores and sends', () => {
     ])
     expect(fakes.email?.sent ?? []).toEqual([])
 
-    // With the link the landing task will supply, the email says only that the estimate is ready, with the link.
+    // With the link the landing task will supply, the email says only that the estimate is ready, with the link
+    // (TSK-0119: the owner-style estimate_ready wording, the estimate number and the first name, never an amount).
     const linked = await readyDraft()
     const email = await t.db
       .selectFrom('intake.requests as r')
@@ -640,10 +641,23 @@ describe('[HH-EST-04][C05] what publishing pins, stores and sends', () => {
     await createWorker({ db: t.db, registry: createAutomationRegistry([withLink]) }).runOnce()
     const sent = allowed.fakes.email?.sent ?? []
     expect(sent).toHaveLength(1)
-    expect(sent[0]).toMatchObject({ to: email.email, subject: 'Your HandyHub estimate is ready' })
-    expect(sent[0]?.text).toBe('Your HandyHub estimate is ready.\n\nhttps://example.test/synthetic-project-link')
+    const number = (
+      await t.db
+        .selectFrom('estimating.estimate_versions as v')
+        .innerJoin('estimating.estimates as e', 'e.id', 'v.estimate_id')
+        .select('e.number')
+        .where('v.id', '=', linked.versionId)
+        .executeTakeFirstOrThrow()
+    ).number
+    expect(sent[0]).toMatchObject({ to: email.email, subject: `HandyHub | Your Estimate #${number} Is Ready` })
+    expect(sent[0]?.text).toMatch(new RegExp(`^Hi [^\\n]+,\\n\\nYour HandyHub estimate #${number} is ready\\.`))
+    expect(sent[0]?.text).toContain('\n\nhttps://example.test/synthetic-project-link\n\n')
+    expect(sent[0]?.html).toContain('href="https://example.test/synthetic-project-link"')
     // No amount anywhere in the message (FACT-AUTOMATIC-MESSAGES: no amounts, only a secure link).
-    expect(`${sent[0]?.subject} ${sent[0]?.text}`).not.toMatch(/\$|\d{3,}|1,25|total|deposit/i)
+    expect(`${sent[0]?.subject} ${sent[0]?.text} ${sent[0]?.html}`.replaceAll(number, '')).not.toMatch(
+      /\$|1,25|total|deposit/i,
+    )
+    expect(`${sent[0]?.subject} ${sent[0]?.text}`.replaceAll(number, '')).not.toMatch(/\d{3,}/)
 
     // A version withdrawn before the job runs sends nothing (stale).
     const later = await readyDraft()

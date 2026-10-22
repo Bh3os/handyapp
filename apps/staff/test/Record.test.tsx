@@ -48,7 +48,7 @@ describe('the original request view (TSK-0042, HH-LEAD-01)', () => {
     expect(within(original).getByText("Colors: I don't know")).toBeTruthy()
     expect(within(original).getByText('Email: Verified')).toBeTruthy()
     expect(within(original).getByText('Phone: Unverified')).toBeTruthy()
-    expect(within(original).getByText('Outside the service area; staff decide')).toBeTruthy()
+    expect(within(original).getByText('ZIP check: outside the usual area (preliminary; staff decide)')).toBeTruthy()
     expect(within(original).getByText(/100 Synthetic Way, Testville, KY 40000/)).toBeTruthy()
     expect(await within(original).findByText('Being checked')).toBeTruthy()
     expect(screen.getByText('Exactly as the customer sent it. It cannot be edited.')).toBeTruthy()

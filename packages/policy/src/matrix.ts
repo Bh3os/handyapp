@@ -41,6 +41,8 @@ export const ACTIONS = [
   'estimate.draft',
   'estimate.publish',
   'estimate.change_publishers',
+  // TSK-0130 (OWN-DEC-173): the Owner's approval of an estimate or change order before publishing over the threshold.
+  'estimate.approve_publication',
   'estimate.revise',
   'estimate.withdraw',
   'estimate.expire',
@@ -354,6 +356,9 @@ export const MATRIX: readonly MatrixRow[] = [
     estimator: Y('Y while the publishing policy grants it', { conditions: ['publishing_policy'] }),
   }),
   row(ESTIMATES, 'Change who may publish', ['estimate.change_publishers'], { owner: Y() }),
+  row(ESTIMATES, 'Approve or reject publishing over the Owner approval threshold', ['estimate.approve_publication'], {
+    owner: Y(),
+  }),
   row(
     ESTIMATES,
     'Revise (new version), withdraw, expire, record a decline',

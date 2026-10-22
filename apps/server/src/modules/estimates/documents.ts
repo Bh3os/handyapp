@@ -34,6 +34,7 @@ import {
   type DocumentProblem,
 } from './document-content.js'
 import { EDITABLE_STATES, isUuid } from './model.js'
+import { refreshEstimateApprovals } from './owner-approval.js'
 
 export const ESTIMATE_DOCUMENT_UPLOADED_EVENT = 'estimate_document.uploaded'
 export const DOCUMENT_ROLES = ['original', 'customer_pdf'] as const
@@ -213,6 +214,8 @@ async function touchVersion(tx: Tx, actor: StaffActor, v: LockedVersion): Promis
     })
     .where('id', '=', v.id)
     .execute()
+  // TSK-0130 (HH-EST-16): a changed customer document is a scope change for an open Owner approval.
+  await refreshEstimateApprovals(tx, actor, v.id)
   return rowVersion
 }
 
@@ -354,6 +357,7 @@ export async function setAgreement(
     })
     .where('id', '=', v.id)
     .execute()
+  await refreshEstimateApprovals(tx, actor, v.id)
   return { rowVersion }
 }
 

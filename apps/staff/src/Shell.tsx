@@ -18,6 +18,7 @@ export const NAV_LABELS = {
   estimates: 'nav.estimates',
   schedule: 'nav.schedule',
   inbox: 'nav.inbox',
+  messages: 'nav.messages',
   payments: 'nav.payments',
   cases: 'nav.cases',
   staff: 'nav.staff',

@@ -636,7 +636,7 @@ describe('[HH-EST-14][T65][HH-COM-05] stop rules at draft, release and send time
 })
 
 describe('[HH-EST-14][HH-COM-09][T65] a released estimate reminder sends at once; a failed delivery is a staff issue', () => {
-  it('sends at once at any hour; without approved wording it is recorded as not configured, never as sent', async () => {
+  it('sends at once at any hour; with the owner wording not wired yet it is recorded as not sent, never as sent', async () => {
     const e = await published()
     await drain()
     await due(e.versionId, 'first')
@@ -645,12 +645,12 @@ describe('[HH-EST-14][HH-COM-09][T65] a released estimate reminder sends at once
     expect(res.statusCode, res.body).toBe(200)
     await drain()
     const [row] = await reminders(e.versionId)
-    // No template version of reminder.unanswered_estimate is released (OQ-ESTIMATE-REMINDER-WORDING).
-    expect([row?.state, row?.error_code]).toEqual(['failed', 'template_not_configured'])
+    // TSK-0119: the owner's estimate_reminder wording is released; its values are wired by TSK-0121 (not wired).
+    expect([row?.state, row?.error_code]).toEqual(['failed', 'template_values_not_wired'])
     const shown = await view(e.versionId)
     expect(shown.reminders[0]).toMatchObject({
       state: 'failed',
-      reason: 'template_not_configured',
+      reason: 'template_values_not_wired',
       releasedBy: { id: staff.owner.userId },
       actions: { release: false, dismiss: false },
     })

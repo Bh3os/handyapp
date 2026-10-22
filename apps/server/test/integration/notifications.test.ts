@@ -24,6 +24,7 @@ import { createWorker } from '../../src/platform/jobs.js'
 import { outbox } from '../../src/platform/outbox.js'
 import { createProviders } from '../../src/providers/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
+import { bodyOf } from '../fixtures/message-text.js'
 
 let t: TestDatabase
 beforeAll(async () => {
@@ -58,13 +59,13 @@ const tick = () => new Promise((r) => setTimeout(r, 15))
 const fastRetry = (a: Automation): Automation => ({ ...a, retry: { maxAttempts: 3, baseDelayMs: 1, maxDelayMs: 1 } })
 
 describe('the automatic-message list is configuration (TSK-0047, HH-COM-06, RULE-DECIDED-VALUES-ACTIVE)', () => {
-  it('is seeded active from FACT-AUTOMATIC-MESSAGES with all fourteen customer messages and no reminder', async () => {
+  it('is seeded active from FACT-AUTOMATIC-MESSAGES with its twenty-one customer messages and no reminder (TSK-0119)', async () => {
     const config = await loadConfig(t.db)
     const entry = config.get('messages.automatic')
     expect(entry.state).toBe('CONFIGURED')
     if (entry.state !== 'CONFIGURED') return
     expect(entry.sourceIds).toContain('FACT-AUTOMATIC-MESSAGES')
-    expect(entry.value.customer).toHaveLength(14)
+    expect(entry.value.customer).toHaveLength(21)
     const policy = automaticPolicy(config)
     for (const k of ['staff.reply', 'reminder.unanswered_estimate', 'reminder.appointment', 'review.request'])
       expect(policy.isAutomatic(k), k).toBe(false)
@@ -80,26 +81,29 @@ describe('the automatic-message list is configuration (TSK-0047, HH-COM-06, RULE
       for (const id of type.sourceIds) expect(ids.has(id), `${type.key} cites ${id}`).toBe(true)
   })
 
-  it('seeds only owner-worded templates, English, free of access secrets and amounts (T74)', async () => {
+  it('seeds only owner-worded templates, English for customers, free of access secrets and amounts (T74)', async () => {
     const rows = await t.db.selectFrom('platform.message_template_versions').selectAll().execute()
-    expect(new Set(rows.map((r) => r.message_key))).toEqual(
+    // TSK-0119: every message type with an owner template ID has its email wording; texts keep the earlier four.
+    const worded = [...MESSAGE_TYPES.values()].filter((m) => m.templateId).map((m) => m.key)
+    expect(new Set(rows.map((r) => r.message_key))).toEqual(new Set(worded))
+    expect(new Set(rows.filter((r) => r.channel === 'sms').map((r) => r.message_key))).toEqual(
       new Set(['question.notice', 'estimate.ready', 'invoice.ready', 'contact.verification_code']),
     )
     for (const r of rows) {
-      expect(r.locale).toBe('en')
+      if (r.audience === 'customer') expect(r.locale).toBe('en')
       expect(
         templateProblems({
           messageKey: r.message_key,
           channel: r.channel as 'email' | 'sms',
-          locale: 'en',
+          locale: r.locale as 'en' | 'es',
           subject: r.subject,
           body: r.body,
-          translationReview: 'source',
+          translationReview: r.translation_review as 'source' | 'ai_reviewed',
         }),
       ).toEqual([])
-      expect(r.body).not.toMatch(/\$|\d/)
+      expect(r.body).not.toMatch(/\$\s?\d/)
     }
-    expect(await currentTemplate(t.db, 'request.receipt', 'email', 'en')).toBeNull()
+    expect(await currentTemplate(t.db, 'reminder.repeat_service', 'email', 'en')).toBeNull()
   })
 
   it('refuses edits to a released template version and a Spanish customer version', async () => {
@@ -137,7 +141,11 @@ describe('automatic messages: one automation plus one job per event (TSK-0047, H
         subjectKey: `question:${ctx.job.target.id}`,
         record: { type: 'question', id: ctx.job.target.id ?? '' },
         recipients: [customer('customer-1@example.test', '+15025550101')],
-        values: { projectLink: 'https://handyhub247.example/p/synthetic' },
+        values: {
+          customerName: 'Sam',
+          reference: 'HH-0000TEST',
+          projectLink: 'https://handyhub247.example/p/synthetic',
+        },
       }),
     })
     // TSK-0048: a text needs the customer's SMS opt-in (HH-INT-22); this customer gave it on the request form.
@@ -159,20 +167,34 @@ describe('automatic messages: one automation plus one job per event (TSK-0047, H
     await worker.runOnce()
     expect(f.email.sent).toHaveLength(1)
     expect(f.sms.sent).toHaveLength(1)
+    // TSK-0119: the email is the owner-style question_notice wording (version 2); the text keeps OWN-DEC-98's.
     expect(f.email.sent[0]).toMatchObject({
       to: 'customer-1@example.test',
-      subject: 'HandyHub has a question about your request',
-      text: 'HandyHub has a question about your request. View and reply securely.\n\nhttps://handyhub247.example/p/synthetic',
+      subject: 'HandyHub | We Have a Question About Your Request #HH-0000TEST',
     })
+    expect(bodyOf(f.email.sent[0]?.text)).toBe(
+      [
+        'Hi Sam,',
+        'HandyHub has a question about your request #HH-0000TEST.',
+        'You can view the question and reply securely through your project page:',
+        'https://handyhub247.example/p/synthetic',
+        'Your answer helps us move your request to the next step.',
+        'The HandyHub Team',
+      ].join('\n\n'),
+    )
+    expect(f.sms.sent[0]?.text).toBe(
+      'HandyHub has a question about your request. View and reply securely. https://handyhub247.example/p/synthetic',
+    )
     const rows = await deliveries('question:q-1')
     expect(
       rows.map((r) => [r.channel, r.state, r.locale, r.template_version, r.provider, r.release, r.audience]),
     ).toEqual([
-      ['email', 'queued', 'en', 1, 'fake', 'automatic', 'customer'],
+      ['email', 'queued', 'en', 2, 'fake', 'automatic', 'customer'],
       ['sms', 'queued', 'en', 1, 'fake', 'automatic', 'customer'],
     ])
     expect(rows.every((r) => r.provider_message_id && r.outbox_event_id && r.queued_at)).toBe(true)
     expect(JSON.stringify(rows)).not.toContain('View and reply')
+    expect(JSON.stringify(rows)).not.toContain('Sam')
   })
 
   it('sends nothing for a message taken off the list, and records no delivery', async () => {
@@ -217,7 +239,7 @@ describe('automatic messages: one automation plus one job per event (TSK-0047, H
         .selectFrom('platform.policy_version')
         .select('value')
         .where('key', '=', 'messages.automatic')
-        .where('version', '=', 1)
+        .where('changed_by', '=', 'migration:0065')
         .executeTakeFirstOrThrow()
     ).value
     await recordPolicyVersion(t.db, {
@@ -231,19 +253,20 @@ describe('automatic messages: one automation plus one job per event (TSK-0047, H
 
   it('keeps the event and shows a failed delivery when the provider rejects; a retry after an outage sends once (T12)', async () => {
     const f = providers()
+    // TSK-0119: a message whose values its resolver supplies (the question notice); the invoice notice is not wired.
     const resolve = async () => ({
       subjectKey: 'invoice:i-1',
       record: { type: 'invoice', id: 'i-1' },
       recipients: [customer('customer-3@example.test')],
-      values: { projectLink: 'https://x.example/p' },
+      values: { reference: 'HH-0000TEST', projectLink: 'https://x.example/p' },
     })
     f.email.script({ outcome: 'retryable_error', errorCode: 'http_503' })
     const automation = fastRetry(
-      notificationAutomation({ messageKey: 'invoice.ready', providers: f.providers, resolve }),
+      notificationAutomation({ messageKey: 'question.notice', providers: f.providers, resolve }),
     )
     await withTx(t.db, (tx) =>
       outbox.add(tx, {
-        type: 'invoice.issued',
+        type: 'question.published',
         aggregate: { type: 'invoice', id: 'i-1' },
         idempotencyKey: 'ii:i-1',
         requestId: rid(),
@@ -263,7 +286,11 @@ describe('automatic messages: one automation plus one job per event (TSK-0047, H
     const rejected = notificationAutomation({
       messageKey: 'estimate.ready',
       providers: f.providers,
-      resolve: async () => ({ ...(await resolve()), subjectKey: 'estimate:e-2' }),
+      resolve: async () => ({
+        ...(await resolve()),
+        subjectKey: 'estimate:e-2',
+        values: { estimateNumber: 'HH-0000TEST-E1', projectLink: 'https://x.example/p' },
+      }),
     })
     await withTx(t.db, (tx) =>
       outbox.add(tx, {
@@ -301,7 +328,7 @@ describe('automatic messages: one automation plus one job per event (TSK-0047, H
         subjectKey: 'question:q-real',
         record: { type: 'question', id: 'q-real' },
         recipients: [customer('someone@gmail.com')],
-        values: { projectLink: 'https://x.example/p' },
+        values: { reference: 'HH-0000TEST', projectLink: 'https://x.example/p' },
       }),
     })
     await withTx(t.db, (tx) =>
@@ -314,8 +341,9 @@ describe('automatic messages: one automation plus one job per event (TSK-0047, H
     )
     await event('question.published', 'q-real')
     await createWorker({ db: t.db, registry: createAutomationRegistry([automation, access]) }).runOnce()
-    expect((await deliveries('request:r-1')).map((r) => [r.state, r.error_code])).toEqual([
-      ['failed', 'template_not_configured'],
+    // TSK-0119: the owner's request_received wording is released; its values are wired by TSK-0120.
+    expect((await deliveries('request:r-1')).map((r) => [r.state, r.error_code, r.missing_variables])).toEqual([
+      ['failed', 'template_values_not_wired', ['customerName']],
     ])
     expect((await deliveries('question:q-real')).map((r) => [r.state, r.error_code])).toEqual([
       ['suppressed', 'not_on_test_allowlist'],
@@ -394,7 +422,7 @@ describe('staff-released drafts (TSK-0047, HH-COM-06, HH-COM-09, T65, T66, T04)'
     expect((await rel(e.id, pastElevenPm)).runAt).toEqual(pastElevenPm)
     await expect(rel(q.id, pastElevenPm)).rejects.toThrow(/not a draft/)
     await createWorker({ db: t.db, registry: createAutomationRegistry([release]) }).runOnce()
-    expect(f.email.sent.map((m) => m.text)).toEqual(['Synthetic test body https://x.example/p'])
+    expect(f.email.sent.map((m) => bodyOf(m.text))).toEqual(['Synthetic test body https://x.example/p'])
     const [qRow] = await deliveries('question:q-9:first')
     const [eRow] = await deliveries('estimate:e-9:first')
     expect([qRow?.state, qRow?.locale, qRow?.released_by]).toEqual(['queued', 'en', 'staff-test-office'])
@@ -475,7 +503,7 @@ describe('staff-released drafts (TSK-0047, HH-COM-06, HH-COM-09, T65, T66, T04)'
       }),
     )
     await createWorker({ db: t.db, registry: createAutomationRegistry([automation]) }).runOnce()
-    expect(f.email.sent.map((m) => [m.to, m.text])).toEqual([
+    expect(f.email.sent.map((m) => [m.to, bodyOf(m.text)])).toEqual([
       ['staff-es@example.test', 'Sintético ES https://staff.example/q/3'],
       ['staff-en@example.test', 'Synthetic EN https://staff.example/q/3'],
     ])

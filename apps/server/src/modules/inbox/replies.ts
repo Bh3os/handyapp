@@ -32,7 +32,7 @@ import { projectInScope } from '../../platform/data-scope.js'
 import {
   createDraft,
   currentConsent,
-  currentTemplate,
+  templateReadiness,
   heldToContactHours,
   releaseAutomation,
   releaseDraft,
@@ -465,7 +465,10 @@ export function replyRoutes(deps: ReplyDeps = {}): RouteDef[] {
       const config = await loadConfig(ctx.db)
       const hours = replyContactHours(config, now())
       const template = async (channel: ReplyChannel) =>
-        (await currentTemplate(ctx.db, STAFF_REPLY_MESSAGE_KEY, channel, 'en')) ? 'configured' : 'not_configured'
+        // TSK-0119: configured only when the released wording's values are supplied (templateReadiness).
+        (await templateReadiness(ctx.db, STAFF_REPLY_MESSAGE_KEY, channel, 'en')).state === 'ready'
+          ? 'configured'
+          : 'not_configured'
       return {
         body: {
           contact: contact ? { id: contact.id, name: contact.name } : null,
