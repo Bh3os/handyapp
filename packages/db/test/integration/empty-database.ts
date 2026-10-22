@@ -28,7 +28,10 @@ export function emptyDatabaseSuite(fileLabel: string) {
       // (0008). Every row there must come from a migration; every other table is empty.
       const seeded = await sql<{ by: string }>`
         SELECT changed_by AS by FROM platform.policy_version
-        UNION SELECT released_by FROM platform.message_template_versions`.execute(t.db)
+        UNION SELECT released_by FROM platform.message_template_versions
+        UNION SELECT created_by FROM platform.coverage_zip_datasets
+        UNION SELECT created_by FROM platform.coverage_rule_sets
+        UNION SELECT actor_process FROM platform.audit_events`.execute(t.db)
       expect(seeded.rows.every((r) => r.by.startsWith('migration:'))).toBe(true)
       const orphanTemplates = await sql<{ n: number }>`
         SELECT count(*)::int AS n FROM platform.message_templates m WHERE NOT EXISTS (
@@ -40,6 +43,12 @@ export function emptyDatabaseSuite(fileLabel: string) {
         'platform.policy_version',
         'platform.message_templates',
         'platform.message_template_versions',
+        // TSK-0127 (migration 0067): the owner's ZIP dataset, the rule set derived from it, and their two audit events.
+        'platform.coverage_zip_datasets',
+        'platform.coverage_zip_entries',
+        'platform.coverage_rule_sets',
+        'platform.coverage_rules',
+        'platform.audit_events',
       ]
       for (const name of names.filter((n) => !seededTables.includes(n))) {
         const count = await sql<{ n: number }>`SELECT count(*)::int AS n FROM ${sql.raw(name)}`.execute(t.db)

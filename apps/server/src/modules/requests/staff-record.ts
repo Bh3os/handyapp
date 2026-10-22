@@ -11,6 +11,7 @@
 //   closes both estimating routes.
 // Read by staff holding request.view (Owner, Office, Estimator PROPOSED); workers are refused by the policy.
 import type { Db, Tx } from '@handyhub/db'
+import { COVERAGE_CODE, type CoverageOutcome } from '@handyhub/domain/coverage'
 import {
   eventsFrom,
   type NotAFitCategory,
@@ -190,6 +191,7 @@ export async function staffRequestView(db: Reader, scope: DataScope, requestId: 
       'r.marketing_opt_in',
       'r.coverage_result',
       'r.coverage_rule_set',
+      'r.coverage_reason',
       'r.spam_suspected',
       'r.spam_signals',
       'r.original_submission',
@@ -360,7 +362,13 @@ export async function staffRequestView(db: Reader, scope: DataScope, requestId: 
     // The badges belong to the contact's current values: after a verified Change Contact the email differs from the
     // one sent, so the current value is shown with them (the original submission itself never changes).
     contactVerification: { ...badges, current: { email: r.contact_email, phone: r.contact_phone } },
-    coverage: { result: r.coverage_result, ruleSet: r.coverage_rule_set },
+    // TSK-0127: the reason beside the outcome (null for a request recorded before reasons existed).
+    coverage: {
+      result: r.coverage_result,
+      code: COVERAGE_CODE[r.coverage_result as CoverageOutcome],
+      reason: r.coverage_reason,
+      ruleSet: r.coverage_rule_set,
+    },
     responsibleStaff: ref(r.responsible_staff_id),
     assignments: assignments.map((a) => ({
       staff: ref(a.staff_user_id) as StaffRef,

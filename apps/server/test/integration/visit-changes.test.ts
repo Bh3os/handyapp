@@ -36,6 +36,7 @@ import { createProviders } from '../../src/providers/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
 import { recordPolicyVersion } from '../../src/platform/config/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
+import { verifyCountyOf } from '../fixtures/county.js'
 import { testConfig } from '../fixtures/env.js'
 
 const ZONE = 'America/Kentucky/Louisville'
@@ -226,6 +227,8 @@ async function siteVisitProject(): Promise<Project> {
     .select(['id', 'project_id', 'contact_id'])
     .where('reference', '=', reference)
     .executeTakeFirstOrThrow()
+  // TSK-0127: staff's address and county check, which a first confirmation needs.
+  await verifyCountyOf(t.db, row.project_id)
   const grant = await t.db
     .selectFrom('identity.project_access_grants')
     .select('id')

@@ -30,6 +30,7 @@ import { apiModules } from '../../src/modules/index.js'
 import { DEPOSIT_GATE, visitsModule, WORK_VISIT_GATES } from '../../src/modules/visits/index.js'
 import { loadConfig, recordPolicyVersion, type ConfigKey } from '../../src/platform/config/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
+import { verifyCountyOf } from '../fixtures/county.js'
 import { testConfig } from '../fixtures/env.js'
 
 const KEY: CodeKeySettings = readCodeKey({
@@ -200,6 +201,8 @@ async function readyRequest() {
     .select(['id', 'project_id', 'state_version', 'contact_id'])
     .where('reference', '=', reference)
     .executeTakeFirstOrThrow()
+  // TSK-0127: staff's address and county check, which a first confirmation needs.
+  await verifyCountyOf(t.db, row.project_id)
   const grant = await t.db
     .selectFrom('identity.project_access_grants')
     .select('id')

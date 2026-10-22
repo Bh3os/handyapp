@@ -143,6 +143,23 @@ test.describe('property records and access codes (TSK-0045, HH-CRM-02, HH-CRM-03
       page.getByRole('region', { name: 'Change history' }).getByText(/Reason: Customer called: the street was wrong/),
     ).toBeVisible()
 
+    // TSK-0127 (final owner amendments 2026-10-22): the ZIP check is screening; staff check the complete current
+    // address and record its county before a first visit can be confirmed.
+    const county = page.getByRole('region', { name: 'Address and county check' })
+    await expect(county.getByText('Not verified yet for the current address.')).toBeVisible()
+    await county.getByRole('button', { name: 'Record address and county check' }).click()
+    const countyForm = county.getByRole('form', { name: 'Record address and county check' })
+    await countyForm.getByLabel('County', { exact: true }).selectOption({ label: 'Jefferson County, KY' })
+    await countyForm.getByLabel('I checked the complete address, including any unit number').check()
+    await countyForm.getByRole('textbox', { name: 'How it was verified (optional)' }).fill('Synthetic county record')
+    await countyForm.getByRole('button', { name: 'Record address and county check' }).click()
+    await expect(
+      county.getByText(
+        /Jefferson County, KY: in the service area\. Verified by E2E Owner on .* \(address version 2\)\./,
+      ),
+    ).toBeVisible()
+    await axe(page)
+
     // A gate code: entered, masked, revealed once, hidden again.
     const codes = page.getByRole('region', { name: 'Access codes' })
     const add = codes.getByRole('form', { name: 'Add an access code' })

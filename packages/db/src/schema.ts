@@ -256,6 +256,7 @@ export interface CrmPropertiesTable {
   version: Generated<number>
   coverage_rule_set: number | null
   address_version: Generated<number>
+  coverage_reason: string | null
 }
 
 export interface CrmPropertyAddressesTable {
@@ -283,6 +284,20 @@ export interface CrmPropertyChangesTable {
   reason: string
   changed_by: string
   changed_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CrmPropertyCountyVerificationsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  property_id: string
+  address_version: number
+  state: string
+  county: string
+  in_area: boolean
+  area_version: number
+  note: string | null
+  verified_by: string
+  verified_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
 export interface CrmPropertyDetailsTable {
@@ -945,6 +960,7 @@ export interface IntakeRequestsTable {
   original_submission: Json
   responsible_staff_id: string | null
   coverage_rule_set: number | null
+  coverage_reason: string | null
 }
 
 export interface IntakeResponseClocksTable {
@@ -1054,6 +1070,8 @@ export interface PlatformCoverageRuleSetsTable {
   approved_by: string | null
   approval_sources: string[] | null
   approved_at: Timestamp | null
+  dataset_version: number | null
+  verification: Generated<string>
 }
 
 export interface PlatformCoverageRulesTable {
@@ -1061,6 +1079,25 @@ export interface PlatformCoverageRulesTable {
   zip5: string
   disposition: string
   counties: Generated<string[]>
+  zip_category: string | null
+  reason: string | null
+}
+
+export interface PlatformCoverageZipDatasetsTable {
+  version: number
+  source: string
+  source_ids: string[]
+  stated_counts: Json
+  content_sha256: string
+  created_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface PlatformCoverageZipEntriesTable {
+  dataset: number
+  zip5: string
+  category: string | null
+  counties: string[]
 }
 
 export interface PlatformIdempotencyKeysTable {
@@ -1551,6 +1588,7 @@ export interface WorkVisitsTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   updated_at: ColumnType<Date, Date | string | undefined, Date | string>
   number: Generated<number>
+  county_verification_id: string | null
 }
 
 export interface WorkWindowOfferOptionsTable {
@@ -1657,6 +1695,7 @@ export interface Database {
   'crm.properties': CrmPropertiesTable
   'crm.property_addresses': CrmPropertyAddressesTable
   'crm.property_changes': CrmPropertyChangesTable
+  'crm.property_county_verifications': CrmPropertyCountyVerificationsTable
   'crm.property_details': CrmPropertyDetailsTable
   'crm.record_changes': CrmRecordChangesTable
   'crm.record_links': CrmRecordLinksTable
@@ -1711,6 +1750,8 @@ export interface Database {
   'platform.consent_records': PlatformConsentRecordsTable
   'platform.coverage_rule_sets': PlatformCoverageRuleSetsTable
   'platform.coverage_rules': PlatformCoverageRulesTable
+  'platform.coverage_zip_datasets': PlatformCoverageZipDatasetsTable
+  'platform.coverage_zip_entries': PlatformCoverageZipEntriesTable
   'platform.idempotency_keys': PlatformIdempotencyKeysTable
   'platform.jobs': PlatformJobsTable
   'platform.message_deliveries': PlatformMessageDeliveriesTable

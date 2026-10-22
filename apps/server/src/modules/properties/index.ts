@@ -26,10 +26,13 @@ import { propertyInScope } from '../../platform/data-scope.js'
 import { currentContext } from '../../platform/request-context.js'
 import type { Secret } from '../../providers/types.js'
 import { propertyVisitFacts } from '../packets/assignments.js'
+import { loadConfig, requireConfigured } from '../../platform/config/index.js'
 import { coverageOrUnknown } from '../requests/submit.js'
 import {
   ADDRESS_BODY,
   CODE_BODY,
+  COUNTY_BODY,
+  COUNTY_RESULT,
   CODE_CREATED,
   CODE_PARAMS,
   CODE_REMOVE_BODY,
@@ -348,6 +351,7 @@ const editAddress = writeRoute({
       address_version: addressVersion,
       coverage_result: coverage.outcome,
       coverage_rule_set: coverage.ruleSet,
+      coverage_reason: coverage.reason,
     })
     await confirmDetail(tx, p.id, 'address', actor.userId, b.source)
     await tx
@@ -370,6 +374,76 @@ const editAddress = writeRoute({
       reason,
     })
     return { body: { id: p.id, version }, version }
+  },
+})
+
+// TSK-0127 (final owner amendments 2026-10-22; OWN-DEC-179, OWN-DEC-167): a ZIP-only coverage outcome is preliminary
+// screening. Staff verify the complete property address and its county for the current address version before any
+// visit is confirmed (visits/preconditions.ts; migration 0067 refuses it in the database). The county is compared
+// with coverage.area: inside, the confirmation may go ahead; outside, it needs the Owner's exception (TSK-0126). The
+// verification is a new row each time; nothing is overwritten. The county is what staff checked against an official
+// record of their choice: no geographic source is configured in the software (coverage.verification_source).
+const verifyCounty = writeRoute({
+  method: 'POST',
+  path: '/staff/properties/:propertyId/county-verification',
+  operationId: 'verifyPropertyCounty',
+  summary: 'Record the verified address and county of a property',
+  description:
+    'Staff with visit.confirm (Owner, Office). Records that staff checked the complete address of the current ' +
+    'address version (addressChecked) and the county it lies in, with an optional note on how. The county is ' +
+    'compared with the service area (coverage.area): inArea. A first visit is confirmed only after this, with the ' +
+    'county inside the area; a later address change needs a new verification. If-Match is the property version; ' +
+    'addressVersion must be the current one (ADDRESS_VERSION_CHANGED). The property version does not change.',
+  permission: 'visit.confirm',
+  audit: 'property.verify_county',
+  expectedVersion: 'required',
+  params: PROPERTY_PARAMS,
+  body: COUNTY_BODY,
+  response: { 200: COUNTY_RESULT },
+  handler: async (ctx) => {
+    const tx = ctx.tx as Tx
+    const actor = staffActor(ctx)
+    const p = await lockProperty(tx, ctx)
+    expectVersion(ctx, p.version)
+    const b = ctx.req.body as { addressVersion: number; state: string; county: string; note?: string | null }
+    if (b.addressVersion !== p.addressVersion)
+      throw new ApiError('CONFLICT', {
+        fieldErrors: [{ field: 'body.addressVersion', code: 'ADDRESS_VERSION_CHANGED', message: '' }],
+      })
+    const note = (b.note ?? '').trim()
+    if (note && (looksLikeAccessCode(note) || looksLikeCardNumber(note)))
+      throw invalid('body.note', 'looks_like_access_code')
+    const area = requireConfigured((await loadConfig(tx)).get('coverage.area'))
+    const state = b.state.trim().toUpperCase()
+    const entered = b.county
+      .trim()
+      .replace(/\s+county$/i, '')
+      .trim()
+    if (!entered) throw invalid('body.county')
+    const match = area.value.counties.find((c) => c.state === state && c.county.toLowerCase() === entered.toLowerCase())
+    const county = match?.county ?? entered
+    const row = await tx
+      .insertInto('crm.property_county_verifications')
+      .values({
+        property_id: p.id,
+        address_version: p.addressVersion,
+        state,
+        county,
+        in_area: match !== undefined,
+        area_version: area.version,
+        note: note || null,
+        verified_by: actor.userId,
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow()
+    await ctx.audit({
+      target: { type: 'property', id: p.id, version: p.version },
+      summary: { addressVersion: p.addressVersion, state, county, inArea: match !== undefined },
+    })
+    return {
+      body: { id: row.id, inArea: match !== undefined, state, county, addressVersion: p.addressVersion },
+      version: p.version,
+    }
   },
 })
 
@@ -837,6 +911,7 @@ export function propertiesRoutes(deps: PropertiesDeps): RouteDef[] {
   return [
     detailRoute(deps),
     editAddress,
+    verifyCounty,
     editType,
     editDetail,
     confirmDetailRoute,

@@ -1,6 +1,7 @@
-// The ZIP coverage checker in a real browser (TSK-0022; HH-CUS-03, HH-INT-16, T07, OWN-DEC-88, OWN-DEC-73). The rule
-// set is imported from a synthetic Census-format file whose 999xx ZIPs do not exist (RULE-SYNTHETIC-DATA), through the
-// operations command, then approved, exactly as the owner's real list would be.
+// The ZIP coverage checker in a real browser (TSK-0022, TSK-0127; HH-CUS-03, HH-INT-16, T07, OWN-DEC-88, OWN-DEC-73,
+// OWN-DEC-179). First the owner's ZIP dataset as migration 0067 seeds it; then a rule set imported from a synthetic
+// Census-format file whose 999xx ZIPs do not exist (RULE-SYNTHETIC-DATA), through the operations command, verifying
+// the dataset, then approved, exactly as the real file would be.
 import { execFileSync } from 'node:child_process'
 import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -18,11 +19,15 @@ const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag2
 const future = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10)
 
 const MESSAGES = {
-  in_coverage: 'We serve your area. Tell us about your project.',
+  // PROPOSED wording (final owner amendments 2026-10-22): a ZIP match is screening, not address verification.
+  in_coverage:
+    'Your ZIP code looks like it’s in our service area. Tell us about your project, and we’ll confirm the address.',
   boundary: 'You may be within our service area. Send your request and we’ll confirm the address.',
   out_of_coverage: 'Outside our usual coverage? You can still request an estimate—we’ll check whether we can help.',
   unknown: "We couldn't confirm this ZIP. You can still submit your request for review.",
 }
+const MAILING_NOTE =
+  'This ZIP code is used for mail only. Enter the ZIP code of the property where you need the work done.'
 const ZIPS = { in_coverage: '99901', boundary: '99902', out_of_coverage: '99904', unknown: '99999' } as const
 
 const HEADER =
@@ -63,14 +68,29 @@ test.describe('ZIP coverage checker (TSK-0022, HH-CUS-03, T07)', () => {
   test.describe.configure({ mode: 'serial' })
   test.skip(!databaseUrl, 'needs E2E_DATABASE_URL (a fresh PostgreSQL 16 database)')
 
-  test('[HH-CUS-03][OQ-SERVICE-AREA-ZIPS] with no approved rule set every ZIP is unknown and can continue', async ({
+  test('[HH-CUS-03][OWN-DEC-179] the owner ZIP dataset answers from migration 0067: SERVED, EDGE, and UNKNOWN for a mailing ZIP', async ({
     page,
   }) => {
-    test.skip(!/No coverage rule set/.test(coverageCli('status')), 'a rule set already exists in this database')
+    const status = coverageCli('status')
+    expect(status).toMatch(/ZIP dataset v1 .*\n {2}169 unique ZIP codes/)
+    expect(status).toMatch(/Matches the stated counts\./)
     await page.goto('/')
-    await check(page, ZIPS.in_coverage)
-    await expect(page.getByRole('status').getByText(MESSAGES.unknown)).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Continue with Request' })).toBeVisible()
+    // ZIPs of the owner's dataset (OWN-DEC-179): one service county, two service counties, a PO Box ZIP.
+    for (const [zip, outcome] of [
+      ['40202', 'in_coverage'],
+      ['40241', 'boundary'],
+      ['40201', 'unknown'],
+    ] as const) {
+      await check(page, zip)
+      const result = page.getByRole('status')
+      await expect(result.getByText(MESSAGES[outcome])).toBeVisible()
+      await expect(result).not.toContainText(/appointment|schedul|price|\$|travel/i)
+      await expect(page.getByRole('link', { name: 'Continue with Request' })).toHaveAttribute('href', '/request')
+      if (outcome === 'unknown') await expect(result.getByText(MAILING_NOTE)).toBeVisible()
+      else await expect(result.getByText(MAILING_NOTE)).toHaveCount(0)
+    }
+    const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
+    expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
   })
 
   test('[HH-CUS-03][T07] all four outcomes show the exact message and Continue with Request', async ({ page }) => {

@@ -13,6 +13,7 @@ import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { addLocalDays, localDateOf } from '@handyhub/domain/local-time'
 import { expect, test, type APIRequestContext, type Browser, type Page } from '@playwright/test'
+import { verifyCountyOf } from '../county.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
 const port = process.env['E2E_PORT'] ?? '4310'
@@ -84,6 +85,8 @@ async function sendRequest(page: Page): Promise<{ projectId: string; reference: 
   const project = await withDb((db) =>
     db.selectFrom('crm.projects').select('reference').where('id', '=', row.project_id).executeTakeFirstOrThrow(),
   )
+  // TSK-0127: staff's address and county check, which a first confirmation needs.
+  await verifyCountyOf(databaseUrl as string, row.project_id)
   return { projectId: row.project_id, reference: project.reference }
 }
 

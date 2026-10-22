@@ -199,6 +199,58 @@ describe('the property record (TSK-0045, HH-CRM-02)', () => {
   })
 })
 
+describe('the address and county check (TSK-0127, final owner amendments 2026-10-22)', () => {
+  const verified = {
+    state: 'KY',
+    county: 'Oldham',
+    inArea: true,
+    addressVersion: 2,
+    verifiedBy: { id: 's-1', name: 'Synthetic Office' },
+    verifiedAt: '2026-10-22T14:00:00.000Z',
+  }
+
+  it('[HH-CUS-03][OWN-DEC-167] not verified yet; recording sends the county, the address version, the check and the property version', async () => {
+    const write = vi.fn(() => json(200, { id: 'v-1', inArea: true, state: 'KY', county: 'Oldham', addressVersion: 2 }))
+    renderRecord(api(view({ actions: { ...view().actions, verifyCounty: true } }), write))
+    const county = await screen.findByRole('region', { name: 'Address and county check' })
+    expect(within(county).getByText('Not verified yet for the current address.')).toBeTruthy()
+    fireEvent.click(within(county).getByRole('button', { name: 'Record address and county check' }))
+    const form = within(county).getByRole('form', { name: 'Record address and county check' })
+    fireEvent.change(within(form).getByLabelText('County'), { target: { value: 'KY:Oldham' } })
+    // Nothing is sent before the address is ticked as checked.
+    fireEvent.click(within(form).getByRole('button', { name: 'Record address and county check' }))
+    expect(write).not.toHaveBeenCalled()
+    fireEvent.click(within(form).getByLabelText('I checked the complete address, including any unit number'))
+    fireEvent.click(within(form).getByRole('button', { name: 'Record address and county check' }))
+    await waitFor(() => expect(write).toHaveBeenCalled())
+    const [url, init] = write.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toBe(`/api/v1/staff/properties/${ID}/county-verification`)
+    expect(JSON.parse(String(init.body))).toEqual({
+      addressVersion: 2,
+      addressChecked: true,
+      state: 'KY',
+      county: 'Oldham',
+      note: null,
+    })
+    expect((init.headers as Record<string, string>)['if-match']).toBe('"3"')
+  })
+
+  it('[OWN-DEC-167][RULE-LANGUAGES] a recorded check is shown, in English and Spanish; roles without it get no form', async () => {
+    renderRecord(api(view({ countyVerification: verified })))
+    const county = await screen.findByRole('region', { name: 'Address and county check' })
+    expect(
+      within(county).getByText(
+        /Oldham County, KY: in the service area\. Verified by Synthetic Office on .* \(address version 2\)\./,
+      ),
+    ).toBeTruthy()
+    expect(within(county).queryByRole('button', { name: 'Record address and county check' })).toBeNull()
+    cleanup()
+    renderRecord(api(view({ countyVerification: { ...verified, inArea: false, county: 'Synthetic' } })), 'es')
+    const es = await screen.findByRole('region', { name: 'Verificación de dirección y condado' })
+    expect(within(es).getByText(/Condado de Synthetic, KY: fuera del área de servicio/)).toBeTruthy()
+  })
+})
+
 describe('access codes in the property record (TSK-0045, HH-CRM-03, T28)', () => {
   it('[HH-CRM-03][T28] masked by default; a reveal shows the value for a short time, then hides it again', async () => {
     const write = vi.fn((url: string) =>

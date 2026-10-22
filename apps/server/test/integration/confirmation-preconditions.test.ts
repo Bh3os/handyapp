@@ -27,6 +27,7 @@ import { portalModule } from '../../src/modules/portal/index.js'
 import { visitsModule, type WorkVisitGate } from '../../src/modules/visits/index.js'
 import { recordPolicyVersion } from '../../src/platform/config/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
+import { verifyCountyOf } from '../fixtures/county.js'
 import { testConfig } from '../fixtures/env.js'
 
 const ZONE = 'America/Kentucky/Louisville'
@@ -178,8 +179,11 @@ const ALL_OK = Object.fromEntries(
 type Project = { requestId: string; projectId: string; reference: string; cookie: string; qualification: number }
 let ip = 30
 
-/** A qualified synthetic request with "Site visit needed", and a verified customer session for its project. */
-async function siteVisitProject(): Promise<Project> {
+/**
+ * A qualified synthetic request with "Site visit needed", and a verified customer session for its project. Unless
+ * told otherwise, staff have recorded the address and county check (TSK-0127) that every first confirmation needs.
+ */
+async function siteVisitProject(opts: { zip?: string; countyVerified?: boolean } = {}): Promise<Project> {
   const res = await app.inject({
     method: 'POST',
     url: '/api/v1/public/requests',
@@ -195,7 +199,7 @@ async function siteVisitProject(): Promise<Project> {
         street: `${++seq} Synthetic Confirmation Row`,
         city: 'Testville',
         state: 'ky',
-        zip: '40000',
+        zip: opts.zip ?? '40000',
         propertyType: 'house',
       },
       timing: { flexible: true, needHelpToday: false, windows: ['mornings'] },
@@ -234,6 +238,7 @@ async function siteVisitProject(): Promise<Project> {
     1,
   )
   expect(moved.statusCode, moved.body).toBe(200)
+  if (opts.countyVerified ?? true) await verifyCountyOf(t.db, row.project_id, { verifiedBy: ids.office })
   const s = await withTx(t.db, (tx) =>
     startCustomerSession(tx, {
       contactRef: row.contact_id,
@@ -429,6 +434,171 @@ async function resolveHold(id: string) {
   )
   expect(resolved.statusCode, resolved.body).toBe(200)
 }
+
+describe('[HH-CUS-03][HH-SCH-06][OWN-DEC-179][OWN-DEC-167] a ZIP check is screening: staff verify the address and county before a first confirmation (TSK-0127, final owner amendments 2026-10-22)', () => {
+  const property = async (p: Project) =>
+    t.db
+      .selectFrom('crm.projects as pj')
+      .innerJoin('crm.properties as pr', 'pr.id', 'pj.property_id')
+      .select(['pr.id', 'pr.version', 'pr.address_version', 'pr.coverage_result', 'pr.coverage_reason'])
+      .where('pj.id', '=', p.projectId)
+      .executeTakeFirstOrThrow()
+  const verify = (who: Person, pr: { id: string; version: number; address_version: number }, body: object) =>
+    staffWrite(
+      who,
+      'POST',
+      `/api/v1/staff/properties/${pr.id}/county-verification`,
+      { addressVersion: pr.address_version, addressChecked: true, ...body },
+      pr.version,
+    )
+
+  it('[HH-CUS-03][OWN-DEC-179] EDGE and UNKNOWN requests are accepted and routed to staff verification', async () => {
+    // 40241: a ZIP of the owner's dataset tied to two service counties (EDGE); 40201: a PO Box ZIP (UNKNOWN); 40000:
+    // a ZIP the dataset does not list (UNKNOWN). Each request is saved, received, and waits for staff.
+    for (const [zip, outcome, reason] of [
+      ['40241', 'boundary', 'dataset_several_counties'],
+      ['40201', 'unknown', 'mailing_zip'],
+      ['40000', 'unknown', 'not_listed'],
+    ] as const) {
+      const p = await siteVisitProject({ zip, countyVerified: false })
+      expect(await property(p), zip).toMatchObject({ coverage_result: outcome, coverage_reason: reason })
+      const req = await staffGet('office', `/api/v1/staff/requests/${p.requestId}`)
+      expect(req.statusCode, req.body).toBe(200)
+      expect(req.json().coverage, zip).toMatchObject({
+        result: outcome,
+        reason,
+        code: outcome === 'boundary' ? 'EDGE' : 'UNKNOWN',
+      })
+    }
+  })
+
+  it('[HH-SCH-06][OWN-DEC-167][RULE-SAFETY-GATES] a SERVED ZIP alone never confirms: the first visit waits for the recorded address and county check', async () => {
+    // 40202: a Standard ZIP of the owner's dataset in one service county (SERVED by ZIP only).
+    const p = await siteVisitProject({ zip: '40202', countyVerified: false })
+    expect(await property(p)).toMatchObject({ coverage_result: 'in_coverage', coverage_reason: 'dataset_one_county' })
+    const v = await planVisit(p, 'site_estimate', day(12))
+    const listed = await visitOf(p.projectId, v.id)
+    expect(listed.confirmationBlockers).toEqual([{ field: 'coverage', code: 'COUNTY_NOT_VERIFIED' }])
+    expect(listed.actions).toMatchObject({ confirm: false, offerWindows: false })
+    for (const who of ['owner', 'office'] as const) {
+      const refused = await confirm(who, v)
+      expect(refused.statusCode, refused.body).toBe(409)
+      expect(codes(refused.body)).toEqual([['coverage', 'COUNTY_NOT_VERIFIED']])
+    }
+    // No times are offered either (the selection could not confirm them).
+    const notOffered = await offerWindows(v, day(12), 'ben')
+    expect(notOffered.statusCode, notOffered.body).toBe(409)
+    expect(codes(notOffered.body)).toContainEqual(['coverage', 'COUNTY_NOT_VERIFIED'])
+    // The database refuses the confirmation itself, whatever writes it.
+    await expect(
+      sql`UPDATE work.visits SET state = 'confirmed', version = version + 1 WHERE id = ${v.id}`.execute(t.db),
+    ).rejects.toThrow(/verify the property address and county/)
+    expect((await visitOf(p.projectId, v.id)).state).toBe('tentative')
+  })
+
+  it('[RULE-SERVER-AUTHZ][OWN-DEC-167] only the confirming roles record the check, for the current address version, with the address checked', async () => {
+    const p = await siteVisitProject({ zip: '40202', countyVerified: false })
+    const pr = await property(p)
+    for (const who of ['estimator', 'worker'] as const)
+      expect((await verify(who, pr, { state: 'KY', county: 'Jefferson' })).statusCode, who).toBe(403)
+    const unchecked = await staffWrite(
+      'office',
+      'POST',
+      `/api/v1/staff/properties/${pr.id}/county-verification`,
+      { addressVersion: pr.address_version, addressChecked: false, state: 'KY', county: 'Jefferson' },
+      pr.version,
+    )
+    expect(unchecked.statusCode).toBe(400)
+    const stale = await verify(
+      'office',
+      { ...pr, address_version: pr.address_version + 1 },
+      { state: 'KY', county: 'Jefferson' },
+    )
+    expect(stale.statusCode, stale.body).toBe(409)
+    expect(codes(stale.body)).toEqual([['body.addressVersion', 'ADDRESS_VERSION_CHANGED']])
+    expect(
+      (await verify('office', { ...pr, version: pr.version + 1 }, { state: 'KY', county: 'Jefferson' })).statusCode,
+    ).toBe(409)
+    const ok = await verify('office', pr, { state: 'ky', county: ' jefferson county ', note: 'Synthetic: checked.' })
+    expect(ok.statusCode, ok.body).toBe(200)
+    expect(ok.json()).toMatchObject({
+      inArea: true,
+      state: 'KY',
+      county: 'Jefferson',
+      addressVersion: pr.address_version,
+    })
+    const audited = await t.db
+      .selectFrom('platform.audit_events')
+      .select(['action', 'actor_id', 'summary'])
+      .where('action', '=', 'property.verify_county')
+      .where('target_id', '=', pr.id)
+      .executeTakeFirstOrThrow()
+    expect(audited).toMatchObject({
+      actor_id: ids.office,
+      summary: { addressVersion: pr.address_version, state: 'KY', county: 'Jefferson', inArea: true },
+    })
+    const view = (await staffGet('office', `/api/v1/staff/properties/${pr.id}`)).json()
+    expect(view.countyVerification).toMatchObject({ state: 'KY', county: 'Jefferson', inArea: true })
+    expect(view.actions.verifyCounty).toBe(true)
+  })
+
+  it('[HH-SCH-06][OWN-DEC-167] once verified inside the area the first visit confirms and records the verified county; a county outside the area needs the Owner’s exception', async () => {
+    // EDGE by ZIP; the address check decides.
+    const p = await siteVisitProject({ zip: '40241', countyVerified: false })
+    const pr = await property(p)
+    const v = await planVisit(p, 'site_estimate', day(13))
+    const outside = await verify('office', pr, { state: 'KY', county: 'Synthetic' })
+    expect(outside.json()).toMatchObject({ inArea: false })
+    expect((await visitOf(p.projectId, v.id)).confirmationBlockers).toEqual([
+      { field: 'coverage', code: 'COUNTY_OUTSIDE_AREA' },
+    ])
+    expect(codes((await confirm('office', v)).body)).toEqual([['coverage', 'COUNTY_OUTSIDE_AREA']])
+    // A new verification is a new row; the newest of the current address version counts.
+    const inside = await verify('office', pr, { state: 'KY', county: 'Oldham' })
+    expect(inside.json()).toMatchObject({ inArea: true, county: 'Oldham' })
+    const ready = await visitOf(p.projectId, v.id)
+    expect(ready.confirmationBlockers).toEqual([])
+    expect((await confirm('office', ready)).statusCode).toBe(200)
+    const visit = await t.db
+      .selectFrom('work.visits as v')
+      .innerJoin('crm.property_county_verifications as c', 'c.id', 'v.county_verification_id')
+      .select(['v.state', 'c.county', 'c.state as countyState', 'c.verified_by'])
+      .where('v.id', '=', v.id)
+      .executeTakeFirstOrThrow()
+    expect(visit).toEqual({ state: 'confirmed', county: 'Oldham', countyState: 'KY', verified_by: ids.office })
+    const shown = (await staffGet('office', `/api/v1/staff/projects/${p.projectId}/visits`)).json()
+    expect(shown.coverage).toMatchObject({
+      result: 'boundary',
+      code: 'EDGE',
+      countyVerification: { county: 'Oldham', inArea: true, verifiedBy: { id: ids.office } },
+    })
+    await expect(sql`DELETE FROM crm.property_county_verifications`.execute(t.db)).rejects.toThrow(/APPEND_ONLY/)
+  })
+
+  it('[OWN-DEC-167] a changed address needs a new check before the next first confirmation', async () => {
+    const p = await siteVisitProject({ zip: '40202' })
+    const pr = await property(p)
+    const moved = await staffWrite(
+      'owner',
+      'PUT',
+      `/api/v1/staff/properties/${pr.id}/address`,
+      {
+        street: `${++seq} Synthetic Moved Row`,
+        city: 'Testville',
+        state: 'KY',
+        zip: '40202',
+        source: 'customer_call',
+        reason: 'Synthetic: the customer corrected the street.',
+      },
+      pr.version,
+    )
+    expect(moved.statusCode, moved.body).toBe(200)
+    const v = await planVisit(p, 'site_estimate', day(14))
+    expect((await visitOf(p.projectId, v.id)).confirmationBlockers).toEqual([
+      { field: 'coverage', code: 'COUNTY_NOT_VERIFIED' },
+    ])
+  })
+})
 
 describe('[HH-SCH-06][HH-FIN-02][T36] an unpaid deposit blocks confirmation with its reason', () => {
   it('[HH-SCH-06][HH-FIN-02][HH-SCH-05][T36][RULE-SAFETY-GATES] staff confirmation names the deposit and every other unmet item at once; nothing looks booked', async () => {

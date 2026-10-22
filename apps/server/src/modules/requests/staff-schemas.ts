@@ -291,8 +291,13 @@ export const DETAIL = {
     coverage: {
       type: 'object',
       additionalProperties: false,
-      required: ['result', 'ruleSet'],
-      properties: { result: { type: 'string' }, ruleSet: { type: ['integer', 'null'] } },
+      required: ['result', 'code', 'reason', 'ruleSet'],
+      properties: {
+        result: { type: 'string' },
+        code: { type: 'string' },
+        reason: { type: ['string', 'null'] },
+        ruleSet: { type: ['integer', 'null'] },
+      },
     },
     responsibleStaff: NULLABLE_STAFF,
     assignments: {

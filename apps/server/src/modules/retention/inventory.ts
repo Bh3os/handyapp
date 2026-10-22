@@ -255,6 +255,11 @@ export const TABLES = {
     classes: ['service_address'],
     categories: [C, R],
   },
+  'crm.property_county_verifications': {
+    holds: 'Staff verification of a property address version and its county, with an optional note (TSK-0127)',
+    classes: ['service_address'],
+    categories: [C, R],
+  },
   'crm.property_details': {
     holds: 'Property details: non-secret access notes, parking, occupants and pets, utilities, site flags, sources',
     classes: ['service_address'],
@@ -523,6 +528,16 @@ export const TABLES = {
   },
   'platform.coverage_rules': {
     holds: 'One coverage disposition per ZIP',
+    classes: ['configuration'],
+    categories: [NS],
+  },
+  'platform.coverage_zip_datasets': {
+    holds: "Versions of the owner's candidate service-area ZIP dataset (TSK-0127)",
+    classes: ['configuration'],
+    categories: [NS],
+  },
+  'platform.coverage_zip_entries': {
+    holds: 'One ZIP of a candidate dataset with its category and service counties',
     classes: ['configuration'],
     categories: [NS],
   },

@@ -19,6 +19,7 @@ import { hashPassword } from '../../src/modules/identity/passwords.js'
 import { boardDays } from '../../src/modules/visits/index.js'
 import { recordPolicyVersion } from '../../src/platform/config/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
+import { verifyCountyOf } from '../fixtures/county.js'
 import { testConfig } from '../fixtures/env.js'
 
 const ZONE = 'America/Kentucky/Louisville'
@@ -226,6 +227,8 @@ async function siteVisitProject(): Promise<Project> {
     .select(['id', 'project_id'])
     .where('reference', '=', reference)
     .executeTakeFirstOrThrow()
+  // TSK-0127: staff's address and county check, which a first confirmation needs.
+  await verifyCountyOf(t.db, row.project_id)
   const p = { requestId: row.id, projectId: row.project_id, reference }
   expect(
     (await staffWrite('owner', 'PUT', `/api/v1/staff/requests/${p.requestId}/qualification`, { checks: ALL_OK }, 0))
