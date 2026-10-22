@@ -298,6 +298,7 @@ export const LABEL_FAMILIES = {
     'visit.on_my_way',
     'geo.county_time_zones',
     'sms.unknown_zone_hours',
+    'launch.phase',
     'sms.live_delivery',
     'ai.module',
   ],
@@ -809,6 +810,7 @@ export const LABEL_FAMILIES = {
     'incident',
     'job_hold',
     'job_packet',
+    'launch',
     'loadout',
     'message',
     'notification',
@@ -1326,6 +1328,15 @@ export const LABEL_FAMILIES = {
   stagingRunState: ['running', 'completed', 'failed', 'partial'],
   stagingRunMode: ['reset', 'reset_and_seed'],
   stagingError: ['CHECK_FAILED', 'LOCK_TIMEOUT', 'DEADLOCK', 'DATABASE_ERROR', 'INTERNAL'],
+  /** TSK-0142: the Owner Acceptance Testing accounts (apps/server/src/modules/staging/test-accounts.ts). */
+  stagingTestAccount: ['customer', 'guest_customer', 'worker', 'estimator', 'office', 'owner'],
+  stagingTestAccountState: ['not_created', 'invited', 'active', 'disabled', 'no_account'],
+  stagingTestAccountOutcome: ['created', 'exists', 'blocked', 'no_account'],
+  /** TSK-0142: the launch phases and their switches (@handyhub/domain launch.ts; apps/server/src/modules/launch). */
+  launchPhase: ['owner_acceptance_testing', 'invited_customers', 'public'],
+  launchSwitch: ['invited_customers', 'public_submissions', 'search_indexing'],
+  launchSubmissions: ['open', 'invitation_only', 'closed', 'testers_only'],
+  launchRefusal: ['SAME_PHASE', 'SKIPS_A_PHASE', 'confirmation_mismatch'],
   // TSK-0073, TSK-0074: the Start Work gate (@handyhub/domain start-gate.ts) and its three exceptions.
   startGateOutcome: ['ready', 'needs_attention', 'requires_review', 'blocked'],
   startItemState: ['met', 'missing', 'excepted'],

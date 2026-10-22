@@ -1042,5 +1042,8 @@
   "message.button.changeOrder": "Review the proposed change",
   "message.button.invoice": "View your invoice",
   "message.button.receipt": "View your receipt",
-  "message.button.open": "Open the secure link"
+  "message.button.open": "Open the secure link",
+  "request.closed.title": "Online requests are not open yet",
+  "request.closed.notYet": "We are not taking estimate requests through this website yet.",
+  "request.closed.invitationOnly": "For now, estimate requests through this website are by invitation only."
 }

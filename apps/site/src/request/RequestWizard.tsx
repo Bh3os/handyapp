@@ -138,6 +138,12 @@ type Settings = {
   freeEstimates: boolean
   /** The configured response target in minutes (FACT-RESPONSE-TARGET), for the receipt's next steps; null: unknown. */
   responseMinutes: number | null
+  /**
+   * TSK-0142 (HH-OPS-06): whether the form takes requests here and now. closed (launch phase 1) and invitation_only
+   * (phase 2) in production: the form says so instead of asking for details it cannot send. unknown (not read): the
+   * form shows, and the server still decides when it is sent.
+   */
+  submissions: 'open' | 'testers_only' | 'invitation_only' | 'closed' | 'unknown'
 }
 /** Until the settings arrive, or if they cannot be read: the five windows without hours, and no free-estimate claim. */
 const NO_SETTINGS: Settings = {
@@ -148,6 +154,7 @@ const NO_SETTINGS: Settings = {
   windows: offeredWindows(null, null),
   freeEstimates: false,
   responseMinutes: null,
+  submissions: 'unknown',
 }
 /** Day windows that, with Weekends, are explained as weekend times (HH-INT-02). */
 const DAY_WINDOW_CODES: readonly string[] = ['mornings', 'afternoons', 'evenings']
@@ -475,6 +482,14 @@ export default function RequestWizard() {
   }
 
   if (phase === 'loading') return <StateView kind="loading" title={t('request.title')} />
+
+  // TSK-0142: before launch phase 3 production takes no public request; nothing is asked that could not be sent.
+  if (settings.submissions === 'closed' || settings.submissions === 'invitation_only')
+    return (
+      <StateView kind="blocked" title={t('request.closed.title')}>
+        <p>{settings.submissions === 'closed' ? t('request.closed.notYet') : t('request.closed.invitationOnly')}</p>
+      </StateView>
+    )
 
   // The receipt: only from the server's confirmation of the save (HH-INT-12).
   if (phase === 'sent' && receipt)

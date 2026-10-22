@@ -3,7 +3,7 @@
 // 0005 from the fact and decision nodes they cite. Every row read from the database is validated strictly against
 // its key's shape; an unknown key, an unknown field or a wrong type fails closed. Money is integer cents.
 
-import { isSupportedZone } from '@handyhub/domain'
+import { isSupportedZone, LAUNCH_PHASES } from '@handyhub/domain'
 
 export class ConfigShapeError extends Error {
   override name = 'ConfigShapeError'
@@ -303,6 +303,10 @@ export const CONFIG_KEYS = {
     close: clock,
     zone: (z, q) => (isSupportedZone(z) ? z : fail(q, 'expected an Eastern or Central IANA zone')),
   }),
+  // TSK-0142 (OWN-DEC-191, HH-OPS-06): the launch phase in force. Migration 0076 seeds phase 1 (owner_acceptance_testing:
+  // customer invitations, public submissions and search indexing all off); only the Owner moves it, with a recorded
+  // approval, one step forward or back to an earlier phase (the database refuses anything else as well).
+  'launch.phase': shape({ phase: oneOf(LAUNCH_PHASES) }),
   // TSK-0122 (OWN-DEC-190, OWN-DEC-152 section 3.4, HH-COM-15; migration 0075): the global switch of live texts. Off until
   // the A2P 10DLC registration and its consent requirements are complete: no text reaches a carrier; each one is
   // recorded as failed (sms_disabled) for staff to see. The local and ci fakes and the staging log sender are test

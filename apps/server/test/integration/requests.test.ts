@@ -572,6 +572,8 @@ describe('request form settings (TSK-0026, HH-INT-08)', () => {
       freeEstimates: true,
       // TSK-0032 (HH-INT-12): the response target the receipt states with the visit hours (FACT-RESPONSE-TARGET).
       responseMinutes: 60,
+      // TSK-0142 (HH-OPS-06): outside production the form takes testers' requests whatever the launch phase.
+      submissions: 'testers_only',
     })
   })
 
