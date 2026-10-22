@@ -225,10 +225,10 @@ test.describe('staff questions and customer replies (TSK-0051, HH-LEAD-03, HH-LE
       await composer2.getByRole('button', { name: 'Publish question' }).click()
       await expect(section.getByText(second)).toBeVisible()
       // The notice is handed to the (fake) provider, which never reports it sent: it reads as not sent yet, and the
-      // reminders wait for a successful send (a failed or unconfirmed notice never counts as no response).
+      // reminder waits for a successful send (a failed or unconfirmed notice never counts as no response).
       const asked = section.getByRole('listitem', { name: /^Question published/ })
       await expect(asked).toHaveCount(2)
-      await expect(asked.first().getByText('Starts when the notice is sent')).toHaveCount(2)
+      await expect(asked.first().getByText('Starts when the notice is sent')).toHaveCount(1)
       await axe(staff)
 
       // The customer's Overview: Waiting on you, both questions, a clear Reply.

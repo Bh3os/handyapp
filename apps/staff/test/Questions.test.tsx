@@ -43,10 +43,7 @@ const VIEW: QuestionsView = {
           },
         ],
       },
-      reminders: [
-        { stage: 'first', state: 'not_scheduled', dueAt: null, sentAt: null, canRelease: false, deliveries: [] },
-        { stage: 'final', state: 'not_scheduled', dueAt: null, sentAt: null, canRelease: false, deliveries: [] },
-      ],
+      reminder: { state: 'not_scheduled', dueAt: null, sentAt: null, deliveries: [] },
       reply: null,
     },
     {
@@ -58,24 +55,29 @@ const VIEW: QuestionsView = {
       state: 'answered',
       answeredAt: '2026-10-20T16:00:00.000Z',
       notice: { state: 'sent', sentAt: '2026-10-19T15:01:00.000Z', deliveries: [] },
-      reminders: [
-        {
-          stage: 'first',
-          state: 'draft',
-          dueAt: '2026-10-20T15:01:00.000Z',
-          sentAt: null,
-          canRelease: true,
-          deliveries: [{ id: 'd-2', channel: 'email', state: 'draft', errorCode: null, sendAt: null, retry: false }],
-        },
-        {
-          stage: 'final',
-          state: 'scheduled',
-          dueAt: '2026-10-21T15:01:00.000Z',
-          sentAt: null,
-          canRelease: false,
-          deliveries: [],
-        },
-      ],
+      reminder: {
+        state: 'scheduled',
+        dueAt: '2026-10-22T15:01:00.000Z',
+        sentAt: null,
+        deliveries: [
+          {
+            id: 'd-2',
+            channel: 'email',
+            state: 'queued',
+            errorCode: null,
+            sendAt: '2026-10-22T15:01:00.000Z',
+            retry: false,
+          },
+          {
+            id: 'd-3',
+            channel: 'sms',
+            state: 'failed',
+            errorCode: 'sms_disabled',
+            sendAt: null,
+            retry: false,
+          },
+        ],
+      },
       reply: {
         text: '  Synthetic reply, as written.\n',
         notSure: false,
@@ -88,7 +90,7 @@ const VIEW: QuestionsView = {
   canPublish: true,
   repliesWaiting: true,
   canMarkReviewed: true,
-  cadence: { firstHours: 24, finalHours: 48, closeAfterFinalHours: 24, contactHoursOnly: true },
+  cadence: { afterDeliveryHours: 72, closeAfterReminderHours: 24 },
   close: { allowed: true, available: false, reasons: ['FINAL_REMINDER_NOT_SENT'], availableAt: null },
   reopen: { days: 30, closedAt: null, until: null },
   maxLength: 2000,
@@ -119,7 +121,9 @@ describe('questions to the customer (TSK-0051, HH-LEAD-03, OWN-DEC-98)', () => {
     show(api(() => VIEW))
     const s = await section()
     expect(within(s).getByText(/HandyHub has a question about your request\. View and reply securely\./)).toBeTruthy()
-    expect(within(s).getByTestId('question-cadence').textContent).toMatch(/24 hours and 48 hours after the notice/)
+    expect(within(s).getByTestId('question-cadence').textContent).toMatch(
+      /One reminder is sent automatically 72 hours after the notice was delivered/,
+    )
     const items = within(s).getAllByRole('listitem', { name: /^Question published/ })
     expect(items).toHaveLength(2)
     const [first, second] = items as [HTMLElement, HTMLElement]
@@ -128,13 +132,20 @@ describe('questions to the customer (TSK-0051, HH-LEAD-03, OWN-DEC-98)', () => {
     expect(within(first).getByText('Not sent')).toBeTruthy()
     expect(within(first).getByText(/a failed notice never counts as no response/)).toBeTruthy()
     expect(within(first).getByRole('button', { name: 'Try again' })).toBeTruthy()
-    expect(within(first).getAllByText('Starts when the notice is sent')).toHaveLength(2)
-    expect(within(second).getByRole('button', { name: 'Release First reminder' })).toBeTruthy()
+    expect(within(first).getAllByText('Starts when the notice is sent')).toHaveLength(1)
+    // TSK-0121: the one automatic reminder, scheduled; nothing to release. The text is kept off until A2P 10DLC.
+    const reminder = within(second).getByTestId('question-reminder')
+    expect(within(reminder).getByText('Scheduled')).toBeTruthy()
+    expect(within(reminder).getByText(/^due /)).toBeTruthy()
+    expect(
+      within(reminder).getByText(/not sent: texts are off until the A2P 10DLC registration is complete/i),
+    ).toBeTruthy()
+    expect(within(second).queryByRole('button', { name: /Release/ })).toBeNull()
     // The reply exactly as written, whitespace and all.
     expect(within(second).getByText((_, el) => el?.textContent === '  Synthetic reply, as written.\n')).toBeTruthy()
     expect(within(second).getByText(/1 photo:/)).toBeTruthy()
     // Closing is offered with the reason it is not possible yet.
-    expect(within(s).getByText('The final reminder of every open question must actually be sent first.')).toBeTruthy()
+    expect(within(s).getByText('The reminder of every open question must actually be sent first.')).toBeTruthy()
   })
 
   it('[HH-LEAD-03][OWN-DEC-98] the hazard guard must be confirmed; Publish sends the version and keeps the draft and key across a failure', async () => {
@@ -185,22 +196,17 @@ describe('questions to the customer (TSK-0051, HH-LEAD-03, OWN-DEC-98)', () => {
     expect(window.sessionStorage.getItem(`hh.staff.question-draft.${REQ}`)).toBeNull()
   })
 
-  it('[HH-LEAD-06][HH-COM-09] Release a reminder draft; a refusal is written out in Spanish too', async () => {
-    const write = vi.fn((url: string) =>
-      url.endsWith('/reminders/first/release')
-        ? json(409, { error: { code: 'CONFLICT', fieldErrors: [{ field: 'state', code: 'QUESTION_ANSWERED' }] } })
-        : json(500, {}),
-    )
+  it('[HH-LEAD-06][OWN-DEC-153] the automatic reminder in Spanish staff labels', async () => {
     show(
-      api(() => VIEW, write),
+      api(() => VIEW),
       'es',
     )
     const s = await screen.findByRole('region', { name: 'Preguntas al cliente' })
-    fireEvent.click(within(s).getByRole('button', { name: 'Enviar Primer recordatorio' }))
-    expect(
-      await within(s).findByText('El cliente ya respondió esta pregunta; sus recordatorios se cancelaron.'),
-    ).toBeTruthy()
-    expect(write.mock.calls[0]?.[0]).toBe(`/api/v1/staff/requests/${REQ}/questions/q-2/reminders/first/release`)
+    expect(within(s).getByTestId('question-cadence').textContent).toMatch(
+      /Se envía automáticamente un recordatorio 72 horas/,
+    )
+    expect(within(s).getAllByText('Recordatorio').length).toBeGreaterThan(0)
+    expect(within(s).getByText('Programado')).toBeTruthy()
   })
 
   it('[HH-LEAD-06][T30] Closed—no response once possible: confirmed with the version; the reopen period shows once closed', async () => {

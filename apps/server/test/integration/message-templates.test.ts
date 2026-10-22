@@ -252,7 +252,7 @@ describe('[HH-COM-13] the owner templates are released template versions', () =>
     expect(released.length).toBe(29)
   })
 
-  it('[HH-COM-06] messages.automatic version 2 lists the automatic customer messages; reminders join with TSK-0121', async () => {
+  it('[HH-COM-06][OWN-DEC-153] messages.automatic lists the automatic customer messages, the routine reminders too', async () => {
     const config = await loadConfig(t.db)
     const policy = automaticPolicy(config)
     for (const k of [
@@ -261,9 +261,12 @@ describe('[HH-COM-13] the owner templates are released template versions', () =>
       'invoice.deposit',
       'job.complete',
       'account.contact_changed',
+      'reminder.unanswered_estimate',
+      'reminder.unanswered_question',
+      'reminder.appointment',
     ])
       expect(policy.isAutomatic(k), k).toBe(true)
-    for (const k of ['job.paused', 'staff.reply', 'reminder.appointment', 'reminder.satisfaction_check'])
+    for (const k of ['job.paused', 'staff.reply', 'reminder.satisfaction_check', 'reminder.unpaid_invoice'])
       expect(policy.isAutomatic(k), k).toBe(false)
   })
 

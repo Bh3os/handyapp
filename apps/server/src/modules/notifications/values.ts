@@ -18,6 +18,7 @@ import type { Db, Tx } from '@handyhub/db'
 import { customerDisplayZone, knownPropertyZone, type LocalWindow } from '@handyhub/domain'
 import { customerTranslator } from '@handyhub/i18n'
 import type { Config } from '../../platform/config/index.js'
+import type { Destination } from './deliveries.js'
 import { messageType } from './message-types.js'
 
 type Reader = Db | Tx
@@ -163,4 +164,28 @@ export function present(values: Readonly<Record<string, string | null | undefine
   const out: Record<string, string> = {}
   for (const [k, v] of Object.entries(values)) if (typeof v === 'string' && v.trim() !== '') out[k] = v
   return out
+}
+
+/**
+ * The destinations of a customer's automatic message (TSK-0120 pattern): the email, and the mobile number when there is
+ * one. Having a number is never permission to text: the send rechecks the SMS opt-in, STOP and the live-text switch,
+ * and a text that may not go is recorded as such, never sent.
+ */
+export function contactDestinations(r: {
+  email: string
+  phone_e164: string | null
+  preferred_channel: string
+}): Destination[] {
+  return [
+    { channel: 'email', destination: r.email, permission: r.preferred_channel === 'email' ? 'preferred' : 'permitted' },
+    ...(r.phone_e164
+      ? [
+          {
+            channel: 'sms' as const,
+            destination: r.phone_e164,
+            permission: r.preferred_channel === 'text' ? ('preferred' as const) : ('permitted' as const),
+          },
+        ]
+      : []),
+  ]
 }

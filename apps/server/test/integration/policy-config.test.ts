@@ -35,12 +35,19 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
     const config = await loadConfig(t.db)
     const entries = config.entries()
     expect(entries.map((e) => e.key)).toEqual(Object.keys(CONFIG_KEYS))
-    // TSK-0119: messages.automatic is at version 2 (migration 0065, OWN-DEC-152).
+    // TSK-0119: messages.automatic version 2 (migration 0065, OWN-DEC-152); TSK-0121 adds the reminders as version 3
+    // (migration 0075, OWN-DEC-153).
     // TSK-0123: migration 0066 recorded the decided business time zone as its second version (OWN-DEC-159).
-    // TSK-0144: migration 0073 recorded the owner's sign-off of estimate terms v1.0 as its second version (OWN-DEC-187).
-    // Every other key is at version 1.
-    const second = new Set(['messages.automatic', 'business.timezone', 'legal.estimate_terms'])
-    for (const e of entries) expect(e.version, e.key).toBe(second.has(e.key) ? 2 : 1)
+    // Every key is at version 1 except these: TSK-0121 (migration 0075) recorded the automatic reminder cadences
+    // (OWN-DEC-153) and messages.automatic version 3; TSK-0144 (migration 0073) recorded the owner's sign-off of
+    // estimate terms v1.0 as its second version (OWN-DEC-187).
+    const expected: Record<string, number> = {
+      'messages.automatic': 3,
+      'business.timezone': 2,
+      'reminders.cadences': 2,
+      'legal.estimate_terms': 2,
+    }
+    for (const e of entries) expect(e.version, e.key).toBe(expected[e.key] ?? 1)
   })
 
   it('every seeded value carries source ids that are nodes of the graph', async () => {
@@ -110,13 +117,21 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
     })
     expect(v('cancellation.rules')).toEqual({ rescheduleFree: true, noticeHours: 24, lateCancellationCents: 5000 })
     expect(v('contact.hours')).toEqual({ days: 'every_day', open: '08:00', close: '22:00' })
-    expect(v('reminders.cadences').unansweredQuestion).toEqual({
-      firstHours: 24,
-      finalHours: 48,
-      closeAfterFinalHours: 24,
-      contactHoursOnly: true,
+    // TSK-0121 (OWN-DEC-153, FACT-REMINDER-CADENCES): one automatic 3-day estimate reminder, one automatic 3-day question
+    // reminder ("Closed—no response" 24 hours after it was actually sent, OWN-DEC-208), the 24-hour appointment reminder.
+    expect(v('reminders.cadences')).toEqual({
+      unansweredEstimate: { afterDeliveryHours: 72, release: 'automatic' },
+      unansweredQuestion: { afterDeliveryHours: 72, closeAfterReminderHours: 24, release: 'automatic' },
+      appointment: { hoursBefore: 24, release: 'automatic' },
+      satisfaction: { daysAfterCompletion: 2, release: 'staff' },
+      unpaidInvoice: { firstHours: 24, finalHours: 72, release: 'staff' },
+      repeatService: { schedule: 'customer_agreed', release: 'staff' },
     })
-    expect(v('reminders.cadences').unansweredEstimate.contactHoursOnly).toBe(false)
+    // TSK-0122 (OWN-DEC-154, OWN-DEC-207, OWN-DEC-190): emails at any hour, texts in the recipient's permitted hours,
+    // the unknown-zone fallback 9 AM–9 PM Eastern, and live texts off until A2P 10DLC.
+    expect(v('messages.delivery_hours')).toEqual({ email: 'any_hour', text: 'recipient_permitted_hours' })
+    expect(v('sms.unknown_zone_hours')).toEqual({ open: '09:00', close: '21:00', zone: 'America/Kentucky/Louisville' })
+    expect(v('sms.live_delivery')).toEqual({ enabled: false })
     expect(v('request.reopen_period')).toEqual({ days: 30 })
     expect(v('response.target')).toEqual({ minutes: 60, countedWithin: 'contact_hours' })
     expect(v('session.timings').oneTimeCodeMinutes).toBe(10)

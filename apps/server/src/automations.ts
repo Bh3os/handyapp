@@ -8,7 +8,9 @@ import {
   estimateExpiryAutomation,
   estimateReadyAutomation,
   estimateReminderAutomations,
+  estimateReminderFailureItem,
   estimateReminderRecordCheck,
+  estimateReminderValues,
   estimateResponseNoticeAutomations,
 } from './modules/estimates/index.js'
 import { onTheWayAutomation } from './modules/field/index.js'
@@ -19,7 +21,12 @@ import { queueAutomations } from './modules/queue/index.js'
 import { receiptEmailAutomation } from './modules/requests/receipt-email.js'
 import { responseClockAutomation } from './modules/requests/response-clock.js'
 import { accessLinkAutomation } from './modules/access/link-message.js'
-import { questionAutomations, questionRecordCheck, questionReminderFailureItem } from './modules/questions/index.js'
+import {
+  questionAutomations,
+  questionRecordCheck,
+  questionReminderFailureItem,
+  questionReminderValues,
+} from './modules/questions/index.js'
 import { customerAutomations } from './modules/customers/index.js'
 import {
   inboxIntakeAutomation,
@@ -36,6 +43,7 @@ import {
   appointmentReminderAutomations,
   appointmentReminderFailureItem,
   appointmentReminderRecordCheck,
+  appointmentReminderValues,
   estimateVisitConfirmedAutomation,
   estimateVisitOptionsAutomation,
   scheduleChangeStaffAutomation,
@@ -46,7 +54,7 @@ import {
 import { notAFitNoticeAutomation } from './modules/requests/not-a-fit-notice.js'
 import { objectErasureAutomation } from './modules/privacy/log.js'
 import type { CodeKeySettings } from './modules/identity/index.js'
-import type { RecordChecks, ReleaseFailureItem } from './modules/notifications/index.js'
+import type { RecordChecks, ReleaseFailureItem, ReleaseValues } from './modules/notifications/index.js'
 import type { Automation } from './platform/automation.js'
 import type { Providers } from './providers/index.js'
 
@@ -62,9 +70,10 @@ export type AutomationDeps = LinkEmailDeps & {
 
 /**
  * The send-time record checks of the one `notify.release` registration (HH-COM-05), by the record type a released
- * draft is about: an estimate reminder's version (TSK-0060, HH-EST-14), a staff reply's project and contact
- * (TSK-0050), a question reminder's question (TSK-0051, HH-LEAD-06) and an appointment reminder's visit (TSK-0067,
- * HH-COM-11). A feature whose released drafts need a check adds its record type here, never a second registration.
+ * draft or scheduled automatic reminder is about: an estimate reminder's version (TSK-0060, TSK-0121, HH-EST-14), a
+ * staff reply's project and contact (TSK-0050), a question reminder's question (TSK-0051, HH-LEAD-06) and an
+ * appointment reminder's visit (TSK-0067, HH-COM-11). A feature whose deliveries need a check adds its record type
+ * here, never a second registration.
  */
 export const RELEASE_RECORD_CHECKS: RecordChecks = {
   estimate_version: estimateReminderRecordCheck,
@@ -74,13 +83,34 @@ export const RELEASE_RECORD_CHECKS: RecordChecks = {
 }
 
 /**
- * The delivery issue of a failed released draft: a staff reply's (TSK-0050), a question reminder's (TSK-0051) or an
- * appointment reminder's (TSK-0067).
+ * The delivery issue of a failed message sent by notify.release: a staff reply's (TSK-0050), and each routine
+ * reminder's (TSK-0051, TSK-0067; TSK-0121 adds the estimate reminder's).
  */
 export const releaseFailureItem: ReleaseFailureItem = async (tx, row) =>
   (await replyFailureItem(tx, row)) ??
   (await questionReminderFailureItem(tx, row)) ??
-  (await appointmentReminderFailureItem(tx, row))
+  (await appointmentReminderFailureItem(tx, row)) ??
+  (await estimateReminderFailureItem(tx, row))
+
+/**
+ * The values notify.release reads at send time, by message (TSK-0120: the staff reply; TSK-0121: the three automatic
+ * reminders in their owner wording).
+ */
+export function releaseValues(publicSiteUrl: string | undefined): ReleaseValues {
+  const sources = [
+    replyValues(publicSiteUrl),
+    estimateReminderValues(publicSiteUrl),
+    questionReminderValues(publicSiteUrl),
+    appointmentReminderValues(publicSiteUrl),
+  ]
+  return async (tx, row) => {
+    for (const source of sources) {
+      const values = await source(tx, row)
+      if (values !== undefined) return values
+    }
+    return undefined
+  }
+}
 
 export function buildAutomations(deps: AutomationDeps): Automation[] {
   // TSK-0119 (HH-COM-13): links in messages may point only at the configured public and staff origins.
@@ -120,9 +150,9 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
       providers: { email: deps.providers.email, sms: null, linkHosts },
       staffAppUrl: deps.staffAppUrl,
     }),
-    // TSK-0060: unanswered-estimate reminder drafts at the configured cadence (staff-released, never automatic), and
-    // the send job of every released draft with its send-time record checks (HH-COM-05).
-    ...estimateReminderAutomations({ publicSiteUrl: deps.publicSiteUrl }),
+    // TSK-0060, TSK-0121: the automatic unanswered-estimate reminder, scheduled from the version's successful delivery
+    // and sent by notify.release with its send-time record check (HH-COM-05).
+    ...estimateReminderAutomations(),
     // TSK-0050: staff-released messages (a staff reply's Send; released reminders), each at its release time: inside
     // the daily contact hours for those held to them. A reply is rechecked against its contact at send time, and its
     // failed delivery opens a delivery issue with Retry.
@@ -131,8 +161,13 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     // The one `notify.release` registration: every record type's send-time check is listed here.
     releaseAutomation(
       { email: deps.providers.email, sms: deps.providers.sms, replyAddress: deps.replyAddress ?? null, linkHosts },
-      // TSK-0120: a staff reply's email values are read from the reply at send time (replyValues).
-      { recordChecks: RELEASE_RECORD_CHECKS, failureItem: releaseFailureItem, values: replyValues(deps.publicSiteUrl) },
+      // TSK-0120: a staff reply's email values are read from the reply at send time (replyValues); TSK-0121: so are
+      // the automatic reminders' (releaseValues).
+      {
+        recordChecks: RELEASE_RECORD_CHECKS,
+        failureItem: releaseFailureItem,
+        values: releaseValues(deps.publicSiteUrl),
+      },
     ),
     // TSK-0058: each approval's receipt PDF, issued once, and the automatic approval receipt message
     // (FACT-AUTOMATIC-MESSAGES #9; wording NOT CONFIGURED: each delivery records template_not_configured).
@@ -210,11 +245,11 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     // TSK-0070: an assigned worker's accepted On my way sends the automatic on-the-way notice once (#15; TSK-0120 wires
     // the values of its owner-authorized wording, OWN-DEC-209).
     onTheWayAutomation(visitNotices),
-    // TSK-0067: the appointment reminder draft of each confirmed visit's window, at the configured interval before it
-    // (staff-released, never automatic); its send-time check is the visit entry of RELEASE_RECORD_CHECKS.
-    ...appointmentReminderAutomations({ publicSiteUrl: deps.publicSiteUrl }),
+    // TSK-0067, TSK-0121: the automatic appointment reminder of each confirmed visit's window, 24 hours before it; its
+    // send-time check is the visit entry of RELEASE_RECORD_CHECKS.
+    ...appointmentReminderAutomations(),
     // TSK-0051: the automatic question notice and staff reply notice, the reminder clock from the notice's successful
-    // send, the reminder drafts and the "may close" queue item.
+    // send (TSK-0121: the one automatic reminder) and the "may close" queue item.
     ...questionAutomations({
       providers: {
         email: deps.providers.email,

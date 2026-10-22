@@ -1,13 +1,12 @@
-// Appointment reminder drafts in a real browser (TSK-0067; HH-COM-11, HH-COM-05, HH-COM-09, T65, S01, OWN-DEC-78,
-// OWN-DEC-107). An Office user of this spec confirms an Estimate visit of a synthetic request through the staff API;
-// its reminder is scheduled 24 hours before the arrival window. The draft's time is brought forward in the database
-// (the visit is near), the draft appears in the action queue, and the Office user opens it on the scheduling board,
-// sees the date and window, address and preparation, and sends it. No wording is approved for the reminder, so it is
-// recorded as not sent (NOT CONFIGURED), never as sent. The visit is then moved (a new reminder for the new window)
-// and cancelled: the waiting reminder is cancelled with it and never sends. The worker and its working hours (every
-// day 08:00-20:00) are this spec's own fixtures, added straight to the database: they are synthetic, not the
-// business's hours. axe checks each state. Every visitor, address, account and name is synthetic
-// (RULE-SYNTHETIC-DATA).
+// The automatic appointment reminder in a real browser (TSK-0067, TSK-0121; HH-COM-11, HH-COM-05, HH-COM-14, T65, S01,
+// OWN-DEC-153, OWN-DEC-107). An Office user of this spec confirms an Estimate visit of a synthetic request through the
+// staff API; its reminder is scheduled 24 hours before the arrival window, by email and text. Its time is brought
+// forward in the database (the visit is near): the email goes out in the owner's wording and the text is recorded as
+// not sent (no text wording until A2P 10DLC). Nobody releases it: the board's visit shows it scheduled, then sent. The
+// visit is then moved (a new reminder for the new window) and cancelled: the new window's reminder is cancelled with it
+// and never sends. The worker and its working hours (every day 08:00-20:00) are this spec's own fixtures, added straight
+// to the database: they are synthetic, not the business's hours. axe checks each state. Every visitor, address,
+// account and name is synthetic (RULE-SYNTHETIC-DATA).
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { AxeBuilder } from '@axe-core/playwright'
@@ -189,47 +188,29 @@ async function staffApi(request: APIRequestContext) {
     })
 }
 
-const draftJobs = (visitId: string) =>
-  withDb((db) =>
-    db
-      .selectFrom('platform.jobs')
-      .select(['job_key', 'run_at', 'state'])
-      .where('automation', '=', 'appointment.reminder_draft')
-      .where('target_id', '=', visitId)
-      .orderBy('seq')
-      .execute(),
-  )
 const deliveries = (visitId: string) =>
   withDb((db) =>
     db
       .selectFrom('platform.message_deliveries')
-      .select(['id', 'state', 'error_code', 'provider_message_id'])
+      .select(['id', 'subject_key', 'channel', 'state', 'error_code', 'scheduled_at', 'provider_message_id'])
       .where('record_type', '=', 'visit')
       .where('record_id', '=', visitId)
       .where('message_key', '=', 'reminder.appointment')
       .orderBy('seq')
       .execute(),
   )
-/** The visit is near: its reminder's draft job (for this window version) is due now. */
-const bringForward = (visitId: string, windowVersion: number) =>
-  withDb((db) =>
-    db
+/** The visit is near: its waiting reminder deliveries' send jobs are due now. */
+const bringForward = (visitId: string) =>
+  withDb(async (db) => {
+    const ids = (await deliveries(visitId)).map((d) => d.id)
+    await db
       .updateTable('platform.jobs')
       .set({ run_at: new Date() })
-      .where('job_key', '=', `appointment.reminder_draft:${visitId}:w${windowVersion}`)
+      .where('automation', '=', 'notify.release')
+      .where('target_id', 'in', ids)
       .where('state', '=', 'queued')
-      .execute(),
-  )
-/** The daily contact hours open: a released reminder's send job is due now. */
-const sendNow = (deliveryId: string) =>
-  withDb((db) =>
-    db
-      .updateTable('platform.jobs')
-      .set({ run_at: new Date() })
-      .where('job_key', '=', `notify.release:${deliveryId}`)
-      .where('state', '=', 'queued')
-      .execute(),
-  )
+      .execute()
+  })
 const visitRow = (visitId: string) =>
   withDb((db) =>
     db
@@ -239,11 +220,11 @@ const visitRow = (visitId: string) =>
       .executeTakeFirstOrThrow(),
   )
 
-test.describe('Appointment reminder drafts (TSK-0067)', () => {
+test.describe('The automatic appointment reminder (TSK-0067, TSK-0121)', () => {
   test.describe.configure({ mode: 'serial' })
   test.skip(!databaseUrl, 'needs E2E_DATABASE_URL (a fresh PostgreSQL 16 database)')
 
-  test('[HH-COM-11][T65][HH-COM-05][HH-COM-09] the draft 24 hours before waits in the queue for staff to send; a moved or cancelled visit’s reminder never sends', async ({
+  test('[HH-COM-11][T65][HH-COM-05][OWN-DEC-153] sent automatically 24 hours before; a moved or cancelled visit’s reminder never sends', async ({
     page,
     browser,
   }) => {
@@ -274,57 +255,26 @@ test.describe('Appointment reminder drafts (TSK-0067)', () => {
         200,
       )
 
-      // Confirming schedules the draft 24 hours before the arrival window (FACT-REMINDER-CADENCES, OWN-DEC-107).
-      await expect.poll(async () => (await draftJobs(v.id)).length, { timeout: 15_000 }).toBe(1)
+      // Confirming schedules the reminder 24 hours before the arrival window, by email and text (OWN-DEC-153).
+      await expect.poll(async () => (await deliveries(v.id)).length, { timeout: 15_000 }).toBe(2)
       const booked = await visitRow(v.id)
-      const [job] = await draftJobs(v.id)
-      expect((booked.starts_at as Date).getTime() - (job?.run_at as Date).getTime()).toBe(24 * 3_600_000)
+      const scheduled = await deliveries(v.id)
+      expect(scheduled.map((d) => [d.channel, d.state])).toEqual([
+        ['email', 'queued'],
+        ['sms', 'queued'],
+      ])
+      expect((booked.starts_at as Date).getTime() - (scheduled[0]?.scheduled_at as Date).getTime()).toBe(24 * 3_600_000)
 
-      // The board's visit lists the schedule; nothing is drafted yet.
+      // The board's visit shows it scheduled; nobody sends or dismisses it, and the action queue asks nothing.
       await p.goto(`/staff/schedule/${v.id}`)
       const panel = p.getByTestId('board-selected').getByTestId('appointment-reminders')
       await expect(panel.getByRole('heading', { name: 'Appointment reminder' })).toBeVisible()
-      await expect(panel.getByText(/^Drafted 24 hours before the arrival window/)).toBeVisible()
-      await expect(panel.getByText('No reminder has been drafted yet.')).toBeVisible()
-      await axe(p)
-
-      // The visit is near: the draft waits in the action queue; nothing was sent.
-      await bringForward(v.id, booked.window_version)
-      await expect
-        .poll(async () => (await deliveries(v.id)).map((d) => d.state), { timeout: 15_000 })
-        .toEqual(['draft'])
-      await p.goto('/staff')
-      await p.getByLabel('Reference', { exact: true }).fill(link.reference)
-      await p.getByRole('button', { name: 'Apply filters' }).click()
-      const item = p.getByRole('listitem').filter({ hasText: 'Appointment reminder to send' })
-      await expect(item).toHaveCount(1)
-      await expect(item.getByText('The reminder for a confirmed appointment is ready to send')).toBeVisible()
-      await axe(p)
-      await item.getByRole('link', { name: link.reference }).click()
-      await expect(p).toHaveURL(new RegExp(`/staff/schedule/${v.id}$`))
+      await expect(panel.getByText(/^Sent automatically 24 hours before the arrival window: /)).toBeVisible()
       const list = panel.getByRole('list', { name: 'Appointment reminder' })
       await expect(list.getByText('Reminder by Email')).toBeVisible()
-      await expect(list.getByText('Draft, not sent')).toBeVisible()
-      await expect(list.getByText(`${STREET}, Testville, KY 40000`)).toBeVisible()
-      await expect(list.getByText(/9:00 AM E[SD]T/)).toBeVisible()
-      await expect(list.getByText('None were given with the offered windows.')).toBeVisible()
+      await expect(list.getByText('Scheduled').first()).toBeVisible()
+      await expect(panel.getByRole('button')).toHaveCount(0)
       await axe(p)
-
-      // Sent by staff: it goes out inside the contact hours. The owner's wording is released (TSK-0119) but its values are
-      // wired by TSK-0121, so it is recorded as not sent.
-      await panel.getByRole('button', { name: 'Send reminder' }).click()
-      await expect(panel.getByText('Released for delivery. Its outcome shows here.')).toBeVisible()
-      const [first] = await deliveries(v.id)
-      await sendNow(first?.id as string)
-      await expect
-        .poll(async () => (await deliveries(v.id)).map((d) => [d.state, d.error_code]), { timeout: 15_000 })
-        .toEqual([['failed', 'template_values_not_wired']])
-      await p.reload()
-      await expect(list.getByText('Not sent', { exact: true })).toBeVisible()
-      await expect(
-        list.getByText('Reason: The approved wording is released, but its values are not supplied yet'),
-      ).toBeVisible()
-      await expect(list.getByText(/^Sent by E2E Reminders Office, /)).toBeVisible()
       const queue = async (type: string) =>
         (
           (await (await p.request.get(`/api/v1/staff/queue?reference=${link.reference}`)).json()) as {
@@ -332,18 +282,35 @@ test.describe('Appointment reminder drafts (TSK-0067)', () => {
           }
         ).items.filter((i) => i.type === type)
       expect(await queue('appointment_reminder')).toEqual([])
+
+      // The visit is near: the email goes out; the text has no wording until A2P 10DLC and is recorded as not sent.
+      await bringForward(v.id)
+      await expect
+        .poll(async () => (await deliveries(v.id)).map((d) => [d.channel, d.state, d.error_code]), { timeout: 15_000 })
+        .toEqual([
+          ['email', 'queued', null],
+          ['sms', 'failed', 'template_not_configured'],
+        ])
+      const [first, firstText] = await deliveries(v.id)
+      expect(first?.provider_message_id).toBeTruthy()
+      await p.reload()
+      const email = list.getByTestId('appointment-reminder').filter({ hasText: 'Reminder by Email' })
+      await expect(email.getByText('Sent', { exact: true })).toBeVisible()
+      const text = list.getByTestId('appointment-reminder').filter({ hasText: 'Reminder by Text messages' })
+      await expect(text.getByText('Not sent', { exact: true })).toBeVisible()
       // OWN-DEC-107: the delivery failure is recorded for staff (a delivery issue with Retry).
       const issue = await withDb((db) =>
         db
           .selectFrom('ops.queue_items')
           .select(['reason', 'resolved_at'])
           .where('type', '=', 'delivery_failed')
-          .where('subject_id', '=', first?.id as string)
+          .where('subject_id', '=', firstText?.id as string)
           .execute(),
       )
       expect(issue).toEqual([{ reason: 'delivery_not_configured', resolved_at: null }])
+      await axe(p)
 
-      // The visit moves: the new window gets its own reminder, drafted when it is near.
+      // The visit moves: the new window gets its own reminder, 24 hours before it (recalculated).
       const before = await visitRow(v.id)
       const moved = await write(
         `/api/v1/staff/visits/${v.id}/window`,
@@ -352,15 +319,15 @@ test.describe('Appointment reminder drafts (TSK-0067)', () => {
       )
       expect(moved.status()).toBe(200)
       const after = await visitRow(v.id)
-      await expect.poll(async () => (await draftJobs(v.id)).length, { timeout: 15_000 }).toBe(2)
-      await bringForward(v.id, after.window_version)
-      await expect
-        .poll(async () => (await deliveries(v.id)).map((d) => d.state), { timeout: 15_000 })
-        .toEqual(['failed', 'draft'])
+      await expect.poll(async () => (await deliveries(v.id)).length, { timeout: 15_000 }).toBe(4)
+      const all = await deliveries(v.id)
+      expect(all.slice(2).map((d) => [d.subject_key.endsWith(`:w${after.window_version}`), d.state])).toEqual([
+        [true, 'queued'],
+        [true, 'queued'],
+      ])
+      expect((after.starts_at as Date).getTime() - (all[2]?.scheduled_at as Date).getTime()).toBe(24 * 3_600_000)
       await p.reload()
-      await expect(list.getByText('For an earlier date or window')).toBeVisible()
-      await expect(list.getByText(/1:00 PM E[SD]T/)).toBeVisible()
-      await expect(list.getByText('Reason: The appointment moved to another date or window')).toHaveCount(0)
+      await expect(list.getByText('For an earlier date or window').first()).toBeVisible()
       await axe(p)
 
       // On a phone the reminder panel fits the screen: nothing in it scrolls sideways.
@@ -369,27 +336,28 @@ test.describe('Appointment reminder drafts (TSK-0067)', () => {
       const box = await panel.boundingBox()
       expect(box !== null && box.x >= 0 && box.x + box.width <= 375).toBe(true)
 
-      // The visit is cancelled before anyone sends it: the waiting reminder is cancelled with it and never sends.
+      // The visit is cancelled before the new window's reminder goes: it is cancelled with it and never sends.
       const cancelled = await write(
         `/api/v1/staff/visits/${v.id}/cancel`,
         { reason: 'Synthetic: the customer cancelled', initiator: 'customer' },
         after.version,
       )
       expect(cancelled.status()).toBe(200)
-      expect((await deliveries(v.id)).map((d) => [d.state, d.error_code, d.provider_message_id])).toEqual([
-        ['failed', 'template_values_not_wired', null],
-        ['cancelled', 'visit_canceled', null],
+      expect((await deliveries(v.id)).map((d) => [d.state, d.error_code])).toEqual([
+        ['queued', null],
+        ['failed', 'template_not_configured'],
+        ['cancelled', 'visit_canceled'],
+        ['cancelled', 'visit_canceled'],
       ])
-      expect(await queue('appointment_reminder')).toEqual([])
-      // The board lists no canceled visit; the visit's reminders say why nothing is sent.
+      await bringForward(v.id)
       const shown = (await (await p.request.get(`/api/v1/staff/visits/${v.id}/reminders`)).json()) as {
         stoppedBy: string | null
-        reminders: { state: string; reason: string | null; actions: { release: boolean } }[]
+        reminders: { state: string; reason: string | null }[]
       }
       expect(shown.stoppedBy).toBe('visit_canceled')
-      expect(shown.reminders.map((r) => [r.state, r.reason, r.actions.release])).toEqual([
-        ['failed', 'template_values_not_wired', false],
-        ['cancelled', 'visit_canceled', false],
+      expect(shown.reminders.slice(2).map((r) => [r.state, r.reason])).toEqual([
+        ['cancelled', 'visit_canceled'],
+        ['cancelled', 'visit_canceled'],
       ])
     } finally {
       await office.close()

@@ -102,10 +102,12 @@ describe('seeded legal document versions (TSK-0024, ENT-PolicyVersion, HH-PRIV-0
     expect(PRIVACY_NOTICE.values['requestDraftDays']).toBe(
       requireConfigured(config.get('session.timings')).value.requestDraftDays,
     )
-    // The SMS terms say "up to two" estimate, question and invoice reminders: each cadence has a first and a final.
+    // The SMS terms say "up to two" estimate, question and invoice reminders: from TSK-0121 one automatic estimate and
+    // one question reminder (OWN-DEC-153); the invoice cadence keeps a first and a final.
     const cadences = requireConfigured(config.get('reminders.cadences')).value
-    for (const c of [cadences.unansweredEstimate, cadences.unansweredQuestion, cadences.unpaidInvoice])
-      expect(c.finalHours).toBeGreaterThan(c.firstHours)
+    expect(cadences.unansweredEstimate.afterDeliveryHours).toBeGreaterThan(0)
+    expect(cadences.unansweredQuestion.afterDeliveryHours).toBeGreaterThan(0)
+    expect(cadences.unpaidInvoice.finalHours).toBeGreaterThan(cadences.unpaidInvoice.firstHours)
     expect(cadences.repeatService.schedule).toBe('customer_agreed')
   })
 

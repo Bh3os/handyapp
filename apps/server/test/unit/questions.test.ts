@@ -32,12 +32,16 @@ describe('question deliveries (TSK-0051, HH-COM-06, OWN-DEC-98)', () => {
     expect(questionLink(undefined, 'HH-7K2M9Q4D', ID)).toBeNull()
   })
 
-  it('[HH-COM-06][HH-LEAD-06] the notice is automatic from its event; reminders are drafts; the staff notice is internal', () => {
+  it('[HH-COM-06][HH-LEAD-06][OWN-DEC-153] the notice and the reminder are automatic; the staff notice is internal', () => {
     expect(MESSAGE_TYPES.get(QUESTION_NOTICE)).toMatchObject({
       audience: 'customer',
       triggerEvents: ['question.published'],
     })
-    expect(MESSAGE_TYPES.get(QUESTION_REMINDER)).toMatchObject({ audience: 'customer', triggerEvents: [] })
+    // TSK-0121: the reminder is scheduled from the notice's successful delivery.
+    expect(MESSAGE_TYPES.get(QUESTION_REMINDER)).toMatchObject({
+      audience: 'customer',
+      triggerEvents: ['message.delivery_succeeded'],
+    })
     expect(MESSAGE_TYPES.get(REPLY_STAFF_NOTICE)).toMatchObject({
       audience: 'staff',
       // TSK-0120: also the first customer message of a conversation since staff last handled it.

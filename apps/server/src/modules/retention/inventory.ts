@@ -929,7 +929,7 @@ export function renderDataInventory(): string {
     '  erasure the software does not perform; checks the software cannot run are confirmed by the Owner first. A blocked',
     '  deletion offers Archive; Keep longer brings the entry back later. Deletion needs a fresh sign-in and a reason.',
     '- Erasure performed today: estimates never accepted (versions, lines, internal costs and notes, documents, the',
-    "  customer's responses and selections, reminder drafts nobody released, and their stored files after the commit)",
+    "  customer's responses and selections, reminders never released or sent, and their stored files after the commit)",
     '  and login accounts (closed: sign-in values cleared, sessions and project links revoked). Messages sent about an',
     '  erased estimate keep only its reference. Signed approvals, approval receipts, jobs, deposit records and recorded',
     '  payments are protected evidence and block it. Requests that never became jobs keep their history',
