@@ -7,7 +7,7 @@ import path from 'node:path'
 import fastifyStatic from '@fastify/static'
 import Fastify, { type FastifyBaseLogger, type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify'
 import { accessGateHook, FailureLimiter } from './access-gate.js'
-import type { Config } from './config.js'
+import { stagingToolsEnvironment, type Config } from './config.js'
 import { createDb, isPublicServiceSlug, publicServices, type Db } from '@handyhub/db'
 import { REFERENCE_PATTERN } from '@handyhub/domain/request-form'
 import { registerApi, type SurfaceResolvers } from './api/register.js'
@@ -135,6 +135,7 @@ export async function buildApp({
         storage: api?.storage ?? null,
         environment: config.env,
         trustProxyHops: config.trustProxyHops,
+        staging: stagingToolsEnvironment(config),
         ...(api?.system ? { system: api.system } : {}),
         ...(api?.codeKey ? { codeKey: api.codeKey } : {}),
       }),

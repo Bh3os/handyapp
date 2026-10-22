@@ -92,7 +92,11 @@ export type SeedContext = {
 export type Seeder = { name: string; run(ctx: SeedContext): Promise<void> }
 export type SeedOptions = { environment: SeedEnvironment; seed?: number }
 
-function contactGenerators(): Pick<SeedContext, 'email' | 'phone'> {
+/**
+ * Synthetic contact values: unique test-domain addresses and fictional 555-01xx numbers. Also used by the staging
+ * fresh-test-data generator (TSK-0141), so every generated contact comes from the same reserved ranges.
+ */
+export function syntheticContacts(): Pick<SeedContext, 'email' | 'phone'> {
   const counters = new Map<string, number>()
   let phones = 0
   return {
@@ -122,7 +126,7 @@ export async function runSeeders(db: Db, seeders: readonly Seeder[], options: Se
   if (!(SEED_ENVIRONMENTS as readonly string[]).includes(options.environment))
     throw new SeedRefusedError(`Seeding is refused in ${String(options.environment)}`)
   const rng = createRng(options.seed ?? DEFAULT_SEED)
-  const contacts = contactGenerators()
+  const contacts = syntheticContacts()
   const ran: string[] = []
   for (const seeder of seeders) {
     await withTx(db, (trx) => seeder.run({ trx, environment: options.environment, rng, ...contacts }))

@@ -1437,6 +1437,49 @@ export interface PrivacyRetentionReviewsTable {
   request_id: string
 }
 
+export interface StagingEnvironmentMarksTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  environment: string
+  source: string
+  marked_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface StagingResetRunsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  mode: string
+  state: string
+  requested_by: string
+  requested_at: ColumnType<Date, Date | string | undefined, Date | string>
+  finished_at: Timestamp | null
+  environment: string
+  txid: ColumnType<string, bigint | number | string | undefined, bigint | number | string>
+  request_id: string
+  idempotency_scope: string | null
+  request_hash: string | null
+  removed: ColumnType<JsonValue, string | undefined, string>
+  preserved: ColumnType<JsonValue, string | undefined, string>
+  checks: ColumnType<JsonValue, string | undefined, string>
+  errors: ColumnType<JsonValue, string | undefined, string>
+}
+
+export interface StagingReusableTestAccountsTable {
+  account_id: string
+  designated_by: string
+  designated_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface StagingTestDataSeedingsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  run_id: string
+  state: string
+  outcomes: Json
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  request_id: string
+}
+
 export interface WorkEquipmentTable {
   id: Generated<string>
   name: string
@@ -1944,6 +1987,10 @@ export interface Database {
   'privacy.privacy_requests': PrivacyPrivacyRequestsTable
   'privacy.retention_decisions': PrivacyRetentionDecisionsTable
   'privacy.retention_reviews': PrivacyRetentionReviewsTable
+  'staging.environment_marks': StagingEnvironmentMarksTable
+  'staging.reset_runs': StagingResetRunsTable
+  'staging.reusable_test_accounts': StagingReusableTestAccountsTable
+  'staging.test_data_seedings': StagingTestDataSeedingsTable
   'work.equipment': WorkEquipmentTable
   'work.holds': WorkHoldsTable
   'work.job_packet_acknowledgment_invalidations': WorkJobPacketAcknowledgmentInvalidationsTable

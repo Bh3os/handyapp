@@ -27,6 +27,7 @@ import { RetentionScreen } from './Retention'
 import { ScheduleBoard } from './Schedule'
 import { SearchScreen, Screen, Shell, type Navigation } from './Shell'
 import { StaffScreen } from './StaffManagement'
+import { StagingTools } from './StagingTools'
 import { ConfigurationScreen, HealthScreen } from './System'
 import { VisitTimesPage } from './VisitTimes'
 
@@ -253,6 +254,18 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
               href={href}
               staffUserId={session.staffUserId}
             />
+          ) : route.page === 'screen' && shown === 'dashboard' && allowed ? (
+            // TSK-0141: the Owner Dashboard (TSK-0096 builds the rest) with Staging Tools, shown only where the server
+            // has them (never in production, where the staging routes do not exist).
+            <>
+              <Screen t={t} id={shown} allowed={allowed} />
+              <StagingTools
+                t={t}
+                locale={locale}
+                fetchImpl={doFetch}
+                onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
+              />
+            </>
           ) : route.page === 'screen' && shown === 'health' && allowed ? (
             <HealthScreen t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
           ) : route.page === 'screen' && shown === 'settings' && allowed ? (

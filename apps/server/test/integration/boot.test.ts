@@ -81,6 +81,24 @@ describe('boot refuses a missing required variable (TSK-0003, RULE-SYNTHETIC-DAT
     )
   })
 
+  it('[HH-OPS-05] a production server records its environment mark, or does not start (TSK-0141)', async () => {
+    const dead = new URL(testDb.url)
+    dead.port = '1'
+    await expect(boot({ HANDYHUB_ENV: 'production', DATABASE_URL: dead.toString(), PORT: '0' })).rejects.toThrow(
+      /production server refused to start/,
+    )
+    // A migrated database is marked production at boot, for good (a staging reset is then refused on it).
+    const prod = await createTestDatabase()
+    try {
+      const started = await boot({ HANDYHUB_ENV: 'production', DATABASE_URL: prod.url, PORT: '0' }, { worker: false })
+      await started.app.close()
+      const marks = await prod.db.selectFrom('staging.environment_marks').select('environment').execute()
+      expect(marks.map((m) => m.environment)).toEqual(['production'])
+    } finally {
+      await prod.drop()
+    }
+  })
+
   it('[RULE-SYNTHETIC-DATA] readiness fails on an unreachable database', async () => {
     const dead = new URL(testDb.url)
     dead.port = '1'

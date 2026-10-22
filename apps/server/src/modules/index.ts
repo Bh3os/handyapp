@@ -5,7 +5,7 @@ import type { Secret } from '../providers/types.js'
 import { identityModule } from './identity/index.js'
 import type { ObjectStorage } from '../providers/index.js'
 import { COVERAGE_MODULE } from './coverage/index.js'
-import type { EnvironmentName } from '../config.js'
+import type { EnvironmentName, StagingCheck } from '../config.js'
 import { estimatesModule } from './estimates/index.js'
 import { APPROVALS_MODULE } from './approvals/index.js'
 import { CUSTOMERS_MODULE } from './customers/index.js'
@@ -33,6 +33,7 @@ import { verificationModule } from './verification/index.js'
 import { retentionModule } from './retention/index.js'
 import { privacyModule } from './privacy/index.js'
 import { visitsModule } from './visits/index.js'
+import { stagingModule, type StagingEnvironment } from './staging/index.js'
 import type { CodeKeySettings } from './identity/index.js'
 
 export type ModuleDeps = {
@@ -55,12 +56,17 @@ export type ModuleDeps = {
   trustProxyHops?: number
   /** Seals property access codes (TSK-0045); unset or null: the access-code store is NOT CONFIGURED. */
   accessCodeKey?: Secret | null
+  /**
+   * TSK-0141: the process side of the staging identification (stagingToolsEnvironment). The Staging Tools module is
+   * registered only when it identifies a staging, local or ci environment with STAGING_TOOLS=on; never in production.
+   */
+  staging?: { identified: boolean; checks: readonly StagingCheck[] }
 }
 
 const NO_CODE_KEY: CodeKeySettings = { state: 'not_configured', missing: ['CODE_HASH_KEY'] }
 
 export function apiModules(deps: ModuleDeps): ApiModule[] {
-  return [
+  const modules: ApiModule[] = [
     identityModule({
       cookies: { secure: deps.secureCookies },
       mfaKey: deps.mfaKey,
@@ -123,7 +129,24 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     // TSK-0100: privacy requests, the Owner's Delete or Archive decisions, the deletion log and customer downloads.
     privacyModule({ storage: deps.storage ?? null }),
   ]
+  // TSK-0141 (OWN-DEC-191): Staging Tools exist only in a positively identified staging or isolated test environment.
+  const env = deps.environment
+  if (deps.staging?.identified === true && (env === 'staging' || env === 'local' || env === 'ci'))
+    modules.push(
+      stagingModule({
+        environment: env satisfies StagingEnvironment,
+        checks: deps.staging.checks,
+        codeKey: deps.codeKey ?? NO_CODE_KEY,
+        routes: modules.flatMap((m) => m.routes),
+      }),
+    )
+  return modules
 }
 
 /** The modules as the contract (openapi.json) describes them; cookie flags and keys do not change the contract. */
-export const MODULES: readonly ApiModule[] = apiModules({ secureCookies: true, mfaKey: null })
+export const MODULES: readonly ApiModule[] = [
+  ...apiModules({ secureCookies: true, mfaKey: null }),
+  // TSK-0141: the contract lists the staging-only routes too (their descriptions say so); a server registers them
+  // only in an identified staging or test environment, never in production.
+  stagingModule({ environment: 'staging', checks: [], codeKey: NO_CODE_KEY, routes: [] }),
+]
