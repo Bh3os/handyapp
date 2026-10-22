@@ -12,7 +12,11 @@
 //   cleared (PROPOSED: re-enabling needs a new password through a single-use link), so nothing the person held still
 //   works. Their upcoming reservations are flagged for reassignment by the database in the same transaction, and each
 //   flagged visit gets its action-queue item (migration 0054); nothing is cancelled and their history stays. PROPOSED:
-//   the Owner cannot disable their own account.
+//   the Owner cannot disable their own account. TSK-0154 (OWN-DEC-202): offboarding also removes the authenticator
+//   and the recovery codes, so every previous credential is invalid and a re-enabled account enrols again.
+// - Authenticator reset (TSK-0154, OWN-DEC-202; staff.reset_mfa, PROPOSED in the grant row: fresh sign-in, a reason,
+//   never oneself): a staff member who lost their authenticator gets it removed with its recovery codes and every
+//   session revoked at once; the next sign-in (with their password) enrols a new one before any staff screen.
 // - Re-enabling (fresh sign-in and a reason): the account returns to active (or invited, when it never set a password)
 //   with its role grants unchanged, and a single-use reset (or invite) link is emailed.
 import type { Tx } from '@handyhub/db'
@@ -20,6 +24,7 @@ import { CAPABILITIES, STAFF_ROLES } from '@handyhub/policy'
 import { sql } from 'kysely'
 import { ApiError, type FieldError } from '../../api/errors.js'
 import { issueLink } from '../identity/links.js'
+import { removeMfa } from '../identity/mfa.js'
 import { lockAccountWrites, revokeAllSessions } from '../identity/sessions.js'
 
 type Reader = Pick<Tx, 'selectFrom'>
@@ -357,7 +362,13 @@ export async function endGrant(
 export async function disable(
   tx: Tx,
   input: { actorId: string; staffUserId: string; reason: string | null },
-): Promise<{ sessionsRevoked: number; linksInvalidated: number; flagged: number; upcoming: number }> {
+): Promise<{
+  sessionsRevoked: number
+  linksInvalidated: number
+  flagged: number
+  upcoming: number
+  mfaRemoved: boolean
+}> {
   if (input.staffUserId === input.actorId) throw conflict('staffUser', 'OWN_ACCOUNT')
   // Every in-flight write of the person commits first; every later one sees the account disabled.
   await lockAccountWrites(tx, input.staffUserId)
@@ -385,6 +396,7 @@ export async function disable(
     .set({ password_hash: null, password_set_at: null })
     .where('staff_user_id', '=', input.staffUserId)
     .execute()
+  const mfa = await removeMfa(tx, input.staffUserId)
   await tx
     .insertInto('identity.staff_status_changes')
     .values({
@@ -411,7 +423,27 @@ export async function disable(
     linksInvalidated: Number(links.numUpdatedRows),
     flagged: Number(counts.flagged),
     upcoming: Number(counts.upcoming),
+    mfaRemoved: mfa.factor,
   }
+}
+
+/**
+ * Resets a staff member's authenticator (TSK-0154): see the header. The policy already checked the Owner, the fresh
+ * sign-in, the reason and not oneself. Refused for a disabled account (it has none: offboarding removed it) and for an
+ * account without one (CONFLICT MFA_NOT_ENROLLED: it enrols at its next sign-in anyway).
+ */
+export async function resetMfa(
+  tx: Tx,
+  input: { staffUserId: string },
+): Promise<{ sessionsRevoked: number; recoveryCodesRemoved: number }> {
+  await lockAccountWrites(tx, input.staffUserId)
+  const u = await lockMember(tx, input.staffUserId)
+  if (u.status === 'disabled') throw conflict('staffUser', 'ACCOUNT_DISABLED')
+  const removed = await removeMfa(tx, input.staffUserId)
+  if (!removed.factor) throw conflict('staffUser', 'MFA_NOT_ENROLLED')
+  const sessionsRevoked = await revokeAllSessions(tx, input.staffUserId, 'mfa_reset')
+  await bump(tx, input.staffUserId)
+  return { sessionsRevoked, recoveryCodesRemoved: removed.recoveryCodes }
 }
 
 /** Re-enables a disabled account and emails a single-use reset (or invite) link: the old password was cleared. */

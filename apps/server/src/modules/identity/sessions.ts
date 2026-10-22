@@ -9,6 +9,11 @@
 //   nobody until the second factor is given (at most MFA_PENDING_MINUTES); every MFA step and every re-entry rotates
 //   the token (the old row is revoked as 'rotated'); a CSRF token derived from the session token protects unsafe
 //   requests (it changes with every rotation and needs no storage).
+// - TSK-0154 (OWN-DEC-202, MFA mandatory for every staff role): an account without a confirmed authenticator gets an
+//   'mfa_enrollment' session after its password, which acts for nobody and reaches only enrolment and sign-out until
+//   the authenticator is confirmed (at most MFA_PENDING_MINUTES too). Only a 'complete' session of a user with a
+//   confirmed authenticator acts for its user: a complete session whose user has none (it cannot be created: the
+//   database refuses it, migration 0070) is revoked as 'mfa_required' and refused.
 import type { Db, Tx } from '@handyhub/db'
 import { sql } from 'kysely'
 import { loadConfig, requireConfigured } from '../../platform/config/index.js'
@@ -17,7 +22,10 @@ import { hashToken, newToken, TOKEN } from './tokens.js'
 
 /** PROPOSED: a password entry counts as fresh authentication for 5 minutes (the old repo's step-up window). */
 export const FRESH_AUTH_MINUTES = 5
-/** PROPOSED: a password-only (MFA pending) session must complete the second factor within 10 minutes. */
+/**
+ * PROPOSED: a password-only session (MFA pending, or enrolling an authenticator, TSK-0154) must complete the second
+ * factor within 10 minutes.
+ */
 export const MFA_PENDING_MINUTES = 10
 /** last_seen_at is written at most once a minute, so every request does not write. */
 const TOUCH_AFTER_MS = 60_000
@@ -53,12 +61,13 @@ export function readSessionToken(header: string | undefined, options: CookieOpti
   return null
 }
 
-export type SessionState = 'mfa_pending' | 'complete'
+/** 'mfa_enrollment' and 'mfa_pending' are pre-MFA states: the session acts for nobody (TSK-0015, TSK-0154). */
+export type SessionState = 'mfa_enrollment' | 'mfa_pending' | 'complete'
 
 export async function createSession(
   tx: Tx,
   staffUserId: string,
-  state: SessionState = 'complete',
+  state: SessionState,
 ): Promise<{ id: string; token: string }> {
   const token = newToken()
   const row = await tx
@@ -140,6 +149,14 @@ export async function sessionStillLive(tx: Tx, staffUserId: string, sessionId: s
     .where('u.status', '=', 'active')
     .where('s.revoked_at', 'is', null)
     .where('s.state', '=', 'complete')
+    .where(({ exists, selectFrom }) =>
+      exists(
+        selectFrom('identity.staff_mfa as m')
+          .select('m.staff_user_id')
+          .whereRef('m.staff_user_id', '=', 'u.id')
+          .where('m.confirmed_at', 'is not', null),
+      ),
+    )
     .executeTakeFirst()
   return row !== undefined
 }
@@ -148,7 +165,7 @@ export async function sessionStillLive(tx: Tx, staffUserId: string, sessionId: s
 export async function revokeAllSessions(
   tx: Tx,
   staffUserId: string,
-  reason: 'password_set' | 'disabled' | 'revoked_by_owner' | 'revoked_all' | 'mfa_changed',
+  reason: 'password_set' | 'disabled' | 'revoked_by_owner' | 'revoked_all' | 'mfa_changed' | 'mfa_reset',
   except?: string,
 ): Promise<number> {
   await lockAccountWrites(tx, staffUserId)
@@ -209,13 +226,30 @@ export async function resolveSession(db: Db, token: string, now = new Date()): P
       .execute()
     return null
   }
-  if (
-    row.state === 'mfa_pending' &&
-    now.getTime() - new Date(row.created_at).getTime() > MFA_PENDING_MINUTES * 60_000
-  ) {
+  const state: SessionState =
+    row.state === 'mfa_pending' ? 'mfa_pending' : row.state === 'mfa_enrollment' ? 'mfa_enrollment' : 'complete'
+  if (state !== 'complete' && now.getTime() - new Date(row.created_at).getTime() > MFA_PENDING_MINUTES * 60_000) {
     await db
       .updateTable('identity.staff_sessions')
       .set({ revoked_at: now, revoke_reason: 'mfa_pending_expired' })
+      .where('id', '=', row.id)
+      .where('revoked_at', 'is', null)
+      .execute()
+    return null
+  }
+  const mfaEnrolled = Boolean(
+    await db
+      .selectFrom('identity.staff_mfa')
+      .select('staff_user_id')
+      .where('staff_user_id', '=', row.staff_user_id)
+      .where('confirmed_at', 'is not', null)
+      .executeTakeFirst(),
+  )
+  // TSK-0154 (OWN-DEC-202): a complete session never acts without a confirmed second factor (fail closed).
+  if (state === 'complete' && !mfaEnrolled) {
+    await db
+      .updateTable('identity.staff_sessions')
+      .set({ revoked_at: now, revoke_reason: 'mfa_required' })
       .where('id', '=', row.id)
       .where('revoked_at', 'is', null)
       .execute()
@@ -239,16 +273,9 @@ export async function resolveSession(db: Db, token: string, now = new Date()): P
     roles: grants.filter((g) => g.kind === 'role').map((g) => g.name),
     capabilities: grants.filter((g) => g.kind === 'capability').map((g) => g.name),
     freshAuth: now.getTime() - new Date(row.authenticated_at).getTime() <= FRESH_AUTH_MINUTES * 60_000,
-    state: row.state === 'mfa_pending' ? 'mfa_pending' : 'complete',
+    state,
     authenticatedAt: new Date(row.authenticated_at),
     csrfToken: csrfTokenFor(token),
-    mfaEnrolled: Boolean(
-      await db
-        .selectFrom('identity.staff_mfa')
-        .select('staff_user_id')
-        .where('staff_user_id', '=', row.staff_user_id)
-        .where('confirmed_at', 'is not', null)
-        .executeTakeFirst(),
-    ),
+    mfaEnrolled,
   }
 }

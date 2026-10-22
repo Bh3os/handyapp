@@ -22,6 +22,7 @@ import { workPackageSopView } from '../../src/modules/sops/view.js'
 import { recordPolicyVersion, type ConfigKey } from '../../src/platform/config/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { testConfig } from '../fixtures/env.js'
+import { signInWithMfa } from '../fixtures/staff-mfa.js'
 
 const KEY: CodeKeySettings = readCodeKey({
   HANDYHUB_ENV: 'ci',
@@ -58,7 +59,7 @@ async function setConfig(key: ConfigKey, value: unknown) {
 }
 
 async function signIn(p: Person): Promise<[string, string]> {
-  const res = await app.inject({
+  const res = await signInWithMfa(app, {
     method: 'POST',
     url: '/api/v1/staff/auth/sign-in',
     payload: { email: `${p}-sop-versions@example.test`, password: pw(1) },

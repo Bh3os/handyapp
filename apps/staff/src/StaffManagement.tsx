@@ -3,8 +3,10 @@
 // - the staff list: each person's status, roles and capabilities, sign-in facts (password set, authenticator, live
 //   sessions) and upcoming assignments with how many are flagged for review;
 // - per person: grant a role or capability (fresh sign-in and a reason), end a grant, start password recovery, revoke
-//   every session, disable the account (offboarding: sessions end at once, upcoming assignments go to the action queue
-//   for reassignment, nothing is cancelled, history stays) and re-enable it (fresh sign-in and a reason);
+//   every session, reset a lost authenticator (TSK-0154: fresh sign-in and a reason, never oneself; MFA is mandatory,
+//   so the person sets up a new one at the next sign-in), disable the account (offboarding: sessions end at once, the
+//   authenticator is removed, upcoming assignments go to the action queue for reassignment, nothing is cancelled,
+//   history stays) and re-enable it (fresh sign-in and a reason);
 // - inviting a person by email with a role;
 // - working days, hours and time off, and equipment, stay the capacity screen below (TSK-0062).
 // The server decides every request; a refusal is written out. A sensitive action that needs a fresh sign-in asks for
@@ -274,6 +276,8 @@ function MemberRecord({
   const [notice, setNotice] = useState<string | null>(null)
   const [reason, setReason] = useState('')
   const [confirmDisable, setConfirmDisable] = useState(false)
+  const [confirmReset, setConfirmReset] = useState(false)
+  const [resetReason, setResetReason] = useState('')
   const w = useStaffWrite(fetchImpl, t, onSession)
   useEffect(() => {
     void call<MemberDetail>(fetchImpl, `/staff/members/${encodeURIComponent(id)}`).then((r) =>
@@ -289,6 +293,8 @@ function MemberRecord({
     setNotice(message)
     setReason('')
     setConfirmDisable(false)
+    setConfirmReset(false)
+    setResetReason('')
     onChanged()
   }
   const live = m.grants.filter((g) => g.endedAt === null)
@@ -425,12 +431,51 @@ function MemberRecord({
               >
                 {t('staffAdmin.sessions.submit')}
               </Button>
+              {m.self || !m.mfaEnrolled ? null : (
+                <Button variant="secondary" onClick={() => (setConfirmReset(true), setConfirmDisable(false))}>
+                  {t('staffAdmin.mfaReset.submit')}
+                </Button>
+              )}
               {m.self ? null : (
-                <Button variant="danger" onClick={() => setConfirmDisable(true)}>
+                <Button variant="danger" onClick={() => (setConfirmDisable(true), setConfirmReset(false))}>
                   {t('staffAdmin.disable.submit')}
                 </Button>
               )}
             </div>
+            {confirmReset ? (
+              <form
+                className="staff-request__form"
+                data-testid="staff-mfa-reset-confirm"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  void w.send<{ member: MemberDetail; sessionsRevoked: number }>(
+                    path('mfa-reset'),
+                    { reason: resetReason.trim() },
+                    (out) => changed(out.member, t('staffAdmin.mfaReset.done', { sessions: out.sessionsRevoked })),
+                  )
+                }}
+              >
+                <StateView
+                  kind="stale"
+                  title={t('staffAdmin.mfaReset.confirmTitle', { name: m.displayName ?? m.email })}
+                  reasons={[t('staffAdmin.mfaReset.effect')]}
+                />
+                <Field
+                  label={t('staffAdmin.reasonRequired')}
+                  required
+                  value={resetReason}
+                  onChange={(e) => setResetReason(e.target.value)}
+                />
+                <div className="hh-button-row">
+                  <Button type="submit" pending={w.pending}>
+                    {t('staffAdmin.mfaReset.confirm')}
+                  </Button>
+                  <Button variant="quiet" onClick={() => setConfirmReset(false)}>
+                    {t('staffAdmin.cancel')}
+                  </Button>
+                </div>
+              </form>
+            ) : null}
             {confirmDisable ? (
               <div data-testid="staff-disable-confirm">
                 <StateView

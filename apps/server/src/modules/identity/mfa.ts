@@ -1,5 +1,8 @@
-// Optional staff MFA (TSK-0015; HH-STAFF-01, HH-SEC-02, OWN-DEC-114): one TOTP authenticator per staff user, from a
-// maintained library (otpauth, RFC 6238: SHA-1, 6 digits, 30 seconds), with single-use recovery codes.
+// Staff MFA (TSK-0015; HH-STAFF-01, HH-SEC-02, OWN-DEC-114), mandatory for every staff role since TSK-0154
+// (OWN-DEC-202): one TOTP authenticator per staff user, from a maintained library (otpauth, RFC 6238: SHA-1, 6 digits,
+// 30 seconds), with single-use recovery codes.
+// - Without MFA_ENCRYPTION_KEY nobody can enrol or give a code, so staff sign-in is refused in every environment
+//   (fail closed, mfaNotConfigured); the server logs MFA_NOT_CONFIGURED_LOG for the operator.
 // - The shared secret is sealed with AES-256-GCM under MFA_ENCRYPTION_KEY and shown only once, at enrolment.
 // - A code is accepted within one step of clock drift and never twice (last_used_step).
 // - Recovery codes: 10 random codes, shown once when MFA is confirmed; only their SHA-256 is stored.
@@ -7,10 +10,20 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:
 import type { Db, Tx } from '@handyhub/db'
 import { sql } from 'kysely'
 import { Secret as TotpSecret, TOTP } from 'otpauth'
+import { ApiError } from '../../api/errors.js'
 import type { Secret } from '../../providers/types.js'
 import { hashToken } from './tokens.js'
 
 export const RECOVERY_CODE_COUNT = 10
+
+/** The operator error logged when staff sign-in is refused for a missing key (names the variable, never a value). */
+export const MFA_NOT_CONFIGURED_LOG =
+  'MFA_NOT_CONFIGURED: staff sign-in is refused until the operator sets MFA_ENCRYPTION_KEY (at least 32 random characters) in the environment'
+
+/** Staff sign-in while MFA_ENCRYPTION_KEY is unset: NOT_CONFIGURED, field mfa, code MFA_NOT_CONFIGURED. */
+export function mfaNotConfigured(): ApiError {
+  return new ApiError('NOT_CONFIGURED', { fieldErrors: [{ field: 'mfa', code: 'MFA_NOT_CONFIGURED', message: '' }] })
+}
 const PERIOD = 30
 
 function keyOf(key: Secret): Buffer {
@@ -146,9 +159,17 @@ export async function useRecoveryCode(tx: Tx, staffUserId: string, code: string)
   return row !== undefined
 }
 
-/** Removes the authenticator and the recovery codes. */
-export async function removeMfa(tx: Tx, staffUserId: string): Promise<boolean> {
-  await tx.deleteFrom('identity.staff_recovery_codes').where('staff_user_id', '=', staffUserId).execute()
+/**
+ * Removes the authenticator and the recovery codes (the Owner's reset, offboarding, the operations recovery of an
+ * Owner's own; TSK-0154). The caller revokes every session of the person in the same transaction. Returns whether an
+ * authenticator (confirmed or still enrolling) and how many unused recovery codes were removed.
+ */
+export async function removeMfa(tx: Tx, staffUserId: string): Promise<{ factor: boolean; recoveryCodes: number }> {
+  const codes = await tx
+    .deleteFrom('identity.staff_recovery_codes')
+    .where('staff_user_id', '=', staffUserId)
+    .returning('used_at')
+    .execute()
   const res = await tx.deleteFrom('identity.staff_mfa').where('staff_user_id', '=', staffUserId).executeTakeFirst()
-  return Number(res.numDeletedRows) > 0
+  return { factor: Number(res.numDeletedRows) > 0, recoveryCodes: codes.filter((c) => c.used_at === null).length }
 }

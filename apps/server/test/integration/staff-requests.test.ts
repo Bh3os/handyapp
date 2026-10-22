@@ -14,6 +14,7 @@ import { requestsModule } from '../../src/modules/requests/index.js'
 import { createAutomationRegistry } from '../../src/platform/automation.js'
 import { createWorker } from '../../src/platform/jobs.js'
 import { testConfig } from '../fixtures/env.js'
+import { signInWithMfa, TEST_MFA_KEY } from '../fixtures/staff-mfa.js'
 
 const pw = (n: number) => ['synthetic', 'requests', 'passphrase', 'number', String(n)].join(' ')
 const PEOPLE = ['owner', 'office', 'office2', 'estimator', 'worker'] as const
@@ -33,7 +34,7 @@ const owedCsrf = {} as Record<Person, string>
 const withAppointment = new Set<string>()
 
 async function signIn(server: FastifyInstance, p: Person): Promise<[string, string]> {
-  const res = await server.inject({
+  const res = await signInWithMfa(server, {
     method: 'POST',
     url: '/api/v1/staff/auth/sign-in',
     payload: { email: `${p}-requests@example.test`, password: pw(1) },
@@ -48,7 +49,7 @@ beforeAll(async () => {
   t = await createTestDatabase()
   await syncServices(t.db, loadServiceSeed())
   app = await buildApp({ config: testConfig({ TRUST_PROXY_HOPS: '1' }), api: { db: t.db } })
-  const modules = apiModules({ secureCookies: false, mfaKey: null }).map((m) =>
+  const modules = apiModules({ secureCookies: false, mfaKey: TEST_MFA_KEY }).map((m) =>
     m.name === 'requests'
       ? requestsModule({
           obligationChecks: [

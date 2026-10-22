@@ -34,6 +34,7 @@ import { outbox } from '../../src/platform/outbox.js'
 import { createProviders } from '../../src/providers/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
 import { testConfig } from '../fixtures/env.js'
+import { signInWithMfa } from '../fixtures/staff-mfa.js'
 
 let t: TestDatabase
 let app: FastifyInstance
@@ -62,7 +63,7 @@ beforeAll(async () => {
     }
   })
   for (const p of PEOPLE) {
-    const res = await app.inject({
+    const res = await signInWithMfa(app, {
       method: 'POST',
       url: '/api/v1/staff/auth/sign-in',
       headers: XFF,

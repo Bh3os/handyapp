@@ -20,6 +20,7 @@ import {
 } from '../../src/modules/records/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { testConfig } from '../fixtures/env.js'
+import { signInWithMfa } from '../fixtures/staff-mfa.js'
 
 const ROLES: readonly StaffRole[] = ['owner', 'office', 'estimator', 'worker']
 const pw = ['synthetic', 'scoped', 'passphrase', '37'].join(' ')
@@ -218,7 +219,7 @@ beforeAll(async () => {
       await setPasswordHash(tx, user.id, hash)
       return user.id
     })
-    const res = await app.inject({
+    const res = await signInWithMfa(app, {
       method: 'POST',
       url: '/api/v1/staff/auth/sign-in',
       payload: { email: `${role}-scoped@example.test`, password: pw },

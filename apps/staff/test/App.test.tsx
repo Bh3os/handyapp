@@ -79,7 +79,7 @@ describe('staff sign-in screens (TSK-0014, HH-STAFF-01)', () => {
   })
 })
 
-describe('optional MFA and CSRF in the staff app (TSK-0015, HH-STAFF-01, HH-SEC-02)', () => {
+describe('mandatory MFA and CSRF in the staff app (TSK-0015, TSK-0154, HH-STAFF-01, HH-SEC-02)', () => {
   it('[HH-STAFF-01] asks for the authenticator code after the password when MFA is enrolled', async () => {
     const session = {
       staffUserId: 'u1',
@@ -88,12 +88,11 @@ describe('optional MFA and CSRF in the staff app (TSK-0015, HH-STAFF-01, HH-SEC-
       locale: 'en',
       roles: ['owner'],
       mfaEnrolled: true,
-      mfaRecommended: false,
       csrfToken: 'synthetic-csrf-token',
     }
     const fetchImpl = vi
       .fn()
-      .mockResolvedValueOnce(json(202, { mfaRequired: true }))
+      .mockResolvedValueOnce(json(202, { mfaRequired: true, step: 'verify' }))
       .mockResolvedValueOnce(json(200, session))
       .mockResolvedValue(json(200, session))
     const navigate = vi.fn()
@@ -110,5 +109,81 @@ describe('optional MFA and CSRF in the staff app (TSK-0015, HH-STAFF-01, HH-SEC-
     const [url, init] = fetchImpl.mock.calls[1] as [string, RequestInit]
     expect(url).toBe('/api/v1/staff/auth/mfa/verify')
     expect(JSON.parse(String(init.body))).toEqual({ code: '123456' })
+  })
+
+  it('[HH-STAFF-01][HH-SEC-02] an account without an authenticator sets one up before any staff screen', async () => {
+    const session = {
+      staffUserId: 'u2',
+      displayName: 'Synthetic Worker',
+      email: 'worker@example.test',
+      locale: 'en',
+      roles: ['worker'],
+      mfaEnrolled: true,
+      csrfToken: 'synthetic-csrf-token',
+    }
+    const setupKey = ['SYNTHETIC', 'SETUP', 'KEY'].join('')
+    const codes = ['aaaa-bbbb-cccc-dddd', 'eeee-ffff-0000-1111']
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(json(202, { mfaRequired: true, step: 'enroll' }))
+      .mockResolvedValueOnce(
+        json(200, { secret: setupKey, otpauthUri: `otpauth://totp/HandyHub:worker?secret=${setupKey}` }),
+      )
+      .mockResolvedValueOnce(
+        json(401, {
+          error: { code: 'INVALID_CREDENTIALS', message: '', fieldErrors: [], requestId: 'r', retryable: false },
+        }),
+      )
+      .mockResolvedValueOnce(json(200, { recoveryCodes: codes, session }))
+      .mockResolvedValue(json(200, session))
+    const navigate = vi.fn()
+    render(<App path="/staff/sign-in" base="/staff/" fetchImpl={fetchImpl} navigate={navigate} />)
+    fireEvent.change(screen.getByLabelText(/Email/), { target: { value: 'worker@example.test' } })
+    fireEvent.change(screen.getByLabelText(/^Password/), { target: { value: 'a long enough passphrase' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { level: 1, name: 'Set up your authenticator app' })).toBeTruthy(),
+    )
+    await waitFor(() => expect(screen.getByTestId('mfa-secret').textContent).toBe(setupKey))
+    expect(fetchImpl.mock.calls[1]?.[0]).toBe('/api/v1/staff/auth/mfa/enroll')
+    fireEvent.change(screen.getByLabelText(/Authenticator code/), { target: { value: '000000' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+    await waitFor(() =>
+      expect(screen.getByText('That code is not correct or was already used. Enter the current code.')).toBeTruthy(),
+    )
+    fireEvent.change(screen.getByLabelText(/Authenticator code/), { target: { value: '123456' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { level: 1, name: 'Save your recovery codes' })).toBeTruthy(),
+    )
+    expect(screen.getByTestId('mfa-recovery-codes').textContent).toContain(codes[0])
+    // Nothing opens before the codes are acknowledged.
+    expect(navigate).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'I saved my recovery codes' }))
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/staff/'))
+    const [url, init] = fetchImpl.mock.calls[3] as [string, RequestInit]
+    expect(url).toBe('/api/v1/staff/auth/mfa/confirm')
+    expect(JSON.parse(String(init.body))).toEqual({ code: '123456' })
+    // The enrolment never offers to skip the authenticator.
+    expect(screen.queryByText(/recommended/i)).toBeNull()
+  })
+
+  it('[HH-SEC-02] says so when the server refuses sign-in because the MFA key is NOT CONFIGURED (fail closed)', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      json(503, {
+        error: {
+          code: 'NOT_CONFIGURED',
+          message: '',
+          fieldErrors: [{ field: 'mfa', code: 'MFA_NOT_CONFIGURED', message: '' }],
+          requestId: 'r',
+          retryable: false,
+        },
+      }),
+    )
+    render(<App path="/staff/sign-in" base="/staff/" fetchImpl={fetchImpl} navigate={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText(/Email/), { target: { value: 'owner@example.test' } })
+    fireEvent.change(screen.getByLabelText(/^Password/), { target: { value: 'a long enough passphrase' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+    await waitFor(() => expect(screen.getByText(/MFA_ENCRYPTION_KEY/)).toBeTruthy())
   })
 })

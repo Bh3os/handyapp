@@ -63,6 +63,9 @@ export interface ApiOptions {
 
 const GUEST: RequestActor = { actor: { kind: 'guest' } }
 
+/** What the request hooks read from a registered route (Fastify route config). */
+type RouteConfig = { beforeSecondFactor: boolean }
+
 /** The session readers per side: `staff` for /staff routes, `public` for /public and /customer routes. */
 export interface SurfaceResolvers {
   staff: ResolveActor
@@ -180,6 +183,11 @@ function querySchema(route: RouteDef) {
   return { ...base, properties: { ...(base.properties ?? {}), ...PAGE_QUERY_PROPERTIES } }
 }
 
+/** A pre-MFA staff session asked for a route that needs the second factor (TSK-0154). */
+export function mfaRequired(): ApiError {
+  return new ApiError('UNAUTHENTICATED', { fieldErrors: [{ field: 'session', code: 'MFA_REQUIRED', message: '' }] })
+}
+
 function refuseKind(kind: ActorKind | 'ai'): ApiError {
   if (kind === 'guest') return new ApiError('UNAUTHENTICATED')
   if (kind === 'customer') return new ApiError('NOT_FOUND')
@@ -225,6 +233,10 @@ async function runRoute(
   reply: FastifyReply,
 ): Promise<FastifyReply> {
   const { actor, authenticatedAt } = req.apiActor ?? GUEST
+
+  // TSK-0154 (OWN-DEC-202): a staff session that has not completed its second factor reaches only the routes that say
+  // so (enrolment, the challenge, sign-out and the guest sign-in routes); every other route refuses it first.
+  if (req.staffPendingSession && !route.beforeSecondFactor) throw mfaRequired()
 
   const kind = actorKind(actor)
   if (kind === 'ai' || !route.actors.includes(kind)) throw refuseKind(kind)
@@ -367,6 +379,14 @@ export async function registerApi(app: FastifyInstance, options: ApiOptions): Pr
         const resolved = await (surface === 'staff' ? resolvers.staff : resolvers.public)(req)
         req.apiActor = resolved
         req.apiAudience = audienceOf(resolved.actor, resolved.locale)
+        // TSK-0154 (OWN-DEC-202): a staff session before its second factor reaches only the routes declared
+        // beforeSecondFactor, refused here before validation so a malformed request learns nothing either (runRoute
+        // checks again).
+        if (
+          req.staffPendingSession &&
+          (req.routeOptions.config as unknown as RouteConfig | undefined)?.beforeSecondFactor !== true
+        )
+          throw mfaRequired()
         // CSRF token (TSK-0015): an unsafe request authenticated by a cookie session carries the session's token.
         if (resolved.csrfToken !== undefined && !SAFE_METHODS.has(req.method)) {
           const sent = req.headers['x-csrf-token']
@@ -413,6 +433,7 @@ export async function registerApi(app: FastifyInstance, options: ApiOptions): Pr
             ...(route.binaryBody ? { bodyLimit: route.binaryBody.maxBytes } : {}),
             method: route.method,
             url: route.path,
+            config: { beforeSecondFactor: route.beforeSecondFactor === true } satisfies RouteConfig,
             schema: {
               ...(route.schema.params ? { params: route.schema.params } : {}),
               ...(querySchema(route) ? { querystring: querySchema(route) } : {}),

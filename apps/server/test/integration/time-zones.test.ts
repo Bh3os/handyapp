@@ -24,6 +24,7 @@ import { loadConfig, recordPolicyVersion, type ConfigKey } from '../../src/platf
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { DATASET_ZIPS, SYNTHETIC_ZIPS } from '../fixtures/coverage.js'
 import { testConfig } from '../fixtures/env.js'
+import { signInWithMfa } from '../fixtures/staff-mfa.js'
 
 const EASTERN = 'America/Kentucky/Louisville'
 const CENTRAL = 'America/Chicago'
@@ -94,7 +95,7 @@ beforeAll(async () => {
     }
   })
   for (const p of PEOPLE) {
-    const res = await app.inject({
+    const res = await signInWithMfa(app, {
       method: 'POST',
       url: '/api/v1/staff/auth/sign-in',
       headers: { 'x-forwarded-for': '198.51.100.123' },

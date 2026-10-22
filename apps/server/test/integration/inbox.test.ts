@@ -37,6 +37,7 @@ import { readProviderSettings } from '../../src/providers/settings.js'
 import { signWebhook } from '../../src/providers/webhooks.js'
 import { registerWebhookRoutes } from '../../src/providers/webhooks.js'
 import { testConfig } from '../fixtures/env.js'
+import { signInWithMfa } from '../fixtures/staff-mfa.js'
 
 const ROLES: readonly StaffRole[] = ['owner', 'office', 'estimator', 'worker']
 const pw = ['synthetic', 'inbox', 'passphrase', '49'].join(' ')
@@ -246,7 +247,7 @@ beforeAll(async () => {
       await setPasswordHash(tx, user.id, hash)
       return user.id
     })
-    const res = await app.inject({
+    const res = await signInWithMfa(app, {
       method: 'POST',
       url: '/api/v1/staff/auth/sign-in',
       payload: { email: `${role}-inbox@example.test`, password: pw },
@@ -339,7 +340,7 @@ describe('verified, replay-safe, de-duplicated inbound webhooks (TSK-0049, HH-CO
     })
     expect(res.statusCode).toBe(503)
     expect(res.json()).toEqual({ error: 'inbound_not_configured' })
-    const owner = await bare.inject({
+    const owner = await signInWithMfa(bare, {
       method: 'POST',
       url: '/api/v1/staff/auth/sign-in',
       payload: { email: 'owner-inbox@example.test', password: pw },

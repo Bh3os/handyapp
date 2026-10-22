@@ -13,7 +13,7 @@ import { consumeLink, issueLink } from './links.js'
 import { checkPassword, hashPassword, needsRehash, PASSWORD_MIN_LENGTH, verifyPassword } from './passwords.js'
 import { check, hit, networkOf, RATE_RULES } from './rate-limit.js'
 import type { Secret } from '../../providers/types.js'
-import { mfaState, useTotp } from './mfa.js'
+import { mfaNotConfigured, MFA_NOT_CONFIGURED_LOG, mfaState, useTotp } from './mfa.js'
 import { securityRoutes } from './security.js'
 import { freshView, mfaPendingView, sessionView, viewOf } from './views.js'
 import {
@@ -62,9 +62,10 @@ export function identityModule(deps: IdentityDeps): ApiModule {
       operationId: 'staffSignIn',
       summary: 'Staff sign-in with email and password',
       description:
-        'Verifies the password (argon2id, equal timing for unknown emails), starts a new session (new ID) and sets the host-only session cookie. Rate limited per account and per network. Sign-in and failed sign-in are audited.',
+        'Verifies the password (argon2id, equal timing for unknown emails), starts a new session (new ID) and sets the host-only session cookie. The password never completes a sign-in (MFA is mandatory for every staff role, OWN-DEC-202): the session waits for the authenticator code (step verify) or, for an account without an authenticator, for its enrolment (step enroll), and reaches nothing else. Refused for everyone while MFA_ENCRYPTION_KEY is NOT CONFIGURED (NOT_CONFIGURED, field mfa, code MFA_NOT_CONFIGURED). Rate limited per account and per network. Sign-in and failed sign-in are audited.',
       actors: ['guest', 'staff', 'customer'],
       permission: AUTHENTICATION,
+      beforeSecondFactor: true,
       kind: 'write',
       idempotency: 'none',
       rateLimit: { ...RATE_RULES.signInAccount, enforcedBy: 'handler' },
@@ -76,9 +77,15 @@ export function identityModule(deps: IdentityDeps): ApiModule {
           required: ['email', 'password'],
           properties: { email: emailField, password: passwordField },
         },
-        response: { 200: sessionView, 202: mfaPendingView },
+        response: { 202: mfaPendingView },
       },
       handler: async ({ req, db, tx, audit, auditAlways }) => {
+        // TSK-0154 (OWN-DEC-202): MFA is mandatory, so without the key that seals authenticators nobody can complete
+        // a sign-in: refused for everyone (fail closed), with an operator error naming the variable (never a value).
+        if (!deps.mfaKey) {
+          req.log.error({ variable: 'MFA_ENCRYPTION_KEY' }, MFA_NOT_CONFIGURED_LOG)
+          throw mfaNotConfigured()
+        }
         const { email, password } = req.body as { email: string; password: string }
         // Failures are counted; a network or account over its limit is refused even with the right password.
         const network = clientNetwork(req)
@@ -104,13 +111,15 @@ export function identityModule(deps: IdentityDeps): ApiModule {
             .set({ password_hash: await hashPassword(password) })
             .where('staff_user_id', '=', account.id)
             .execute()
-        // With an enrolled authenticator the password alone starts a pending session (TSK-0015).
+        // The password alone never completes a sign-in (TSK-0154, OWN-DEC-202): an enrolled account gets a pending
+        // session for its authenticator code (TSK-0015); an account without one (a new or migrated account, or one
+        // whose authenticator the Owner reset) gets an enrolment session, which reaches nothing but enrolment.
         const enrolled = (await mfaState(trx, account.id)).enrolled
-        const session = await createSession(trx, account.id, enrolled ? 'mfa_pending' : 'complete')
-        await audit({ target: { type: 'staff_user', id: account.id }, summary: { mfa: enrolled ? 'pending' : 'none' } })
+        const step = enrolled ? ('verify' as const) : ('enroll' as const)
+        const session = await createSession(trx, account.id, enrolled ? 'mfa_pending' : 'mfa_enrollment')
+        await audit({ target: { type: 'staff_user', id: account.id }, summary: { mfa: step } })
         const cookie = { 'set-cookie': staffSessionCookie(session.token, deps.cookies) }
-        if (enrolled) return { status: 202, body: { mfaRequired: true }, headers: cookie }
-        return { body: await freshView(trx, account.id, session.token), headers: cookie }
+        return { status: 202, body: { mfaRequired: true, step }, headers: cookie }
       },
     },
     {
@@ -120,16 +129,17 @@ export function identityModule(deps: IdentityDeps): ApiModule {
       operationId: 'staffSignOut',
       summary: 'Sign out',
       description:
-        'Revokes the current session on the server and clears the cookie. Always available to a signed-in user.',
-      actors: ['staff'],
+        'Revokes the current session on the server and clears the cookie. Always available to a signed-in user, also before the second factor (TSK-0154).',
+      actors: ['guest', 'staff'],
       permission: AUTHENTICATION,
+      beforeSecondFactor: true,
       kind: 'write',
       idempotency: 'none',
       rateLimit: 'none',
       audit: 'staff.sign_out',
       schema: { response: { 204: { type: 'null' } } },
       handler: async ({ req, tx, audit }) => {
-        const session = req.staffSession
+        const session = req.staffSession ?? req.staffPendingSession
         if (!session || !tx) throw new ApiError('UNAUTHENTICATED')
         await revokeSession(tx, session.sessionId, 'sign_out')
         await audit({ target: { type: 'staff_user', id: session.staffUserId } })
@@ -142,7 +152,8 @@ export function identityModule(deps: IdentityDeps): ApiModule {
       path: '/staff/auth/session',
       operationId: 'staffSession',
       summary: 'The signed-in staff member',
-      description: 'The current session: name, email, locale, roles and the MFA recommendation. Never a hash.',
+      description:
+        'The current session: name, email, locale, roles and the navigation. Never a hash. A session before its second factor gets UNAUTHENTICATED (field session, code MFA_REQUIRED).',
       actors: ['staff'],
       permission: AUTHENTICATION,
       kind: 'read',
@@ -260,6 +271,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
         'Always answers 202 the same way. When the email belongs to an account that is not disabled, a single-use reset link (valid per session.timings) is emailed through the outbox. Rate limited per email and per network.',
       actors: ['guest', 'staff', 'customer'],
       permission: AUTHENTICATION,
+      beforeSecondFactor: true,
       kind: 'write',
       idempotency: 'none',
       rateLimit: { ...RATE_RULES.resetAccount, enforcedBy: 'handler' },
@@ -297,9 +309,10 @@ export function identityModule(deps: IdentityDeps): ApiModule {
       operationId: 'staffSetPassword',
       summary: 'Set a password with an invite or reset link',
       description:
-        'Consumes the single-use link, checks the length-based policy, stores the argon2id hash, activates an invited account and revokes every session: the person then signs in again.',
+        'Consumes the single-use link, checks the length-based policy, stores the argon2id hash, activates an invited account and revokes every session: the person then signs in again, with the authenticator (a reset never removes it) or, without one, by enrolling it first (TSK-0154).',
       actors: ['guest', 'staff', 'customer'],
       permission: AUTHENTICATION,
+      beforeSecondFactor: true,
       kind: 'write',
       idempotency: 'none',
       rateLimit: { ...RATE_RULES.linkNetwork, enforcedBy: 'handler' },

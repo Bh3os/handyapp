@@ -996,6 +996,8 @@ export const LABEL_FAMILIES = {
     'LAST_ROLE',
     'LAST_OWNER',
     'OWN_ACCOUNT',
+    // TSK-0154: the Owner reset an authenticator of an account that has none.
+    'MFA_NOT_ENROLLED',
     'required',
     'FORBIDDEN',
     'FRESH_AUTH_REQUIRED',

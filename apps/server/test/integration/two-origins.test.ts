@@ -15,6 +15,7 @@ import { createStaffUser, setPasswordHash } from '../../src/modules/identity/acc
 import { startCustomerSession } from '../../src/modules/identity/customer-sessions.js'
 import { hashPassword } from '../../src/modules/identity/passwords.js'
 import { testConfig } from '../fixtures/env.js'
+import { signInWithMfa, TEST_MFA_KEY } from '../fixtures/staff-mfa.js'
 
 const PUBLIC = 'public.example.test'
 const STAFF = 'staff.example.test'
@@ -87,7 +88,7 @@ beforeAll(async () => {
   writeFileSync(join(portal, 'index.html'), '<!doctype html><title>Portal</title><div id="root">Synthetic portal</div>')
   writeFileSync(join(dirs, 'outside.txt'), 'outside')
 
-  const modules = [...apiModules({ secureCookies: false, mfaKey: null }), WHOAMI]
+  const modules = [...apiModules({ secureCookies: false, mfaKey: TEST_MFA_KEY }), WHOAMI]
   const config = { ...testConfig({ PUBLIC_ORIGIN: `http://${PUBLIC}`, STAFF_ORIGIN: `http://${STAFF}` }) }
   app = await buildApp({
     config: { ...config, siteDir: site, staffDir: staff, portalDir: portal },
@@ -117,8 +118,14 @@ afterAll(async () => {
   if (dirs) rmSync(dirs, { recursive: true, force: true })
 })
 
+/** A complete staff sign-in on the staff host (the password, then the mandatory second factor; TSK-0154). */
 const signIn = () =>
-  req(STAFF, '/api/v1/staff/auth/sign-in', { method: 'POST', payload: { email: OWNER, password: pw } })
+  signInWithMfa(app, {
+    method: 'POST',
+    url: '/api/v1/staff/auth/sign-in',
+    headers: { host: STAFF },
+    payload: { email: OWNER, password: pw },
+  }) as Promise<Res>
 const customerCookie = async () => {
   const s = await withTx(t.db, (tx) =>
     startCustomerSession(tx, {

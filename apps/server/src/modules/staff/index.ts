@@ -8,6 +8,8 @@
 //   POST /staff/members/:staffUserId/disable              offboarding (staff.disable: never delayed)
 //   POST /staff/members/:staffUserId/enable               re-enable (staff.enable: fresh sign-in and a reason)
 //   POST /staff/members/:staffUserId/password-recovery    email a reset link (staff.start_password_recovery)
+//   POST /staff/members/:staffUserId/mfa-reset            reset a lost authenticator (staff.reset_mfa: fresh sign-in,
+//                                                         reason, never oneself; TSK-0154)
 // Inviting stays POST /staff/invitations and revoking sessions POST /staff/:id/sessions/revoke (identity module);
 // working days, hours and time off stay the capacity module's routes on its own tables (TSK-0062). Every write takes
 // an idempotency key and records its audit event with the change (never a hash, token or link).
@@ -21,6 +23,7 @@ import {
   grant,
   listMembers,
   memberDetail,
+  resetMfa,
   startRecovery,
   type GrantKind,
 } from './members.js'
@@ -35,6 +38,7 @@ import {
   MEMBER,
   MEMBER_PARAMS,
   MEMBERS,
+  MFA_RESET,
 } from './schemas.js'
 
 const TEST = 'test/integration/staff-management.test.ts'
@@ -190,7 +194,8 @@ export function staffModule(): ApiModule {
     description:
       'Owner only (staff.disable; never delayed). In one transaction, after the in-flight writes of the person commit: ' +
       'the account is disabled (every later request and every queued or offline write from it is refused), every ' +
-      'session is revoked, every open invite or reset link invalidated and the password cleared (PROPOSED); the ' +
+      'session is revoked, every open invite or reset link invalidated, the password cleared (PROPOSED) and the ' +
+      'authenticator with its recovery codes removed (OWN-DEC-202: a re-enabled account enrols again); the ' +
       'upcoming assignments are flagged for reassignment and each flagged visit opens its action-queue item, never ' +
       'cancelled; job history and evidence stay. Refusals: NOT_FOUND, CONFLICT (ACCOUNT_DISABLED, LAST_OWNER, ' +
       'OWN_ACCOUNT, PROPOSED).',
@@ -211,6 +216,7 @@ export function staffModule(): ApiModule {
           linksInvalidated: out.linksInvalidated,
           upcomingAssignments: out.upcoming,
           flagged: out.flagged,
+          mfaRemoved: out.mfaRemoved,
         },
         ...(reason ? { reason } : {}),
       })
@@ -282,5 +288,45 @@ export function staffModule(): ApiModule {
     },
   }
 
-  return { name: 'staff', routes: [list, detail, grantRoute, endRoute, disableRoute, enableRoute, recovery] }
+  const mfaReset: RouteDef = {
+    ...write,
+    method: 'POST',
+    path: '/staff/members/:staffUserId/mfa-reset',
+    operationId: 'resetStaffMfa',
+    test: 'test/integration/staff-mfa.test.ts',
+    summary: "Reset a staff member's lost authenticator",
+    description:
+      'Owner only, with a fresh sign-in and a written reason, never for oneself (staff.reset_mfa, PROPOSED in the grant ' +
+      'row; TSK-0154, OWN-DEC-202). Removes the authenticator and its recovery codes and revokes every session of the ' +
+      'person at once; their next sign-in (with their password) enrols a new authenticator before any staff screen. MFA ' +
+      "stays mandatory: nothing turns it off. An Owner's own lost authenticator: a recovery code, or the operations " +
+      'command reset-mfa (PROPOSED). Refusals: NOT_FOUND, FRESH_AUTH_REQUIRED, FORBIDDEN (self), VALIDATION_FAILED ' +
+      '(reason), CONFLICT (ACCOUNT_DISABLED, MFA_NOT_ENROLLED).',
+    permission: 'staff.reset_mfa',
+    audit: 'staff.mfa_reset',
+    schema: { params: MEMBER_PARAMS, body: ENABLE_BODY, response: { 200: MFA_RESET } },
+    handler: async (ctx) => {
+      staffActor(ctx)
+      const { staffUserId } = ctx.req.params as { staffUserId: string }
+      const { reason } = ctx.req.body as { reason: string }
+      const out = await resetMfa(ctx.tx as Tx, { staffUserId })
+      const member = await detailOf(ctx, staffUserId)
+      await ctx.audit({
+        target: { type: 'staff_user', id: staffUserId, version: member.version },
+        summary: {
+          change: 'mfa_reset',
+          sessionsRevoked: out.sessionsRevoked,
+          recoveryCodesRemoved: out.recoveryCodesRemoved,
+        },
+        reason: reason.trim(),
+        stepUpUsed: true,
+      })
+      return { body: { member, sessionsRevoked: out.sessionsRevoked, recoveryCodesRemoved: out.recoveryCodesRemoved } }
+    },
+  }
+
+  return {
+    name: 'staff',
+    routes: [list, detail, grantRoute, endRoute, disableRoute, enableRoute, recovery, mfaReset],
+  }
 }

@@ -11,7 +11,11 @@ declare module 'fastify' {
   interface FastifyRequest {
     /** The live staff session of this request, when there is one. */
     staffSession?: LiveSession
-    /** A session waiting for its second factor (TSK-0015): it acts for nobody; only MFA verification reads it. */
+    /**
+     * A session that has passed the password but not the second factor (TSK-0015, TSK-0154): 'mfa_pending' (an
+     * enrolled account waiting for its code) or 'mfa_enrollment' (an account that must enrol first). It acts for
+     * nobody; only the routes marked beforeSecondFactor serve it, every other staff route answers MFA_REQUIRED.
+     */
     staffPendingSession?: LiveSession
   }
 }
@@ -35,7 +39,7 @@ export function staffSessionResolver(db: Db, cookies: CookieOptions): ResolveAct
     if (!token) return GUEST
     const session = await resolveSession(db, token)
     if (!session) return GUEST
-    if (session.state === 'mfa_pending') {
+    if (session.state !== 'complete') {
       req.staffPendingSession = session
       return GUEST
     }

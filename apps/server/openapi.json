@@ -15917,6 +15917,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "staff.revoke_sessions",
           "pagination": false,
@@ -16337,6 +16338,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "appointment_reminder.dismiss",
           "pagination": false,
@@ -16757,6 +16759,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "appointment_reminder.release",
           "pagination": false,
@@ -17132,6 +17135,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": true,
@@ -17361,6 +17365,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -17501,11 +17506,12 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
           "cache": "private, no-store",
-          "test": "test/integration/staff-security.test.ts"
+          "test": "test/integration/staff-mfa.test.ts"
         }
       }
     },
@@ -17513,7 +17519,7 @@
       "post": {
         "operationId": "staffMfaConfirm",
         "summary": "Confirm the authenticator and get recovery codes",
-        "description": "Checks a code from the new authenticator, enables MFA, ends the user's other sessions, rotates this one and returns 10 single-use recovery codes once.",
+        "description": "For the enrolment session (TSK-0154): checks a code from the new authenticator, enables MFA, ends the user's other sessions, completes this one with a new token (the sign-in is then complete) and returns 10 single-use recovery codes once. Rate limited; failures are audited.",
         "tags": [
           "identity"
         ],
@@ -17568,7 +17574,6 @@
                         "locale",
                         "roles",
                         "mfaEnrolled",
-                        "mfaRecommended",
                         "csrfToken",
                         "navigation"
                       ],
@@ -17605,9 +17610,6 @@
                           }
                         },
                         "mfaEnrolled": {
-                          "type": "boolean"
-                        },
-                        "mfaRecommended": {
                           "type": "boolean"
                         },
                         "csrfToken": {
@@ -17805,7 +17807,9 @@
         },
         "x-handyhub": {
           "actors": [
-            "staff"
+            "guest",
+            "staff",
+            "customer"
           ],
           "permission": "authentication",
           "kind": "write",
@@ -17818,160 +17822,12 @@
             "enforcedBy": "handler"
           },
           "freshAuthMinutes": null,
+          "secondFactor": "not_required",
           "csrf": "required_with_staff_session",
           "audit": "staff.mfa_enable",
           "pagination": false,
           "cache": "private, no-store",
-          "test": "test/integration/staff-security.test.ts"
-        }
-      }
-    },
-    "/api/v1/staff/auth/mfa/disable": {
-      "post": {
-        "operationId": "staffMfaDisable",
-        "summary": "Remove the authenticator",
-        "description": "Needs fresh authentication. Removes the authenticator and the recovery codes and ends the user's other sessions.",
-        "tags": [
-          "identity"
-        ],
-        "parameters": [],
-        "responses": {
-          "204": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "null"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "415": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "x-handyhub": {
-          "actors": [
-            "staff"
-          ],
-          "permission": "authentication",
-          "kind": "write",
-          "idempotency": "none",
-          "expectedVersion": "none",
-          "rateLimit": "none",
-          "freshAuthMinutes": 5,
-          "csrf": "required_with_staff_session",
-          "audit": "staff.mfa_disable",
-          "pagination": false,
-          "cache": "private, no-store",
-          "test": "test/integration/staff-security.test.ts"
+          "test": "test/integration/staff-mfa.test.ts"
         }
       }
     },
@@ -17979,7 +17835,7 @@
       "post": {
         "operationId": "staffMfaEnroll",
         "summary": "Start enrolling an authenticator app",
-        "description": "Needs fresh authentication. Returns the TOTP secret and otpauth URI once, for the authenticator app; enrolment completes only with a confirming code.",
+        "description": "For the enrolment session of an account without an authenticator (right after its password, within MFA_PENDING_MINUTES; TSK-0154): returns a new TOTP secret and otpauth URI once, for the authenticator app; enrolment completes only with a confirming code. Calling it again replaces the unconfirmed secret. CONFLICT for a session that already has its authenticator.",
         "tags": [
           "identity"
         ],
@@ -18121,19 +17977,22 @@
         },
         "x-handyhub": {
           "actors": [
-            "staff"
+            "guest",
+            "staff",
+            "customer"
           ],
           "permission": "authentication",
           "kind": "write",
           "idempotency": "none",
           "expectedVersion": "none",
           "rateLimit": "none",
-          "freshAuthMinutes": 5,
+          "freshAuthMinutes": null,
+          "secondFactor": "not_required",
           "csrf": "required_with_staff_session",
           "audit": "staff.mfa_enroll_start",
           "pagination": false,
           "cache": "private, no-store",
-          "test": "test/integration/staff-security.test.ts"
+          "test": "test/integration/staff-mfa.test.ts"
         }
       }
     },
@@ -18141,7 +18000,7 @@
       "post": {
         "operationId": "staffMfaVerify",
         "summary": "Complete sign-in with the authenticator or a recovery code",
-        "description": "For a session waiting for its second factor: a valid TOTP code or an unused recovery code completes it with a new session token. Rate limited; failures are audited.",
+        "description": "For a session waiting for its second factor (an enrolled account after its password): a valid TOTP code or an unused recovery code (single use) completes it with a new session token. Rate limited; failures and recovery-code use are audited.",
         "tags": [
           "identity"
         ],
@@ -18196,7 +18055,6 @@
                     "locale",
                     "roles",
                     "mfaEnrolled",
-                    "mfaRecommended",
                     "csrfToken",
                     "navigation"
                   ],
@@ -18233,9 +18091,6 @@
                       }
                     },
                     "mfaEnrolled": {
-                      "type": "boolean"
-                    },
-                    "mfaRecommended": {
                       "type": "boolean"
                     },
                     "csrfToken": {
@@ -18446,11 +18301,12 @@
             "enforcedBy": "handler"
           },
           "freshAuthMinutes": null,
+          "secondFactor": "not_required",
           "csrf": "required_with_staff_session",
           "audit": "staff.mfa_verify",
           "pagination": false,
           "cache": "private, no-store",
-          "test": "test/integration/staff-security.test.ts"
+          "test": "test/integration/staff-mfa.test.ts"
         }
       }
     },
@@ -18632,6 +18488,7 @@
             "enforcedBy": "handler"
           },
           "freshAuthMinutes": null,
+          "secondFactor": "not_required",
           "csrf": "required_with_staff_session",
           "audit": "staff.password_reset_request",
           "pagination": false,
@@ -18644,7 +18501,7 @@
       "post": {
         "operationId": "staffSetPassword",
         "summary": "Set a password with an invite or reset link",
-        "description": "Consumes the single-use link, checks the length-based policy, stores the argon2id hash, activates an invited account and revokes every session: the person then signs in again.",
+        "description": "Consumes the single-use link, checks the length-based policy, stores the argon2id hash, activates an invited account and revokes every session: the person then signs in again, with the authenticator (a reset never removes it) or, without one, by enrolling it first (TSK-0154).",
         "tags": [
           "identity"
         ],
@@ -18824,6 +18681,7 @@
             "enforcedBy": "handler"
           },
           "freshAuthMinutes": null,
+          "secondFactor": "not_required",
           "csrf": "required_with_staff_session",
           "audit": "staff.password_set",
           "pagination": false,
@@ -18891,7 +18749,6 @@
                     "locale",
                     "roles",
                     "mfaEnrolled",
-                    "mfaRecommended",
                     "csrfToken",
                     "navigation"
                   ],
@@ -18928,9 +18785,6 @@
                       }
                     },
                     "mfaEnrolled": {
-                      "type": "boolean"
-                    },
-                    "mfaRecommended": {
                       "type": "boolean"
                     },
                     "csrfToken": {
@@ -19139,6 +18993,7 @@
             "enforcedBy": "handler"
           },
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "staff.reauth",
           "pagination": false,
@@ -19151,7 +19006,7 @@
       "get": {
         "operationId": "staffSession",
         "summary": "The signed-in staff member",
-        "description": "The current session: name, email, locale, roles and the MFA recommendation. Never a hash.",
+        "description": "The current session: name, email, locale, roles and the navigation. Never a hash. A session before its second factor gets UNAUTHENTICATED (field session, code MFA_REQUIRED).",
         "tags": [
           "identity"
         ],
@@ -19171,7 +19026,6 @@
                     "locale",
                     "roles",
                     "mfaEnrolled",
-                    "mfaRecommended",
                     "csrfToken",
                     "navigation"
                   ],
@@ -19208,9 +19062,6 @@
                       }
                     },
                     "mfaEnrolled": {
-                      "type": "boolean"
-                    },
-                    "mfaRecommended": {
                       "type": "boolean"
                     },
                     "csrfToken": {
@@ -19384,6 +19235,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -19439,7 +19291,6 @@
                     "locale",
                     "roles",
                     "mfaEnrolled",
-                    "mfaRecommended",
                     "csrfToken",
                     "navigation"
                   ],
@@ -19476,9 +19327,6 @@
                       }
                     },
                     "mfaEnrolled": {
-                      "type": "boolean"
-                    },
-                    "mfaRecommended": {
                       "type": "boolean"
                     },
                     "csrfToken": {
@@ -19682,6 +19530,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "staff.locale_change",
           "pagination": false,
@@ -19831,6 +19680,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "staff.sessions_revoke_all",
           "pagination": false,
@@ -19843,7 +19693,7 @@
       "post": {
         "operationId": "staffSignIn",
         "summary": "Staff sign-in with email and password",
-        "description": "Verifies the password (argon2id, equal timing for unknown emails), starts a new session (new ID) and sets the host-only session cookie. Rate limited per account and per network. Sign-in and failed sign-in are audited.",
+        "description": "Verifies the password (argon2id, equal timing for unknown emails), starts a new session (new ID) and sets the host-only session cookie. The password never completes a sign-in (MFA is mandatory for every staff role, OWN-DEC-202): the session waits for the authenticator code (step verify) or, for an account without an authenticator, for its enrolment (step enroll), and reaches nothing else. Refused for everyone while MFA_ENCRYPTION_KEY is NOT CONFIGURED (NOT_CONFIGURED, field mfa, code MFA_NOT_CONFIGURED). Rate limited per account and per network. Sign-in and failed sign-in are audited.",
         "tags": [
           "identity"
         ],
@@ -19876,142 +19726,6 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "staffUserId",
-                    "displayName",
-                    "email",
-                    "locale",
-                    "roles",
-                    "mfaEnrolled",
-                    "mfaRecommended",
-                    "csrfToken",
-                    "navigation"
-                  ],
-                  "properties": {
-                    "staffUserId": {
-                      "type": "string"
-                    },
-                    "displayName": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
-                    },
-                    "email": {
-                      "type": "string"
-                    },
-                    "locale": {
-                      "type": "string",
-                      "enum": [
-                        "en",
-                        "es"
-                      ]
-                    },
-                    "roles": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "enum": [
-                          "owner",
-                          "office",
-                          "estimator",
-                          "worker"
-                        ]
-                      }
-                    },
-                    "mfaEnrolled": {
-                      "type": "boolean"
-                    },
-                    "mfaRecommended": {
-                      "type": "boolean"
-                    },
-                    "csrfToken": {
-                      "type": "string"
-                    },
-                    "navigation": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "home",
-                        "items",
-                        "search"
-                      ],
-                      "properties": {
-                        "home": {
-                          "type": [
-                            "string",
-                            "null"
-                          ],
-                          "enum": [
-                            "queue",
-                            "my-day",
-                            "requests",
-                            "customers",
-                            "estimates",
-                            "schedule",
-                            "inbox",
-                            "messages",
-                            "payments",
-                            "cases",
-                            "staff",
-                            "audit",
-                            "retention",
-                            "privacy",
-                            "dashboard",
-                            "health",
-                            "settings",
-                            null
-                          ]
-                        },
-                        "items": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "enum": [
-                              "queue",
-                              "my-day",
-                              "requests",
-                              "customers",
-                              "estimates",
-                              "schedule",
-                              "inbox",
-                              "messages",
-                              "payments",
-                              "cases",
-                              "staff",
-                              "audit",
-                              "retention",
-                              "privacy",
-                              "dashboard",
-                              "health",
-                              "settings"
-                            ]
-                          }
-                        },
-                        "search": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "enum": [
-                              "requests",
-                              "customers"
-                            ]
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
           "202": {
             "description": "Success",
             "content": {
@@ -20020,13 +19734,21 @@
                   "type": "object",
                   "additionalProperties": false,
                   "required": [
-                    "mfaRequired"
+                    "mfaRequired",
+                    "step"
                   ],
                   "properties": {
                     "mfaRequired": {
                       "type": "boolean",
                       "enum": [
                         true
+                      ]
+                    },
+                    "step": {
+                      "type": "string",
+                      "enum": [
+                        "verify",
+                        "enroll"
                       ]
                     }
                   }
@@ -20162,6 +19884,7 @@
             "enforcedBy": "handler"
           },
           "freshAuthMinutes": null,
+          "secondFactor": "not_required",
           "csrf": "required_with_staff_session",
           "audit": "staff.sign_in",
           "pagination": false,
@@ -20174,7 +19897,7 @@
       "post": {
         "operationId": "staffSignOut",
         "summary": "Sign out",
-        "description": "Revokes the current session on the server and clears the cookie. Always available to a signed-in user.",
+        "description": "Revokes the current session on the server and clears the cookie. Always available to a signed-in user, also before the second factor (TSK-0154).",
         "tags": [
           "identity"
         ],
@@ -20303,6 +20026,7 @@
         },
         "x-handyhub": {
           "actors": [
+            "guest",
             "staff"
           ],
           "permission": "authentication",
@@ -20311,6 +20035,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "not_required",
           "csrf": "required_with_staff_session",
           "audit": "staff.sign_out",
           "pagination": false,
@@ -20620,6 +20345,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -21116,6 +20842,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -21355,6 +21082,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "customer.reverse_link_change",
           "pagination": false,
@@ -21573,6 +21301,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": true,
@@ -22611,6 +22340,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -22828,6 +22558,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "customer.edit",
           "pagination": false,
@@ -23049,6 +22780,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "customer.dismiss_candidate",
           "pagination": false,
@@ -23300,6 +23032,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "customer.edit_contact",
           "pagination": false,
@@ -23531,6 +23264,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "customer.set_contact_time_zone",
           "pagination": false,
@@ -23749,6 +23483,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "customer.record_withdrawal",
           "pagination": false,
@@ -23998,6 +23733,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "customer.merge",
           "pagination": false,
@@ -24594,6 +24330,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -24795,6 +24532,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "customer.add_note",
           "pagination": false,
@@ -25079,6 +24817,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": true,
@@ -25462,6 +25201,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "equipment.register",
           "pagination": false,
@@ -25833,6 +25573,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "equipment.retire",
           "pagination": false,
@@ -26225,6 +25966,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "estimate_reminder.dismiss",
           "pagination": false,
@@ -26617,6 +26359,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "estimate_reminder.release",
           "pagination": false,
@@ -28698,6 +28441,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -30856,6 +30600,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "estimate.confirm_agreement",
           "pagination": false,
@@ -30976,6 +30721,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -31111,6 +30857,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -35224,6 +34971,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "estimate.upload_document",
           "pagination": false,
@@ -39343,6 +39091,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "estimate.upload_document",
           "pagination": false,
@@ -41681,6 +41430,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "estimate.save_draft",
           "pagination": false,
@@ -43841,6 +43591,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "estimate.expire",
           "pagination": false,
@@ -45992,6 +45743,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "publication_approval.request",
           "pagination": false,
@@ -48143,6 +47895,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "estimate.publish",
           "pagination": false,
@@ -50299,6 +50052,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "estimate.record_decline",
           "pagination": false,
@@ -50640,6 +50394,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -52791,6 +52546,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "estimate.request_review",
           "pagination": false,
@@ -54942,6 +54698,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "estimate.return_to_draft",
           "pagination": false,
@@ -55137,6 +54894,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "estimate.revise",
           "pagination": false,
@@ -57297,6 +57055,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "estimate.withdraw",
           "pagination": false,
@@ -57508,6 +57267,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": true,
@@ -57728,6 +57488,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "hold.cancel_as_error",
           "pagination": false,
@@ -57955,6 +57716,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "hold.resolve",
           "pagination": false,
@@ -58165,6 +57927,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "hold.start_review",
           "pagination": false,
@@ -58409,6 +58172,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": true,
@@ -58988,6 +58752,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -59172,6 +58937,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "inbox.conversation_handled",
           "pagination": false,
@@ -59562,6 +59328,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -59813,6 +59580,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "inbox.message_linked",
           "pagination": false,
@@ -60024,6 +59792,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": true,
@@ -60193,6 +59962,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -60386,6 +60156,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "inbox.internal_message_added",
           "pagination": false,
@@ -60616,6 +60387,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "inbox.reply_sent",
           "pagination": false,
@@ -60899,6 +60671,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -61103,6 +60876,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -61318,6 +61092,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "staff.invite",
           "pagination": false,
@@ -61786,6 +61561,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -62333,6 +62109,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "deposit.payment_link_set",
           "pagination": false,
@@ -62904,6 +62681,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "payment.record",
           "pagination": false,
@@ -63432,6 +63210,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": 5,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "deposit.waive",
           "pagination": false,
@@ -64037,6 +63816,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -64286,6 +64066,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "loadout.check",
           "pagination": false,
@@ -65869,6 +65650,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -66117,6 +65899,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "job_packet.acknowledge",
           "pagination": false,
@@ -66323,6 +66106,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "job_packet.export",
           "pagination": false,
@@ -66456,6 +66240,7 @@
             "windowSeconds": 3600
           },
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -66665,6 +66450,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -66848,6 +66634,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "job_packet.view",
           "pagination": false,
@@ -67072,6 +66859,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "loadout.block_cancel",
           "pagination": false,
@@ -67335,6 +67123,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "loadout.block_resolve",
           "pagination": false,
@@ -67549,6 +67338,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "loadout.block_start_review",
           "pagination": false,
@@ -67788,6 +67578,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -68324,6 +68115,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -68336,7 +68128,7 @@
       "post": {
         "operationId": "disableStaffMember",
         "summary": "Disable an account (offboarding)",
-        "description": "Owner only (staff.disable; never delayed). In one transaction, after the in-flight writes of the person commit: the account is disabled (every later request and every queued or offline write from it is refused), every session is revoked, every open invite or reset link invalidated and the password cleared (PROPOSED); the upcoming assignments are flagged for reassignment and each flagged visit opens its action-queue item, never cancelled; job history and evidence stay. Refusals: NOT_FOUND, CONFLICT (ACCOUNT_DISABLED, LAST_OWNER, OWN_ACCOUNT, PROPOSED).",
+        "description": "Owner only (staff.disable; never delayed). In one transaction, after the in-flight writes of the person commit: the account is disabled (every later request and every queued or offline write from it is refused), every session is revoked, every open invite or reset link invalidated, the password cleared (PROPOSED) and the authenticator with its recovery codes removed (OWN-DEC-202: a re-enabled account enrols again); the upcoming assignments are flagged for reassignment and each flagged visit opens its action-queue item, never cancelled; job history and evidence stay. Refusals: NOT_FOUND, CONFLICT (ACCOUNT_DISABLED, LAST_OWNER, OWN_ACCOUNT, PROPOSED).",
         "tags": [
           "staff"
         ],
@@ -68942,6 +68734,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "staff.disable",
           "pagination": false,
@@ -69555,6 +69348,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "staff.enable",
           "pagination": false,
@@ -70170,6 +69964,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "staff.grant_role",
           "pagination": false,
@@ -70784,11 +70579,626 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "staff.end_grant",
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/staff-management.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/members/{staffUserId}/mfa-reset": {
+      "post": {
+        "operationId": "resetStaffMfa",
+        "summary": "Reset a staff member's lost authenticator",
+        "description": "Owner only, with a fresh sign-in and a written reason, never for oneself (staff.reset_mfa, PROPOSED in the grant row; TSK-0154, OWN-DEC-202). Removes the authenticator and its recovery codes and revokes every session of the person at once; their next sign-in (with their password) enrols a new authenticator before any staff screen. MFA stays mandatory: nothing turns it off. An Owner's own lost authenticator: a recovery code, or the operations command reset-mfa (PROPOSED). Refusals: NOT_FOUND, FRESH_AUTH_REQUIRED, FORBIDDEN (self), VALIDATION_FAILED (reason), CONFLICT (ACCOUNT_DISABLED, MFA_NOT_ENROLLED).",
+        "tags": [
+          "staff"
+        ],
+        "parameters": [
+          {
+            "name": "staffUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "member",
+                    "sessionsRevoked",
+                    "recoveryCodesRemoved"
+                  ],
+                  "properties": {
+                    "member": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "displayName",
+                        "email",
+                        "locale",
+                        "status",
+                        "self",
+                        "roles",
+                        "capabilities",
+                        "invitedAt",
+                        "activatedAt",
+                        "disabledAt",
+                        "passwordSet",
+                        "mfaEnrolled",
+                        "liveSessions",
+                        "upcomingAssignments",
+                        "flaggedAssignments",
+                        "version",
+                        "grants",
+                        "statusHistory",
+                        "assignments"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                        },
+                        "displayName": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "locale": {
+                          "type": "string",
+                          "enum": [
+                            "en",
+                            "es"
+                          ]
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "invited",
+                            "active",
+                            "disabled"
+                          ]
+                        },
+                        "self": {
+                          "type": "boolean"
+                        },
+                        "roles": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "owner",
+                              "office",
+                              "estimator",
+                              "worker"
+                            ]
+                          }
+                        },
+                        "capabilities": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "collect"
+                            ]
+                          }
+                        },
+                        "invitedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "activatedAt": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "disabledAt": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "passwordSet": {
+                          "type": "boolean"
+                        },
+                        "mfaEnrolled": {
+                          "type": "boolean"
+                        },
+                        "liveSessions": {
+                          "type": "integer"
+                        },
+                        "upcomingAssignments": {
+                          "type": "integer"
+                        },
+                        "flaggedAssignments": {
+                          "type": "integer"
+                        },
+                        "version": {
+                          "type": "integer"
+                        },
+                        "grants": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "kind",
+                              "name",
+                              "issuedBy",
+                              "reason",
+                              "effectiveFrom",
+                              "endedAt",
+                              "endedBy"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "role",
+                                  "capability"
+                                ]
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "issuedBy": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "staffUserId",
+                                      "name",
+                                      "system"
+                                    ],
+                                    "properties": {
+                                      "staffUserId": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "system": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "reason": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "effectiveFrom": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "endedAt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "endedBy": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "staffUserId",
+                                      "name",
+                                      "system"
+                                    ],
+                                    "properties": {
+                                      "staffUserId": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "system": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "statusHistory": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "from",
+                              "to",
+                              "by",
+                              "reason",
+                              "at"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                              },
+                              "from": {
+                                "type": "string",
+                                "enum": [
+                                  "invited",
+                                  "active",
+                                  "disabled"
+                                ]
+                              },
+                              "to": {
+                                "type": "string",
+                                "enum": [
+                                  "invited",
+                                  "active",
+                                  "disabled"
+                                ]
+                              },
+                              "by": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "staffUserId",
+                                      "name",
+                                      "system"
+                                    ],
+                                    "properties": {
+                                      "staffUserId": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "system": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "reason": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "at": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        },
+                        "assignments": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "reservationId",
+                              "visitId",
+                              "requestId",
+                              "reference",
+                              "purpose",
+                              "visitState",
+                              "role",
+                              "kind",
+                              "startsAt",
+                              "endsAt",
+                              "timeZone",
+                              "flags"
+                            ],
+                            "properties": {
+                              "reservationId": {
+                                "type": "string",
+                                "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                              },
+                              "visitId": {
+                                "type": "string",
+                                "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                              },
+                              "requestId": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "reference": {
+                                "type": "string"
+                              },
+                              "purpose": {
+                                "type": "string"
+                              },
+                              "visitState": {
+                                "type": "string"
+                              },
+                              "role": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "hold",
+                                  "confirmed"
+                                ]
+                              },
+                              "startsAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "endsAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "timeZone": {
+                                "type": "string"
+                              },
+                              "flags": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "sessionsRevoked": {
+                      "type": "integer"
+                    },
+                    "recoveryCodesRemoved": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "staff.reset_mfa",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "staff.mfa_reset",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/staff-mfa.test.ts"
         }
       }
     },
@@ -71388,6 +71798,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "staff.start_password_recovery",
           "pagination": false,
@@ -71763,6 +72174,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": true,
@@ -71938,6 +72350,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "message.retry",
           "pagination": false,
@@ -72250,6 +72663,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -72459,6 +72873,7 @@
             "windowSeconds": 3600
           },
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -72608,6 +73023,7 @@
             "windowSeconds": 3600
           },
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -73097,6 +73513,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -73315,6 +73732,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -73834,6 +74252,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "check.mark_cleared",
           "pagination": false,
@@ -74395,6 +74814,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": true,
@@ -75317,6 +75737,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -76339,6 +76760,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": 5,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "privacy.decide",
           "pagination": false,
@@ -77331,6 +77753,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "privacy.review_start",
           "pagination": false,
@@ -77519,6 +77942,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -77712,6 +78136,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "estimate.create",
           "pagination": false,
@@ -77907,6 +78332,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "estimate.create",
           "pagination": false,
@@ -79519,6 +79945,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -81287,6 +81714,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "visit.plan",
           "pagination": false,
@@ -82237,6 +82665,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -82461,6 +82890,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "access_code.set",
           "pagination": false,
@@ -82690,6 +83120,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "access_code.set",
           "pagination": false,
@@ -82921,6 +83352,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "access_code.confirm",
           "pagination": false,
@@ -83142,6 +83574,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "access_code.remove",
           "pagination": false,
@@ -83349,6 +83782,7 @@
             "windowSeconds": 3600
           },
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "access_code.reveal",
           "pagination": false,
@@ -83602,6 +84036,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "property.edit_address",
           "pagination": false,
@@ -83848,6 +84283,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "property.verify_county",
           "pagination": false,
@@ -84097,6 +84533,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "property.edit_detail",
           "pagination": false,
@@ -84340,6 +84777,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "property.confirm_detail",
           "pagination": false,
@@ -84566,6 +85004,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "property.verify_time_zone",
           "pagination": false,
@@ -84798,6 +85237,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "property.edit_type",
           "pagination": false,
@@ -85288,6 +85728,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -85776,6 +86217,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -86352,6 +86794,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "publication_approval.decide",
           "pagination": false,
@@ -86913,6 +87356,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": true,
@@ -87474,6 +87918,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": true,
@@ -87663,6 +88108,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -87936,6 +88382,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": true,
@@ -89592,6 +90039,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -89828,6 +90276,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "request.ask_question",
           "pagination": false,
@@ -90050,6 +90499,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "request.close_no_response",
           "pagination": false,
@@ -90306,6 +90756,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "request.choose_estimate_approach",
           "pagination": false,
@@ -90561,6 +91012,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "request.not_a_fit",
           "pagination": false,
@@ -90810,6 +91262,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "request.choose_estimate_approach",
           "pagination": false,
@@ -91126,6 +91579,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "request.record_conversation",
           "pagination": false,
@@ -91327,6 +91781,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "request.add_note",
           "pagination": false,
@@ -91498,6 +91953,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -92023,6 +92479,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "request.qualify",
           "pagination": false,
@@ -92550,6 +93007,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -92784,6 +93242,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "question.publish",
           "pagination": false,
@@ -92980,6 +93439,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "question.reminder_release",
           "pagination": false,
@@ -93147,6 +93607,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "question.replies_reviewed",
           "pagination": false,
@@ -93396,6 +93857,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "request.correct_link",
           "pagination": false,
@@ -94045,6 +94507,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -94284,6 +94747,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "request.assign",
           "pagination": false,
@@ -94459,6 +94923,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -94596,6 +95061,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -94836,6 +95302,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -95197,6 +95664,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": true,
@@ -95424,6 +95892,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "privacy.record_archive",
           "pagination": false,
@@ -95661,6 +96130,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": 5,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "privacy.record_delete",
           "pagination": false,
@@ -96034,6 +96504,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -96266,6 +96737,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "privacy.record_keep",
           "pagination": false,
@@ -97314,6 +97786,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -97457,6 +97930,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -97684,6 +98158,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": 5,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "publication_approval.change_threshold",
           "pagination": false,
@@ -97824,6 +98299,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -98040,6 +98516,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "estimate.change_publishers",
           "pagination": false,
@@ -98277,6 +98754,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "sop.sign_off",
           "pagination": false,
@@ -98570,6 +99048,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -99149,6 +99628,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -99520,6 +100000,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "staff.withdraw_time_off",
           "pagination": false,
@@ -99718,6 +100199,7 @@
             "windowSeconds": 3600
           },
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "visit.export_timestamps",
           "pagination": false,
@@ -101408,6 +101890,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "visit.decline_change_request",
           "pagination": false,
@@ -101935,6 +102418,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "visit.tap_arrived",
           "pagination": false,
@@ -103645,6 +104129,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "visit.cancel",
           "pagination": false,
@@ -105352,6 +105837,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "visit.confirm",
           "pagination": false,
@@ -105879,6 +106365,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "visit.tap_finished",
           "pagination": false,
@@ -107637,6 +108124,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "visit.offer_windows",
           "pagination": false,
@@ -108164,6 +108652,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "visit.tap_on_my_way",
           "pagination": false,
@@ -109872,6 +110361,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "visit.reassign",
           "pagination": false,
@@ -110241,6 +110731,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -110666,6 +111157,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -111169,6 +111661,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "visit.correct_timestamp",
           "pagination": false,
@@ -112915,6 +113408,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "visit.change_window",
           "pagination": false,
@@ -114606,6 +115100,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "visit.withdraw_offer",
           "pagination": false,
@@ -115439,6 +115934,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "not_required",
           "audit": "none",
           "pagination": false,
@@ -115857,6 +116353,7 @@
           "expectedVersion": "none",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "staff.record_time_off",
           "pagination": false,
@@ -116295,6 +116792,7 @@
           "expectedVersion": "required",
           "rateLimit": "none",
           "freshAuthMinutes": null,
+          "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "staff.set_working_hours",
           "pagination": false,

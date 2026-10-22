@@ -19,6 +19,7 @@ import { expect, test, type APIRequestContext, type Browser, type Page } from '@
 import { accessTokenFor, codeFor } from '../codes.js'
 import { verifyCountyOf } from '../county.js'
 import { verifyPropertyZone } from '../zones.js'
+import { passSecondFactor } from '../mfa.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
 const port = process.env['E2E_PORT'] ?? '4310'
@@ -218,6 +219,8 @@ async function staffSession(browser: Browser, email: string, role: 'estimator' |
   await page.getByLabel('Email').fill(email)
   await page.getByLabel('Password', { exact: true }).fill(pw)
   await page.getByRole('button', { name: 'Sign in' }).click()
+  // MFA is mandatory (TSK-0154): enrol on the account's first sign-in, the code afterwards.
+  await passSecondFactor(page)
   await expect(page.getByRole('heading', { level: 1, name: home })).toBeVisible()
   const csrf = ((await (await page.request.get('/api/v1/staff/auth/session')).json()) as { csrfToken: string })
     .csrfToken
@@ -439,6 +442,8 @@ test.describe('Loadout confirmation and critical shortages (TSK-0071)', () => {
       await page.getByLabel('Email').fill(OWNER)
       await page.getByLabel('Password', { exact: true }).fill(pw)
       await page.getByRole('button', { name: 'Sign in' }).click()
+      // MFA is mandatory (TSK-0154): enrol on the account's first sign-in, the code afterwards.
+      await passSecondFactor(page)
       await expect(page.getByRole('heading', { level: 1, name: 'Action queue' })).toBeVisible()
       const queue = page.locator('.staff-queue__list-wrap').first()
       await queue.getByLabel('Reference').fill(link.reference)

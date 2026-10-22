@@ -41,6 +41,9 @@ importers:
       '@handyhub/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      otpauth:
+        specifier: 9.5.2
+        version: 9.5.2
     devDependencies:
       '@axe-core/playwright':
         specifier: 4.13.0

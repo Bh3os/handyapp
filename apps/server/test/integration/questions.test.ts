@@ -38,6 +38,7 @@ import { readProviderSettings } from '../../src/providers/settings.js'
 import { testConfig } from '../fixtures/env.js'
 import { bodyOf } from '../fixtures/message-text.js'
 import { png } from '../fixtures/images.js'
+import { signInWithMfa, TEST_MFA_KEY } from '../fixtures/staff-mfa.js'
 
 const ROLES: readonly StaffRole[] = ['owner', 'office', 'estimator', 'worker']
 const pw = ['synthetic', 'questions', 'passphrase', '51'].join(' ')
@@ -359,7 +360,7 @@ beforeAll(async () => {
   await syncServices(t.db, loadServiceSeed())
   const modules = apiModules({
     secureCookies: false,
-    mfaKey: null,
+    mfaKey: TEST_MFA_KEY,
     storage: providers.storage,
     system: { providers: settings },
   }).map((m) =>
@@ -384,7 +385,7 @@ beforeAll(async () => {
       await setPasswordHash(tx, user.id, hash)
       return user.id
     })
-    const res = await app.inject({
+    const res = await signInWithMfa(app, {
       method: 'POST',
       url: '/api/v1/staff/auth/sign-in',
       payload: { email: `${role}-questions@example.test`, password: pw },

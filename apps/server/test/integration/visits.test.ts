@@ -37,6 +37,7 @@ import { readProviderSettings } from '../../src/providers/settings.js'
 import { verifyCountyOf } from '../fixtures/county.js'
 import { testConfig } from '../fixtures/env.js'
 import { verifyPropertyZone } from '../fixtures/zones.js'
+import { signInWithMfa, TEST_MFA_KEY } from '../fixtures/staff-mfa.js'
 
 const ZONE = 'America/Kentucky/Louisville'
 const MIN = 60_000
@@ -90,7 +91,7 @@ async function setConfig(key: ConfigKey, value: unknown) {
 }
 
 async function signIn(server: FastifyInstance, p: Person): Promise<[string, string]> {
-  const res = await server.inject({
+  const res = await signInWithMfa(server, {
     method: 'POST',
     url: '/api/v1/staff/auth/sign-in',
     headers: { 'x-forwarded-for': '198.51.100.161' },
@@ -107,8 +108,8 @@ beforeAll(async () => {
   await syncServices(t.db, loadServiceSeed())
   const config = testConfig({ TRUST_PROXY_HOPS: '1' })
   app = await buildApp({ config, api: { db: t.db, codeKey: KEY, storage: new FakeObjectStorage() } })
-  const modules = apiModules({ secureCookies: false, mfaKey: null, codeKey: KEY, trustProxyHops: 1 }).map((m) =>
-    m.name === 'visits' ? visitsModule({ workVisitGates: [TEST_GATE] }) : m,
+  const modules = apiModules({ secureCookies: false, mfaKey: TEST_MFA_KEY, codeKey: KEY, trustProxyHops: 1 }).map(
+    (m) => (m.name === 'visits' ? visitsModule({ workVisitGates: [TEST_GATE] }) : m),
   )
   gated = await buildApp({ config, api: { db: t.db, modules } })
   const hash = await hashPassword(pw(1))

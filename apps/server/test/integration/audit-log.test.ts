@@ -15,6 +15,7 @@ import { audit } from '../../src/platform/audit.js'
 import { loadConfig } from '../../src/platform/config/index.js'
 import { REDACTED } from '../../src/platform/redact.js'
 import { testConfig } from '../fixtures/env.js'
+import { signInWithMfa } from '../fixtures/staff-mfa.js'
 
 const pw = (n: number) => ['synthetic', 'audit', 'viewer', 'passphrase', String(n)].join(' ')
 /** Secret-looking values, built from parts so the secret scanner never sees a literal. */
@@ -31,7 +32,7 @@ const auth = {} as Record<Person, Auth>
 const secrets: string[] = []
 
 async function signIn(p: Person): Promise<Auth> {
-  const res = await app.inject({
+  const res = await signInWithMfa(app, {
     method: 'POST',
     url: '/api/v1/staff/auth/sign-in',
     headers: { 'x-forwarded-for': '198.51.100.198' },

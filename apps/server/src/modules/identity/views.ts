@@ -8,26 +8,15 @@ import { csrfTokenFor, type LiveSession } from './sessions.js'
 export const sessionView = {
   type: 'object',
   additionalProperties: false,
-  required: [
-    'staffUserId',
-    'displayName',
-    'email',
-    'locale',
-    'roles',
-    'mfaEnrolled',
-    'mfaRecommended',
-    'csrfToken',
-    'navigation',
-  ],
+  required: ['staffUserId', 'displayName', 'email', 'locale', 'roles', 'mfaEnrolled', 'csrfToken', 'navigation'],
   properties: {
     staffUserId: { type: 'string' },
     displayName: { type: ['string', 'null'] },
     email: { type: 'string' },
     locale: { type: 'string', enum: ['en', 'es'] },
     roles: { type: 'array', items: { type: 'string', enum: [...STAFF_ROLES] } },
+    // MFA is mandatory for every staff role (TSK-0154, OWN-DEC-202): a complete session always has its authenticator.
     mfaEnrolled: { type: 'boolean' },
-    // MFA is optional; Owner and Office accounts without it see a recommendation (HH-STAFF-01).
-    mfaRecommended: { type: 'boolean' },
     // Sent back in X-CSRF-Token on every unsafe request of this session (TSK-0015).
     csrfToken: { type: 'string' },
     // The staff app's menu for these roles, derived from the permission matrix (TSK-0040; deny by default). A menu is
@@ -45,11 +34,18 @@ export const sessionView = {
   },
 } as const
 
+/**
+ * A sign-in that passed the password (TSK-0015, TSK-0154): the second factor is still to come. `step` says which:
+ * `verify` (enter the authenticator code or a recovery code) or `enroll` (set up the authenticator first).
+ */
 export const mfaPendingView = {
   type: 'object',
   additionalProperties: false,
-  required: ['mfaRequired'],
-  properties: { mfaRequired: { type: 'boolean', enum: [true] } },
+  required: ['mfaRequired', 'step'],
+  properties: {
+    mfaRequired: { type: 'boolean', enum: [true] },
+    step: { type: 'string', enum: ['verify', 'enroll'] },
+  },
 } as const
 
 export function viewOf(
@@ -63,7 +59,6 @@ export function viewOf(
     locale: s.locale,
     roles: s.roles,
     mfaEnrolled: s.mfaEnrolled,
-    mfaRecommended: !s.mfaEnrolled && (s.roles.includes('owner') || s.roles.includes('office')),
     csrfToken: s.csrfToken,
     navigation: navigationFor(s.roles, s.capabilities ?? []),
   }

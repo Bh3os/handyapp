@@ -7,6 +7,7 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { AxeBuilder } from '@axe-core/playwright'
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
+import { passSecondFactor } from '../mfa.js'
 
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const databaseUrl = process.env['E2E_DATABASE_URL']
@@ -103,6 +104,8 @@ test.describe('the first-response clock and review holds (TSK-0043)', () => {
     await page.getByLabel('Email').fill(OWNER)
     await page.getByLabel('Password', { exact: true }).fill(pw(1))
     await page.getByRole('button', { name: 'Sign in' }).click()
+    // MFA is mandatory (TSK-0154): enrol on the account's first sign-in, the code afterwards.
+    await passSecondFactor(page)
     await expect(page.getByRole('heading', { level: 1, name: 'Action queue' })).toBeVisible()
   })
 

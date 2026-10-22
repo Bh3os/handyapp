@@ -14,6 +14,7 @@ import { runWithContext } from '../../src/platform/request-context.js'
 import { createProviders, type Providers } from '../../src/providers/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
 import { testConfig } from '../fixtures/env.js'
+import { enrolledFactor, signInWithMfa } from '../fixtures/staff-mfa.js'
 
 const OWNER = 'owner-synthetic@example.test'
 const WORKER = 'worker-synthetic@example.test'
@@ -58,8 +59,9 @@ const authOf = (res: { headers: Record<string, unknown>; json: () => { csrfToken
   'x-csrf-token': res.json().csrfToken,
 })
 
+/** A complete sign-in: the password, then the mandatory second factor (enrolment the first time; TSK-0154). */
 async function signIn(email: string, password: string) {
-  return post('/staff/auth/sign-in', { email, password })
+  return signInWithMfa(app, { method: 'POST', url: '/api/v1/staff/auth/sign-in', payload: { email, password } })
 }
 
 describe('first Owner bootstrap and invite link (TSK-0014, HH-STAFF-01)', () => {
@@ -132,7 +134,7 @@ describe('sign-in (TSK-0014, HH-STAFF-01, HH-SEC-02)', () => {
     expect(String(first.headers['set-cookie'])).toMatch(
       /^hh_staff=[A-Za-z0-9_-]{43}; Path=\/; HttpOnly; SameSite=Strict$/,
     )
-    expect(first.json()).toMatchObject({ email: OWNER, roles: ['owner'], locale: 'en', mfaRecommended: true })
+    expect(first.json()).toMatchObject({ email: OWNER, roles: ['owner'], locale: 'en', mfaEnrolled: true })
     expect(first.body).not.toContain('argon2')
     const second = await signIn(OWNER, pw(1))
     expect(cookieOf(second)).not.toBe(cookieOf(first))
@@ -171,7 +173,7 @@ describe('invites by the Owner (TSK-0014, HH-STAFF-01, T26)', () => {
       (await post('/staff/auth/password/set', { token: lastLink(WORKER, 'invite'), password: pw(3) })).statusCode,
     ).toBe(200)
     const signedIn = await signIn(WORKER, pw(3))
-    expect(signedIn.json()).toMatchObject({ roles: ['worker'], locale: 'es', mfaRecommended: false })
+    expect(signedIn.json()).toMatchObject({ roles: ['worker'], locale: 'es', mfaEnrolled: true })
     const duplicate = await post(
       '/staff/invitations',
       { email: WORKER, displayName: 'Again', role: 'worker', reason: 'Duplicate' },
@@ -294,6 +296,13 @@ describe('forgot password, reset, sign-out and expiry (TSK-0014, HH-STAFF-01, T2
       expect(text).not.toMatch(/argon2|passphrase/)
       for (const m of sent())
         expect(text).not.toContain(/\/(invite|reset)\/([A-Za-z0-9_-]{43})/.exec(m.text)?.[2] ?? '@@')
+      // TSK-0154: neither the authenticator secret nor a recovery code is ever written to audit or the outbox.
+      for (const email of [OWNER, WORKER]) {
+        const factor = enrolledFactor(email)
+        expect(factor).toBeDefined()
+        for (const secret of [factor?.secret ?? '@@', ...(factor?.recoveryCodes ?? [])])
+          expect(text).not.toContain(secret)
+      }
     }
     const actions = new Set(
       (await t.db.selectFrom('platform.audit_events').select('action').execute()).map((e) => e.action),
