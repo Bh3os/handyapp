@@ -6,7 +6,7 @@ Written 2026-10-22 when the long cloud build session ended, so work can continue
 
 ## 1. Where things stand
 
-- **Built and merged:** <!-- MERGED-COUNT --> tasks are `done` in the graph. Platform, public site, guided estimate request,
+- **Built and merged:** 99 tasks are `done` in the graph. Platform, public site, guided estimate request,
   CRM, estimates, scheduling, field work (My Day, loadouts, packets, Start Work gate), invoices, messaging and email
   delivery, staff MFA, the staging tools and the Owner Acceptance Testing switches are all built.
 - **Staging** runs this repository: https://handyhub-staging.onrender.com (staff app `/staff`, portal `/portal`).
@@ -40,17 +40,116 @@ Written 2026-10-22 when the long cloud build session ended, so work can continue
 | #88 | TSK-0121/0122      | Automatic routine reminders and delivery hours                                                      |
 | #89 | TSK-0142           | Owner Acceptance Testing: test accounts, journey checklist, launch-phase switches                   |
 
-<!-- LATE-PRS -->
+| #90 | TSK-0085/0086 | Invoice draft from approved scope; payment ledger (migration 0077) |
+| #91 | TSK-0132 | The 26 service pages and care notes after the quality review |
+| #92 | TSK-0106/0111 | Outage drills, restore rehearsal, runbooks (`docs/runbooks/`) and the owner go checklist |
+| #93 | TSK-0077 | Stop Work, Report Hazard, critical holds and issue reports (migration 0079) |
+| #94 | docs | This handoff |
+| #95 | TSK-0076 | Field photos, customer sharing, photo publication permissions, portal Photos tab (migration 0080) |
+| #96 | TSK-0093 | Cases: complaints, incidents, damage, injury and disputes (migration 0081) |
 
 ## 2. What is left
 
 ### Branches not merged when the session ended
 
-<!-- OPEN-BRANCHES -->
+None, if #95 and #96 merged (check `git log origin/main`). If either is still open, merge it in that order: #95 (0080)
+before #96 (0081). The highest migration on `main` is then `0081_cases.sql`; the next free number is **0082**.
+(0078 was never used; gaps are fine.)
+
+TSK-0112 (point staging at this repository) is still `todo` in the graph but is effectively done: staging deploys
+this repository. Mark it `done` in the next PR that touches the graph.
+
+Follow-up worth a small task: `quality.cases.hazard_report_id` (0081) is a nullable column without a foreign key;
+it can now be linked to `work.issue_reports` (0079).
+
+### Suggested next tasks (RECOMMENDATION, not an owner decision)
+
+1. TSK-0084 Owner quality review and punch items: final invoices are refused until it exists
+   (`QUALITY_REVIEW_NOT_RECORDED`).
+2. TSK-0083 Completion (quality checks, walkthrough) and TSK-0075 the job SOP checklist.
+3. TSK-0103 Spanish safety release: until it ships, Spanish-reading workers cannot pass Start Work.
+4. TSK-0129 Escalation (Call Owner / Call 911): needs the Owner's phone number, which is NOT CONFIGURED.
+5. TSK-0081/0082 Change orders, then TSK-0087..0092 for the rest of the money flow.
+6. TSK-0133 A2P 10DLC package: prepare only; registration fees and binding representations need the owner's explicit
+   confirmation.
 
 ### Open tasks by area (`node tools/kg.mjs list task --status todo`)
 
-<!-- TODO-LIST -->
+- **a11y** (1):
+  - TSK-0104 Accessibility pass on both websites
+- **approval** (1):
+  - TSK-0082 Change-order publishing, customer approval and packet update
+- **estimates** (1):
+  - TSK-0125 Discount requests with staff verification
+- **field** (7):
+  - TSK-0075 Job SOP checklist in six stages and active execution
+  - TSK-0079 Offline packet and offline drafts
+  - TSK-0080 Sync queue, reconnect revalidation and visible sync states
+  - TSK-0081 Change orders: worker proposals and staff drafts
+  - TSK-0115 Fuller offline workflows after controls are proven
+  - TSK-0128 Worker data-access window on the visit day
+  - TSK-0147 Packet re-review triggers and print metadata (D1, D2, D3)
+- **i18n** (2):
+  - TSK-0102 Spanish staff catalogs and language-switch behaviour
+  - TSK-0103 Spanish safety texts released as AI-reviewed after a separate comparison check
+- **identity** (5):
+  - TSK-0113 Customer accounts: saved properties, preferences and Request This Service Again
+  - TSK-0118 Organization accounts with explicit memberships and scopes
+  - TSK-0124 Permanent customer dashboard, Project History and verified project claiming
+  - TSK-0134 Phone verification opt-in on the receipt
+  - TSK-0149 Customer account security amendments (F2, F4, F5, F6)
+- **intake** (2):
+  - TSK-0139 Preferred window hours and the new preference notice
+  - TSK-0148 Questions: 'I'm not sure' beyond measurements; closing for no response and reopening (E2, E4, E5)
+- **invoicing** (1):
+  - TSK-0091 Unpaid-balance reminders and Overdue—owner decision
+- **messaging** (2):
+  - TSK-0133 A2P 10DLC registration package and the consent flows
+  - TSK-0155 Spanish worker notes and proposed replies: the Owner/Office review queue and English customer replies
+- **ops** (3):
+  - TSK-0095 Estimated versus actual costs and report source states
+  - TSK-0096 Owner Dashboard and accountant-ready exports
+  - TSK-0112 Point the Render staging service at this repository
+- **payments** (5):
+  - TSK-0087 Square payment links, recorded payments and the Payments tab
+  - TSK-0088 Cash collection and checks pending until cleared
+  - TSK-0089 Returned checks, disputes, refunds, credits, voids and write-offs
+  - TSK-0090 Reconciliation queue for unmatched and uncertain money
+  - TSK-0131 Job gross margin and the advisory 30% flag
+- **platform** (5):
+  - TSK-0105 Performance budgets measured on representative data
+  - TSK-0107 Cross-cutting robustness suite: races, duplicates, interruptions and automations
+  - TSK-0110 Traceability report and Definition of Done check
+  - TSK-0117 AI assistance for classification and drafting (wave 2, off by default)
+  - TSK-0153 Mark the approved-as-built rules decided in configuration, catalogs and screens
+- **portal** (1):
+  - TSK-0150 Portal wording checked against actual behaviour (G)
+- **privacy** (4):
+  - TSK-0136 Privacy request acknowledgment, 30-day target and deadline tracking
+  - TSK-0137 Request erasure with a reference-and-dates remainder
+  - TSK-0138 Retention defaults for staff accounts, consent, history, logs and expired links
+  - TSK-0152 Privacy request refinements (I1 to I5)
+- **quality** (4):
+  - TSK-0083 Completion: quality checks, walkthrough and the worker sequence
+  - TSK-0084 Owner quality review and punch items
+  - TSK-0092 Financial closeout, Owner reopen, satisfaction check and review requests
+  - TSK-0094 Return work and resuming after an incident
+- **safety** (1):
+  - TSK-0129 Escalation procedure in every job packet: Call Owner and Call 911
+- **scheduling** (6):
+  - TSK-0078 Visit outcomes: delays, no access and customer absence
+  - TSK-0114 Recurring service series and repeat-service reminders
+  - TSK-0126 First-visit site checks at confirmation
+  - TSK-0140 Cancellation and reschedule rules: small deposits, free estimate visits, Office routine cancellations, initiator and work-start markers
+  - TSK-0145 Visit confirmation and window-offer amendments (A1, A2, A4, B1, B3, B4)
+  - TSK-0146 Reviewed service-specific default preparation instructions for offers (B7)
+- **security** (4):
+  - TSK-0108 Authorization matrix suite for every actor pair
+  - TSK-0109 AI security review before real customer data
+  - TSK-0116 AI guardrails framework (wave 2, stays disabled)
+  - TSK-0135 Audit retention workflow: owner-authorized deletion after 7 years
+- **staff** (1):
+  - TSK-0151 Staff management amendments (H1, H3, H4, H7)
 
 ## 3. Local setup
 
@@ -71,7 +170,7 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm test:int && node tools/kg.mjs l
 End-to-end tests (after `pnpm build`). They need an empty database per run, plus four free ports:
 
 ```sh
-createdb -h 127.0.0.1 -U postgres e2e1
+PGPASSWORD=postgres createdb -h 127.0.0.1 -U postgres e2e1
 cd apps/e2e
 E2E_PORT=4310 E2E_GALLERY_PORT=4311 E2E_SPLIT_PORT=4312 E2E_GATED_PORT=4313 \
 E2E_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/e2e1 \
@@ -116,9 +215,17 @@ full run.
 - **Clock-dependent tests:** never assume today's date or a fixed weekday. Build dates relative to `Date.now()`, and
   check outcomes that do not depend on which of two concurrent requests wins (see the concurrent-payment test in
   `invoices.test.ts`).
-- **e2e duration:** the serial e2e suite takes about 19–23 minutes because of MFA TOTP waits. The CI job limit is 40
-  minutes (`.github/workflows/ci.yml`). If the suite grows, raise the limit rather than parallelizing specs that share
-  a database.
+- **e2e duration:** the serial e2e suite takes about 22 minutes locally because of MFA TOTP waits; on CI it ranged
+  from 22 to **34 minutes** on the last PRs. The CI job limit is 40 minutes (`.github/workflows/ci.yml`). Raise it
+  (for example to 60) in the next PR that adds e2e specs, rather than parallelizing specs that share a database.
+- **Flaky checks seen and fixed:** a random six-digit code matching digits inside a log timestamp (use
+  `standaloneCode()` from `apps/server/test/fixtures/code-message.ts`); a concurrent-payment test that assumed which
+  request wins; the kg index read while being rewritten (now written atomically). A spec that times out once in a full
+  e2e run (`staff-replies`, `staff-auth` were seen) should be rerun alone on a fresh database before it is treated as
+  real, and fixed if it fails again.
+- **Stacked branches and squash merges:** when branch B contains branch A's commits and A is squash-merged, GitHub may
+  report conflicts on B. If `main`'s tree equals A's head (`git diff --quiet <A-head> origin/main`), record the merge
+  with `git merge -s ours origin/main` (no content change) and push.
 - **If PostgreSQL stops**, for example after a restart: `service postgresql start` on Linux, or your local service
   manager.
 
