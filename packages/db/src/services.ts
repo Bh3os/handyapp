@@ -3,6 +3,13 @@
 // business configuration, not synthetic data): a new service is inserted, changed content becomes a new immutable
 // version, and unchanged content is left alone. The owner's later decisions (public status, approval, scheduling mode)
 // are never reset by a sync.
+//
+// Quality-reviewed content (TSK-0132, OWN-DEC-180): a seed whose content carries the review stamp of OWN-DEC-180 and
+// whose public status is `published` is approved by that decision. When the sync writes such a version (a new service
+// or changed content), it records the approval on the version (approved_by OWN-DEC-180, approved_at now) and
+// publishes it: public_status `published`, published_version the new version. No per-service owner approval is
+// needed (OWN-DEC-180 replaces it for OWN-DEC-84 and OWN-DEC-81). A version without the stamp is never approved or
+// published by a sync, and an unchanged version is left as it is.
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -29,12 +36,31 @@ export interface ServiceSeed {
   staffLabel: { en: string; es: string }
   publicStatus: PublicStatus
   schedulingMode: SchedulingMode
-  content: { description: string | null }
+  /** Page content: the reviewed content of TSK-0132 with its review stamp, or `{ description: null }` for a draft. */
+  content: ServiceSeedContent
   intake: { guideInputs: string[]; specIntake: string[] }
   estimateRoute: 'online_or_site_visit'
   sopId: string
   homeAgeLimits: boolean
   source: string | null
+}
+
+/** The review stamp of the quality review that approves a version for publication (OWN-DEC-180). */
+export const QUALITY_REVIEW_DECISION = 'OWN-DEC-180'
+
+export type ServiceSeedContent = {
+  description: string | null
+  review?: { decision: string; task: string; reviewedOn: string }
+  [part: string]: unknown
+}
+
+/** Whether a seed's content passed the quality review of OWN-DEC-180 and is to be published. */
+export function isQualityReviewed(s: Pick<ServiceSeed, 'publicStatus' | 'content'>): boolean {
+  return (
+    s.publicStatus === 'published' &&
+    s.content.review?.decision === QUALITY_REVIEW_DECISION &&
+    typeof s.content.description === 'string'
+  )
 }
 
 export function loadServiceSeed(file = SERVICES_SEED_FILE): ServiceSeed[] {
@@ -71,7 +97,9 @@ export function contentHash(s: ServiceSeed): string {
 export type SyncResult = { created: string[]; versioned: string[]; unchanged: string[] }
 
 function versionRow(s: ServiceSeed, version: number) {
+  const approval = isQualityReviewed(s) ? { approved_at: new Date(), approved_by: QUALITY_REVIEW_DECISION } : {}
   return {
+    ...approval,
     service_id: s.id,
     version,
     name: s.name,
@@ -103,6 +131,7 @@ export async function syncServices(db: Db | Tx, services: readonly ServiceSeed[]
         .forUpdate('s')
         .executeTakeFirst()
       if (!existing) {
+        const reviewed = isQualityReviewed(s)
         await trx
           .insertInto('catalog.services')
           .values({
@@ -110,7 +139,9 @@ export async function syncServices(db: Db | Tx, services: readonly ServiceSeed[]
             code: s.code,
             category: s.category,
             slug: s.slug,
-            public_status: s.publicStatus,
+            // Only a quality-reviewed version is published; anything else starts as a draft.
+            public_status: reviewed ? 'published' : s.publicStatus === 'published' ? 'draft' : s.publicStatus,
+            published_version: reviewed ? 1 : null,
             scheduling_mode: s.schedulingMode,
             current_version: 1,
           })
@@ -132,7 +163,15 @@ export async function syncServices(db: Db | Tx, services: readonly ServiceSeed[]
       }
       const next = existing.current_version + 1
       await trx.insertInto('catalog.service_versions').values(versionRow(s, next)).execute()
-      await trx.updateTable('catalog.services').set({ current_version: next }).where('id', '=', s.id).execute()
+      await trx
+        .updateTable('catalog.services')
+        .set(
+          isQualityReviewed(s)
+            ? { current_version: next, public_status: 'published', published_version: next }
+            : { current_version: next },
+        )
+        .where('id', '=', s.id)
+        .execute()
       result.versioned.push(s.id)
     }
   }
@@ -153,9 +192,10 @@ export interface PublicService {
 }
 
 /**
- * The services a public website may show (HH-CUS-02, OWN-DEC-84). Production: only services the owner approved and
- * published, with the approved version. Staging, local and ci: services shown on staging or published, with their
- * current version. A draft is absent everywhere.
+ * The services a public website may show (HH-CUS-02, OWN-DEC-84, OWN-DEC-180). Production: only published services,
+ * with their published version, and only when that version carries its approval (the quality review of OWN-DEC-180,
+ * or an earlier owner approval). Staging, local and ci: services shown on staging or published, with their current
+ * version. A draft is absent everywhere.
  */
 export async function publicServices(db: Db | Tx, environment: RegistryEnvironment): Promise<PublicService[]> {
   const production = environment === 'production'
@@ -168,6 +208,7 @@ export async function publicServices(db: Db | Tx, environment: RegistryEnvironme
     )
     .select(['s.id', 's.code', 's.category', 's.slug', 'v.name', 'v.version', 'v.content'])
     .where('s.public_status', 'in', production ? ['published'] : ['staging', 'published'])
+    .$if(production, (q) => q.where('v.approved_at', 'is not', null))
     .orderBy('s.id')
     .execute()
   return rows.map(({ content, ...r }) => ({
@@ -177,8 +218,9 @@ export async function publicServices(db: Db | Tx, environment: RegistryEnvironme
 }
 
 /**
- * Whether the public site serves the page of the service with this slug (TSK-0021; HH-CUS-02, OWN-DEC-84): the same
- * rule as publicServices(). Production: only a service the owner approved and published. Staging, local and ci: a
+ * Whether the public site serves the page of the service with this slug (TSK-0021, TSK-0132; HH-CUS-02, OWN-DEC-84,
+ * OWN-DEC-180): the same rule as publicServices(). Production: only a published service whose published version
+ * carries its approval. Staging, local and ci: a
  * service shown on staging or published. A draft, or a slug that names no service, has no page.
  */
 export async function isPublicServiceSlug(
@@ -188,11 +230,14 @@ export async function isPublicServiceSlug(
 ): Promise<boolean> {
   const production = environment === 'production'
   const row = await db
-    .selectFrom('catalog.services')
-    .select('id')
-    .where('slug', '=', slug)
-    .where('public_status', 'in', production ? ['published'] : ['staging', 'published'])
-    .$if(production, (q) => q.where('published_version', 'is not', null))
+    .selectFrom('catalog.services as s')
+    .leftJoin('catalog.service_versions as v', (j) =>
+      j.onRef('v.service_id', '=', 's.id').onRef('v.version', '=', 's.published_version'),
+    )
+    .select('s.id')
+    .where('s.slug', '=', slug)
+    .where('s.public_status', 'in', production ? ['published'] : ['staging', 'published'])
+    .$if(production, (q) => q.where('s.published_version', 'is not', null).where('v.approved_at', 'is not', null))
     .executeTakeFirst()
   return row !== undefined
 }

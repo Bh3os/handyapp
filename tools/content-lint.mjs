@@ -4,7 +4,9 @@
 // allow-list of owner-approved wording) over every customer text, so availability, response-time, review, credential
 // and price claims that are not approved wording fail CI:
 // - the customer catalog (packages/i18n customer.en.json), which holds every customer sentence;
-// - the service names of the registry (packages/db/seed/services.json), which the site shows as they are;
+// - the service names of the registry (packages/db/seed/services.json), which the site shows as they are, and the
+//   customer parts of each service's reviewed page content (TSK-0132: description, included and excluded work,
+//   preparation, FAQs and care lines); the withheld lines and the flags list are staff data and never shown;
 // - the public site and portal source, comments removed (comments cite rules and never reach a customer);
 // - with --dist <dir>, the built pages: their visible text, text attributes and structured data.
 //   node tools/content-lint.mjs [--dist apps/site/dist]      (exit 1 on any problem)
@@ -78,13 +80,39 @@ export function htmlText(html) {
   return texts
 }
 
+/** The customer-facing texts of a registry entry's page content, as [part, text] pairs (TSK-0132). */
+export function customerContent(content) {
+  if (!content || typeof content !== 'object') return []
+  const out = []
+  const add = (part, v) => {
+    if (typeof v === 'string') out.push([part, v])
+  }
+  add('description', content.description)
+  for (const part of ['included', 'excluded', 'preparation'])
+    for (const [i, v] of (content[part] ?? []).entries()) add(`${part}[${i}]`, v)
+  for (const [i, f] of (content.faqs ?? []).entries()) {
+    add(`faqs[${i}].question`, f?.question)
+    add(`faqs[${i}].answer`, f?.answer)
+  }
+  for (const [i, v] of (content.care?.lines ?? []).entries()) add(`care.lines[${i}]`, v)
+  for (const [i, p] of (content.care?.product ?? []).entries()) {
+    add(`care.product[${i}].topic`, p?.topic)
+    add(`care.product[${i}].text`, p?.text)
+  }
+  return out
+}
+
 /** The texts to check, each with where it comes from. */
 export function collectTexts({ root = ROOT, dist = [] } = {}) {
   const entries = []
   const catalog = JSON.parse(readFileSync(path.join(root, 'packages/i18n/src/catalogs/customer.en.json'), 'utf8'))
   for (const [key, text] of Object.entries(catalog)) entries.push({ where: `customer.en.json ${key}`, text })
   const registry = JSON.parse(readFileSync(path.join(root, 'packages/db/seed/services.json'), 'utf8'))
-  for (const s of registry.services) entries.push({ where: `services.json ${s.id} name`, text: s.name })
+  for (const s of registry.services) {
+    entries.push({ where: `services.json ${s.id} name`, text: s.name })
+    for (const [part, text] of customerContent(s.content))
+      entries.push({ where: `services.json ${s.id} content.${part}`, text })
+  }
   for (const dir of SOURCE_DIRS)
     for (const file of walk(path.join(root, dir), (n) => /\.(astro|tsx?|html)$/.test(n))) {
       if (SKIPPED.some((r) => r.test(file))) continue

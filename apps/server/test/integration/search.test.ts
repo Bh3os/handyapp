@@ -37,9 +37,11 @@ let production: FastifyInstance
 let split: FastifyInstance
 beforeAll(async () => {
   t = await createTestDatabase()
+  // The registry publishes every quality-reviewed version (TSK-0132, OWN-DEC-180). For the environment rule: DW-01 is
+  // moved back to staging only, CL-01 to a draft; PT-01 stays published with its reviewed, approved version.
   await syncServices(t.db, loadServiceSeed())
-  // DW-01 shown on staging; PT-01 approved and published for production; CL-01 stays a draft.
   await t.db.updateTable('catalog.services').set({ public_status: 'staging' }).where('id', '=', 'SVC-DW-01').execute()
+  await t.db.updateTable('catalog.services').set({ public_status: 'draft' }).where('id', '=', 'SVC-CL-01').execute()
   await t.db
     .updateTable('catalog.services')
     .set({ public_status: 'published', published_version: 1 })
@@ -157,7 +159,7 @@ describe('sitemap.xml (TSK-0023, HH-CUS-04, HH-CUS-05)', () => {
     expect(res.body).toContain('<loc>http://localhost/</loc>')
   })
 
-  it('[HH-CUS-05][OWN-DEC-84] production lists only the owner-approved, published services', async () => {
+  it('[HH-CUS-05][OWN-DEC-180] production lists only the published services with an approved version', async () => {
     const res = await production.inject({ method: 'GET', url: '/sitemap.xml', headers: { host: 'www.example.test' } })
     expect(locs(res.body)).toEqual(['/', '/areas', '/services', '/services/interior-painting'])
     expect(res.body).toContain('<loc>https://www.example.test/areas</loc>')

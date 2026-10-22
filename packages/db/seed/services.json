@@ -12,11 +12,77 @@
         "en": "Routine House Cleaning",
         "es": "Limpieza regular de la casa"
       },
-      "publicStatus": "draft",
-      "schedulingMode": "standard",
+      "publicStatus": "published",
       "content": {
-        "description": null
+        "description": "We clean the rooms and surfaces we agree on in your lived-in home, on the visit schedule in your estimate: dusting, kitchen and bathroom surfaces, beds, trash and floors.",
+        "included": [
+          "Dusting, including high dusting from the floor, in bedrooms and living areas",
+          "Kitchen counters, sink and appliance exteriors, and the inside of the microwave",
+          "Bathrooms: toilets, sinks, showers, tubs and mirrors wiped, scrubbed or polished",
+          "Making beds and vacuuming upholstery",
+          "Emptying trash and relining bins, then vacuuming and mopping the floors"
+        ],
+        "excluded": [
+          "Disinfecting or sanitizing fixtures",
+          "Organizing clutter, such as toys or clothes, before cleaning",
+          "Lifting heavy objects, cleaning biohazards and deep grease scraping",
+          "Heavy grease, appliance interiors other than the microwave, and grout restoration"
+        ],
+        "preparation": [
+          "Tell us how we will get in: a key, a lockbox or someone at home.",
+          "Keep pets secured or away from the rooms being cleaned.",
+          "Tell us about any rooms or items to skip, and put away fragile or valuable items.",
+          "Tell us your product preferences and any allergies; we ask before using a scented product.",
+          "Clear clutter from the surfaces you want cleaned."
+        ],
+        "faqs": [
+          {
+            "question": "How often can visits be scheduled?",
+            "answer": "Recurring schedules are available. The visit frequency is agreed in your estimate, the price of a recurring schedule holds until a new estimate, and each visit is billed after it is done."
+          },
+          {
+            "question": "Do you disinfect bathrooms?",
+            "answer": "Bathroom fixtures are wiped, scrubbed or polished. Disinfecting and sanitizing are not part of this service."
+          },
+          {
+            "question": "What is not covered by routine cleaning?",
+            "answer": "Heavy grease, appliance interiors other than the microwave, and grout restoration are deep-cleaning work. We also don't lift heavy objects or clean biohazards."
+          },
+          {
+            "question": "Do I need to be home?",
+            "answer": "You don't have to be. Choose how we get in—a key, a lockbox or someone at home—and we use that for your visits."
+          }
+        ],
+        "care": {
+          "lines": [],
+          "product": [
+            {
+              "key": "surface.care",
+              "topic": "Care of special finishes",
+              "text": "For surfaces with special finishes, such as natural stone or wood, follow the manufacturer's guidance for their care."
+            }
+          ],
+          "withheld": []
+        },
+        "related": [],
+        "withheldContent": [],
+        "flags": [
+          {
+            "text": "Whether neglected or first-time homes start with Deep Cleaning is an owner decision (Q-04-06).",
+            "reviewer": "Owner"
+          },
+          {
+            "text": "The 25 lb lifting limit is in the draft agreement only; the page states no weight.",
+            "reviewer": "Attorney licensed in KY/IN"
+          }
+        ],
+        "review": {
+          "decision": "OWN-DEC-180",
+          "task": "TSK-0132",
+          "reviewedOn": "2026-10-22"
+        }
       },
+      "schedulingMode": "standard",
       "intake": {
         "guideInputs": [
           "Size/rooms",
@@ -52,11 +118,78 @@
         "en": "Deep Cleaning",
         "es": "Limpieza profunda"
       },
-      "publicStatus": "draft",
-      "schedulingMode": "standard",
+      "publicStatus": "published",
       "content": {
-        "description": null
+        "description": "We do a one-time, detailed clean of your lived-in home, including the hard-to-reach areas, appliance interiors and bathroom grout that your estimate lists.",
+        "included": [
+          "Dusting of high areas and trim that can be reached without a ladder",
+          "Interior window glass and, where your estimate includes them, blinds",
+          "Kitchen cleaning, with the oven and refrigerator interiors where your estimate includes them",
+          "Scrubbing bathroom tile and grout",
+          "Furniture surfaces, living areas and floors"
+        ],
+        "excluded": [
+          "Ceiling fans, full wall washing and exterior window glass",
+          "Tasks that need a ladder or step stool",
+          "Vent openings, ducts and range-hood fans",
+          "Restoration of damaged surfaces"
+        ],
+        "preparation": [
+          "Clear toys, clothes and clutter from floors and counters before we arrive.",
+          "Make sure the water, electricity and heating or cooling are on.",
+          "If your estimate includes the refrigerator interior, empty it or tell us how to handle the food.",
+          "Put away fragile and valuable items, and tell us what furniture may be moved.",
+          "Tell us about sensitive surfaces, such as natural stone, coated glass, leather or wood furniture.",
+          "Keep children and pets away from the rooms being cleaned."
+        ],
+        "faqs": [
+          {
+            "question": "Are the oven and refrigerator interiors included?",
+            "answer": "Only when your estimate lists them. Written scope and price for your approval."
+          },
+          {
+            "question": "Do you move appliances?",
+            "answer": "No. We don't pull out the stove or refrigerator."
+          },
+          {
+            "question": "How is deep cleaning different from routine cleaning?",
+            "answer": "Deep cleaning is a one-time, detailed clean that can include appliance interiors and grout scrubbing. Routine House Cleaning is recurring upkeep of the rooms and surfaces we agree on."
+          },
+          {
+            "question": "Do you remove mold?",
+            "answer": "No. If mold is suspected, the affected work stops. We do no sampling or testing."
+          }
+        ],
+        "care": {
+          "lines": [],
+          "product": [
+            {
+              "key": "surface.care",
+              "topic": "Care of sensitive surfaces",
+              "text": "For natural stone, coated glass, leather and wood finishes, follow the manufacturer's guidance for their care."
+            }
+          ],
+          "withheld": []
+        },
+        "related": [],
+        "withheldContent": [],
+        "flags": [
+          {
+            "text": "Included versus add-on is undecided for the oven, refrigerator, blinds and vanity drawers (C-CL02-01); the page says \"where your estimate includes them\".",
+            "reviewer": "Owner"
+          },
+          {
+            "text": "The line between cosmetic mildew and mold that needs referral is not set (X-06; Q-31-10).",
+            "reviewer": "Competent safety reviewer"
+          }
+        ],
+        "review": {
+          "decision": "OWN-DEC-180",
+          "task": "TSK-0132",
+          "reviewedOn": "2026-10-22"
+        }
       },
+      "schedulingMode": "standard",
       "intake": {
         "guideInputs": [
           "Size/condition",
@@ -91,11 +224,73 @@
         "en": "Move-In/Move-Out Cleaning",
         "es": "Limpieza de mudanza (entrada o salida)"
       },
-      "publicStatus": "draft",
-      "schedulingMode": "standard",
+      "publicStatus": "published",
       "content": {
-        "description": null
+        "description": "We clean an empty home before you move in or after you move out: closets and cabinets, the kitchen and bathrooms, interior windows and doors, and the floors.",
+        "included": [
+          "Ceilings and corners, light fixtures and return vent covers",
+          "Closets and shelving, interior windows, and doors and frames",
+          "Kitchen cabinets and drawers, oven and range, refrigerator and freezer, countertops and sinks",
+          "Bathrooms: toilets, showers and tubs, mirrors and vanities",
+          "Floors: vacuuming along the edges and mopping",
+          "Noting existing damage separately from the cleaning"
+        ],
+        "excluded": [
+          "Homes that are still lived in",
+          "Removing furniture, boxes or other items left behind; we remove obvious trash only",
+          "Baseboard washing, exterior window glass, floor stripping and drain clearing",
+          "Carpet shampooing, wall washing, and garage or exterior cleaning"
+        ],
+        "preparation": [
+          "Have the home empty of furniture, personal items and trash bags before the visit.",
+          "Leave the electricity and water on.",
+          "Tell us how we get in, who our site contact is, and who may approve entry and payment.",
+          "Tell us how you want the refrigerator and freezer left.",
+          "Share the landlord's or lease checklist, if you have one.",
+          "Plan movers and other contractors around the cleaning visit."
+        ],
+        "faqs": [
+          {
+            "question": "Will this get my security deposit back?",
+            "answer": "We can't promise any deposit outcome. We clean to the scope in your estimate and note existing damage separately."
+          },
+          {
+            "question": "What happens to items left in the home?",
+            "answer": "We remove obvious trash. Other items left behind are not removed."
+          },
+          {
+            "question": "Can you clean while we are still living there?",
+            "answer": "This service is for empty homes. For a lived-in home, see Deep Cleaning or Routine House Cleaning."
+          },
+          {
+            "question": "Are baseboards and exterior windows included?",
+            "answer": "No. Baseboard washing and exterior window glass are not part of this service."
+          }
+        ],
+        "care": {
+          "lines": [],
+          "product": [],
+          "withheld": []
+        },
+        "related": [],
+        "withheldContent": [],
+        "flags": [
+          {
+            "text": "Occupied move-outs are an open owner question (Q-04-05).",
+            "reviewer": "Owner"
+          },
+          {
+            "text": "Authority to discard third-party property left behind is an attorney question (Q-30-17).",
+            "reviewer": "Attorney licensed in KY/IN"
+          }
+        ],
+        "review": {
+          "decision": "OWN-DEC-180",
+          "task": "TSK-0132",
+          "reviewedOn": "2026-10-22"
+        }
       },
+      "schedulingMode": "standard",
       "intake": {
         "guideInputs": [
           "Vacancy",
@@ -130,11 +325,77 @@
         "en": "Post-Construction Cleaning",
         "es": "Limpieza después de obra"
       },
-      "publicStatus": "draft",
-      "schedulingMode": "standard",
+      "publicStatus": "published",
       "content": {
-        "description": null
+        "description": "We do the detail and final cleaning of construction dust and residue after a renovation, in passes, only in the areas every trade has finished and released.",
+        "included": [
+          "Vacuuming construction dust and gathering debris, including in window tracks",
+          "Removing paint and plaster spots from glass, peeling protective film and stickers, and removing adhesive",
+          "Cleaning cabinet interiors, fixtures and hardware",
+          "A final wipe-down of walls, fixtures and floors"
+        ],
+        "excluded": [
+          "Floor scraping, floor buffing, vents and registers, and cabinet exteriors",
+          "Hauling away construction debris",
+          "Exterior glass"
+        ],
+        "preparation": [
+          "Make sure every trade—painters, floor installers, plumbers and others—has finished in the areas to be cleaned.",
+          "Keep the power on and the water running.",
+          "Tell us which areas are ready before each visit.",
+          "Tell us about any labels or stickers that must stay, and when walls and trim were last painted.",
+          "Keep occupants, children and pets out of the areas being cleaned."
+        ],
+        "faqs": [
+          {
+            "question": "When should post-construction cleaning be scheduled?",
+            "answer": "After all trades have finished in the areas to be cleaned. We clean only areas released for cleaning, and we confirm which areas are ready before each visit."
+          },
+          {
+            "question": "Will the home be ready to move into?",
+            "answer": "We clean to the standard written in your estimate. We don't state that a site is safe or ready for occupancy."
+          },
+          {
+            "question": "Do you take on builder or commercial projects?",
+            "answer": "No. Residential projects only; no builder or commercial work."
+          },
+          {
+            "question": "Do you remove grout haze?",
+            "answer": "We don't remove grout haze with acid."
+          }
+        ],
+        "care": {
+          "lines": [],
+          "product": [
+            {
+              "key": "paint.cure",
+              "topic": "Washing newly painted surfaces",
+              "text": "Before washing newly painted surfaces, follow the manufacturer's guidance for the paint used."
+            }
+          ],
+          "withheld": []
+        },
+        "related": [],
+        "withheldContent": [
+          {
+            "topic": "Work above 12 feet (\"High Ceiling Scaffolding Work\" in the pricing file)",
+            "reason": "Whether it is in scope, excluded or subcontracted is an open question for the owner and the qualified safety professional (C-CL04-01).",
+            "reviewer": "Owner; qualified safety professional"
+          }
+        ],
+        "flags": [
+          {
+            "text": "Metal polish and the flat mop the SOP names are not stocked (C-CL04-12).",
+            "reviewer": "Owner"
+          }
+        ],
+        "review": {
+          "decision": "OWN-DEC-180",
+          "task": "TSK-0132",
+          "reviewedOn": "2026-10-22"
+        }
       },
+      "schedulingMode": "standard",
       "intake": {
         "guideInputs": [
           "Dust/debris",
@@ -170,11 +431,73 @@
         "en": "Airbnb Turnover",
         "es": "Limpieza entre huéspedes de Airbnb"
       },
-      "publicStatus": "draft",
-      "schedulingMode": "standard",
+      "publicStatus": "published",
       "content": {
-        "description": null
+        "description": "We clean and reset your short-term rental between guest stays, following your checklist: linens, cleaning, restocking, staging and photos, with damage and other exceptions reported to you.",
+        "included": [
+          "A walkthrough before cleaning, with photos of any damage or heavy mess",
+          "Stripping beds, collecting towels, and starting a wash where laundry is done on site",
+          "Cleaning high-touch surfaces, refrigerator shelves and bathrooms",
+          "Making beds, restocking amenities as your checklist sets out, and staging",
+          "Floors, completion photos, and a lock-up check before we leave",
+          "Reporting damage, missing amenities, items guests left behind and urgent maintenance to you"
+        ],
+        "excluded": [
+          "Deep cleaning of the kitchen",
+          "Pool and hot-tub areas",
+          "Off-site laundry and linen supply",
+          "Co-hosting, property management, guest communication and buying supplies",
+          "Repairs, pest treatment and biohazard cleanup"
+        ],
+        "preparation": [
+          "Tell us the checkout and check-in times for each turnover.",
+          "Share your turnover checklist.",
+          "Tell us who supplies linens and towels, how many sets the property has, and whether laundry is done on site.",
+          "Tell us the restock items and levels, and where the supplies are kept.",
+          "Tell us where trash and recycling go, and your thermostat, Wi-Fi and welcome-book preferences."
+        ],
+        "faqs": [
+          {
+            "question": "How are turnovers scheduled?",
+            "answer": "You tell us when each turnover is needed, with the checkout and check-in times."
+          },
+          {
+            "question": "What happens if guests left damage?",
+            "answer": "We photograph damage we find before cleaning and report it to you, along with missing amenities, items guests left behind and urgent maintenance. We don't repair it as part of the turnover."
+          },
+          {
+            "question": "Do you do the laundry?",
+            "answer": "We strip the beds, collect towels and start a wash when laundry is done on site. Off-site laundry and linen supply are not part of this service."
+          },
+          {
+            "question": "Is the property locked when you leave?",
+            "answer": "Before leaving, we check that every entry door is locked and that any key or fob is back in its recorded place."
+          }
+        ],
+        "care": {
+          "lines": [],
+          "product": [],
+          "withheld": []
+        },
+        "related": [],
+        "withheldContent": [],
+        "flags": [
+          {
+            "text": "Who supplies restock items is undecided (Q-29-13); the laundry model is undecided (C-CL05-12).",
+            "reviewer": "Owner"
+          },
+          {
+            "text": "Delivery of the damage and completion photos to the host is held for privacy review (REC-002).",
+            "reviewer": "Privacy owner; attorney"
+          }
+        ],
+        "review": {
+          "decision": "OWN-DEC-180",
+          "task": "TSK-0132",
+          "reviewedOn": "2026-10-22"
+        }
       },
+      "schedulingMode": "standard",
       "intake": {
         "guideInputs": [
           "Turnover windows",
@@ -210,11 +533,85 @@
         "en": "Hotel-Style Housekeeping",
         "es": "Limpieza estilo hotel"
       },
-      "publicStatus": "draft",
-      "schedulingMode": "standard",
+      "publicStatus": "published",
       "content": {
-        "description": null
+        "description": "We keep your residence on a recurring plan of visits: garment care within care labels, bed and linen presentation, light tidying and dusting, room scenting if you want it, and trash and floor care, following your privacy rules.",
+        "included": [
+          "Sorting clothing left out, pressing or steaming the garments you ask for within their care labels, hanging clothes and setting out shoes",
+          "Making beds and replacing used bath linens with fresh towels",
+          "Tidying daily clutter and dusting vanity items, nightstands and dressing tables",
+          "Refreshing diffusers, misting linens and tending fresh flowers, if you want room scenting",
+          "Emptying and relining trash bins, vacuuming carpets and rugs, and damp-mopping hard floors",
+          "Leaving doors, windows, locks and the alarm as you instruct before we leave"
+        ],
+        "excluded": [
+          "Washing, drying and folding laundry, hand-washing delicate garments and dry-cleaning drop-offs",
+          "Cooking, childcare and pet care",
+          "Opening mail or packages",
+          "Refrigerator interiors",
+          "Deep cleaning"
+        ],
+        "preparation": [
+          "Tell us which rooms and items are off-limits, and what may be touched, moved or photographed.",
+          "Share your laundry, wardrobe and garment-care preferences, and which garments to press.",
+          "Point out delicate and high-value items, and which ones we may care for.",
+          "Tell us your preferred products and fragrance, and any allergies or sensitivities in your household, pets included.",
+          "Tell us the care instructions for any stone or wood floors."
+        ],
+        "faqs": [
+          {
+            "question": "How often are visits?",
+            "answer": "Visits follow the plan agreed in your estimate. The price of a recurring schedule holds until a new estimate."
+          },
+          {
+            "question": "Do you wash and fold laundry?",
+            "answer": "No. Pressing or steaming garments within their care labels is included; washing, drying and folding are not."
+          },
+          {
+            "question": "How do you respect our privacy?",
+            "answer": "We follow the boundaries you set: the rooms and items that are off-limits, and what may be touched, moved or photographed."
+          },
+          {
+            "question": "What if a garment has no care label?",
+            "answer": "We don't press it. We set it aside and let you know."
+          }
+        ],
+        "care": {
+          "lines": [],
+          "product": [
+            {
+              "key": "finish.care",
+              "topic": "Care of floors and finishes",
+              "text": "For stone and wood floors and other finishes, follow the manufacturer's guidance for their care."
+            }
+          ],
+          "withheld": [
+            {
+              "topic": "Keeping people and pets off damp floors until they are dry",
+              "reason": "Slip hazard: the SOP's wet-floor control (marking the area, keeping occupants and pets off) is pending qualified review (C-CL06-02; X-11).",
+              "reviewer": "Qualified safety professional"
+            }
+          ]
+        },
+        "related": [],
+        "withheldContent": [],
+        "flags": [
+          {
+            "text": "Which steps each plan tier includes is an owner decision (C-CL06-V01; Q-28-21).",
+            "reviewer": "Owner"
+          },
+          {
+            "text": "Who supplies hangers, towels, bed linens, diffusers and flowers is undecided (C-CL06-12).",
+            "reviewer": "Owner"
+          }
+        ],
+        "review": {
+          "decision": "OWN-DEC-180",
+          "task": "TSK-0132",
+          "reviewedOn": "2026-10-22"
+        }
       },
+      "schedulingMode": "standard",
       "intake": {
         "guideInputs": [
           "Rooms/property",
@@ -246,11 +643,90 @@
         "en": "Air Duct & Ventilation Cleaning",
         "es": "Limpieza de ductos de aire y ventilación"
       },
-      "publicStatus": "draft",
-      "schedulingMode": "standard",
+      "publicStatus": "published",
       "content": {
-        "description": null
+        "description": "We clean the supply and return registers, grilles and duct runs listed in your estimate with negative-pressure extraction, clean residential exhaust fans, and change the filter where your estimate includes it.",
+        "included": [
+          "Protecting the work area before work starts",
+          "Removing, washing and reinstalling the supply and return grilles listed in your estimate",
+          "Vacuuming the register boots and extracting dust from the duct runs in your estimate under negative pressure",
+          "Cleaning residential exhaust fans",
+          "Changing the filter where your estimate includes it"
+        ],
+        "excluded": [
+          "Commercial kitchen exhaust",
+          "Coil, blower and air-handler cleaning",
+          "Cutting, patching or sealing openings in ducts",
+          "Work inside attics or crawlspaces"
+        ],
+        "preparation": [
+          "Clear access to every register and return, and to the furnace or air handler.",
+          "Tell us your filter size, if you know it.",
+          "Tell us if anyone in your home, pets included, has breathing sensitivities.",
+          "Plan for the heating and cooling system to be off while we work.",
+          "Move or cover items near the vents.",
+          "Keep children and pets out of rooms with open registers and away from equipment and hoses."
+        ],
+        "faqs": [
+          {
+            "question": "Will duct cleaning improve our air quality or lower energy bills?",
+            "answer": "We don't make air-quality, health or energy-saving claims. We clean the registers, grilles and duct runs in your estimate and tell you about anything we could not reach."
+          },
+          {
+            "question": "Do you clean dryer vents?",
+            "answer": "This service covers home ducts and dryer vents. Your estimate lists exactly which parts are included."
+          },
+          {
+            "question": "Do you work on the furnace or air conditioner?",
+            "answer": "No. We don't clean coils, blowers or the air handler, and we don't do HVAC work."
+          },
+          {
+            "question": "Do you treat mold in ducts?",
+            "answer": "No. We don't do biocide fogging. If mold is suspected, the affected work stops, and we do no sampling or testing."
+          }
+        ],
+        "care": {
+          "lines": [],
+          "product": [
+            {
+              "key": "filter.change",
+              "topic": "Filter changes",
+              "text": "For filter changes, follow the manufacturer's guidance for the filter installed."
+            }
+          ],
+          "withheld": [
+            {
+              "topic": "Restarting or running the heating and cooling system after the work",
+              "reason": "HVAC and electrical: the power isolation and restore method is under review (C-CL07-06; X-07); HVAC work is a licensed trade.",
+              "reviewer": "Qualified safety professional; licensed HVAC technician"
+            }
+          ]
+        },
+        "related": [],
+        "withheldContent": [
+          {
+            "topic": "Agitation of duct runs and the \"Fan Only\" system test",
+            "reason": "The agitation step is on hold, and the system test waits for the reviewed power isolation and restore method (C-CL07-06, C-CL07-08).",
+            "reviewer": "Qualified safety professional"
+          }
+        ],
+        "flags": [
+          {
+            "text": "The owner covers dryer vents (FACT-SVC-CL07-SCOPE), but the SOP has no dryer-vent step yet; dryer-vent jobs need reviewed SOP content before their checklist exists.",
+            "reviewer": "Owner; qualified safety professional"
+          },
+          {
+            "text": "Which register locations are priced is an owner decision (C-CL07-V02).",
+            "reviewer": "Owner"
+          }
+        ],
+        "review": {
+          "decision": "OWN-DEC-180",
+          "task": "TSK-0132",
+          "reviewedOn": "2026-10-22"
+        }
       },
+      "schedulingMode": "standard",
       "intake": {
         "guideInputs": [
           "System/vents",
@@ -285,11 +761,82 @@
         "en": "Patching & Repair",
         "es": "Parcheo y reparación"
       },
-      "publicStatus": "draft",
-      "schedulingMode": "standard",
+      "publicStatus": "published",
       "content": {
-        "description": null
+        "description": "We repair localized holes, cracks and utility cut-outs in drywall walls: cutting out the damage, adding backing, patching, taping, feathering and sanding.",
+        "included": [
+          "Squaring and cutting out the damaged area, adding backing, and fitting and fastening a new piece of drywall",
+          "Taping, two coats of joint compound, sanding and a light check of the finish",
+          "Wiping away dust, and priming the repair where your estimate includes it",
+          "Repairs to water-damaged drywall once the source of the water has been fixed"
+        ],
+        "excluded": [
+          "Texture matching and painting",
+          "Large panel replacement and ceiling repairs",
+          "Mold remediation and leak repair"
+        ],
+        "preparation": [
+          "Move furniture, fragile decorations and wall art away from the area to be repaired.",
+          "Keep occupants, children and pets away from the work area and its dust.",
+          "Tell us what caused the damage, and whether any leak is still active or has been repaired.",
+          "Tell us the year your home was built and about any earlier testing, if you know."
+        ],
+        "faqs": [
+          {
+            "question": "Will the patch be invisible?",
+            "answer": "We don't promise an invisible finish. We feather and sand the repair into the surrounding wall, as your estimate describes."
+          },
+          {
+            "question": "Do you paint the repaired area?",
+            "answer": "Painting and texture matching are not part of this service. For painting, see Residential Interior Painting."
+          },
+          {
+            "question": "Can you repair water damage?",
+            "answer": "Yes, once the source of the water has been fixed. If a leak is still active, or mold is suspected, the work stops."
+          },
+          {
+            "question": "What other repairs does this service cover?",
+            "answer": "General repairs to doors and cabinets, caulking and weatherstrip, and furniture assembly."
+          }
+        ],
+        "care": {
+          "lines": [],
+          "product": [
+            {
+              "key": "compound.dry",
+              "topic": "When the repair can be painted",
+              "text": "Before painting the repair, follow the manufacturer's guidance for the joint compound and primer used."
+            }
+          ],
+          "withheld": []
+        },
+        "related": [
+          "SVC-PT-01"
+        ],
+        "withheldContent": [
+          {
+            "topic": "Ceiling punctures and overhead patches",
+            "reason": "Blocked until an approved height and access policy and reviewed overhead controls exist (spec DW-01.HAZ; 02 G-005; X-12).",
+            "reviewer": "Qualified safety professional"
+          }
+        ],
+        "flags": [
+          {
+            "text": "The general repairs the owner added (doors and cabinets, caulking and weatherstrip, furniture assembly) have no SOP steps yet (FACT-SVC-DW01-REPAIR-SCOPE).",
+            "reviewer": "Owner; Qualified safety professional"
+          },
+          {
+            "text": "Whether primer is included, and the patch size above which a repair becomes a larger job, are owner decisions (C-DW01-07; Q-28-21; Q-04-08).",
+            "reviewer": "Owner"
+          }
+        ],
+        "review": {
+          "decision": "OWN-DEC-180",
+          "task": "TSK-0132",
+          "reviewedOn": "2026-10-22"
+        }
       },
+      "schedulingMode": "standard",
       "intake": {
         "guideInputs": [
           "Damage size/count/cause",
@@ -324,11 +871,97 @@
         "en": "Texture Matching & Popcorn Removal",
         "es": "Igualación de textura y retiro de techo de palomitas"
       },
-      "publicStatus": "draft",
-      "schedulingMode": "standard",
+      "publicStatus": "published",
       "content": {
-        "description": null
+        "description": "We remove popcorn ceiling texture in homes built in 1981 or later, then finish the ceiling smooth or with a sprayed orange-peel or knockdown texture, as your estimate specifies.",
+        "included": [
+          "Masking and sealing off the room before work starts",
+          "Wetting and scraping the ceiling texture",
+          "Re-taping and re-fastening drywall seams within the repair scope of your estimate",
+          "Skim coating, sanding and priming, then a smooth finish or a sprayed orange-peel or knockdown texture"
+        ],
+        "excluded": [
+          "Wall texture matching and skip-trowel texture",
+          "Structural repairs, including joist cracks found after scraping",
+          "Finish painting after the primer coat",
+          "Ceilings that need platforms or scaffolding"
+        ],
+        "preparation": [
+          "Empty the room of furniture, electronics, clothes and personal items before the visit.",
+          "Look up the year your home was built, and tell us about any earlier testing and whether the ceiling was painted.",
+          "Plan for occupants, children and pets to stay out of the work area.",
+          "Allow access for more than one visit, since skim coats need drying time between passes."
+        ],
+        "faqs": [
+          {
+            "question": "Can you remove popcorn from any ceiling?",
+            "answer": "We remove popcorn ceilings only in homes built in 1981 or later. If you don't know the year your home was built, please look it up before you send your request."
+          },
+          {
+            "question": "Do you test ceilings for asbestos?",
+            "answer": "No. We do no sampling or testing. If asbestos, lead or mold is suspected, the affected work stops."
+          },
+          {
+            "question": "What finish do I get after removal?",
+            "answer": "A smooth skim finish or a sprayed orange-peel or knockdown texture, as written in your estimate. Finish painting after the primer coat is not included."
+          },
+          {
+            "question": "Do you match wall textures?",
+            "answer": "Wall texture matching is not part of this service."
+          },
+          {
+            "question": "Does it take more than one visit?",
+            "answer": "Yes. Skim coats need drying time between passes, so the work takes more than one visit."
+          }
+        ],
+        "care": {
+          "lines": [],
+          "product": [
+            {
+              "key": "compound.dry",
+              "topic": "When the new ceiling can be painted",
+              "text": "Before painting the new ceiling finish, follow the manufacturer's guidance for the compound and primer used."
+            }
+          ],
+          "withheld": [
+            {
+              "topic": "Cleaning up dust after popcorn removal",
+              "reason": "Hazardous materials: ceiling-texture dust falls under the asbestos screening limits, and no reviewed cleanup or dust instruction exists (C-DW02-03; C-DW02-09).",
+              "reviewer": "Accredited asbestos inspector; qualified safety professional"
+            }
+          ]
+        },
+        "related": [
+          "SVC-PT-01"
+        ],
+        "withheldContent": [
+          {
+            "topic": "Pausing the heating and cooling during the work, and for how long",
+            "reason": "The HVAC shutdown consent wording and any limit for an occupied home are pending owner, attorney and qualified safety review (C-DW02-V01).",
+            "reviewer": "Owner; Attorney licensed in KY/IN; qualified safety professional"
+          }
+        ],
+        "flags": [
+          {
+            "text": "The customer-facing hazardous-material testing disclosure is not approved; the page states only the owner's 1981 limit and that HandyHub does no testing.",
+            "reviewer": "Asbestos and lead qualified professional; Attorney licensed in KY/IN"
+          },
+          {
+            "text": "Who empties the room, and at what price, is an owner decision (C-DW02-14).",
+            "reviewer": "Owner"
+          },
+          {
+            "text": "Ceiling work from ladders waits for the height and access policy (C-DW02-12).",
+            "reviewer": "Qualified safety professional"
+          }
+        ],
+        "review": {
+          "decision": "OWN-DEC-180",
+          "task": "TSK-0132",
+          "reviewedOn": "2026-10-22"
+        }
       },
+      "schedulingMode": "standard",
       "intake": {
         "guideInputs": [
           "Area/age if known",
@@ -363,11 +996,77 @@
         "en": "Remodeling & Home Additions",
         "es": "Remodelación y ampliaciones de vivienda"
       },
-      "publicStatus": "draft",
-      "schedulingMode": "standard",
+      "publicStatus": "published",
       "content": {
-        "description": null
+        "description": "We handle the drywall for your remodel, basement finishing or home addition: laying out and framing non-structural partition walls, then hanging, taping and finishing the drywall and blending it into your existing walls.",
+        "included": [
+          "Layout and framing of non-structural partition walls, with solid wood blocking for items you will mount later",
+          "Hanging the drywall types your estimate specifies",
+          "Taping, corner bead and finishing, blended into the existing walls",
+          "Sanding, a light check of the finish, and cleanup of the work area"
+        ],
+        "excluded": [
+          "Structural framing, headers and load-bearing changes",
+          "Demolition and removal of old drywall",
+          "Insulation",
+          "Painting"
+        ],
+        "preparation": [
+          "Clear the work area and the path to it.",
+          "Plan for occupants, children and pets to stay away from the work area.",
+          "Tell us about known leaks or moisture, utilities in the walls, the year your home was built and any earlier testing.",
+          "Keep the electricity and water connected."
+        ],
+        "faqs": [
+          {
+            "question": "Do you handle the whole remodel?",
+            "answer": "No. This service covers the drywall part of a remodel or addition: non-structural partition framing, hanging, taping and finishing."
+          },
+          {
+            "question": "Can you move or remove a load-bearing wall?",
+            "answer": "No. We don't do structural work, including headers and load-bearing changes."
+          },
+          {
+            "question": "What if you find damage or moisture when walls are opened?",
+            "answer": "The affected work stops, and we explain what we found. No added work or price changes without your agreement."
+          },
+          {
+            "question": "Is painting included?",
+            "answer": "No. Painting is a separate service."
+          }
+        ],
+        "care": {
+          "lines": [],
+          "product": [
+            {
+              "key": "compound.dry",
+              "topic": "When new drywall can be painted",
+              "text": "Before painting new drywall, follow the manufacturer's guidance for the joint compound and primer used."
+            }
+          ],
+          "withheld": []
+        },
+        "related": [
+          "SVC-PT-01"
+        ],
+        "withheldContent": [],
+        "flags": [
+          {
+            "text": "Who applies for and pays for permits is undecided (C-DW03-01); the page says nothing about permits.",
+            "reviewer": "Owner; legal-compliance reviewer; building official"
+          },
+          {
+            "text": "Whether this service includes insulation is an owner decision (C-DW03-04); dust containment curtains have no SOP step (C-DW03-03).",
+            "reviewer": "Owner"
+          }
+        ],
+        "review": {
+          "decision": "OWN-DEC-180",
+          "task": "TSK-0132",
+          "reviewedOn": "2026-10-22"
+        }
       },
+      "schedulingMode": "standard",
       "intake": {
         "guideInputs": [
           "Plans/areas",
@@ -402,11 +1101,81 @@
         "en": "Residential New Construction",
         "es": "Construcción residencial nueva"
       },
-      "publicStatus": "draft",
-      "schedulingMode": "standard",
+      "publicStatus": "published",
       "content": {
-        "description": null
+        "description": "We hang, tape and finish drywall in a newly built home, to the finish level written in your estimate, once the house is enclosed and the rough-in inspections are complete.",
+        "included": [
+          "Coordinating delivery of the drywall sheets into the rooms where they will be hung",
+          "Hanging the drywall with adhesive and screws",
+          "Taping, finishing and sanding to the finish level in your estimate",
+          "A final check under bright lighting, punch-list fixes and handover"
+        ],
+        "excluded": [
+          "Installing corner bead, and cutting openings for electrical boxes and lights",
+          "Framing corrections, painting, fire-stopping and final cleaning",
+          "Glass and window cleaning"
+        ],
+        "preparation": [
+          "Make sure the house is enclosed and heated.",
+          "Have the rough-in inspections passed and signed off before drywall is hung.",
+          "Keep the work areas clear of deliveries, framing and other trades.",
+          "Agree with us where the drywall delivery will be placed.",
+          "Name a site contact and tell us how to get on site."
+        ],
+        "faqs": [
+          {
+            "question": "Do you work for builders or on commercial projects?",
+            "answer": "No. This service is for residential projects only; no builder or commercial work."
+          },
+          {
+            "question": "What finish level do you work to?",
+            "answer": "The finish level written in your estimate."
+          },
+          {
+            "question": "When can drywall hanging start?",
+            "answer": "Once the house is enclosed and heated, the rough-in inspections have passed, and the rooms are clear of other trades."
+          },
+          {
+            "question": "Is painting included?",
+            "answer": "No. Painting, final cleaning and fire-stopping are not part of this service."
+          }
+        ],
+        "care": {
+          "lines": [],
+          "product": [
+            {
+              "key": "compound.dry",
+              "topic": "When the new drywall can be painted",
+              "text": "Before painting, follow the manufacturer's guidance for the joint compound used."
+            }
+          ],
+          "withheld": []
+        },
+        "related": [],
+        "withheldContent": [
+          {
+            "topic": "Scaffold-tower and stilt work",
+            "reason": "No step, policy or inspection exists (C-DW04-01); HandyHub uses ladders only (FACT-SVC-ACCESS-EQUIPMENT).",
+            "reviewer": "Qualified safety professional"
+          }
+        ],
+        "flags": [
+          {
+            "text": "The SOP is written for a general contractor or developer as the customer, while the owner allows residential work only with no builders (FACT-SVC-RESIDENTIAL-ONLY); who the DW-04 customer is needs the owner's confirmation.",
+            "reviewer": "Owner; Attorney licensed in KY/IN"
+          },
+          {
+            "text": "The SOP's unsourced \"after 12 hours of drying\" is not used; drying comes from the compound instructions.",
+            "reviewer": "Qualified safety professional"
+          }
+        ],
+        "review": {
+          "decision": "OWN-DEC-180",
+          "task": "TSK-0132",
+          "reviewedOn": "2026-10-22"
+        }
       },
+      "schedulingMode": "standard",
       "intake": {
         "guideInputs": [
           "Drawings/quantities",
@@ -442,11 +1211,82 @@
         "en": "Picture Hanging & Art Installation",
         "es": "Colgado de cuadros e instalación de arte"
       },
-      "publicStatus": "draft",
-      "schedulingMode": "standard",
+      "publicStatus": "published",
       "content": {
-        "description": null
+        "description": "We hang framed art, canvases and mirrors on drywall walls, at a placement you approve before any hole is drilled, with hardware chosen to suit each piece and the wall.",
+        "included": [
+          "Weighing each piece and choosing hanging hardware within its manufacturer's limits for that weight and wall",
+          "Marking a level line at the height you prefer and confirming the layout with you before drilling",
+          "Fastening the hardware, hanging each piece and adding bumpers to protect the wall"
+        ],
+        "excluded": [
+          "Plaster, tile, metal-stud, brick and concrete walls",
+          "Pieces heavier than our hanging method covers",
+          "Gallery-wall layout design and ceiling-hung items",
+          "Picture lights or any wiring",
+          "Patching old holes, touch-up painting and frame repair, unless your estimate includes them"
+        ],
+        "preparation": [
+          "Have the pieces, and any hardware you are supplying, ready for the visit.",
+          "Decide where each piece goes, or be available to approve the layout before we drill.",
+          "Clear the work area, and keep children and pets away from it.",
+          "Point out items to protect and any existing damage.",
+          "Tell us about anything you know is inside the wall, such as wiring or pipes, and about special wall types such as plaster or brick."
+        ],
+        "faqs": [
+          {
+            "question": "Will you check the placement with me before drilling?",
+            "answer": "Yes. We mark the layout and ask you to approve it before any hole is drilled."
+          },
+          {
+            "question": "How heavy can a piece be?",
+            "answer": "It depends on the wall and the hardware. Tell us the size and weight of each piece when you request an estimate, and we choose hardware within its manufacturer's limits."
+          },
+          {
+            "question": "Can you hang a mirror or art over a fireplace?",
+            "answer": "No. We don't mount items over fireplaces."
+          },
+          {
+            "question": "Which walls can you hang on?",
+            "answer": "Drywall walls. Plaster, tile, metal-stud, brick and concrete walls are not part of this service."
+          }
+        ],
+        "care": {
+          "lines": [],
+          "product": [
+            {
+              "key": "hardware.load",
+              "topic": "Weight limits of the hanging hardware",
+              "text": "Before hanging something heavier on the same hardware, follow the manufacturer's guidance for its weight limits."
+            }
+          ],
+          "withheld": []
+        },
+        "related": [],
+        "withheldContent": [
+          {
+            "topic": "Mounting on brick or concrete fireplace mantel faces (SOP Option B)",
+            "reason": "Mounting over fireplaces is referred out (FACT-SVC-REFER-OUT-TASKS); the option also needs an on-site assessment of heat and gas-appliance proximity.",
+            "reviewer": "Qualified safety professional"
+          }
+        ],
+        "flags": [
+          {
+            "text": "The maximum accepted item weight is an open owner question (C-HI01-02); the page states no weight.",
+            "reviewer": "Owner"
+          },
+          {
+            "text": "Gallery-wall layout is sold in the pricing file but no SOP step covers it (G-046).",
+            "reviewer": "Owner"
+          }
+        ],
+        "review": {
+          "decision": "OWN-DEC-180",
+          "task": "TSK-0132",
+          "reviewedOn": "2026-10-22"
+        }
       },
+      "schedulingMode": "standard",
       "intake": {
         "guideInputs": [
           "Count",
@@ -477,11 +1317,85 @@
         "en": "Barbecue & Grill Cleaning/Maintenance",
         "es": "Limpieza y mantenimiento de parrillas"
       },
-      "publicStatus": "draft",
-      "schedulingMode": "standard",
+      "publicStatus": "published",
       "content": {
-        "description": null
+        "description": "We clean your gas grill: the grates, flavorizer bars, heat shields and other removable parts, the cookbox, the outside of the burner tubes and the exterior, within the grill manufacturer's guidance. We do no gas-component repair.",
+        "included": [
+          "Shutting off the gas supply and taking out the grates, flavorizer bars, heat shields and grease trays",
+          "Soaking the removed grates and shields",
+          "Scraping the cookbox and brushing the outside of the burner tubes",
+          "Reassembling the grill and polishing the exterior"
+        ],
+        "excluded": [
+          "Charcoal, pellet, electric and smoker grills",
+          "Repairs to gas valves, regulators, hoses or igniters, and parts replacement",
+          "Cleaning or emptying grease trays, steam cleaning, and clearing nests from burner tubes",
+          "Rust or paint repair",
+          "Commercial and food-service grills"
+        ],
+        "preparation": [
+          "Make sure we can reach the propane tank or the gas shut-off valve for the grill.",
+          "Turn the grill off and let it cool before we arrive.",
+          "Clear the area around the grill, and keep children and pets away from it.",
+          "Let us use an outdoor water spigot and a power outlet.",
+          "Have the grill's make and model handy."
+        ],
+        "faqs": [
+          {
+            "question": "Which grills do you clean?",
+            "answer": "Gas grills. Charcoal, pellet, electric and smoker grills are not part of this service."
+          },
+          {
+            "question": "Do you repair grills?",
+            "answer": "No. We don't repair gas components or replace parts. If we find a defect, such as a rusted-through burner tube, we let you know."
+          },
+          {
+            "question": "Do you clear the burner ports?",
+            "answer": "No. We don't clear gas burner ports."
+          }
+        ],
+        "care": {
+          "lines": [],
+          "product": [
+            {
+              "key": "grill.care",
+              "topic": "Ongoing care of the grates and exterior",
+              "text": "For ongoing care of the grates and the exterior finish, follow the manufacturer's guidance for your grill."
+            }
+          ],
+          "withheld": [
+            {
+              "topic": "Turning the gas supply back on and relighting the grill after cleaning",
+              "reason": "Gas: workers give no gas-restore or relighting instructions (SOP section 17; 31 section 3.5 rule 4); any customer instruction needs qualified review against the grill manufacturer's instructions.",
+              "reviewer": "Qualified gas technician or the appliance manufacturer's instructions; qualified safety professional"
+            }
+          ]
+        },
+        "related": [],
+        "withheldContent": [
+          {
+            "topic": "Burner-port clearing (\"burner purge\" in the pricing tiers)",
+            "reason": "Referred out at launch (FACT-SVC-REFER-OUT-TASKS); the SOP step is on hold (C-HI02-04).",
+            "reviewer": "Qualified safety professional"
+          }
+        ],
+        "flags": [
+          {
+            "text": "The disassembly boundary is undecided: the agreement says \"Full system tear-down\" (C-HI02-05).",
+            "reviewer": "Owner"
+          },
+          {
+            "text": "Whether the fuel supply is left off at the end, and what the customer is told, is pending (C-HI02-03).",
+            "reviewer": "Qualified safety professional"
+          }
+        ],
+        "review": {
+          "decision": "OWN-DEC-180",
+          "task": "TSK-0132",
+          "reviewedOn": "2026-10-22"
+        }
       },
+      "schedulingMode": "standard",
       "intake": {
         "guideInputs": [
           "Type/model",
@@ -518,11 +1432,69 @@
         "en": "Driveway Pressure Washing",
         "es": "Lavado a presión de entradas de auto"
       },
-      "publicStatus": "draft",
-      "schedulingMode": "standard",
+      "publicStatus": "published",
       "content": {
-        "description": null
+        "description": "We pressure-wash concrete driveways and walkways that have organic growth, such as moss or algae, and spot-treat motor-oil stains. Some stains may not lift fully.",
+        "included": [
+          "Pre-treating and surface-cleaning concrete with organic growth",
+          "Spot-treating fresh motor-oil stains on concrete"
+        ],
+        "excluded": [
+          "Pavers, brick, patios and other surfaces that are not concrete",
+          "Sealing, crack repair, rust removal, and painted or coated surfaces",
+          "Edge detailing with a wand and protective sprays after washing",
+          "Old or set-in oil stains",
+          "Decks, fences, siding and roofs"
+        ],
+        "preparation": [
+          "Move vehicles off the driveway before we arrive.",
+          "Make sure we can use an outdoor water spigot.",
+          "Close nearby windows and doors, and keep children and pets indoors during the work.",
+          "Move outdoor items off the surface to be cleaned.",
+          "Point out sprinkler heads, landscape lights and any drainage concerns near the work area."
+        ],
+        "faqs": [
+          {
+            "question": "Will every stain come out?",
+            "answer": "No. Some stains may not lift fully, especially old oil saturation, heavy rust and battery-acid marks."
+          },
+          {
+            "question": "Do you clean pavers or brick?",
+            "answer": "Not under this service. It covers concrete only."
+          },
+          {
+            "question": "Do you seal the driveway afterward?",
+            "answer": "No. Sealing and crack repair are not part of this service."
+          },
+          {
+            "question": "Do you need water from the house?",
+            "answer": "Yes. We need access to an outdoor water spigot."
+          }
+        ],
+        "care": {
+          "lines": [],
+          "product": [],
+          "withheld": []
+        },
+        "related": [],
+        "withheldContent": [],
+        "flags": [
+          {
+            "text": "The SOP has no whole-surface path for concrete without organic growth or oil (C-HI03-08).",
+            "reviewer": "Owner"
+          },
+          {
+            "text": "The canonical name says \"Surface Restoration\" but no repair or sealing step exists (C-HI03-10).",
+            "reviewer": "Owner"
+          }
+        ],
+        "review": {
+          "decision": "OWN-DEC-180",
+          "task": "TSK-0132",
+          "reviewedOn": "2026-10-22"
+        }
       },
+      "schedulingMode": "standard",
       "intake": {
         "guideInputs": [
           "Surface/area",
@@ -558,11 +1530,82 @@
         "en": "TV Mounting & Wire Hiding",
         "es": "Montaje de TV y ocultación de cables"
       },
-      "publicStatus": "draft",
-      "schedulingMode": "standard",
+      "publicStatus": "published",
       "content": {
-        "description": null
+        "description": "We fasten a TV wall bracket into the wood studs behind a drywall wall and, where your estimate includes it, run low-voltage cables such as HDMI inside the wall between two wall plates.",
+        "included": [
+          "Finding the wood studs, marking the position you confirm, and fastening the bracket into the studs",
+          "Where your estimate includes it: two wall openings, cables pulled inside the wall, and brush-style plates over both openings"
+        ],
+        "excluded": [
+          "Brick, concrete, plaster and metal-stud walls",
+          "Moving outlets or running power inside the wall",
+          "Soundbars, streaming boxes, game consoles and in-wall conduit",
+          "Removing an old mount, patching or painting, and TV setup",
+          "Ceiling and outdoor mounts"
+        ],
+        "preparation": [
+          "Have the TV, the mount if you are supplying it, and their model and weight details ready.",
+          "Decide the mounting height and position, and tell us where the nearest outlet is.",
+          "Clear furniture from the work area, and keep children and pets away from it.",
+          "For an in-wall cable run, have working HDMI cables that are long enough."
+        ],
+        "faqs": [
+          {
+            "question": "Can you hide the power cord inside the wall?",
+            "answer": "No. We run low-voltage cables, such as HDMI, inside the wall only. We don't move outlets or run power inside walls."
+          },
+          {
+            "question": "Can you mount the TV above a fireplace?",
+            "answer": "No. We don't mount items over fireplaces."
+          },
+          {
+            "question": "Who decides the height?",
+            "answer": "You do. We mark the position and confirm it with you before drilling."
+          },
+          {
+            "question": "Which walls can you mount on?",
+            "answer": "Drywall over wood studs. Brick, concrete, plaster and metal-stud walls are not part of this service."
+          }
+        ],
+        "care": {
+          "lines": [],
+          "product": [
+            {
+              "key": "mount.load",
+              "topic": "Weight limits of the mount",
+              "text": "Before adding weight or accessories to the mount, follow the manufacturer's guidance for its limits."
+            }
+          ],
+          "withheld": [
+            {
+              "topic": "Using or adding power near the in-wall cable run",
+              "reason": "Line-voltage electrical: any customer instruction about power near the low-voltage pass-through needs review (C-HI04-06; spec HI-04.SAF).",
+              "reviewer": "Licensed electrician; attorney (wording)"
+            }
+          ]
+        },
+        "related": [],
+        "withheldContent": [
+          {
+            "topic": "Lifting and hanging the TV on the bracket",
+            "reason": "No SOP step covers attaching, lifting or hanging the TV; the owner confirms whether HI-04 includes the hang (C-HI04-01). The page does not claim it.",
+            "reviewer": "Owner"
+          }
+        ],
+        "flags": [
+          {
+            "text": "Whether low-voltage cable runs need a permit or registration in each municipality is unknown (04 HI-04 permit and license flags).",
+            "reviewer": "Legal-compliance reviewer; municipal licensing office"
+          }
+        ],
+        "review": {
+          "decision": "OWN-DEC-180",
+          "task": "TSK-0132",
+          "reviewedOn": "2026-10-22"
+        }
       },
+      "schedulingMode": "standard",
       "intake": {
         "guideInputs": [
           "TV/mount models and weight",
@@ -598,11 +1641,84 @@
         "en": "Door Hardware & Smart Locks",
         "es": "Herrajes de puertas y cerraduras inteligentes"
       },
-      "publicStatus": "draft",
-      "schedulingMode": "standard",
+      "publicStatus": "published",
       "content": {
-        "description": null
+        "description": "We adjust misaligned deadbolts and strike plates, and set up compatible smart keyless locks, with you creating and keeping control of every code and app account.",
+        "included": [
+          "Adjusting a misaligned deadbolt and strike plate so the door latches and locks",
+          "Setting up a compatible smart keyless lock, with you or someone you authorize pairing it to your own phone and account",
+          "A final check with the door closed: the key, the thumb-turn and, where set up, the keypad and app"
+        ],
+        "excluded": [
+          "Standard lockset, deadbolt and handle replacement",
+          "Drilling new or enlarged holes in the door",
+          "Mortise locks, re-keying and key cutting",
+          "Planing or rehanging doors, and frame repair",
+          "Hardwired access control, and hardware for fire doors or exit doors"
+        ],
+        "preparation": [
+          "Have the compatible lock on site.",
+          "Be there, or have someone you authorize there, with your own phone and account.",
+          "Set up a Wi-Fi bridge if your lock model needs one.",
+          "Have all existing keys ready.",
+          "Decide what should happen to the old hardware."
+        ],
+        "faqs": [
+          {
+            "question": "Who sets the codes?",
+            "answer": "You do. You create and keep control of every code and app account for your lock."
+          },
+          {
+            "question": "Do I need to be home?",
+            "answer": "Yes. You, or someone you authorize, need to be there with your own phone and account to set up a smart lock."
+          },
+          {
+            "question": "Will you check the door before you leave?",
+            "answer": "Yes. With the door closed, we check that it latches and locks and that the deadbolt moves smoothly."
+          },
+          {
+            "question": "Do you re-key locks?",
+            "answer": "No. Re-keying and key cutting are not part of this service."
+          }
+        ],
+        "care": {
+          "lines": [
+            "You keep control of every code and app account for your lock."
+          ],
+          "product": [
+            {
+              "key": "lock.battery",
+              "topic": "Batteries, codes and app updates",
+              "text": "For battery changes, code changes and app updates, follow the manufacturer's guidance for your lock."
+            }
+          ],
+          "withheld": [
+            {
+              "topic": "Emergency and manual operation, and what to do if the lock or its battery fails",
+              "reason": "Life safety and exit: emergency and manual operation is verified by the worker per the lock manufacturer, and the contingency when a lock fails is an open owner question (C-HI05-02).",
+              "reviewer": "Qualified safety professional; owner"
+            }
+          ]
+        },
+        "related": [],
+        "withheldContent": [],
+        "flags": [
+          {
+            "text": "No SOP step removes the old lock mechanism or decides the old keys and hardware (C-HI05-07), although smart-lock set-up usually replaces the old lock.",
+            "reviewer": "Owner"
+          },
+          {
+            "text": "Standard lockset replacement is priced but not bookable until an SOP option is approved (C-HI05-V01).",
+            "reviewer": "Owner"
+          }
+        ],
+        "review": {
+          "decision": "OWN-DEC-180",
+          "task": "TSK-0132",
+          "reviewedOn": "2026-10-22"
+        }
       },
+      "schedulingMode": "standard",
       "intake": {
         "guideInputs": [
           "Door/lock model",
@@ -636,11 +1752,81 @@
         "en": "Gutter Maintenance & Leaf Protection",
         "es": "Mantenimiento de canaletas y protección contra hojas"
       },
-      "publicStatus": "draft",
-      "schedulingMode": "standard",
+      "publicStatus": "published",
       "content": {
-        "description": null
+        "description": "We clean gutters and flush downspouts, re-pitch sagging sections, reseal leaking corners and end caps, and install aluminum mesh gutter guards, working from ladders.",
+        "included": [
+          "Clearing gutters by hand and flushing the downspouts",
+          "Re-pitching sagging sections and resealing leaking corners and end caps",
+          "Sizing and fastening aluminum micro-mesh guard screens"
+        ],
+        "excluded": [
+          "Second-story gutters",
+          "Fascia, soffit and roof repairs",
+          "Gutter replacement, seamless gutters and underground drain work",
+          "Stainless-steel mesh guards"
+        ],
+        "preparation": [
+          "Give us access to all sides of the house.",
+          "Move vehicles and other items from beneath the eaves.",
+          "Keep pets indoors, and keep children and pets away from the work area.",
+          "Make sure we can use an outdoor water spigot.",
+          "Tell us about known leaks, sagging sections and underground drains."
+        ],
+        "faqs": [
+          {
+            "question": "Do you work on two-story homes?",
+            "answer": "Second-story gutters are not part of this service. We use ladders only and do no roof-edge work."
+          },
+          {
+            "question": "Do you install gutter guards?",
+            "answer": "Yes, aluminum mesh guard screens. We don't install roof-edge gutter guards."
+          },
+          {
+            "question": "Will guards keep out all debris?",
+            "answer": "We don't promise that. Fine debris, such as shingle grit and pine needles, may still need clearing from time to time."
+          },
+          {
+            "question": "Can you replace damaged fascia boards?",
+            "answer": "No. Fascia, soffit and roof repairs are not part of this service."
+          }
+        ],
+        "care": {
+          "lines": [],
+          "product": [
+            {
+              "key": "guards.care",
+              "topic": "Care of the gutter guards",
+              "text": "For care of the gutter guards, follow the manufacturer's guidance for the guards installed."
+            }
+          ],
+          "withheld": [
+            {
+              "topic": "Checking or clearing the gutters yourself after the work",
+              "reason": "Ladder and fall safety: the height and access policy is pending qualified review (02 G-005; X-12); no customer ladder instruction is given.",
+              "reviewer": "Qualified safety professional"
+            }
+          ]
+        },
+        "related": [],
+        "withheldContent": [],
+        "flags": [
+          {
+            "text": "Which guard installations count as the referred-out \"roof-edge gutter guards\" needs the owner's confirmation; the page offers the SOP's mesh screens fastened to the gutter.",
+            "reviewer": "Owner"
+          },
+          {
+            "text": "The SOP preparation list asks for roof-warranty information before guard installation; that customer wording needs attorney review and is not shown.",
+            "reviewer": "Attorney licensed in KY/IN"
+          }
+        ],
+        "review": {
+          "decision": "OWN-DEC-180",
+          "task": "TSK-0132",
+          "reviewedOn": "2026-10-22"
+        }
       },
+      "schedulingMode": "standard",
       "intake": {
         "guideInputs": [
           "Height/length",
@@ -676,11 +1862,87 @@
         "en": "Attic Insulation",
         "es": "Aislamiento de ático"
       },
-      "publicStatus": "draft",
-      "schedulingMode": "standard",
+      "publicStatus": "published",
       "content": {
-        "description": null
+        "description": "We install blown-in fiberglass or cellulose insulation in your attic, to the coverage and depth in your estimate, with ventilation baffles at the soffits. We look at the attic in person before your estimate.",
+        "included": [
+          "An in-person look at the attic before your estimate",
+          "Protecting the floor under the attic hatch",
+          "Installing ventilation baffles at the soffits",
+          "Blowing loose-fill fiberglass or cellulose insulation to the coverage and depth in your estimate"
+        ],
+        "excluded": [
+          "Removing existing insulation",
+          "Air sealing and sealing wire holes",
+          "Roof, rafter and ventilation changes",
+          "Mold and pest remediation",
+          "Wall insulation and hatch replacement"
+        ],
+        "preparation": [
+          "Clear a path to the attic hatch and the space beneath it.",
+          "Plan for occupants, children and pets to stay away from the work area.",
+          "Tell us about any roof leaks, pests, attic wiring and existing insulation you know of."
+        ],
+        "faqs": [
+          {
+            "question": "Will new insulation lower my energy bills?",
+            "answer": "We don't make energy-saving claims. We install insulation to the coverage and depth written in your estimate."
+          },
+          {
+            "question": "Do you need to see the attic first?",
+            "answer": "Yes. We look at the attic in person before your estimate."
+          },
+          {
+            "question": "What about recessed lights in the attic?",
+            "answer": "We don't do fixture boxing. Tell us about any recessed lights when you request an estimate."
+          },
+          {
+            "question": "Will the work meet a particular code or R-value?",
+            "answer": "We don't state code compliance or an R-value standard. The coverage and depth are written in your estimate."
+          }
+        ],
+        "care": {
+          "lines": [],
+          "product": [
+            {
+              "key": "insulation.care",
+              "topic": "Care of the insulation",
+              "text": "For care of the insulation, follow the manufacturer's guidance for the product installed."
+            }
+          ],
+          "withheld": [
+            {
+              "topic": "Going into the attic after the work, and anything near light fixtures, wiring or the hatch",
+              "reason": "Electrical and fire (attic wiring, fixture heat) and fall-through risk; the fixture-protection step is on hold for a licensed electrician (HI-07.SAF; C-HI07-03).",
+              "reviewer": "Licensed electrician; local building official; qualified safety professional"
+            }
+          ]
+        },
+        "related": [],
+        "withheldContent": [
+          {
+            "topic": "Protection around recessed light fixtures",
+            "reason": "The SOP step is on hold until a licensed electrician approves the method (C-HI07-03); fixture boxing is referred out.",
+            "reviewer": "Licensed electrician; local building official"
+          }
+        ],
+        "flags": [
+          {
+            "text": "Whether the hatch room is wrapped in plastic as the agreement says is an owner decision (C-HI07-08).",
+            "reviewer": "Owner"
+          },
+          {
+            "text": "Hatch insulation and weatherstripping restoration has no SOP step (04 HI-07 quality checklist).",
+            "reviewer": "Owner"
+          }
+        ],
+        "review": {
+          "decision": "OWN-DEC-180",
+          "task": "TSK-0132",
+          "reviewedOn": "2026-10-22"
+        }
       },
+      "schedulingMode": "standard",
       "intake": {
         "guideInputs": [
           "Area/access",
@@ -718,11 +1980,71 @@
         "en": "Closet & Shelving Installation",
         "es": "Instalación de clósets y estanterías"
       },
-      "publicStatus": "draft",
-      "schedulingMode": "standard",
+      "publicStatus": "published",
       "content": {
-        "description": null
+        "description": "We install closet and shelving track systems: wire track systems on drywall with toggle anchors, or tracks and shelf standards screwed into wood studs, fastened as the system and anchor manufacturers instruct.",
+        "included": [
+          "Wire track systems fastened into drywall with toggle anchors",
+          "Main support tracks and shelf standards screwed into wood studs",
+          "Track kits you supply that these methods cover, after we check that the kit is complete"
+        ],
+        "excluded": [
+          "Closet layout design",
+          "Wooden or custom shelving",
+          "Metal-stud, plaster, masonry and tile walls",
+          "Load testing",
+          "Removing old shelving, patching or painting old holes, and assembling free-standing units",
+          "Moving closet lights or outlets"
+        ],
+        "preparation": [
+          "Empty the closet of clothes, boxes and personal items before we arrive.",
+          "Have your shelving kit on site, complete, with its manufacturer instructions.",
+          "Tell us about closet lights, outlets or other obstructions."
+        ],
+        "faqs": [
+          {
+            "question": "How much weight will the shelves hold?",
+            "answer": "It depends on the shelving system and the anchors used. At handoff, we give you the load limits their manufacturers state."
+          },
+          {
+            "question": "Can you design my closet layout?",
+            "answer": "Layout design is not part of this service. We install to the layout and heights you choose."
+          },
+          {
+            "question": "Can I supply my own kit?",
+            "answer": "Yes, if it is a track system that our methods cover. Have it on site, complete, with its manufacturer instructions."
+          },
+          {
+            "question": "Do you install wooden closet systems?",
+            "answer": "Not under this service. It covers track systems."
+          }
+        ],
+        "care": {
+          "lines": [],
+          "product": [
+            {
+              "key": "shelving.load",
+              "topic": "Shelf and anchor load limits",
+              "text": "Keep shelf loads within the system's limits: follow the manufacturer's guidance for the system and anchors used."
+            }
+          ],
+          "withheld": []
+        },
+        "related": [],
+        "withheldContent": [],
+        "flags": [
+          {
+            "text": "No approved rule chooses between toggle anchors and stud fastening, or combines them (C-HI08-03).",
+            "reviewer": "Qualified safety professional"
+          }
+        ],
+        "review": {
+          "decision": "OWN-DEC-180",
+          "task": "TSK-0132",
+          "reviewedOn": "2026-10-22"
+        }
       },
+      "schedulingMode": "standard",
       "intake": {
         "guideInputs": [
           "Dimensions",
@@ -758,11 +2080,76 @@
         "en": "Trim & Architectural Molding",
         "es": "Molduras y acabados arquitectónicos"
       },
-      "publicStatus": "draft",
-      "schedulingMode": "standard",
+      "publicStatus": "published",
       "content": {
-        "description": null
+        "description": "We install crown molding, including on ceilings that dip or wave, and wainscoting box panels on flat walls, with nail holes filled and seams caulked so the trim is ready for painting.",
+        "included": [
+          "Crown molding: compound miter cuts, shims where the ceiling dips, nailing into the framing, caulking along the ceiling and filled nail holes",
+          "Wainscoting box panels: a layout grid, construction adhesive and pin nails, with the inside joints caulked",
+          "Paint preparation: setting nails, filling with wood putty and continuous edge caulking"
+        ],
+        "excluded": [
+          "Baseboards and door or window casings",
+          "Sanding",
+          "Final paint coats",
+          "Removing existing trim, stain or clear finishing, and wall repair beyond caulking"
+        ],
+        "preparation": [
+          "Move furniture and wall decor away from the walls we will work on.",
+          "Point out items to protect, and tell us about any noise or dust sensitivity.",
+          "Decide who will paint or stain the trim; final paint coats are not part of this service.",
+          "Keep children and pets away from the work area."
+        ],
+        "faqs": [
+          {
+            "question": "Is painting included?",
+            "answer": "No. We fill nail holes and caulk seams so the trim is ready for painting. Final paint coats are a separate painting service."
+          },
+          {
+            "question": "Do you install baseboards and casings?",
+            "answer": "Not under this service. It covers crown molding and wainscoting."
+          },
+          {
+            "question": "Can you work in an older home?",
+            "answer": "We don't take on paint-disturbing work in homes built before 1978."
+          },
+          {
+            "question": "Do you sand the trim?",
+            "answer": "No. Sanding is not part of this service."
+          }
+        ],
+        "care": {
+          "lines": [],
+          "product": [
+            {
+              "key": "trim.paintReady",
+              "topic": "When the trim can be painted",
+              "text": "Before painting the trim, follow the manufacturer's guidance for the caulk, putty and adhesive used."
+            }
+          ],
+          "withheld": []
+        },
+        "related": [
+          "SVC-PT-01"
+        ],
+        "withheldContent": [],
+        "flags": [
+          {
+            "text": "Whether wainscot panels need a fastener or framing rule beyond construction adhesive is open (C-HI09-V01).",
+            "reviewer": "Experienced finish carpenter; qualified safety professional"
+          },
+          {
+            "text": "Baseboards and casings are priced and named in the agreement, but no SOP step installs them (C-HI09-02).",
+            "reviewer": "Owner"
+          }
+        ],
+        "review": {
+          "decision": "OWN-DEC-180",
+          "task": "TSK-0132",
+          "reviewedOn": "2026-10-22"
+        }
       },
+      "schedulingMode": "standard",
       "intake": {
         "guideInputs": [
           "Rooms/lengths",
@@ -796,11 +2183,87 @@
         "en": "Fence Maintenance & Structural Repairs",
         "es": "Mantenimiento de cercas y reparaciones estructurales"
       },
-      "publicStatus": "draft",
-      "schedulingMode": "standard",
+      "publicStatus": "published",
       "content": {
-        "description": null
+        "description": "We repair existing wood fences on their current line: steadying a leaning post with a concrete collar, replacing broken rails, and re-squaring a sagging gate with an anti-sag cable kit.",
+        "included": [
+          "Digging around a leaning wood post, bracing it plumb and pouring a concrete collar",
+          "Replacing broken rails with new pressure-treated rails, brackets and exterior screws",
+          "Re-squaring a sagging gate with an anti-sag cable kit"
+        ],
+        "excluded": [
+          "Picket and post replacement",
+          "Gate hinge, latch and drop-rod replacement",
+          "Non-wood fences, new fence lines and full fence replacement",
+          "Staining or painting",
+          "Property-line surveys and boundary questions"
+        ],
+        "preparation": [
+          "Secure pets, and keep children and pets away from the work area, open holes and wet concrete.",
+          "Give us access to the yard and gate, and clear the fence line.",
+          "Tell us about private buried lines you know of, such as irrigation or landscape lighting.",
+          "If the fence is shared, let your neighbor know about the work."
+        ],
+        "faqs": [
+          {
+            "question": "Do you build new fences?",
+            "answer": "No. We repair existing wood fences on their current line. New fence lines and full replacement are not part of this service."
+          },
+          {
+            "question": "Can I use the gate right after the repair?",
+            "answer": "Leaning on a repaired post or using a re-squared gate waits for the concrete to cure. The cure time comes from the concrete manufacturer's guidance, and we tell you before we leave."
+          },
+          {
+            "question": "Can you tell me where my property line is?",
+            "answer": "No. We work only on the existing fence line and don't decide property-line questions."
+          },
+          {
+            "question": "Do you work on vinyl, chain-link or metal fences?",
+            "answer": "Not under this service. It covers wood fences."
+          }
+        ],
+        "care": {
+          "lines": [],
+          "product": [
+            {
+              "key": "concrete.cure",
+              "topic": "Concrete cure before use",
+              "text": "Before leaning on a repaired post or using a re-squared gate, follow the manufacturer's guidance for the concrete used."
+            }
+          ],
+          "withheld": [
+            {
+              "topic": "Temporary braces left in place during the cure, and when they come off",
+              "reason": "Structural and site safety: the bracing sequence and the protection of open holes and braces are pending qualified review (C-HI10-05; X-11); who removes the braces is an owner decision.",
+              "reviewer": "Qualified safety professional; owner"
+            }
+          ]
+        },
+        "related": [
+          "SVC-PT-02"
+        ],
+        "withheldContent": [],
+        "flags": [
+          {
+            "text": "The service name says \"Structural Repairs\" while HandyHub does no structural work (FACT-SVC-EXCLUDED-SCOPE); a plain name needs the owner's approval (FACT-SVC-NAMES).",
+            "reviewer": "Owner; Attorney licensed in KY/IN"
+          },
+          {
+            "text": "Who requests the underground utility locate before digging is not decided; the SOP utility-locate hold stays in force.",
+            "reviewer": "Owner"
+          },
+          {
+            "text": "Gate work on a fence that serves as a pool barrier may carry municipal requirements (OPEN QUESTION).",
+            "reviewer": "Local building official"
+          }
+        ],
+        "review": {
+          "decision": "OWN-DEC-180",
+          "task": "TSK-0132",
+          "reviewedOn": "2026-10-22"
+        }
       },
+      "schedulingMode": "standard",
       "intake": {
         "guideInputs": [
           "Material",
@@ -834,11 +2297,84 @@
         "en": "Deck Maintenance & Board Repairs",
         "es": "Mantenimiento de terrazas y reparación de tablas"
       },
-      "publicStatus": "draft",
-      "schedulingMode": "standard",
+      "publicStatus": "published",
       "content": {
-        "description": null
+        "description": "We replace rotted or cupped deck boards within your estimate. If we find framing, ledger or foundation problems, the work stops so we can talk with you about them.",
+        "included": [
+          "Removing a rotted or cupped board, checking the tops of the exposed joists, and fitting and fastening a new pressure-treated board",
+          "Photographing and telling you about any decay, movement or other hidden condition we find"
+        ],
+        "excluded": [
+          "Stair treads and stair repairs",
+          "Railing, baluster and stair-stringer replacement",
+          "Ledger, joist-hanger and footing work, and new decks",
+          "Composite or cedar boards",
+          "Staining"
+        ],
+        "preparation": [
+          "Clear furniture, grills and planters from the work area.",
+          "Keep everyone, pets included, off the part of the deck being worked on.",
+          "Give us access under the deck.",
+          "Tell us about any deck-lighting wiring."
+        ],
+        "faqs": [
+          {
+            "question": "Will you inspect the structure of my deck?",
+            "answer": "No. We don't do structural evaluations. If we see decay, movement or other concerns while we work, we photograph them and tell you what we observed."
+          },
+          {
+            "question": "What happens if the framing is damaged?",
+            "answer": "The work stops, and we explain what we found. No added work or price changes without your agreement."
+          },
+          {
+            "question": "Do you replace stair treads?",
+            "answer": "Not under this service. Stair treads and stair repairs are not included."
+          },
+          {
+            "question": "When can new boards be stained?",
+            "answer": "Follow the manufacturer's guidance for the lumber and the stain. Staining is a separate service."
+          }
+        ],
+        "care": {
+          "lines": [],
+          "product": [
+            {
+              "key": "lumber.stain",
+              "topic": "When new boards can be stained",
+              "text": "Before staining new boards, follow the manufacturer's guidance for the lumber and the stain."
+            }
+          ],
+          "withheld": [
+            {
+              "topic": "Use of handrails and railings after the work, and any statement that the deck or a railing is safe",
+              "reason": "Structural: guardrail loads and the through-bolt connection are under structural review (HI-11.SAF); concerns are told only as observations with a referral.",
+              "reviewer": "Structural engineer or building official"
+            }
+          ]
+        },
+        "related": [
+          "SVC-PT-02"
+        ],
+        "withheldContent": [
+          {
+            "topic": "Tightening a loose handrail post with a through-bolt (SOP Option B)",
+            "reason": "The connection method and guardrail loads are under structural review (SOP section 12 flags; register B row 49); not offered on the page until validated.",
+            "reviewer": "Structural engineer or building official"
+          }
+        ],
+        "flags": [
+          {
+            "text": "Stair work is priced and named in the agreement, but no SOP step covers it (C-HI11-04).",
+            "reviewer": "Owner"
+          }
+        ],
+        "review": {
+          "decision": "OWN-DEC-180",
+          "task": "TSK-0132",
+          "reviewedOn": "2026-10-22"
+        }
       },
+      "schedulingMode": "standard",
       "intake": {
         "guideInputs": [
           "Size/height",
@@ -872,11 +2408,95 @@
         "en": "Residential Interior Painting",
         "es": "Pintura residencial de interiores"
       },
-      "publicStatus": "draft",
-      "schedulingMode": "standard",
+      "publicStatus": "published",
       "content": {
-        "description": null
+        "description": "We paint the interior walls in your estimate: protecting the room, repairing minor wall defects, spot-priming the repairs and applying the paint, color and sheen you approve.",
+        "included": [
+          "Moving light furniture, covering heavy furniture and protecting the floors",
+          "Removing cover plates and masking the trim",
+          "Filling nail holes, dents and cracks, then sanding and spot-priming the repairs",
+          "Cutting in along the ceiling and trim, and rolling the walls with the product, color and sheen you approve",
+          "Removing the tape, refitting the cover plates, a final check with touch-ups, and putting the room back in order"
+        ],
+        "excluded": [
+          "Ceilings, trim, baseboards, doors and closet interiors",
+          "A full primer coat over the walls",
+          "Spray application",
+          "Wallpaper removal and larger drywall repairs",
+          "Exterior surfaces"
+        ],
+        "preparation": [
+          "Move pianos, home-theater equipment and art collections before we arrive.",
+          "Choose the color, sheen and product, and confirm them with us before the visit is scheduled.",
+          "Remove wall hangings, valuables and small items from the work area.",
+          "Keep children and pets out of the work area during the work and until the paint label allows the room to be used again.",
+          "If you are supplying the paint, have it on site with its label."
+        ],
+        "faqs": [
+          {
+            "question": "How many coats do you apply?",
+            "answer": "The number of coats is written in your estimate."
+          },
+          {
+            "question": "Can I change the color after painting starts?",
+            "answer": "A color change after application is a change to the project. No added work or price changes without your agreement."
+          },
+          {
+            "question": "Do you paint ceilings and trim?",
+            "answer": "Not under this service. It covers interior walls."
+          },
+          {
+            "question": "Do you paint in older homes?",
+            "answer": "We don't take on paint-disturbing work in homes built before 1978."
+          },
+          {
+            "question": "When can we use the room again?",
+            "answer": "Follow the manufacturer's guidance on the paint label for ventilation and when the room can be used again."
+          }
+        ],
+        "care": {
+          "lines": [],
+          "product": [
+            {
+              "key": "paint.dry",
+              "topic": "Drying, recoat and cure times",
+              "text": "Drying, recoat and cure times depend on the paint used: follow the manufacturer's guidance for it."
+            },
+            {
+              "key": "paint.reoccupancy",
+              "topic": "Ventilation and using the room again",
+              "text": "For ventilation and when the room can be used again, follow the manufacturer's guidance on the paint label."
+            },
+            {
+              "key": "paint.leftover",
+              "topic": "Leftover paint",
+              "text": "For storing leftover paint, follow the manufacturer's guidance on the label."
+            }
+          ],
+          "withheld": []
+        },
+        "related": [
+          "SVC-DW-01",
+          "SVC-HI-09"
+        ],
+        "withheldContent": [],
+        "flags": [
+          {
+            "text": "Ceilings, trim, doors and closet interiors are priced but not covered by SOP steps (C-PT01-06); the full primer coat is an owner decision (C-PT01-04).",
+            "reviewer": "Owner"
+          },
+          {
+            "text": "The ventilation method for occupied rooms is pending qualified review (PT-01.SAF); the page refers to the product label only.",
+            "reviewer": "Qualified safety professional"
+          }
+        ],
+        "review": {
+          "decision": "OWN-DEC-180",
+          "task": "TSK-0132",
+          "reviewedOn": "2026-10-22"
+        }
       },
+      "schedulingMode": "standard",
       "intake": {
         "guideInputs": [
           "Rooms/surfaces",
@@ -912,11 +2532,92 @@
         "en": "Deck & Fence Staining/Sealing",
         "es": "Tinte y sellado de terrazas y cercas"
       },
-      "publicStatus": "draft",
-      "schedulingMode": "standard",
+      "publicStatus": "published",
       "content": {
-        "description": null
+        "description": "We strip, brighten and stain structurally sound wood decks with the oil-based stain you approve: floorboards, edges, posts and railings, scheduled around the weather and the wood moisture the product allows.",
+        "included": [
+          "Masking nearby siding, brick and low windows, and wetting nearby plants before the work",
+          "Stripping weathered wood and washing it at low pressure",
+          "Brightening the wood, rinsing it and checking that it is dry enough before staining",
+          "Applying oil-based stain to floorboards, edges, posts and railings, with back-brushing",
+          "Setting out drying signs and giving you the keep-off instructions from the product's guidance"
+        ],
+        "excluded": [
+          "Fence staining, stairs and steps, and under-deck staining",
+          "Solid acrylic stain and sealer-only work",
+          "Sanding",
+          "Repairs to rot, loose boards, warping or ledgers",
+          "Composite decking and painted surfaces"
+        ],
+        "preparation": [
+          "Remove furniture, planters and grills from the deck.",
+          "Keep children and pets away during the work and while the stain dries.",
+          "Close nearby windows and doors, and move vehicles away from the work area.",
+          "Make sure we can use an outdoor water spigot.",
+          "Choose the stain product and color before scheduling, and check whether your HOA must approve the color."
+        ],
+        "faqs": [
+          {
+            "question": "What if it rains?",
+            "answer": "The schedule depends on the weather and on the wood being dry enough for the product. If the weather does not allow the work, we reschedule and let you know."
+          },
+          {
+            "question": "How long before we can walk on the deck?",
+            "answer": "Keep-off times come from the stain manufacturer's guidance for the product used. We set out drying signs and give you those times before we leave."
+          },
+          {
+            "question": "Do you repair boards before staining?",
+            "answer": "Repairs come first and are a separate service. See Deck Maintenance & Board Repairs."
+          },
+          {
+            "question": "Do you stain fences?",
+            "answer": "Fence staining is not part of this service. It covers decks."
+          }
+        ],
+        "care": {
+          "lines": [],
+          "product": [
+            {
+              "key": "stain.keepOff",
+              "topic": "Keep-off and drying times",
+              "text": "For keep-off and drying times, follow the manufacturer's guidance for the stain used."
+            },
+            {
+              "key": "stain.recoat",
+              "topic": "Recoat and reapplication",
+              "text": "For recoat and reapplication timing, follow the manufacturer's guidance for the stain used."
+            }
+          ],
+          "withheld": [
+            {
+              "topic": "Plant, pet and skin contact after chemical stripping and brightening",
+              "reason": "Hazardous materials: the sodium hydroxide stripper and oxalic acid brightener need SDS-based qualified review before any customer instruction (C-PT02-01; 29 section 8.2).",
+              "reviewer": "Qualified safety professional (SDS review)"
+            }
+          ]
+        },
+        "related": [
+          "SVC-HI-10",
+          "SVC-HI-11"
+        ],
+        "withheldContent": [],
+        "flags": [
+          {
+            "text": "The service name includes fences, but no SOP step stains fences; only the owner can withdraw them (C-PT02-07). The neighbor's side needs attorney review.",
+            "reviewer": "Owner; Attorney licensed in KY/IN"
+          },
+          {
+            "text": "The SOP's moisture range and keep-off times are unsourced; one product-sourced set is needed (C-PT02-08, C-PT02-V01).",
+            "reviewer": "Owner; estimator"
+          }
+        ],
+        "review": {
+          "decision": "OWN-DEC-180",
+          "task": "TSK-0132",
+          "reviewedOn": "2026-10-22"
+        }
       },
+      "schedulingMode": "standard",
       "intake": {
         "guideInputs": [
           "Area/material",
@@ -952,11 +2653,90 @@
         "en": "Brick Limewashing & Masonry Coatings",
         "es": "Encalado de ladrillo y recubrimientos de mampostería"
       },
-      "publicStatus": "draft",
-      "schedulingMode": "standard",
+      "publicStatus": "published",
       "content": {
-        "description": null
+        "description": "We clean and mask exterior brick, then apply either a limewash finish, brushed on and distressed, or an elastomeric masonry coating, sprayed and back-rolled, using a product system matched to the masonry.",
+        "included": [
+          "Cleaning the brick before coating",
+          "Masking windows, exterior light fixtures, entry doors and utility meters",
+          "Limewash: brushed onto pre-wetted brick and distressed to the look you choose",
+          "Elastomeric coating: sprayed on and back-rolled",
+          "Removing the masking, cleaning overspray from glass and a final check of the ground"
+        ],
+        "excluded": [
+          "Tuckpointing, mortar repair and structural masonry repair",
+          "Fixing moisture sources such as gutters, grading or plumbing",
+          "Removing existing paint or sealers, and interior brick",
+          "Partial areas such as a chimney or an accent wall",
+          "Commercial buildings"
+        ],
+        "preparation": [
+          "Choose the option, the color or a sample before scheduling.",
+          "Keep vehicles away from the building while we spray.",
+          "Close windows and doors, and keep children and pets indoors during the work.",
+          "Move outdoor furniture and other items away from the walls.",
+          "Make sure we can use water and power on site.",
+          "Check whether your HOA or a historic district must approve the work."
+        ],
+        "faqs": [
+          {
+            "question": "What is the difference between limewash and an elastomeric coating?",
+            "answer": "Limewash is brushed on and distressed to the look you choose. An elastomeric coating is sprayed on and back-rolled. Your estimate names the option and the product."
+          },
+          {
+            "question": "Will the coating waterproof my brick or seal cracks?",
+            "answer": "We don't make waterproofing or crack-sealing claims. What a coating does depends on the product, as its manufacturer describes it."
+          },
+          {
+            "question": "Do you repair mortar?",
+            "answer": "No. Tuckpointing, mortar repair and structural masonry repair are not part of this service."
+          },
+          {
+            "question": "Can you coat just a chimney or one wall?",
+            "answer": "Partial areas such as a chimney or an accent wall are not part of this service."
+          }
+        ],
+        "care": {
+          "lines": [],
+          "product": [
+            {
+              "key": "coating.cure",
+              "topic": "Cure time and when the wall can get wet",
+              "text": "For cure time and when the wall can get wet, follow the manufacturer's guidance for the product used."
+            },
+            {
+              "key": "coating.care",
+              "topic": "Cleaning and reapplication",
+              "text": "For cleaning and reapplication, follow the manufacturer's guidance for the product used."
+            }
+          ],
+          "withheld": []
+        },
+        "related": [],
+        "withheldContent": [
+          {
+            "topic": "Masking the roofline, soffits, fascia and gutters",
+            "reason": "Held until an access plan is approved (C-PT03-04); HandyHub does no roof-edge work.",
+            "reviewer": "Qualified safety professional"
+          }
+        ],
+        "flags": [
+          {
+            "text": "The test section with client sign-off that the agreement promises has no SOP step (C-PT03-07).",
+            "reviewer": "Owner"
+          },
+          {
+            "text": "Protection of landscaping, vehicles and neighboring property before spraying, and a wind limit, are open (C-PT03-08).",
+            "reviewer": "Owner; qualified safety professional"
+          }
+        ],
+        "review": {
+          "decision": "OWN-DEC-180",
+          "task": "TSK-0132",
+          "reviewedOn": "2026-10-22"
+        }
       },
+      "schedulingMode": "standard",
       "intake": {
         "guideInputs": [
           "Masonry/area",
@@ -990,11 +2770,80 @@
         "en": "Wallpaper Removal & Surface Restoration",
         "es": "Retiro de papel tapiz y restauración de superficies"
       },
-      "publicStatus": "draft",
-      "schedulingMode": "standard",
+      "publicStatus": "published",
       "content": {
-        "description": null
+        "description": "We remove wallpaper and its adhesive after testing the removal method, wash off the residue, and skim-repair minor damage so the walls are ready for primer.",
+        "included": [
+          "Protecting floors and baseboards with plastic sheeting",
+          "Testing the removal method, then scoring where appropriate, softening with an enzyme solution or steam, and lifting the paper",
+          "Removing leftover adhesive and washing the walls with clean water",
+          "Sealing minor tears in the drywall paper, skim-coating rough spots, dents and seams, and sanding"
+        ],
+        "excluded": [
+          "Primer and paint",
+          "Repairs beyond minor tears, and adhesive that enzyme solution and steam do not loosen",
+          "Ceiling paper and borders along the ceiling",
+          "Plaster walls, wallpaper hanging, fixture removal and furniture moving"
+        ],
+        "preparation": [
+          "Move furniture, wall hangings and window treatments away from the walls.",
+          "Keep children and pets away from steam, chemicals and outlets during the work.",
+          "Make sure running water is available and the room can be ventilated.",
+          "Allow access for more than one visit, since repairs need drying time.",
+          "Tell us the year your home was built, if you know it, and about any known leaks or past mold."
+        ],
+        "faqs": [
+          {
+            "question": "Will removing wallpaper damage my walls?",
+            "answer": "Some minor tearing of the drywall paper can happen. We seal minor tears and skim-coat rough spots. No added work or price changes without your agreement."
+          },
+          {
+            "question": "Do you paint after removal?",
+            "answer": "No. Primer and paint are separate. See Residential Interior Painting."
+          },
+          {
+            "question": "Do you remove wallpaper in older homes?",
+            "answer": "We don't take on paint-disturbing work in homes built before 1978."
+          },
+          {
+            "question": "What if the glue won't come off?",
+            "answer": "If the adhesive doesn't release with enzyme solution and steam, we stop and talk with you before trying anything else."
+          }
+        ],
+        "care": {
+          "lines": [],
+          "product": [
+            {
+              "key": "compound.dry",
+              "topic": "When the walls can be primed or painted",
+              "text": "Before priming or painting, follow the manufacturer's guidance for the joint compound and sealer used."
+            }
+          ],
+          "withheld": [
+            {
+              "topic": "Using outlets and switches in the work area after removal",
+              "reason": "Electrical: the outlet isolation steps are held pending licensed-electrician review (C-PT04-03).",
+              "reviewer": "Licensed electrician"
+            }
+          ]
+        },
+        "related": [
+          "SVC-DW-01"
+        ],
+        "withheldContent": [],
+        "flags": [
+          {
+            "text": "The threshold between minor and wide tearing, and the finish level delivered, are owner decisions (C-PT04-05, C-PT04-06; X-26).",
+            "reviewer": "Owner"
+          }
+        ],
+        "review": {
+          "decision": "OWN-DEC-180",
+          "task": "TSK-0132",
+          "reviewedOn": "2026-10-22"
+        }
       },
+      "schedulingMode": "standard",
       "intake": {
         "guideInputs": [
           "Area/layers/type",

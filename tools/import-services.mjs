@@ -5,9 +5,12 @@
 // - Reads the graph through tools/kg.mjs (`index`, then kg/_index.json), never kg/ file by file.
 // - Takes only what the nodes state: stable ID and code, category, slug, catalog name (the service title), canonical
 //   name (kept as an alias), the request topics (guide 6.2 extra inputs and the spec intake), the linked SOP, whether
-//   the home-age limits apply, and the node's source. No description, price or claim is invented: no customer
-//   description is approved yet (OQ-SERVICE-DESCRIPTIONS), so the public description stays null and every service
-//   stays a draft until the owner approves its content.
+//   the home-age limits apply, and the node's source. No description, price or claim is invented here.
+// - Page content and care notes (TSK-0132, OWN-DEC-180): the reviewed content of
+//   packages/domain/src/service-content.ts (description, included and excluded work, preparation, FAQs, care notes,
+//   related services, the withheld content and the flags list) with the review stamp. A service with reviewed content
+//   is `published`: OWN-DEC-180 is its approval, so syncServices() publishes the version (HH-CUS-02). A service without
+//   it keeps a null description and stays a draft. The corrections list is report data only and is not copied.
 // - Staff labels: English is the catalog name; Spanish comes from packages/i18n/src/catalogs/staff.es.json
 //   (`enum.service.<code>`, AI-translated per OWN-DEC-79). The tool also checks that staff.en.json carries the catalog
 //   name for every code, so the registry and the catalogs never disagree.
@@ -17,6 +20,7 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { SERVICE_CONTENT, SERVICE_CONTENT_REVIEW } from '../packages/domain/src/service-content.ts'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const OUT = join(ROOT, 'packages', 'db', 'seed', 'services.json')
@@ -55,6 +59,14 @@ function bulletAfter(body, label) {
   return line.slice(line.indexOf(':', label.length) + 1).trim()
 }
 
+/** The public status and versioned page content of a service: its reviewed content, or a draft with none. */
+export function pageContent(id, reviewed = SERVICE_CONTENT[id]) {
+  if (!reviewed) return { publicStatus: 'draft', content: { description: null } }
+  const content = { ...reviewed }
+  delete content.corrections
+  return { publicStatus: 'published', content: { ...content, review: { ...SERVICE_CONTENT_REVIEW } } }
+}
+
 /** One registry entry from one SVC node; throws when the node lacks a field the registry needs. */
 export function serviceFromNode(node, labels) {
   const fail = (what) => {
@@ -79,9 +91,8 @@ export function serviceFromNode(node, labels) {
     name: h.name,
     aliases: h.canonical === h.name ? [] : [h.canonical],
     staffLabel: { en, es },
-    publicStatus: 'draft',
+    ...pageContent(node.id),
     schedulingMode: 'standard',
-    content: { description: null },
     intake: { guideInputs: splitList(guideInputs), specIntake: splitList(specIntake) },
     estimateRoute: 'online_or_site_visit',
     sopId: sop[0],

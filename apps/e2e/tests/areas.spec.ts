@@ -32,12 +32,6 @@ const registry = (
     services: Seed[]
   }
 ).services
-const fixture = readFileSync(new URL('../fixtures/services.mjs', import.meta.url), 'utf8')
-const staged = new Set(
-  [...(/E2E_STAGED_SERVICES = \[([^\]]*)\]/.exec(fixture)?.[1] ?? '').matchAll(/'(SVC-[A-Z]{2}-\d{2})'/g)].map(
-    (m) => m[1],
-  ),
-)
 
 async function axe(page: Page) {
   const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
@@ -149,7 +143,9 @@ test.describe('county URLs and the sitemap (TSK-0023, T08, HH-CUS-04, HH-CUS-05)
     expect(paths.some((p) => /^\/(request|staff|portal|api|access|project|account|404|500)(\/|$)/.test(p))).toBe(false)
     const services = paths.filter((p) => p.startsWith('/services/'))
     if (databaseUrl) {
-      const shown = registry.filter((s) => staged.has(s.id)).map((s) => `/services/${s.slug}`)
+      // TSK-0132: every quality-reviewed service is published (OWN-DEC-180), so the sitemap lists all 26 pages.
+      const shown = registry.map((s) => `/services/${s.slug}`)
+      expect(shown).toHaveLength(26)
       expect(new Set(services)).toEqual(new Set(shown))
     } else expect(services).toEqual([])
     for (const p of ['/request', '/staff/', '/portal/'])
