@@ -6,6 +6,7 @@
 // screen's memory and is dropped when the time is up, the tab is hidden or the screen closes). Staff text is English
 // or Spanish (staff catalogs); the server decides every read and write.
 import { SERVICE_AREA } from '@handyhub/domain/areas'
+import { ZONE_CHOICES, zoneFamily } from '@handyhub/domain/zones'
 import { LABEL_FAMILIES, type StaffKey, type StaffLocale } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type MouseEvent, type ReactNode } from 'react'
@@ -31,7 +32,27 @@ export type PropertyDetailView = {
   address: Address
   addressVersion: number
   propertyType: string
-  timeZone: string
+  /** TSK-0123: null while the zone is unknown (flagged for verification, never assumed). */
+  timeZone: string | null
+  zone: {
+    zone: string | null
+    status: 'unknown' | 'derived' | 'verified'
+    basis: string
+    family: string | null
+    counties: string[]
+    version: number
+  }
+  zoneHistory: {
+    version: number
+    zone: string | null
+    status: string
+    basis: string
+    counties: string[]
+    previousZone: string | null
+    reason: string | null
+    by: StaffRef | null
+    at: string
+  }[]
   coverage: string
   /** TSK-0127: why the property has its coverage outcome (null before reasons were recorded). */
   coverageReason?: string | null
@@ -90,7 +111,13 @@ export type PropertyDetailView = {
     }[]
   }
   history: { at: string; detail: string; action: string; source: string; by: StaffRef | null; reason: string }[]
-  actions: { edit: boolean; setAccessCodes: boolean; revealAccessCodes: boolean; verifyCounty?: boolean }
+  actions: {
+    edit: boolean
+    setAccessCodes: boolean
+    revealAccessCodes: boolean
+    verifyCounty?: boolean
+    verifyTimeZone: boolean
+  }
 }
 
 export type Revealed = {
@@ -131,6 +158,8 @@ function writeError(t: T, error: ApiErrorBody): string {
   if (codes.includes('ACCESS_CODE_UNREADABLE')) return t('property.codeUnreadable')
   if (codes.includes('DETAIL_NOT_RECORDED')) return t('property.detailNotRecorded')
   if (codes.includes('ADDRESS_VERSION_CHANGED')) return t('property.stale')
+  if (codes.includes('ZONE_NOT_SUPPORTED')) return t('zone.notSupported')
+  if (codes.includes('ZONE_COUNTY_MISMATCH')) return t('zone.countyMismatch')
   if (error.code === 'VALIDATION_FAILED') return t('customer.invalid')
   if (error.code === 'FORBIDDEN') return t('error.FORBIDDEN')
   if (error.code === 'RATE_LIMITED') return t('property.revealLimited')
@@ -264,12 +293,15 @@ export function PropertyRecord({
           {view.coverageReason ? ` · ${codeLabel(t, 'coverageReason', view.coverageReason)}` : ''}
         </dd>
         <dt>{t('property.timeZone')}</dt>
-        <dd>{view.timeZone}</dd>
+        <dd data-testid="property-zone">
+          <ZoneText t={t} zone={view.zone.zone} family={view.zone.family} />
+        </dd>
         <dt>{t('property.created')}</dt>
         <dd>{ctx.when(view.createdAt)}</dd>
       </dl>
       <AddressSection ctx={ctx} />
       <CountySection ctx={ctx} />
+      <TimeZoneSection ctx={ctx} />
       <Details ctx={ctx} />
       {view.accessCodes.visible ? <AccessCodes ctx={ctx} /> : null}
       <Customers ctx={ctx} />
@@ -615,6 +647,107 @@ function AddressSection({ ctx }: { ctx: Ctx }) {
       ) : (
         <p>{t('property.noFormerAddresses')}</p>
       )}
+    </Section>
+  )
+}
+
+/** A zone as staff read it: "America/Chicago (Central time)", or Unknown (OWN-DEC-159 item 6: the zone is always named). */
+export function ZoneText({ t, zone, family }: { t: T; zone: string | null; family: string | null }) {
+  if (!zone) return <StatusBadge tone="warning">{t('zone.unknown')}</StatusBadge>
+  return <>{t('zone.value', { zone, family: codeLabel(t, 'zoneFamily', family ?? '') })}</>
+}
+
+/**
+ * TSK-0123 (OWN-DEC-159): the property's zone, its state and what it rests on, the verification form (zone and the
+ * county of the verified address, with a reason) and the zone history.
+ */
+function TimeZoneSection({ ctx }: { ctx: Ctx }) {
+  const { t, view, when } = ctx
+  const ids = useId()
+  const [open, setOpen] = useState(false)
+  const [zone, setZone] = useState<string>(view.zone.zone ?? ZONE_CHOICES[0])
+  const [county, setCounty] = useState('')
+  const [reason, setReason] = useState('')
+  const form = useForm(ctx)
+  const z = view.zone
+  return (
+    <Section id="property-time-zone" title={t('zone.title')}>
+      <p data-testid="property-zone-state">
+        <ZoneText t={t} zone={z.zone} family={z.family} />{' '}
+        <StatusBadge tone={z.status === 'verified' ? 'success' : z.status === 'derived' ? 'info' : 'warning'}>
+          {codeLabel(t, 'zoneStatus', z.status)}
+        </StatusBadge>
+      </p>
+      <p className="staff-request__hint">
+        {codeLabel(t, 'zoneBasis', z.basis)}
+        {z.counties.length ? ` ${t('zone.counties', { counties: z.counties.join(', ') })}` : ''}
+      </p>
+      {z.status === 'unknown' ? <StateView kind="blocked" title={t('zone.unknownHint')} /> : null}
+      {view.actions.verifyTimeZone && !open ? (
+        <div className="hh-button-row">
+          <Button variant="secondary" onClick={() => setOpen(true)}>
+            {t('zone.verify')}
+          </Button>
+        </div>
+      ) : null}
+      {open ? (
+        <form
+          className="staff-request__form"
+          aria-label={t('zone.verify')}
+          onSubmit={(e) => {
+            e.preventDefault()
+            void form.run(
+              () =>
+                ctx.write(
+                  `/staff/properties/${view.id}/time-zone`,
+                  'PUT',
+                  { timeZone: zone, county, reason },
+                  { version: view.version },
+                ),
+              () => (setOpen(false), setReason(''), setCounty('')),
+            )
+          }}
+        >
+          <p className="staff-request__hint">{t('zone.verifyHint')}</p>
+          <div className="staff-queue__select">
+            <label htmlFor={`${ids}-zone`}>{t('zone.field')}</label>
+            <select id={`${ids}-zone`} value={zone} onChange={(e) => setZone(e.target.value)}>
+              {ZONE_CHOICES.map((c) => (
+                <option key={c} value={c}>
+                  {t('zone.value', { zone: c, family: codeLabel(t, 'zoneFamily', zoneFamily(c) ?? '') })}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Field
+            label={t('zone.county')}
+            hint={t('zone.countyHint', { state: view.address.state })}
+            value={county}
+            maxLength={60}
+            required
+            onChange={(e) => setCounty(e.target.value)}
+          />
+          <ReasonField t={t} value={reason} onChange={setReason} />
+          {form.error ? <StateView kind="error" title={form.error} /> : null}
+          <FormButtons t={t} pending={form.pending} onCancel={() => setOpen(false)} />
+        </form>
+      ) : null}
+      <h3 className="hh-h5">{t('zone.history')}</h3>
+      <ul className="staff-request__list" data-testid="property-zone-history">
+        {view.zoneHistory.map((h) => (
+          <li key={h.version}>
+            {t('zone.historyEntry', {
+              n: h.version,
+              zone: h.zone ?? t('zone.unknown'),
+              status: codeLabel(t, 'zoneStatus', h.status),
+              basis: codeLabel(t, 'zoneBasis', h.basis),
+              time: when(h.at),
+            })}
+            {h.previousZone ? ` ${t('zone.replaced', { zone: h.previousZone })}` : ''}
+            {h.reason ? ` ${t('zone.historyReason', { name: who(t, h.by), reason: h.reason })}` : ''}
+          </li>
+        ))}
+      </ul>
     </Section>
   )
 }

@@ -38,6 +38,7 @@ import { recordPolicyVersion } from '../../src/platform/config/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { verifyCountyOf } from '../fixtures/county.js'
 import { testConfig } from '../fixtures/env.js'
+import { verifyPropertyZone } from '../fixtures/zones.js'
 
 const ZONE = 'America/Kentucky/Louisville'
 const KEY: CodeKeySettings = readCodeKey({
@@ -229,6 +230,8 @@ async function siteVisitProject(): Promise<Project> {
     .executeTakeFirstOrThrow()
   // TSK-0127: staff's address and county check, which a first confirmation needs.
   await verifyCountyOf(t.db, row.project_id)
+  // TSK-0123: the property's zone is unknown until verified; these tests plan visits, so it is verified first.
+  await verifyPropertyZone(t.db, { projectId: row.project_id })
   const grant = await t.db
     .selectFrom('identity.project_access_grants')
     .select('id')
@@ -626,7 +629,8 @@ describe('[HH-PORT-04][T25] a customer request keeps the confirmed visit until s
       request: null,
     })
 
-    // After commit: "Appointment changed" once (wording NOT CONFIGURED: recorded, never sent) and the worker's notice.
+    // After commit: "Appointment changed" once (recorded, never sent: TSK-0119 released the email wording, whose values
+    // TSK-0120 wires; texts have no wording) and the worker's notice.
     const [change] = await changeRows(v.id)
     await runNotices()
     await runNotices()
@@ -634,7 +638,7 @@ describe('[HH-PORT-04][T25] a customer request keeps the confirmed visit until s
     expect(
       sent.filter((d) => d.message_key === 'appointment.changed').map((d) => [d.channel, d.state, d.error_code]),
     ).toEqual([
-      ['email', 'failed', 'template_not_configured'],
+      ['email', 'failed', 'template_values_not_wired'],
       ['sms', 'failed', 'template_not_configured'],
     ])
     expect(
@@ -919,7 +923,17 @@ describe('[HH-SCH-07][T42] reschedule and reassignment update everyone; stale wr
     expect(
       new Set(sent.filter((d) => d.message_key === 'staff_notice.schedule_change').map((d) => d.recipient_id)),
     ).toEqual(new Set([ids.ann, ids.cal]))
-    expect(sent.every((d) => d.state === 'failed' && d.error_code === 'template_not_configured')).toBe(true)
+    // Nothing sends: the customer's email wording is not wired yet (TSK-0119), texts and staff notices have no wording.
+    expect(
+      sent.every(
+        (d) =>
+          d.state === 'failed' &&
+          d.error_code ===
+            (d.message_key === 'appointment.changed' && d.channel === 'email'
+              ? 'template_values_not_wired'
+              : 'template_not_configured'),
+      ),
+    ).toBe(true)
     // The customer's appointment is the same date and window: a reassignment does not move it.
     expect((await appointments(p))[0]).toMatchObject({ status: 'confirmed', window: { localDate: date } })
   })

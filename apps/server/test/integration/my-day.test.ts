@@ -41,6 +41,7 @@ import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
 import { verifyCountyOf } from '../fixtures/county.js'
 import { testConfig } from '../fixtures/env.js'
+import { verifyPropertyZone } from '../fixtures/zones.js'
 
 const ZONE = 'America/Kentucky/Louisville'
 const KEY: CodeKeySettings = readCodeKey({
@@ -210,6 +211,8 @@ async function project(): Promise<Project> {
     .executeTakeFirstOrThrow()
   // TSK-0127: staff's address and county check, which a first confirmation needs.
   await verifyCountyOf(t.db, row.project_id)
+  // TSK-0123: the property's zone is unknown until verified; these tests plan visits, so it is verified first.
+  await verifyPropertyZone(t.db, { projectId: row.project_id })
   const grant = await t.db
     .selectFrom('identity.project_access_grants')
     .select('id')
@@ -690,7 +693,8 @@ describe('[HH-SCH-08][HH-PORT-07][T65] On my way: the assigned worker’s tap, o
       .where('subject_key', '=', `visit_on_my_way:${visitId}`)
       .execute()
     expect(deliveries).toEqual([
-      { message_key: 'visit.on_the_way', channel: 'email', state: 'failed', error_code: 'template_not_configured' },
+      // TSK-0119: the on_the_way email wording (OWN-DEC-209) is released; its values are wired by TSK-0120.
+      { message_key: 'visit.on_the_way', channel: 'email', state: 'failed', error_code: 'template_values_not_wired' },
       { message_key: 'visit.on_the_way', channel: 'sms', state: 'failed', error_code: 'template_not_configured' },
     ])
 

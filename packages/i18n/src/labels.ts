@@ -86,6 +86,8 @@ export const LABEL_FAMILIES = {
     'deposit_due',
     'visit_flagged',
     'loadout_shortage',
+    // TSK-0123: a property whose time zone is unknown.
+    'property_time_zone',
     'deposit_waiver',
     'start_work_exception',
     'refund_request',
@@ -145,6 +147,8 @@ export const LABEL_FAMILIES = {
     'critical_shortage',
     // TSK-0067: an appointment reminder draft waiting for release.
     'appointment_reminder',
+    // TSK-0123: the property's time zone is unknown.
+    'time_zone_unknown',
   ],
   /** The one action button of a queue item (HH-OPS-02); it opens the record's screen. */
   queueAction: [
@@ -164,6 +168,7 @@ export const LABEL_FAMILIES = {
     'review_deposit',
     'reassign_visit',
     'review_shortage',
+    'verify_time_zone',
   ],
   /**
    * System health (TSK-0101; HH-NFR-02): the checks, their states, metrics and notes, as the server's health report
@@ -268,8 +273,25 @@ export const LABEL_FAMILIES = {
     'retention.safety_records',
     'scheduling.window_offers',
     'visit.on_my_way',
+    'geo.county_time_zones',
+    'sms.unknown_zone_hours',
     'ai.module',
   ],
+  /** A property's time-zone state and what it rests on (TSK-0123; @handyhub/domain zones.ts). */
+  zoneStatus: ['unknown', 'derived', 'verified'],
+  zoneBasis: [
+    'zip_counties',
+    'verified_county',
+    'no_zip_rule',
+    'zip_outside_area',
+    'zip_boundary',
+    'county_map_not_configured',
+    'county_not_mapped',
+    'counties_disagree',
+    'assumption_withdrawn',
+  ],
+  /** The supported US zone families (OWN-DEC-159: Eastern and Central). */
+  zoneFamily: ['eastern', 'central'],
   /** Staff qualification of a request (TSK-0042; HH-LEAD-02). */
   qualificationCheck: [
     'coverage',
@@ -396,6 +418,9 @@ export const LABEL_FAMILIES = {
     'template_not_configured',
     'channel_not_configured',
     'template_values_missing',
+    // TSK-0119: released wording whose values are not wired yet; a value that is not acceptable (a link host).
+    'template_values_not_wired',
+    'template_values_invalid',
     'sms_no_opt_in',
     'sms_opted_out',
     'record_changed',
@@ -549,6 +574,29 @@ export const LABEL_FAMILIES = {
    * deliveryState and deliveryError families above.
    */
   deliveryChannel: ['email', 'sms'],
+  /** TSK-0119 (HH-COM-14, OWN-DEC-152 section 7): the message lifecycle (apps/server/src/modules/notifications/lifecycle.ts). */
+  messageLifecycle: [
+    'DRAFT',
+    'PENDING_APPROVAL',
+    'APPROVED',
+    'SCHEDULED',
+    'QUEUED',
+    'SENDING',
+    'PROVIDER_ACCEPTED',
+    'DELIVERED',
+    'FAILED',
+    'CANCELLED',
+    'EXPIRED',
+    'SUPPRESSED',
+  ],
+  /** TSK-0119 (OWN-DEC-152 section 3.6): message classification (notifications/message-types.ts). */
+  messageCategory: ['authentication', 'account_security', 'transactional', 'internal', 'marketing'],
+  /** TSK-0119: who releases a message (automatic by messages.automatic, staff, or the Owner). */
+  messageRelease: ['automatic', 'staff', 'owner'],
+  /** TSK-0119 (HH-COM-13): whether a released template can send today (notifications/templates.ts). */
+  messageReadiness: ['ready', 'not_configured', 'not_wired'],
+  /** TSK-0119: the staff view's message groups (notifications/lifecycle.ts LIFECYCLE_GROUPS). */
+  messageGroup: ['waiting', 'sent', 'failed', 'stopped'],
   /** Visit purposes (TSK-0061, ENT-Visit; migration 0049): the Estimate visit and the three work visits. */
   visitPurpose: ['site_estimate', 'service', 'follow_up', 'return_work'],
   /** Visit states (ENT-Visit): tentative -> confirmed -> en_route -> arrived -> completed; expired, canceled, no_access. */
@@ -1018,6 +1066,8 @@ export const LABEL_FAMILIES = {
     'template_not_configured',
     'channel_not_configured',
     'template_values_missing',
+    'template_values_not_wired',
+    'template_values_invalid',
     'record_changed',
     // TSK-0067 (HH-COM-11): why an appointment reminder is not drafted or sent
     // (apps/server/src/modules/visits/reminders.ts APPOINTMENT_REMINDER_STOP_REASONS).

@@ -12,6 +12,7 @@ import { createDb } from '@handyhub/db'
 import { addLocalDays, localDateOf } from '@handyhub/domain/local-time'
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 import { verifyCountyOf } from '../county.js'
+import { verifyPropertyZone } from '../zones.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
 const port = process.env['E2E_PORT'] ?? '4310'
@@ -139,6 +140,8 @@ async function bookedVisit(request: APIRequestContext, workerId: string): Promis
       .where('reference', '=', reference)
       .executeTakeFirstOrThrow(),
   )
+  // TSK-0123: a new property's zone is unknown; this spec plans visits, so its zone is recorded first.
+  await withDb((db) => verifyPropertyZone(db, row.project_id))
   const csrf = ((await (await request.get('/api/v1/staff/auth/session')).json()) as { csrfToken: string }).csrfToken
   let n = 0
   const write = async (method: 'post' | 'put', url: string, data: unknown, version?: number) => {

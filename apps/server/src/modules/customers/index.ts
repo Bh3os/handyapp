@@ -5,7 +5,7 @@
 // link-routes.ts and links.ts (TSK-0046, HH-CRM-04); nothing is ever merged or linked automatically. No route here
 // answers a customer: customer and contact records have no customer projection (records/projections).
 import type { Tx } from '@handyhub/db'
-import { looksLikeCardNumber, type NoteVisibility } from '@handyhub/domain'
+import { isSupportedZone, looksLikeCardNumber, type NoteVisibility } from '@handyhub/domain'
 import { normalizeUsPhone } from '@handyhub/domain/request-form'
 import { decide, listingScope, type DataScope, type StaffActor } from '@handyhub/policy'
 import { sql } from 'kysely'
@@ -22,6 +22,7 @@ import { staffCustomerView } from './record.js'
 import {
   CANDIDATE_PARAMS,
   CONTACT_EDIT_BODY,
+  CONTACT_ZONE_BODY,
   CONTACT_PARAMS,
   CREATED,
   CUSTOMER_EDIT_BODY,
@@ -391,6 +392,7 @@ type ContactRow = {
   phone_verification: string
   email_verified_value: string | null
   phone_verified_value: string | null
+  time_zone: string | null
   version: number
 }
 
@@ -409,6 +411,7 @@ async function lockContact(tx: Tx, scope: DataScope, customerId: string, contact
       'phone_verification',
       'email_verified_value',
       'phone_verified_value',
+      'time_zone',
       'version',
     ])
     .where('id', '=', contactId)
@@ -522,6 +525,65 @@ const editContact = writeRoute({
       target: { type: 'contact', id: contact.id, version },
       summary: { customerId: customer.id, fields },
       reason: reasonOf(ctx),
+    })
+    return { body: { id: contact.id, version }, version }
+  },
+})
+
+const setContactZone = writeRoute({
+  method: 'PUT',
+  path: '/staff/customers/:customerId/contacts/:contactId/time-zone',
+  operationId: 'setStaffContactTimeZone',
+  summary: 'Record a contact’s own time zone for texts',
+  description:
+    'TSK-0123 (OWN-DEC-159 item 5, HH-COM-15): staff with customer.edit (Owner; Office with a reason) record the ' +
+    'IANA zone the contact receives texts in, as the customer gave it; null makes it unknown again. Only Eastern or ' +
+    'Central zones (ZONE_NOT_SUPPORTED otherwise). The property’s zone is never taken as the recipient’s: while this ' +
+    'is unknown the contact’s zone stays unknown and is flagged on the record. The change is kept with the values ' +
+    'before and after (staff only). If-Match is the contact version.',
+  permission: 'customer.edit',
+  audit: 'customer.set_contact_time_zone',
+  expectedVersion: 'required',
+  params: CONTACT_PARAMS,
+  body: CONTACT_ZONE_BODY,
+  response: { 200: VERSION_RESULT },
+  handler: async (ctx) => {
+    const tx = ctx.tx as Tx
+    const actor = staffActor(ctx)
+    const p = params(ctx)
+    const { customer, contact } = await lockContact(tx, ctx.scope, p.customerId, p.contactId as string)
+    notMerged(customer)
+    if (ctx.expectedVersion() !== contact.version)
+      throw new ApiError('STALE_VERSION', { current: { version: contact.version } })
+    const next = (ctx.req.body as { timeZone: string | null }).timeZone
+    if (next !== null && !isSupportedZone(next)) throw invalid('body.timeZone', 'ZONE_NOT_SUPPORTED')
+    const reason = reasonOf(ctx)
+    if (next === contact.time_zone) {
+      await ctx.audit({
+        target: { type: 'contact', id: contact.id, version: contact.version },
+        summary: { customerId: customer.id, fields: [] },
+      })
+      return { body: { id: contact.id, version: contact.version }, version: contact.version }
+    }
+    const version = contact.version + 1
+    await tx.updateTable('crm.contacts').set({ time_zone: next, version }).where('id', '=', contact.id).execute()
+    await tx
+      .insertInto('crm.record_changes')
+      .values({
+        customer_id: customer.id,
+        record_type: 'contact',
+        record_id: contact.id,
+        fields: ['timeZone'],
+        previous: JSON.stringify({ timeZone: contact.time_zone }),
+        current: JSON.stringify({ timeZone: next }),
+        reason,
+        changed_by: actor.userId,
+      })
+      .execute()
+    await ctx.audit({
+      target: { type: 'contact', id: contact.id, version },
+      summary: { customerId: customer.id, fields: ['timeZone'], from: contact.time_zone, to: next },
+      reason,
     })
     return { body: { id: contact.id, version }, version }
   },
@@ -690,6 +752,7 @@ export const CUSTOMERS_ROUTES: readonly RouteDef[] = [
   detail,
   editCustomer,
   editContact,
+  setContactZone,
   addNote,
   recordWithdrawal,
   dismissCandidate,

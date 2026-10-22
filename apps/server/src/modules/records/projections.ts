@@ -748,6 +748,7 @@ type EstimateDetailRecord = {
   issuerName: string | null
   publishedAt: Date
   validUntil: Date | null
+  validUntilZone: { zone: string; business: boolean } | null
   lines: {
     position: number
     kind: string
@@ -798,6 +799,8 @@ export const CUSTOMER_ESTIMATE = customerView(
     issuerName: NULLABLE_STRING,
     publishedAt: DATE,
     validUntil: NULLABLE_DATE,
+    // TSK-0123 (OWN-DEC-159 item 12): the zone the expiry is shown in: the property's, or the business zone said so.
+    validUntilZone: { oneOf: [{ type: 'null' }, object({ zone: STRING, business: { type: 'boolean' } })] },
     lines: { type: 'array', items: LINE },
     assumptions: STRINGS,
     exclusions: STRINGS,
@@ -847,6 +850,7 @@ export const CUSTOMER_ESTIMATE = customerView(
     issuerName: v.issuerName,
     publishedAt: v.publishedAt.toISOString(),
     validUntil: v.validUntil ? v.validUntil.toISOString() : null,
+    validUntilZone: v.validUntilZone ? { zone: v.validUntilZone.zone, business: v.validUntilZone.business } : null,
     lines: v.lines.map((l) => ({
       position: l.position,
       kind: l.kind,

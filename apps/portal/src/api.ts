@@ -502,6 +502,8 @@ export type EstimateDetail = {
   issuerName: string | null
   publishedAt: string
   validUntil: string | null
+  /** TSK-0123: the zone the expiry is shown in (the property's; business: true while that is unknown). */
+  validUntilZone: { zone: string; business: boolean } | null
   lines: EstimateLine[]
   assumptions: string[]
   exclusions: string[]
@@ -583,6 +585,8 @@ export function parseEstimate(v: unknown): EstimateDetail | null {
   if (deposit['state'] === 'required' ? !isCents(deposit['amountCents']) : deposit['amountCents'] !== null) return null
   const document = v['document']
   if (document !== null && !(isObj(document) && isStr(document['url']) && isCents(document['byteSize']))) return null
+  const zone = v['validUntilZone']
+  if (zone !== null && !(isObj(zone) && isStr(zone['zone']) && typeof zone['business'] === 'boolean')) return null
   const terms = v['terms']
   if (!isObj(terms) || !isNullableStr(terms['documentId']) || !oneOf(TERMS_STATES)(terms['state'])) return null
   const approval = v['approval']
@@ -612,6 +616,7 @@ export function parseEstimate(v: unknown): EstimateDetail | null {
     ...head,
     reference: v['reference'],
     issuerName: v['issuerName'],
+    validUntilZone: zone as EstimateDetail['validUntilZone'],
     lines: lines as EstimateLine[],
     assumptions: v['assumptions'] as string[],
     exclusions: v['exclusions'] as string[],

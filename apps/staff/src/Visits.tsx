@@ -104,7 +104,8 @@ export type Visit = {
 export type ProjectVisits = {
   projectId: string
   projectState: string
-  timeZone: string
+  /** TSK-0123: the property's zone; null while it is unknown (no visit is planned until it is verified). */
+  timeZone: string | null
   /** TSK-0127: the property's coverage, shown beside confirmation (staff accept it; TSK-0126 records the check). */
   coverage?: { result: string; code: string; reason: string | null; countyVerification?: CountyVerification | null }
   businessTimeZone: { zone: string; proposed: boolean } | null
@@ -334,7 +335,8 @@ function PlanForm({
   })
   const [pending, setPending] = useState(false)
   const key = useRef<string | null>(null)
-  if (purposes.length === 0) return null
+  const zone = data.timeZone
+  if (purposes.length === 0 || zone === null) return null
   async function submit(e: FormEvent) {
     e.preventDefault()
     setPending(true)
@@ -385,14 +387,7 @@ function PlanForm({
           ))}
         </select>
       </div>
-      <WindowFields
-        t={t}
-        locale={locale}
-        zone={data.timeZone}
-        entry={entry}
-        onChange={setEntry}
-        errors={errors.fields}
-      />
+      <WindowFields t={t} locale={locale} zone={zone} entry={entry} onChange={setEntry} errors={errors.fields} />
       {fact('duration', 'visits.duration')}
       {fact('preparation', 'visits.preparation')}
       {fact('travel', 'visits.travel')}
@@ -727,7 +722,9 @@ export function ProjectVisitsSection({
       <dl className="staff-system__fields">
         <div>
           <dt>{t('visits.zone')}</dt>
-          <dd data-testid="visits-zone">{data.timeZone}</dd>
+          <dd data-testid="visits-zone">
+            {data.timeZone ?? <StatusBadge tone="warning">{t('zone.unknown')}</StatusBadge>}
+          </dd>
         </div>
         {data.coverage ? (
           <div>
@@ -790,6 +787,7 @@ export function ProjectVisitsSection({
         ) : null}
       </dl>
       {data.businessTimeZone === null ? <StateView kind="blocked" title={t('visits.zoneNotConfigured')} /> : null}
+      {data.timeZone === null ? <StateView kind="blocked" title={t('visits.propertyZoneUnknown')} /> : null}
       {data.visits.length === 0 ? (
         <p>{t('visits.none')}</p>
       ) : (

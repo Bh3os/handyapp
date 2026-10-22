@@ -18,6 +18,7 @@ import { localDateOf, resolveWindow } from '@handyhub/domain/local-time'
 import { expect, test, type APIRequestContext, type Browser, type Page } from '@playwright/test'
 import { accessTokenFor, codeFor } from '../codes.js'
 import { verifyCountyOf } from '../county.js'
+import { verifyPropertyZone } from '../zones.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
 const port = process.env['E2E_PORT'] ?? '4310'
@@ -124,6 +125,8 @@ async function sendRequest(request: APIRequestContext) {
   )
   // TSK-0127: staff's address and county check, which a first confirmation needs.
   await verifyCountyOf(databaseUrl as string, row.project_id)
+  // TSK-0123: a new property's zone is unknown; this spec plans visits, so its zone is recorded first.
+  await withDb((db) => verifyPropertyZone(db, row.project_id))
   return {
     reference,
     requestId: row.request_id,
@@ -442,7 +445,8 @@ test.describe('My Day: On my way, Arrived and Finished (TSK-0070)', () => {
       await expect(card.getByTestId('myday-mine')).toContainText('On my way at')
       await axe(w)
 
-      // The automatic notice: once, recorded as not configured (never sent), no ETA in what was queued.
+      // The automatic notice: once, recorded as not sent (TSK-0119: the email wording is released but its values are
+      // wired by TSK-0120; texts have no wording), no ETA in what was queued.
       await expect
         .poll(() =>
           withDb((db) =>
@@ -455,7 +459,7 @@ test.describe('My Day: On my way, Arrived and Finished (TSK-0070)', () => {
           ),
         )
         .toEqual([
-          { channel: 'email', state: 'failed', error_code: 'template_not_configured' },
+          { channel: 'email', state: 'failed', error_code: 'template_values_not_wired' },
           { channel: 'sms', state: 'failed', error_code: 'template_not_configured' },
         ])
 

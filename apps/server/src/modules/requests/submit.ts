@@ -20,6 +20,7 @@ import { ApiError } from '../../api/errors.js'
 import { loadConfig, requireConfigured, type Config } from '../../platform/config/index.js'
 import { outbox } from '../../platform/outbox.js'
 import { lookupCoverage, type CoverageResult } from '../coverage/coverage.js'
+import { derivePropertyZone, newPropertyZone } from '../properties/zones.js'
 import { isLegalVersion } from '../legal/index.js'
 import { recordConsent } from '../notifications/index.js'
 import { bindDraftPhotos, createCapability, PhotoError, type PhotoSummary } from '../photos/photos.js'
@@ -179,7 +180,12 @@ export async function submitRequest(
   const existing = await existingRequestConflict(tx, opts.idempotencyKey)
   if (existing) throw existing
   const config = await loadConfig(tx)
-  const zone = requireConfigured(config.get('business.timezone')).value.zone
+  const businessZone = requireConfigured(config.get('business.timezone')).value.zone
+  // TSK-0123 (OWN-DEC-159): the property's zone from its ZIP's counties, or unknown (flagged, never assumed Eastern).
+  const propertyZone = await derivePropertyZone(tx, body.property.zip, config)
+  // OWN-DEC-92: dates start tomorrow in the property's local time. PROPOSED: while the property's zone is unknown the
+  // date is checked in the business zone (a preference only; nothing is scheduled from it).
+  const zone = propertyZone.zone ?? businessZone
   const term = requireConfigured(config.get('payment.term_default'))
   const services = new Map((await registryServices(tx)).map((s) => [s.id, s]))
 
@@ -247,8 +253,7 @@ export async function submitRequest(
       state: p.state.toUpperCase(),
       zip: p.zip,
       property_type: p.propertyType,
-      // Every served property is in the business time zone (FACT-TIMEZONE); staff correct it if ever needed.
-      time_zone: zone,
+      ...newPropertyZone(propertyZone),
       coverage_result: coverage.outcome,
       coverage_rule_set: coverage.ruleSet,
       coverage_reason: coverage.reason,

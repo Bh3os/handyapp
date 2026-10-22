@@ -839,6 +839,7 @@
   "portal.estimate.versionStatus": "Version {version}: {status}",
   "portal.estimate.details": "Estimate details",
   "portal.estimate.document": "View the estimate document (PDF)",
+  "portal.estimate.validUntilBusiness": "{time}, HandyHub business time",
   "portal.estimate.terms.title": "Estimate terms",
   "portal.estimate.terms.show": "Read the estimate terms in full",
   "portal.estimate.terms.fullPage": "Open the estimate terms on their own page",
@@ -1033,5 +1034,13 @@
   "portal.privacy.reason.erasure_not_available": "it can't be deleted yet",
   "portal.privacy.reason.consent_evidence": "it shows the permissions you gave",
   "portal.privacy.reason.third_party": "it belongs to someone else",
-  "portal.privacy.reason.request_record": "it is the record of your requests"
+  "portal.privacy.reason.request_record": "it is the record of your requests",
+  "message.button.project": "View your project",
+  "message.button.secureAccess": "Open your project",
+  "message.button.estimate": "View your estimate",
+  "message.button.appointment": "Choose a time",
+  "message.button.changeOrder": "Review the proposed change",
+  "message.button.invoice": "View your invoice",
+  "message.button.receipt": "View your receipt",
+  "message.button.open": "Open the secure link"
 }

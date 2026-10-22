@@ -132,6 +132,8 @@ export type NoticeTarget = {
   reference: string
   state: string
   contactId: string
+  /** The contact's full name, for the greeting's first name only (TSK-0119, OWN-DEC-158). */
+  fullName: string
   responsibleStaffId: string | null
   destinations: Destination[]
 }
@@ -150,6 +152,7 @@ export async function noticeTarget(db: Reader, requestId: string): Promise<Notic
       'r.preferred_channel',
       'r.sms_opt_in',
       'c.id as contact_id',
+      'c.full_name',
       'c.email',
       'c.phone_e164',
     ])
@@ -174,6 +177,7 @@ export async function noticeTarget(db: Reader, requestId: string): Promise<Notic
     reference: r.reference,
     state: r.state,
     contactId: r.contact_id,
+    fullName: r.full_name,
     responsibleStaffId: r.responsible_staff_id && UUID_RE.test(r.responsible_staff_id) ? r.responsible_staff_id : null,
     destinations,
   }

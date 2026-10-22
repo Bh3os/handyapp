@@ -36,6 +36,7 @@ import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
 import { verifyCountyOf } from '../fixtures/county.js'
 import { testConfig } from '../fixtures/env.js'
+import { verifyPropertyZone } from '../fixtures/zones.js'
 
 const ZONE = 'America/Kentucky/Louisville'
 const MIN = 60_000
@@ -211,6 +212,8 @@ async function submit(timing: Timing = { flexible: true, needHelpToday: false, w
     .select('id')
     .where('request_id', '=', row.id)
     .executeTakeFirstOrThrow()
+  // TSK-0123: the property's zone is unknown until verified; these tests plan visits, so it is verified first.
+  await verifyPropertyZone(t.db, { projectId: row.project_id })
   return { requestId: row.id, projectId: row.project_id, reference, contactId: row.contact_id, grantId: grant.id }
 }
 
@@ -418,7 +421,7 @@ describe('[HH-SCH-01][T37] an estimate visit and a work visit keep different pur
     expect(before).toMatchObject({
       projectState: 'open',
       timeZone: ZONE,
-      businessTimeZone: { zone: ZONE, proposed: true },
+      businessTimeZone: { zone: ZONE, proposed: false },
       visitHours: { open: '08:00', close: '22:00' },
       job: null,
       schedulingTask: null,
@@ -888,10 +891,9 @@ describe('[HH-SCH-02][HH-DATA-06][T41] UTC instants with the IANA zone; DST gaps
       await recordPolicyVersion(t.db, {
         key: 'business.timezone',
         value: { zone: ZONE },
-        sourceIds: ['FACT-TIMEZONE', 'OQ-TIMEZONE-ID'],
+        sourceIds: ['FACT-TIMEZONE', 'OWN-DEC-159'],
         changedBy: 'test',
         reason: 'synthetic: restore',
-        proposed: true,
       })
     }
   })

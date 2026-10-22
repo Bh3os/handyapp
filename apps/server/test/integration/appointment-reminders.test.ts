@@ -38,6 +38,7 @@ import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
 import { verifyCountyOf } from '../fixtures/county.js'
 import { testConfig } from '../fixtures/env.js'
+import { verifyPropertyZone } from '../fixtures/zones.js'
 
 const ZONE = 'America/Kentucky/Louisville'
 const SITE = 'http://127.0.0.1:4610'
@@ -223,6 +224,8 @@ async function siteVisitProject(): Promise<Project> {
     .executeTakeFirstOrThrow()
   // TSK-0127: staff's address and county check, which a first confirmation needs.
   await verifyCountyOf(t.db, row.project_id)
+  // TSK-0123: the property's zone is unknown until verified; these tests plan visits, so it is verified first.
+  await verifyPropertyZone(t.db, { projectId: row.project_id })
   const grant = await t.db
     .selectFrom('identity.project_access_grants')
     .select('id')
@@ -525,7 +528,7 @@ describe('[HH-COM-11][FACT-REMINDER-CADENCES][OWN-DEC-107] a reminder draft 24 h
 })
 
 describe('[HH-COM-11][HH-COM-09][T65] staff release; it sends inside the contact hours and is rechecked at send time', () => {
-  it('a released reminder waits for the contact hours; without approved wording it is recorded as not configured, never as sent', async () => {
+  it('a released reminder waits for the contact hours; with the owner wording not wired yet it is recorded as not sent, never as sent', async () => {
     const { v, row } = await drafted()
     const before = Date.now()
     const res = await releaseIt(row.id)
@@ -549,8 +552,9 @@ describe('[HH-COM-11][HH-COM-09][T65] staff release; it sends inside the contact
     expect(await auditOf('message.released', row.id)).toHaveLength(1)
     await sendNow(row.id)
     const [sent] = await reminders(v.id)
-    // No template version of reminder.appointment is released (OQ-APPOINTMENT-REMINDER-WORDING).
-    expect([sent?.state, sent?.error_code]).toEqual(['failed', 'template_not_configured'])
+    // TSK-0119: the owner's appointment_reminder wording is released; its values are wired by TSK-0121, so the send
+    // is recorded as not wired, naming the values, never as sent.
+    expect([sent?.state, sent?.error_code]).toEqual(['failed', 'template_values_not_wired'])
     expect(fakeEmail.sent.filter((m) => m.to === row.destination)).toHaveLength(0)
     // OWN-DEC-107: delivery failures are recorded for staff, as a delivery issue with Retry.
     const [issue] = await itemsOf('delivery_failed', row.id)

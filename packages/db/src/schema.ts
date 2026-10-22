@@ -214,6 +214,7 @@ export interface CrmContactsTable {
   version: Generated<number>
   email_verified_value: string | null
   phone_verified_value: string | null
+  time_zone: string | null
 }
 
 export interface CrmCustomerNotesTable {
@@ -264,12 +265,16 @@ export interface CrmPropertiesTable {
   state: string
   zip: string
   property_type: string
-  time_zone: string
+  time_zone: string | null
   coverage_result: string
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   version: Generated<number>
   coverage_rule_set: number | null
   address_version: Generated<number>
+  time_zone_status: Generated<string>
+  time_zone_basis: Generated<string>
+  time_zone_counties: Generated<string[]>
+  time_zone_version: Generated<number>
   coverage_reason: string | null
 }
 
@@ -322,6 +327,19 @@ export interface CrmPropertyDetailsTable {
   confirmed_at: Timestamp
   confirmed_by: string | null
   version: Generated<number>
+}
+
+export interface CrmPropertyTimeZonesTable {
+  property_id: string
+  zone_version: number
+  time_zone: string | null
+  status: string
+  basis: string
+  counties: Generated<string[]>
+  previous_zone: string | null
+  reason: string | null
+  recorded_by: string | null
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
 export interface CrmRecordChangesTable {
@@ -1181,6 +1199,24 @@ export interface PlatformMessageDeliveriesTable {
   project_id: string | null
   cancelled_by: string | null
   cancelled_at: Timestamp | null
+  template_id: string | null
+  layout_version: number | null
+  scheduled_at: Timestamp | null
+  sent_at: Timestamp | null
+  consent_decision: string | null
+  missing_variables: Generated<string[]>
+}
+
+export interface PlatformMessageDeliveryAttemptsTable {
+  id: GeneratedAlways<string>
+  delivery_id: string
+  attempt: number
+  state: string
+  error_code: string | null
+  provider: string | null
+  provider_message_id: string | null
+  template_version: number | null
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
 export interface PlatformMessageDeliveryEventsTable {
@@ -1206,6 +1242,7 @@ export interface PlatformMessageTemplateVersionsTable {
   source_ids: string[]
   released_by: string
   released_at: ColumnType<Date, Date | string | undefined, Date | string>
+  template_id: string | null
 }
 
 export interface PlatformMessageTemplatesTable {
@@ -1796,6 +1833,7 @@ export interface Database {
   'crm.property_changes': CrmPropertyChangesTable
   'crm.property_county_verifications': CrmPropertyCountyVerificationsTable
   'crm.property_details': CrmPropertyDetailsTable
+  'crm.property_time_zones': CrmPropertyTimeZonesTable
   'crm.record_changes': CrmRecordChangesTable
   'crm.record_links': CrmRecordLinksTable
   'estimating.approval_receipts': EstimatingApprovalReceiptsTable
@@ -1854,6 +1892,7 @@ export interface Database {
   'platform.idempotency_keys': PlatformIdempotencyKeysTable
   'platform.jobs': PlatformJobsTable
   'platform.message_deliveries': PlatformMessageDeliveriesTable
+  'platform.message_delivery_attempts': PlatformMessageDeliveryAttemptsTable
   'platform.message_delivery_events': PlatformMessageDeliveryEventsTable
   'platform.message_template_versions': PlatformMessageTemplateVersionsTable
   'platform.message_templates': PlatformMessageTemplatesTable

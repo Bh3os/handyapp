@@ -219,7 +219,7 @@ export async function scheduleBoard(
   ])
   const ref = (id: string) => names.get(id) ?? { id, name: null }
 
-  const actionContext = (propertyZone: string): ActionContext => ({
+  const actionContext = (propertyZone: string | null): ActionContext => ({
     actor,
     business: true,
     hours: hours !== null,

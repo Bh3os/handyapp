@@ -86,26 +86,42 @@ describe('appointment reminder subjects and content (TSK-0067)', () => {
     ).toBe('1 Synthetic Way, Apt 2, Testville, KY 40000')
   })
 
-  it('[HH-COM-11][HH-COM-04] the message declares the date and window, address, preparation steps and project link only', () => {
+  it("[HH-COM-11][HH-COM-04][OWN-DEC-158] the message declares the owner wording's values; the address is never rendered", () => {
     const type = messageType('reminder.appointment')
-    expect(type).toMatchObject({ audience: 'customer', triggerEvents: [] })
+    expect(type).toMatchObject({ audience: 'customer', triggerEvents: [], templateId: 'appointment_reminder' })
     expect(Object.keys(type.variables).sort()).toEqual([
+      'customerName',
+      'date',
+      'end',
       'preparationSteps',
       'projectLink',
       'serviceAddress',
+      'start',
+      'visitNumber',
       'visitWindow',
+      'zone',
     ])
-    // A template may use them (whenever the owner approves wording); an amount placeholder is still refused.
+    // The staff-reviewed draft keeps the address; no customer template may show it (OWN-DEC-158, TSK-0119).
     expect(
       templateProblems({
         messageKey: 'reminder.appointment',
         channel: 'sms',
         locale: 'en',
         subject: null,
-        body: '{visitWindow} {serviceAddress} {preparationSteps} {projectLink}',
+        body: '{visitWindow} {preparationSteps} {projectLink}',
         translationReview: 'source',
       }),
     ).toEqual([])
+    expect(
+      templateProblems({
+        messageKey: 'reminder.appointment',
+        channel: 'sms',
+        locale: 'en',
+        subject: null,
+        body: '{visitWindow} {serviceAddress}',
+        translationReview: 'source',
+      }).join(),
+    ).toMatch(/no customer message shows/)
     expect(
       templateProblems({
         messageKey: 'reminder.appointment',

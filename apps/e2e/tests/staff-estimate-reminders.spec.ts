@@ -325,16 +325,17 @@ test.describe('unanswered-estimate reminder drafts and their stop rules (TSK-006
       await expect(reminders.getByText('Draft, not sent')).toBeVisible()
       await axe(page)
 
-      // Sent at once (any hour); with no approved wording it is recorded as not sent, never as sent.
+      // Sent at once (any hour); the owner's wording is released (TSK-0119) but its values are wired by TSK-0121, so it
+      // is recorded as not sent, never as sent.
       await panel.getByRole('button', { name: 'Send reminder' }).click()
       await expect(panel.getByText('Sent for delivery. Its outcome shows here.')).toBeVisible()
       await expect
         .poll(async () => (await deliveries(versionId)).map((d) => [d.state, d.error_code]), { timeout: 15_000 })
-        .toEqual([['failed', 'template_not_configured']])
+        .toEqual([['failed', 'template_values_not_wired']])
       await page.reload()
       await expect(reminders.getByText('Not sent', { exact: true })).toBeVisible()
       await expect(
-        reminders.getByText('Reason: No approved wording for this message yet (not configured)'),
+        reminders.getByText('Reason: The approved wording is released, but its values are not supplied yet'),
       ).toBeVisible()
       await expect(reminders.getByText(/^Sent by E2E Reminder Estimator, /)).toBeVisible()
       const queue = async () =>
@@ -367,7 +368,7 @@ test.describe('unanswered-estimate reminder drafts and their stop rules (TSK-006
       await expect(panel.getByRole('button', { name: 'Send reminder' })).toHaveCount(0)
       expect(await queue()).toEqual([])
       expect((await deliveries(versionId)).map((d) => [d.state, d.error_code])).toEqual([
-        ['failed', 'template_not_configured'],
+        ['failed', 'template_values_not_wired'],
         ['cancelled', 'withdrawn'],
       ])
       await axe(page)

@@ -28,6 +28,7 @@ import { recordPolicyVersion } from '../../src/platform/config/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { verifyCountyOf } from '../fixtures/county.js'
 import { testConfig } from '../fixtures/env.js'
+import { verifyPropertyZone } from '../fixtures/zones.js'
 
 const ZONE = 'America/Kentucky/Louisville'
 const KEY: CodeKeySettings = readCodeKey({
@@ -203,6 +204,8 @@ async function siteVisitProject(): Promise<Project> {
     .select('id')
     .where('request_id', '=', row.id)
     .executeTakeFirstOrThrow()
+  // TSK-0123: the property's zone is unknown until verified; these tests plan visits, so it is verified first.
+  await verifyPropertyZone(t.db, { projectId: row.project_id })
   const p = { requestId: row.id, projectId: row.project_id, reference, contactId: row.contact_id, grantId: grant.id }
   expect(
     (await staffWrite('owner', 'PUT', `/api/v1/staff/requests/${p.requestId}/qualification`, { checks: ALL_OK }, 0))
@@ -960,10 +963,9 @@ describe('[HH-SCH-03][FACT-HOURS] visits stay inside the visit hours and the wor
       await recordPolicyVersion(t.db, {
         key: 'business.timezone',
         value: { zone: ZONE },
-        sourceIds: ['FACT-TIMEZONE', 'OQ-TIMEZONE-ID'],
+        sourceIds: ['FACT-TIMEZONE', 'OWN-DEC-159'],
         changedBy: 'test',
         reason: 'synthetic: restore',
-        proposed: true,
       })
     }
   })

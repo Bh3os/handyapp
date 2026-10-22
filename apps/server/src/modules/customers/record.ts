@@ -17,7 +17,7 @@
 //   changes), and every merge and relink of the record with its reason, access recheck and reversal. A merged record
 //   shows its own records, the survivor it was merged into and where each project is seen now.
 import type { Db, Tx } from '@handyhub/db'
-import { NOTE_VISIBILITIES } from '@handyhub/domain'
+import { NOTE_VISIBILITIES, recipientZone } from '@handyhub/domain'
 import { decide, readsVisibility, type Action, type Actor, type DataScope } from '@handyhub/policy'
 import { sql } from 'kysely'
 import { customerInScope, projectInScope } from '../../platform/data-scope.js'
@@ -127,6 +127,7 @@ async function buildView(db: Reader, id: string, actor: Actor, scope: DataScope)
       'email_verification',
       'phone_verification',
       'preferred_channel',
+      'time_zone',
       'is_primary',
       'created_at',
       'version',
@@ -180,6 +181,12 @@ async function buildView(db: Reader, id: string, actor: Actor, scope: DataScope)
       email: c.email,
       phone: c.phone_e164,
       preferredChannel: c.preferred_channel,
+      timeZone: (() => {
+        const z = recipientZone(c.time_zone)
+        return z.state === 'known'
+          ? { state: z.state, zone: z.zone, family: z.family }
+          : { state: z.state, zone: null, family: null }
+      })(),
       isPrimary: c.is_primary,
       version: c.version,
       verification: badges,

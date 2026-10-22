@@ -34,6 +34,11 @@
       "types": "./dist/local-time.d.ts",
       "default": "./dist/local-time.js"
     },
+    "./zones": {
+      "@handyhub/source": "./src/zones.ts",
+      "types": "./dist/zones.d.ts",
+      "default": "./dist/zones.js"
+    },
     "./capacity": {
       "@handyhub/source": "./src/capacity.ts",
       "types": "./dist/capacity.d.ts",

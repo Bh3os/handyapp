@@ -3209,6 +3209,7 @@
                     "issuerName",
                     "publishedAt",
                     "validUntil",
+                    "validUntilZone",
                     "lines",
                     "assumptions",
                     "exclusions",
@@ -3268,6 +3269,29 @@
                         "null"
                       ],
                       "format": "date-time"
+                    },
+                    "validUntilZone": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "zone",
+                            "business"
+                          ],
+                          "properties": {
+                            "zone": {
+                              "type": "string"
+                            },
+                            "business": {
+                              "type": "boolean"
+                            }
+                          }
+                        }
+                      ]
                     },
                     "lines": {
                       "type": "array",
@@ -17611,6 +17635,7 @@
                                 "estimates",
                                 "schedule",
                                 "inbox",
+                                "messages",
                                 "payments",
                                 "cases",
                                 "staff",
@@ -17635,6 +17660,7 @@
                                   "estimates",
                                   "schedule",
                                   "inbox",
+                                  "messages",
                                   "payments",
                                   "cases",
                                   "staff",
@@ -18237,6 +18263,7 @@
                             "estimates",
                             "schedule",
                             "inbox",
+                            "messages",
                             "payments",
                             "cases",
                             "staff",
@@ -18261,6 +18288,7 @@
                               "estimates",
                               "schedule",
                               "inbox",
+                              "messages",
                               "payments",
                               "cases",
                               "staff",
@@ -18930,6 +18958,7 @@
                             "estimates",
                             "schedule",
                             "inbox",
+                            "messages",
                             "payments",
                             "cases",
                             "staff",
@@ -18954,6 +18983,7 @@
                               "estimates",
                               "schedule",
                               "inbox",
+                              "messages",
                               "payments",
                               "cases",
                               "staff",
@@ -19208,6 +19238,7 @@
                             "estimates",
                             "schedule",
                             "inbox",
+                            "messages",
                             "payments",
                             "cases",
                             "staff",
@@ -19232,6 +19263,7 @@
                               "estimates",
                               "schedule",
                               "inbox",
+                              "messages",
                               "payments",
                               "cases",
                               "staff",
@@ -19474,6 +19506,7 @@
                             "estimates",
                             "schedule",
                             "inbox",
+                            "messages",
                             "payments",
                             "cases",
                             "staff",
@@ -19498,6 +19531,7 @@
                               "estimates",
                               "schedule",
                               "inbox",
+                              "messages",
                               "payments",
                               "cases",
                               "staff",
@@ -19923,6 +19957,7 @@
                             "estimates",
                             "schedule",
                             "inbox",
+                            "messages",
                             "payments",
                             "cases",
                             "staff",
@@ -19947,6 +19982,7 @@
                               "estimates",
                               "schedule",
                               "inbox",
+                              "messages",
                               "payments",
                               "cases",
                               "staff",
@@ -21653,6 +21689,7 @@
                           "email",
                           "phone",
                           "preferredChannel",
+                          "timeZone",
                           "isPrimary",
                           "version",
                           "verification",
@@ -21677,6 +21714,36 @@
                           },
                           "preferredChannel": {
                             "type": "string"
+                          },
+                          "timeZone": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "state",
+                              "zone",
+                              "family"
+                            ],
+                            "properties": {
+                              "state": {
+                                "type": "string",
+                                "enum": [
+                                  "known",
+                                  "unknown"
+                                ]
+                              },
+                              "zone": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "family": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
                           },
                           "isPrimary": {
                             "type": "boolean"
@@ -23235,6 +23302,237 @@
           "freshAuthMinutes": null,
           "csrf": "required_with_staff_session",
           "audit": "customer.edit_contact",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customers.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/customers/{customerId}/contacts/{contactId}/time-zone": {
+      "put": {
+        "operationId": "setStaffContactTimeZone",
+        "summary": "Record a contact’s own time zone for texts",
+        "description": "TSK-0123 (OWN-DEC-159 item 5, HH-COM-15): staff with customer.edit (Owner; Office with a reason) record the IANA zone the contact receives texts in, as the customer gave it; null makes it unknown again. Only Eastern or Central zones (ZONE_NOT_SUPPORTED otherwise). The property’s zone is never taken as the recipient’s: while this is unknown the contact’s zone stays unknown and is flagged on the record. The change is kept with the values before and after (staff only). If-Match is the contact version.",
+        "tags": [
+          "customers"
+        ],
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          },
+          {
+            "name": "contactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "timeZone",
+                  "reason"
+                ],
+                "properties": {
+                  "timeZone": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 3,
+                    "maxLength": 64,
+                    "pattern": "^[A-Za-z]+(/[A-Za-z0-9_+-]+)+$"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "version"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "customer.edit",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer.set_contact_time_zone",
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/customers.test.ts"
@@ -26907,6 +27205,8 @@
                                   "retention.safety_records",
                                   "scheduling.window_offers",
                                   "visit.on_my_way",
+                                  "geo.county_time_zones",
+                                  "sms.unknown_zone_hours",
                                   "ai.module"
                                 ]
                               },
@@ -28461,6 +28761,8 @@
                                   "retention.safety_records",
                                   "scheduling.window_offers",
                                   "visit.on_my_way",
+                                  "geo.county_time_zones",
+                                  "sms.unknown_zone_hours",
                                   "ai.module"
                                 ]
                               },
@@ -30293,6 +30595,8 @@
                                   "retention.safety_records",
                                   "scheduling.window_offers",
                                   "visit.on_my_way",
+                                  "geo.county_time_zones",
+                                  "sms.unknown_zone_hours",
                                   "ai.module"
                                 ]
                               },
@@ -31701,6 +32005,8 @@
                                   "retention.safety_records",
                                   "scheduling.window_offers",
                                   "visit.on_my_way",
+                                  "geo.county_time_zones",
+                                  "sms.unknown_zone_hours",
                                   "ai.module"
                                 ]
                               },
@@ -33284,6 +33590,8 @@
                                   "retention.safety_records",
                                   "scheduling.window_offers",
                                   "visit.on_my_way",
+                                  "geo.county_time_zones",
+                                  "sms.unknown_zone_hours",
                                   "ai.module"
                                 ]
                               },
@@ -34692,6 +35000,8 @@
                                   "retention.safety_records",
                                   "scheduling.window_offers",
                                   "visit.on_my_way",
+                                  "geo.county_time_zones",
+                                  "sms.unknown_zone_hours",
                                   "ai.module"
                                 ]
                               },
@@ -36466,6 +36776,8 @@
                                   "retention.safety_records",
                                   "scheduling.window_offers",
                                   "visit.on_my_way",
+                                  "geo.county_time_zones",
+                                  "sms.unknown_zone_hours",
                                   "ai.module"
                                 ]
                               },
@@ -38062,6 +38374,8 @@
                                   "retention.safety_records",
                                   "scheduling.window_offers",
                                   "visit.on_my_way",
+                                  "geo.county_time_zones",
+                                  "sms.unknown_zone_hours",
                                   "ai.module"
                                 ]
                               },
@@ -39649,6 +39963,8 @@
                                   "retention.safety_records",
                                   "scheduling.window_offers",
                                   "visit.on_my_way",
+                                  "geo.county_time_zones",
+                                  "sms.unknown_zone_hours",
                                   "ai.module"
                                 ]
                               },
@@ -41241,6 +41557,8 @@
                                   "retention.safety_records",
                                   "scheduling.window_offers",
                                   "visit.on_my_way",
+                                  "geo.county_time_zones",
+                                  "sms.unknown_zone_hours",
                                   "ai.module"
                                 ]
                               },
@@ -43169,6 +43487,8 @@
                                   "retention.safety_records",
                                   "scheduling.window_offers",
                                   "visit.on_my_way",
+                                  "geo.county_time_zones",
+                                  "sms.unknown_zone_hours",
                                   "ai.module"
                                 ]
                               },
@@ -44756,6 +45076,8 @@
                                   "retention.safety_records",
                                   "scheduling.window_offers",
                                   "visit.on_my_way",
+                                  "geo.county_time_zones",
+                                  "sms.unknown_zone_hours",
                                   "ai.module"
                                 ]
                               },
@@ -46547,6 +46869,8 @@
                                   "retention.safety_records",
                                   "scheduling.window_offers",
                                   "visit.on_my_way",
+                                  "geo.county_time_zones",
+                                  "sms.unknown_zone_hours",
                                   "ai.module"
                                 ]
                               },
@@ -55001,7 +55325,10 @@
                           "type": "string"
                         },
                         "timeZone": {
-                          "type": "string"
+                          "type": [
+                            "string",
+                            "null"
+                          ]
                         },
                         "details": {
                           "type": "array",
@@ -61612,6 +61939,381 @@
         }
       }
     },
+    "/api/v1/staff/message-deliveries": {
+      "get": {
+        "operationId": "listMessageDeliveries",
+        "summary": "Outgoing messages and their delivery state",
+        "description": "Staff with message.release_draft, inside the caller’s project scope (Owner, Office: every message; others only what their scope reaches). Newest first. Each message shows its lifecycle state (DRAFT, PENDING_APPROVAL, SCHEDULED, QUEUED, PROVIDER_ACCEPTED, DELIVERED, FAILED, CANCELLED, EXPIRED, SUPPRESSED), template ID and version, channel, a masked destination, its created, queued, due, provider-accepted and status times, attempts and their history, the failure reason with the names of missing variables, the consent decision, whether a test provider intercepted it (never delivered) and whether its Retry is available. Filters: group (waiting, sent, failed, stopped) and reference (a project reference). Never the text, a value or a full destination.",
+        "tags": [
+          "notifications"
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          },
+          {
+            "name": "group",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "waiting",
+                "sent",
+                "failed",
+                "stopped"
+              ]
+            }
+          },
+          {
+            "name": "reference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^HH-[0-9A-HJKMNP-TV-Z]{8}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "items",
+                    "nextCursor"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "messageKey",
+                          "templateId",
+                          "templateVersion",
+                          "layoutVersion",
+                          "channel",
+                          "audience",
+                          "release",
+                          "lifecycle",
+                          "intercepted",
+                          "destination",
+                          "project",
+                          "createdAt",
+                          "queuedAt",
+                          "scheduledAt",
+                          "sentAt",
+                          "statusAt",
+                          "attempts",
+                          "errorCode",
+                          "missingVariables",
+                          "consentDecision",
+                          "retryAvailable",
+                          "history"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "messageKey": {
+                            "type": "string"
+                          },
+                          "templateId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "templateVersion": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "layoutVersion": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "email",
+                              "sms"
+                            ]
+                          },
+                          "audience": {
+                            "type": "string",
+                            "enum": [
+                              "customer",
+                              "staff"
+                            ]
+                          },
+                          "release": {
+                            "type": "string",
+                            "enum": [
+                              "automatic",
+                              "staff_released"
+                            ]
+                          },
+                          "lifecycle": {
+                            "type": "string",
+                            "enum": [
+                              "DRAFT",
+                              "PENDING_APPROVAL",
+                              "APPROVED",
+                              "SCHEDULED",
+                              "QUEUED",
+                              "SENDING",
+                              "PROVIDER_ACCEPTED",
+                              "DELIVERED",
+                              "FAILED",
+                              "CANCELLED",
+                              "EXPIRED",
+                              "SUPPRESSED"
+                            ]
+                          },
+                          "intercepted": {
+                            "type": "boolean"
+                          },
+                          "destination": {
+                            "type": "string"
+                          },
+                          "project": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "reference"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "reference": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "queuedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "scheduledAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "sentAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "statusAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "attempts": {
+                            "type": "integer"
+                          },
+                          "errorCode": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "missingVariables": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "consentDecision": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "retryAvailable": {
+                            "type": "boolean"
+                          },
+                          "history": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "attempt",
+                                "state",
+                                "errorCode",
+                                "at"
+                              ],
+                              "properties": {
+                                "attempt": {
+                                  "type": "integer"
+                                },
+                                "state": {
+                                  "type": "string"
+                                },
+                                "errorCode": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.release_draft",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": true,
+          "cache": "private, no-store",
+          "test": "test/integration/message-templates.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/message-deliveries/{deliveryId}/retry": {
       "post": {
         "operationId": "retryMessageDelivery",
@@ -61784,6 +62486,676 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/request-receipt.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/message-templates": {
+      "get": {
+        "operationId": "listMessageTemplates",
+        "summary": "Message templates and the variable registry",
+        "description": "Staff with message.release_draft. Every message type with its owner template ID, audience, channels, classification and release authority (automatic while on messages.automatic, staff-released, or released by the Owner), and per channel and language its newest released version (append-only) and readiness: ready, NOT CONFIGURED (no approved wording) or not wired (the values its wording needs are not supplied yet). Also the one template-variable registry: each variable’s kind, meaning, source record, whether it may appear in a subject, whether it is required (only a variable with an approved fallback is optional) and whether it is sensitive. Template approval is shown separately from any message’s delivery state.",
+        "tags": [
+          "notifications"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "templates",
+                    "variables"
+                  ],
+                  "properties": {
+                    "templates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "messageKey",
+                          "templateId",
+                          "audience",
+                          "channels",
+                          "category",
+                          "release",
+                          "variables",
+                          "versions"
+                        ],
+                        "properties": {
+                          "messageKey": {
+                            "type": "string"
+                          },
+                          "templateId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "audience": {
+                            "type": "string",
+                            "enum": [
+                              "customer",
+                              "staff"
+                            ]
+                          },
+                          "channels": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "email",
+                                "sms"
+                              ]
+                            }
+                          },
+                          "category": {
+                            "type": "string",
+                            "enum": [
+                              "authentication",
+                              "account_security",
+                              "transactional",
+                              "internal",
+                              "marketing"
+                            ]
+                          },
+                          "release": {
+                            "type": "string",
+                            "enum": [
+                              "automatic",
+                              "staff",
+                              "owner"
+                            ]
+                          },
+                          "variables": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "versions": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "channel",
+                                "locale",
+                                "version",
+                                "releasedAt",
+                                "translationReview",
+                                "readiness",
+                                "unwired",
+                                "sourceIds"
+                              ],
+                              "properties": {
+                                "channel": {
+                                  "type": "string",
+                                  "enum": [
+                                    "email",
+                                    "sms"
+                                  ]
+                                },
+                                "locale": {
+                                  "type": "string",
+                                  "enum": [
+                                    "en",
+                                    "es"
+                                  ]
+                                },
+                                "version": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "releasedAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date-time"
+                                },
+                                "translationReview": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "enum": [
+                                    "source",
+                                    "ai_reviewed",
+                                    null
+                                  ]
+                                },
+                                "readiness": {
+                                  "type": "string",
+                                  "enum": [
+                                    "ready",
+                                    "not_configured",
+                                    "not_wired"
+                                  ]
+                                },
+                                "unwired": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "sourceIds": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "variables": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "name",
+                          "kind",
+                          "meaning",
+                          "source",
+                          "subject",
+                          "required",
+                          "fallback",
+                          "sensitive",
+                          "customerForbidden"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "meaning": {
+                            "type": "string"
+                          },
+                          "source": {
+                            "type": "string"
+                          },
+                          "subject": {
+                            "type": "boolean"
+                          },
+                          "required": {
+                            "type": "boolean"
+                          },
+                          "fallback": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "sensitive": {
+                            "type": "boolean"
+                          },
+                          "customerForbidden": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.release_draft",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/message-templates.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/message-templates/{messageKey}/preview": {
+      "get": {
+        "operationId": "previewMessageTemplate",
+        "summary": "Preview a released template with sample values",
+        "description": "Staff with message.release_draft. The newest released version of one message type for a channel and language (customer messages are English), rendered through the same branded layout as a real send with synthetic sample values on the reserved example.test host: subject, plain text and HTML. A preview is never sent or recorded as a delivery. NOT_FOUND for an unknown type, a channel it does not use, or no released version (NOT CONFIGURED).",
+        "tags": [
+          "notifications"
+        ],
+        "parameters": [
+          {
+            "name": "messageKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$",
+              "maxLength": 80
+            }
+          },
+          {
+            "name": "channel",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "email",
+                "sms"
+              ]
+            }
+          },
+          {
+            "name": "locale",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "en",
+                "es"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "messageKey",
+                    "templateId",
+                    "version",
+                    "channel",
+                    "locale",
+                    "subject",
+                    "text",
+                    "html",
+                    "sample"
+                  ],
+                  "properties": {
+                    "messageKey": {
+                      "type": "string"
+                    },
+                    "templateId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "channel": {
+                      "type": "string",
+                      "enum": [
+                        "email",
+                        "sms"
+                      ]
+                    },
+                    "locale": {
+                      "type": "string",
+                      "enum": [
+                        "en",
+                        "es"
+                      ]
+                    },
+                    "subject": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "text": {
+                      "type": "string"
+                    },
+                    "html": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "sample": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.release_draft",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "message_template_preview",
+            "limit": 120,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/message-templates.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/message-templates/{messageKey}/preview.html": {
+      "get": {
+        "operationId": "previewMessageTemplatePage",
+        "summary": "The HTML preview page of a released email template",
+        "description": "As previewMessageTemplate, for email: the rendered HTML itself, for a sandboxed frame in the staff app. Served with its own policy (sandbox, no scripts, no requests, inline styles only, framed only by the same origin). NOT_FOUND for a text-message channel or no released version.",
+        "tags": [
+          "notifications"
+        ],
+        "parameters": [
+          {
+            "name": "messageKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$",
+              "maxLength": 80
+            }
+          },
+          {
+            "name": "channel",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "email",
+                "sms"
+              ]
+            }
+          },
+          {
+            "name": "locale",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "en",
+                "es"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.release_draft",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "message_template_preview",
+            "limit": 120,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/message-templates.test.ts"
         }
       }
     },
@@ -67135,7 +68507,10 @@
                       "type": "string"
                     },
                     "timeZone": {
-                      "type": "string"
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "coverage": {
                       "type": "object",
@@ -68870,7 +70245,10 @@
                       "type": "string"
                     },
                     "timeZone": {
-                      "type": "string"
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "coverage": {
                       "type": "object",
@@ -70494,6 +71872,8 @@
                     "addressVersion",
                     "propertyType",
                     "timeZone",
+                    "zone",
+                    "zoneHistory",
                     "coverage",
                     "coverageReason",
                     "countyVerification",
@@ -70551,7 +71931,150 @@
                       "type": "string"
                     },
                     "timeZone": {
-                      "type": "string"
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "zone": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "zone",
+                        "status",
+                        "basis",
+                        "family",
+                        "counties",
+                        "version"
+                      ],
+                      "properties": {
+                        "zone": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "unknown",
+                            "derived",
+                            "verified"
+                          ]
+                        },
+                        "basis": {
+                          "type": "string",
+                          "enum": [
+                            "zip_counties",
+                            "verified_county",
+                            "no_zip_rule",
+                            "zip_outside_area",
+                            "zip_boundary",
+                            "county_map_not_configured",
+                            "county_not_mapped",
+                            "counties_disagree",
+                            "assumption_withdrawn"
+                          ]
+                        },
+                        "family": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "eastern",
+                            "central",
+                            null
+                          ]
+                        },
+                        "counties": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "version": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "zoneHistory": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "version",
+                          "zone",
+                          "status",
+                          "basis",
+                          "counties",
+                          "previousZone",
+                          "reason",
+                          "by",
+                          "at"
+                        ],
+                        "properties": {
+                          "version": {
+                            "type": "integer"
+                          },
+                          "zone": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "basis": {
+                            "type": "string"
+                          },
+                          "counties": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "previousZone": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "by": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "at": {
+                            "type": "string"
+                          }
+                        }
+                      }
                     },
                     "coverage": {
                       "type": "string"
@@ -71150,7 +72673,8 @@
                         "edit",
                         "setAccessCodes",
                         "revealAccessCodes",
-                        "verifyCounty"
+                        "verifyCounty",
+                        "verifyTimeZone"
                       ],
                       "properties": {
                         "edit": {
@@ -71163,6 +72687,9 @@
                           "type": "boolean"
                         },
                         "verifyCounty": {
+                          "type": "boolean"
+                        },
+                        "verifyTimeZone": {
                           "type": "boolean"
                         }
                       }
@@ -73364,6 +74891,232 @@
         }
       }
     },
+    "/api/v1/staff/properties/{propertyId}/time-zone": {
+      "put": {
+        "operationId": "verifyPropertyTimeZone",
+        "summary": "Verify a property’s time zone",
+        "description": "TSK-0123 (OWN-DEC-159, HH-SCH-02): staff with customer.edit (Owner; Office with a reason) record the property’s IANA zone from the county of its verified address. The zone must be an Eastern or Central zone (read from the time-zone data, never a fixed offset): ZONE_NOT_SUPPORTED otherwise; when the configured county list (geo.county_time_zones) names the county with another zone, ZONE_COUNTY_MISMATCH. The zone history keeps every earlier state; the staff queue flag of an unknown zone resolves. Visits already planned keep the zone they were planned in. If-Match is the property version.",
+        "tags": [
+          "properties"
+        ],
+        "parameters": [
+          {
+            "name": "propertyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "timeZone",
+                  "county",
+                  "reason"
+                ],
+                "properties": {
+                  "timeZone": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 64,
+                    "pattern": "^[A-Za-z]+(/[A-Za-z0-9_+-]+)+$"
+                  },
+                  "county": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60,
+                    "pattern": "\\S"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "version"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "customer.edit",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "property.verify_time_zone",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/properties.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/properties/{propertyId}/type": {
       "put": {
         "operationId": "editPropertyType",
@@ -73631,6 +75384,7 @@
                 "deposit_due",
                 "visit_flagged",
                 "loadout_shortage",
+                "property_time_zone",
                 "deposit_waiver",
                 "start_work_exception",
                 "refund_request",
@@ -73760,6 +75514,7 @@
                               "deposit_due",
                               "visit_flagged",
                               "loadout_shortage",
+                              "property_time_zone",
                               "deposit_waiver",
                               "start_work_exception",
                               "refund_request",
@@ -73978,7 +75733,8 @@
                               "open_conversation",
                               "review_deposit",
                               "reassign_visit",
-                              "review_shortage"
+                              "review_shortage",
+                              "verify_time_zone"
                             ]
                           },
                           "link": {
@@ -74037,6 +75793,7 @@
                           "deposit_due",
                           "visit_flagged",
                           "loadout_shortage",
+                          "property_time_zone",
                           "deposit_waiver",
                           "start_work_exception",
                           "refund_request",
@@ -74185,6 +75942,7 @@
                 "deposit_due",
                 "visit_flagged",
                 "loadout_shortage",
+                "property_time_zone",
                 "deposit_waiver",
                 "start_work_exception",
                 "refund_request",
@@ -74314,6 +76072,7 @@
                               "deposit_due",
                               "visit_flagged",
                               "loadout_shortage",
+                              "property_time_zone",
                               "deposit_waiver",
                               "start_work_exception",
                               "refund_request",
@@ -74532,7 +76291,8 @@
                               "open_conversation",
                               "review_deposit",
                               "reassign_visit",
-                              "review_shortage"
+                              "review_shortage",
+                              "verify_time_zone"
                             ]
                           },
                           "link": {
@@ -74591,6 +76351,7 @@
                           "deposit_due",
                           "visit_flagged",
                           "loadout_shortage",
+                          "property_time_zone",
                           "deposit_waiver",
                           "start_work_exception",
                           "refund_request",
@@ -85230,6 +86991,8 @@
                               "retention.safety_records",
                               "scheduling.window_offers",
                               "visit.on_my_way",
+                              "geo.county_time_zones",
+                              "sms.unknown_zone_hours",
                               "ai.module"
                             ]
                           },
@@ -86661,7 +88424,10 @@
                       "type": "string"
                     },
                     "timeZone": {
-                      "type": "string"
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "coverage": {
                       "type": "object",
@@ -88895,7 +90661,10 @@
                       "type": "string"
                     },
                     "timeZone": {
-                      "type": "string"
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "coverage": {
                       "type": "object",
@@ -90599,7 +92368,10 @@
                       "type": "string"
                     },
                     "timeZone": {
-                      "type": "string"
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "coverage": {
                       "type": "object",
@@ -92881,7 +94653,10 @@
                       "type": "string"
                     },
                     "timeZone": {
-                      "type": "string"
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "coverage": {
                       "type": "object",
@@ -95113,7 +96888,10 @@
                       "type": "string"
                     },
                     "timeZone": {
-                      "type": "string"
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "coverage": {
                       "type": "object",
@@ -98153,7 +99931,10 @@
                       "type": "string"
                     },
                     "timeZone": {
-                      "type": "string"
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "coverage": {
                       "type": "object",
@@ -99841,7 +101622,10 @@
                       "type": "string"
                     },
                     "timeZone": {
-                      "type": "string"
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "coverage": {
                       "type": "object",

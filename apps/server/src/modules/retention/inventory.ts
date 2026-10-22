@@ -222,7 +222,7 @@ export const TABLES = {
     categories: [C, R],
   },
   'crm.contacts': {
-    holds: 'Customer contacts: name, email, phone, verification state, preferred channel',
+    holds: 'Customer contacts: name, email, phone, verification state, preferred channel, own time zone for texts',
     classes: ['contact'],
     categories: [C, R],
   },
@@ -247,7 +247,7 @@ export const TABLES = {
     categories: [R, J, A],
   },
   'crm.properties': {
-    holds: 'Service addresses and coverage result',
+    holds: 'Service addresses, coverage result and the property time zone with its verification state',
     classes: ['service_address'],
     categories: [C, R],
   },
@@ -271,6 +271,13 @@ export const TABLES = {
     classes: ['service_address'],
     categories: [C, R],
   },
+  'crm.property_time_zones': {
+    holds:
+      'Every time-zone state of a property (unknown, derived or verified), the counties it rests on and staff reasons',
+    classes: ['service_address'],
+    categories: [C, R],
+  },
+
   'crm.record_changes': {
     holds: 'Staff edits of a customer or contact, with the reason and the values before and after',
     classes: ['contact'],
@@ -558,6 +565,12 @@ export const TABLES = {
     classes: ['contact', 'technical'],
     categories: [R, J],
     vendors: ['bird', 'resend'],
+  },
+  // TSK-0119 (HH-COM-14): the retry history of a delivery, kept like the delivery it belongs to.
+  'platform.message_delivery_attempts': {
+    holds: 'Send attempts of message deliveries (retry history, metadata only)',
+    classes: ['technical'],
+    categories: [R, J],
   },
   'platform.message_delivery_events': {
     holds: 'Provider delivery statuses',

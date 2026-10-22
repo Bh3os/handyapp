@@ -32,6 +32,17 @@
 //     record went stale, the recipient changed, or the job failed) goes back to failed with that reason, and its
 //     delivery issue follows, so nothing reads queued for good;
 //   - a delivery issue follows its record's responsible staff member when the record is reassigned.
+// - TSK-0119 (HH-COM-13, HH-COM-14, OWN-DEC-151, OWN-DEC-152 section 7, OWN-DEC-158, T74):
+//   - every send renders through the branded layout (layout.ts): an email carries the subject, the HTML and its
+//     plain-text alternative from the same released version; the template ID and layout version are recorded;
+//   - a released version that needs a variable the message's resolver does not supply yet fails as
+//     template_values_not_wired (a delivery issue staff see, never a send); a value missing for this record fails as
+//     template_values_missing and an unacceptable one (a link to a host that is not permitted, a line break in a
+//     name) as template_values_invalid, each with the variable names (never the values) in missing_variables;
+//   - links must point at the permitted hosts the sender was given (the configured public and staff origins);
+//   - the delivery records when it is due (scheduled_at), when the provider accepted it (sent_at) and the consent
+//     decision applied; every send attempt appends one row of retry history (message_delivery_attempts);
+//   - one-time codes go to the SMS provider as authentication messages (owner confirmation 2026-10-22).
 import { createHash } from 'node:crypto'
 import type { Tx } from '@handyhub/db'
 import type { StaffLocale } from '@handyhub/i18n'
@@ -46,10 +57,11 @@ import type { EmailSender, SmsSender } from '../../providers/index.js'
 import { projectReplyToken, replyAddress, type InboundAddress } from '../inbox/threading.js'
 import { openQueueItem, resolveQueueItem } from '../queue/items.js'
 import { nextContactTime } from './contact-hours.js'
-import { messageType, type Channel } from './message-types.js'
+import { LAYOUT_VERSION, TemplateValueError, TemplateValuesError } from './layout.js'
+import { messageCategory, messageType, type Channel } from './message-types.js'
 import { sendPermission } from './consent.js'
 import { automaticPolicy } from './policy.js'
-import { contentLocale, currentTemplate, renderTemplate } from './templates.js'
+import { contentLocale, currentTemplate, renderTemplate, unwiredVariables } from './templates.js'
 
 export type Destination = {
   channel: Channel
@@ -90,6 +102,11 @@ export type NotificationProviders = {
   sms: SmsSender | null
   /** TSK-0049: the receiving address of inbound email (INBOUND_EMAIL_ADDRESS); null or unset: no reply tokens. */
   replyAddress?: InboundAddress | null
+  /**
+   * TSK-0119 (HH-COM-13): the hosts links in a message may point at (the configured public and staff origins). The
+   * server's automations always pass them; only callers without a configured origin (tests) leave them unset.
+   */
+  linkHosts?: readonly string[]
 }
 
 export class RetryableDeliveryError extends Error {
@@ -152,7 +169,12 @@ type DeliveryRow = {
 export type SendResult = { state: string; errorCode: string | null }
 
 /** Error codes of a message that cannot be sent until something is configured (a template, a channel). */
-export const NOT_CONFIGURED_ERRORS: ReadonlySet<string> = new Set(['template_not_configured', 'channel_not_configured'])
+export const NOT_CONFIGURED_ERRORS: ReadonlySet<string> = new Set([
+  'template_not_configured',
+  'channel_not_configured',
+  // TSK-0119: the wording is released but the message's resolver does not supply its values yet.
+  'template_values_not_wired',
+])
 
 /**
  * The error-code prefix of a delivery whose provider outcome is not known (HH-ARC-09): the request may have reached the
@@ -205,10 +227,31 @@ async function send(
 ): Promise<SendResult> {
   const channel = row.channel as Channel
   const update = async (set: { state: string; error_code: string | null } & Record<string, unknown>) => {
-    await tx
+    const accepted =
+      set.state === 'sent' || set.state === 'delivered' || (set.state === 'queued' && set['provider_message_id'])
+    const done = await tx
       .updateTable('platform.message_deliveries')
-      .set({ ...set, attempts: sql<number>`attempts + 1`, updated_at: sql<Date>`now()` })
+      .set({
+        ...set,
+        attempts: sql<number>`attempts + 1`,
+        updated_at: sql<Date>`now()`,
+        ...(accepted ? { sent_at: sql<Date>`coalesce(sent_at, now())` } : {}),
+      })
       .where('id', '=', row.id)
+      .returning(['attempts'])
+      .executeTakeFirstOrThrow()
+    // The retry history (HH-COM-14): one row per attempt, metadata only.
+    await tx
+      .insertInto('platform.message_delivery_attempts')
+      .values({
+        delivery_id: row.id,
+        attempt: done.attempts,
+        state: set.state,
+        error_code: set.error_code,
+        provider: (set['provider'] as string | undefined) ?? null,
+        provider_message_id: (set['provider_message_id'] as string | null | undefined) ?? null,
+        template_version: (set['template_version'] as number | undefined) ?? null,
+      })
       .execute()
     // The outcome for the modules that follow customer deliveries (TSK-0043: the first-response clock), in the same
     // transaction as the new state: sent or delivered succeeded; failed (also an unknown last outcome) or suppressed failed.
@@ -230,9 +273,22 @@ async function send(
   }
   const template = await currentTemplate(tx, row.message_key, channel, row.locale as 'en' | 'es')
   if (!template) return update({ state: 'failed', error_code: 'template_not_configured' })
+  const versioned = {
+    template_version: template.version,
+    template_id: template.templateId ?? null,
+    layout_version: LAYOUT_VERSION,
+  }
+  // TSK-0119: released wording whose values the resolver does not supply yet is not wired; it never sends.
+  const unwired = unwiredVariables(template)
+  if (unwired.length)
+    return update({
+      state: 'failed',
+      error_code: 'template_values_not_wired',
+      missing_variables: unwired,
+      ...versioned,
+    })
   const sender = channel === 'email' ? providers.email : providers.sms
-  if (!sender)
-    return update({ state: 'failed', error_code: 'channel_not_configured', template_version: template.version })
+  if (!sender) return update({ state: 'failed', error_code: 'channel_not_configured', ...versioned })
   // Send-time recheck of channel permission and consent (HH-COM-05, TSK-0048): a STOP, a missing SMS opt-in or a
   // missing marketing permission suppresses the message instead of sending it.
   const permission = await sendPermission(tx, {
@@ -242,12 +298,38 @@ async function send(
     messageKey: row.message_key,
   })
   if (!permission.allowed)
-    return update({ state: 'suppressed', error_code: permission.reason, template_version: template.version })
-  let rendered: { subject: string | null; body: string }
+    return update({
+      state: 'suppressed',
+      error_code: permission.reason,
+      consent_decision: permission.reason,
+      ...versioned,
+    })
+  const decided = { ...versioned, consent_decision: 'allowed' }
+  let rendered: { subject: string | null; body: string; html: string | null }
   try {
-    rendered = renderTemplate(template, values)
-  } catch {
-    return update({ state: 'failed', error_code: 'template_values_missing', template_version: template.version })
+    const config = await loadConfig(tx)
+    const brand = config.get('business.name')
+    const contact = config.get('business.public_contact')
+    rendered = renderTemplate(template, values, {
+      brand: brand.state === 'CONFIGURED' ? brand.value.brand : 'HandyHub',
+      contact: contact.state === 'CONFIGURED' ? contact.value : null,
+      linkHosts: providers.linkHosts,
+    })
+  } catch (err) {
+    // Names only, never values (T74): what was missing or not acceptable.
+    if (err instanceof TemplateValueError)
+      return update({
+        state: 'failed',
+        error_code: 'template_values_invalid',
+        missing_variables: Object.keys(err.problems).sort(),
+        ...decided,
+      })
+    return update({
+      state: 'failed',
+      error_code: 'template_values_missing',
+      missing_variables: err instanceof TemplateValuesError ? [...err.missing] : [],
+      ...decided,
+    })
   }
   const idempotencyKey = deliveryIdempotencyKey(row.message_key, channel, row.subject_key, row.destination)
   // A customer email of a project replies to the project's token address (TSK-0049).
@@ -261,16 +343,22 @@ async function send(
           to: row.destination,
           subject: rendered.subject ?? '',
           text: rendered.body,
+          ...(rendered.html ? { html: rendered.html } : {}),
           idempotencyKey,
           ...(replyTo ? { replyTo } : {}),
         })
       : await (sender as SmsSender).send({
           to: row.destination,
           text: rendered.body,
-          category: row.audience === 'customer' ? 'transactional' : 'service',
+          category:
+            messageCategory(messageType(row.message_key)) === 'authentication'
+              ? 'authentication'
+              : row.audience === 'customer'
+                ? 'transactional'
+                : 'service',
           idempotencyKey,
         })
-  const base = { template_version: template.version, provider: sender.provider }
+  const base = { ...decided, provider: sender.provider }
   switch (outcome.outcome) {
     case 'accepted':
       return update({
@@ -365,6 +453,7 @@ async function upsertDelivery(
       variables: JSON.stringify(input.variables ?? {}),
       project_id: input.projectId ?? null,
       queued_at: input.state === 'queued' ? sql<Date>`now()` : null,
+      scheduled_at: input.state === 'queued' ? sql<Date>`now()` : null,
     })
     .onConflict((oc) => oc.doNothing())
     .returningAll()
@@ -752,15 +841,31 @@ export async function releaseDraft(
     now?: Date
   },
 ): Promise<{ runAt: Date }> {
+  const draft = await tx
+    .selectFrom('platform.message_deliveries')
+    .select(['message_key'])
+    .where('id', '=', input.deliveryId)
+    .where('state', '=', 'draft')
+    .executeTakeFirst()
+  if (!draft) throw new DraftError(`delivery ${input.deliveryId} is not a draft`)
+  // OWN-DEC-152 section 3.2: a sensitive notice (work paused) is released by the Owner only, never by other staff.
+  if (messageType(draft.message_key).ownerApproval && !input.actor.roles.includes('owner'))
+    throw new DraftError(`${draft.message_key} is released by the Owner only`)
+  const runAt = releaseTime(input.config, draft.message_key, input.now ?? new Date())
   const row = await tx
     .updateTable('platform.message_deliveries')
-    .set({ state: 'queued', released_by: input.actor.id, queued_at: sql<Date>`now()`, updated_at: sql<Date>`now()` })
+    .set({
+      state: 'queued',
+      released_by: input.actor.id,
+      queued_at: sql<Date>`now()`,
+      scheduled_at: runAt,
+      updated_at: sql<Date>`now()`,
+    })
     .where('id', '=', input.deliveryId)
     .where('state', '=', 'draft')
     .returning(['id', 'message_key', 'record_type', 'record_id', 'channel'])
     .executeTakeFirst()
   if (!row) throw new DraftError(`delivery ${input.deliveryId} is not a draft`)
-  const runAt = releaseTime(input.config, row.message_key, input.now ?? new Date())
   await scheduleJob(tx, input.automation, {
     key: row.id,
     runAt,

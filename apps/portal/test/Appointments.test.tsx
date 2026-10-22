@@ -101,7 +101,9 @@ describe('[HH-SCH-11][HH-LEAD-07] choosing an offered window', () => {
       },
     })
     open(fetchImpl)
-    const offer = await screen.findByTestId('window-offer')
+    // The first render of the file also loads the app's modules: under a loaded parallel run that alone can pass the
+    // default 1 s wait, so this first read waits longer (the assertions are unchanged).
+    const offer = await screen.findByTestId('window-offer', undefined, { timeout: 5_000 })
     expect(within(offer).getByRole('heading', { name: 'Choose a time for your estimate visit' })).toBeTruthy()
     expect(within(offer).getByTestId('offer-held').textContent).toMatch(/^These times are held for you until /)
     expect(

@@ -210,7 +210,7 @@ export const visitHoursOf = (config: Config) => {
   return h.state === 'CONFIGURED' ? { open: h.value.open, close: h.value.close } : null
 }
 
-type ProjectRow = { id: string; state: string; property_id: string; time_zone: string }
+type ProjectRow = { id: string; state: string; property_id: string; time_zone: string | null }
 
 async function lockedProject(tx: Tx, projectId: string): Promise<ProjectRow> {
   const p = await tx

@@ -25,6 +25,15 @@ function view(over: Partial<PropertyDetailView> = {}): PropertyDetailView {
     addressVersion: 2,
     propertyType: 'house',
     timeZone: 'America/Kentucky/Louisville',
+    zone: {
+      zone: 'America/Kentucky/Louisville',
+      status: 'verified',
+      basis: 'verified_county',
+      family: 'eastern',
+      counties: ['KY:Jefferson'],
+      version: 2,
+    },
+    zoneHistory: [],
     coverage: 'unknown',
     createdAt: '2026-10-20T14:00:00.000Z',
     details: [
@@ -119,7 +128,7 @@ function view(over: Partial<PropertyDetailView> = {}): PropertyDetailView {
         reason: 'The street was entered wrong',
       },
     ],
-    actions: { edit: true, setAccessCodes: true, revealAccessCodes: true },
+    actions: { edit: true, setAccessCodes: true, revealAccessCodes: true, verifyTimeZone: true },
     ...over,
   }
 }
@@ -344,7 +353,7 @@ describe('access codes in the property record (TSK-0045, HH-CRM-03, T28)', () =>
       api(
         view({
           accessCodes: { visible: false, store: 'available', items: [], removed: [] },
-          actions: { edit: false, setAccessCodes: false, revealAccessCodes: false },
+          actions: { edit: false, setAccessCodes: false, revealAccessCodes: false, verifyTimeZone: false },
         }),
       ),
     )
