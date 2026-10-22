@@ -111,16 +111,12 @@ test.describe('neutral recovery for expired or revoked access (TSK-0035)', () =>
 
     await recovery.getByLabel('Email or mobile phone').fill(email)
     await recovery.getByRole('button', { name: 'Send a new link' }).click()
+    // The neutral answer replaces the form (an unknown contact gets the same one: compared through the API below).
     await expect(recovery.getByText(DONE)).toBeVisible()
-    await recovery.getByLabel('Email or mobile phone').fill('nobody-e2e@example.test')
-    await recovery.getByRole('button', { name: 'Send a new link' }).click()
-    await expect(recovery.getByText(DONE)).toBeVisible()
+    await expect(recovery.getByLabel('Email or mobile phone')).toHaveCount(0)
     const reissues = posts.filter((p) => p.path === '/api/v1/public/access/reissue')
-    expect(reissues.map((p) => JSON.parse(p.body) as unknown)).toEqual([
-      { token: link.token, contact: email },
-      { token: link.token, contact: 'nobody-e2e@example.test' },
-    ])
-    // The same answer either way, from the API directly as well (request IDs aside).
+    expect(reissues.map((p) => JSON.parse(p.body) as unknown)).toEqual([{ token: link.token, contact: email }])
+    // The same answer for a known and an unknown contact, from the API directly.
     const answer = async (contact: string) => {
       const res = await request.post('/api/v1/public/access/reissue', { data: { token: link.token, contact } })
       return [res.status(), await res.json()]
