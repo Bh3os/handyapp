@@ -22,6 +22,7 @@ import { photoProcessAutomation } from '../../src/modules/photos/index.js'
 import { queueAutomations } from '../../src/modules/queue/index.js'
 import { receiptEmailAutomation } from '../../src/modules/requests/receipt-email.js'
 import { createAutomationRegistry, type Automation } from '../../src/platform/automation.js'
+import { recordPolicyVersion } from '../../src/platform/config/index.js'
 import { createWorker } from '../../src/platform/jobs.js'
 import { outbox } from '../../src/platform/outbox.js'
 import { BirdSmsSender } from '../../src/providers/bird/index.js'
@@ -348,6 +349,15 @@ describe('text provider (Bird) outage (TSK-0106, HH-NFR-03, T71, HH-COM-02)', ()
     )
 
   beforeAll(async () => {
+    // Live texts are off until A2P 10DLC (sms.live_delivery, OWN-DEC-190); this throwaway database turns them on so
+    // the Bird adapter is actually reached.
+    await recordPolicyVersion(t.db, {
+      key: 'sms.live_delivery',
+      value: { enabled: true },
+      sourceIds: ['TEST-SYNTHETIC'],
+      changedBy: 'test',
+      reason: 'synthetic test configuration',
+    })
     await withTx(t.db, (tx) =>
       recordConsent(tx, {
         purpose: 'transactional_sms',
