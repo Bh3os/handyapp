@@ -2,14 +2,13 @@
 // HH-DATA-04, T17, T32, T33, T34, ENT-Approval, ENT-Job, ENT-JobScopeSnapshot, ENT-SchedulingTask, OWN-DEC-103,
 // OWN-DEC-104, OWN-DEC-105, RULE-SERVER-AUTHZ, RULE-NO-INVENTED-FACTS, RULE-MONEY-CENTS). Staff, customers, requests,
 // amounts and names are synthetic (RULE-SYNTHETIC-DATA); nothing reaches a real provider.
-// No estimate terms version is recorded by the migrations: approval answers NOT CONFIGURED in every environment until
-// the owner's sign-off (OQ-TERMS-OWNER-APPROVAL). To exercise the transaction itself, some tests here record a
-// synthetic "approved and attorney-reviewed" terms version in this throwaway test database only; that is a test
-// fixture, never a statement that the owner approved anything.
+// TSK-0144: migration 0073 records the owner's sign-off of terms v1.0 (OWN-DEC-187, ESTIMATE_TERMS_V1_RECORD): approved
+// by the owner, not attorney-reviewed. The approvals here run under that record and pin v1.0. Some tests record other
+// synthetic terms states (pending, NOT CONFIGURED, another document) in this throwaway test database only.
 import { randomUUID } from 'node:crypto'
 import { loadServiceSeed, syncServices, withTx } from '@handyhub/db'
 import { createTestDatabase, type TestDatabase } from '@handyhub/db/testing'
-import { ESTIMATE_TERMS } from '@handyhub/domain/legal'
+import { ESTIMATE_TERMS, ESTIMATE_TERMS_V1_RECORD } from '@handyhub/domain/legal'
 import type { FastifyInstance } from 'fastify'
 import { sql } from 'kysely'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -41,7 +40,7 @@ let app: FastifyInstance
 const cookies = {} as Record<Person, string>
 const csrf = {} as Record<Person, string>
 
-/** Terms v1.0 as the sign-off would record it before the owner's approval: owner review pending. */
+/** Terms v1.0 as recorded before the owner's approval: owner review pending. */
 const V1_PENDING = {
   documentId: ESTIMATE_TERMS.documentId,
   status: 'owner_review_pending',
@@ -49,8 +48,8 @@ const V1_PENDING = {
   preparedOn: ESTIMATE_TERMS.preparedOn,
   contentSha256: ESTIMATE_TERMS.contentSha256,
 }
-/** A synthetic in-effect record of v1.0 for this test database only (see the header). */
-const V1_IN_EFFECT_FIXTURE = { ...V1_PENDING, status: 'approved', attorneyReviewed: true }
+/** The owner's sign-off of v1.0 as migration 0073 records it (OWN-DEC-187; see the header). */
+const V1_SIGNED_OFF = ESTIMATE_TERMS_V1_RECORD
 
 async function setConfig(key: ConfigKey, value: unknown) {
   await recordPolicyVersion(t.db, {
@@ -246,7 +245,7 @@ async function publishDraft(versionId: string, rowVersion?: number) {
  */
 let client = '2001:db8:57::1'
 let nets = 0
-async function published(terms: Record<string, unknown> = V1_IN_EFFECT_FIXTURE) {
+async function published(terms: Record<string, unknown> = V1_SIGNED_OFF) {
   client = `2001:db8:57:${++nets}::1`
   await setConfig('legal.estimate_terms', terms)
   const p = await readyRequest()
@@ -784,7 +783,7 @@ describe('[RULE-NO-INVENTED-FACTS][HH-EST-13] terms that are not in effect are n
     expect((await versionRow(e.versionId)).state).toBe('published')
   })
 
-  it('terms NOT CONFIGURED (the migrations record none) answer NOT_CONFIGURED; other terms than the current are a conflict', async () => {
+  it('terms NOT CONFIGURED answer NOT_CONFIGURED; other terms than the current are a conflict', async () => {
     const e = await published()
     const cookie = await customerCookie(e)
     const d = await detail(e, cookie)
@@ -793,18 +792,19 @@ describe('[RULE-NO-INVENTED-FACTS][HH-EST-13] terms that are not in effect are n
     expect(res.statusCode).toBe(503)
     expect(res.json()).toMatchObject({ error: { fieldErrors: [{ field: 'terms', code: 'TERMS_NOT_CONFIGURED' }] } })
     // Another terms document recorded since publishing: the version's pinned terms are no longer the current ones.
-    await setConfig('legal.estimate_terms', { ...V1_IN_EFFECT_FIXTURE, documentId: 'test-estimate-terms-2' })
+    await setConfig('legal.estimate_terms', { ...V1_SIGNED_OFF, documentId: 'test-estimate-terms-2' })
     const other = await customerPost(`${base(e)}/approve`, cookie, approvalBody(d))
     expect(other.statusCode).toBe(409)
     expect(other.json()).toMatchObject({ error: { fieldErrors: [{ field: 'terms', code: 'TERMS_NOT_CURRENT' }] } })
     expect(await counts(e.projectId)).toEqual(NOTHING)
   })
 
-  it('[RULE-NO-INVENTED-FACTS] in a fresh database the terms are NOT CONFIGURED, so no approval can succeed', async () => {
+  it('[OWN-DEC-187][RULE-NO-INVENTED-FACTS] in a fresh database the terms are the owner sign-off of v1.0, not attorney-reviewed', async () => {
     const fresh = await createTestDatabase()
     try {
       const entry = (await loadConfig(fresh.db)).get('legal.estimate_terms')
-      expect(entry.state).toBe('NOT_CONFIGURED')
+      expect(entry).toMatchObject({ state: 'CONFIGURED', version: 2, value: ESTIMATE_TERMS_V1_RECORD })
+      expect(entry.state === 'CONFIGURED' && entry.value.attorneyReviewed).toBe(false)
     } finally {
       await fresh.drop()
     }

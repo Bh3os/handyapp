@@ -440,23 +440,32 @@ describe('[HH-EST-05][HH-EST-01] publish readiness: a NOT CONFIGURED required va
     return d
   }
 
-  it('the estimate terms are NOT CONFIGURED until terms v1.0 is recorded: the complete draft is not ready', async () => {
+  it('while the estimate terms are NOT CONFIGURED the complete draft is not ready; with the v1.0 sign-off it is', async () => {
     const d = await completeDraft()
-    const v = await view('estimator', d.versionId)
-    expect(v.totals?.totalCents).toBe(133_333)
-    expect(v.readiness).toEqual({
-      ready: false,
-      problems: [
-        {
-          code: 'NOT_CONFIGURED',
-          key: 'legal.estimate_terms',
-          sourceIds: ['HH-EST-13', 'OWN-DEC-127', 'OQ-ATTORNEY-TERMS'],
-        },
-      ],
-    })
-    expect(v.document.termsDocumentId).toBeNull()
-    // The check publishing runs (TSK-0055) gives the same answer.
-    expect(await publishReadiness(t.db, d.versionId)).toEqual(v.readiness)
+    // TSK-0144: migration 0073 records the owner's sign-off of v1.0 (OWN-DEC-187): the seeded state is ready.
+    const seeded = await view('estimator', d.versionId)
+    expect(seeded.readiness).toEqual({ ready: true, problems: [] })
+    expect(seeded.document.termsDocumentId).toBe('estimate-terms-1')
+    const restore = await setConfig('legal.estimate_terms', null, ['HH-EST-13', 'OWN-DEC-127', 'OQ-ATTORNEY-TERMS'])
+    try {
+      const v = await view('estimator', d.versionId)
+      expect(v.totals?.totalCents).toBe(133_333)
+      expect(v.readiness).toEqual({
+        ready: false,
+        problems: [
+          {
+            code: 'NOT_CONFIGURED',
+            key: 'legal.estimate_terms',
+            sourceIds: ['HH-EST-13', 'OWN-DEC-127', 'OQ-ATTORNEY-TERMS'],
+          },
+        ],
+      })
+      expect(v.document.termsDocumentId).toBeNull()
+      // The check publishing runs (TSK-0055) gives the same answer.
+      expect(await publishReadiness(t.db, d.versionId)).toEqual(v.readiness)
+    } finally {
+      await restore()
+    }
   })
 
   it('[T58][FACT-BUSINESS-ADDRESS] with the terms in place it is ready; the missing mailing address omits the line and blocks nothing', async () => {
@@ -539,14 +548,7 @@ describe('[HH-EST-05][HH-EST-01] publish readiness: a NOT CONFIGURED required va
       await restoreTerms()
     }
     // With the rule back, the totals saved under the missing rule are outdated until saved again.
-    expect((await view('estimator', d.versionId)).readiness.problems).toEqual([
-      {
-        code: 'NOT_CONFIGURED',
-        key: 'legal.estimate_terms',
-        sourceIds: ['HH-EST-13', 'OWN-DEC-127', 'OQ-ATTORNEY-TERMS'],
-      },
-      { code: 'TOTALS_OUTDATED' },
-    ])
+    expect((await view('estimator', d.versionId)).readiness.problems).toEqual([{ code: 'TOTALS_OUTDATED' }])
   })
 })
 

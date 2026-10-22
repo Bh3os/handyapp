@@ -779,6 +779,7 @@ export const LABEL_FAMILIES = {
     'appointment_reminder',
     'approval_receipt',
     'automation',
+    'business_settings',
     'check',
     'contact_verification',
     'coverage',

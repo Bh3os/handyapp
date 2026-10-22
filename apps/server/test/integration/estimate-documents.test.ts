@@ -72,6 +72,16 @@ beforeAll(async () => {
     }
   })
   for (const p of PEOPLE) [cookies[p], csrf[p]] = await signIn(p)
+  // TSK-0144: migration 0073 records the owner's sign-off of terms v1.0. This file exercises readiness and the customer
+  // PDF while the terms are missing, so its throwaway database records them NOT CONFIGURED; tests that need terms
+  // record the synthetic TEST_TERMS and restore this state.
+  await recordPolicyVersion(t.db, {
+    key: 'legal.estimate_terms',
+    value: null,
+    sourceIds: ['HH-EST-13', 'OWN-DEC-127', 'OQ-ATTORNEY-TERMS'],
+    changedBy: 'test',
+    reason: 'synthetic test state: terms NOT CONFIGURED',
+  })
 })
 afterAll(async () => {
   await app?.close()
@@ -834,5 +844,27 @@ describe('[HH-EST-11][HH-EST-03] the customer PDF', () => {
         statusCode: 404,
       },
     )
+  })
+
+  it('[HH-FIN-04][T58][OWN-DEC-183] prints the mailing address once the Owner has entered it (TSK-0144)', async () => {
+    // A synthetic placeholder address (RULE-SYNTHETIC-DATA): the real one is the Owner's own entry on staging.
+    const lines = ['SYNTHETIC-TEST-ADDRESS line one', 'SYNTHETIC-TEST-ADDRESS line two']
+    const e = await newEstimate('written')
+    const restore = await setConfig('business.mailing_address', { lines })
+    try {
+      const input = await customerPdfInput(t.db, e.versionId, { testMark: true })
+      if (!input) throw new Error('the version exists')
+      expect(input.mailingAddress).toEqual(lines)
+      const text = pdfText(await renderCustomerPdf(input, { compress: false }))
+      expect(text).toContain('Address')
+      expect(text.join('\n')).toContain(lines.join(', '))
+      // The staff preview shows the same issuer details.
+      const staffView = await get('estimator', `/api/v1/staff/estimate-versions/${e.versionId}`)
+      expect(staffView.json<{ document: unknown }>().document).toMatchObject({ mailingAddress: lines })
+    } finally {
+      await restore()
+    }
+    const after = await customerPdfInput(t.db, e.versionId, { testMark: true })
+    expect(after?.mailingAddress).toBeNull()
   })
 })

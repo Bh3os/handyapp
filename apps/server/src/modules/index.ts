@@ -8,6 +8,7 @@ import { COVERAGE_MODULE } from './coverage/index.js'
 import type { EnvironmentName } from '../config.js'
 import { estimatesModule } from './estimates/index.js'
 import { APPROVALS_MODULE } from './approvals/index.js'
+import { BUSINESS_MODULE } from './business/index.js'
 import { CUSTOMERS_MODULE } from './customers/index.js'
 import { inboxModule } from './inbox/index.js'
 import { loadoutsModule } from './loadouts/index.js'
@@ -76,6 +77,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     estimatesModule({ storage: deps.storage ?? null, testMark: deps.environment !== 'production' }),
     // TSK-0130: the Owner's approval before publishing over the threshold, its queue and the threshold setting.
     APPROVALS_MODULE,
+    // TSK-0144: Business settings (the mailing address the Owner enters) and the legal documents with their sign-off.
+    BUSINESS_MODULE,
     // TSK-0059: the deposit requirement, recorded deposit payments, the Owner's waiver (the gate is called by visits).
     FINANCE_MODULE,
     NOTIFICATIONS_MODULE,

@@ -10,6 +10,7 @@ import { AuditLogScreen } from './AuditLog'
 import { MessagesScreen } from './Messages'
 import { EstimatePublishingSetting } from './EstimateLifecycle'
 import { ApprovalThresholdSetting } from './OwnerApproval'
+import { LegalDocumentsView, MailingAddressSetting } from './BusinessSettings'
 import { EstimateBuilder, EstimatesScreen } from './Estimates'
 import { CustomerRecord, CustomersScreen } from './Customers'
 import { InboxRecord, InboxScreen } from './Inbox'
@@ -264,6 +265,12 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
                 fetchImpl={doFetch}
                 onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
               />
+              <MailingAddressSetting
+                t={t}
+                fetchImpl={doFetch}
+                onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
+              />
+              <LegalDocumentsView t={t} fetchImpl={doFetch} />
             </>
           ) : route.page === 'screen' && shown === 'staff' && allowed ? (
             <StaffScreen

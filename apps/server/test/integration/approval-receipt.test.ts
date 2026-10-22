@@ -464,6 +464,18 @@ describe('[HH-EST-12][T33][FACT-AUTOMATIC-MESSAGES] the approval receipt: one PD
       expect(text).toContain(s)
     // No mailing address is configured, so there is no address line; nothing is invented (FACT-BUSINESS-ADDRESS).
     expect(text).not.toContain('"Address"')
+    // TSK-0144 (HH-FIN-04, OWN-DEC-183): once the Owner has entered it, a receipt prints it. A synthetic placeholder here.
+    const lines = ['SYNTHETIC-TEST-ADDRESS line one', 'SYNTHETIC-TEST-ADDRESS line two']
+    await setConfig('business.mailing_address', { lines })
+    try {
+      const withAddress = await approvalReceiptInput(t.db, approval.id)
+      expect(withAddress?.mailingAddress).toEqual(lines)
+      const printed = JSON.stringify(approvalReceiptModel(withAddress as NonNullable<typeof withAddress>))
+      expect(printed).toContain('"Address"')
+      expect(printed).toContain(lines.join(', '))
+    } finally {
+      await setConfig('business.mailing_address', null)
+    }
 
     // The customer reads it through verified project access: a short-lived signed link, and Documents says issued.
     const after = await detail(e, cookie)

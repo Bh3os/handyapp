@@ -39,7 +39,7 @@ const cookies = {} as Record<Person, string>
 const csrf = {} as Record<Person, string>
 const staff = {} as Record<Person, StaffActor>
 
-/** Terms v1.0 as the owner's legal-document sign-off would record it: owner review pending, not attorney-reviewed. */
+/** Terms v1.0 as recorded before the owner's sign-off (OWN-DEC-187): owner review pending, not attorney-reviewed. */
 const V1_RECORDED = {
   documentId: ESTIMATE_TERMS.documentId,
   status: 'owner_review_pending',
@@ -313,19 +313,23 @@ describe('[HH-EST-13][OWN-DEC-127] estimate terms v1.0 as a versioned document o
       depositPercent: deposit.value.percentBps / 100,
       reopenDays: reopen.value.days,
     })
-    // Not in effect until the owner approves the wording (OQ-TERMS-OWNER-APPROVAL); nothing activates it here.
-    expect(ESTIMATE_TERMS).toMatchObject({ status: 'owner_review_pending', attorneyReviewed: false })
+    // TSK-0144: approved by the owner (OWN-DEC-187), still not attorney-reviewed; the wording and hash are unchanged.
+    expect(ESTIMATE_TERMS).toMatchObject({ status: 'approved', attorneyReviewed: false, attorneyReviewRequired: false })
   })
 
-  it('[RULE-NO-INVENTED-FACTS] the migrations record no terms version: the key stays NOT CONFIGURED', async () => {
+  it('[OWN-DEC-187][RULE-NO-INVENTED-FACTS] the migrations record only the owner sign-off of v1.0 (migration 0073)', async () => {
     const fresh = await createTestDatabase()
     try {
       const rows = await fresh.db
         .selectFrom('platform.policy_version')
-        .select(['version', 'state', 'status'])
+        .select(['version', 'state', 'status', 'changed_by'])
         .where('key', '=', 'legal.estimate_terms')
+        .orderBy('version')
         .execute()
-      expect(rows).toEqual([{ version: 1, state: 'not_configured', status: 'active' }])
+      expect(rows).toEqual([
+        { version: 1, state: 'not_configured', status: 'superseded', changed_by: 'migration:0028' },
+        { version: 2, state: 'configured', status: 'active', changed_by: 'migration:0073' },
+      ])
     } finally {
       await fresh.drop()
     }

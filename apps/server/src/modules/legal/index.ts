@@ -3,7 +3,7 @@
 // the page presented; only a version that exists (current or superseded) can be saved, so a record never names a
 // document that was never published.
 import type { Db, Tx } from '@handyhub/db'
-import type { LegalConfigKey } from '@handyhub/domain/legal'
+import type { EstimateTermsOwnerSignOff, LegalConfigKey } from '@handyhub/domain/legal'
 import { parseValue } from '../../platform/config/keys.js'
 
 export type LegalVersion = {
@@ -15,13 +15,17 @@ export type LegalVersion = {
   /** TSK-0056: whether an attorney reviewed the version, and the SHA-256 of the exact wording it records. */
   attorneyReviewed: boolean
   contentSha256: string
+  /** TSK-0144: the owner's sign-off recorded on an estimate terms version (OWN-DEC-187); null for every other one. */
+  ownerSignOff: EstimateTermsOwnerSignOff | null
+  /** When the version became the active one (its effective time). */
+  effectiveFrom: Date
 }
 
 /** Every published version of a legal document, newest first. */
 export async function legalVersions(db: Db | Tx, key: LegalConfigKey): Promise<LegalVersion[]> {
   const rows = await db
     .selectFrom('platform.policy_version')
-    .select(['version', 'value', 'status'])
+    .select(['version', 'value', 'status', 'effective_from'])
     .where('key', '=', key)
     .where('state', '=', 'configured')
     .orderBy('version', 'desc')
@@ -36,6 +40,8 @@ export async function legalVersions(db: Db | Tx, key: LegalConfigKey): Promise<L
       active: r.status === 'active',
       attorneyReviewed: value.attorneyReviewed,
       contentSha256: value.contentSha256,
+      ownerSignOff: 'ownerSignOff' in value && value.ownerSignOff ? value.ownerSignOff : null,
+      effectiveFrom: r.effective_from,
     }
   })
 }
