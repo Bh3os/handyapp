@@ -131,6 +131,8 @@ export function refusalText(t: T, err: ApiErrorBody): string[] {
         problem: codeLabel(t, 'estimateProblem', f.code),
       })
     if (f.field === 'readiness') return codeLabel(t, 'estimateProblem', f.code)
+    // TSK-0130: why publishing waits for the Owner.
+    if (f.field === 'ownerApproval.reasons') return codeLabel(t, 'publicationApprovalReason', f.code)
     return codeLabel(t, 'estimateRefusal', f.code)
   })
 }
