@@ -12,6 +12,7 @@ import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { ESTIMATE_TERMS_V1_RECORD } from '@handyhub/domain/legal'
 import { expect, test, type Page } from '@playwright/test'
+import { passSecondFactor } from '../mfa.js'
 
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const databaseUrl = process.env['E2E_DATABASE_URL']
@@ -54,6 +55,8 @@ async function signIn(page: Page, email: string, password: string) {
   await page.getByLabel('Email').fill(email)
   await page.getByLabel('Password', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Sign in' }).click()
+  // Staff MFA is mandatory (TSK-0154, OWN-DEC-202): the first sign-in enrols the authenticator.
+  await passSecondFactor(page)
   await expect(page.getByRole('heading', { level: 1, name: 'Action queue' })).toBeVisible()
 }
 

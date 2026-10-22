@@ -23,6 +23,7 @@ import { createStaffUser, setPasswordHash } from '../../src/modules/identity/acc
 import { hashPassword } from '../../src/modules/identity/passwords.js'
 import { loadConfig, parseValue, policyVersion } from '../../src/platform/config/index.js'
 import { testConfig } from '../fixtures/env.js'
+import { signInWithMfa } from '../fixtures/staff-mfa.js'
 
 const pw = (n: number) => ['synthetic', 'business', 'settings', 'passphrase', String(n)].join(' ')
 const PEOPLE = ['owner', 'office', 'estimator', 'worker'] as const
@@ -38,7 +39,8 @@ const ids = {} as Record<Person, string>
 let staleOwner: [string, string]
 
 async function signIn(p: Person): Promise<[string, string]> {
-  const res = await app.inject({
+  // Staff MFA is mandatory (TSK-0154, OWN-DEC-202): the helper enrols or answers the second factor.
+  const res = await signInWithMfa(app, {
     method: 'POST',
     url: '/api/v1/staff/auth/sign-in',
     payload: { email: `${p}-business@example.test`, password: pw(1) },
