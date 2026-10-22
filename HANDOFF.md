@@ -19,26 +19,27 @@ Written 2026-10-22 when the long cloud build session ended, so work can continue
 
 ### Pull requests from this session (#72 to the end)
 
-| PR | Task | What |
-| --- | --- | --- |
-| #72 | TSK-0143 | Review packets for the attorney, CPA, insurance broker and safety reviewer (`docs/review-packets/`) |
-| #73 | TSK-0070/0071/0072 | Worker My Day, loadouts, packet acknowledgments |
-| #74 | kg | Owner's final decisions 2026-10-22 (OWN-DEC-202..212), Business Rules Registry |
-| #75 | TSK-0130 | Owner approval before publishing over $2,500.00 |
-| #76 | TSK-0123 | Time-zone policy |
-| #77 | TSK-0127 | Service-area ZIP dataset and SERVED / EDGE / OUTSIDE / UNKNOWN coverage |
-| #78 | TSK-0141 | Staging-only Reset Test Data |
-| #79 | TSK-0119 | Messaging core: 28 owner templates, variables, branded layout, message states |
-| #80 | fix | Docker build context keeps source folders named coverage |
-| #81 | TSK-0112 | Staging-only `EMAIL_PROVIDER=log` (invite/reset links readable in the private log) |
-| #82 | TSK-0154 | Mandatory MFA for every active staff account |
-| #83 | TSK-0144 | Business mailing address setting; owner sign-off of estimate terms v1.0 |
-| #84 | TSK-0120 | Automatic email delivery for released customer and staff messages |
-| #85 | fix | Revealed access code hides when the tab is hidden |
-| #86 | TSK-0073/0074 | Server-side Start Work gate, hard holds, three owner-approved exceptions |
-| #87 | fix | kg index written atomically |
-| #88 | TSK-0121/0122 | Automatic routine reminders and delivery hours |
-| #89 | TSK-0142 | Owner Acceptance Testing: test accounts, journey checklist, launch-phase switches |
+| PR  | Task               | What                                                                                                |
+| --- | ------------------ | --------------------------------------------------------------------------------------------------- |
+| #72 | TSK-0143           | Review packets for the attorney, CPA, insurance broker and safety reviewer (`docs/review-packets/`) |
+| #73 | TSK-0070/0071/0072 | Worker My Day, loadouts, packet acknowledgments                                                     |
+| #74 | kg                 | Owner's final decisions 2026-10-22 (OWN-DEC-202..212), Business Rules Registry                      |
+| #75 | TSK-0130           | Owner approval before publishing over $2,500.00                                                     |
+| #76 | TSK-0123           | Time-zone policy                                                                                    |
+| #77 | TSK-0127           | Service-area ZIP dataset and SERVED / EDGE / OUTSIDE / UNKNOWN coverage                             |
+| #78 | TSK-0141           | Staging-only Reset Test Data                                                                        |
+| #79 | TSK-0119           | Messaging core: 28 owner templates, variables, branded layout, message states                       |
+| #80 | fix                | Docker build context keeps source folders named coverage                                            |
+| #81 | TSK-0112           | Staging-only `EMAIL_PROVIDER=log` (invite/reset links readable in the private log)                  |
+| #82 | TSK-0154           | Mandatory MFA for every active staff account                                                        |
+| #83 | TSK-0144           | Business mailing address setting; owner sign-off of estimate terms v1.0                             |
+| #84 | TSK-0120           | Automatic email delivery for released customer and staff messages                                   |
+| #85 | fix                | Revealed access code hides when the tab is hidden                                                   |
+| #86 | TSK-0073/0074      | Server-side Start Work gate, hard holds, three owner-approved exceptions                            |
+| #87 | fix                | kg index written atomically                                                                         |
+| #88 | TSK-0121/0122      | Automatic routine reminders and delivery hours                                                      |
+| #89 | TSK-0142           | Owner Acceptance Testing: test accounts, journey checklist, launch-phase switches                   |
+
 <!-- LATE-PRS -->
 
 ## 2. What is left
@@ -82,12 +83,12 @@ full run.
 
 ### Generated files: regenerate them, never edit by hand
 
-| File | Command |
-| --- | --- |
-| `apps/server/openapi.json` | `pnpm openapi` |
-| `packages/db/src/schema.ts` | `pnpm db:types` (after adding a migration) |
-| data inventory | `pnpm data-inventory` |
-| `kg/_index.json`, maps | `node tools/kg.mjs index && node tools/kg.mjs lint` (lint must say 0 problems) |
+| File                        | Command                                                                        |
+| --------------------------- | ------------------------------------------------------------------------------ |
+| `apps/server/openapi.json`  | `pnpm openapi`                                                                 |
+| `packages/db/src/schema.ts` | `pnpm db:types` (after adding a migration)                                     |
+| data inventory              | `pnpm data-inventory`                                                          |
+| `kg/_index.json`, maps      | `node tools/kg.mjs index && node tools/kg.mjs lint` (lint must say 0 problems) |
 
 ## 4. Rules that cost time when ignored
 
@@ -162,7 +163,7 @@ full run.
 - Payment instructions on invoices are placeholders. Real Zelle, Cash App and Chime handles and the check payee are
   still needed (OQ-PAYMENT-HANDLES) (#90).
 - Legal entity name on invoices: "Handyhub LLC" versus the registered entity (OQ-LEGAL-ENTITY-NAME).
-- Fresh authentication: currently a password *or* a current TOTP code. Whether to require both is the owner's call
+- Fresh authentication: currently a password _or_ a current TOTP code. Whether to require both is the owner's call
   (#82).
 - Splitting rule for owner approval: do other projects of the same customer or property count?
   (OQ-OWNER-APPROVAL-DETAILS) (#75).
