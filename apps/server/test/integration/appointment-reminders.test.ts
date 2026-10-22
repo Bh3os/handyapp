@@ -12,6 +12,7 @@ import { createDb, loadServiceSeed, syncServices, withTx, type Db } from '@handy
 import { createTestDatabase, type TestDatabase } from '@handyhub/db/testing'
 import { addLocalDays, localDateOf } from '@handyhub/domain'
 import { ESTIMATE_TERMS } from '@handyhub/domain/legal'
+import type { StaffActor } from '@handyhub/policy'
 import type { FastifyInstance } from 'fastify'
 import { sql } from 'kysely'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -22,6 +23,7 @@ import { startCustomerSession } from '../../src/modules/identity/customer-sessio
 import { readCodeKey, type CodeKeySettings } from '../../src/modules/identity/index.js'
 import { hashPassword } from '../../src/modules/identity/passwords.js'
 import { nextContactTime, releaseAutomation } from '../../src/modules/notifications/index.js'
+import { recordTap } from '../../src/modules/field/taps.js'
 import { customerPlan, reapplyDeletions } from '../../src/modules/privacy/index.js'
 import {
   appointmentReminderAutomations,
@@ -672,6 +674,36 @@ describe('[HH-COM-11][HH-COM-09][T65] staff release; it sends inside the contact
     const [after] = await reminders(v.id)
     expect([after?.state, after?.error_code, after?.cancelled_by]).toEqual(['cancelled', 'visit_no_access', 'system'])
     expect((await itemsOf('appointment_reminder', v.id))[0]?.resolution).toBe('visit_no_access')
+    expect(codes((await releaseIt(row.id)).body)).toEqual([['reminder', 'REMINDER_NOT_DRAFT']])
+  })
+
+  it('[HH-COM-11][HH-SCH-08][T65] On my way (TSK-0070) cancels the waiting reminder in its own transaction, audited, and resolves its queue item', async () => {
+    const { v, row } = await drafted()
+    const visit = await t.db
+      .selectFrom('work.visits')
+      .select(['starts_at'])
+      .where('id', '=', v.id)
+      .executeTakeFirstOrThrow()
+    // The tap's own transaction, an hour before the window (the On my way rule allows three hours, OWN-DEC-107).
+    const ann: StaffActor = {
+      kind: 'staff',
+      userId: ids.ann,
+      roles: ['worker'],
+      capabilities: [],
+      status: 'active',
+      freshAuth: false,
+    }
+    const tapped = await withTx(t.db, (tx) =>
+      recordTap(tx, ann, v.id, 'on_my_way', {}, new Date(new Date(visit.starts_at).getTime() - 60 * 60_000)),
+    )
+    expect(tapped).toMatchObject({ recorded: true, toState: 'en_route', moved: true })
+    const [after] = await reminders(v.id)
+    expect([after?.state, after?.error_code, after?.cancelled_by]).toEqual(['cancelled', 'visit_en_route', 'system'])
+    // Cancelled by the application with its audit entry, not only by the database backstop (migration 0060).
+    expect((await auditOf('appointment_reminder.stop', row.id)).map((a) => a.summary)).toEqual([
+      expect.objectContaining({ messageKey: MESSAGE, reason: 'visit_en_route' }),
+    ])
+    expect((await itemsOf('appointment_reminder', v.id))[0]?.resolved_at).not.toBeNull()
     expect(codes((await releaseIt(row.id)).body)).toEqual([['reminder', 'REMINDER_NOT_DRAFT']])
   })
 
