@@ -141,7 +141,13 @@ export function lifecycleRoutes(deps: LifecycleDeps): RouteDef[] {
         tx,
         actor,
         versionId,
-        { storage: deps.storage, testMark: deps.testMark, expiry },
+        {
+          storage: deps.storage,
+          testMark: deps.testMark,
+          expiry,
+          // TSK-0130 (OWN-DEC-204): the Owner's own publication counts as approval only after the second factor.
+          secondFactor: ctx.req.staffSession?.state === 'complete' && ctx.req.staffSession.mfaEnrolled === true,
+        },
         { expectedRowVersion: ctx.expectedVersion() },
       )
       const view = await builderView(tx, actor, versionId)

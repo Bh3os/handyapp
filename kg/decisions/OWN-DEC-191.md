@@ -6,7 +6,7 @@ status: active
 area: ops
 links:
   constrained_by: ["[[RULE-SYNTHETIC-DATA]]", "[[RULE-SERVER-AUTHZ]]"]
-  related: ["[[OWN-DEC-22]]", "[[OWN-DEC-181]]", "[[OQ-GO-DECISION]]", "[[HH-OPS-05]]", "[[HH-OPS-06]]"]
+  related: ["[[OWN-DEC-22]]", "[[OWN-DEC-181]]", "[[OQ-GO-DECISION]]", "[[HH-OPS-05]]", "[[HH-OPS-06]]", "[[OWN-DEC-212]]"]
 source: "owner answers 2026-10-21 R11-Q2"
 ---
 Owner answer (round 11, question 2), option chosen "Invited customers first (Recommended)", with a mandatory Owner Acceptance Testing phase before any real customer is invited:
@@ -157,3 +157,5 @@ Effect:
 - Phase 3, public launch: after the owner approves phase 2; public site and request form open, indexing, SEO and service-area pages on, domain, TLS, sign-in, forms and notifications verified; production SMS only after A2P 10DLC approval ([[OWN-DEC-190]]); monitoring.
 - Already authorized implementation tasks need no further approvals; moving to phase 2 or 3 needs the owner's explicit approval (production releases stay with the owner, [[OWN-DEC-22]]); staging and production stay strictly separate; manual accessibility testing stays UNVERIFIED ([[OWN-DEC-181]]); critical blockers and optional improvements are reported separately; Reset Test Data is deployed and verified before the journey is handed over.
 - Prerequisite: staging runs this repository ([[TSK-0112]]). Each phase decision remains [[OQ-GO-DECISION]]. Built by [[TSK-0141]], [[TSK-0142]] and [[TSK-0111]].
+
+**Retained by [[OWN-DEC-212]] (2026-10-22):** protected staging and Owner Acceptance Testing come before inviting any customer; merges also need security, migration and interaction review beyond CI, and passing CI alone never establishes production readiness.

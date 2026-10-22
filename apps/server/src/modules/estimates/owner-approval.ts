@@ -35,6 +35,7 @@ import {
   requestApproval,
   type ApprovalSubject,
   type GateResult,
+  type PublisherAuthentication,
 } from '../approvals/service.js'
 
 type Reader = Db | Tx
@@ -223,11 +224,12 @@ export async function estimatePublicationGate(
   versionId: string,
   projectId: string,
   config: Config,
+  authentication: PublisherAuthentication,
 ): Promise<GateResult> {
   await lockProjectPublications(tx, projectId)
   const e = await evaluateEstimateVersion(tx, versionId, config)
   if (!e?.subject || !e.evaluation) throw new Error('the publication gate runs only on a version with its totals')
-  return publicationGate(tx, actor, e.subject, e.evaluation)
+  return publicationGate(tx, actor, e.subject, e.evaluation, authentication)
 }
 
 /**

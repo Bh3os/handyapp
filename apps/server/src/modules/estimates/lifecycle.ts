@@ -189,6 +189,11 @@ export type PublishDeps = {
   testMark: boolean
   /** The schedule automation of the validity expiry (estimateExpiryAutomation). */
   expiry: Automation
+  /**
+   * TSK-0130 (OWN-DEC-204, OWN-DEC-202): whether the publisher's session completed the second factor; the Owner's own
+   * publication over the threshold counts as the approval only then. Unset: not completed.
+   */
+  secondFactor?: boolean
 }
 
 export type PublishResult = {
@@ -238,7 +243,9 @@ export async function publishVersion(
   if (!deps.storage) throw new ApiError('NOT_CONFIGURED', { fieldErrors: [field('storage', 'STORAGE_NOT_CONFIGURED')] })
   // TSK-0130 (HH-EST-16, OWN-DEC-173): over the Owner approval threshold, or flagged, only with the Owner's approval
   // of this exact content; the Owner's own publication is the approval (PROPOSED). Under the project's publication lock.
-  const gate = await estimatePublicationGate(tx, actor, versionId, row.project_id, config)
+  const gate = await estimatePublicationGate(tx, actor, versionId, row.project_id, config, {
+    secondFactor: deps.secondFactor === true,
+  })
   // Readiness passed, so these values are configured; read them from the same snapshot.
   const validity = config.get('estimate.validity')
   const terms = config.get('legal.estimate_terms')

@@ -94,6 +94,10 @@ export const CUSTOMER_TIMELINE_KINDS = [
   'not_a_fit',
   // TSK-0051 (OWN-DEC-101): staff closed the request "Closed—no response".
   'closed_no_response',
+  // TSK-0070 (HH-PORT-07): an assigned worker's recorded "On my way" and the first recorded "Arrived" of a visit, only
+  // once recorded; never an ETA, a location or a worker's name.
+  'on_the_way',
+  'arrived',
 ] as const
 export type CustomerTimelineKind = (typeof CUSTOMER_TIMELINE_KINDS)[number]
 

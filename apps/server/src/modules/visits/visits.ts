@@ -898,6 +898,8 @@ export async function projectVisits(
         job !== undefined &&
         (WORK_VISIT_PROJECT_STATES as readonly string[]).includes(project.state),
     },
+    // TSK-0070 (HH-WORK-06): the Owner opens each started visit's Arrived and Finished times.
+    visitTimes: holdsAction(actor, 'visit.correct_timestamps'),
     visits: visits.map((v) => ({
       id: v.id,
       number: v.number,

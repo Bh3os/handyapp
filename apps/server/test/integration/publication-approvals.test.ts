@@ -9,6 +9,7 @@ import { sql } from 'kysely'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildApp } from '../../src/app.js'
 import { createStaffUser, setPasswordHash } from '../../src/modules/identity/accounts.js'
+import { currentCode } from '../../src/modules/identity/mfa.js'
 import { hashPassword } from '../../src/modules/identity/passwords.js'
 import { loadConfig, recordPolicyVersion, type ConfigKey } from '../../src/platform/config/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
@@ -16,6 +17,7 @@ import { testConfig } from '../fixtures/env.js'
 
 const pw = (n: number) => ['synthetic', 'approval', 'passphrase', 'number', String(n)].join(' ')
 const PEOPLE = ['owner', 'office', 'estimator', 'worker'] as const
+const MFA_KEY = ['synthetic', 'mfa', 'sealing', 'key', 'for', 'approval', 'tests'].join('-')
 type Person = (typeof PEOPLE)[number]
 
 let t: TestDatabase
@@ -58,7 +60,10 @@ async function setConfig(key: ConfigKey, value: unknown, sourceIds = ['TEST-SYNT
 beforeAll(async () => {
   t = await createTestDatabase()
   await syncServices(t.db, loadServiceSeed())
-  app = await buildApp({ config: testConfig({ TRUST_PROXY_HOPS: '1' }), api: { db: t.db, storage } })
+  app = await buildApp({
+    config: testConfig({ TRUST_PROXY_HOPS: '1', MFA_ENCRYPTION_KEY: MFA_KEY }),
+    api: { db: t.db, storage },
+  })
   const hash = await hashPassword(pw(1))
   await withTx(t.db, async (tx) => {
     for (const p of PEOPLE) {
@@ -96,6 +101,26 @@ function write(who: Person, method: 'POST' | 'PUT', url: string, payload: unknow
       ...(version === undefined ? {} : { 'if-match': `"${version}"` }),
     },
   })
+}
+
+/**
+ * The Owner enrols an authenticator (TSK-0015) after a fresh password entry; the confirming session has completed the
+ * second factor (OWN-DEC-202), which the Owner's own publication over the threshold needs (OWN-DEC-204).
+ */
+async function ownerSecondFactor() {
+  const reauth = await write('owner', 'POST', '/api/v1/staff/auth/reauth', { password: pw(1) })
+  expect(reauth.statusCode).toBe(200)
+  cookies.owner = String(reauth.headers['set-cookie']).split(';')[0] as string
+  csrf.owner = reauth.json<{ csrfToken: string }>().csrfToken
+  const started = await write('owner', 'POST', '/api/v1/staff/auth/mfa/enroll', undefined)
+  expect(started.statusCode).toBe(200)
+  const secret = started.json<{ secret: string }>().secret
+  const confirmed = await write('owner', 'POST', '/api/v1/staff/auth/mfa/confirm', { code: currentCode(secret) })
+  expect(confirmed.statusCode).toBe(200)
+  cookies.owner = String(confirmed.headers['set-cookie']).split(';')[0] as string
+  const session = await get('owner', '/api/v1/staff/auth/session')
+  expect(session.json()).toMatchObject({ mfaEnrolled: true })
+  csrf.owner = session.json<{ csrfToken: string }>().csrfToken
 }
 
 const ALL_OK = Object.fromEntries(
@@ -510,6 +535,12 @@ describe("[HH-EST-16] the Owner's own publication counts as approval, with its e
       status: 'required',
       actions: { request: false, decide: false, publishApproves: true },
     })
+    // OWN-DEC-204: without the second factor the Owner's publication is no approval evidence, and nothing changes.
+    const refused = await publish('owner', d.versionId, d.view.rowVersion)
+    expect(refused.statusCode).toBe(403)
+    expect(codes(refused)).toEqual([['ownerApproval', 'OWNER_MFA_REQUIRED']])
+    expect(await stateOf(d.versionId)).toBe('draft')
+    await ownerSecondFactor()
     const res = await publish('owner', d.versionId, d.view.rowVersion)
     expect(res.statusCode).toBe(200)
     const record = await t.db
@@ -522,6 +553,7 @@ describe("[HH-EST-16] the Owner's own publication counts as approval, with its e
     const approvalAudit = await auditActions(record.id)
     const publishAudit = (await auditActions(d.versionId)).find((a) => a.action === 'estimate.publish')
     expect(approvalAudit.map((a) => a.action)).toEqual(['publication_approval.approve'])
+    expect(approvalAudit[0]?.summary).toMatchObject({ basis: 'owner_publication', secondFactor: true })
     // The same transaction (request) as the publication.
     expect(approvalAudit[0]?.request_id).toBe(publishAudit?.request_id)
   })

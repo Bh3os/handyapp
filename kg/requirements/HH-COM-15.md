@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: messaging
 links:
-  decided_by: ["[[OWN-DEC-154]]", "[[OWN-DEC-152]]", "[[OWN-DEC-159]]", "[[OWN-DEC-190]]"]
+  decided_by: ["[[OWN-DEC-154]]", "[[OWN-DEC-152]]", "[[OWN-DEC-159]]", "[[OWN-DEC-190]]", "[[OWN-DEC-207]]"]
   depends_on: ["[[HH-COM-05]]", "[[HH-SCH-02]]"]
   uses: ["[[FACT-HOURS]]", "[[FACT-TIMEZONE]]", "[[ENT-Message]]", "[[ENT-ConsentPreference]]", "[[INT-Bird]]"]
   tested_by: ["[[T65]]"]
@@ -19,3 +19,5 @@ source: "OWN-DEC-154, OWN-DEC-152 section 3, OWN-DEC-159"
 - Urgent safety situations use the escalation procedure ([[OWN-DEC-172]]), never a quiet-hours bypass.
 - Texts stay disabled until A2P 10DLC registration and consent are complete ([[OWN-DEC-190]]).
 - Portal display never waits for email or text delivery.
+
+**Changed by [[OWN-DEC-207]] (2026-10-22):** the PROPOSED overlap hours above are replaced: when the recipient's local zone cannot be established, non-urgent texts send only between 9 AM and 9 PM Eastern; the verified local zone is used whenever available. Consent, opt-outs, provider rules, quiet hours, A2P 10DLC and delivery controls stay. Time-sensitive authentication codes never wait in the reminder queue or for quiet hours; they go at once through an approved, available authentication channel.

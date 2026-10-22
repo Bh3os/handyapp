@@ -284,6 +284,9 @@ export async function invalidateApprovals(
   return stale.map((r) => r.id)
 }
 
+/** How the publisher's session was authenticated: the Owner's own publication counts only after the second factor. */
+export type PublisherAuthentication = { readonly secondFactor: boolean }
+
 export type GateResult =
   | { readonly required: false; readonly evaluation: PublicationEvaluation }
   | {
@@ -303,6 +306,7 @@ export async function publicationGate(
   actor: StaffActor,
   subject: ApprovalSubject,
   evaluation: PublicationEvaluation,
+  authentication: PublisherAuthentication = { secondFactor: false },
 ): Promise<GateResult> {
   const open = await openRecords(tx, subject, true)
   if (!evaluation.required) {
@@ -352,9 +356,12 @@ export async function publicationGate(
       ],
     })
   }
-  // The Owner's authenticated publication approves it (final owner amendments 2026-10-22): the approval record and
-  // its audit event are written here, in the publishing transaction; a waiting request is decided by that act.
+  // The Owner's authenticated publication approves it (OWN-DEC-204): only from a session that completed the second
+  // factor (OWN-DEC-202); the approval record and its audit event are written here, in the publishing transaction; a
+  // waiting request is decided by that act.
   if (actor.status !== 'active') throw new ApiError('UNAUTHENTICATED')
+  if (!authentication.secondFactor)
+    throw new ApiError('FORBIDDEN', { fieldErrors: [field('ownerApproval', 'OWNER_MFA_REQUIRED')] })
   let approvalId: string
   if (pending) {
     await tx
@@ -394,6 +401,7 @@ export async function publicationGate(
       ...summaryOf(subject, evaluation),
       basis: pending ? 'request' : 'owner_publication',
       byPublishing: true,
+      secondFactor: true,
     },
   })
   return {
@@ -414,8 +422,9 @@ export function changeOrderPublicationGate(
   actor: StaffActor,
   subject: ApprovalSubject & { readonly type: 'change_order_version' },
   evaluation: PublicationEvaluation,
+  authentication: PublisherAuthentication,
 ): Promise<GateResult> {
-  return publicationGate(tx, actor, subject, evaluation)
+  return publicationGate(tx, actor, subject, evaluation, authentication)
 }
 
 /** The Owner approves or rejects a pending approval (estimate.approve_publication). */

@@ -1,6 +1,6 @@
 // Staff app (TSK-0014; HH-STAFF-01, OWN-DEC-114): sign-in, "Forgot password?", setting a password from an invite or
 // reset link, and the signed-in shell (TSK-0040: role navigation, EN/ES switch, offline indicator, search box) with
-// Sign out (TSK-0053: the estimates list and the estimate builder; TSK-0065: the scheduling board; TSK-0098: the audit log; TSK-0099: the retention reviews; TSK-0100: Delete or Archive, the deletion log and privacy requests; TSK-0069: the job packet and the worker's packet list on My Day). Text comes from the staff catalogs (HH-LANG-02); the signed-in staff member's stored locale replaces the
+// Sign out (TSK-0053: the estimates list and the estimate builder; TSK-0065: the scheduling board; TSK-0098: the audit log; TSK-0099: the retention reviews; TSK-0100: Delete or Archive, the deletion log and privacy requests; TSK-0069: the job packet and the worker's packet list on My Day; TSK-0071: the job loadout; TSK-0070: My Day and the visit times). Text comes from the staff catalogs (HH-LANG-02); the signed-in staff member's stored locale replaces the
 // default once the session is known, and switching it keeps every open form as it is (HH-OPS-04).
 import { staffTranslator, type StaffKey, type StaffLocale } from '@handyhub/i18n'
 import { Button, Card, Field, StateView } from '@handyhub/ui'
@@ -14,7 +14,9 @@ import { CustomerRecord, CustomersScreen } from './Customers'
 import { InboxRecord, InboxScreen } from './Inbox'
 import { PropertyRecord } from './Property'
 import { JobDepositPage } from './JobDeposit'
-import { JobPacketPage, MyJobPackets } from './JobPacket'
+import { JobPacketPage } from './JobPacket'
+import { LoadoutPage } from './Loadout'
+import { MyDay } from './MyDay'
 import { QueueHome } from './Queue'
 import { MergeReview, RelinkRequest } from './RecordLinks'
 import { RequestRecord } from './Record'
@@ -25,6 +27,7 @@ import { ScheduleBoard } from './Schedule'
 import { SearchScreen, Screen, Shell, type Navigation } from './Shell'
 import { StaffScreen } from './StaffManagement'
 import { ConfigurationScreen, HealthScreen } from './System'
+import { VisitTimesPage } from './VisitTimes'
 
 type Session = {
   staffUserId: string
@@ -202,11 +205,14 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
             route.screen === 'properties'
             ? 'customers'
             : // A job packet (TSK-0069) is reached from My Day or the board; the server decides who may open it.
-              route.screen === 'packets'
+              route.screen === 'packets' || route.screen === 'loadouts'
               ? nav?.items.includes('my-day')
                 ? 'my-day'
                 : 'schedule'
-              : route.screen
+              : // TSK-0070: a visit's Arrived and Finished times sit below the schedule; the server decides who sees them.
+                route.screen === 'visit-times'
+                ? 'schedule'
+                : route.screen
           : route.page === 'home'
             ? (nav?.home ?? 'home')
             : route.page
@@ -282,9 +288,14 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
               onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
             />
           ) : route.page === 'record' && route.screen === 'packets' ? (
-            <JobPacketPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} />
+            <JobPacketPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} href={href} />
+          ) : route.page === 'record' && route.screen === 'loadouts' ? (
+            // A job's loadout (TSK-0071), from its packet or the Owner's loadout_shortage queue item.
+            <LoadoutPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} href={href} />
+          ) : route.page === 'record' && route.screen === 'visit-times' ? (
+            <VisitTimesPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} visitId={route.id} />
           ) : (route.page === 'screen' || route.page === 'home') && shown === 'my-day' && allowed ? (
-            <MyJobPackets t={t} fetchImpl={doFetch} href={href} />
+            <MyDay t={t} locale={locale} fetchImpl={doFetch} href={href} />
           ) : route.page === 'screen' && shown === 'schedule' && allowed ? (
             <ScheduleBoard t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
           ) : route.page === 'record' && route.screen === 'schedule' && allowed ? (
