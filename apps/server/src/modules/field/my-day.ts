@@ -1,14 +1,14 @@
 // The worker's My Day, built on the server from current assignments only (TSK-0070; HH-OFF-09, HH-SCH-08,
-// HH-PKT-02, HH-OFF-02, ENT-Visit, ENT-Reservation, ENT-JobPacket, OWN-DEC-121, OWN-DEC-40, RULE-SERVER-AUTHZ,
+// HH-PKT-02, HH-OFF-02, ENT-Visit, ENT-Reservation, ENT-JobPacket, OWN-DEC-121, OWN-DEC-171, RULE-SERVER-AUTHZ,
 // RULE-NO-INVENTED-FACTS).
 // - The caller's own active reservations only: confirmed assignments and tentative holds (a hold is no assignment and
 //   shows no address, HH-OFF-09). Listed: today's visits in each visit's own zone, and any visit still on the way or
 //   arrived, in arrival-window order. A visit the caller was reassigned away from is simply not there.
-// - Each visit: the arrival window, the address and a plain directions link (confirmed and live only: from
-//   confirmation through the service day, OWN-DEC-40; a completed visit shows none), the access notes (never a code:
-//   codes are revealed separately, online, in the packet's audited flow), the preparation (the customer-preparation
-//   detail and the instructions given to the customer), the readiness blockers the records show and the one next
-//   action (the same rule the taps are decided with, @handyhub/domain myDayActions).
+// - Each visit: the arrival window, the address and a plain directions link (confirmed and live only, and only on the
+//   visit's own local service day, OWN-DEC-171: a visit still under way after its day ended and a completed visit show
+//   none), the access notes (never a code: codes are revealed separately, online, in the packet's audited flow), the
+//   preparation (the customer-preparation detail and the instructions given to the customer), the readiness blockers
+//   the records show and the one next action (the same rule the taps are decided with, @handyhub/domain myDayActions).
 // - Readiness here lists what the records show (a blocking hold, a deposit not yet covered, a work package without an
 //   SOP, a packet not viewed or changed since, the worker's own packet acknowledgment missing or ended (TSK-0072), a
 //   loadout task block, required loadout items not yet confirmed loaded or a loadout NOT CONFIGURED (TSK-0071)); it is
@@ -17,6 +17,7 @@
 //   anywhere (HH-PORT-07).
 import type { Db, Tx } from '@handyhub/db'
 import {
+  localDateOf,
   myDayActions,
   onMyWayOpensAt,
   packetChanges,
@@ -223,6 +224,9 @@ export async function myDayItems(db: Reader, actor: StaffActor, opts: { visitId?
   for (const v of visits) {
     const confirmed = v.reservation_kind === 'confirmed' && v.state !== 'tentative'
     const live = confirmed && (LIVE as readonly string[]).includes(v.state)
+    // OWN-DEC-171: the address, directions, access notes and preparation only on the visit's own local service day
+    // (the rest of the visit-day access window, extensions and the packet's own projection are TSK-0128).
+    const onSite = live && v.local_date === localDateOf(now, v.time_zone)
     const mine = taps.get(v.id) ?? { departedAt: null, arrivedAt: null, finishedAt: null }
     const opensAt = minutes === null ? null : onMyWayOpensAt(new Date(v.starts_at), minutes)
     const actions = myDayActions({
@@ -234,7 +238,7 @@ export async function myDayItems(db: Reader, actor: StaffActor, opts: { visitId?
       onMyWayOpensAt: opensAt,
       now,
     })
-    const address = live ? { street: v.street, unit: v.unit, city: v.city, state: v.address_state, zip: v.zip } : null
+    const address = onSite ? { street: v.street, unit: v.unit, city: v.city, state: v.address_state, zip: v.zip } : null
     const propertyDetails = details.filter((d) => d.property_id === v.property_id)
     out.push({
       visitId: v.id,
@@ -264,7 +268,7 @@ export async function myDayItems(db: Reader, actor: StaffActor, opts: { visitId?
       address,
       directionsUrl: address ? directionsUrl(address) : null,
       // Access notes (never a code), only while the address is shown.
-      accessNotes: live
+      accessNotes: onSite
         ? (SITE_ACCESS_DETAILS as readonly string[]).flatMap((name) => {
             const d = propertyDetails.find((x) => x.detail === name)
             return d
@@ -279,7 +283,7 @@ export async function myDayItems(db: Reader, actor: StaffActor, opts: { visitId?
               : []
           })
         : [],
-      preparation: live
+      preparation: onSite
         ? {
             customerPreparation: propertyDetails.find((d) => d.detail === 'customer_preparation')?.value ?? null,
             instructions: offers.find((o) => o.visit_id === v.id)?.preparation_instructions ?? null,

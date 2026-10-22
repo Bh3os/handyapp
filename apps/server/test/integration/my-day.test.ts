@@ -556,6 +556,73 @@ describe('[HH-OFF-09][T43] My Day: today’s assigned visits in order with the n
     expect((await myDay('ben')).visits).toEqual([])
     expect((await myDay('owner')).visits).toEqual([])
   })
+
+  it('[HH-OFF-09][T49][OWN-DEC-171] the address, directions, access notes and preparation only on the visit’s own local service day: a visit still under way from yesterday shows none', async () => {
+    const p = await project()
+    const jobId = await approve(p)
+    const property = (await staffGet('office', `/api/v1/staff/properties/${p.propertyId}`)).json<{ version: number }>()
+    const noted = await staffWrite(
+      'office',
+      'PUT',
+      `/api/v1/staff/properties/${p.propertyId}/details/access_notes`,
+      { value: 'Synthetic: back door', source: 'customer_call', reason: 'Synthetic: the customer called' },
+      property.version,
+    )
+    expect(noted.statusCode, noted.body).toBe(200)
+    const yesterday = await fixtureVisit(p, jobId, day(-1), ['ann'])
+    // Yesterday's taps, written the way the tap routes write them (see the header): on the way, then arrived, never
+    // finished, so the visit is still under way and stays on today's list.
+    await withTx(t.db, async (tx) => {
+      const v = await tx
+        .selectFrom('work.visits')
+        .select('version')
+        .where('id', '=', yesterday)
+        .executeTakeFirstOrThrow()
+      await tx
+        .insertInto('work.visit_departures')
+        .values({ visit_id: yesterday, staff_user_id: ids.ann, moved_visit: true })
+        .execute()
+      await tx
+        .updateTable('work.visits')
+        .set({ state: 'en_route', version: v.version + 1 })
+        .where('id', '=', yesterday)
+        .execute()
+      await tx
+        .insertInto('work.time_stamps')
+        .values({
+          visit_id: yesterday,
+          project_id: p.projectId,
+          job_id: jobId,
+          staff_user_id: ids.ann,
+          kind: 'arrived',
+        })
+        .execute()
+      await tx
+        .updateTable('work.visits')
+        .set({ state: 'arrived', version: v.version + 2 })
+        .where('id', '=', yesterday)
+        .execute()
+    })
+    const todays = await fixtureVisit(p, jobId, today(), ['ann'])
+
+    const mine = await myDay('ann')
+    const old = mine.visits.find((v) => v.visitId === yesterday) as Item
+    expect(old).toMatchObject({
+      state: 'arrived',
+      address: null,
+      directionsUrl: null,
+      accessNotes: [],
+      preparation: { customerPreparation: null, instructions: null },
+    })
+    // The visit of today, same property, same worker: shown.
+    const current = mine.visits.find((v) => v.visitId === todays) as Item
+    expect(current.address).toMatchObject({ street: expect.stringContaining('Synthetic Day Lane') })
+    expect(current.accessNotes).toEqual([
+      expect.objectContaining({ detail: 'access_notes', value: 'Synthetic: back door' }),
+    ])
+    expect(JSON.stringify(old)).not.toContain('Synthetic Day Lane')
+    expect(JSON.stringify(old)).not.toContain('Synthetic: back door')
+  })
 })
 
 describe('[HH-SCH-08][HH-PORT-07][T65] On my way: the assigned worker’s tap, once, with the automatic notice', () => {

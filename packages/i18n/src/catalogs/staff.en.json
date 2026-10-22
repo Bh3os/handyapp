@@ -2800,7 +2800,7 @@
   "myday.team": "Team:",
   "myday.lead": "{name} (lead)",
   "myday.directions": "Directions",
-  "myday.noAddress": "The address shows from confirmation through the service day only.",
+  "myday.noAddress": "The address shows on the visit day only, to the workers assigned to it.",
   "myday.preparation": "Preparation",
   "myday.readiness": "Readiness",
   "myday.noBlockers": "No blocker recorded.",

@@ -106,7 +106,8 @@ export function fieldModule(): ApiModule {
       "Staff with schedule.view_my_day: only the caller's own active reservations (a worker's own assignments; a " +
       "tentative hold shows no address and no actions). Lists the visits of today in each visit's zone, and any " +
       'visit still on the way or arrived, in arrival-window order: the window, the address and a plain directions ' +
-      'link (confirmed and live only, OWN-DEC-40), the access notes (never a code), the preparation, the readiness ' +
+      "link (confirmed and live, on the visit's own local service day only, OWN-DEC-171), the access notes (never a " +
+      'code), the preparation, the readiness ' +
       'blockers the records show (blocking holds, a deposit not yet covered, a work package without an SOP, a packet ' +
       "not viewed or changed since, the caller's own packet acknowledgment missing or ended, a loadout task block, " +
       'required loadout items not confirmed or a loadout NOT CONFIGURED; this is not the Start Work check and never ' +

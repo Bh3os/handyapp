@@ -2800,7 +2800,7 @@
   "myday.team": "Equipo:",
   "myday.lead": "{name} (responsable)",
   "myday.directions": "Cómo llegar",
-  "myday.noAddress": "La dirección se muestra solo desde la confirmación hasta el final del día de servicio.",
+  "myday.noAddress": "La dirección se muestra solo el día de la visita, a los trabajadores asignados.",
   "myday.preparation": "Preparación",
   "myday.readiness": "Preparación del trabajo",
   "myday.noBlockers": "No hay ningún bloqueo registrado.",
