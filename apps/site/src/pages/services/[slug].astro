@@ -1,12 +1,15 @@
 ---
-// Service page (TSK-0021; HH-CUS-01, HH-CUS-02, OWN-DEC-51, OWN-DEC-66, OWN-DEC-84). One page per registry service; the
-// server serves it only when the site may show the service (a draft is a 404). Every sentence is the registry's or an
-// owner-approved fact (site/services.ts). The parts with no approved wording yet (the description, the preparation
-// steps, the service FAQs: OQ-SERVICE-DESCRIPTIONS) show a visible "Not provided yet" state, never filler copy. No
-// prices, durations, credentials, guarantees or reviews (HH-BASE-04). The request action opens the form with this
-// service preselected by its immutable ID (HH-CUS-01, HH-INT-15).
+// Service page (TSK-0021, TSK-0132; HH-CUS-01, HH-CUS-02, HH-QA-05, OWN-DEC-51, OWN-DEC-66, OWN-DEC-84, OWN-DEC-180).
+// One page per registry service; the server serves it only when the site may show the service (a draft is a 404;
+// production needs the published version's approval). Every sentence is the registry's reviewed content (the quality
+// review of OWN-DEC-180, packages/domain/src/service-content.ts) or an owner-approved fact (site/services.ts). No
+// prices, durations, credentials, guarantees or reviews (HH-BASE-04). Care notes: general lines and product-dependent
+// lines tied to the manufacturer's guidance; withheld safety lines never reach the page (HH-QA-05). The request action
+// opens the form with this service preselected by its immutable ID (HH-CUS-01, HH-INT-15). Local SEO: a search
+// description, the FAQ and the Service structured data with the service area (OWN-DEC-180 item 10).
 import { customerTranslator } from '@handyhub/i18n'
 import SiteLayout from '../../layouts/SiteLayout.astro'
+import { areaServed } from '../../site/areas'
 import {
   CATEGORY_LABEL,
   considerations,
@@ -16,6 +19,7 @@ import {
   scopeFacts,
   serviceLimits,
   servicePath,
+  serviceStructuredData,
   siteServices,
   type SiteService,
 } from '../../site/services'
@@ -29,8 +33,10 @@ interface Props {
 }
 const { service } = Astro.props
 const t = customerTranslator()
+const content = service.content
 const limits = serviceLimits(service).map((k) => t.t(k))
 const limitsQuestion = t.t('service.limits.heading')
+const faqs = [...(content?.faqs ?? []), { question: limitsQuestion, answer: limits.join(' ') }]
 const related = relatedServices(service)
 const glance = [
   [t.t('service.glance.area'), t.t('service.glance.areaValue')],
@@ -38,11 +44,12 @@ const glance = [
   [t.t('service.glance.estimates'), t.t('home.trust.estimates')],
   [t.t('service.glance.visits'), t.t('home.trust.visits')],
 ]
-const notProvided = t.t('service.notProvided')
+const description = t.t('service.meta.description', { service: service.name })
 ---
 
-<SiteLayout title={`${service.name} | HandyHub`}>
-  <script type="application/ld+json" is:inline set:html={faqStructuredData(limitsQuestion, limits.join(' '))} />
+<SiteLayout title={`${service.name} | HandyHub`} description={description}>
+  <script type="application/ld+json" is:inline set:html={faqStructuredData(faqs)} />
+  <script type="application/ld+json" is:inline set:html={serviceStructuredData(service, 'HandyHub', areaServed(t))} />
   <article class="hh-service" data-service={service.id}>
     <header class="hh-service__hero">
       <div class="hh-site__wrap">
@@ -62,10 +69,16 @@ const notProvided = t.t('service.notProvided')
       <div class="hh-service__body">
         <section aria-labelledby="included">
           <h2 class="hh-h2" id="included">{t.t('service.included.heading')}</h2>
-          <p class="hh-service__missing" data-not-provided="description">
-            <span class="hh-badge hh-badge--warning">{notProvided}</span>
-            <span>{t.t('service.included.notProvided')}</span>
-          </p>
+          {content ? <p data-testid="description">{content.description}</p> : null}
+          {
+            content?.included.length ? (
+              <ul class="hh-service__list" data-testid="included">
+                {content.included.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            ) : null
+          }
           {
             scopeFacts(service).length ? (
               <ul class="hh-service__list" data-testid="scope-facts">
@@ -73,6 +86,18 @@ const notProvided = t.t('service.notProvided')
                   <li>{t.t(k)}</li>
                 ))}
               </ul>
+            ) : null
+          }
+          {
+            content?.excluded.length ? (
+              <>
+                <h3 id="excluded">{t.t('service.excluded.heading')}</h3>
+                <ul class="hh-service__list" data-testid="excluded" aria-labelledby="excluded">
+                  {content.excluded.map((item) => (
+                    <li>{item}</li>
+                  ))}
+                </ul>
+              </>
             ) : null
           }
         </section>
@@ -84,10 +109,9 @@ const notProvided = t.t('service.notProvided')
         </section>
         <section aria-labelledby="prepare">
           <h2 class="hh-h2" id="prepare">{t.t('service.prepare.heading')}</h2>
-          <p class="hh-service__missing" data-not-provided="preparation">
-            <span class="hh-badge hh-badge--warning">{notProvided}</span>
-            <span>{t.t('service.prepare.notProvided')}</span>
-          </p>
+          <ul class="hh-service__list" data-testid="preparation">
+            {(content?.preparation ?? []).map((item) => <li>{item}</li>)}
+          </ul>
         </section>
         <section aria-labelledby="ask">
           <h2 class="hh-h2" id="ask">{t.t('service.ask.heading')}</h2>
@@ -119,12 +143,30 @@ const notProvided = t.t('service.notProvided')
             {limits.map((text) => <li>{text}</li>)}
           </ul>
         </section>
+        {
+          content?.care.length ? (
+            <section aria-labelledby="care">
+              <h2 class="hh-h2" id="care">{t.t('service.care.heading')}</h2>
+              <ul class="hh-service__list" data-testid="care">
+                {content.care.map((line) => (
+                  <li>{line}</li>
+                ))}
+              </ul>
+            </section>
+          ) : null
+        }
         <section aria-labelledby="faq">
           <h2 class="hh-h2" id="faq">{t.t('service.faq.heading')}</h2>
-          <p class="hh-service__missing" data-not-provided="faq">
-            <span class="hh-badge hh-badge--warning">{notProvided}</span>
-            <span>{t.t('service.faq.notProvided')}</span>
-          </p>
+          <div class="hh-service__faqs" data-testid="faqs">
+            {
+              (content?.faqs ?? []).map((f) => (
+                <div class="hh-service__faq">
+                  <h3>{f.question}</h3>
+                  <p>{f.answer}</p>
+                </div>
+              ))
+            }
+          </div>
         </section>
         <section
           aria-labelledby="related"
@@ -154,10 +196,18 @@ const notProvided = t.t('service.notProvided')
         <h2 class="hh-service__glance-title" id="glance">{t.t('service.glance.heading')}</h2>
         <dl data-testid="glance">
           {
-            glance.map(([label, value]) => (
+            glance.map(([label, value], i) => (
               <div>
                 <dt>{label}</dt>
-                <dd>{value}</dd>
+                <dd>
+                  {value}
+                  {i === 0 ? (
+                    <>
+                      {' '}
+                      <a href="/areas">{t.t('service.glance.areaLink')}</a>
+                    </>
+                  ) : null}
+                </dd>
               </div>
             ))
           }
