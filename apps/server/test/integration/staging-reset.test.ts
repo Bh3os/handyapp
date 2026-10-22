@@ -517,7 +517,7 @@ describe('Reset & Create Fresh Test Data, then Reset Test Data (TSK-0141, HH-OPS
   })
 })
 
-describe('The database guards stand aside only for a permitted staging reset (TSK-0141, migration 0069)', () => {
+describe('The database guards stand aside only for a permitted staging reset (TSK-0141, migration 0070)', () => {
   it('[HH-OPS-05] every table is either cleared, selectively cleared or kept, and every cleared one guards TRUNCATE', async () => {
     const { rows } = await sql<{ t: string }>`SELECT n.nspname || '.' || c.relname AS t FROM pg_class c
       JOIN pg_namespace n ON n.oid = c.relnamespace
@@ -583,7 +583,7 @@ describe('The database guards stand aside only for a permitted staging reset (TS
   })
 })
 
-describe('The TRUNCATE privileges, exercised by a role that is not a superuser (TSK-0141, migration 0069)', () => {
+describe('The TRUNCATE privileges, exercised by a role that is not a superuser (TSK-0141, migration 0070)', () => {
   it('[HH-OPS-05] the owner of the protected logs has no TRUNCATE; only a permitted reset grants it, until it ends', async () => {
     // A throwaway database and role of this test: the deletion log and the retention reviews (and the decisions
     // that reference both) are owned by an ordinary role, as a hosted database's migrating owner holds them. A

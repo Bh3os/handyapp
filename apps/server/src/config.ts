@@ -152,7 +152,7 @@ export type StagingCheck = { id: 'environment' | 'flag' | 'access_gate' | 'datab
  * or ci, STAGING_TOOLS is on, in staging the access gate is in front of every route, and in local or ci DATABASE_URL
  * reaches PostgreSQL on this machine only (a loopback host or a local socket: an isolated test system never resets a
  * remote database). The database side is checked on every call (staging.database_identified, the staging database
- * name; migration 0069). Every check must pass.
+ * name; migration 0070). Every check must pass.
  */
 export function stagingToolsEnvironment(config: Pick<Config, 'env' | 'stagingTools' | 'accessGate' | 'databaseUrl'>): {
   identified: boolean

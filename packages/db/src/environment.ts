@@ -1,5 +1,5 @@
 // Environment marks (TSK-0141; HH-OPS-05, OWN-DEC-191, RULE-SYNTHETIC-DATA). Every server start and every migration
-// run records which environment it identified itself as on this database (staging.environment_marks, migration 0069).
+// run records which environment it identified itself as on this database (staging.environment_marks, migration 0070).
 // The database then takes part in the staging check of Reset Test Data: a database marked production even once is
 // never reset, and one that was never marked as staging, local or ci is not positively identified either.
 import { sql } from 'kysely'
@@ -11,7 +11,7 @@ export const MARK_ENVIRONMENTS = ['local', 'ci', 'staging', 'production'] as con
  * The staging database's name (render.yaml databaseName): handyhub_staging_db, or with the random 4-character suffix
  * Render appends each time the database is recreated (handyhub_staging_db_vdqz). No production database uses the
  * prefix. A staging reset runs only on a database whose name matches: the server checks it and the database itself
- * refuses a staging run elsewhere (staging.environment_database_ok, migration 0069, the same pattern).
+ * refuses a staging run elsewhere (staging.environment_database_ok, migration 0070, the same pattern).
  */
 export const STAGING_DATABASE_PATTERN = /^handyhub_staging_db(_[a-z0-9]{4})?$/
 

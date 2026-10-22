@@ -1,4 +1,4 @@
--- 0069 Staging-only Reset Test Data (TSK-0141; HH-OPS-05, OWN-DEC-191, RULE-SYNTHETIC-DATA, RULE-SERVER-AUTHZ,
+-- 0070 Staging-only Reset Test Data (TSK-0141; HH-OPS-05, OWN-DEC-191, RULE-SYNTHETIC-DATA, RULE-SERVER-AUTHZ,
 -- ENT-AuditEvent, ENT-OutboxEvent). The database takes part in the staging check, alongside the server's own checks.
 -- What it can and cannot prove: the environment marks are written by the application itself (server boot, migration
 -- command), so they record what the processes said they were, not an independent fact. A production server that

@@ -40,11 +40,11 @@ describe('staging identification inputs (TSK-0141)', () => {
       'postgres',
     ])
       expect(isStagingDatabaseName(name), name).toBe(false)
-    // render.yaml names a matching database, and migration 0069 applies the same pattern in the database.
+    // render.yaml names a matching database, and migration 0070 applies the same pattern in the database.
     const blueprint = readFileSync(new URL('../../../../render.yaml', import.meta.url), 'utf8')
     const named = /databaseName: (\S+)/.exec(blueprint)?.[1] ?? ''
     expect(isStagingDatabaseName(named), named).toBe(true)
-    const migration = readFileSync(new URL('../../migrations/0069_staging_reset.sql', import.meta.url), 'utf8')
+    const migration = readFileSync(new URL('../../migrations/0070_staging_reset.sql', import.meta.url), 'utf8')
     expect(migration).toContain(`current_database() ~ '${STAGING_DATABASE_PATTERN.source}'`)
   })
 })

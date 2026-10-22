@@ -5,7 +5,7 @@
 //   or ci with STAGING_TOOLS=on (and, in staging, the access gate); STAGING_TOOLS is refused at boot in production,
 //   and this factory refuses a production environment. Outside that the routes do not exist (404 like any unknown
 //   path). The contract (openapi.json) lists them as staging-only.
-// - On every call the database must also identify itself (migration 0069: a staging, local or ci mark and never a
+// - On every call the database must also identify itself (migration 0070: a staging, local or ci mark and never a
 //   production mark); the reset's own run row is refused by the database otherwise.
 // - Owner only, on the server: the policy decides (dashboard.view to read; records.delete to reset or designate, the
 //   Owner's "Delete action" row, PROPOSED mapping: the matrix has no row for test data) and the handler checks the
@@ -152,7 +152,7 @@ type Check = { id: (typeof CHECK_IDS)[number]; ok: boolean }
 /**
  * The process checks with the database's own (read now), all of which must pass: marked as a test database and never
  * as production, and in staging the staging database itself (STAGING_DATABASE_PATTERN, render.yaml). The database
- * applies the same name rule to the run row (migration 0069), so this check is not the only one.
+ * applies the same name rule to the run row (migration 0070), so this check is not the only one.
  */
 export async function stagingIdentification(
   deps: Pick<StagingDeps, 'environment' | 'checks'>,
