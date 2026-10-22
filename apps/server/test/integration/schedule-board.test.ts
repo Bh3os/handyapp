@@ -31,7 +31,8 @@ const KEY: CodeKeySettings = readCodeKey({
 const pw = ['synthetic', 'board', 'passphrase', '65'].join(' ')
 const SIGNED_IN = ['owner', 'office', 'estimator', 'worker'] as const
 type Person = (typeof SIGNED_IN)[number]
-const CREW = ['ann', 'ben', 'cal'] as const
+/** Dee is held only by the held-windows test, so a date computed from the weekday never meets her (HH-SCH-13). */
+const CREW = ['ann', 'ben', 'cal', 'dee'] as const
 type Crew = (typeof CREW)[number]
 
 let t: TestDatabase
@@ -366,9 +367,8 @@ describe('[HH-SCH-13] the board: a day and a week by worker', () => {
   })
 
   it('[HH-SCH-13][HH-SCH-11] held windows show as holds on the team, never as bookings; the visit offers no move', async () => {
-    // Before the week of day(47) above (it starts on day 41 at the earliest): its Sunday visit, on one of days 47 to
-    // 53 depending on today's weekday, never shares this date (day 52 did on a Thursday).
-    const date = day(45)
+    // Dee is held only here: the week test's Sunday (day(47) to day(53), by weekday) books Cal, never Dee.
+    const date = day(52)
     const p = await siteVisitProject()
     const v = await planVisit(p, { date, start: '09:00', end: '10:00', duration: 60 })
     const offered = await staffWrite(
@@ -380,13 +380,13 @@ describe('[HH-SCH-13] the board: a day and a week by worker', () => {
           { localDate: date, windowStart: '09:00', windowEnd: '10:00' },
           { localDate: date, windowStart: '14:00', windowEnd: '15:00' },
         ],
-        workerIds: [ids.cal],
+        workerIds: [ids.dee],
       },
       v.version,
     )
     expect(offered.statusCode, offered.body).toBe(201)
     const d = await board('office', `date=${date}`)
-    const cell = lane(d, 'cal').days[0] as Board['workers'][number]['days'][number]
+    const cell = lane(d, 'dee').days[0] as Board['workers'][number]['days'][number]
     expect(cell.entries.map((e) => [e.visitId, e.kind])).toEqual([
       [v.id, 'hold'],
       [v.id, 'hold'],
