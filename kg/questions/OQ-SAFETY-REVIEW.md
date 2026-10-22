@@ -17,3 +17,5 @@ source: "OWN-DEC-17, 33, 38, 79, 108; owner-answers-verbatim 2026-10-05T17:47 [F
 - **2026-10-21 ([[OWN-DEC-186]], [[OWN-DEC-172]]):** the owner says a safety reviewer is available; the safety packet ([[TSK-0143]]) adds the escalation procedure and its Spanish text and the care notes withheld for safety.
 
 - **2026-10-22 ([[TSK-0143]]):** review packet ready: `docs/review-packets/safety.md` questions S-01 to S-13 (the 26 SOP versions, hold release and void rules, the Spanish escalation instruction of [[OWN-DEC-172]], care notes withheld under [[OWN-DEC-180]]).
+
+- **2026-10-22 ([[TSK-0132]]):** the care lines and page items withheld for safety under [[OWN-DEC-180]] are listed in `docs/service-content-report.md` ("Withheld for safety or factual verification"); safety packet S-13 points to it. None has had a qualified review.

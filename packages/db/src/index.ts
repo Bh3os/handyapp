@@ -52,9 +52,11 @@ export {
   canAutoSchedule,
   contentHash,
   isPublicServiceSlug,
+  isQualityReviewed,
   loadServiceSeed,
   PUBLIC_STATUSES,
   publicServices,
+  QUALITY_REVIEW_DECISION,
   registryServices,
   SERVICE_CATEGORIES,
   SERVICES_SEED_FILE,
@@ -65,6 +67,7 @@ export {
   type SchedulingMode,
   type ServiceCategory,
   type ServiceSeed,
+  type ServiceSeedContent,
   type SyncResult,
 } from './services.js'
 export {

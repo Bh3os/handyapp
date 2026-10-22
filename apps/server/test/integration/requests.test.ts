@@ -426,6 +426,10 @@ describe('rate limits and quiet spam controls (TSK-0025, HH-INT-11)', () => {
 
 describe('services and their questions for the form (TSK-0027, HH-INT-15, HH-SVC-03)', () => {
   it('[HH-SVC-03][OWN-DEC-84] lists only services the public site may show, with the registry questions and no credential question', async () => {
+    // TSK-0132: the registry publishes all 26 reviewed services; this test moves them to drafts and back.
+    const all = await app.inject({ method: 'GET', url: '/api/v1/public/services' })
+    expect(all.json().services).toHaveLength(26)
+    await sql`UPDATE catalog.services SET public_status = 'draft'`.execute(t.db)
     const none = await app.inject({ method: 'GET', url: '/api/v1/public/services' })
     expect(none.json()).toEqual({ services: [] })
     await sql`UPDATE catalog.services SET public_status = 'staging' WHERE id IN ('SVC-DW-01', 'SVC-HI-05')`.execute(
@@ -449,9 +453,7 @@ describe('services and their questions for the form (TSK-0027, HH-INT-15, HH-SVC
       expect(hi05).not.toContain('no credentials in form')
       expect(hi05.join(' ')).not.toMatch(/code|password|credential/i)
     } finally {
-      await sql`UPDATE catalog.services SET public_status = 'draft' WHERE id IN ('SVC-DW-01', 'SVC-HI-05')`.execute(
-        t.db,
-      )
+      await sql`UPDATE catalog.services SET public_status = 'published'`.execute(t.db)
     }
   })
 })

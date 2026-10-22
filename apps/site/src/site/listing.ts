@@ -1,6 +1,6 @@
-// Which services the public site lists (TSK-0021; HH-CUS-01, OWN-DEC-84). The static build carries every registry
-// service hidden; GET /api/v1/public/services says which the site may show in this environment (production: owner
-// approved and published; staging, local and ci: shown on staging or published). Unknown is not safe: while the list
+// Which services the public site lists (TSK-0021, TSK-0132; HH-CUS-01, OWN-DEC-84, OWN-DEC-180). The static build
+// carries every registry service hidden; GET /api/v1/public/services says which the site may show in this environment
+// (production: published with an approved version; staging, local and ci: shown on staging or published). Unknown is not safe: while the list
 // cannot be read, no service is listed. Pure functions, unit tested; the page scripts call them.
 
 /** The IDs the response lists, or null when it is not the documented shape. */
@@ -34,7 +34,9 @@ export function applyListing(root: ParentNode, ids: Set<string> | null, unavaila
     return
   }
   if (status) status.hidden = true
-  for (const group of root.querySelectorAll<HTMLElement>('[data-listing-group]')) {
+  // The root itself may be the group (a service page's related list): include it (TSK-0132).
+  const self = (root as Partial<Element>).matches?.('[data-listing-group]') ? [root as HTMLElement] : []
+  for (const group of [...self, ...root.querySelectorAll<HTMLElement>('[data-listing-group]')]) {
     const shown = [...group.querySelectorAll<HTMLElement>('[data-service-id]')].some((i) => !i.hidden)
     const empty = group.querySelector<HTMLElement>('[data-listing-empty]')
     if (empty) empty.hidden = shown
