@@ -395,7 +395,7 @@ const customerGet = async (p: Project, tab: 'appointments' | 'overview') => {
 }
 const pay = async (jobId: string) => {
   const paid = await staffWrite('office', 'POST', `/api/v1/staff/jobs/${jobId}/deposit/payments`, {
-    receivedOn: new Date().toISOString().slice(0, 10),
+    receivedOn: today(), // the business day (Louisville), as the server checks it
     method: 'cash',
     amountCents: 30_000,
   })

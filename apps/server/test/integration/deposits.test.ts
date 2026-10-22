@@ -347,7 +347,9 @@ const deposit = async (jobId: string, who: Person = 'office') => {
 const gate = (jobId: string) => withTx(t.db, (tx) => confirmationDepositGate(tx, { kind: 'work', jobId }))
 const pay = (who: Person, jobId: string, body: Record<string, unknown>) =>
   staffWrite(who, 'POST', `/api/v1/staff/jobs/${jobId}/deposit/payments`, {
-    receivedOn: new Date().toISOString().slice(0, 10),
+    // The business day (business.timezone, migration 0005), as the server checks it: never the UTC date, which is
+    // tomorrow in Louisville every evening.
+    receivedOn: localDateOf(new Date(), 'America/Kentucky/Louisville'),
     ...body,
   })
 // Synthetic, clearly fake transaction references, built from parts.

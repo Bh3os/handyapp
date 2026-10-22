@@ -1133,7 +1133,7 @@ describe('[HH-SCH-06][HH-FIN-02][T36] selecting a work-visit window runs the dep
     ).toEqual([])
     // Verified money (20% of $1,500.00 in cash) opens it: the customer's selection confirms the work visit.
     const paid = await staffWrite('office', 'POST', `/api/v1/staff/jobs/${jobId}/deposit/payments`, {
-      receivedOn: new Date().toISOString().slice(0, 10),
+      receivedOn: today(), // the business day (Louisville), as the server checks it
       method: 'cash',
       amountCents: 30_000,
     })
