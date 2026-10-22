@@ -109,8 +109,11 @@ type Project = {
   version: number
 }
 
-/** Runs every scenario; one outcome per scenario, in order. */
-export async function createFreshTestData(deps: FreshDataDeps): Promise<ScenarioOutcome[]> {
+/** A fixed fictional identity (the designated test accounts, TSK-0142) in place of a run's own generated one. */
+export type TestIdentity = { email: string; fullName: string }
+
+/** The scenario steps, sharing one run's counters and fictional contacts. */
+function freshDataKit(deps: FreshDataDeps) {
   const invoke = routeInvoker(deps.routes, deps.requestId)
   const contacts = syntheticContacts()
   const tag = deps.runId.slice(0, 8)
@@ -149,12 +152,12 @@ export async function createFreshTestData(deps: FreshDataDeps): Promise<Scenario
   }
 
   /** A new request through the public submission (guest), with fictional contact and property. */
-  async function submit(tx: Tx, label: string): Promise<Project> {
+  async function submit(tx: Tx, label: string, identity?: TestIdentity): Promise<Project> {
     n++
     const config = await loadConfig(tx)
     const notice = config.get('legal.privacy_notice')
-    const fullName = `${FICTIONAL} ${label} ${tag}-${n}`.slice(0, 120)
-    const email = contacts.email(`test-${label}-${tag}`)
+    const fullName = (identity?.fullName ?? `${FICTIONAL} ${label} ${tag}-${n}`).slice(0, 120)
+    const email = identity?.email ?? contacts.email(`test-${label}-${tag}`)
     const phone = contacts.phone()
     const serviceIds = await services(tx)
     const body: SubmitBody = {
@@ -503,8 +506,8 @@ export async function createFreshTestData(deps: FreshDataDeps): Promise<Scenario
     throw new Blocked('confirm_visit', ['CONFLICT', 'body.workerIds:NO_ELIGIBLE_WORKER_WITH_HOURS'])
   }
 
-  async function registered(tx: Tx) {
-    const p = await submit(tx, 'registered-customer')
+  async function registered(tx: Tx, identity?: TestIdentity) {
+    const p = await submit(tx, 'registered-customer', identity)
     const key = deps.codeKey
     if (key.state !== 'configured') throw new Blocked('verify_contact', ['NOT_CONFIGURED', ...key.missing])
     const digits = (await loadConfig(tx)).get('verification.limits')
@@ -567,6 +570,13 @@ export async function createFreshTestData(deps: FreshDataDeps): Promise<Scenario
     }
   }
 
+  return { run, submit, registered, published, qualify, invoke, requestVersion, owner, booked, approved, paid }
+}
+
+/** Runs every scenario; one outcome per scenario, in order. */
+export async function createFreshTestData(deps: FreshDataDeps): Promise<ScenarioOutcome[]> {
+  const { run, submit, registered, published, qualify, invoke, requestVersion, owner, booked, approved, paid } =
+    freshDataKit(deps)
   const outcomes: ScenarioOutcome[] = []
   outcomes.push(await run('guest_customer_request', async (tx) => [await submit(tx, 'guest-customer')]))
   outcomes.push(await run('registered_customer', async (tx) => [await registered(tx)]))
@@ -631,6 +641,25 @@ export async function createFreshTestData(deps: FreshDataDeps): Promise<Scenario
   for (const id of ['job_in_progress', 'completed_job', 'change_order', 'test_invoice'] as const)
     outcomes.push(await run(id, async () => []))
   return outcomes
+}
+
+/**
+ * TSK-0142: a registered customer account for a fixed fictional identity (the designated Customer test account),
+ * through the same public request, contact verification and account offer a customer uses, inside the caller's
+ * transaction. Blocked (with the step and the refusal codes) when configuration or a rule refuses a step.
+ */
+export async function createRegisteredTestCustomer(
+  deps: FreshDataDeps,
+  tx: Tx,
+  identity: TestIdentity,
+): Promise<{ state: 'created'; reference: string } | { state: 'blocked'; step: string; codes: string[] }> {
+  try {
+    const p = await freshDataKit(deps).registered(tx, identity)
+    return { state: 'created', reference: p.reference }
+  } catch (err) {
+    if (err instanceof Blocked) return { state: 'blocked', step: err.step, codes: err.codes }
+    throw err
+  }
 }
 
 /** Records what the fresh data run created, after a completed reset (append-only). */

@@ -114,6 +114,11 @@ export const CLEARED_CATEGORIES = {
     'work.visit_departures',
     'work.time_stamps',
     'work.time_stamp_corrections',
+    // TSK-0073, TSK-0074 (0074): site checks, Start Work evaluations and starts, and the administrative exceptions.
+    'work.start_site_checks',
+    'work.start_gate_evaluations',
+    'work.work_starts',
+    'work.gate_exceptions',
   ],
   payments: [
     'finance.payments',
@@ -143,7 +148,7 @@ export const CLEARED_CATEGORIES = {
     'platform.message_delivery_events',
     'platform.message_delivery_attempts',
   ],
-  attachments: ['intake.photos', 'intake.question_reply_photos'],
+  attachments: ['intake.photos', 'intake.question_reply_photos', 'work.before_photos'],
   pending_messages: ['platform.outbox_events', 'platform.jobs'],
   sessions: [
     'identity.customer_sessions',
@@ -249,6 +254,8 @@ const STORED_FILES = [
   ['estimating.approval_receipts', 'object_key'],
   // TSK-0085: the issued invoice PDFs.
   ['finance.invoice_documents', 'object_key'],
+  // TSK-0073 (0074): the before photos of field visits.
+  ['work.before_photos', 'object_key'],
 ] as const
 
 /** Stored-file keys per removal job (the job payload is a comma-separated list). */

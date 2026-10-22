@@ -10,35 +10,38 @@
 //   (OWN-DEC-151; Spanish AI-reviewed). TSK-0120 supplies its values and adds the conversation's replies, grouped (see
 //   replyStaffNoticeAutomation); the queue items carry the reply to staff either way.
 // - questions.delivery_outcome: a question's notice or reminder whose delivery succeeded records the time once on the
-//   question: the notice's successful send schedules the two reminder drafts (first and final, both measured from it);
-//   the final reminder's actual send schedules the "may close" queue item 24 hours later (configured cadence).
-// - questions.reminder_draft: at its time, an unanswered question of an open request whose notice still stands
-//   (sent or delivered now) gets its reminder drafts (email, and text with the SMS opt-in) and the request's
-//   "reminder ready" queue item. Drafts are staff-released (FACT-AUTOMATIC-MESSAGES); no reminder wording was approved,
-//   so a released reminder is recorded as template_not_configured with a delivery issue, never as sent.
-// - questions.close_available: 24 hours after the final reminder was actually sent, the queue item says the request
-//   may be closed "Closed—no response" (staff decide; nothing closes on its own).
-// - questionRecordCheck: the send-time recheck of a released reminder (HH-COM-05): an answered question or a closed
-//   request cancels it (record_changed).
+//   question. TSK-0121 (OWN-DEC-153 item 2): the notice's successful send schedules the one automatic reminder, due
+//   72 hours later (reminders.cadences.unansweredQuestion.afterDeliveryHours): one delivery per destination (email,
+//   and text with the SMS opt-in, which waits for the recipient's permitted hours), sent by notify.release in the
+//   owner's question_reminder wording. A failed notice never starts the clock. The reminder's actual send schedules
+//   the "may close" queue item 24 hours later (closeAfterReminderHours, OWN-DEC-208).
+// - questions.reminder_plan: plans the reminder of a question whose notice was sent before TSK-0121 (migration 0075).
+// - questions.close_available: 24 hours after the reminder was actually sent, the queue item says the request may be
+//   closed "Closed—no response" (staff decide; nothing closes on its own). A failed reminder never gets there: it is a
+//   delivery issue for staff follow-up (OWN-DEC-208).
+// - questionRecordCheck: the send-time recheck of a reminder (HH-COM-05): an answered question, a closed request or a
+//   notice whose delivery no longer stands cancels it (record_changed).
 import type { Tx } from '@handyhub/db'
 import { sql } from 'kysely'
-import type { Automation } from '../../platform/automation.js'
+import type { Automation, JobOutcome } from '../../platform/automation.js'
 import { loadConfig } from '../../platform/config/index.js'
 import { scheduleJob } from '../../platform/jobs.js'
+import { afterElapsedHours } from '@handyhub/domain'
 import { labelKey, staffTranslator, type StaffKey } from '@handyhub/i18n'
 import { listingScope } from '@handyhub/policy'
 import {
   businessZone,
-  createDraft,
   firstNameOf,
   instantText,
   notificationAutomation,
   present,
+  scheduleAutomaticDelivery,
   staffLink,
   type FailureItem,
   type NotificationProviders,
   type RecordCheck,
   type ReleaseFailureItem,
+  type ReleaseValues,
 } from '../notifications/index.js'
 import { openQueueItem } from '../queue/items.js'
 import {
@@ -52,13 +55,11 @@ import {
   QUESTION_REPLIED,
   questionCadence,
   questionLink,
-  REMINDER_STAGES,
   reminderSubject,
   REPLY_STAFF_NOTICE,
   sentNow,
   subjectOf,
   UUID_RE,
-  type ReminderStage,
 } from './model.js'
 
 const DELIVERY_SUCCEEDED = 'message.delivery_succeeded'
@@ -254,68 +255,102 @@ async function conversationReplySubject(tx: Tx, payload: Record<string, unknown>
 
 const SCHEDULE_RETRY = { maxAttempts: 5, baseDelayMs: 1_000, maxDelayMs: 60_000 } as const
 
-/** Drafts one stage's reminders of an unanswered question (scheduled from the notice's successful send). */
-export function reminderDraftAutomation(deps: Pick<QuestionAutomationDeps, 'publicSiteUrl'>): Automation {
+/**
+ * Schedules the one automatic reminder of an unanswered question (TSK-0121): due the configured hours after the
+ * notice's successful send, while the question is unanswered, the request open and the notice still stands. Idempotent
+ * (one delivery per subject and destination). Nothing while the cadence is NOT CONFIGURED.
+ */
+export async function planQuestionReminder(
+  tx: Tx,
+  input: { questionId: string; noticeSentAt: Date; requestId: string },
+): Promise<JobOutcome> {
+  const q = await tx
+    .selectFrom('intake.questions')
+    .select(['id', 'request_id', 'state', 'first_reminder_sent_at', 'final_reminder_sent_at'])
+    .where('id', '=', input.questionId)
+    .forUpdate()
+    .executeTakeFirst()
+  // Reminders stop when the customer replies (OWN-DEC-101); one reminder per question (a reminder sent before
+  // TSK-0121 was it).
+  if (!q || q.state !== 'published' || q.first_reminder_sent_at || q.final_reminder_sent_at) return 'cancelled'
+  const target = await noticeTarget(tx, q.request_id)
+  if (!target || isClosedState(target.state)) return 'cancelled'
+  // A notice whose delivery failed since (a bounce after acceptance) never counts as non-response.
+  if (!(await sentNow(tx, QUESTION_NOTICE, noticeSubject(q.id)))) return 'cancelled'
+  const config = await loadConfig(tx)
+  const cadence = questionCadence(config)
+  if (!cadence) return 'cancelled'
+  const scheduled = await scheduleAutomaticDelivery(tx, {
+    config,
+    messageKey: QUESTION_REMINDER,
+    recipient: { kind: 'customer_contact', id: target.contactId, destinations: target.destinations },
+    subjectKey: reminderSubject(q.id),
+    record: { type: 'question', id: q.id },
+    projectId: target.projectId,
+    dueAt: afterElapsedHours(input.noticeSentAt, cadence.afterDeliveryHours),
+    requestId: input.requestId,
+    process: 'system.questions',
+  })
+  return scheduled.state === 'scheduled' ? 'done' : 'cancelled'
+}
+
+/** Plans the reminder of a question whose notice was sent before TSK-0121 (migration 0075). */
+export function questionReminderPlanAutomation(): Automation {
   return {
-    name: 'questions.reminder_draft',
-    trigger: { kind: 'schedule', description: 'one job per question and reminder stage, at the configured cadence' },
+    name: 'questions.reminder_plan',
+    trigger: { kind: 'schedule', description: 'one job per question whose notice was sent, to plan its reminder' },
     identity: 'system.questions',
-    inputs: { description: 'the question and the reminder stage; the records read when the job runs', version: 1 },
-    idempotency: 'one draft per question, stage, channel and destination (the delivery tuple)',
-    effect: 'creates the staff-released reminder drafts of an unanswered question and its queue item',
+    inputs: { description: 'the question; the records read when the job runs', version: 1 },
+    idempotency: 'one delivery per question reminder and destination (the delivery tuple)',
+    effect: 'schedules the one automatic reminder of an unanswered question',
     retry: SCHEDULE_RETRY,
     timeoutMs: 10_000,
     exceptionOwner: 'office',
-    audit: { action: 'question.reminder_drafted' },
+    audit: { action: 'question.reminder_plan' },
     handle: async ({ tx, job }) => {
-      const id = String(job.payload['questionId'] ?? '')
-      const stage = job.payload['stage'] as ReminderStage
-      if (!UUID_RE.test(id) || !(REMINDER_STAGES as readonly string[]).includes(stage)) return 'cancelled'
+      const id = String(job.payload['questionId'] ?? job.target.id ?? '')
+      if (!UUID_RE.test(id)) return 'cancelled'
       const q = await tx
         .selectFrom('intake.questions')
-        .select(['id', 'request_id', 'state'])
+        .select(['notice_sent_at'])
         .where('id', '=', id)
-        .forUpdate()
         .executeTakeFirst()
-      // Reminders stop when the customer replies (OWN-DEC-101).
-      if (!q || q.state !== 'published') return 'cancelled'
-      const target = await noticeTarget(tx, q.request_id)
-      if (!target || isClosedState(target.state)) return 'cancelled'
-      // A notice whose delivery failed since (a bounce after acceptance) never counts as non-response.
-      if (!(await sentNow(tx, QUESTION_NOTICE, noticeSubject(q.id)))) return 'cancelled'
-      const config = await loadConfig(tx)
-      const link = questionLink(deps.publicSiteUrl, target.reference, q.id)
-      for (const destination of target.destinations)
-        await createDraft(tx, {
-          config,
-          messageKey: QUESTION_REMINDER,
-          destination,
-          recipient: { kind: 'customer_contact', id: target.contactId, destinations: [] },
-          subjectKey: reminderSubject(q.id, stage),
-          record: { type: 'question', id: q.id },
-          values: link ? { projectLink: link } : {},
-          projectId: target.projectId,
-        })
-      // Prominent in the action queue (OWN-DEC-101): one item per request, its reason the latest stage drafted.
-      await openQueueItem(tx, {
-        type: 'question_reminder',
-        subjectId: target.requestId,
-        reason: stage === 'first' ? 'question_reminder_first' : 'question_reminder_final',
-        projectId: target.projectId,
-        reference: target.reference,
-        status: target.state,
-        assignedStaffId: target.responsibleStaffId,
-      })
-      return 'done'
+      if (!q?.notice_sent_at) return 'cancelled'
+      return planQuestionReminder(tx, { questionId: id, noticeSentAt: q.notice_sent_at, requestId: job.requestId })
     },
   }
 }
 
-/** 24 hours after the final reminder was actually sent: the request may be closed "Closed—no response". */
+/**
+ * The values of the owner's question_reminder wording, read when it sends (TSK-0121, OWN-DEC-151, OWN-DEC-158): the
+ * first name ("Hi there," without one), the request reference and the question's page in the portal.
+ */
+export function questionReminderValues(publicSiteUrl: string | undefined): ReleaseValues {
+  return async (tx, row) => {
+    if (row.message_key !== QUESTION_REMINDER) return undefined
+    const subject = subjectOf(row.subject_key)
+    if (!subject) return {}
+    const q = await tx
+      .selectFrom('intake.questions')
+      .select(['id', 'request_id'])
+      .where('id', '=', subject.questionId)
+      .executeTakeFirst()
+    if (!q) return {}
+    const target = await noticeTarget(tx, q.request_id)
+    if (!target) return {}
+    return present({
+      customerName: firstNameOf(target.fullName),
+      reference: target.reference,
+      projectLink: questionLink(publicSiteUrl, target.reference, q.id),
+    })
+  }
+}
+
+/** 24 hours after the reminder was actually sent: the request may be closed "Closed—no response" (OWN-DEC-208). */
 export function closeAvailableAutomation(): Automation {
   return {
     name: 'questions.close_available',
-    trigger: { kind: 'schedule', description: 'one job per question, the configured hours after its final reminder' },
+    trigger: { kind: 'schedule', description: 'one job per question, the configured hours after its reminder' },
     identity: 'system.questions',
     inputs: { description: 'the question; the records read when the job runs', version: 1 },
     idempotency: 'one open queue item per request (the queue keeps one item per type and subject)',
@@ -349,8 +384,7 @@ export function closeAvailableAutomation(): Automation {
   }
 }
 
-/** The scheduling declarations (the worker's own instances run them; scheduling needs only the declaration). */
-export const REMINDER_DRAFT_JOB = reminderDraftAutomation({ publicSiteUrl: undefined })
+/** The scheduling declaration (the worker's own instance runs it; scheduling needs only the declaration). */
 export const CLOSE_AVAILABLE_JOB = closeAvailableAutomation()
 
 /** Records the successful send of a question's notice or reminder, once, and schedules what follows it. */
@@ -361,7 +395,7 @@ export function questionDeliveryAutomation(): Automation {
     identity: 'system.questions',
     inputs: { description: 'the delivery id and the time it succeeded; the delivery row as it is now', version: 1 },
     idempotency: 'each time is recorded once (the first success); the follow-up jobs are keyed per question and stage',
-    effect: 'records when a question notice or reminder was actually sent and schedules the reminder steps',
+    effect: 'records when a question notice or reminder was actually sent and schedules what follows it',
     retry: SCHEDULE_RETRY,
     timeoutMs: 10_000,
     exceptionOwner: 'office',
@@ -389,6 +423,7 @@ export function questionDeliveryAutomation(): Automation {
         .forUpdate()
         .executeTakeFirst()
       if (!q) return 'cancelled'
+      // The single automatic reminder is recorded as the final one (the only reminder there is, OWN-DEC-153).
       const column =
         d.message_key === QUESTION_NOTICE
           ? subject.stage === null
@@ -396,7 +431,7 @@ export function questionDeliveryAutomation(): Automation {
             : null
           : subject.stage === 'first'
             ? 'first_reminder_sent_at'
-            : subject.stage === 'final'
+            : subject.stage === 'final' || subject.stage === 'reminder'
               ? 'final_reminder_sent_at'
               : null
       if (!column || q[column] !== null) return 'cancelled'
@@ -405,22 +440,17 @@ export function questionDeliveryAutomation(): Automation {
         .set({ [column]: at, version: sql<number>`version + 1` })
         .where('id', '=', q.id)
         .execute()
+      if (column === 'notice_sent_at') {
+        await planQuestionReminder(tx, { questionId: q.id, noticeSentAt: at, requestId: job.requestId })
+        return 'done'
+      }
       const cadence = questionCadence(await loadConfig(tx))
-      // NOT CONFIGURED: the send is recorded; no reminder time is guessed.
+      // NOT CONFIGURED: the send is recorded; no closing time is guessed.
       if (!cadence) return 'done'
-      if (column === 'notice_sent_at')
-        for (const stage of REMINDER_STAGES)
-          await scheduleJob(tx, REMINDER_DRAFT_JOB, {
-            key: `${q.id}:${stage}`,
-            runAt: new Date(at.getTime() + (stage === 'first' ? cadence.firstHours : cadence.finalHours) * HOUR_MS),
-            payload: { questionId: q.id, stage },
-            target: { type: 'question', id: q.id },
-            requestId: job.requestId,
-          })
       if (column === 'final_reminder_sent_at')
         await scheduleJob(tx, CLOSE_AVAILABLE_JOB, {
           key: q.id,
-          runAt: new Date(at.getTime() + cadence.closeAfterFinalHours * HOUR_MS),
+          runAt: new Date(at.getTime() + cadence.closeAfterReminderHours * HOUR_MS),
           payload: { questionId: q.id },
           target: { type: 'question', id: q.id },
           requestId: job.requestId,
@@ -430,17 +460,21 @@ export function questionDeliveryAutomation(): Automation {
   }
 }
 
-/** Send-time recheck of a released question reminder (HH-COM-05): answered, or a closed request, cancels it. */
+/**
+ * Send-time recheck of a question reminder (HH-COM-05): an answered question, a closed request or a notice whose
+ * delivery no longer stands (a bounce after acceptance: never a customer non-response) cancels it.
+ */
 export const questionRecordCheck: RecordCheck = async (tx, input) => {
   if (input.messageKey !== QUESTION_REMINDER) return 'current'
   if (!UUID_RE.test(input.recordId)) return 'stale'
   const q = await tx
     .selectFrom('intake.questions as q')
     .innerJoin('intake.requests as r', 'r.id', 'q.request_id')
-    .select(['q.state', 'r.state as request_state'])
+    .select(['q.id', 'q.state', 'r.state as request_state'])
     .where('q.id', '=', input.recordId)
     .executeTakeFirst()
   if (!q || q.state !== 'published' || isClosedState(q.request_state)) return 'stale'
+  if (!(await sentNow(tx, QUESTION_NOTICE, noticeSubject(q.id)))) return { stale: 'notice_not_delivered' }
   return 'current'
 }
 
@@ -468,7 +502,7 @@ export function questionAutomations(deps: QuestionAutomationDeps): Automation[] 
     questionNoticeAutomation(deps),
     replyStaffNoticeAutomation(deps),
     questionDeliveryAutomation(),
-    reminderDraftAutomation(deps),
+    questionReminderPlanAutomation(),
     closeAvailableAutomation(),
   ]
 }

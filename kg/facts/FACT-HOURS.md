@@ -21,3 +21,5 @@ Where it applies:
 - Requests received outside these hours are reviewed when the business reopens ([[OWN-DEC-94]]).
 
 Not held to these hours: one-time codes and access links send immediately ([[OWN-DEC-65]]); released unanswered-estimate reminders send at any hour ([[OWN-DEC-132]]); the "On my way" notice follows the worker's tap (owner answer 2026-10-05T18:11, "Any time"; [[OWN-DEC-107]]). PROPOSED: the other automatic notices of [[FACT-AUTOMATIC-MESSAGES]] send when the triggering action is committed.
+
+**Built by [[TSK-0122]] (2026-10-22):** `messages.delivery_hours` applies these hours to non-urgent customer texts only, in the recipient's verified zone (9 AM–9 PM Eastern while it is unknown, [[OWN-DEC-207]]); emails and released replies go at any hour; codes, account security notices, access links and the On my way notice never wait.

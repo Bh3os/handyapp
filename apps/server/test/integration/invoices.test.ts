@@ -832,7 +832,12 @@ describe('[HH-FIN-07][HH-FIN-12][T59] partial, pending, deposit and overpayment 
       payInvoice('office', id, { method: 'zelle', amountCents: 30_000, reference: ref('zelle') }),
       payInvoice('owner', id, { method: 'cash', amountCents: 50_000 }),
     ])
-    expect([z.statusCode, c.statusCode]).toEqual([201, 201])
+    // The two are serialized on the invoice. In either order the total applied stops at what was asked for: Zelle
+    // first leaves both recorded ($400.00 applied, $400.00 over); cash first covers the rest, and the Zelle payment
+    // is then refused as covered ($400.00 applied, $100.00 over).
+    const zelleFirst = z.statusCode === 201
+    expect(c.statusCode, c.body).toBe(201)
+    if (!zelleFirst) expect(codes(z)).toContain('INVOICE_COVERED')
     const rows = await t.db
       .selectFrom('finance.payment_allocations as a')
       .innerJoin('finance.payments as p', 'p.id', 'a.payment_id')
@@ -845,8 +850,8 @@ describe('[HH-FIN-07][HH-FIN-12][T59] partial, pending, deposit and overpayment 
     f = view.final as Invoice
     expect(f.money).toMatchObject({ confirmedCents: 70_000, pendingCents: 20_000, remainingCents: 20_000 })
     expect(f.state).toBe('partially_paid')
-    // The overpayment ($400.00) is unallocated money for the Owner's credit or refund decision, never a negative balance.
-    expect(view.unallocatedCents).toBe(40_000)
+    // The overpayment is unallocated money for the Owner's credit or refund decision, never a negative balance.
+    expect(view.unallocatedCents).toBe(zelleFirst ? 40_000 : 10_000)
     const item = await t.db
       .selectFrom('ops.queue_items')
       .select(['reason', 'resolved_at'])

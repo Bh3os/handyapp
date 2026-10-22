@@ -231,11 +231,12 @@ describe('estimate terms v1.0 (TSK-0056, HH-EST-13, OWN-DEC-127)', () => {
     expect(text).not.toMatch(/90-day|\$50\.00|24 hours/)
   })
 
-  it('[HH-EST-13] the page of its own: numbered sections with the TEST banner while not approved', async () => {
+  it('[HH-EST-13][OWN-DEC-187] the page of its own: numbered sections, and no TEST banner after the owner sign-off', async () => {
     open(api().fetchImpl, '/portal/terms/estimate-terms-1')
     expect(await screen.findByRole('heading', { level: 1, name: 'Estimate Terms' })).toBeTruthy()
-    expect(screen.getByText('TEST — wording pending owner approval for real customer use')).toBeTruthy()
-    expect(screen.getByText(/are a draft and are not in effect yet/)).toBeTruthy()
+    // TSK-0144: the owner approved v1.0 (OWN-DEC-187): the "wording pending owner approval" banner is gone.
+    expect(screen.queryByText('TEST — wording pending owner approval for real customer use')).toBeNull()
+    expect(screen.queryByText(/are a draft and are not in effect yet/)).toBeNull()
     const sections = document.querySelectorAll('.portal-terms__sections > li')
     expect(sections).toHaveLength(14)
     expect(screen.getByText('Version 1.0, prepared October 21, 2026. Document ID: estimate-terms-1.')).toBeTruthy()

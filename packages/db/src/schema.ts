@@ -1365,6 +1365,7 @@ export interface PlatformMessageDeliveriesTable {
   sent_at: Timestamp | null
   consent_decision: string | null
   missing_variables: Generated<string[]>
+  text_window: string | null
 }
 
 export interface PlatformMessageDeliveryAttemptsTable {
@@ -1602,6 +1603,21 @@ export interface StagingTestDataSeedingsTable {
   request_id: string
 }
 
+export interface WorkBeforePhotosTable {
+  id: Generated<string>
+  job_id: string
+  project_id: string
+  visit_id: string
+  work_package_id: string
+  staff_user_id: string
+  object_key: string
+  content_type: string
+  byte_size: number
+  sha256: string
+  device_captured_at: Timestamp | null
+  uploaded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface WorkEquipmentTable {
   id: Generated<string>
   name: string
@@ -1609,6 +1625,31 @@ export interface WorkEquipmentTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   retired_at: Timestamp | null
   retired_by: string | null
+}
+
+export interface WorkGateExceptionsTable {
+  id: Generated<string>
+  job_id: string
+  project_id: string
+  visit_id: string
+  kind: string
+  requirement: string
+  reason: string
+  evidence: Json
+  requested_by: string
+  requested_at: ColumnType<Date, Date | string | undefined, Date | string>
+  packet_version: number
+  expires_at: Timestamp
+  state: Generated<string>
+  decided_by: string | null
+  decided_at: Timestamp | null
+  decision_note: string | null
+  provider_verified: boolean | null
+  follow_up_owner: string | null
+  follow_up_due: string | null
+  ended_at: Timestamp | null
+  ended_reason: string | null
+  version: Generated<number>
 }
 
 export interface WorkHoldsTable {
@@ -1635,6 +1676,8 @@ export interface WorkHoldsTable {
   canceled_by: string | null
   canceled_at: Timestamp | null
   version: Generated<number>
+  resolution_evidence: string | null
+  reviewer_qualification: string | null
 }
 
 export interface WorkJobPacketAcknowledgmentInvalidationsTable {
@@ -1780,6 +1823,41 @@ export interface WorkSchedulingTasksTable {
   state: Generated<string>
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   version: Generated<number>
+}
+
+export interface WorkStartGateEvaluationsTable {
+  id: Generated<string>
+  job_id: string
+  project_id: string
+  visit_id: string
+  staff_user_id: string
+  outcome: string
+  items: Json
+  packet_version: number | null
+  packet_sha256: string | null
+  scope_version: number | null
+  sop_version_ids: ColumnType<JsonValue, string | undefined, string>
+  acknowledgment_id: string | null
+  exception_ids: Generated<string[]>
+  request_id: string | null
+  evaluated_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface WorkStartSiteChecksTable {
+  id: Generated<string>
+  job_id: string
+  project_id: string
+  visit_id: string
+  staff_user_id: string
+  property_confirmed: boolean
+  access_available: boolean
+  customer_present: boolean
+  hazards_reviewed: boolean
+  site_condition: string
+  note: string | null
+  hold_id: string | null
+  packet_version: number
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
 export interface WorkTimeOffTable {
@@ -1996,6 +2074,22 @@ export interface WorkWorkPackagesTable {
   sop_pinned_at: Timestamp | null
 }
 
+export interface WorkWorkStartsTable {
+  id: Generated<string>
+  job_id: string
+  project_id: string
+  visit_id: string
+  staff_user_id: string
+  evaluation_id: string
+  packet_version: number
+  scope_version: number | null
+  sop_version_ids: Json
+  acknowledgment_id: string
+  exception_ids: Generated<string[]>
+  job_state_before: string
+  started_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface WorkWorkerSchedulesTable {
   staff_user_id: string
   version: number
@@ -2120,7 +2214,9 @@ export interface Database {
   'staging.reset_runs': StagingResetRunsTable
   'staging.reusable_test_accounts': StagingReusableTestAccountsTable
   'staging.test_data_seedings': StagingTestDataSeedingsTable
+  'work.before_photos': WorkBeforePhotosTable
   'work.equipment': WorkEquipmentTable
+  'work.gate_exceptions': WorkGateExceptionsTable
   'work.holds': WorkHoldsTable
   'work.job_packet_acknowledgment_invalidations': WorkJobPacketAcknowledgmentInvalidationsTable
   'work.job_packet_acknowledgments': WorkJobPacketAcknowledgmentsTable
@@ -2133,6 +2229,8 @@ export interface Database {
   'work.reservation_flags': WorkReservationFlagsTable
   'work.reservations': WorkReservationsTable
   'work.scheduling_tasks': WorkSchedulingTasksTable
+  'work.start_gate_evaluations': WorkStartGateEvaluationsTable
+  'work.start_site_checks': WorkStartSiteChecksTable
   'work.time_off': WorkTimeOffTable
   'work.time_stamp_corrections': WorkTimeStampCorrectionsTable
   'work.time_stamps': WorkTimeStampsTable
@@ -2146,6 +2244,7 @@ export interface Database {
   'work.work_package_loadouts': WorkWorkPackageLoadoutsTable
   'work.work_package_sop_pins': WorkWorkPackageSopPinsTable
   'work.work_packages': WorkWorkPackagesTable
+  'work.work_starts': WorkWorkStartsTable
   'work.worker_schedules': WorkWorkerSchedulesTable
   'work.working_hours': WorkWorkingHoursTable
 }

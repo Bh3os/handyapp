@@ -43,6 +43,11 @@
       "@handyhub/source": "./src/capacity.ts",
       "types": "./dist/capacity.d.ts",
       "default": "./dist/capacity.js"
+    },
+    "./launch": {
+      "@handyhub/source": "./src/launch.ts",
+      "types": "./dist/launch.d.ts",
+      "default": "./dist/launch.js"
     }
   },
   "scripts": {
