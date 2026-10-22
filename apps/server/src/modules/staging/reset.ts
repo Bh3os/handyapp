@@ -119,6 +119,10 @@ export const CLEARED_CATEGORIES = {
     'work.start_gate_evaluations',
     'work.work_starts',
     'work.gate_exceptions',
+    // TSK-0077 (0079): Stop Work, hazard and issue reports, their photos, stabilization records and reviews.
+    'work.issue_reports',
+    'work.stabilization_records',
+    'work.issue_report_reviews',
   ],
   payments: [
     'finance.payments',
@@ -148,7 +152,8 @@ export const CLEARED_CATEGORIES = {
     'platform.message_delivery_events',
     'platform.message_delivery_attempts',
   ],
-  attachments: ['intake.photos', 'intake.question_reply_photos', 'work.before_photos'],
+  // TSK-0077 (0079): the photos of Stop Work, hazard and issue reports.
+  attachments: ['intake.photos', 'intake.question_reply_photos', 'work.before_photos', 'work.issue_report_photos'],
   pending_messages: ['platform.outbox_events', 'platform.jobs'],
   sessions: [
     'identity.customer_sessions',
@@ -256,6 +261,7 @@ const STORED_FILES = [
   ['finance.invoice_documents', 'object_key'],
   // TSK-0073 (0074): the before photos of field visits.
   ['work.before_photos', 'object_key'],
+  ['work.issue_report_photos', 'object_key'],
 ] as const
 
 /** Stored-file keys per removal job (the job payload is a comma-separated list). */

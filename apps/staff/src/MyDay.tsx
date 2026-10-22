@@ -15,6 +15,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { call, idempotencyKey, type Fetch } from './api'
 import { MyJobPackets } from './JobPacket'
 import { codeLabel } from './Requests'
+import { StopWorkPanel } from './StopWork'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
 
@@ -367,6 +368,10 @@ function VisitCard({
           </div>
           {v.state === 'arrived' && v.mine.arrivedAt && !v.mine.finishedAt ? (
             <p className="staff-request__hint">{t('myday.arrivedNote')}</p>
+          ) : null}
+          {v.jobId && (v.state === 'en_route' || v.state === 'arrived') && v.assignment === 'confirmed' ? (
+            // TSK-0077 (HH-WORK-09): Stop Work / Report Hazard on the active visit, inline, never disabled.
+            <StopWorkPanel t={t} fetchImpl={fetchImpl} jobId={v.jobId} visitId={v.visitId} />
           ) : null}
           {problem ? (
             <p role="alert" className="hh-field__error" data-testid="myday-problem">

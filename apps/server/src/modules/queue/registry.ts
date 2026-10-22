@@ -42,6 +42,8 @@ export const QUEUE_ACTIONS = [
   'verify_time_zone',
   // TSK-0074: set Ready on a job-level Hold / Ready note once the requirement it names is resolved.
   'review_job_hold',
+  // TSK-0077: review a worker's issue report (resolved on site, or waiting for the Owner's next step).
+  'review_issue',
 ] as const
 export type QueueAction = (typeof QUEUE_ACTIONS)[number]
 
@@ -109,6 +111,11 @@ export const QUEUE_ITEM_TYPES = [
     action: 'review_hold',
     screen: 'requests',
   },
+  // TSK-0077 (HH-WORK-09, T48): a Stop Work / Report Hazard writes its critical safety hold and this top-priority item
+  // in the same transaction, one per hold; resolved when the Owner releases the hold with evidence or cancels it as
+  // entered in error (0074). The reason never names what was reported (an injury is restricted, OWN-DEC-143). Seen by
+  // the roles that may stop work (the assigned workers of the job, Office, the Estimator, the Owner); the link opens
+  // the hold on its job's review page.
   {
     id: 'safety_hold',
     section: 'queue',
@@ -118,6 +125,22 @@ export const QUEUE_ITEM_TYPES = [
     reasons: ['safety_hold'],
     action: 'review_hold',
     screen: 'schedule',
+    path: 'safety-holds',
+  },
+  // TSK-0077 (HH-WORK-08, OWN-DEC-80): a worker's issue report that is not critical notifies the Owner: one item per job
+  // while any of its issue reports waits for the Owner's review (a resolution on site, or a problem waiting for the
+  // Owner's next step), opened in the report's transaction and resolved with the last review. Seen by the Owner
+  // (issue_report.review); band and view are PROPOSED (OQ-STOP-WORK-DETAILS).
+  {
+    id: 'field_issue',
+    section: 'queue',
+    subject: 'job',
+    band: 'time_sensitive',
+    view: 'issue_report.review',
+    reasons: ['issue_reported', 'issue_resolved_on_site'],
+    action: 'review_issue',
+    screen: 'schedule',
+    path: 'start-review',
   },
   // TSK-0066 (HH-PORT-04, OWN-DEC-107): a customer's Request to Reschedule or Request Cancellation, prominently, one item
   // per visit while the request is open; due when the visit's reserved range starts, in the today_change band on the

@@ -62870,6 +62870,1068 @@
         }
       }
     },
+    "/api/v1/staff/issue-reports/{reportId}/notices/{deliveryId}/dismiss": {
+      "post": {
+        "operationId": "dismissWorkPausedNotice",
+        "summary": "Dismiss the work-paused customer notice",
+        "description": "The Owner only. Dismisses the work-paused notice draft of this report: kept as cancelled (dismissed), never sent. The customer portal still shows \"Work is paused for safety review.\" while the hold blocks.",
+        "tags": [
+          "hazards"
+        ],
+        "parameters": [
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "deliveryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reportId",
+                    "deliveryId",
+                    "state"
+                  ],
+                  "properties": {
+                    "reportId": {
+                      "type": "string"
+                    },
+                    "deliveryId": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.release_draft",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "message.dismiss_work_paused",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/hazard-reports.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/issue-reports/{reportId}/notices/{deliveryId}/release": {
+      "post": {
+        "operationId": "releaseWorkPausedNotice",
+        "summary": "Release the work-paused customer notice",
+        "description": "The Owner only (message.release_draft, and the notice is Owner-released: OWN-DEC-152 section 3.2). Sends the owner-worded work_paused notice of this report to the customer through the send job, which checks the report's hold again at send time (released or cancelled by then: not sent). A notice that is not a draft is CONFLICT NOTICE_NOT_DRAFT. It carries no technical or incident detail.",
+        "tags": [
+          "hazards"
+        ],
+        "parameters": [
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "deliveryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reportId",
+                    "deliveryId",
+                    "state"
+                  ],
+                  "properties": {
+                    "reportId": {
+                      "type": "string"
+                    },
+                    "deliveryId": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.release_draft",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "message.release_work_paused",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/hazard-reports.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/issue-reports/{reportId}/photos": {
+      "post": {
+        "operationId": "addIssueReportPhoto",
+        "summary": "Add a photo to a report (only when safe)",
+        "description": "Staff with job.add_photo (the Owner and workers assigned to the report's job); on a restricted report only the Owner and its reporter. Raw JPEG, PNG or WebP bytes, checked like request photos (content, type, size; NOT CONFIGURED limits or storage answer UNAVAILABLE), stored once under an opaque key in the private bucket with the report's visibility: never shared with the customer, never in a gallery or worker-wide feed. Photos are taken only when it is safe to do so; a report never needs one. If anything is unsafe: stop the affected work, keep people away and call the Owner; in an emergency call 911 at once, without waiting for anyone.",
+        "tags": [
+          "hazards"
+        ],
+        "parameters": [
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "deviceCapturedAt",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/png": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/webp": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "photoId",
+                    "reportId",
+                    "uploadedAt",
+                    "created"
+                  ],
+                  "properties": {
+                    "photoId": {
+                      "type": "string"
+                    },
+                    "reportId": {
+                      "type": "string"
+                    },
+                    "uploadedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "created": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "photoId",
+                    "reportId",
+                    "uploadedAt",
+                    "created"
+                  ],
+                  "properties": {
+                    "photoId": {
+                      "type": "string"
+                    },
+                    "reportId": {
+                      "type": "string"
+                    },
+                    "uploadedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "created": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job.add_photo",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "report-photo-upload",
+            "limit": 120,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "issue_report.add_photo",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/hazard-reports.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/issue-reports/{reportId}/review": {
+      "post": {
+        "operationId": "reviewIssueReport",
+        "summary": "The Owner's review of an issue report",
+        "description": "Staff with issue_report.review (the Owner; PROPOSED cell in the case-closure row). Records once that the Owner reviewed a non-critical issue report (with an optional note) and resolves its field_issue queue item with the job's last one. A critical report is reviewed through its hold's documented release path, never here (CONFLICT REVIEWED_THROUGH_HOLD); a second review is CONFLICT ALREADY_REVIEWED.",
+        "tags": [
+          "hazards"
+        ],
+        "parameters": [
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": {
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reportId",
+                    "reviewedAt"
+                  ],
+                  "properties": {
+                    "reportId": {
+                      "type": "string"
+                    },
+                    "reviewedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "issue_report.review",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "issue_report.review",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/hazard-reports.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/issue-reports/{reportId}/stabilizations": {
+      "post": {
+        "operationId": "recordStabilization",
+        "summary": "Record emergency stabilization",
+        "description": "Staff with job.report_issue (the Owner and workers assigned to the report's job); on a restricted report only the Owner and its reporter. Only on a Stop Work (a report with a critical hold; else CONFLICT NOT_A_STOP). Recorded separately from change orders: the trigger, the actions taken, why they were necessary, evidence, when the Owner and the customer were told, and the follow-up; it updates the hold's safety queue item for the Owner. The app lists no make-safe steps: none is approved in an SOP yet (NOT CONFIGURED until competent review). Gas and potentially live wiring are never handled; this never releases or weakens the hold.",
+        "tags": [
+          "hazards"
+        ],
+        "parameters": [
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "trigger",
+                  "actions",
+                  "whyNecessary"
+                ],
+                "properties": {
+                  "trigger": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  },
+                  "actions": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "pattern": "\\S"
+                  },
+                  "whyNecessary": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  },
+                  "evidence": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  },
+                  "ownerNotifiedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "customerNotifiedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "followUp": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "stabilizationId",
+                    "reportId",
+                    "recordedAt"
+                  ],
+                  "properties": {
+                    "stabilizationId": {
+                      "type": "string"
+                    },
+                    "reportId": {
+                      "type": "string"
+                    },
+                    "recordedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job.report_issue",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "issue_report.stabilization",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/hazard-reports.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/job-holds/{holdId}/actions/set-ready": {
       "post": {
         "operationId": "setJobHoldReady",
@@ -65210,6 +66272,319 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/deposits.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/jobs/{jobId}/hazard-reports": {
+      "post": {
+        "operationId": "reportHazard",
+        "summary": "Stop Work / Report Hazard",
+        "description": "Staff with hazard.report: every worker assigned to the job (\"A, always, no permission needed\"), Office, the Estimator and the Owner. No fresh sign-in, reason, version or rate limit: nothing stands in front of it, and nothing about the job's state refuses it (other holds, a failing Start Work gate, a paused job, an old packet). One transaction under the job lock: a critical safety hold (written first, naming the report), the job moved from in_progress to paused, the affected work packages blocked (the named ones; the whole job for a gas leak, live wiring, hazardous material, a structural concern or an injury), the report itself and a top-priority safety queue item. Every field is optional: the hazard defaults to other_unsafe, a long text is cut, an id the server cannot place is left out. An injury's details are restricted to the Owner and the reporter. The answer carries the guidance to show at once (a gas leak: evacuate and call from a safe place; live wiring: never touched), the reviewer the hazard needs (named, never decided), resolveOnSite false and Call 911. The work-paused customer notice is drafted for the Owner to release (never automatic); the customer portal shows only \"Work is paused for safety review.\" Releasing the hold is the documented path of /staff/critical-holds (never by the person who raised it). The same Idempotency-Key from an offline phone records it once.",
+        "tags": [
+          "hazards"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": {
+                  "hazard": {
+                    "type": "string",
+                    "enum": [
+                      "gas_leak",
+                      "live_wiring",
+                      "hazardous_material",
+                      "structural",
+                      "licensed_trade",
+                      "injury",
+                      "other_unsafe"
+                    ]
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "workPackageIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "visitId": {
+                    "type": "string"
+                  },
+                  "peopleKeptAway": {
+                    "type": "boolean"
+                  },
+                  "emergencyServicesCalled": {
+                    "type": "boolean"
+                  },
+                  "deviceRecordedAt": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reportId",
+                    "holdId",
+                    "holdState",
+                    "jobState",
+                    "jobPaused",
+                    "affectedWorkPackageIds",
+                    "hazard",
+                    "reviewer",
+                    "guidance",
+                    "resolveOnSite",
+                    "emergency",
+                    "reportedAt"
+                  ],
+                  "properties": {
+                    "reportId": {
+                      "type": "string"
+                    },
+                    "holdId": {
+                      "type": "string"
+                    },
+                    "holdState": {
+                      "type": "string",
+                      "enum": [
+                        "open",
+                        "under_review",
+                        "resolved",
+                        "canceled_as_error"
+                      ]
+                    },
+                    "jobState": {
+                      "type": "string"
+                    },
+                    "jobPaused": {
+                      "type": "boolean"
+                    },
+                    "affectedWorkPackageIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "hazard": {
+                      "type": "string",
+                      "enum": [
+                        "gas_leak",
+                        "live_wiring",
+                        "hazardous_material",
+                        "structural",
+                        "licensed_trade",
+                        "injury",
+                        "other_unsafe"
+                      ]
+                    },
+                    "reviewer": {
+                      "type": "string",
+                      "enum": [
+                        "gas_utility_or_licensed_gas_professional",
+                        "licensed_electrician",
+                        "qualified_hazardous_materials_assessor",
+                        "structural_engineer",
+                        "licensed_trade_professional",
+                        "owner_professional_referral",
+                        "qualified_safety_reviewer"
+                      ]
+                    },
+                    "guidance": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "evacuate_call_from_safe_place",
+                          "never_gas_repair",
+                          "keep_people_away",
+                          "call_owner",
+                          "never_touch_wiring",
+                          "do_not_disturb_material",
+                          "stop_affected_work",
+                          "no_licensed_work",
+                          "call_911_serious_injury"
+                        ]
+                      }
+                    },
+                    "resolveOnSite": {
+                      "type": "boolean",
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "emergency": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "call911"
+                      ],
+                      "properties": {
+                        "call911": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "reportedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "hazard.report",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "hazard.report",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/hazard-reports.test.ts"
         }
       }
     },
@@ -68726,6 +70101,938 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/invoices.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/jobs/{jobId}/issue-reports": {
+      "get": {
+        "operationId": "listIssueReports",
+        "summary": "A job's Stop Work, hazard and issue reports",
+        "description": "Staff with work.stop (the assigned workers of the job, Office, the Estimator, the Owner). Every report of the job, newest first, with its severity, whether it paused the job and where its hold stands. A restricted report's details (an injury or an incident: what was reported, the text, the resolution, photos, stabilization, the reporter) are shown only to the Owner (audited) and the worker who reported it; everyone else sees that it exists and its status (OWN-DEC-143). The Owner also sees the work-paused customer notice drafts and may release or dismiss them. Lists the job's work packages for the forms and always carries Call 911. What the caller may do next: report a hazard, report an issue, add a photo, record stabilization, review.",
+        "tags": [
+          "hazards"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "projectReference",
+                    "jobState",
+                    "reports",
+                    "workPackages",
+                    "emergency",
+                    "actions"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "projectReference": {
+                      "type": "string"
+                    },
+                    "jobState": {
+                      "type": "string"
+                    },
+                    "reports": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "reportId",
+                          "kind",
+                          "restricted",
+                          "hazard",
+                          "category",
+                          "severity",
+                          "description",
+                          "affectedWorkPackageIds",
+                          "nextOwner",
+                          "peopleKeptAway",
+                          "emergencyServicesCalled",
+                          "resolution",
+                          "reviewer",
+                          "hold",
+                          "jobPaused",
+                          "reportedBy",
+                          "reportedAt",
+                          "deviceRecordedAt",
+                          "photos",
+                          "stabilizations",
+                          "review",
+                          "customerNotice",
+                          "actions"
+                        ],
+                        "properties": {
+                          "reportId": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "hazard",
+                              "issue"
+                            ]
+                          },
+                          "restricted": {
+                            "type": "boolean"
+                          },
+                          "hazard": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "gas_leak",
+                              "live_wiring",
+                              "hazardous_material",
+                              "structural",
+                              "licensed_trade",
+                              "injury",
+                              "other_unsafe",
+                              null
+                            ]
+                          },
+                          "category": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "unsafe_condition",
+                              "scope_mismatch",
+                              "hidden_damage",
+                              "material_problem",
+                              "missing_equipment",
+                              "access_problem",
+                              "customer_change",
+                              "weather",
+                              "product_defect",
+                              "incident",
+                              null
+                            ]
+                          },
+                          "severity": {
+                            "type": "string",
+                            "enum": [
+                              "critical",
+                              "major",
+                              "minor"
+                            ]
+                          },
+                          "description": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "affectedWorkPackageIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "nextOwner": {
+                            "type": "string",
+                            "enum": [
+                              "owner",
+                              "office",
+                              "worker"
+                            ]
+                          },
+                          "peopleKeptAway": {
+                            "type": [
+                              "boolean",
+                              "null"
+                            ]
+                          },
+                          "emergencyServicesCalled": {
+                            "type": [
+                              "boolean",
+                              "null"
+                            ]
+                          },
+                          "resolution": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "additionalProperties": false,
+                            "required": [
+                              "whatHappened",
+                              "steps",
+                              "materials",
+                              "howChecked"
+                            ],
+                            "properties": {
+                              "whatHappened": {
+                                "type": "string"
+                              },
+                              "steps": {
+                                "type": "string"
+                              },
+                              "materials": {
+                                "type": "string"
+                              },
+                              "howChecked": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "reviewer": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "gas_utility_or_licensed_gas_professional",
+                              "licensed_electrician",
+                              "qualified_hazardous_materials_assessor",
+                              "structural_engineer",
+                              "licensed_trade_professional",
+                              "owner_professional_referral",
+                              "qualified_safety_reviewer",
+                              null
+                            ]
+                          },
+                          "hold": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "additionalProperties": false,
+                            "required": [
+                              "holdId",
+                              "state",
+                              "version"
+                            ],
+                            "properties": {
+                              "holdId": {
+                                "type": "string"
+                              },
+                              "state": {
+                                "type": "string",
+                                "enum": [
+                                  "open",
+                                  "under_review",
+                                  "resolved",
+                                  "canceled_as_error"
+                                ]
+                              },
+                              "version": {
+                                "type": "integer"
+                              }
+                            }
+                          },
+                          "jobPaused": {
+                            "type": "boolean"
+                          },
+                          "reportedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "reportedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "deviceRecordedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "photos": {
+                            "type": "integer"
+                          },
+                          "stabilizations": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "trigger",
+                                "actions",
+                                "whyNecessary",
+                                "evidence",
+                                "ownerNotifiedAt",
+                                "customerNotifiedAt",
+                                "followUp",
+                                "recordedBy",
+                                "recordedAt"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "trigger": {
+                                  "type": "string"
+                                },
+                                "actions": {
+                                  "type": "string"
+                                },
+                                "whyNecessary": {
+                                  "type": "string"
+                                },
+                                "evidence": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "ownerNotifiedAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date-time"
+                                },
+                                "customerNotifiedAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date-time"
+                                },
+                                "followUp": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "recordedBy": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "recordedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "review": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "additionalProperties": false,
+                            "required": [
+                              "reviewedBy",
+                              "reviewedAt",
+                              "note"
+                            ],
+                            "properties": {
+                              "reviewedBy": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              },
+                              "reviewedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "note": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "customerNotice": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "deliveryId",
+                                "state",
+                                "channel",
+                                "errorCode",
+                                "draftedAt",
+                                "actions"
+                              ],
+                              "properties": {
+                                "deliveryId": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string"
+                                },
+                                "channel": {
+                                  "type": "string"
+                                },
+                                "errorCode": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "draftedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "actions": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "release",
+                                    "dismiss"
+                                  ],
+                                  "properties": {
+                                    "release": {
+                                      "type": "boolean"
+                                    },
+                                    "dismiss": {
+                                      "type": "boolean"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "actions": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "addPhoto",
+                              "recordStabilization",
+                              "review"
+                            ],
+                            "properties": {
+                              "addPhoto": {
+                                "type": "boolean"
+                              },
+                              "recordStabilization": {
+                                "type": "boolean"
+                              },
+                              "review": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "workPackages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "workPackageId",
+                          "serviceCode",
+                          "state"
+                        ],
+                        "properties": {
+                          "workPackageId": {
+                            "type": "string"
+                          },
+                          "serviceCode": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "emergency": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "call911"
+                      ],
+                      "properties": {
+                        "call911": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "reportHazard",
+                        "reportIssue"
+                      ],
+                      "properties": {
+                        "reportHazard": {
+                          "type": "boolean"
+                        },
+                        "reportIssue": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "work.stop",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/hazard-reports.test.ts"
+        }
+      },
+      "post": {
+        "operationId": "reportIssue",
+        "summary": "Report an issue",
+        "description": "Staff with job.report_issue (the Owner and workers assigned to the job). One of the issue categories of HH-WORK-08 with its severity, description, the affected work package and the next owner. A critical issue or an unsafe condition takes the Stop Work path (critical hold, pause, queue item in the same transaction). An on-site resolution (what happened, the steps, the materials, how the result was checked, and the worker's statement that the fix is within their training, qualifications, the approved scope and the approved SOP) is refused with CONFLICT for a critical issue, an unsafe condition or an incident (RESOLVE_ON_SITE_NOT_OFFERED) and while a critical safety hold of the job is unresolved (SAFETY_HOLD_OPEN). Every non-critical report notifies the Owner (field_issue queue item). An incident is restricted to the Owner and the reporter; its case record is TSK-0093, and a customer change becomes a change-order draft with TSK-0082. If anything is unsafe: stop the affected work, keep people away and call the Owner; in an emergency call 911 at once, without waiting for anyone.",
+        "tags": [
+          "hazards"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "category",
+                  "description"
+                ],
+                "properties": {
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "unsafe_condition",
+                      "scope_mismatch",
+                      "hidden_damage",
+                      "material_problem",
+                      "missing_equipment",
+                      "access_problem",
+                      "customer_change",
+                      "weather",
+                      "product_defect",
+                      "incident"
+                    ]
+                  },
+                  "severity": {
+                    "type": "string",
+                    "enum": [
+                      "critical",
+                      "major",
+                      "minor"
+                    ]
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "pattern": "\\S"
+                  },
+                  "workPackageId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                  },
+                  "visitId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                  },
+                  "nextOwner": {
+                    "type": "string",
+                    "enum": [
+                      "owner",
+                      "office",
+                      "worker"
+                    ]
+                  },
+                  "resolution": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "whatHappened",
+                      "steps",
+                      "materials",
+                      "howChecked",
+                      "withinTrainingAndScope"
+                    ],
+                    "properties": {
+                      "whatHappened": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2000,
+                        "pattern": "\\S"
+                      },
+                      "steps": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2000,
+                        "pattern": "\\S"
+                      },
+                      "materials": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "pattern": "\\S"
+                      },
+                      "howChecked": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "pattern": "\\S"
+                      },
+                      "withinTrainingAndScope": {
+                        "type": "boolean"
+                      }
+                    }
+                  },
+                  "deviceRecordedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reportId",
+                    "kind",
+                    "severity",
+                    "holdId",
+                    "jobState",
+                    "jobPaused",
+                    "resolvedOnSite",
+                    "reportedAt"
+                  ],
+                  "properties": {
+                    "reportId": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "hazard",
+                        "issue"
+                      ]
+                    },
+                    "severity": {
+                      "type": "string",
+                      "enum": [
+                        "critical",
+                        "major",
+                        "minor"
+                      ]
+                    },
+                    "holdId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "jobState": {
+                      "type": "string"
+                    },
+                    "jobPaused": {
+                      "type": "boolean"
+                    },
+                    "resolvedOnSite": {
+                      "type": "boolean"
+                    },
+                    "reportedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job.report_issue",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "issue_report.report",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/hazard-reports.test.ts"
         }
       }
     },
@@ -94577,6 +96884,7 @@
                 "new_request",
                 "review_hold",
                 "safety_hold",
+                "field_issue",
                 "visit_change_request",
                 "appointment_reminder",
                 "delivery_failed",
@@ -94710,6 +97018,7 @@
                               "new_request",
                               "review_hold",
                               "safety_hold",
+                              "field_issue",
                               "visit_change_request",
                               "appointment_reminder",
                               "delivery_failed",
@@ -94950,7 +97259,8 @@
                               "reassign_visit",
                               "review_shortage",
                               "verify_time_zone",
-                              "review_job_hold"
+                              "review_job_hold",
+                              "review_issue"
                             ]
                           },
                           "link": {
@@ -94993,6 +97303,7 @@
                           "new_request",
                           "review_hold",
                           "safety_hold",
+                          "field_issue",
                           "visit_change_request",
                           "appointment_reminder",
                           "delivery_failed",
@@ -95146,6 +97457,7 @@
                 "new_request",
                 "review_hold",
                 "safety_hold",
+                "field_issue",
                 "visit_change_request",
                 "appointment_reminder",
                 "delivery_failed",
@@ -95279,6 +97591,7 @@
                               "new_request",
                               "review_hold",
                               "safety_hold",
+                              "field_issue",
                               "visit_change_request",
                               "appointment_reminder",
                               "delivery_failed",
@@ -95519,7 +97832,8 @@
                               "reassign_visit",
                               "review_shortage",
                               "verify_time_zone",
-                              "review_job_hold"
+                              "review_job_hold",
+                              "review_issue"
                             ]
                           },
                           "link": {
@@ -95562,6 +97876,7 @@
                           "new_request",
                           "review_hold",
                           "safety_hold",
+                          "field_issue",
                           "visit_change_request",
                           "appointment_reminder",
                           "delivery_failed",
@@ -104292,6 +106607,143 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/privacy.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/safety-holds/{holdId}": {
+      "get": {
+        "operationId": "getSafetyHold",
+        "summary": "The job of a critical safety hold",
+        "description": "Staff with work.stop. Where the safety queue item of a critical hold leads: the hold and its job (the review page lists the hold, its report and the release actions of the start module).",
+        "tags": [
+          "hazards"
+        ],
+        "parameters": [
+          {
+            "name": "holdId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "holdId",
+                    "jobId",
+                    "projectReference"
+                  ],
+                  "properties": {
+                    "holdId": {
+                      "type": "string"
+                    },
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "projectReference": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "work.stop",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/hazard-reports.test.ts"
         }
       }
     },

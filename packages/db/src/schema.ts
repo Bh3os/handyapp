@@ -1680,6 +1680,55 @@ export interface WorkHoldsTable {
   reviewer_qualification: string | null
 }
 
+export interface WorkIssueReportPhotosTable {
+  id: Generated<string>
+  report_id: string
+  job_id: string
+  project_id: string
+  staff_user_id: string
+  object_key: string
+  content_type: string
+  byte_size: number
+  sha256: string
+  device_captured_at: Timestamp | null
+  uploaded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface WorkIssueReportReviewsTable {
+  report_id: string
+  reviewed_by: string
+  note: string | null
+  reviewed_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface WorkIssueReportsTable {
+  id: string
+  job_id: string
+  project_id: string
+  visit_id: string | null
+  kind: string
+  hazard: string | null
+  category: string | null
+  severity: string
+  description: string | null
+  affected_work_package_ids: Generated<string[]>
+  visibility: string
+  next_owner: string
+  people_kept_away: boolean | null
+  emergency_services_called: boolean | null
+  resolved_on_site: Generated<boolean>
+  resolution_what_happened: string | null
+  resolution_steps: string | null
+  resolution_materials: string | null
+  resolution_check: string | null
+  hold_id: string | null
+  job_state_before: string
+  job_paused: boolean
+  reported_by: string
+  reported_at: ColumnType<Date, Date | string | undefined, Date | string>
+  device_recorded_at: Timestamp | null
+}
+
 export interface WorkJobPacketAcknowledgmentInvalidationsTable {
   id: Generated<string>
   acknowledgment_id: string
@@ -1823,6 +1872,22 @@ export interface WorkSchedulingTasksTable {
   state: Generated<string>
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   version: Generated<number>
+}
+
+export interface WorkStabilizationRecordsTable {
+  id: Generated<string>
+  report_id: string
+  job_id: string
+  project_id: string
+  recorded_by: string
+  trigger_text: string
+  actions: string
+  why_necessary: string
+  evidence: string | null
+  owner_notified_at: Timestamp | null
+  customer_notified_at: Timestamp | null
+  follow_up: string | null
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
 export interface WorkStartGateEvaluationsTable {
@@ -2218,6 +2283,9 @@ export interface Database {
   'work.equipment': WorkEquipmentTable
   'work.gate_exceptions': WorkGateExceptionsTable
   'work.holds': WorkHoldsTable
+  'work.issue_report_photos': WorkIssueReportPhotosTable
+  'work.issue_report_reviews': WorkIssueReportReviewsTable
+  'work.issue_reports': WorkIssueReportsTable
   'work.job_packet_acknowledgment_invalidations': WorkJobPacketAcknowledgmentInvalidationsTable
   'work.job_packet_acknowledgments': WorkJobPacketAcknowledgmentsTable
   'work.job_packet_exports': WorkJobPacketExportsTable
@@ -2229,6 +2297,7 @@ export interface Database {
   'work.reservation_flags': WorkReservationFlagsTable
   'work.reservations': WorkReservationsTable
   'work.scheduling_tasks': WorkSchedulingTasksTable
+  'work.stabilization_records': WorkStabilizationRecordsTable
   'work.start_gate_evaluations': WorkStartGateEvaluationsTable
   'work.start_site_checks': WorkStartSiteChecksTable
   'work.time_off': WorkTimeOffTable

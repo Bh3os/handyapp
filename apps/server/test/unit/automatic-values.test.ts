@@ -129,6 +129,8 @@ describe('[HH-COM-06][FACT-AUTOMATIC-MESSAGES] which messages are wired', () => 
       'account.contact_changed',
       'staff.reply',
       'staff_notice.customer_reply',
+      // TSK-0077: the work-paused draft stores both of its values.
+      'job.paused',
       // TSK-0085: the invoice-ready and deposit-invoice notices of an issued invoice.
       'invoice.deposit',
       'invoice.ready',
@@ -144,14 +146,13 @@ describe('[HH-COM-06][FACT-AUTOMATIC-MESSAGES] which messages are wired', () => 
         key,
       ).toEqual([])
     }
-    // No event exists yet for these (TSK-0077, TSK-0082, TSK-0084, TSK-0087, TSK-0092; the estimate question answer has
-    // no record of its own).
+    // No event exists yet for these (TSK-0082, TSK-0084, TSK-0087, TSK-0092; the estimate question answer has no
+    // record of its own).
     for (const key of [
       'estimate.question_answered',
       'change_order.proposed',
       'job.complete',
       'payment.receipt',
-      'job.paused',
       'reminder.satisfaction_check',
     ])
       expect(suppliedVariables(MESSAGE_TYPES.get(key) as never), key).toEqual([])
