@@ -6,7 +6,7 @@ status: active
 area: scheduling
 links:
   uses: ["[[FACT-CANCELLATION-RULES]]", "[[FACT-VISIT-FEE]]"]
-  related: ["[[OWN-DEC-99]]", "[[OWN-DEC-86]]"]
+  related: ["[[OWN-DEC-99]]", "[[OWN-DEC-86]]", "[[OWN-DEC-208]]"]
 source: "owner answers 2026-10-21 R4-Q2"
 ---
 Owner answer (round 4, question 2), option chosen "No fee for estimate visits (Recommended)":
@@ -36,3 +36,5 @@ Effect:
 - A cancelled estimate visit releases staff availability, cancels its reminders and sends the cancellation confirmation (MESSAGE 12, [[OWN-DEC-152]]).
 - The site keeps saying estimates are free. Reading: the existing approved wording "Free estimates—online or at your property." ([[OWN-DEC-86]]) is the statement the owner quotes as "Free estimates, online or in person."; no copy change.
 - Answers case 2 of [[OQ-LATE-CANCELLATION-EDGES]]. Built by [[TSK-0140]].
+
+**Confirmed by [[OWN-DEC-208]] (2026-10-22):** the free-estimates wording reading is final: the existing "Free estimates—online or at your property." stays.

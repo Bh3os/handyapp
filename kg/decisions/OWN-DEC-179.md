@@ -6,7 +6,7 @@ status: active
 area: site
 links:
   uses: ["[[FACT-SERVICE-AREA]]", "[[ENT-CoverageRule]]"]
-  related: ["[[OWN-DEC-37]]", "[[OWN-DEC-88]]", "[[OWN-DEC-167]]", "[[HH-CUS-03]]"]
+  related: ["[[OWN-DEC-37]]", "[[OWN-DEC-88]]", "[[OWN-DEC-167]]", "[[HH-CUS-03]]", "[[OWN-DEC-206]]"]
 source: "owner answers 2026-10-21 R8-Q2"
 ---
 Owner answer (round 8, question 2): the owner-supplied ZIP dataset, with authorization to implement it without further owner approval. The dataset is business data supplied by the owner and is kept here in full.
@@ -137,3 +137,5 @@ Effect:
 - Requests can always be sent, even when coverage is uncertain, and sending one never promises service. The result is used on the public site, the request form, the project record, the staff dashboard and visit confirmation.
 - No owner approval for verified addresses inside the 11 counties and no approval queue for individual ZIPs; the checker is never left NOT CONFIGURED or always unknown. On staging the dataset is active without a separate approval step (the owner's authorization replaces the rule-set approval of [[TSK-0022]] for this dataset); production follows the existing release authorization. Dataset versions and audit history are kept.
 - Answers [[OQ-SERVICE-AREA-ZIPS]]. Built by [[TSK-0127]].
+
+**Confirmed by [[OWN-DEC-206]] (2026-10-22), amended:** the four-outcome ZIP classification above is approved, but a ZIP-only result is preliminary screening: staff verify the complete property address and county before confirming service-area eligibility and the first applicable appointment; EDGE and UNKNOWN requests are never rejected for the ZIP alone; a ZIP match is never presented as address verification.

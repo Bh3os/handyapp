@@ -7,7 +7,7 @@ area: messaging
 links:
   constrained_by: ["[[RULE-NO-INVENTED-FACTS]]", "[[RULE-LANGUAGES]]"]
   uses: ["[[FACT-PUBLIC-CONTACT]]"]
-  related: ["[[OWN-DEC-150]]", "[[OWN-DEC-98]]", "[[OWN-DEC-102]]", "[[OWN-DEC-110]]", "[[FACT-AUTOMATIC-MESSAGES]]", "[[HH-COM-13]]"]
+  related: ["[[OWN-DEC-150]]", "[[OWN-DEC-98]]", "[[OWN-DEC-102]]", "[[OWN-DEC-110]]", "[[FACT-AUTOMATIC-MESSAGES]]", "[[HH-COM-13]]", "[[OWN-DEC-209]]"]
 source: "owner answers 2026-10-21 R1-Q1; R2-Q1 (specification sections 1, 2, 4 and 6)"
 ---
 Round 1, question 1 (customer message wording). The owner supplied new formats for eleven messages and wrote "approve it":
@@ -1378,3 +1378,5 @@ Effect:
 - The text-message forms are the samples of [[OWN-DEC-190]].
 - Answers [[OQ-RECEIPT-EMAIL-WORDING]], [[OQ-ACCESS-LINK-WORDING]], [[OQ-VISIT-NOTICE-WORDING]], [[OQ-ESTIMATE-REMINDER-WORDING]], [[OQ-QUESTION-WORDING]], [[OQ-APPOINTMENT-REMINDER-WORDING]], [[OQ-APPROVAL-RECEIPT-MESSAGE]] (with [[OWN-DEC-155]]), [[OQ-STAFF-REPLY-WORDING]] and [[OQ-ACCOUNT-CONTACT-NOTICE]].
 - Built by [[TSK-0119]] (templates, registry, layout) and [[TSK-0120]] (automatic delivery).
+
+**Extended by [[OWN-DEC-209]] (2026-10-22):** seven more templates in the same style join these 21 (28 in all).

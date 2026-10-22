@@ -7,7 +7,7 @@ area: estimates
 links:
   constrained_by: ["[[RULE-SERVER-AUTHZ]]", "[[RULE-MONEY-CENTS]]"]
   uses: ["[[FACT-OWNER-APPROVAL-THRESHOLD]]"]
-  related: ["[[OWN-DEC-28]]", "[[OWN-DEC-118]]", "[[OWN-DEC-76]]", "[[HH-EST-16]]"]
+  related: ["[[OWN-DEC-28]]", "[[OWN-DEC-118]]", "[[OWN-DEC-76]]", "[[HH-EST-16]]", "[[OWN-DEC-204]]"]
 source: "owner answers 2026-10-21 R6-Q4"
 ---
 Owner answer (round 6, question 4), option chosen "Owner approves over $2,500":
@@ -41,3 +41,5 @@ Effect:
 - Refunds, deposit waivers and other owner-only financial actions stay owner-only at any amount. Nobody bypasses safety, legal or qualification restrictions. The Owner may change the threshold, audited. All rules are enforced on the server.
 - Reading (PROPOSED): an estimate the Owner prepares and publishes is approved by that act.
 - Partly replaces [[OWN-DEC-118]] (publishing without a per-estimate owner approval) and [[OWN-DEC-28]] (limits NOT CONFIGURED). Answers [[OQ-MONETARY-LIMITS]]. Built by [[TSK-0130]]; change orders with [[TSK-0082]].
+
+**Confirmed by [[OWN-DEC-204]] (2026-10-22), amended:** evaluate the current effective contract value plus proposed changes without double counting; detect splitting across the project's whole history (not one validity period); judge adjustments by substance; Owner approval for discretionary discounts outside the 10% policy, material discretionary credits, refunds and threshold adjustments; documented clerical corrections allowed for authorized staff; an auditable reason for every credit, correction, discount and approval; Owner self-publication counts as approval only when authenticated and recorded as approval evidence. Replaces the PROPOSED readings above.

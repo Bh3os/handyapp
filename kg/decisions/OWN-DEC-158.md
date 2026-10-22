@@ -5,7 +5,7 @@ title: "Messages may show the customer's first name and reference numbers; never
 status: active
 area: messaging
 links:
-  related: ["[[FACT-AUTOMATIC-MESSAGES]]", "[[HH-COM-04]]", "[[HH-COM-13]]"]
+  related: ["[[FACT-AUTOMATIC-MESSAGES]]", "[[HH-COM-04]]", "[[HH-COM-13]]", "[[OWN-DEC-208]]"]
 source: "owner answers 2026-10-21 R2-Q4"
 ---
 Question asked (round 2, question 4): "Your messages include the customer's name and reference numbers (request, estimate, invoice, receipt). The earlier rule kept all personal details out of emails. Is it OK to show the customer's first name and these reference numbers in the email body?"
@@ -36,3 +36,5 @@ Effect:
 - Reference numbers are non-sensitive identifiers that alone open nothing ([[HH-ID-04]], [[HH-INT-13]]).
 - Applies to every existing and future template; conflicting drafts are updated. It replaces the "no private details" rule of [[FACT-AUTOMATIC-MESSAGES]] as far as first names and reference numbers go.
 - MESSAGE 10 shows `{serviceName}` only when it can be displayed safely; MESSAGE 19 sends the staff text itself, or a generic new-message notice when the text cannot safely be emailed.
+
+**Confirmed by [[OWN-DEC-208]] (2026-10-22):** the greeting reading is final: "Hi there," is used where the specification's section 2 said "Hello,".
