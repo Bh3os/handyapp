@@ -2951,8 +2951,10 @@
   "enum.stagingCheck.environment": "Environment is staging or an isolated test system",
   "enum.stagingCheck.flag": "Staging tools are switched on (STAGING_TOOLS)",
   "enum.stagingCheck.access_gate": "The staging access gate is on",
+  "enum.stagingCheck.database_host": "In a local or ci test system, the database is on this machine",
   "enum.stagingCheck.database_marked": "The database is marked as a test database",
   "enum.stagingCheck.database_never_production": "The database has never served production",
+  "enum.stagingCheck.database_name": "In staging, the database is the staging database",
   "enum.stagingResetCheck.cleared_tables_empty": "Every test record was removed",
   "enum.stagingResetCheck.test_accounts_removed": "Test customers and accounts were removed",
   "enum.stagingResetCheck.nothing_left_to_send": "No old message or reminder can be sent",
@@ -3036,6 +3038,7 @@
   "staging.runs.item": "{when}: {mode}, {state}, {n} records removed, by {who}",
   "staging.refused.STAGING_NOT_IDENTIFIED": "Refused: this environment is not positively identified as staging.",
   "staging.refused.RESET_RUNNING": "Refused: another reset is running.",
+  "staging.refused.RESET_SENDS_IN_FLIGHT": "Refused for now: a message is being sent. Try again in a minute.",
   "staging.refused.other": "The reset was refused. Try again.",
   "staging.loadFailed": "Test data management could not be loaded.",
   "enum.stagingKept.loadout_versions": "Service loadouts (tools and materials)"

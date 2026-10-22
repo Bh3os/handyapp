@@ -39,6 +39,20 @@ describe('STAGING_TOOLS (TSK-0141, HH-OPS-05)', () => {
     const production = loadConfig({ HANDYHUB_ENV: 'production', DATABASE_URL: DB })
     expect(stagingToolsEnvironment({ ...production, stagingTools: true }).identified).toBe(false)
   })
+
+  it('[HH-OPS-05] a local or ci reset needs DATABASE_URL on this machine (loopback or socket), never a remote one', () => {
+    const local = (url?: string) =>
+      stagingToolsEnvironment(
+        loadConfig({ HANDYHUB_ENV: 'ci', STAGING_TOOLS: 'on', ...(url ? { DATABASE_URL: url } : {}) }),
+      )
+    expect(local(DB).identified).toBe(true)
+    expect(local('postgres:///none?host=/var/run/postgresql').identified).toBe(true)
+    for (const url of [undefined, 'postgres://synthetic@db.example.test/none', 'postgres://synthetic@10.0.0.5/none']) {
+      const r = local(url)
+      expect(r.identified, String(url)).toBe(false)
+      expect(r.checks.find((c) => c.id === 'database_host')?.ok, String(url)).toBe(false)
+    }
+  })
 })
 
 describe('the reset’s table lists and the contract (TSK-0141)', () => {

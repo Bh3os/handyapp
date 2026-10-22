@@ -1141,7 +1141,15 @@ export const LABEL_FAMILIES = {
     'schema_migrations',
     'audit_events',
   ],
-  stagingCheck: ['environment', 'flag', 'access_gate', 'database_marked', 'database_never_production'],
+  stagingCheck: [
+    'environment',
+    'flag',
+    'access_gate',
+    'database_host',
+    'database_marked',
+    'database_never_production',
+    'database_name',
+  ],
   stagingResetCheck: [
     'cleared_tables_empty',
     'test_accounts_removed',

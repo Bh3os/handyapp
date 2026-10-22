@@ -5,17 +5,24 @@
 //   handyhub.staging_reset, clears every test-data table with one TRUNCATE (no CASCADE: a kept table that still
 //   referenced a cleared one would fail the reset instead of losing rows), removes the customer accounts, contacts
 //   and customers that are not kept for a designated reusable test account, schedules the removal of the stored files
-//   the cleared rows named and today's retention scan again, checks the outcome and completes the run. Any failure
-//   rolls everything back: nothing is half removed, and the failure is recorded as its own run.
+//   the cleared rows named and today's retention scan again, checks the outcome, records the audit event and
+//   completes the run. Any failure rolls everything back: nothing is half removed, and the failure is recorded as its
+//   own run with its own audit event.
 // - Pending outbox events, queued jobs (scheduled reminders among them) and message deliveries are cleared in the
 //   same transaction, so nothing that was waiting can be sent afterwards; the send-time record checks would refuse
-//   it anyway, as its record is gone.
+//   it anyway, as its record is gone. Jobs are deleted row by row, not truncated: the stored-file removal
+//   (privacy.object_erasure) and retention-scan jobs are kept, pending ones included, and so are the outbox events
+//   those jobs name. While a sending job is running (its lease is live) the reset is refused (RESET_SENDS_IN_FLIGHT):
+//   the job table is locked first, so no job is leased while the reset runs.
+// - Idempotent across a lost reply: the run names the request's idempotency scope, and a retry of a completed run is
+//   answered with that run (findCompletedRun) instead of resetting again.
 // - Kept: staff accounts, roles and grants, staff sessions, the service catalog and SOP versions, configuration
 //   (policy versions), message templates, coverage (ZIP) rules, equipment, working hours and time off, the audit log,
 //   schema migrations, rate limits, the staging trail itself and the designated reusable test accounts.
 import { withTx, type Db, type Tx } from '@handyhub/db'
 import { sql } from 'kysely'
 import { ApiError } from '../../api/errors.js'
+import { audit, type AuditActor } from '../../platform/audit.js'
 import { scheduleJob } from '../../platform/jobs.js'
 import { OBJECT_ERASURE_AUTOMATION, objectErasureAutomation } from '../privacy/log.js'
 import { ensureRetentionScan, RETENTION_AUTOMATION } from '../retention/index.js'
@@ -139,6 +146,21 @@ export const CLEARED_CATEGORIES = {
 
 export type ClearedCategory = keyof typeof CLEARED_CATEGORIES
 export const CLEARED_TABLES: readonly string[] = Object.values(CLEARED_CATEGORIES).flat()
+
+/** Removal jobs are kept; every other job, event and delivery must be gone so nothing can send later. */
+export const KEPT_JOB_AUTOMATIONS: readonly string[] = [RETENTION_AUTOMATION, OBJECT_ERASURE_AUTOMATION]
+
+/**
+ * Cleared tables whose rows are deleted rather than truncated: the kept jobs stay, with the outbox events they name
+ * (platform.jobs references platform.outbox_events, so neither is in the TRUNCATE).
+ */
+export const DELETED_TABLES: readonly string[] = ['platform.jobs', 'platform.outbox_events']
+const TRUNCATED_TABLES = CLEARED_TABLES.filter((t) => !DELETED_TABLES.includes(t))
+const KEPT = sql`${sql.val([...KEPT_JOB_AUTOMATIONS])}::text[]`
+const JOBS_REMOVED = sql`platform.jobs WHERE automation <> ALL(${KEPT})`
+const KEPT_EVENTS = sql`SELECT outbox_event_id FROM platform.jobs
+  WHERE outbox_event_id IS NOT NULL AND automation = ANY(${KEPT})`
+const EVENTS_REMOVED = sql`platform.outbox_events WHERE id NOT IN (${KEPT_EVENTS})`
 
 /** Rows removed one by one (not with TRUNCATE): kept when they belong to a designated reusable test account. */
 export const SELECTIVE_TABLES = [
@@ -268,11 +290,13 @@ export type Preview = { removed: CategoryCount[]; total: number; preserved: Pres
 
 async function tableCounts(db: Db | Tx): Promise<TableCounts> {
   const out: TableCounts = {}
-  for (const t of CLEARED_TABLES) out[t] = await count(db, t)
+  for (const t of TRUNCATED_TABLES) out[t] = await count(db, t)
+  out['platform.jobs'] = await scalar(db, sql`SELECT count(*) FROM ${JOBS_REMOVED}`)
+  out['platform.outbox_events'] = await scalar(db, sql`SELECT count(*) FROM ${EVENTS_REMOVED}`)
   return out
 }
 
-function categories(tables: TableCounts, selective: Awaited<ReturnType<typeof selectiveCounts>>, files: number) {
+export function categories(tables: TableCounts, selective: Awaited<ReturnType<typeof selectiveCounts>>, files: number) {
   const removed: CategoryCount[] = (Object.keys(CLEARED_CATEGORIES) as ClearedCategory[]).map((id) => ({
     id,
     count: CLEARED_CATEGORIES[id].reduce((sum, t) => sum + (tables[t] ?? 0), 0),
@@ -337,9 +361,6 @@ export class ResetCheckFailed extends Error {
   }
 }
 
-/** Removal jobs are kept; every other job, event and delivery must be gone so nothing can send later. */
-const KEPT_JOB_AUTOMATIONS = [RETENTION_AUTOMATION, OBJECT_ERASURE_AUTOMATION]
-
 async function postChecks(
   tx: Tx,
   before: PreservedCount[],
@@ -347,14 +368,11 @@ async function postChecks(
   codeKey: CodeKeySettings,
 ): Promise<{ checks: ResetCheck[]; after: PreservedCount[] }> {
   const notEmpty: string[] = []
-  for (const t of CLEARED_TABLES) {
-    if (t === 'platform.jobs') continue
-    if ((await count(tx, t)) > 0) notEmpty.push(t)
-  }
-  const jobsLeft = await scalar(
-    tx,
-    sql`SELECT count(*) FROM platform.jobs WHERE automation <> ALL(${sql.val(KEPT_JOB_AUTOMATIONS)}::text[])`,
-  )
+  for (const t of TRUNCATED_TABLES) if ((await count(tx, t)) > 0) notEmpty.push(t)
+  const jobsLeft = await scalar(tx, sql`SELECT count(*) FROM ${JOBS_REMOVED}`)
+  const eventsLeft = await scalar(tx, sql`SELECT count(*) FROM ${EVENTS_REMOVED}`)
+  if (jobsLeft > 0) notEmpty.push('platform.jobs')
+  if (eventsLeft > 0) notEmpty.push('platform.outbox_events')
   const left = await selectiveCounts(tx)
   const after = await preservedCounts(tx)
   const changed = after
@@ -415,10 +433,22 @@ const BLOCKING: ReadonlySet<ResetCheck['id']> = new Set([
 export type ResetInput = {
   mode: 'reset' | 'reset_and_seed'
   requestedBy: string
+  /** The Owner as the audit log records them; the reset's audit event commits with the reset. */
+  actor: Extract<AuditActor, { kind: 'staff' }>
   environment: 'local' | 'ci' | 'staging'
   requestId: string
   codeKey: CodeKeySettings
+  /** The request's idempotency scope and body digest (idempotency.ts), recorded on the run. */
+  idempotency?: { scope: string; requestHash: string }
 }
+
+/** The audit summary of a run: counts and codes only. */
+const auditSummary = (mode: ResetInput['mode'], removed: CategoryCount[], errors: { code: string }[]) => ({
+  mode,
+  state: errors.length ? 'failed' : 'completed',
+  removed: Object.fromEntries(removed.map((c) => [c.id, c.count])),
+  errors: errors.map((e) => e.code),
+})
 
 function errorCode(err: unknown): { code: string; detail?: string } {
   if (err instanceof ResetCheckFailed) {
@@ -447,6 +477,16 @@ export async function runReset(conn: Db, input: ResetInput): Promise<ResetOutcom
   try {
     return await conn.transaction().execute(async (tx) => {
       await sql`SET LOCAL lock_timeout = '15s'`.execute(tx)
+      // No job is leased while the reset runs; one already sending refuses it (retry when it has finished).
+      await sql`LOCK TABLE platform.jobs IN SHARE ROW EXCLUSIVE MODE`.execute(tx)
+      const inFlight = await scalar(
+        tx,
+        sql`SELECT count(*) FROM ${JOBS_REMOVED} AND state = 'running' AND locked_until > now()`,
+      )
+      if (inFlight > 0)
+        throw new ApiError('CONFLICT', {
+          fieldErrors: [{ field: 'reset', code: 'RESET_SENDS_IN_FLIGHT', message: '' }],
+        })
       const before = await preservedCounts(tx)
       const tables = await tableCounts(tx)
       const selective = await selectiveCounts(tx)
@@ -462,13 +502,17 @@ export async function runReset(conn: Db, input: ResetInput): Promise<ResetOutcom
           requested_by: input.requestedBy,
           environment: input.environment,
           request_id: input.requestId.slice(0, 100),
+          idempotency_scope: input.idempotency?.scope ?? null,
+          request_hash: input.idempotency?.requestHash ?? null,
         })
         .returning(['id', sql<string>`seq::text`.as('seq')])
         .executeTakeFirstOrThrow()
       await sql`SELECT set_config('handyhub.staging_reset', ${run.id}, true)`.execute(tx)
       await sql`SELECT staging.reset_unlock()`.execute(tx)
-      await sql`TRUNCATE ${sql.join(CLEARED_TABLES.map(ident))}`.execute(tx)
+      await sql`TRUNCATE ${sql.join(TRUNCATED_TABLES.map(ident))}`.execute(tx)
       await sql`SELECT staging.reset_relock()`.execute(tx)
+      await sql`DELETE FROM ${JOBS_REMOVED}`.execute(tx)
+      await sql`DELETE FROM ${EVENTS_REMOVED}`.execute(tx)
       await sql`DELETE FROM identity.customer_accounts WHERE id NOT IN (${KEPT_ACCOUNTS})`.execute(tx)
       await sql`DELETE FROM crm.contacts WHERE id NOT IN (${KEPT_CONTACTS})`.execute(tx)
       await sql`DELETE FROM crm.customers WHERE id NOT IN (${KEPT_CUSTOMERS})`.execute(tx)
@@ -489,6 +533,15 @@ export async function runReset(conn: Db, input: ResetInput): Promise<ResetOutcom
       await ensureRetentionScan(tx, input.requestId)
       const { checks, after } = await postChecks(tx, before, reusable, input.codeKey)
       if (checks.some((c) => BLOCKING.has(c.id) && !c.ok)) throw new ResetCheckFailed(checks)
+      // The reset's audit event, in the reset's own transaction: a committed reset is always in the audit log.
+      await audit.record(tx, {
+        actor: input.actor,
+        action: 'staging.reset_test_data',
+        target: { type: 'staging_reset_run', id: run.id },
+        result: 'succeeded',
+        summary: auditSummary(input.mode, removed, []),
+        requestId: input.requestId,
+      })
       await tx
         .updateTable('staging.reset_runs')
         .set({
@@ -518,8 +571,8 @@ export async function runReset(conn: Db, input: ResetInput): Promise<ResetOutcom
     const error = errorCode(err)
     const checks = err instanceof ResetCheckFailed ? err.checks : []
     const preserved = await preservedCounts(conn)
-    const failed = await withTx(conn, (tx) =>
-      tx
+    const failed = await withTx(conn, async (tx) => {
+      const row = await tx
         .insertInto('staging.reset_runs')
         .values({
           mode: input.mode,
@@ -532,8 +585,17 @@ export async function runReset(conn: Db, input: ResetInput): Promise<ResetOutcom
           errors: JSON.stringify([error]),
         })
         .returning(['id', sql<string>`seq::text`.as('seq')])
-        .executeTakeFirstOrThrow(),
-    )
+        .executeTakeFirstOrThrow()
+      await audit.record(tx, {
+        actor: input.actor,
+        action: 'staging.reset_test_data',
+        target: { type: 'staging_reset_run', id: row.id },
+        result: 'failed',
+        summary: auditSummary(input.mode, removedForFailure, [error]),
+        requestId: input.requestId,
+      })
+      return row
+    })
     return {
       runId: failed.id,
       seq: failed.seq,
@@ -571,4 +633,38 @@ export async function resetRunning(db: Db | Tx): Promise<boolean> {
       SELECT 1 FROM pg_locks WHERE locktype = 'advisory' AND classid = ${RESET_LOCK[0]} AND objid = ${RESET_LOCK[1]}
         AND objsubid = 2 AND granted) AS held`.execute(db)
   return rows[0]?.held === true
+}
+
+/** A completed (or still running) run of this idempotency scope, as the reset answered it; null when none. */
+export async function findCompletedRun(db: Db | Tx, scope: string) {
+  const row = await db
+    .selectFrom('staging.reset_runs')
+    .select(['id', sql<string>`seq::text`.as('seq'), 'mode', 'state', 'request_hash', 'removed', 'preserved', 'checks'])
+    .where('idempotency_scope', '=', scope)
+    .where('state', '<>', 'failed')
+    .executeTakeFirst()
+  if (!row) return null
+  const removed = row.removed as {
+    tables?: TableCounts
+    selective?: Awaited<ReturnType<typeof selectiveCounts>>
+    storedFiles?: number
+    storedFileJobs?: number
+  }
+  const preserved = row.preserved as { before?: PreservedCount[]; after?: PreservedCount[] }
+  const empty = { customer_accounts: 0, contacts: 0, customers: 0, idempotency: 0 }
+  return {
+    requestHash: row.request_hash,
+    mode: row.mode as ResetInput['mode'],
+    outcome: {
+      runId: row.id,
+      seq: row.seq,
+      state: 'completed',
+      removed: categories(removed.tables ?? {}, removed.selective ?? empty, removed.storedFiles ?? 0),
+      preservedBefore: preserved.before ?? [],
+      preservedAfter: preserved.after ?? [],
+      checks: (row.checks as ResetCheck[]) ?? [],
+      errors: [],
+      storedFileJobs: removed.storedFileJobs ?? 0,
+    } satisfies ResetOutcome,
+  }
 }

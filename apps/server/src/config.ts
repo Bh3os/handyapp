@@ -2,6 +2,7 @@
 // variable names only; the owner sets every value in Render. An invalid or missing required value refuses to start,
 // and every error names the variable, never its value.
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
+import { isLocalDatabaseUrl } from '@handyhub/db'
 import { Secret } from './providers/types.js'
 
 export const ENVIRONMENTS = ['local', 'ci', 'staging', 'production'] as const
@@ -144,14 +145,16 @@ export interface Config {
 /** Environments in which the Staging Tools may exist at all: staging and the isolated local and ci test systems. */
 export const STAGING_TOOL_ENVIRONMENTS: readonly EnvironmentName[] = ['local', 'ci', 'staging']
 
-export type StagingCheck = { id: 'environment' | 'flag' | 'access_gate'; ok: boolean }
+export type StagingCheck = { id: 'environment' | 'flag' | 'access_gate' | 'database_host'; ok: boolean }
 
 /**
  * The process side of the staging identification (TSK-0141; OWN-DEC-191, HH-OPS-05): HANDYHUB_ENV is staging, local
- * or ci, STAGING_TOOLS is on, and in staging the access gate is in front of every route. The database side is
- * checked on every call (staging.database_identified, migration 0069). Every check must pass.
+ * or ci, STAGING_TOOLS is on, in staging the access gate is in front of every route, and in local or ci DATABASE_URL
+ * reaches PostgreSQL on this machine only (a loopback host or a local socket: an isolated test system never resets a
+ * remote database). The database side is checked on every call (staging.database_identified, the staging database
+ * name; migration 0069). Every check must pass.
  */
-export function stagingToolsEnvironment(config: Pick<Config, 'env' | 'stagingTools' | 'accessGate'>): {
+export function stagingToolsEnvironment(config: Pick<Config, 'env' | 'stagingTools' | 'accessGate' | 'databaseUrl'>): {
   identified: boolean
   checks: StagingCheck[]
 } {
@@ -159,6 +162,7 @@ export function stagingToolsEnvironment(config: Pick<Config, 'env' | 'stagingToo
     { id: 'environment', ok: STAGING_TOOL_ENVIRONMENTS.includes(config.env) },
     { id: 'flag', ok: config.stagingTools === true && config.env !== 'production' },
     { id: 'access_gate', ok: config.env !== 'staging' || config.accessGate.enabled },
+    { id: 'database_host', ok: config.env === 'staging' || isLocalDatabaseUrl(config.databaseUrl) },
   ]
   return { identified: checks.every((c) => c.ok), checks }
 }

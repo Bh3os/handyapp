@@ -6,6 +6,28 @@ import { sql } from 'kysely'
 import type { Db, Tx } from './client.js'
 
 export const MARK_ENVIRONMENTS = ['local', 'ci', 'staging', 'production'] as const
+
+/**
+ * The staging database's name (render.yaml databaseName). A staging reset runs only on a database of this name: the
+ * server checks it and the database itself refuses a staging run elsewhere (staging.environment_database_ok, 0069).
+ */
+export const STAGING_DATABASE_NAME = 'handyhub_staging_db'
+
+const LOOPBACK_HOSTS = new Set(['localhost', '::1', '[::1]'])
+
+/**
+ * Whether a connection string reaches PostgreSQL on this machine only: a loopback host (localhost, 127.0.0.0/8, ::1)
+ * or a local socket (no host, or a host parameter that is a directory). Every host of a multi-host string must be.
+ */
+export function isLocalDatabaseUrl(url: string | undefined): boolean {
+  if (!url || !URL.canParse(url)) return false
+  const u = new URL(url)
+  const loopback = (h: string) => LOOPBACK_HOSTS.has(h.toLowerCase()) || /^127(\.\d{1,3}){3}$/.test(h)
+  const param = u.searchParams.get('host')
+  if (param !== null) return param.split(',').every((h) => h.startsWith('/') || loopback(h))
+  if (u.hostname === '') return true
+  return u.hostname.split(',').every(loopback)
+}
 export type MarkEnvironment = (typeof MARK_ENVIRONMENTS)[number]
 export type MarkSource = 'server_boot' | 'migration'
 
@@ -42,14 +64,22 @@ export type DatabaseIdentity = {
   servedProduction: boolean
   /** The environments marked, oldest first, without repeats. */
   marks: MarkEnvironment[]
+  /** current_database(): a staging reset needs STAGING_DATABASE_NAME. */
+  database: string
 }
 
 /** What the database says about itself (the same test the reset's database guard applies). */
 export async function databaseIdentity(db: Db | Tx): Promise<DatabaseIdentity> {
   const rows = await db.selectFrom('staging.environment_marks').select('environment').orderBy('seq').execute()
-  const { rows: ok } = await sql<{ identified: boolean }>`SELECT staging.database_identified() AS identified`.execute(
-    db,
-  )
+  const { rows: ok } = await sql<{
+    identified: boolean
+    database: string
+  }>`SELECT staging.database_identified() AS identified, current_database() AS database`.execute(db)
   const marks = [...new Set(rows.map((r) => r.environment as MarkEnvironment))]
-  return { identified: ok[0]?.identified === true, servedProduction: marks.includes('production'), marks }
+  return {
+    identified: ok[0]?.identified === true,
+    servedProduction: marks.includes('production'),
+    marks,
+    database: ok[0]?.database ?? '',
+  }
 }

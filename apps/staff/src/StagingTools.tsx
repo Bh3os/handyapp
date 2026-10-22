@@ -79,9 +79,12 @@ const isStatus = (d: unknown): d is StagingStatus =>
   !!d && Array.isArray((d as StagingStatus).removed) && typeof (d as StagingStatus).confirmationPhrase === 'string'
 
 function refusal(t: T, error: ApiErrorBody): string {
-  const code = error.fieldErrors.find((f) => f.code === 'STAGING_NOT_IDENTIFIED' || f.code === 'RESET_RUNNING')?.code
+  const code = error.fieldErrors.find((f) =>
+    ['STAGING_NOT_IDENTIFIED', 'RESET_RUNNING', 'RESET_SENDS_IN_FLIGHT'].includes(f.code),
+  )?.code
   if (code === 'STAGING_NOT_IDENTIFIED') return t('staging.refused.STAGING_NOT_IDENTIFIED')
   if (code === 'RESET_RUNNING') return t('staging.refused.RESET_RUNNING')
+  if (code === 'RESET_SENDS_IN_FLIGHT') return t('staging.refused.RESET_SENDS_IN_FLIGHT')
   if (error.fieldErrors.some((f) => f.code === 'confirmation_mismatch')) return t('staging.dialog.mismatch')
   return t('staging.refused.other')
 }

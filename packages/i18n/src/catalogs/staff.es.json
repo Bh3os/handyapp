@@ -2951,8 +2951,10 @@
   "enum.stagingCheck.environment": "El entorno es staging o un sistema de prueba aislado",
   "enum.stagingCheck.flag": "Las herramientas de staging están activadas (STAGING_TOOLS)",
   "enum.stagingCheck.access_gate": "La puerta de acceso de staging está activa",
+  "enum.stagingCheck.database_host": "En un sistema de prueba local o ci, la base de datos está en esta máquina",
   "enum.stagingCheck.database_marked": "La base de datos está marcada como base de prueba",
   "enum.stagingCheck.database_never_production": "La base de datos nunca sirvió producción",
+  "enum.stagingCheck.database_name": "En staging, la base de datos es la base de datos de staging",
   "enum.stagingResetCheck.cleared_tables_empty": "Se eliminaron todos los registros de prueba",
   "enum.stagingResetCheck.test_accounts_removed": "Se eliminaron los clientes y cuentas de prueba",
   "enum.stagingResetCheck.nothing_left_to_send": "Ningún mensaje o recordatorio antiguo puede enviarse",
@@ -3036,6 +3038,7 @@
   "staging.runs.item": "{when}: {mode}, {state}, {n} registros eliminados, por {who}",
   "staging.refused.STAGING_NOT_IDENTIFIED": "Rechazado: este entorno no está identificado con certeza como staging.",
   "staging.refused.RESET_RUNNING": "Rechazado: hay otro restablecimiento en curso.",
+  "staging.refused.RESET_SENDS_IN_FLIGHT": "Rechazado por ahora: se está enviando un mensaje. Inténtelo de nuevo en un minuto.",
   "staging.refused.other": "El restablecimiento fue rechazado. Inténtelo de nuevo.",
   "staging.loadFailed": "No se pudo cargar la gestión de datos de prueba.",
   "enum.stagingKept.loadout_versions": "Cargas por servicio (herramientas y materiales)"

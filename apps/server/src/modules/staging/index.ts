@@ -13,10 +13,12 @@
 //   RESET TEST DATA. Every attempt, refused or not, is in the append-only audit log; every run is in the protected
 //   staging trail (staging.reset_runs).
 import type { Db } from '@handyhub/db'
-import { databaseIdentity } from '@handyhub/db'
+import { databaseIdentity, STAGING_DATABASE_NAME } from '@handyhub/db'
 import type { StaffActor } from '@handyhub/policy'
 import { sql } from 'kysely'
+import { createHash } from 'node:crypto'
 import { ApiError, type FieldError } from '../../api/errors.js'
+import { actorKey, readIdempotencyKey, requestHash } from '../../api/idempotency.js'
 import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
 import type { StagingCheck } from '../../config.js'
 import { currentContext } from '../../platform/request-context.js'
@@ -25,6 +27,7 @@ import { FRESH_AUTH_MINUTES } from '../identity/sessions.js'
 import { createFreshTestData, NOT_AVAILABLE, recordSeeding, SCENARIOS, type ScenarioOutcome } from './fresh-data.js'
 import {
   CONFIRMATION_PHRASE,
+  findCompletedRun,
   PRESERVED,
   previewReset,
   REMOVED_CATEGORIES,
@@ -52,7 +55,15 @@ export type StagingDeps = {
 
 const TEST = 'test/integration/staging-reset.test.ts'
 
-const CHECK_IDS = ['environment', 'flag', 'access_gate', 'database_marked', 'database_never_production'] as const
+const CHECK_IDS = [
+  'environment',
+  'flag',
+  'access_gate',
+  'database_host',
+  'database_marked',
+  'database_never_production',
+  'database_name',
+] as const
 const RESET_CHECK_IDS = [
   'cleared_tables_empty',
   'test_accounts_removed',
@@ -138,16 +149,25 @@ const RESET_RESULT = obj({
 
 type Check = { id: (typeof CHECK_IDS)[number]; ok: boolean }
 
-/** The process checks with the database's own (read now), all of which must pass. */
-async function identification(deps: StagingDeps, db: Db): Promise<{ identified: boolean; checks: Check[] }> {
+/**
+ * The process checks with the database's own (read now), all of which must pass: marked as a test database and never
+ * as production, and in staging the staging database itself (STAGING_DATABASE_NAME, render.yaml). The database
+ * applies the same name rule to the run row (migration 0069), so this check is not the only one.
+ */
+export async function stagingIdentification(
+  deps: Pick<StagingDeps, 'environment' | 'checks'>,
+  db: Db,
+): Promise<{ identified: boolean; checks: Check[] }> {
   const identity = await databaseIdentity(db)
   const checks: Check[] = [
     ...deps.checks.map((c) => ({ id: c.id, ok: c.ok })),
     { id: 'database_marked', ok: identity.marks.some((m) => m !== 'production') },
     { id: 'database_never_production', ok: !identity.servedProduction },
+    { id: 'database_name', ok: deps.environment !== 'staging' || identity.database === STAGING_DATABASE_NAME },
   ]
   return { identified: identity.identified && checks.every((c) => c.ok), checks }
 }
+const identification = stagingIdentification
 
 /** The Owner, checked again by the handler (the policy already decided; RULE-SERVER-AUTHZ, defence in depth). */
 function owner(ctx: ApiContext): StaffActor {
@@ -276,16 +296,18 @@ export function stagingModule(deps: StagingDeps): ApiModule {
       'mapping, and the Owner role checked again) with a password entered within the fresh sign-in window and the ' +
       'typed words RESET TEST DATA (confirmation; anything else is VALIDATION_FAILED and changes nothing). Refused ' +
       'with CONFLICT STAGING_NOT_IDENTIFIED unless every environment check passes and the database itself is a ' +
-      'marked test database that never served production, and with CONFLICT RESET_RUNNING while another reset ' +
-      'holds the lock. One transaction removes every test record (customers except designated reusable test ' +
+      'marked test database that never served production (in staging: the staging database itself; in local or ' +
+      'ci: a database on this machine), with CONFLICT RESET_RUNNING while another reset holds the lock, and with ' +
+      'CONFLICT RESET_SENDS_IN_FLIGHT while a message job is being sent (retry when it has finished). One transaction removes every test record (customers except designated reusable test ' +
       'accounts, requests, estimates and revisions, appointments and bookings, jobs, assignments and visits, ' +
       'payments, deposits and receipts, conversations and notifications, photos and documents, pending messages ' +
       'and scheduled reminders, customer sessions and project links, queue and privacy workflow records) and keeps ' +
       'staff accounts and roles, the service catalog, SOPs, configuration, message templates, ZIP coverage, ' +
       'equipment and working hours, the audit log and the staging trail; stored files are removed by a job after ' +
-      'the commit. The outcome is checked before the commit (cleared, nothing left to send, kept records unchanged, ' +
-      'relationships, reusable accounts); any failure rolls everything back and is recorded as a failed run. A ' +
-      'repeated reset is safe. freshData: afterwards the fictional scenarios are created through the server’s own ' +
+      'the commit (those removal jobs, and pending ones from before, are kept). The outcome is checked before the ' +
+      'commit (cleared, nothing left to send, kept records unchanged, relationships, reusable accounts) and audited ' +
+      'in the same transaction; any failure rolls everything back and is recorded as a failed run. A repeated reset ' +
+      'is safe; a retry with the same Idempotency-Key after a committed reset is answered with that run. freshData: afterwards the fictional scenarios are created through the server’s own ' +
       'routes, each reported as created, blocked (with the refusal codes) or not available yet. Counts, codes and ' +
       'public references only.',
     actors: ['staff'],
@@ -333,17 +355,38 @@ export function stagingModule(deps: StagingDeps): ApiModule {
           'staging_not_identified',
         )
       const requestId = currentContext()?.requestId ?? ctx.req.id
+      // The run names this request's idempotency scope: a retry after a committed reset whose reply was lost (its
+      // idempotency record rolled back with the route) is answered with that run, never a second reset.
+      const idempotency = {
+        scope: createHash('sha256')
+          .update(`${actorKey(actor)}|resetStagingTestData|${readIdempotencyKey(ctx.req.headers['idempotency-key'])}`)
+          .digest('hex'),
+        requestHash: requestHash({ params: ctx.req.params, query: ctx.req.query, body: ctx.req.body }),
+      }
       let result
       try {
         result = await withResetLock(ctx.db, async (conn) => {
+          const done = await findCompletedRun(conn, idempotency.scope)
+          if (done) {
+            if (done.requestHash !== idempotency.requestHash) throw new ApiError('IDEMPOTENCY_CONFLICT')
+            const seeded = await conn
+              .selectFrom('staging.test_data_seedings')
+              .select(['state', 'outcomes'])
+              .where('run_id', '=', done.outcome.runId)
+              .executeTakeFirst()
+            const seeding = seeded ? { state: seeded.state, outcomes: seeded.outcomes as ScenarioOutcome[] } : null
+            return { outcome: done.outcome, seeding, replayed: true }
+          }
           const outcome = await runReset(conn, {
             mode,
             requestedBy: actor.userId,
+            actor: { kind: 'staff', id: actor.userId, roles: actor.roles },
             environment: deps.environment,
             requestId,
             codeKey: deps.codeKey,
+            idempotency,
           })
-          if (outcome.state !== 'completed' || !body.freshData) return { outcome, seeding: null }
+          if (outcome.state !== 'completed' || !body.freshData) return { outcome, seeding: null, replayed: false }
           const outcomes = await createFreshTestData({
             db: ctx.db,
             routes: deps.routes,
@@ -353,23 +396,20 @@ export function stagingModule(deps: StagingDeps): ApiModule {
             runId: outcome.runId,
           })
           const state = await recordSeeding(ctx.db, outcome.runId, outcomes, requestId)
-          return { outcome, seeding: { state, outcomes } }
+          return { outcome, seeding: { state, outcomes }, replayed: false }
         })
       } catch (err) {
         if (err instanceof ApiError) return refuse(err, err.options.fieldErrors?.[0]?.code ?? err.code)
         throw err
       }
-      const { outcome, seeding } = result
+      const { outcome, seeding, replayed } = result
+      // The reset itself is audited in its own transaction (staging.reset_test_data, reset.ts); this event records the
+      // reply: the run answered, the fresh data's outcome, and whether it repeated an earlier run's reply.
       await ctx.audit({
+        action: 'staging.reset_answered',
         target: { type: 'staging_reset_run', id: outcome.runId },
         result: outcome.state === 'completed' ? 'succeeded' : 'failed',
-        summary: {
-          mode,
-          state: outcome.state,
-          removed: Object.fromEntries(outcome.removed.map((c) => [c.id, c.count])),
-          errors: outcome.errors.map((e) => e.code),
-          seeding: seeding?.state ?? null,
-        },
+        summary: { mode, state: outcome.state, seeding: seeding?.state ?? null, replayed },
       })
       return {
         body: {

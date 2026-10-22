@@ -32,6 +32,7 @@ import {
   CONFIRMATION_PHRASE,
   PRESERVED,
   SELECTIVE_TABLES,
+  stagingIdentification,
   stagingModule,
 } from '../../src/modules/staging/index.js'
 import { KEPT_TABLES } from '../../src/modules/staging/reset.js'
@@ -124,7 +125,8 @@ beforeAll(async () => {
     reason: 'synthetic test configuration',
   })
   app = await buildApp({
-    config: testConfig({ TRUST_PROXY_HOPS: '1', STAGING_TOOLS: 'on' }),
+    // A local or ci reset needs DATABASE_URL on this machine (loopback or socket): the test database is.
+    config: testConfig({ TRUST_PROXY_HOPS: '1', STAGING_TOOLS: 'on', DATABASE_URL: t.url }),
     api: { db: wide, codeKey: KEY, storage: new FakeObjectStorage() },
   })
   // The same server without the explicit staging flag.
@@ -218,6 +220,22 @@ describe('Staging Tools exist only in an identified staging or test environment 
     ).rejects.toThrow(/STAGING_NOT_IDENTIFIED/)
     expect(await recordEnvironmentMark(t.db, 'ci', 'migration')).toBe('recorded')
     expect(await recordEnvironmentMark(t.db, 'ci', 'server_boot')).toBe('unchanged')
+  })
+
+  it('[HH-OPS-05] a staging reset runs only on the staging database: the server and the database refuse it elsewhere', async () => {
+    // This ci test database is marked, but it is not handyhub_staging_db.
+    const ci = await stagingIdentification({ environment: 'ci', checks: [] }, t.db)
+    expect(ci.identified).toBe(true)
+    const staging = await stagingIdentification({ environment: 'staging', checks: [] }, t.db)
+    expect(staging.identified).toBe(false)
+    expect(staging.checks.find((c) => c.id === 'database_name')?.ok).toBe(false)
+    await expect(
+      sql`INSERT INTO staging.reset_runs (mode, state, requested_by, environment, request_id)
+        VALUES ('reset', 'running', ${ids.owner}, 'staging', 'forged')`.execute(t.db),
+    ).rejects.toThrow(/only on the staging database/)
+    expect(await n(t.db, 'staging.reset_runs')).toBe(0)
+    // The process checks of this server pass: ci, the flag, and a loopback DATABASE_URL.
+    expect((await get('owner')).json<Status>().checks.find((c) => c.id === 'database_host')?.ok).toBe(true)
   })
 })
 
@@ -334,6 +352,11 @@ describe('Reset & Create Fresh Test Data, then Reset Test Data (TSK-0141, HH-OPS
       VALUES ('appointment_reminder.draft', ${`synthetic:${randomUUID()}`}, 'synthetic', now() + interval '1 day', 3)`.execute(
       t.db,
     )
+    // A pending stored-file removal from before the reset: it is kept (the files must still be removed).
+    const erasureKey = `synthetic-erasure:${randomUUID()}`
+    await sql`INSERT INTO platform.jobs (automation, job_key, request_id, run_at, max_attempts, payload)
+      VALUES ('privacy.object_erasure', ${erasureKey}, 'synthetic', now() + interval '1 hour', 3,
+        '{"keys": "synthetic/object"}')`.execute(t.db)
     const status = (await get('owner')).json<Status>()
     expect(status.identified).toBe(true)
     expect(status.total).toBeGreaterThan(0)
@@ -354,6 +377,13 @@ describe('Reset & Create Fresh Test Data, then Reset Test Data (TSK-0141, HH-OPS
     ).toEqual([])
     expect(await n(t.db, 'platform.outbox_events')).toBe(0)
     expect(await n(t.db, 'platform.message_deliveries')).toBe(0)
+    expect(
+      await t.db
+        .selectFrom('platform.jobs')
+        .select(['automation', 'state'])
+        .where('job_key', '=', erasureKey)
+        .execute(),
+    ).toEqual([{ automation: 'privacy.object_erasure', state: 'queued' }])
     // Kept: configuration, catalog, SOPs, templates, staff and the reusable account with its customer and contact.
     expect(await n(t.db, 'platform.policy_version')).toBe(configBefore)
     for (const c of r.preservedAfter) {
@@ -381,6 +411,13 @@ describe('Reset & Create Fresh Test Data, then Reset Test Data (TSK-0141, HH-OPS
       .where('result', '=', 'succeeded')
       .execute()
     expect(audited.length).toBe(2)
+    // Each completed run's audit event committed with the run (the reset's own transaction).
+    const unaudited = await sql<{ id: string }>`SELECT r.id FROM staging.reset_runs r
+      WHERE r.state = 'completed' AND NOT EXISTS (SELECT 1 FROM platform.audit_events e
+        WHERE e.action = 'staging.reset_test_data' AND e.result = 'succeeded' AND e.target_id = r.id::text)`.execute(
+      t.db,
+    )
+    expect(unaudited.rows).toEqual([])
   }, 60_000)
 
   it('[HH-OPS-05] the reusable test account still signs in', async () => {
@@ -418,6 +455,49 @@ describe('Reset & Create Fresh Test Data, then Reset Test Data (TSK-0141, HH-OPS
     const again = await send()
     expect(again.json<Result>().runId).toBe(first.json<Result>().runId)
     expect(again.headers['idempotent-replayed']).toBe('true')
+    // The reply was lost after the reset committed (its idempotency record gone with the route's transaction): the
+    // retry is answered with the same run; nothing is reset a second time.
+    const runs = await n(t.db, 'staging.reset_runs')
+    await sql`DELETE FROM platform.idempotency_keys WHERE idempotency_key = ${key}`.execute(t.db)
+    const retried = await send()
+    expect(retried.statusCode, retried.body).toBe(200)
+    expect(retried.json<Result>()).toMatchObject({ runId: first.json<Result>().runId, state: 'completed' })
+    expect(await n(t.db, 'staging.reset_runs')).toBe(runs)
+    // The same key with another request is a conflict, never a reset.
+    await sql`DELETE FROM platform.idempotency_keys WHERE idempotency_key = ${key}`.execute(t.db)
+    const other = await app.inject({
+      method: 'POST',
+      url: '/api/v1/staff/staging/test-data/reset',
+      payload: { confirmation: CONFIRMATION_PHRASE, freshData: true },
+      headers: { cookie: cookies.owner, 'x-csrf-token': csrf.owner, 'idempotency-key': key },
+    })
+    expect(other.json<{ error: { code: string } }>().error.code).toBe('IDEMPOTENCY_CONFLICT')
+    expect(await n(t.db, 'staging.reset_runs')).toBe(runs)
+  })
+
+  it('[HH-OPS-05] a reset is refused while a message job is being sent; an expired lease does not hold it', async () => {
+    const job = `synthetic-sending:${randomUUID()}`
+    await sql`INSERT INTO platform.jobs (automation, job_key, request_id, max_attempts, state, attempts, locked_by,
+        locked_until)
+      VALUES ('notify.release', ${job}, 'synthetic', 3, 'running', 1, 'synthetic-worker', now() + interval '5 minutes')`.execute(
+      t.db,
+    )
+    const runs = await n(t.db, 'staging.reset_runs')
+    const refused = await reset('owner', { confirmation: CONFIRMATION_PHRASE, freshData: false })
+    expect(refused.statusCode, refused.body).toBe(409)
+    expect(refused.json<{ error: { fieldErrors: { code: string }[] } }>().error.fieldErrors[0]?.code).toBe(
+      'RESET_SENDS_IN_FLIGHT',
+    )
+    expect(await n(t.db, 'staging.reset_runs')).toBe(runs)
+    expect(await t.db.selectFrom('platform.jobs').select('state').where('job_key', '=', job).execute()).toEqual([
+      { state: 'running' },
+    ])
+    // The worker's lease ran out (it stopped): nothing is in flight, and the reset clears the job.
+    await sql`UPDATE platform.jobs SET locked_until = now() - interval '1 minute' WHERE job_key = ${job}`.execute(t.db)
+    const done = await reset('owner', { confirmation: CONFIRMATION_PHRASE, freshData: false })
+    expect(done.statusCode, done.body).toBe(200)
+    expect(done.json<Result>().state).toBe('completed')
+    expect(await t.db.selectFrom('platform.jobs').select('state').where('job_key', '=', job).execute()).toEqual([])
   })
 
   it('[HH-OPS-05] a concurrent reset is refused while another holds the lock', async () => {
@@ -500,5 +580,71 @@ describe('The database guards stand aside only for a permitted staging reset (TS
     ).rejects.toThrow(/STAGING_NOT_IDENTIFIED/)
     const status = (await get('owner')).json<Status>()
     expect(status.identified).toBe(false)
+  })
+})
+
+describe('The TRUNCATE privileges, exercised by a role that is not a superuser (TSK-0141, migration 0069)', () => {
+  it('[HH-OPS-05] the owner of the protected logs has no TRUNCATE; only a permitted reset grants it, until it ends', async () => {
+    // A throwaway database and role of this test: the deletion log and the retention reviews (and the decisions
+    // that reference both) are owned by an ordinary role, as a hosted database's migrating owner holds them. A
+    // superuser skips every privilege check, so the other tests cannot show this.
+    const own = await createTestDatabase()
+    const role = `hh_reset_owner_${randomUUID().replace(/-/g, '').slice(0, 12)}`
+    const admin = new pg.Client({ connectionString: own.url })
+    await admin.connect()
+    const tables = 'privacy.deletions, privacy.retention_reviews, privacy.retention_decisions'
+    try {
+      await admin.query(`CREATE ROLE ${role} NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE`)
+      for (const table of tables.split(', ')) await admin.query(`ALTER TABLE ${table} OWNER TO ${role}`)
+      await admin.query(`GRANT USAGE ON SCHEMA staging, privacy TO ${role}`)
+      await admin.query(`GRANT SELECT ON staging.environment_marks TO ${role}`)
+      await admin.query(`GRANT SELECT, INSERT, UPDATE ON staging.reset_runs TO ${role}`)
+      const staff = await withTx(own.db, (tx) =>
+        createStaffUser(tx, {
+          email: 'privileges-owner@example.test',
+          displayName: 'Synthetic owner',
+          locale: 'en',
+          role: 'owner',
+          issuedBy: 'test',
+        }),
+      )
+      expect(await recordEnvironmentMark(own.db, 'ci', 'migration')).toBe('recorded')
+      const privilege = async () =>
+        (
+          await admin.query<{ ok: boolean }>(
+            `SELECT has_table_privilege('${role}', 'privacy.deletions', 'TRUNCATE')
+               OR has_table_privilege('${role}', 'privacy.retention_reviews', 'TRUNCATE') AS ok`,
+          )
+        ).rows[0]?.ok
+      expect(await privilege()).toBe(false)
+      // Outside a reset: the privilege is missing, and the unlock is refused.
+      await admin.query('BEGIN')
+      await admin.query(`SET LOCAL ROLE ${role}`)
+      await expect(admin.query(`TRUNCATE ${tables}`)).rejects.toThrow(/permission denied/)
+      await admin.query('ROLLBACK')
+      await admin.query('BEGIN')
+      await admin.query(`SET LOCAL ROLE ${role}`)
+      await expect(admin.query('SELECT staging.reset_unlock()')).rejects.toThrow(/STAGING_RESET_NOT_PERMITTED/)
+      await admin.query('ROLLBACK')
+      // Inside a permitted reset transaction, as the same role: granted, cleared, revoked again.
+      await admin.query('BEGIN')
+      await admin.query(`SET LOCAL ROLE ${role}`)
+      const run = await admin.query<{ id: string }>(
+        `INSERT INTO staging.reset_runs (mode, state, requested_by, environment, request_id)
+           VALUES ('reset', 'running', $1, 'ci', 'synthetic-privileges') RETURNING id`,
+        [staff.id],
+      )
+      await admin.query(`SELECT set_config('handyhub.staging_reset', $1, true)`, [run.rows[0]?.id])
+      await admin.query('SELECT staging.reset_unlock()')
+      await admin.query(`TRUNCATE ${tables}`)
+      await admin.query('SELECT staging.reset_relock()')
+      await expect(admin.query(`TRUNCATE ${tables}`)).rejects.toThrow(/permission denied/)
+      await admin.query('ROLLBACK')
+      expect(await privilege()).toBe(false)
+    } finally {
+      await admin.end()
+      await own.drop()
+      await sql.raw(`DROP ROLE IF EXISTS ${role}`).execute(t.db)
+    }
   })
 })

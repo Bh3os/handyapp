@@ -1344,6 +1344,8 @@ export interface StagingResetRunsTable {
   environment: string
   txid: ColumnType<string, bigint | number | string | undefined, bigint | number | string>
   request_id: string
+  idempotency_scope: string | null
+  request_hash: string | null
   removed: ColumnType<JsonValue, string | undefined, string>
   preserved: ColumnType<JsonValue, string | undefined, string>
   checks: ColumnType<JsonValue, string | undefined, string>
