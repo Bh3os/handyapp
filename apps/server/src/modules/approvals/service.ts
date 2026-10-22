@@ -6,12 +6,13 @@
 // - requestApproval: records a pending approval of one exact version and opens its Owner Decisions item; asking again
 //   for the same content returns the open record.
 // - decideApproval: the Owner (estimate.approve_publication) approves or rejects a pending approval with a written
-//   comment (the auditable reason of every approval, final owner amendments 2026-10-22), with the record version the
+//   comment (the auditable reason of every approval, OWN-DEC-204), with the record version the
 //   Owner saw. Resolves the item.
 // - publicationGate: run inside the publishing transaction, under the project's publication lock. Not required: an
 //   open request is closed as no longer required. Required: an approved record of the same content is used; the
-//   Owner's own authenticated publication approves it, writing the approval record and its audit event in the same
-//   transaction (final owner amendments 2026-10-22 to OWN-DEC-173); anyone else is refused naming the state
+//   Owner's own publication approves it only from a session that completed the second factor (OWN-DEC-204,
+//   OWN-DEC-202), writing the approval record and its audit event in the same transaction; anyone else is refused
+//   naming the state
 //   (required, pending or rejected). The database refuses the same publication without a used
 //   approval (migration 0068).
 // - invalidateApprovals: any change of price or scope after the approval (a different digest) invalidates every open
