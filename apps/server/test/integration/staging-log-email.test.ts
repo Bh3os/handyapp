@@ -19,6 +19,7 @@ import { createProviders } from '../../src/providers/index.js'
 import { STAGING_EMAIL_LOGGED } from '../../src/providers/log-email.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
 import { testConfig } from '../fixtures/env.js'
+import { signInWithMfa } from '../fixtures/staff-mfa.js'
 
 const OWNER = 'owner-staging-synthetic@example.test'
 const pw = (n: number) => ['synthetic', 'staging', 'owner', 'passphrase', String(n)].join(' ')
@@ -80,7 +81,8 @@ describe('EMAIL_PROVIDER=log on staging (TSK-0112, HH-COM-03, HH-STAFF-01)', () 
       payload: { token, password: pw(1) },
     })
     expect(set.statusCode).toBe(200)
-    const signIn = await app.inject({
+    // Staff MFA is mandatory (TSK-0154, OWN-DEC-202): the first sign-in enrols the second factor.
+    const signIn = await signInWithMfa(app, {
       method: 'POST',
       url: '/api/v1/staff/auth/sign-in',
       payload: { email: OWNER, password: pw(1) },
