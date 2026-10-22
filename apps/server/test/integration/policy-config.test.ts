@@ -35,7 +35,8 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
     const config = await loadConfig(t.db)
     const entries = config.entries()
     expect(entries.map((e) => e.key)).toEqual(Object.keys(CONFIG_KEYS))
-    for (const e of entries) expect(e.version, e.key).toBe(1)
+    // TSK-0123: migration 0066 recorded the decided business time zone as its second version (OWN-DEC-159).
+    for (const e of entries) expect(e.version, e.key).toBe(e.key === 'business.timezone' ? 2 : 1)
   })
 
   it('every seeded value carries source ids that are nodes of the graph', async () => {
@@ -123,9 +124,9 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
     expect(v('business.name').documentName).toBe('Handyhub LLC')
   })
 
-  it('marks the time zone id PROPOSED until the owner confirms it (OQ-TIMEZONE-ID)', async () => {
+  it('[OWN-DEC-159] the business time zone is decided: America/Kentucky/Louisville, no longer PROPOSED (TSK-0123)', async () => {
     const zone = (await loadConfig(t.db)).get('business.timezone')
-    expect(zone).toMatchObject({ state: 'CONFIGURED', proposed: true, value: { zone: 'America/Kentucky/Louisville' } })
+    expect(zone).toMatchObject({ state: 'CONFIGURED', proposed: false, value: { zone: 'America/Kentucky/Louisville' } })
   })
 })
 

@@ -134,7 +134,10 @@ describe('submission creates one request and its records (TSK-0025, HH-INT-10, H
       state: 'KY',
       property_type: 'house',
       coverage_result: 'unknown',
-      time_zone: 'America/Kentucky/Louisville',
+      // TSK-0123 (OWN-DEC-159): no county list is configured, so the zone is unknown and flagged, never assumed.
+      time_zone: null,
+      time_zone_status: 'unknown',
+      time_zone_basis: 'no_zip_rule',
     })
     const services = await t.db
       .selectFrom('intake.request_services')

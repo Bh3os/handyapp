@@ -960,10 +960,9 @@ describe('[HH-SCH-03][FACT-HOURS] visits stay inside the visit hours and the wor
       await recordPolicyVersion(t.db, {
         key: 'business.timezone',
         value: { zone: ZONE },
-        sourceIds: ['FACT-TIMEZONE', 'OQ-TIMEZONE-ID'],
+        sourceIds: ['FACT-TIMEZONE', 'OWN-DEC-159'],
         changedBy: 'test',
         reason: 'synthetic: restore',
-        proposed: true,
       })
     }
   })

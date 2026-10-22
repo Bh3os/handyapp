@@ -418,7 +418,7 @@ describe('[HH-SCH-01][T37] an estimate visit and a work visit keep different pur
     expect(before).toMatchObject({
       projectState: 'open',
       timeZone: ZONE,
-      businessTimeZone: { zone: ZONE, proposed: true },
+      businessTimeZone: { zone: ZONE, proposed: false },
       visitHours: { open: '08:00', close: '22:00' },
       job: null,
       schedulingTask: null,
@@ -888,10 +888,9 @@ describe('[HH-SCH-02][HH-DATA-06][T41] UTC instants with the IANA zone; DST gaps
       await recordPolicyVersion(t.db, {
         key: 'business.timezone',
         value: { zone: ZONE },
-        sourceIds: ['FACT-TIMEZONE', 'OQ-TIMEZONE-ID'],
+        sourceIds: ['FACT-TIMEZONE', 'OWN-DEC-159'],
         changedBy: 'test',
         reason: 'synthetic: restore',
-        proposed: true,
       })
     }
   })

@@ -306,7 +306,7 @@ describe('the first-response clock (TSK-0043, HH-LEAD-05, OWN-DEC-115, OWN-DEC-1
       time_zone: ZONE,
       stopped_at: null,
     })
-    expect(clock.config_versions).toEqual({ 'response.target': 1, 'contact.hours': 1, 'business.timezone': 1 })
+    expect(clock.config_versions).toEqual({ 'response.target': 1, 'contact.hours': 1, 'business.timezone': 2 })
     // One business hour after receipt, counted only in the daily hours of the business time zone.
     expect(clock.due_at).toEqual(addBusinessMinutes(r.submittedAt, 60, HOURS, ZONE))
     await clockWorker()

@@ -540,10 +540,9 @@ describe('[RULE-SERVER-AUTHZ][HH-SCH-13] who sees the board', () => {
       await recordPolicyVersion(t.db, {
         key: 'business.timezone',
         value: { zone: ZONE },
-        sourceIds: ['FACT-TIMEZONE', 'OQ-TIMEZONE-ID'],
+        sourceIds: ['FACT-TIMEZONE', 'OWN-DEC-159'],
         changedBy: 'test',
         reason: 'synthetic: restore',
-        proposed: true,
       })
     }
   })
