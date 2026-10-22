@@ -366,7 +366,9 @@ describe('[HH-SCH-13] the board: a day and a week by worker', () => {
   })
 
   it('[HH-SCH-13][HH-SCH-11] held windows show as holds on the team, never as bookings; the visit offers no move', async () => {
-    const date = day(52)
+    // Before the week of day(47) above (it starts on day 41 at the earliest): its Sunday visit, on one of days 47 to
+    // 53 depending on today's weekday, never shares this date (day 52 did on a Thursday).
+    const date = day(45)
     const p = await siteVisitProject()
     const v = await planVisit(p, { date, start: '09:00', end: '10:00', duration: 60 })
     const offered = await staffWrite(
