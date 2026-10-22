@@ -334,6 +334,13 @@ function VisitCard({
                   <a href={href(`/loadouts/${v.jobId}`)}>{t('myday.openLoadout')}</a>
                 </>
               ) : null}
+              {/* TSK-0076: before and after photos of the job. */}
+              {v.state === 'arrived' && v.assignment === 'confirmed' ? (
+                <>
+                  {' · '}
+                  <a href={href(`/job-photos/${v.jobId}`)}>{t('myday.openPhotos')}</a>
+                </>
+              ) : null}
             </p>
           ) : null}
           {mine.length > 0 ? <p data-testid="myday-mine">{mine.join(' · ')}</p> : null}

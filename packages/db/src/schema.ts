@@ -1480,7 +1480,16 @@ export interface StagingTestDataSeedingsTable {
   request_id: string
 }
 
-export interface WorkBeforePhotosTable {
+export interface WorkEquipmentTable {
+  id: Generated<string>
+  name: string
+  created_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  retired_at: Timestamp | null
+  retired_by: string | null
+}
+
+export interface WorkFieldPhotosTable {
   id: Generated<string>
   job_id: string
   project_id: string
@@ -1493,15 +1502,16 @@ export interface WorkBeforePhotosTable {
   sha256: string
   device_captured_at: Timestamp | null
   uploaded_at: ColumnType<Date, Date | string | undefined, Date | string>
-}
-
-export interface WorkEquipmentTable {
-  id: Generated<string>
-  name: string
-  created_by: string
-  created_at: ColumnType<Date, Date | string | undefined, Date | string>
-  retired_at: Timestamp | null
-  retired_by: string | null
+  phase: string
+  area_label: string | null
+  pair_of: string | null
+  state: Generated<string>
+  rejection_reason: string | null
+  processed_at: Timestamp | null
+  visibility: Generated<string>
+  visibility_changed_by: string | null
+  visibility_changed_at: Timestamp | null
+  version: Generated<number>
 }
 
 export interface WorkGateExceptionsTable {
@@ -1657,6 +1667,22 @@ export interface WorkLoadoutChecksTable {
   substitute: string | null
   impacts: string[] | null
   hold_id: string | null
+  recorded_by: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface WorkPhotoPublicationPermissionsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  photo_id: string
+  project_id: string
+  customer_id: string
+  purpose: string
+  channel: string
+  granted: boolean
+  notice_version: string | null
+  evidence_kind: string
+  evidence_reference: string
   recorded_by: string
   recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
@@ -2084,8 +2110,8 @@ export interface Database {
   'staging.reset_runs': StagingResetRunsTable
   'staging.reusable_test_accounts': StagingReusableTestAccountsTable
   'staging.test_data_seedings': StagingTestDataSeedingsTable
-  'work.before_photos': WorkBeforePhotosTable
   'work.equipment': WorkEquipmentTable
+  'work.field_photos': WorkFieldPhotosTable
   'work.gate_exceptions': WorkGateExceptionsTable
   'work.holds': WorkHoldsTable
   'work.job_packet_acknowledgment_invalidations': WorkJobPacketAcknowledgmentInvalidationsTable
@@ -2096,6 +2122,7 @@ export interface Database {
   'work.job_scope_snapshots': WorkJobScopeSnapshotsTable
   'work.jobs': WorkJobsTable
   'work.loadout_checks': WorkLoadoutChecksTable
+  'work.photo_publication_permissions': WorkPhotoPublicationPermissionsTable
   'work.reservation_flags': WorkReservationFlagsTable
   'work.reservations': WorkReservationsTable
   'work.scheduling_tasks': WorkSchedulingTasksTable

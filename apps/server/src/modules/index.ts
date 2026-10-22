@@ -13,6 +13,7 @@ import { CUSTOMERS_MODULE } from './customers/index.js'
 import { inboxModule } from './inbox/index.js'
 import { loadoutsModule } from './loadouts/index.js'
 import { fieldModule } from './field/index.js'
+import { fieldPhotosModule } from './field-photos/index.js'
 import { FINANCE_MODULE } from './finance/index.js'
 import { NOTIFICATIONS_MODULE } from './notifications/index.js'
 import { packetsModule } from './packets/index.js'
@@ -81,6 +82,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     requestsModule(deps.codeKey ? { codeKey: deps.codeKey } : {}),
     COVERAGE_MODULE,
     photosModule({ storage: deps.storage ?? null }),
+    // TSK-0076: field photos, sharing with the customer, publication permissions and the customer's photo links.
+    fieldPhotosModule({ storage: deps.storage ?? null }),
     SITE_MODULE,
     QUEUE_MODULE,
     // TSK-0053: Write an Estimate and the staff builder; TSK-0054: Upload an Estimate and the customer PDF.

@@ -602,14 +602,63 @@ export const PROJECT_PAYMENTS = tabView('project.payments', 'Invoice', ['none'] 
 
 const COUNT = { type: 'integer', minimum: 0 } as const
 export type PhotoCounts = { received: number; processing: number; failed: number }
-/** The Photos tab: how many customer-visible photos the project has, by state; never a photo, URL or ID. */
+type UploadRecord = { id: string; state: string; uploadedAt: Date; url: string | null }
+type SharedRecord = { id: string; sharedAt: Date; url: string | null }
+type SharedGroupRecord = { service: string; before: SharedRecord | null; after: SharedRecord | null }
+const SHARED_PHOTO = object({ id: STRING, sharedAt: DATE, url: { type: ['string', 'null'] } })
+const SHARED_OR_NULL = { anyOf: [{ type: 'null' }, SHARED_PHOTO] } as const
+const sharedOf = (p: SharedRecord | null) => (p ? { id: p.id, sharedAt: p.sharedAt.toISOString(), url: p.url } : null)
+/**
+ * The Photos tab (TSK-0039 counts; TSK-0076, HH-PORT-11, OWN-DEC-106): the customer's own uploads (request and reply
+ * photos), counted by state and listed with a short-lived URL once ready, and the before and after photos staff shared,
+ * grouped by service and paired where staff paired them. Internal and restricted photos are never read for it.
+ */
 export const PROJECT_PHOTOS = customerView(
   'project.photos',
   'Photo',
-  { ...TAB_FIELDS, photos: object({ received: COUNT, processing: COUNT, failed: COUNT }) },
-  (r: TabRecord & { photos: PhotoCounts }) => ({
+  {
+    ...TAB_FIELDS,
+    photos: object({ received: COUNT, processing: COUNT, failed: COUNT }),
+    yours: {
+      type: 'array',
+      items: object({
+        id: STRING,
+        state: enumOf(['quarantined', 'ready', 'rejected']),
+        uploadedAt: DATE,
+        url: { type: ['string', 'null'] },
+      }),
+    },
+    shared: {
+      type: 'array',
+      items: object({ service: STRING, before: SHARED_OR_NULL, after: SHARED_OR_NULL }),
+    },
+    linkSeconds: { type: 'integer', minimum: 1 },
+  },
+  (
+    r: TabRecord & {
+      photos: PhotoCounts
+      yours: readonly UploadRecord[]
+      shared: readonly SharedGroupRecord[]
+      linkSeconds: number
+    },
+  ) => ({
     ...tabHead(r),
     photos: { received: r.photos.received, processing: r.photos.processing, failed: r.photos.failed },
+    yours: r.yours.map((u) => ({ id: u.id, state: u.state, uploadedAt: u.uploadedAt.toISOString(), url: u.url })),
+    shared: r.shared.map((g) => ({ service: g.service, before: sharedOf(g.before), after: sharedOf(g.after) })),
+    linkSeconds: r.linkSeconds,
+  }),
+)
+
+/** One photo the customer may see, opened by its ID (TSK-0076): a fresh short-lived link, nothing else. */
+export const PHOTO_LINK = customerView(
+  'photo.link',
+  'Photo',
+  { id: STRING, url: STRING, expiresInSeconds: { type: 'integer', minimum: 1 } },
+  (p: { id: string; url: string; expiresInSeconds: number }) => ({
+    id: p.id,
+    url: p.url,
+    expiresInSeconds: p.expiresInSeconds,
   }),
 )
 
@@ -1507,6 +1556,7 @@ export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
     PROJECT_MESSAGES,
     PROJECT_DOCUMENTS,
     PROJECT_PHOTOS,
+    PHOTO_LINK,
     PROJECT_APPOINTMENTS,
     PROJECT_PAYMENTS,
     CUSTOMER_ACCOUNT,

@@ -6549,7 +6549,7 @@
       "get": {
         "operationId": "getCustomerProjectPhotos",
         "summary": "The project Photos tab",
-        "description": "The Photos tab: the customer-visible photos of the project (the customer’s uploads and photos staff shared) counted by state: received (ready), processing (quarantined) and failed (rejected). No photo, URL or ID; internal and restricted photos are not counted. With the server time of the read and the refresh interval (portal.refresh; 0 while NOT CONFIGURED). Any other project, an unknown or a malformed reference is the same NOT_FOUND (T19).",
+        "description": "The Photos tab (TSK-0076, HH-PORT-11): the customer’s own uploads (request and reply photos) counted by state (received: ready, processing: quarantined, failed: rejected) and listed, each ready one with a signed URL valid for linkSeconds; and the before and after photos staff shared with the customer, grouped by service and paired where staff paired them and both are shared. Internal and restricted photos are never read, listed or counted (OWN-DEC-106); no marketing state is sent. With the server time of the read and the refresh interval (portal.refresh; 0 while NOT CONFIGURED). Any other project, an unknown or a malformed reference is the same NOT_FOUND (T19).",
         "tags": [
           "portal"
         ],
@@ -6577,7 +6577,10 @@
                     "reference",
                     "refreshedAt",
                     "refreshSeconds",
-                    "photos"
+                    "photos",
+                    "yours",
+                    "shared",
+                    "linkSeconds"
                   ],
                   "properties": {
                     "reference": {
@@ -6613,6 +6616,125 @@
                           "minimum": 0
                         }
                       }
+                    },
+                    "yours": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "state",
+                          "uploadedAt",
+                          "url"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "quarantined",
+                              "ready",
+                              "rejected"
+                            ]
+                          },
+                          "uploadedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "url": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "shared": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "service",
+                          "before",
+                          "after"
+                        ],
+                        "properties": {
+                          "service": {
+                            "type": "string"
+                          },
+                          "before": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "sharedAt",
+                                  "url"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "sharedAt": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  },
+                                  "url": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "after": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "sharedAt",
+                                  "url"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "sharedAt": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  },
+                                  "url": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "linkSeconds": {
+                      "type": "integer",
+                      "minimum": 1
                     }
                   }
                 }
@@ -6696,6 +6818,144 @@
           "cache": "private, no-store",
           "test": "test/integration/portal-tabs.test.ts",
           "projection": "project.photos"
+        }
+      }
+    },
+    "/api/v1/customer/projects/{reference}/photos/{photoId}": {
+      "get": {
+        "operationId": "getCustomerProjectPhoto",
+        "summary": "Open one photo of the project",
+        "description": "The customer of a project the session opens (request.view, ROLE-MATRIX \"V (own)\"; TSK-0037 scope). One photo the customer may see, by its ID: their own ready upload or a ready before or after photo staff shared with them; a fresh signed URL valid for expiresInSeconds. An internal or restricted photo, another project’s photo, an unknown or malformed ID or reference all answer the same NOT_FOUND, exactly like a missing record (HH-PORT-11, OWN-DEC-106, T57). Never cached.",
+        "tags": [
+          "field-photos"
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          },
+          {
+            "name": "photoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "url",
+                    "expiresInSeconds"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    },
+                    "expiresInSeconds": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "request.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/field-photos.test.ts",
+          "projection": "photo.link"
         }
       }
     },
@@ -27617,6 +27877,7 @@
                                   "access.grants",
                                   "access.recovery",
                                   "portal.refresh",
+                                  "media.publication_notice",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -29736,6 +29997,7 @@
                                   "access.grants",
                                   "access.recovery",
                                   "portal.refresh",
+                                  "media.publication_notice",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -32135,6 +32397,7 @@
                                   "access.grants",
                                   "access.recovery",
                                   "portal.refresh",
+                                  "media.publication_notice",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -34107,6 +34370,7 @@
                                   "access.grants",
                                   "access.recovery",
                                   "portal.refresh",
+                                  "media.publication_notice",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -36255,6 +36519,7 @@
                                   "access.grants",
                                   "access.recovery",
                                   "portal.refresh",
+                                  "media.publication_notice",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -38227,6 +38492,7 @@
                                   "access.grants",
                                   "access.recovery",
                                   "portal.refresh",
+                                  "media.publication_notice",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -40566,6 +40832,7 @@
                                   "access.grants",
                                   "access.recovery",
                                   "portal.refresh",
+                                  "media.publication_notice",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -42727,6 +42994,7 @@
                                   "access.grants",
                                   "access.recovery",
                                   "portal.refresh",
+                                  "media.publication_notice",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -44879,6 +45147,7 @@
                                   "access.grants",
                                   "access.recovery",
                                   "portal.refresh",
+                                  "media.publication_notice",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -47031,6 +47300,7 @@
                                   "access.grants",
                                   "access.recovery",
                                   "portal.refresh",
+                                  "media.publication_notice",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -49188,6 +49458,7 @@
                                   "access.grants",
                                   "access.recovery",
                                   "portal.refresh",
+                                  "media.publication_notice",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -51682,6 +51953,7 @@
                                   "access.grants",
                                   "access.recovery",
                                   "portal.refresh",
+                                  "media.publication_notice",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -53834,6 +54106,7 @@
                                   "access.grants",
                                   "access.recovery",
                                   "portal.refresh",
+                                  "media.publication_notice",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -56191,6 +56464,7 @@
                                   "access.grants",
                                   "access.recovery",
                                   "portal.refresh",
+                                  "media.publication_notice",
                                   "messages.automatic",
                                   "sms.help_reply",
                                   "coverage.area",
@@ -57960,6 +58234,710 @@
           "pagination": true,
           "cache": "private, no-store",
           "test": "test/integration/estimate-builder.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/field-photos/{photoId}/actions/share": {
+      "post": {
+        "operationId": "shareFieldPhoto",
+        "summary": "Share a field photo with the customer",
+        "description": "Owner or Office (media.share_with_customer), with the version they saw. Makes one ready, internal field photo visible to the customer of its project in the Photos tab (HH-QA-05, HH-DATA-07); a quarantined, rejected or restricted photo is refused (409). Sharing never grants marketing or publication use (HH-PRIV-02). Audited with who and when.",
+        "tags": [
+          "field-photos"
+        ],
+        "parameters": [
+          {
+            "name": "photoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "photoId",
+                    "shared",
+                    "version"
+                  ],
+                  "properties": {
+                    "photoId": {
+                      "type": "string"
+                    },
+                    "shared": {
+                      "type": "boolean"
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "media.share_with_customer",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "media.share_with_customer",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/field-photos.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/field-photos/{photoId}/actions/stop-sharing": {
+      "post": {
+        "operationId": "stopSharingFieldPhoto",
+        "summary": "Stop sharing a field photo with the customer",
+        "description": "Owner or Office (media.share_with_customer), with the version they saw (PROPOSED). Makes a shared field photo internal again: the customer no longer reaches it by the tab, its ID or a new link (a link already issued expires within minutes). Audited with who and when.",
+        "tags": [
+          "field-photos"
+        ],
+        "parameters": [
+          {
+            "name": "photoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "photoId",
+                    "shared",
+                    "version"
+                  ],
+                  "properties": {
+                    "photoId": {
+                      "type": "string"
+                    },
+                    "shared": {
+                      "type": "boolean"
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "media.share_with_customer",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "media.stop_sharing",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/field-photos.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/field-photos/{photoId}/publication-permissions": {
+      "post": {
+        "operationId": "recordPhotoPublication",
+        "summary": "Record a customer’s permission to publish a field photo, or its withdrawal",
+        "description": "The Owner (media.mark_marketing_eligible: marketing use needs recorded consent). Records, for one ready field photo, the evidenced permission of the customer of its project to publish it for the purpose and channel (PROPOSED: marketing on the website), under the configured publication notice version (media.publication_notice; NOT CONFIGURED: 503 NOT_CONFIGURED, nothing recorded; another version: 400), with how the customer gave it and a staff reference to the evidence. granted false records the customer’s withdrawal: new use stops at once. Append-only: the latest record per photo, purpose and channel is current. Sharing with the customer never creates one, and this never shares the photo. A restricted or unready photo: 409.",
+        "tags": [
+          "field-photos"
+        ],
+        "parameters": [
+          {
+            "name": "photoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "purpose",
+                      "channel",
+                      "granted",
+                      "noticeVersion",
+                      "evidenceKind",
+                      "evidenceReference"
+                    ],
+                    "properties": {
+                      "purpose": {
+                        "type": "string",
+                        "enum": [
+                          "marketing"
+                        ]
+                      },
+                      "channel": {
+                        "type": "string",
+                        "enum": [
+                          "website"
+                        ]
+                      },
+                      "granted": {
+                        "const": true
+                      },
+                      "noticeVersion": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9-]{0,38}[0-9]$"
+                      },
+                      "evidenceKind": {
+                        "type": "string",
+                        "enum": [
+                          "signed_form",
+                          "email",
+                          "text_message"
+                        ]
+                      },
+                      "evidenceReference": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 300,
+                        "pattern": "\\S"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "purpose",
+                      "channel",
+                      "granted",
+                      "evidenceKind",
+                      "evidenceReference"
+                    ],
+                    "properties": {
+                      "purpose": {
+                        "type": "string",
+                        "enum": [
+                          "marketing"
+                        ]
+                      },
+                      "channel": {
+                        "type": "string",
+                        "enum": [
+                          "website"
+                        ]
+                      },
+                      "granted": {
+                        "const": false
+                      },
+                      "evidenceKind": {
+                        "type": "string",
+                        "enum": [
+                          "signed_form",
+                          "email",
+                          "text_message"
+                        ]
+                      },
+                      "evidenceReference": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 300,
+                        "pattern": "\\S"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "photoId",
+                    "channel",
+                    "granted",
+                    "marketingEligible",
+                    "recordedAt"
+                  ],
+                  "properties": {
+                    "photoId": {
+                      "type": "string"
+                    },
+                    "channel": {
+                      "type": "string",
+                      "enum": [
+                        "website"
+                      ]
+                    },
+                    "granted": {
+                      "type": "boolean"
+                    },
+                    "marketingEligible": {
+                      "type": "boolean"
+                    },
+                    "recordedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "media.mark_marketing_eligible",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "media.publication_permission",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/field-photos.test.ts"
         }
       }
     },
@@ -67770,6 +68748,366 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/job-packets.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/jobs/{jobId}/photos": {
+      "get": {
+        "operationId": "listJobFieldPhotos",
+        "summary": "The field photos of a job",
+        "description": "Staff who view the job packet (job.view_packet: Owner, Office, the assigned Worker inside the access window). Every before and after photo of the job by work package, with its visit, area label, pair, processing state (quarantined, ready, rejected), visibility class, who uploaded it and when, and for a ready one a signed URL valid for minutes. A restricted photo is listed only for a role that reads its class. Per photo: the current publication permission per channel and the actions the caller may take (share, stop sharing: media.share_with_customer; record a publication permission: media.mark_marketing_eligible). Also the visits where the caller may upload now (assigned and arrived; after photos once their own work start is recorded) and the configured publication notice version (null while NOT CONFIGURED). An Estimator reads estimating scope only: FORBIDDEN here.",
+        "tags": [
+          "field-photos"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "projectReference",
+                    "workPackages",
+                    "photos",
+                    "uploadVisits",
+                    "publicationNotice"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "projectReference": {
+                      "type": "string"
+                    },
+                    "workPackages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "workPackageId",
+                          "serviceCode"
+                        ],
+                        "properties": {
+                          "workPackageId": {
+                            "type": "string"
+                          },
+                          "serviceCode": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "photos": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "workPackageId",
+                          "visitId",
+                          "visitNumber",
+                          "phase",
+                          "areaLabel",
+                          "pairOf",
+                          "state",
+                          "rejectionReason",
+                          "visibility",
+                          "version",
+                          "uploadedAt",
+                          "uploadedBy",
+                          "sharedAt",
+                          "url",
+                          "publication",
+                          "actions"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "workPackageId": {
+                            "type": "string"
+                          },
+                          "visitId": {
+                            "type": "string"
+                          },
+                          "visitNumber": {
+                            "type": "integer"
+                          },
+                          "phase": {
+                            "type": "string",
+                            "enum": [
+                              "before",
+                              "after"
+                            ]
+                          },
+                          "areaLabel": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "pairOf": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "quarantined",
+                              "ready",
+                              "rejected"
+                            ]
+                          },
+                          "rejectionReason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "visibility": {
+                            "type": "string",
+                            "enum": [
+                              "internal_operational",
+                              "restricted_incident",
+                              "restricted_financial",
+                              "customer_shared"
+                            ]
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "uploadedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "uploadedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "sharedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "url": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "publication": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "channel",
+                                "granted",
+                                "noticeVersion",
+                                "recordedAt"
+                              ],
+                              "properties": {
+                                "channel": {
+                                  "type": "string",
+                                  "enum": [
+                                    "website"
+                                  ]
+                                },
+                                "granted": {
+                                  "type": "boolean"
+                                },
+                                "noticeVersion": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "recordedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "actions": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "share",
+                              "stopSharing",
+                              "recordPublication"
+                            ],
+                            "properties": {
+                              "share": {
+                                "type": "boolean"
+                              },
+                              "stopSharing": {
+                                "type": "boolean"
+                              },
+                              "recordPublication": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "uploadVisits": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "visitId",
+                          "visitNumber",
+                          "after"
+                        ],
+                        "properties": {
+                          "visitId": {
+                            "type": "string"
+                          },
+                          "visitNumber": {
+                            "type": "integer"
+                          },
+                          "after": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "publicationNotice": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job.view_packet",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/field-photos.test.ts"
         }
       }
     },
@@ -102853,6 +104191,7 @@
                               "access.grants",
                               "access.recovery",
                               "portal.refresh",
+                              "media.publication_notice",
                               "messages.automatic",
                               "sms.help_reply",
                               "coverage.area",
@@ -106447,7 +107786,7 @@
       "post": {
         "operationId": "uploadBeforePhoto",
         "summary": "Upload one before photo of a work package",
-        "description": "Staff with job.add_photo, assigned to this arrived visit. Raw JPEG, PNG or WebP bytes for the work package in the query (a package of the visit's job). Checked like request photos (the real content, the declared type and the size against uploads.limits; NOT CONFIGURED limits or storage answer UNAVAILABLE), stored once under an opaque key in the private bucket, internal, never shown to the customer here. The same bytes again for the same package answer the same photo (200). PROPOSED: at least one per work package of the job, on this visit, before Start Work (field photos, TSK-0076, add processing, sharing and after photos).",
+        "description": "Staff with job.add_photo, assigned to this arrived visit. Raw JPEG, PNG or WebP bytes for the work package in the query (a package of the visit's job). Checked like request photos (the real content, the declared type and the size against uploads.limits; NOT CONFIGURED limits or storage answer UNAVAILABLE), stored once under an opaque key in the private bucket, internal, never shown to the customer here. The same bytes again for the same package answer the same photo (200). PROPOSED: at least one per work package of the job, on this visit, before Start Work (a rejected one does not count). TSK-0076: a field photo of the before phase, quarantined until processed and internal until shared (POST /staff/visits/:visitId/field-photos adds after photos, area labels and pairs).",
         "tags": [
           "start"
         ],
@@ -110108,6 +111447,303 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/capacity.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/visits/{visitId}/field-photos": {
+      "post": {
+        "operationId": "uploadFieldPhoto",
+        "summary": "Upload one before or after photo of a work package",
+        "description": "Staff with job.add_photo, assigned to this arrived visit. Raw JPEG, PNG or WebP bytes for the work package and phase in the query, with an optional area label (staff only, never shown to the customer) and, for an after photo, an optional before photo of the same work package it pairs with. Checked like request photos (the real content, the declared type and the size against uploads.limits; NOT CONFIGURED limits or storage answer UNAVAILABLE), stored once under an opaque key in the private bucket, quarantined until processing checks the stored original again, internal until Owner or Office share it. An after photo needs the uploader’s own work start on the visit (409 START_WORK_FIRST). The same bytes again for the same package and phase answer the same photo (200).",
+        "tags": [
+          "field-photos"
+        ],
+        "parameters": [
+          {
+            "name": "visitId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "workPackageId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "phase",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "before",
+                "after"
+              ]
+            }
+          },
+          {
+            "name": "areaLabel",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "pattern": "\\S"
+            }
+          },
+          {
+            "name": "pairOf",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "deviceCapturedAt",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/png": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/webp": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "photoId",
+                    "workPackageId",
+                    "phase",
+                    "uploadedAt",
+                    "created"
+                  ],
+                  "properties": {
+                    "photoId": {
+                      "type": "string"
+                    },
+                    "workPackageId": {
+                      "type": "string"
+                    },
+                    "phase": {
+                      "type": "string",
+                      "enum": [
+                        "before",
+                        "after"
+                      ]
+                    },
+                    "uploadedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "created": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "photoId",
+                    "workPackageId",
+                    "phase",
+                    "uploadedAt",
+                    "created"
+                  ],
+                  "properties": {
+                    "photoId": {
+                      "type": "string"
+                    },
+                    "workPackageId": {
+                      "type": "string"
+                    },
+                    "phase": {
+                      "type": "string",
+                      "enum": [
+                        "before",
+                        "after"
+                      ]
+                    },
+                    "uploadedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "created": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job.add_photo",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "field-photo-upload",
+            "limit": 120,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "work.field_photo",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/field-photos.test.ts"
         }
       }
     },

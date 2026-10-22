@@ -343,3 +343,26 @@
   margin: 0;
   font-weight: 600;
 }
+
+/* TSK-0076: the Photos tab. */
+.portal-photos {
+  list-style: none;
+  margin: 0 0 var(--hh-space-4, 1rem);
+  padding: 0;
+  display: grid;
+  gap: var(--hh-space-4, 1rem);
+}
+.portal-photos__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hh-space-3, 0.75rem);
+}
+.portal-photos__figure {
+  margin: 0;
+}
+.portal-photos img {
+  display: block;
+  width: min(14rem, 100%);
+  height: auto;
+  border-radius: 4px;
+}

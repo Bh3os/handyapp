@@ -29,6 +29,7 @@ import { RetentionScreen } from './Retention'
 import { ScheduleBoard } from './Schedule'
 import { SearchScreen, Screen, Shell, type Navigation } from './Shell'
 import { StaffScreen } from './StaffManagement'
+import { JobPhotosPage } from './JobPhotos'
 import { StartReviewPage, StartWorkPage } from './StartWork'
 import { StagingTools } from './StagingTools'
 import { ConfigurationScreen, HealthScreen } from './System'
@@ -210,7 +211,11 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
             ? 'customers'
             : // A job packet (TSK-0069) is reached from My Day or the board; the server decides who may open it.
               // TSK-0073: the Start Work briefing is reached from My Day (a link, never a direct start).
-              route.screen === 'packets' || route.screen === 'loadouts' || route.screen === 'start'
+              // TSK-0076: a job's field photos likewise.
+              route.screen === 'packets' ||
+                route.screen === 'loadouts' ||
+                route.screen === 'start' ||
+                route.screen === 'job-photos'
               ? nav?.items.includes('my-day')
                 ? 'my-day'
                 : 'schedule'
@@ -318,8 +323,10 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
             <LoadoutPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} href={href} />
           ) : route.page === 'record' && route.screen === 'start' ? (
             <StartWorkPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} visitId={route.id} href={href} />
+          ) : route.page === 'record' && route.screen === 'job-photos' ? (
+            <JobPhotosPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} />
           ) : route.page === 'record' && route.screen === 'start-review' ? (
-            <StartReviewPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} />
+            <StartReviewPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} href={href} />
           ) : route.page === 'record' && route.screen === 'visit-times' ? (
             <VisitTimesPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} visitId={route.id} />
           ) : (route.page === 'screen' || route.page === 'home') && shown === 'my-day' && allowed ? (

@@ -466,6 +466,8 @@ export function StartWorkPage({
               <a href={href(`/packets/${gate.jobId}`)}>{t('myday.openPacket')}</a>
               {' · '}
               <a href={href(`/loadouts/${gate.jobId}`)}>{t('myday.openLoadout')}</a>
+              {' · '}
+              <a href={href(`/job-photos/${gate.jobId}`)}>{t('myday.openPhotos')}</a>
             </p>
           ) : null}
           {gate.actions.recordSiteCheck ? (
@@ -837,11 +839,14 @@ export function StartReviewPage({
   locale,
   fetchImpl,
   jobId,
+  href,
 }: {
   t: T
   locale: StaffLocale
   fetchImpl: Fetch
   jobId: string
+  /** TSK-0076: links to the job's photos when given. */
+  href?: (to: string) => string
 }) {
   const [view, setView] = useState<StartReviewView | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'unavailable'>('loading')
@@ -857,6 +862,11 @@ export function StartReviewPage({
   return (
     <main className="staff-start" aria-labelledby="start-review-title">
       <h1 id="start-review-title">{t('start.review.title', { reference: view.projectReference })}</h1>
+      {href ? (
+        <p>
+          <a href={href(`/job-photos/${view.jobId}`)}>{t('myday.openPhotos')}</a>
+        </p>
+      ) : null}
       <h2 className="staff-myday__sub">{t('start.review.holds')}</h2>
       {view.holds.length === 0 ? <p>{t('start.review.noHolds')}</p> : null}
       <ul data-testid="start-review-holds">

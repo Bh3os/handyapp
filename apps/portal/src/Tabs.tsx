@@ -9,8 +9,9 @@
 //   PDF (TSK-0058: ready in the estimate view, or being prepared); nothing yet, with what will appear, while there is
 //   none. TSK-0100 (HH-PRIV-06): each version offers its download, a short-lived link the server issues only when
 //   asked. Appointments (TSK-0063): the windows offered to choose from and the confirmed visits (Appointments.tsx);
-//   nothing yet while there is neither. Payments: nothing exists yet. Photos: how many photos the project has by
-//   state, the same counts as the receipt, and that viewing them here is not available yet.
+//   nothing yet while there is neither. Payments: nothing exists yet. Photos (TSK-0076, HH-PORT-11): the customer's
+//   own uploads (counts as on the receipt, and the photos) and the before and after photos HandyHub shared, paired by
+//   service; links are short-lived and renew with each refresh.
 // - A tab once opened stays mounted while another is shown, so anything typed in it survives a tab switch.
 // English only, from the customer catalog; the wording no decision gives is PROPOSED (OQ-PORTAL-WORDING).
 import type { CustomerKey } from '@handyhub/i18n'
@@ -26,6 +27,7 @@ import {
   type Download,
   type EstimateListItem,
   type Fetch,
+  type SharedPhoto,
   type TabData,
   type WorkspaceTab,
 } from './api'
@@ -290,6 +292,91 @@ function Composer({
   )
 }
 
+/**
+ * The Photos tab (TSK-0076; HH-PORT-11, OWN-DEC-106): the customer's own uploads and the before and after photos
+ * HandyHub shared, paired by service where staff paired them. Links are short-lived and renew with each refresh.
+ * PROPOSED wording (OQ-PORTAL-WORDING).
+ */
+function Photos({ data }: { data: Extract<TabData, { tab: 'photos' }> }) {
+  const { received, processing, failed } = data.photos
+  if (received + processing + failed === 0 && data.shared.length === 0)
+    return <Empty title="portal.photos.none.title" text="portal.photos.none.text" more="portal.photos.replyHint" />
+  const shot = (p: SharedPhoto | null, alt: string, label: CustomerKey) =>
+    p ? (
+      <figure className="portal-photos__figure">
+        {p.url ? (
+          <a href={p.url} target="_blank" rel="noopener noreferrer">
+            <img src={p.url} alt={alt} loading="lazy" />
+          </a>
+        ) : (
+          <p className="hh-muted">{t('portal.photos.unavailable')}</p>
+        )}
+        <figcaption>{t(label)}</figcaption>
+      </figure>
+    ) : null
+  return (
+    <>
+      {data.shared.length ? (
+        <section aria-labelledby="portal-photos-shared">
+          <h3 id="portal-photos-shared" className="hh-h3">
+            {t('portal.photos.shared.title')}
+          </h3>
+          <p className="hh-muted">{t('portal.photos.shared.intro')}</p>
+          <ul className="portal-photos" data-testid="portal-shared-photos">
+            {data.shared.map((g) => (
+              <li key={(g.after ?? g.before)?.id} className="portal-photos__pair">
+                <p>
+                  <strong>{g.service}</strong>
+                </p>
+                <div className="portal-photos__row">
+                  {shot(g.before, t('portal.photos.beforeAlt', { service: g.service }), 'portal.photos.before')}
+                  {shot(g.after, t('portal.photos.afterAlt', { service: g.service }), 'portal.photos.after')}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      {received + processing + failed > 0 ? (
+        <section aria-labelledby="portal-photos-yours">
+          <h3 id="portal-photos-yours" className="hh-h3">
+            {t('portal.photos.yours.title')}
+          </h3>
+          <ul className="portal-photo-counts">
+            <li>{t('request.receipt.photos.received', { count: received })}</li>
+            <li>{t('request.receipt.photos.processing', { count: processing })}</li>
+            <li>{t('request.receipt.photos.failed', { count: failed })}</li>
+          </ul>
+          <ul className="portal-photos portal-photos__row" data-testid="portal-your-photos">
+            {data.yours.map((y, i) => (
+              <li key={y.id}>
+                {y.state === 'ready' && y.url ? (
+                  <a href={y.url} target="_blank" rel="noopener noreferrer">
+                    <img src={y.url} alt={t('portal.photos.yours.alt', { n: i + 1 })} loading="lazy" />
+                  </a>
+                ) : (
+                  <p className="hh-muted">
+                    {t(
+                      y.state === 'rejected'
+                        ? 'portal.photos.yours.failed'
+                        : y.state === 'quarantined'
+                          ? 'portal.photos.yours.processing'
+                          : 'portal.photos.unavailable',
+                      { n: i + 1 },
+                    )}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      <p className="hh-muted">{t('portal.photos.links')}</p>
+      <p className="hh-muted">{t('portal.photos.replyHint')}</p>
+    </>
+  )
+}
+
 function Content({
   data,
   fetchImpl,
@@ -334,22 +421,8 @@ function Content({
       )
     case 'payments':
       return <Empty title="portal.payment.none.title" text="portal.payment.none.text" more="portal.payments.recorded" />
-    case 'photos': {
-      const { received, processing, failed } = data.photos
-      if (received + processing + failed === 0)
-        return <Empty title="portal.photos.none.title" text="portal.photos.none.text" />
-      return (
-        <>
-          <h3 className="hh-h3">{t('request.receipt.photos.title')}</h3>
-          <ul className="portal-photo-counts">
-            <li>{t('request.receipt.photos.received', { count: received })}</li>
-            <li>{t('request.receipt.photos.processing', { count: processing })}</li>
-            <li>{t('request.receipt.photos.failed', { count: failed })}</li>
-          </ul>
-          <p className="hh-muted">{t('portal.photos.notShown')}</p>
-        </>
-      )
-    }
+    case 'photos':
+      return <Photos data={data} />
   }
 }
 

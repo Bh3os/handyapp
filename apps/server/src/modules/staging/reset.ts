@@ -140,7 +140,13 @@ export const CLEARED_CATEGORIES = {
     'platform.message_delivery_events',
     'platform.message_delivery_attempts',
   ],
-  attachments: ['intake.photos', 'intake.question_reply_photos', 'work.before_photos'],
+  attachments: [
+    'intake.photos',
+    'intake.question_reply_photos',
+    // TSK-0076 (0080): the before photos of 0074 are the field photos; publication permissions per photo.
+    'work.field_photos',
+    'work.photo_publication_permissions',
+  ],
   pending_messages: ['platform.outbox_events', 'platform.jobs'],
   sessions: [
     'identity.customer_sessions',
@@ -244,8 +250,8 @@ const STORED_FILES = [
   ['estimating.estimate_documents', 'object_key'],
   ['estimating.estimate_versions', 'customer_pdf_object_key'],
   ['estimating.approval_receipts', 'object_key'],
-  // TSK-0073 (0074): the before photos of field visits.
-  ['work.before_photos', 'object_key'],
+  // TSK-0073 (0074), TSK-0076 (0080): the before and after photos of field visits.
+  ['work.field_photos', 'object_key'],
 ] as const
 
 /** Stored-file keys per removal job (the job payload is a comma-separated list). */

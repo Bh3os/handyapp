@@ -199,13 +199,14 @@ describe('the workspace tabs (TSK-0039, HH-PORT-09, OWN-DEC-106)', () => {
       // TSK-0050: the project conversation; nothing has been written on this project yet.
       messages: { messages: [] },
       documents: { state: 'none' },
-      photos: { photos: { received: 0, processing: 0, failed: 0 } },
+      // TSK-0076: the customer's uploads and the photos staff shared, listed (none yet); links last linkSeconds.
+      photos: { photos: { received: 0, processing: 0, failed: 0 }, yours: [], shared: [], linkSeconds: 300 },
       appointments: { state: 'none' },
       payments: { state: 'none' },
     })
   })
 
-  it('[HH-PORT-09][HH-PORT-11][T24][HH-DATA-07] Photos counts only customer-visible photos by state; no photo, ID or key leaves the server', async () => {
+  it('[HH-PORT-09][HH-PORT-11][T24][HH-DATA-07] Photos counts and lists only the customer’s own photos; no internal photo, key or record ID leaves the server', async () => {
     const p = await submit('portal-tabs-photos@example.test')
     const cookie = await customerCookie(p)
     const ids = [
@@ -220,7 +221,16 @@ describe('the workspace tabs (TSK-0039, HH-PORT-09, OWN-DEC-106)', () => {
     const res = await get(`/customer/projects/${p.reference}/photos`, cookie)
     expect(res.statusCode).toBe(200)
     expect(res.json<{ photos: unknown }>().photos).toEqual({ received: 2, processing: 1, failed: 1 })
-    for (const secret of [...ids, 'synthetic-tabs', 'requests/photos', p.requestId, p.projectId])
+    // TSK-0076 (HH-PORT-11): the customer's own uploads are listed with their state (no storage here: no link);
+    // the removed one and the internal staff photo are not.
+    const yours = res.json<{ yours: { id: string; state: string; url: string | null }[] }>().yours
+    expect(yours.map((y) => [y.id, y.state, y.url])).toEqual([
+      [ids[0], 'ready', null],
+      [ids[1], 'ready', null],
+      [ids[2], 'quarantined', null],
+      [ids[3], 'rejected', null],
+    ])
+    for (const secret of [ids[4], ids[5], 'synthetic-tabs', 'requests/photos', p.requestId, p.projectId])
       expect(res.body).not.toContain(secret)
   })
 
