@@ -14,7 +14,13 @@ import {
   estimateResponseNoticeAutomations,
 } from './modules/estimates/index.js'
 import { onTheWayAutomation } from './modules/field/index.js'
-import { depositQueueAutomation } from './modules/finance/index.js'
+import {
+  depositInvoiceAutomation,
+  depositQueueAutomation,
+  invoiceDocumentAutomation,
+  invoiceDraftAutomation,
+  invoiceReadyAutomation,
+} from './modules/finance/index.js'
 import { deliveryStatusAutomation, linkHostsOf, releaseAutomation } from './modules/notifications/index.js'
 import { photoProcessAutomation } from './modules/photos/index.js'
 import { queueAutomations } from './modules/queue/index.js'
@@ -186,6 +192,12 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     ...queueAutomations(),
     // TSK-0059: an approval whose job needs a deposit opens its deposit_due item (deposits to collect, S01).
     depositQueueAutomation(),
+    // TSK-0085: the approval prepares the job's final invoice draft; an issued invoice's PDF is stored once; its
+    // automatic customer notice (invoice ready, FACT-AUTOMATIC-MESSAGES #18; deposit invoice, #16) sends once.
+    invoiceDraftAutomation(),
+    invoiceDocumentAutomation(deps.providers.storage),
+    invoiceReadyAutomation(visitNotices),
+    depositInvoiceAutomation(visitNotices),
     // TSK-0032: the automatic receipt email, once per saved request (HH-INT-20); email only.
     receiptEmailAutomation({
       providers: { email: deps.providers.email, sms: null, replyAddress: deps.replyAddress ?? null, linkHosts },

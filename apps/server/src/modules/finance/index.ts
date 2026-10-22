@@ -12,6 +12,7 @@ import type { Tx } from '@handyhub/db'
 import { ApiError } from '../../api/errors.js'
 import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
 import { FRESH_AUTH_MINUTES } from '../identity/sessions.js'
+import { invoiceRoutes, type InvoiceRouteDeps } from './invoice-routes.js'
 import {
   DEPOSIT_LIMITS,
   DEPOSIT_STATES,
@@ -36,6 +37,15 @@ export {
 } from './deposit-gate.js'
 export { customerDeposit, type CustomerDeposit, type DepositState } from './deposits.js'
 export { depositQueueAutomation, syncDepositItem } from './deposit-queue.js'
+export {
+  depositInvoiceAutomation,
+  invoiceDocumentAutomation,
+  invoiceDraftAutomation,
+  invoiceReadyAutomation,
+  issueInvoiceDocument,
+} from './invoice-automations.js'
+export { customerInvoiceList, issueInvoice, jobInvoices, prepareDraft, qualityGate } from './invoices.js'
+export { INVOICE_PAID_EVENT } from './money-events.js'
 
 const TEST = 'test/integration/deposits.test.ts'
 
@@ -424,4 +434,7 @@ const routes: RouteDef[] = [
   },
 ]
 
-export const FINANCE_MODULE: ApiModule = { name: 'finance', routes }
+/** The finance module: the deposit routes (TSK-0059) and the invoice and ledger routes (TSK-0085, TSK-0086). */
+export function financeModule(deps: InvoiceRouteDeps): ApiModule {
+  return { name: 'finance', routes: [...routes, ...invoiceRoutes(deps)] }
+}

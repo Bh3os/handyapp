@@ -50,9 +50,8 @@ export type CheckOutcome = { check: DeletionCheck; result: CheckResult; count?: 
 /** Checks the software cannot run yet: the Owner confirms each before a deletion (never treated as none found). */
 export const UNRECORDED_DELETION_CHECKS: readonly DeletionCheck[] = [
   ...NOT_RECORDED_CHECKS,
-  // No invoice is recorded by this software yet (TSK-0085): checked by the Owner. Payments are recorded
-  // (finance.payments, TSK-0064); one found blocks, and while none is recorded the Owner still checks for any taken
-  // outside the software.
+  // Issued invoices (finance.invoices, TSK-0085) and payments (finance.payments, TSK-0064) are recorded: one found
+  // blocks; while none is recorded the Owner still checks for any issued or taken outside the software (PROPOSED).
   'issued_invoices',
   'payments',
 ]
@@ -112,15 +111,17 @@ function holdChecks(open: number | null): CheckOutcome[] {
 const counted = (check: DeletionCheck, count: number): CheckOutcome =>
   count > 0 ? { check, result: 'found', count } : { check, result: 'none_found' }
 
-/** Invoices are not recorded; a recorded payment is found, none recorded is still the Owner's check. */
-const invoiceAndPaymentChecks = (payments: number): CheckOutcome[] => [
-  { check: 'issued_invoices', result: 'not_recorded' },
+/** An issued invoice or a recorded payment is found; none recorded is still the Owner's check. */
+const invoiceAndPaymentChecks = (invoices: number, payments: number): CheckOutcome[] => [
+  invoices > 0
+    ? { check: 'issued_invoices', result: 'found', count: invoices }
+    : { check: 'issued_invoices', result: 'not_recorded' },
   payments > 0
     ? { check: 'payments', result: 'found', count: payments }
     : { check: 'payments', result: 'not_recorded' },
 ]
 
-export type FinancialEvidence = { receipts: number; deposits: number; payments: number }
+export type FinancialEvidence = { receipts: number; deposits: number; payments: number; invoices: number }
 
 /**
  * The approval receipts, deposit records (requirements, waivers, payment allocations) and recorded payments that
@@ -131,12 +132,12 @@ export async function financialEvidence(
   db: Reader,
   of: { versionIds: readonly string[] } | { projectId: string },
 ): Promise<FinancialEvidence> {
-  if ('versionIds' in of && of.versionIds.length === 0) return { receipts: 0, deposits: 0, payments: 0 }
+  if ('versionIds' in of && of.versionIds.length === 0) return { receipts: 0, deposits: 0, payments: 0, invoices: 0 }
   const approvals =
     'versionIds' in of
       ? sql`SELECT a.id FROM estimating.approvals a WHERE a.version_id = ANY(${sql.val([...of.versionIds])}::uuid[])`
       : sql`SELECT a.id FROM estimating.approvals a WHERE a.project_id = ${of.projectId}`
-  const { rows } = await sql<{ receipts: string; deposits: string; payments: string }>`
+  const { rows } = await sql<{ receipts: string; deposits: string; payments: string; invoices: string }>`
     WITH a AS (${approvals}),
          d AS (SELECT d.id FROM finance.deposit_requirements d WHERE d.approval_id IN (SELECT id FROM a)),
          j AS (SELECT j.id FROM work.jobs j WHERE j.approval_id IN (SELECT id FROM a))
@@ -150,8 +151,16 @@ export async function financialEvidence(
         WHERE p.job_id IN (SELECT id FROM j)
            OR p.id IN (SELECT pa.payment_id FROM finance.payment_allocations pa
                         WHERE pa.deposit_requirement_id IN (SELECT id FROM d))
-           ${'projectId' in of ? sql`OR p.project_id = ${of.projectId}` : sql``})::text AS payments`.execute(db)
-  return { receipts: n(rows[0]?.receipts), deposits: n(rows[0]?.deposits), payments: n(rows[0]?.payments) }
+           ${'projectId' in of ? sql`OR p.project_id = ${of.projectId}` : sql``})::text AS payments,
+      -- TSK-0085: issued invoices (a draft is working data, not evidence).
+      (SELECT count(*) FROM finance.invoices i WHERE i.state <> 'draft' AND (i.job_id IN (SELECT id FROM j)
+           ${'projectId' in of ? sql`OR i.project_id = ${of.projectId}` : sql``}))::text AS invoices`.execute(db)
+  return {
+    receipts: n(rows[0]?.receipts),
+    deposits: n(rows[0]?.deposits),
+    payments: n(rows[0]?.payments),
+    invoices: n(rows[0]?.invoices),
+  }
 }
 
 /**
@@ -279,7 +288,8 @@ export async function estimateTarget(
     jobs > 0 ||
     evidence.receipts > 0 ||
     evidence.deposits > 0 ||
-    evidence.payments > 0
+    evidence.payments > 0 ||
+    evidence.invoices > 0
   )
     blockers.push('protected_evidence')
   if (active > 0) blockers.push('record_active')
@@ -309,7 +319,7 @@ export async function estimateTarget(
       counted('approval_receipts', evidence.receipts),
       counted('jobs', jobs),
       counted('deposit_records', evidence.deposits),
-      ...invoiceAndPaymentChecks(evidence.payments),
+      ...invoiceAndPaymentChecks(evidence.invoices, evidence.payments),
     ],
     blockers,
   })
@@ -354,7 +364,14 @@ export async function requestTarget(db: Reader, requestId: string): Promise<Targ
   const evidence = await financialEvidence(db, { projectId: r.project_id })
   const blockers: Blocker[] = ['erasure_not_available']
   if ((holds ?? 0) > 0) blockers.push('hold_found')
-  if (approvals > 0 || jobs > 0 || evidence.receipts > 0 || evidence.deposits > 0 || evidence.payments > 0)
+  if (
+    approvals > 0 ||
+    jobs > 0 ||
+    evidence.receipts > 0 ||
+    evidence.deposits > 0 ||
+    evidence.payments > 0 ||
+    evidence.invoices > 0
+  )
     blockers.push('protected_evidence')
   return finish({
     record: { type: 'request', id: r.id, reference: r.reference, projectId: r.project_id },
@@ -368,7 +385,7 @@ export async function requestTarget(db: Reader, requestId: string): Promise<Targ
       counted('approval_receipts', evidence.receipts),
       counted('jobs', jobs),
       counted('deposit_records', evidence.deposits),
-      ...invoiceAndPaymentChecks(evidence.payments),
+      ...invoiceAndPaymentChecks(evidence.invoices, evidence.payments),
     ],
     blockers,
   })

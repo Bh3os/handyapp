@@ -13,7 +13,7 @@ import { sql } from 'kysely'
 import { ApiError, type FieldError } from '../../api/errors.js'
 
 export type ConfirmationDepositGate =
-  | { open: true; basis: 'estimate_visit' | 'not_required' | 'satisfied' | 'waived' }
+  | { open: true; basis: 'estimate_visit' | 'not_required' | 'satisfied' | 'waived' | 'applied' }
   | { open: false; code: 'DEPOSIT_REQUIRED' | 'DEPOSIT_REQUIREMENT_MISSING' }
 
 export type VisitToConfirm = { kind: 'estimate' } | { kind: 'work'; jobId: string }
@@ -26,7 +26,9 @@ export async function confirmationDepositGate(tx: Tx, visit: VisitToConfirm): Pr
     tx,
   )
   const gate = r.rows[0]?.gate
-  if (gate === 'not_required' || gate === 'satisfied' || gate === 'waived') return { open: true, basis: gate }
+  // TSK-0085: an applied deposit (credited to the final invoice) was satisfied or waived before it was credited.
+  if (gate === 'not_required' || gate === 'satisfied' || gate === 'waived' || gate === 'applied')
+    return { open: true, basis: gate }
   return { open: false, code: gate === 'missing' ? 'DEPOSIT_REQUIREMENT_MISSING' : 'DEPOSIT_REQUIRED' }
 }
 
