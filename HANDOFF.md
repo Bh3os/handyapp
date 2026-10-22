@@ -52,9 +52,9 @@ Written 2026-10-22 when the long cloud build session ended, so work can continue
 
 ### Branches not merged when the session ended
 
-None, if #95 and #96 merged (check `git log origin/main`). If either is still open, merge it in that order: #95 (0080)
-before #96 (0081). The highest migration on `main` is then `0081_cases.sql`; the next free number is **0082**.
-(0078 was never used; gaps are fine.)
+None. Every task branch from this session is merged (#90 to #96, last commit `d4ae7a7`). The highest migration on
+`main` is `0081_cases.sql`; the next free number is **0082** (0078 was never used; gaps are fine). Staging was
+redeployed from `d4ae7a7` on 2026-10-22.
 
 TSK-0112 (point staging at this repository) is still `todo` in the graph but is effectively done: staging deploys
 this repository. Mark it `done` in the next PR that touches the graph.
@@ -216,7 +216,7 @@ full run.
   check outcomes that do not depend on which of two concurrent requests wins (see the concurrent-payment test in
   `invoices.test.ts`).
 - **e2e duration:** the serial e2e suite takes about 22 minutes locally because of MFA TOTP waits; on CI it ranged
-  from 22 to **34 minutes** on the last PRs. The CI job limit is 40 minutes (`.github/workflows/ci.yml`). Raise it
+  from 22 to **35 minutes** on the last PRs. The CI job limit is 40 minutes (`.github/workflows/ci.yml`). Raise it
   (for example to 60) in the next PR that adds e2e specs, rather than parallelizing specs that share a database.
 - **Flaky checks seen and fixed:** a random six-digit code matching digits inside a log timestamp (use
   `standaloneCode()` from `apps/server/test/fixtures/code-message.ts`); a concurrent-payment test that assumed which
