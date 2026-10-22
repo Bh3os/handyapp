@@ -542,15 +542,53 @@ export function legalTextContent(text: LegalText, catalog: Readonly<Record<strin
  *   or insurance statement. A negative-list test checks the text.
  * - `values` are the decided numbers the wording states, as the active configuration holds them (estimate.validity,
  *   deposit.rule, request.reopen_period); an integration test keeps them equal, so a changed policy needs a new version.
- * - Status "owner review pending" and not attorney-reviewed: the wording is not in effect for real customers until the
- *   owner approves it through the legal-document sign-off (OQ-TERMS-OWNER-APPROVAL). The customer view shows it as a
- *   draft and refuses approval while it is not approved (estimateTermsInEffect).
+ * - TSK-0144 (OWN-DEC-187): the owner approved v1.0, as written and shown on staging, for real customer approvals
+ *   ("I approve v1.0 now", owner answers 2026-10-21 R10-Q2). The status is "approved" and the owner's sign-off is
+ *   recorded on the terms version (migration 0073, ESTIMATE_TERMS_V1_RECORD). It is still not attorney-reviewed and
+ *   says so: v1.0 needs no attorney review to be in effect because the owner approved it as it is
+ *   (attorneyReviewRequired false); the clauses left out of it and the next version (cancellation rules, warranty)
+ *   wait for the attorney (OQ-ATTORNEY-TERMS). Staging approvals stay marked TEST, and real customer use still waits
+ *   for the launch phases (OWN-DEC-191) and the privacy review (OQ-ATTORNEY-PRIVACY).
  */
 export type EstimateTermsDocument = Omit<LegalDocument, 'code' | 'configKey'> & {
   readonly code: 'estimate_terms'
   readonly configKey: 'legal.estimate_terms'
   /** How the version is named to the customer ("1.0"). */
   readonly label: string
+  /**
+   * Whether this version is in effect only once an attorney has reviewed it. False for v1.0 (the owner approved it as
+   * it is, OWN-DEC-187); the next version, with the cancellation rules and the warranty, needs attorney-reviewed
+   * wording (HH-EST-13, OQ-ATTORNEY-TERMS).
+   */
+  readonly attorneyReviewRequired: boolean
+  /** The owner's sign-off of this version, as the graph records it; null while the owner has not approved it. */
+  readonly ownerSignOff: EstimateTermsOwnerSignOff | null
+}
+
+/**
+ * The owner's sign-off of an estimate terms version (TSK-0144; OWN-DEC-187), recorded on the terms version as the
+ * graph states it: who (the owner), the decision and the answer it was given in, the day, and the owner's words.
+ * No staff user is named: the decision is the recorded authorization (OWN-DEC-128, RULE-DECIDED-VALUES-ACTIVE).
+ */
+export type EstimateTermsOwnerSignOff = {
+  readonly by: 'owner'
+  /** The owner decision node that approves the version. */
+  readonly decisionId: string
+  /** Where the owner gave the answer. */
+  readonly source: string
+  /** The day of the owner's answer (YYYY-MM-DD). */
+  readonly signedOn: string
+  /** The owner's words, verbatim. */
+  readonly wording: string
+}
+
+/** The owner's sign-off of terms v1.0 (OWN-DEC-187), exactly as the decision node states it. */
+export const ESTIMATE_TERMS_V1_SIGN_OFF: EstimateTermsOwnerSignOff = {
+  by: 'owner',
+  decisionId: 'OWN-DEC-187',
+  source: 'owner answers 2026-10-21 R10-Q2',
+  signedOn: '2026-10-21',
+  wording: 'I approve v1.0 now',
 }
 
 /** The banner every view of terms that are not approved for real customers carries (HH-EST-13, OWN-DEC-127). */
@@ -562,8 +600,10 @@ export const ESTIMATE_TERMS: EstimateTermsDocument = {
   documentId: 'estimate-terms-1',
   version: 1,
   label: '1.0',
-  status: 'owner_review_pending',
+  status: 'approved',
   attorneyReviewed: false,
+  attorneyReviewRequired: false,
+  ownerSignOff: ESTIMATE_TERMS_V1_SIGN_OFF,
   preparedOn: '2026-10-21',
   path: '/portal/terms/estimate-terms-1',
   title: 'legal.estimateTerms.title',
@@ -662,6 +702,7 @@ export const ESTIMATE_TERMS: EstimateTermsDocument = {
     'OWN-DEC-109',
     'HH-PRIV-02',
     'FACT-AUTOMATIC-MESSAGES',
+    'OWN-DEC-187',
   ],
 }
 
@@ -673,10 +714,44 @@ export function estimateTermsDocument(documentId: string | null | undefined): Es
 }
 
 /**
- * Whether a recorded terms version is in effect for real customer approvals (PROPOSED rule, OQ-TERMS-OWNER-APPROVAL,
- * OQ-ATTORNEY-TERMS): only a version recorded as approved and attorney-reviewed. Every other status (draft, owner
- * review pending) is shown as a draft that is not in effect, and approval is refused.
+ * The recorded value of terms v1.0 with the owner's sign-off (TSK-0144, OWN-DEC-187): what migration 0073 records as
+ * the active version of legal.estimate_terms. An integration test keeps the migration's row equal to it.
  */
-export function estimateTermsInEffect(recorded: { status: string; attorneyReviewed: boolean }): boolean {
-  return recorded.status === 'approved' && recorded.attorneyReviewed
+// Plain literals (not read from ESTIMATE_TERMS) so bundles that do not use the terms can leave them out; a test keeps
+// them equal to ESTIMATE_TERMS.
+export const ESTIMATE_TERMS_V1_RECORD = {
+  documentId: 'estimate-terms-1',
+  status: 'approved',
+  attorneyReviewed: false,
+  preparedOn: '2026-10-21',
+  contentSha256: 'c4103d986b8131af92e3733de2d69fefda1a49f57c3665f2faa05b445b8827e3',
+  ownerSignOff: ESTIMATE_TERMS_V1_SIGN_OFF,
+} as const
+
+/** What a recorded terms version says about its approval (the legal.estimate_terms value). */
+export type RecordedTermsApproval = {
+  readonly status: string
+  readonly attorneyReviewed: boolean
+  readonly ownerSignOff?: EstimateTermsOwnerSignOff | null | undefined
+}
+
+/**
+ * Whether a recorded terms version is in effect for real customer approvals (TSK-0144; OWN-DEC-187, HH-EST-13,
+ * OQ-ATTORNEY-TERMS): the version is recorded as approved, and either an attorney reviewed it or the document needs no
+ * attorney review and the owner's sign-off is recorded on it. Every other status (draft, owner review pending) is
+ * shown as a draft that is not in effect, and approval is refused. The document's `attorneyReviewRequired` comes from
+ * this software, never from the recorded row, so a recorded value cannot waive an attorney review.
+ */
+export function estimateTermsInEffect(
+  recorded: RecordedTermsApproval,
+  doc: Pick<EstimateTermsDocument, 'attorneyReviewRequired'>,
+): boolean {
+  if (recorded.status !== 'approved') return false
+  if (recorded.attorneyReviewed) return true
+  return !doc.attorneyReviewRequired && (recorded.ownerSignOff ?? null) !== null
+}
+
+/** Whether the document itself, as this software holds it, is approved for real customers (its own page's banner). */
+export function estimateTermsApproved(doc: EstimateTermsDocument): boolean {
+  return estimateTermsInEffect(doc, doc)
 }

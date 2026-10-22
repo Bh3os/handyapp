@@ -37,8 +37,9 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
     expect(entries.map((e) => e.key)).toEqual(Object.keys(CONFIG_KEYS))
     // TSK-0119: messages.automatic is at version 2 (migration 0065, OWN-DEC-152).
     // TSK-0123: migration 0066 recorded the decided business time zone as its second version (OWN-DEC-159).
+    // TSK-0144: migration 0073 recorded the owner's sign-off of estimate terms v1.0 as its second version (OWN-DEC-187).
     // Every other key is at version 1.
-    const second = new Set(['messages.automatic', 'business.timezone'])
+    const second = new Set(['messages.automatic', 'business.timezone', 'legal.estimate_terms'])
     for (const e of entries) expect(e.version, e.key).toBe(second.has(e.key) ? 2 : 1)
   })
 
