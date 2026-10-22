@@ -109,6 +109,10 @@ export function buildOpenApi(modules: readonly ApiModule[]): Record<string, unkn
         expectedVersion: route.expectedVersion,
         rateLimit: route.rateLimit,
         freshAuthMinutes: route.freshAuthMinutes ?? null,
+        // TSK-0154 (OWN-DEC-202): staff routes need a session that completed the second factor, unless marked.
+        ...(route.path.startsWith('/staff/')
+          ? { secondFactor: route.beforeSecondFactor ? 'not_required' : 'required' }
+          : {}),
         csrf: route.method === 'GET' ? 'not_required' : 'required_with_staff_session',
         audit: route.audit,
         pagination: route.pagination,

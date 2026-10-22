@@ -35,7 +35,7 @@ export const ENV_VARS = {
     'Email of the first Owner. While no Owner exists, the server creates that invited account at start and emails one invite link; no password is ever set from the environment.',
   BOOTSTRAP_OWNER_NAME: 'Optional display name of the first Owner.',
   MFA_ENCRYPTION_KEY:
-    'Key that seals staff authenticator (TOTP) secrets, at least 32 random characters. Unset: optional MFA is NOT CONFIGURED (enrolment refused; nothing else changes). Secret.',
+    'Key that seals staff authenticator (TOTP) secrets, at least 32 random characters. MFA is mandatory for every staff account (OWN-DEC-202): unset, staff sign-in is refused in every environment (fail closed; the server logs MFA_NOT_CONFIGURED at start and on each refused sign-in). Never change it once set: sealed authenticators would no longer open. Secret.',
   ACCESS_CODE_ENCRYPTION_KEY:
     'Key that seals property access codes (gate, lockbox, alarm and door codes; TSK-0045), at least 32 random characters, different from MFA_ENCRYPTION_KEY. Unset: the access-code store is NOT CONFIGURED (codes cannot be entered or revealed; nothing else changes). Secret.',
   TRUST_PROXY_HOPS: 'Proxies in front of the service that append to X-Forwarded-For. Default 0.',
@@ -124,7 +124,10 @@ export interface Config {
   bootstrapOwner: { email: string; displayName: string | null } | null
   /** Secure, `__Host-` session cookies: staging and production. */
   secureCookies: boolean
-  /** Seals TOTP secrets (optional MFA); null while not configured. Printing it shows '[REDACTED]'. */
+  /**
+   * Seals TOTP secrets (MFA, mandatory for every staff role: TSK-0154); null while not configured, which refuses every
+   * staff sign-in. Printing it shows '[REDACTED]'.
+   */
   mfaKey: Secret | null
   /** Seals property access codes (TSK-0045); null while the store is NOT CONFIGURED. Printing it shows '[REDACTED]'. */
   accessCodeKey: Secret | null

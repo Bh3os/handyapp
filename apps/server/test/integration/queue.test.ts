@@ -18,6 +18,7 @@ import {
 import { createAutomationRegistry } from '../../src/platform/automation.js'
 import { createWorker } from '../../src/platform/jobs.js'
 import { testConfig } from '../fixtures/env.js'
+import { signInWithMfa } from '../fixtures/staff-mfa.js'
 
 const pw = (n: number) => ['synthetic', 'queue', 'passphrase', 'number', String(n)].join(' ')
 const PEOPLE = ['owner', 'office', 'office2', 'estimator', 'estimator2', 'worker'] as const
@@ -71,7 +72,7 @@ beforeAll(async () => {
     }
   })
   for (const p of PEOPLE) {
-    const res = await app.inject({
+    const res = await signInWithMfa(app, {
       method: 'POST',
       url: '/api/v1/staff/auth/sign-in',
       payload: { email: `${p}-queue@example.test`, password: pw(1) },

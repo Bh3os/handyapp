@@ -48,7 +48,8 @@ services:
       # The first Owner's email: while no Owner exists, one invite is emailed at start (TSK-0014, HH-STAFF-01).
       - key: BOOTSTRAP_OWNER_EMAIL
         sync: false
-      # Seals optional staff authenticator secrets (at least 32 random characters); unset: MFA NOT CONFIGURED (TSK-0015).
+      # Seals staff authenticator secrets (at least 32 random characters; never change it once set). MFA is mandatory
+      # for every staff account (TSK-0154, OWN-DEC-202): unset, every staff sign-in is refused (fail closed).
       - key: MFA_ENCRYPTION_KEY
         sync: false
       # Seals property access codes (at least 32 random characters, not the MFA key); unset: the access-code store is

@@ -167,6 +167,39 @@ describe('[HH-STAFF-07][HH-STAFF-02] the Staff screen', () => {
     expect(within(record).getByRole('button', { name: 'Reactivar la cuenta' })).toBeTruthy()
   })
 
+  it('[HH-STAFF-02] the Owner resets a lost authenticator with a reason; the person enrols again at sign-in (TSK-0154)', async () => {
+    const enrolled = detail({ mfaEnrolled: true, liveSessions: 2 })
+    const { calls, fetchImpl } = api((url, init) => {
+      if (url === `/api/v1/staff/members/${ANN}`) return json(200, enrolled)
+      if (url === `/api/v1/staff/members/${ANN}/mfa-reset` && init?.method === 'POST')
+        return json(200, {
+          member: detail({ mfaEnrolled: false, liveSessions: 0 }),
+          sessionsRevoked: 2,
+          recoveryCodesRemoved: 9,
+        })
+      return undefined
+    })
+    const { t } = staffTranslator('es')
+    render(<StaffScreen t={t} locale="es" fetchImpl={fetchImpl} onSession={() => {}} />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Gestionar a Synthetic Ann' }))
+    const record = await screen.findByTestId('staff-member-record')
+    fireEvent.click(within(record).getByRole('button', { name: 'Restablecer autenticador' }))
+    const confirm = within(record).getByTestId('staff-mfa-reset-confirm')
+    expect(confirm.textContent).toContain('todas sus sesiones terminan de inmediato')
+    fireEvent.change(within(confirm).getByLabelText(/^Motivo/), { target: { value: 'Perdió el teléfono' } })
+    fireEvent.click(within(confirm).getByRole('button', { name: 'Restablecer autenticador' }))
+    await waitFor(() =>
+      expect(within(record).getAllByRole('status')[0]?.textContent).toBe(
+        'Se restableció el autenticador. Terminaron 2 sesiones; en el próximo inicio de sesión se configura un autenticador nuevo.',
+      ),
+    )
+    expect(JSON.parse(String(calls.find((c) => c.url.endsWith('/mfa-reset'))?.init?.body))).toEqual({
+      reason: 'Perdió el teléfono',
+    })
+    // Nothing to reset any more: the button is gone until the person enrols again.
+    expect(within(record).queryByRole('button', { name: 'Restablecer autenticador' })).toBeNull()
+  })
+
   it('[HH-STAFF-03] a refusal is written out (the last active Owner stays)', async () => {
     const { fetchImpl } = api((url, init) =>
       url.endsWith('/grants/end') && init?.method === 'POST' ? refusal(409, 'CONFLICT', ['LAST_ROLE']) : undefined,

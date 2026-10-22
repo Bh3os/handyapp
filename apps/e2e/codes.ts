@@ -9,6 +9,12 @@ export const E2E_CODE_KEY = ['e2e', 'synthetic', 'one', 'time', 'code', 'key', '
 /** The access-code sealing key of the first e2e server (TSK-0045): synthetic, built at runtime, never a real key. */
 export const E2E_ACCESS_CODE_KEY = ['e2e', 'synthetic', 'access', 'code', 'sealing', 'key', 'not', 'secret'].join('-')
 
+/**
+ * The MFA_ENCRYPTION_KEY of every e2e server (TSK-0154: one database, so one key), which seals staff authenticator
+ * secrets; mfa.ts opens them to compute codes. Synthetic, built at runtime, never a real key.
+ */
+export const E2E_MFA_KEY = ['e2e', 'synthetic', 'authenticator', 'sealing', 'key', 'not', 'secret'].join('-')
+
 export function codeFor(row: { id: string; nonce: string }, digits = 6): string {
   const n =
     createHmac('sha256', E2E_CODE_KEY).update(['code', row.id, row.nonce].join('|')).digest().readBigUInt64BE(0) %

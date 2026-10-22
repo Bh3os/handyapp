@@ -17,6 +17,7 @@ import { createProviders } from '../../src/providers/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
 import { CODE_EMAIL_SUBJECT, codeEmailText, codeSmsText } from '../fixtures/code-message.js'
 import { testConfig } from '../fixtures/env.js'
+import { signInWithMfa } from '../fixtures/staff-mfa.js'
 
 const KEY: CodeKeySettings = readCodeKey({ HANDYHUB_ENV: 'ci', CODE_HASH_KEY: 'synthetic-receipt-code-key-'.repeat(2) })
 const pw = ['synthetic', 'verification', 'passphrase', 'one'].join(' ')
@@ -47,7 +48,7 @@ beforeAll(async () => {
     })
     await setPasswordHash(tx, owner.id, await hashPassword(pw))
   })
-  const res = await app.inject({
+  const res = await signInWithMfa(app, {
     method: 'POST',
     url: '/api/v1/staff/auth/sign-in',
     payload: { email: 'owner-verification@example.test', password: pw },

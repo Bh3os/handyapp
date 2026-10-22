@@ -39,7 +39,10 @@ import type { CodeKeySettings } from './identity/index.js'
 export type ModuleDeps = {
   /** Secure, `__Host-` session cookies (staging and production); plain cookies over http in local and ci. */
   secureCookies: boolean
-  /** Seals staff TOTP secrets (optional MFA, TSK-0015); null while MFA_ENCRYPTION_KEY is unset. */
+  /**
+   * Seals staff TOTP secrets (mandatory MFA, TSK-0015, TSK-0154); null while MFA_ENCRYPTION_KEY is unset, which refuses
+   * every staff sign-in.
+   */
   mfaKey: Secret | null
   /** The private object storage for photos and documents (R2, or the fake in local and ci); null while NOT CONFIGURED. */
   storage?: ObjectStorage | null

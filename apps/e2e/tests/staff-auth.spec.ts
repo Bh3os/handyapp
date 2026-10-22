@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { AxeBuilder } from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
+import { passSecondFactor, totpAt } from '../mfa.js'
 
 /** WCAG 2.0, 2.1 and 2.2 level A and AA rules (axe-core tags). */
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
@@ -58,10 +59,41 @@ test.describe('staff sign-in, invites and password reset (TSK-0014, HH-STAFF-01,
 
     await signIn(page, OWNER, pw(2))
     await expect(page.getByRole('alert')).toHaveText('The email or password is not correct.')
+    // TSK-0154 (OWN-DEC-202): the first Owner's first sign-in enrols the authenticator before any staff screen; the
+    // password-only session reaches no staff operation.
     await signIn(page, OWNER, pw(1))
-    await expect(page.getByText('Signed in as E2E Owner', { exact: true })).toBeVisible()
-    const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
+    await expect(page.getByRole('heading', { level: 1, name: 'Set up your authenticator app' })).toBeVisible()
+    const refused = await page.request.get('/api/v1/staff/members')
+    expect(refused.status()).toBe(401)
+    expect(((await refused.json()) as { error: { fieldErrors: { code: string }[] } }).error.fieldErrors).toMatchObject([
+      { code: 'MFA_REQUIRED' },
+    ])
+    const key = page.getByTestId('mfa-secret')
+    await expect(key).toHaveText(/^[A-Z2-7]{16,}$/)
+    let scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
     expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+    await page.getByLabel('Authenticator code').fill('000000')
+    await page.getByRole('button', { name: 'Confirm' }).click()
+    await expect(page.getByRole('alert')).toHaveText(
+      'That code is not correct or was already used. Enter the current code.',
+    )
+    const secret = (await key.textContent()) as string
+    await page.getByLabel('Authenticator code').fill(totpAt(secret, Math.floor(Date.now() / 30_000)))
+    await page.getByRole('button', { name: 'Confirm' }).click()
+    await expect(page.getByRole('heading', { level: 1, name: 'Save your recovery codes' })).toBeVisible()
+    await expect(page.getByTestId('mfa-recovery-codes').locator('code')).toHaveCount(10)
+    scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
+    expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+    await page.getByRole('button', { name: 'I saved my recovery codes' }).click()
+    await expect(page.getByText('Signed in as E2E Owner', { exact: true })).toBeVisible()
+    scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
+    expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+    // The next sign-in asks for the authenticator code.
+    await page.getByRole('button', { name: 'Sign out', exact: true }).click()
+    await signIn(page, OWNER, pw(1))
+    await expect(page.getByRole('heading', { level: 1, name: 'Enter your authenticator code' })).toBeVisible()
+    await passSecondFactor(page)
+    await expect(page.getByText('Signed in as E2E Owner', { exact: true })).toBeVisible()
   })
 
   test('[HH-STAFF-01] an unknown email gets the same answers as a known one', async ({ page }) => {
@@ -78,6 +110,7 @@ test.describe('staff sign-in, invites and password reset (TSK-0014, HH-STAFF-01,
 
   test('[HH-STAFF-01] the Owner invites a Worker, who sets a password and signs in', async ({ page, browser }) => {
     await signIn(page, OWNER, pw(1))
+    await passSecondFactor(page)
     await expect(page.getByText('Signed in as E2E Owner', { exact: true })).toBeVisible()
     // Unsafe requests of a staff session carry its CSRF token (TSK-0015).
     const csrf = (await (await page.request.get('/api/v1/staff/auth/session')).json()).csrfToken as string
@@ -89,6 +122,9 @@ test.describe('staff sign-in, invites and password reset (TSK-0014, HH-STAFF-01,
     const worker = await browser.newPage({ extraHTTPHeaders: NETWORK })
     await setPassword(worker, staffAccess('password-link', WORKER), pw(3))
     await signIn(worker, WORKER, pw(3))
+    // A Worker enrols too: MFA is mandatory for every staff role (OWN-DEC-202).
+    await expect(worker.getByRole('heading', { level: 1, name: 'Set up your authenticator app' })).toBeVisible()
+    await passSecondFactor(worker)
     await expect(worker.getByText('Signed in as E2E Worker', { exact: true })).toBeVisible()
     await worker.close()
   })
@@ -98,12 +134,15 @@ test.describe('staff sign-in, invites and password reset (TSK-0014, HH-STAFF-01,
     browser,
   }) => {
     await signIn(page, OWNER, pw(1))
+    await passSecondFactor(page)
     await expect(page.getByText('Signed in as E2E Owner', { exact: true })).toBeVisible()
     const other = await browser.newPage({ extraHTTPHeaders: NETWORK })
     await setPassword(other, staffAccess('password-link', OWNER), pw(4))
     await page.reload()
     await expect(page.getByRole('heading', { level: 1, name: 'Staff sign-in' })).toBeVisible()
     await signIn(other, OWNER, pw(4))
+    // A password reset never removes the authenticator.
+    await passSecondFactor(other)
     await other.getByRole('button', { name: 'Sign out', exact: true }).click()
     await expect(other.getByRole('heading', { level: 1, name: 'Staff sign-in' })).toBeVisible()
     await other.goto('/staff/')

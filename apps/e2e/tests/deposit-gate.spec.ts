@@ -17,6 +17,7 @@ import { ESTIMATE_TERMS } from '@handyhub/domain/legal'
 import { expect, test, type APIRequestContext, type Browser, type Page } from '@playwright/test'
 import { accessTokenFor, codeFor } from '../codes.js'
 import { verifyPropertyZone } from '../zones.js'
+import { passSecondFactor } from '../mfa.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
 const port = process.env['E2E_PORT'] ?? '4310'
@@ -190,6 +191,8 @@ async function staffSession(browser: Browser, email: string, role: 'estimator' |
   await page.getByLabel('Email').fill(email)
   await page.getByLabel('Password', { exact: true }).fill(pw)
   await page.getByRole('button', { name: 'Sign in' }).click()
+  // MFA is mandatory (TSK-0154): enrol on the account's first sign-in, the code afterwards.
+  await passSecondFactor(page)
   await expect(page.getByRole('heading', { level: 1, name: 'Action queue' })).toBeVisible()
   const csrf = ((await (await page.request.get('/api/v1/staff/auth/session')).json()) as { csrfToken: string })
     .csrfToken

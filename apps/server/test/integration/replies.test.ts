@@ -38,6 +38,7 @@ import { runWithContext } from '../../src/platform/request-context.js'
 import { createProviders } from '../../src/providers/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
 import { testConfig } from '../fixtures/env.js'
+import { signInWithMfa, TEST_MFA_KEY } from '../fixtures/staff-mfa.js'
 
 const ROLES: readonly StaffRole[] = ['owner', 'office', 'estimator', 'worker']
 const pw = ['synthetic', 'replies', 'passphrase', '50'].join(' ')
@@ -227,8 +228,8 @@ const releaseReplyTemplates = () =>
 beforeAll(async () => {
   t = await createTestDatabase()
   await syncServices(t.db, loadServiceSeed())
-  const modules = apiModules({ secureCookies: false, mfaKey: null, system: { providers: settings } }).map((m) =>
-    m.name === 'inbox' ? inboxModule({ providers: settings, now: () => clock }) : m,
+  const modules = apiModules({ secureCookies: false, mfaKey: TEST_MFA_KEY, system: { providers: settings } }).map(
+    (m) => (m.name === 'inbox' ? inboxModule({ providers: settings, now: () => clock }) : m),
   )
   app = await buildApp({ config: testConfig({ TRUST_PROXY_HOPS: '1' }), api: { db: t.db, modules } })
   const hash = await hashPassword(pw)
@@ -244,7 +245,7 @@ beforeAll(async () => {
       await setPasswordHash(tx, user.id, hash)
       return user.id
     })
-    const res = await app.inject({
+    const res = await signInWithMfa(app, {
       method: 'POST',
       url: '/api/v1/staff/auth/sign-in',
       payload: { email: `${role}-replies@example.test`, password: pw },

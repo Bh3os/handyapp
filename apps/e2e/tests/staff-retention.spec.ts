@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url'
 import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { expect, test, type Page } from '@playwright/test'
+import { passSecondFactor } from '../mfa.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
 const port = process.env['E2E_PORT'] ?? '4310'
@@ -99,6 +100,8 @@ test.describe('retention reviews (TSK-0099, HH-PRIV-01, HH-DATA-09)', () => {
     await page.getByLabel('Email').fill(OWNER)
     await page.getByLabel('Password', { exact: true }).fill(pw(1))
     await page.getByRole('button', { name: 'Sign in' }).click()
+    // MFA is mandatory (TSK-0154): enrol on the account's first sign-in, the code afterwards.
+    await passSecondFactor(page)
     await expect(page.getByRole('heading', { level: 1, name: 'Action queue' })).toBeVisible()
 
     await page.getByRole('link', { name: 'Retention reviews' }).click()

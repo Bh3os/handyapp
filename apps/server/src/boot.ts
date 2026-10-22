@@ -9,6 +9,7 @@ import { buildApp } from './app.js'
 import { buildAutomations } from './automations.js'
 import { loadConfig, publicSiteUrl } from './config.js'
 import { ensureBootstrapOwner } from './modules/identity/accounts.js'
+import { MFA_NOT_CONFIGURED_LOG } from './modules/identity/mfa.js'
 import { codeDeliveryAutomation, readCodeKey } from './modules/identity/index.js'
 import { ensureRetentionScan } from './modules/retention/index.js'
 import { createAutomationRegistry } from './platform/automation.js'
@@ -122,6 +123,8 @@ export async function boot(env: Readonly<Record<string, string | undefined>>, op
       await db.destroy()
     })
   }
+  // TSK-0154 (OWN-DEC-202): MFA is mandatory, so without the sealing key every staff sign-in is refused (fail closed).
+  if (!config.mfaKey) app.log.error({ variable: 'MFA_ENCRYPTION_KEY', env: config.env }, MFA_NOT_CONFIGURED_LOG)
   const address = await app.listen({ port: config.port, host: config.host })
   return { app, config, address }
 }

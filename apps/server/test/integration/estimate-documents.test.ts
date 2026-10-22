@@ -28,6 +28,7 @@ import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { DOCX, docx, PDF, pdf, pdfText } from '../fixtures/documents.js'
 import { testConfig } from '../fixtures/env.js'
 import { png } from '../fixtures/images.js'
+import { signInWithMfa } from '../fixtures/staff-mfa.js'
 
 const MiB = 1024 * 1024
 const pw = (n: number) => ['synthetic', 'upload', 'passphrase', 'number', String(n)].join(' ')
@@ -42,7 +43,7 @@ const csrf = {} as Record<Person, string>
 const staffId = {} as Record<Person, string>
 
 async function signIn(p: Person): Promise<[string, string]> {
-  const res = await app.inject({
+  const res = await signInWithMfa(app, {
     method: 'POST',
     url: '/api/v1/staff/auth/sign-in',
     payload: { email: `${p}-upload@example.test`, password: pw(1) },

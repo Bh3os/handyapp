@@ -49,6 +49,7 @@ import { readProviderSettings } from '../../src/providers/settings.js'
 import { verifyCountyOf } from '../fixtures/county.js'
 import { testConfig } from '../fixtures/env.js'
 import { verifyPropertyZone } from '../fixtures/zones.js'
+import { signInWithMfa } from '../fixtures/staff-mfa.js'
 
 const ZONE = 'America/Kentucky/Louisville'
 const KEY: CodeKeySettings = readCodeKey({
@@ -83,7 +84,7 @@ const day = (n: number) => addLocalDays(today(), n)
 const WEEK = [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({ weekday, start: '08:00', end: '20:00' }))
 
 async function signIn(p: Person): Promise<[string, string]> {
-  const res = await app.inject({
+  const res = await signInWithMfa(app, {
     method: 'POST',
     url: '/api/v1/staff/auth/sign-in',
     headers: { 'x-forwarded-for': '198.51.100.170' },

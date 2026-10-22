@@ -31,6 +31,7 @@ import { recordPolicyVersion } from '../../src/platform/config/index.js'
 import { createWorker } from '../../src/platform/jobs.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { testConfig } from '../fixtures/env.js'
+import { signInWithMfa } from '../fixtures/staff-mfa.js'
 
 const KEY: CodeKeySettings = readCodeKey({
   HANDYHUB_ENV: 'ci',
@@ -97,7 +98,7 @@ beforeAll(async () => {
     }
   })
   for (const p of PEOPLE) {
-    const res = await app.inject({
+    const res = await signInWithMfa(app, {
       method: 'POST',
       url: '/api/v1/staff/auth/sign-in',
       headers: { 'x-forwarded-for': '198.51.100.198' },

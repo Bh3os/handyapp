@@ -11,6 +11,7 @@ import { createStaffUser, setPasswordHash } from '../../src/modules/identity/acc
 import { startCustomerSession } from '../../src/modules/identity/customer-sessions.js'
 import { hashPassword } from '../../src/modules/identity/passwords.js'
 import { testConfig } from '../fixtures/env.js'
+import { signInWithMfa } from '../fixtures/staff-mfa.js'
 
 const pw = ['synthetic', 'portal', 'tabs', 'passphrase', '39'].join(' ')
 const NOTE = 'SYNTHETIC-INTERNAL-NOTE-0039: staff only.'
@@ -160,7 +161,7 @@ beforeAll(async () => {
     await setPasswordHash(tx, user.id, hash)
     return user.id
   })
-  const res = await app.inject({
+  const res = await signInWithMfa(app, {
     method: 'POST',
     url: '/api/v1/staff/auth/sign-in',
     payload: { email: 'owner-portal-tabs@example.test', password: pw },

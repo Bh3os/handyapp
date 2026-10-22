@@ -22,6 +22,7 @@ import { createAutomationRegistry } from '../../src/platform/automation.js'
 import { createWorker } from '../../src/platform/jobs.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
 import { testConfig } from '../fixtures/env.js'
+import { signInWithMfa } from '../fixtures/staff-mfa.js'
 
 const pw = (n: number) => ['synthetic', 'system', 'passphrase', 'number', String(n)].join(' ')
 const ROLES = ['owner', 'office', 'estimator', 'worker'] as const
@@ -65,7 +66,7 @@ beforeAll(async () => {
     }
   })
   for (const role of ROLES) {
-    const res = await app.inject({
+    const res = await signInWithMfa(app, {
       method: 'POST',
       url: '/api/v1/staff/auth/sign-in',
       payload: { email: `${role}-system@example.test`, password: pw(1) },

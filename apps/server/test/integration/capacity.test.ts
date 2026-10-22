@@ -29,6 +29,7 @@ import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { verifyCountyOf } from '../fixtures/county.js'
 import { testConfig } from '../fixtures/env.js'
 import { verifyPropertyZone } from '../fixtures/zones.js'
+import { signInWithMfa, TEST_MFA_KEY } from '../fixtures/staff-mfa.js'
 
 const ZONE = 'America/Kentucky/Louisville'
 const KEY: CodeKeySettings = readCodeKey({
@@ -63,7 +64,7 @@ const day = (n: number) => addLocalDays(today(), n)
 const WEEK = [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({ weekday, start: '08:00', end: '18:00' }))
 
 async function signIn(server: FastifyInstance, p: Person): Promise<[string, string]> {
-  const res = await server.inject({
+  const res = await signInWithMfa(server, {
     method: 'POST',
     url: '/api/v1/staff/auth/sign-in',
     headers: { 'x-forwarded-for': '198.51.100.162' },
@@ -82,8 +83,8 @@ beforeAll(async () => {
   await syncServices(t.db, loadServiceSeed())
   const config = testConfig({ TRUST_PROXY_HOPS: '1' })
   app = await buildApp({ config, api: { db: wide, codeKey: KEY, storage: new FakeObjectStorage() } })
-  const modules = apiModules({ secureCookies: false, mfaKey: null, codeKey: KEY, trustProxyHops: 1 }).map((m) =>
-    m.name === 'visits' ? visitsModule({ workVisitGates: [TEST_GATE] }) : m,
+  const modules = apiModules({ secureCookies: false, mfaKey: TEST_MFA_KEY, codeKey: KEY, trustProxyHops: 1 }).map(
+    (m) => (m.name === 'visits' ? visitsModule({ workVisitGates: [TEST_GATE] }) : m),
   )
   gated = await buildApp({ config, api: { db: wide, modules } })
   const hash = await hashPassword(pw)
