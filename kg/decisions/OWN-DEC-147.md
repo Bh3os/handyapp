@@ -5,10 +5,12 @@ title: "The website meets every A2P 10DLC requirement; the legal entity is ODD J
 status: active
 area: messaging
 links:
-  related: ["[[OWN-DEC-129]]", "[[OWN-DEC-126]]"]
+  related: ["[[OWN-DEC-129]]", "[[OWN-DEC-126]]", "[[OWN-DEC-190]]"]
   uses: ["[[FACT-LEGAL-ENTITY]]"]
 source: "owner answers 2026-10-20 (coordinator session)"
 ---
+Partly replaced by [[OWN-DEC-190]] (2026-10-21): consent is collected at the request form and on the receipt with the owner's wording; the registration package is prepared now.
+
 Owner wording (2026-10-20): Q: "Texting registration (A2P 10DLC) through Bird must be filed with your business details before real texts go out. Who does it?" Answer: "make me website satisfy all the 10 dlc". Q: "Which is the legal entity for the registration?" Answer: "ODD JOBS & MORE LLC" (Kentucky; DBA not filed; brand shown to customers: HandyHub).
 
 Effect:

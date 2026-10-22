@@ -5,10 +5,12 @@ title: Staff management, availability and an immutable audit log
 status: active
 area: staff
 links:
-  related: ["[[OWN-DEC-70]]", "[[OWN-DEC-114]]", "[[OWN-DEC-119]]", "[[HH-STAFF-01]]", "[[HH-STAFF-02]]", "[[HH-SEC-06]]", "[[HH-SCH-03]]", "[[HH-AUD-05]]"]
+  related: ["[[OWN-DEC-70]]", "[[OWN-DEC-114]]", "[[OWN-DEC-119]]", "[[HH-STAFF-01]]", "[[HH-STAFF-02]]", "[[HH-SEC-06]]", "[[HH-SCH-03]]", "[[HH-AUD-05]]", "[[OWN-DEC-164]]"]
   uses: ["[[FACT-RETENTION-SCHEDULE]]", "[[ENT-StaffUser]]", "[[ENT-AuditEvent]]"]
 source: "owner-answers-verbatim 2026-10-12T19:44:11.908Z [S9 Staff]; decision-briefs 2026-10-12T19:45:23"
 ---
+Partly replaced by [[OWN-DEC-164]] (2026-10-21): audit entries stay append-only during retention; after 7 years the Owner may authorize deletion through the dedicated retention workflow.
+
 Owner, 2026-10-12, staff journey S9, staff management and audit.
 
 Question asked:

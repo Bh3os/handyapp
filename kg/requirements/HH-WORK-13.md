@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: safety
 links:
-  decided_by: ["[[OWN-DEC-80]]"]
+  decided_by: ["[[OWN-DEC-80]]", "[[OWN-DEC-172]]"]
   constrained_by: ["[[RULE-SAFETY-GATES]]", "[[RULE-HUMAN-REVIEW]]"]
   uses: ["[[ENT-Hold]]", "[[ENT-IssueReport]]", "[[ENT-Case]]"]
   tested_by: ["[[T48]]", "[[T54]]"]
@@ -19,3 +19,5 @@ source: "OWN-DEC-80 (new behaviour; no guide id)"
 - Both create a critical hold in the same transaction as the report and never offer a resolve-on-site option.
 - Emergency action never waits for the Owner or for the app: the emergency contact path works without a network, and the app never suggests waiting.
 - The software gives no technical repair procedure for these conditions (human-review boundary: licensed gas and electrical work).
+
+**Changed by [[OWN-DEC-172]] (2026-10-21):** the packet's Call 911 and Call Owner actions implement this ([[HH-PKT-09]]).

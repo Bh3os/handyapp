@@ -5,10 +5,12 @@ title: Appointment reminders, reschedule/cancel requests and "On my way"
 status: active
 area: scheduling
 links:
-  related: ["[[OWN-DEC-78]]", "[[OWN-DEC-106]]", "[[OWN-DEC-119]]", "[[OQ-DEPOSIT-REFUND-CANCELLATION]]", "[[HH-PORT-04]]", "[[HH-PORT-07]]", "[[HH-SCH-07]]", "[[HH-SCH-08]]", "[[HH-COM-05]]"]
+  related: ["[[OWN-DEC-78]]", "[[OWN-DEC-106]]", "[[OWN-DEC-119]]", "[[OQ-DEPOSIT-REFUND-CANCELLATION]]", "[[HH-PORT-04]]", "[[HH-PORT-07]]", "[[HH-SCH-07]]", "[[HH-SCH-08]]", "[[HH-COM-05]]", "[[OWN-DEC-153]]", "[[OWN-DEC-151]]", "[[OWN-DEC-158]]"]
   uses: ["[[FACT-REMINDER-CADENCES]]", "[[FACT-AUTOMATIC-MESSAGES]]", "[[ENT-Visit]]"]
 source: "owner-answers-verbatim 2026-10-12T19:01:14.144Z [7 Appointment]; decision-briefs 2026-10-12T19:01:51"
 ---
+Partly replaced by [[OWN-DEC-153]], [[OWN-DEC-151]], [[OWN-DEC-158]] (2026-10-21): the appointment reminder now sends automatically 24 hours before, in the owner's MESSAGE 11 wording, without the property address.
+
 Owner, 2026-10-12, journey Step 7, appointment.
 
 Question asked:

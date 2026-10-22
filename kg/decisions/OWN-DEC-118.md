@@ -5,10 +5,12 @@ title: Estimators and the owner publish estimates directly
 status: active
 area: estimates
 links:
-  related: ["[[OWN-DEC-102]]", "[[HH-EST-01]]", "[[HH-EST-04]]", "[[HH-FIN-03]]", "[[HH-STAFF-03]]"]
+  related: ["[[OWN-DEC-102]]", "[[HH-EST-01]]", "[[HH-EST-04]]", "[[HH-FIN-03]]", "[[HH-STAFF-03]]", "[[OWN-DEC-173]]", "[[OWN-DEC-169]]"]
   uses: ["[[FACT-ESTIMATE-VALIDITY]]", "[[FACT-DEPOSIT-RULE]]", "[[ROLE-ESTIMATOR]]", "[[ROLE-OWNER]]"]
 source: "owner-answers-verbatim 2026-10-12T19:31:46.613Z [S4 Publish]; decision-briefs 2026-10-12T19:32:02"
 ---
+Partly replaced by [[OWN-DEC-173]], [[OWN-DEC-169]] (2026-10-21): publishing an estimate over $2,500.00 now needs the Owner's approval; an accepted estimate is changed only by change order.
+
 Owner, 2026-10-12, staff journey S4, who publishes an estimate.
 
 Question asked:

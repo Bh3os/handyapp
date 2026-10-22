@@ -5,10 +5,12 @@ title: "Cancellation, rescheduling and deposit refund rules"
 status: active
 area: payments
 links:
-  related: ["[[OWN-DEC-08]]", "[[OWN-DEC-104]]", "[[OWN-DEC-107]]"]
+  related: ["[[OWN-DEC-08]]", "[[OWN-DEC-104]]", "[[OWN-DEC-107]]", "[[OWN-DEC-161]]", "[[OWN-DEC-163]]", "[[OWN-DEC-195]]"]
   uses: ["[[FACT-CANCELLATION-RULES]]"]
 source: "owner answers 2026-10-20 (coordinator session)"
 ---
+Partly replaced by [[OWN-DEC-161]], [[OWN-DEC-163]], [[OWN-DEC-195]] (2026-10-21): a late work-visit cancellation keeps a deposit under $50.00 and invoices nothing more; estimate visits are never charged; Office handles routine work-visit cancellations within policy.
+
 Owner wording (2026-10-20): Earlier owner answers, adopted 2026-10-20 ("Yes, adopt all six"): cancel after paying the deposit = "Refund -50 usd for the service usage"; materials already bought = "Only the $50 is kept"; under 24 hours = "rescudle free but if final cancellation 50 use charge"; the $50 applies = "Only under 24 hours"; cancel after work started = "Work done + materials (Recommended)"; HandyHub cancels or moves a visit = "Free reschedule or full refund (Recommended)"; notice to cancel or reschedule = "24 hours, no fee (Recommended)". Clarified 2026-10-20: a final cancellation with more than 24 hours notice before work starts = "Full deposit refund".
 
 Effect:

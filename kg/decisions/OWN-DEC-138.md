@@ -5,9 +5,11 @@ title: "Office staff finance permissions"
 status: active
 area: payments
 links:
-  related: ["[[OWN-DEC-110]]", "[[OWN-DEC-111]]"]
+  related: ["[[OWN-DEC-110]]", "[[OWN-DEC-111]]", "[[OWN-DEC-200]]"]
 source: "owner answers 2026-10-20 (coordinator session)"
 ---
+Partly replaced by [[OWN-DEC-200]] (2026-10-21): cash collection needs an explicit Owner grant to a trained Worker.
+
 Owner wording (2026-10-20): Q: "Office staff and money: which finance actions may Office/Dispatcher do (Owner can always do all)?" Answer: "Issue invoices, Enter Square payment links, Record payments" (mark checks cleared not chosen).
 
 Effect:

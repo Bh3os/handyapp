@@ -33,3 +33,5 @@ Bird is used for texts and for the business phone number.
 - Credentials (the API key and the webhook signing secret) are set by the owner in Render as environment variables.
 - Staging sends only to approved test numbers.
 - US texting from a 10-digit long code needs A2P 10DLC brand and campaign registration before production use. It is filed by the owner under the legal entity ODD JOBS & MORE LLC with the brand HandyHub ([[FACT-LEGAL-ENTITY]], [[OQ-BIRD-10DLC]]); the website side is [[HH-COM-12]].
+
+**Changed by [[OWN-DEC-190]] (2026-10-21):** Bird is the confirmed SMS provider for the A2P 10DLC registration; the Telnyx references of the earlier vault are superseded.

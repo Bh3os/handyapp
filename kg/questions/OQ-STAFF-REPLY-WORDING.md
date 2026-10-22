@@ -2,12 +2,15 @@
 id: OQ-STAFF-REPLY-WORDING
 type: question
 title: Wording around a staff reply sent by email or text
-status: open
+status: superseded
 area: messaging
 links:
   related: ["[[HH-COM-08]]", "[[OWN-DEC-120]]", "[[FACT-AUTOMATIC-MESSAGES]]", "[[OQ-ACCESS-LINK-WORDING]]", "[[OQ-RECEIPT-EMAIL-WORDING]]", "[[TSK-0050]]"]
+  superseded_by: ["[[OWN-DEC-151]]"]
 source: "TSK-0050 (2026-10-21): OWN-DEC-120 decides that Send is the release of a staff reply, not the email subject or the text around the reply"
 ---
+**Answered by [[OWN-DEC-151]] (2026-10-21).**
+
 **Question:** which email subject (and any line around the staff member's own text) and which text-message form should a staff reply (`staff.reply`, sent from the project when staff press Send) use?
 
 - **Who answers:** the owner (approve a wording, as for the code message in [[OWN-DEC-150]]).

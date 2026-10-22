@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: scheduling
 links:
-  decided_by: ["[[OWN-DEC-119]]", "[[OWN-DEC-104]]", "[[OWN-DEC-76]]", "[[OWN-DEC-82]]", "[[OWN-DEC-99]]", "[[OWN-DEC-100]]"]
+  decided_by: ["[[OWN-DEC-119]]", "[[OWN-DEC-104]]", "[[OWN-DEC-76]]", "[[OWN-DEC-82]]", "[[OWN-DEC-99]]", "[[OWN-DEC-100]]", "[[OWN-DEC-167]]", "[[OWN-DEC-179]]", "[[OWN-DEC-193]]"]
   depends_on: ["[[HH-FIN-02]]"]
   constrained_by: ["[[RULE-SAFETY-GATES]]"]
   uses: ["[[ENT-Visit]]", "[[ENT-Hold]]", "[[ENT-DepositRequirement]]", "[[ENT-Property]]", "[[FACT-DEPOSIT-RULE]]", "[[FACT-VISIT-FEE]]"]
@@ -27,3 +27,5 @@ Only two kinds of hold block confirmation: an unresolved critical safety hold, a
 Missing job-start materials or tools may still allow a planning appointment; they stay visible as readiness blockers with an assigned resolution owner ([[HH-PKT-06]]).
 
 A refusal names every unmet precondition.
+
+**Changed by [[OWN-DEC-167]], [[OWN-DEC-179]], [[OWN-DEC-193]] (2026-10-21):** the three site checks are recorded checkboxes; SERVED needs no owner approval, EDGE and OUTSIDE need an owner exception; estimate visits need no approved job; follow-up visits on completed jobs need a recorded authorization.

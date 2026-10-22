@@ -2,12 +2,15 @@
 id: OQ-PORTAL-WORDING
 type: question
 title: Customer wording of the project workspace frame that no decision gives
-status: open
+status: superseded
 area: portal
 links:
   related: ["[[HH-PORT-02]]", "[[HH-PORT-03]]", "[[HH-PORT-06]]", "[[OWN-DEC-106]]", "[[OWN-DEC-98]]", "[[OWN-DEC-105]]", "[[TSK-0038]]", "[[TSK-0039]]", "[[HH-PORT-09]]", "[[TSK-0050]]", "[[TSK-0051]]"]
+  superseded_by: ["[[OWN-DEC-192]]", "[[OWN-DEC-199]]"]
 source: "TSK-0038 (2026-10-21): HH-PORT-02, HH-PORT-03 and HH-PORT-06 name the states and labels, not every sentence"
 ---
+**Answered by [[OWN-DEC-192]], [[OWN-DEC-199]] (2026-10-21).** Approval is conditional on checking the wording against behaviour ([[TSK-0150]]).
+
 **Question:** does the owner approve, or change, the customer wording the portal uses where no decision or requirement gives the words?
 
 - **Who answers:** the owner.

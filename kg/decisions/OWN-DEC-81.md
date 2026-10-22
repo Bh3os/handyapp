@@ -5,12 +5,14 @@ title: After-job care instructions drafted by AI for all 26 services, shown only
 status: active
 area: quality
 links:
-  related: ["[[HH-QA-05]]"]
+  related: ["[[HH-QA-05]]", "[[OWN-DEC-180]]"]
   tested_by: ["[[T57]]"]
   constrained_by: ["[[RULE-NO-INVENTED-FACTS]]"]
   part_of: ["[[C09]]"]
 source: "vault-own-decisions.md OWN-DEC-81; owner-answers-verbatim.md 2026-10-12T16:49"
 ---
+Partly replaced by [[OWN-DEC-180]] (2026-10-21): care notes that pass the quality review are approved without per-service approval; safety-critical lines needing qualified review stay unpublished.
+
 Owner wording (project chat, 2026-10-12): "Have AI draft after-job care instructions for all 26 services now. Use the actual products' manufacturer guidance where relevant; do not invent drying, curing, cleaning, or waiting times. Keep each draft PROPOSED until I approve it. Customers see only the approved version appropriate to their completed work and products. If product details are missing, flag them for review rather than guessing. Record the approved version and include it in the customer's completion summary."
 
 Effect:

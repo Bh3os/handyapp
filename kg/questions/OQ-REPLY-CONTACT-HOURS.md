@@ -2,12 +2,15 @@
 id: OQ-REPLY-CONTACT-HOURS
 type: question
 title: Do staff replies wait for the daily contact hours?
-status: open
+status: superseded
 area: messaging
 links:
   related: ["[[HH-COM-09]]", "[[HH-COM-08]]", "[[FACT-HOURS]]", "[[OWN-DEC-120]]", "[[OWN-DEC-101]]", "[[OWN-DEC-132]]", "[[TSK-0050]]"]
+  superseded_by: ["[[OWN-DEC-154]]"]
 source: "TSK-0050 (2026-10-21): FACT-HOURS and the owner's 2026-10-05 answer on texts versus the OWN-DEC-120 question wording"
 ---
+**Answered by [[OWN-DEC-154]] (2026-10-21).**
+
 **Question:** when a staff member presses Send on a reply outside 8 AM–10 PM ([[FACT-HOURS]]), should its email or text wait for 8 AM, or go at once?
 
 - **Who answers:** the owner (TCPA quiet-hours questions for texts also go to the attorney with [[OQ-BIRD-10DLC]]).

@@ -2,12 +2,15 @@
 id: FACT-TIMEZONE
 type: fact
 title: Business time zone: America/Kentucky/Louisville (Eastern)
-status: proposed
+status: active
 area: platform
 links:
   related: ["[[OWN-DEC-92]]", "[[OWN-DEC-115]]", "[[OWN-DEC-125]]", "[[OQ-TIMEZONE-ID]]", "[[HH-SCH-02]]", "[[HH-DATA-06]]"]
+  decided_by: ["[[OWN-DEC-159]]"]
 source: "owner-answers-verbatim 2026-10-05T18:24 [Tech settings]; decision-briefs 2026-10-12T19:46 (OWN-DEC-125)"
 ---
+**Changed by [[OWN-DEC-159]] (2026-10-21):** decided. America/Kentucky/Louisville is the business time zone for business hours, the response goal, reporting and estimate validity. Appointments, windows, options and visit reminders use the service property's own zone (Eastern or Central) from its verified location; texts use the recipient's zone. An unknown zone is flagged, never assumed Eastern. The ASSUMPTION below that every served property is Eastern is withdrawn.
+
 **Value:** America/Kentucky/Louisville (US Eastern time). Status PROPOSED: the owner accepted "Eastern time for all dates" with the standard technical settings (owner answer 2026-10-05T18:24, "Accept all"), but never named an IANA zone id ([[OQ-TIMEZONE-ID]]). America/Kentucky/Louisville is the zone named in the Owner Dashboard brief ([[OWN-DEC-125]]); the guide proposed America/New_York. Both are US Eastern time.
 
 - Instants are stored in UTC; local schedules, windows, business hours, reminder send times, the 14-day validity and the response clock use this zone ([[HH-SCH-02]], [[HH-DATA-06]]).

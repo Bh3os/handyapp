@@ -5,10 +5,12 @@ title: Business name "Handyhub LLC"; no mailing address; placeholders for paymen
 status: active
 area: business
 links:
-  related: ["[[OWN-DEC-43]]", "[[OWN-DEC-46]]", "[[OWN-DEC-47]]", "[[OWN-DEC-48]]", "[[OWN-DEC-49]]", "[[OWN-DEC-110]]", "[[OQ-LEGAL-ENTITY-NAME]]", "[[OQ-MAILING-ADDRESS]]", "[[OQ-PAYMENT-HANDLES]]", "[[OQ-PUBLIC-CONTACT]]", "[[HH-FIN-04]]", "[[HH-FIN-10]]", "[[HH-CUS-05]]"]
+  related: ["[[OWN-DEC-43]]", "[[OWN-DEC-46]]", "[[OWN-DEC-47]]", "[[OWN-DEC-48]]", "[[OWN-DEC-49]]", "[[OWN-DEC-110]]", "[[OQ-LEGAL-ENTITY-NAME]]", "[[OQ-MAILING-ADDRESS]]", "[[OQ-PAYMENT-HANDLES]]", "[[OQ-PUBLIC-CONTACT]]", "[[HH-FIN-04]]", "[[HH-FIN-10]]", "[[HH-CUS-05]]", "[[OWN-DEC-183]]", "[[OWN-DEC-182]]"]
   uses: ["[[FACT-BUSINESS-NAME]]", "[[FACT-BUSINESS-ADDRESS]]", "[[FACT-PAYMENT-INSTRUCTIONS]]", "[[FACT-PUBLIC-CONTACT]]"]
 source: "owner-answers-verbatim 2026-10-12T19:53:27.289Z [Issuer] [Pay info] [Contact]; decision-briefs 2026-10-12T19:53:38"
 ---
+Partly replaced by [[OWN-DEC-183]], [[OWN-DEC-182]] (2026-10-21): the mailing address is given and entered in Business settings; payment handles are still not ready.
+
 Owner, 2026-10-12, missing facts 1-3 (issuer, payment instructions, public contact).
 
 Question asked:

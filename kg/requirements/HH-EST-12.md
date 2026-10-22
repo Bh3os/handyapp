@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: approval
 links:
-  decided_by: ["[[OWN-DEC-105]]", "[[OWN-DEC-104]]", "[[OWN-DEC-126]]"]
+  decided_by: ["[[OWN-DEC-105]]", "[[OWN-DEC-104]]", "[[OWN-DEC-126]]", "[[OWN-DEC-155]]"]
   depends_on: ["[[HH-EST-08]]", "[[HH-COM-04]]"]
   uses: ["[[ENT-Approval]]", "[[ENT-Document]]", "[[ENT-Message]]", "[[FACT-AUTOMATIC-MESSAGES]]", "[[INT-Resend]]"]
   tested_by: ["[[T33]]", "[[T23]]"]
@@ -20,3 +20,5 @@ source: "OWN-DEC-105 (new behaviour; no guide id)"
   - no deposit required, deposit satisfied, or owner waiver recorded: "Estimate approved—choose your work appointment."
 - Then staff offer work windows ([[HH-SCH-11]]).
 - On staging the PDFs carry "TEST — not a real invoice or estimate".
+
+**Changed by [[OWN-DEC-155]] (2026-10-21):** the confirmation links to the project; no PDF is attached by default; the immutable PDF stays in Documents.

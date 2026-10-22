@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: messaging
 links:
-  decided_by: ["[[OWN-DEC-120]]"]
+  decided_by: ["[[OWN-DEC-120]]", "[[OWN-DEC-154]]"]
   depends_on: ["[[HH-COM-07]]", "[[HH-COM-02]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[ENT-Message]]", "[[ENT-ConsentPreference]]", "[[ENT-Photo]]", "[[INT-Bird]]", "[[INT-Resend]]"]
@@ -19,3 +19,5 @@ source: "OWN-DEC-120"
 - Reply drafts are kept; retries never send duplicates.
 - Attachments are validated by type and size, and project-access permissions apply to them.
 - Internal notes are written in a separate field and never sent.
+
+**Changed by [[OWN-DEC-154]] (2026-10-21):** the reply shows in the portal and is emailed at once at any hour; a text waits for the recipient's permitted local hours ([[HH-COM-15]]).

@@ -5,10 +5,12 @@ title: Unanswered questions: reminders at 24 h and 48 h; 30-day reopen
 status: active
 area: messaging
 links:
-  related: ["[[OWN-DEC-78]]", "[[OWN-DEC-98]]", "[[HH-COM-05]]", "[[HH-AUTO-01]]", "[[HH-LEAD-03]]"]
+  related: ["[[OWN-DEC-78]]", "[[OWN-DEC-98]]", "[[HH-COM-05]]", "[[HH-AUTO-01]]", "[[HH-LEAD-03]]", "[[OWN-DEC-153]]"]
   uses: ["[[FACT-REMINDER-CADENCES]]", "[[FACT-REOPEN-PERIOD]]", "[[FACT-HOURS]]", "[[FACT-TIMEZONE]]"]
 source: "owner-answers-verbatim 2026-10-12T18:47:59.773Z [4.4 No reply]; decision-briefs 2026-10-12T18:48:55"
 ---
+Partly replaced by [[OWN-DEC-153]] (2026-10-21): the 24-hour and 48-hour reminder drafts are replaced by one automatic reminder 3 days after the question notice was delivered; the 30-day reopen, the failed-delivery rule and the never-cancel rule stay.
+
 Owner, 2026-10-12, journey Step 4.4, no response from the customer.
 
 Question asked:

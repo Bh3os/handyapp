@@ -2,12 +2,15 @@
 id: OQ-CUSTOMER-ACCOUNT-DEFAULTS
 type: question
 title: Customer account wording, limits and session behaviour proposed by TSK-0036
-status: open
+status: superseded
 area: identity
 links:
   related: ["[[HH-ID-10]]", "[[HH-ID-11]]", "[[HH-INT-01]]", "[[HH-INT-14]]", "[[OWN-DEC-63]]", "[[OWN-DEC-87]]", "[[ENT-CustomerAccount]]", "[[TSK-0036]]"]
+  superseded_by: ["[[OWN-DEC-192]]", "[[OWN-DEC-198]]"]
 source: "TSK-0036 (2026-10-21): OWN-DEC-63 and OWN-DEC-87 decide that accounts exist, are optional and sign in with a one-time code; they do not give the account pages' wording, limits or the session behaviour after a change"
 ---
+**Answered by [[OWN-DEC-192]], [[OWN-DEC-198]] (2026-10-21).**
+
 **Question:** does the owner accept the account behaviour and wording below, which TSK-0036 built as PROPOSED?
 
 - **Who answers:** the owner.

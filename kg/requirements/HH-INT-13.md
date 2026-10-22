@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: identity
 links:
-  decided_by: ["[[OWN-DEC-96]]", "[[OWN-DEC-61]]", "[[OWN-DEC-65]]", "[[OWN-DEC-95]]", "[[OWN-DEC-141]]", "[[OWN-DEC-150]]"]
+  decided_by: ["[[OWN-DEC-96]]", "[[OWN-DEC-61]]", "[[OWN-DEC-65]]", "[[OWN-DEC-95]]", "[[OWN-DEC-141]]", "[[OWN-DEC-150]]", "[[OWN-DEC-178]]"]
   depends_on: ["[[HH-ID-06]]", "[[HH-INT-11]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]", "[[RULE-SYNTHETIC-DATA]]"]
   uses: ["[[ENT-Contact]]", "[[ENT-Request]]", "[[INT-Resend]]", "[[INT-Bird]]", "[[FACT-SESSION-TIMINGS]]"]
@@ -23,3 +23,5 @@ source: "guide 7.3 HH-INT-13, 23 (contact verification states); OWN-DEC-96"
 - Verified contact ownership is required before private project access and before any estimate or change-order approval. A reference number alone grants no access.
 - A matching email or phone never reveals earlier projects or account status.
 - Staff see separate email and phone verification badges on the request ([[HH-LEAD-01]]).
+
+**Changed by [[OWN-DEC-178]] (2026-10-21):** without an SMS opt-in the receipt offers a separate verification-code consent; declining leaves email verification.

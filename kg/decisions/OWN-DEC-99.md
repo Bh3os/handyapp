@@ -5,10 +5,12 @@ title: Estimate online or site visit; estimate visits are free
 status: active
 area: scheduling
 links:
-  related: ["[[OWN-DEC-66]]", "[[OWN-DEC-119]]", "[[HH-SVC-04]]", "[[HH-INT-03]]", "[[HH-SCH-01]]", "[[HH-SCH-03]]", "[[HH-SCH-04]]", "[[HH-SCH-05]]"]
+  related: ["[[OWN-DEC-66]]", "[[OWN-DEC-119]]", "[[HH-SVC-04]]", "[[HH-INT-03]]", "[[HH-SCH-01]]", "[[HH-SCH-03]]", "[[HH-SCH-04]]", "[[HH-SCH-05]]", "[[OWN-DEC-163]]"]
   uses: ["[[FACT-VISIT-FEE]]", "[[FACT-AUTOMATIC-MESSAGES]]", "[[ENT-Visit]]"]
 source: "owner-answers-verbatim 2026-10-12T18:47:59.773Z [4.2 Visit]; decision-briefs 2026-10-12T18:48:55"
 ---
+Partly replaced by [[OWN-DEC-163]] (2026-10-21): an estimate visit is never charged a cancellation fee, whatever the notice.
+
 Owner, 2026-10-12, journey Step 4.2, site visit or online estimate.
 
 Question asked:

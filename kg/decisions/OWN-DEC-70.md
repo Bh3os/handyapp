@@ -5,12 +5,14 @@ title: Retention schedule per category with an owner deletion-review queue; no a
 status: active
 area: records
 links:
-  related: ["[[HH-PRIV-01]]", "[[HH-DATA-09]]", "[[HH-DATA-03]]"]
+  related: ["[[HH-PRIV-01]]", "[[HH-DATA-09]]", "[[HH-DATA-03]]", "[[OWN-DEC-176]]", "[[OWN-DEC-177]]", "[[OWN-DEC-201]]"]
   uses: ["[[FACT-RETENTION-SCHEDULE]]", "[[ENT-AuditEvent]]"]
   constrained_by: ["[[RULE-HUMAN-REVIEW]]"]
   part_of: ["[[S09]]", "[[C11]]"]
 source: "vault-own-decisions.md OWN-DEC-70; two-websites-owner-resolutions.md R4; project chat 2026-10-12"
 ---
+Partly replaced by [[OWN-DEC-176]], [[OWN-DEC-177]], [[OWN-DEC-201]] (2026-10-21): a deleted request keeps only its reference, dates and status; provisional periods for data the schedule did not name; deletion checks linked accounting records.
+
 Owner wording (project chat, 2026-10-12, as recorded): a configurable schedule: requests that never become jobs 2 years after closure; unaccepted estimates 2 years after expiration or closure; customer and property profiles while active, then 7 years after the last completed service; accepted estimates, work authorizations, contracts and change orders 10 years after final job closeout; invoices, payments, receipts, refunds and reconciliation 7 years after the relevant tax return is filed or tax is paid, whichever is later; job photos, operational messages, checklists and arrival/finish timestamps 7 years after job closeout (evidence for an approval or contract follows the longer period); ordinary safety acknowledgments and incident records 10 years after closure; regulated employee medical or exposure records excluded from routine deletion with a separate reviewed schedule; access codes removed when no longer needed; sessions and links by their security settings. "Expired records enter an owner review queue; they are not deleted automatically." The owner then withdrew a separate one-year contact-removal rule and asked for a Delete action with the confirmation "Are you sure you want to delete this entry?", Archive when deletion is blocked, early deletion with a reason, and Archive, Void or audited correction for protected evidence.
 
 Effect:

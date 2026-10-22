@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: portal
 links:
-  decided_by: ["[[OWN-DEC-106]]", "[[OWN-DEC-64]]", "[[OWN-DEC-108]]", "[[OWN-DEC-100]]", "[[OWN-DEC-101]]"]
+  decided_by: ["[[OWN-DEC-106]]", "[[OWN-DEC-64]]", "[[OWN-DEC-108]]", "[[OWN-DEC-100]]", "[[OWN-DEC-101]]", "[[OWN-DEC-199]]"]
   depends_on: ["[[HH-STAFF-05]]"]
   constrained_by: ["[[RULE-LANGUAGES]]", "[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[ENT-Project]]", "[[ENT-Job]]", "[[ENT-Visit]]", "[[ENT-Hold]]"]
@@ -35,3 +35,5 @@ The Overview and timeline show the latest update and these customer labels, with
 
 - The payment summary is shown separately, never merged into one status that hides an unpaid balance or unfinished work.
 - The timeline never shows risk scores, employee notes, internal photos or confidential incident or hazard details.
+
+**Changed by [[OWN-DEC-199]] (2026-10-21):** wording is approved only after it is checked against behaviour.

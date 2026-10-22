@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: payments
 links:
-  decided_by: ["[[OWN-DEC-67]]", "[[OWN-DEC-118]]", "[[OWN-DEC-112]]", "[[OWN-DEC-114]]", "[[OWN-DEC-134]]", "[[OWN-DEC-138]]"]
+  decided_by: ["[[OWN-DEC-67]]", "[[OWN-DEC-118]]", "[[OWN-DEC-112]]", "[[OWN-DEC-114]]", "[[OWN-DEC-134]]", "[[OWN-DEC-138]]", "[[OWN-DEC-161]]", "[[OWN-DEC-195]]"]
   constrained_by: ["[[RULE-HUMAN-REVIEW]]"]
   uses: ["[[ENT-Refund]]", "[[ENT-Payment]]", "[[ENT-Invoice]]", "[[ENT-AuditEvent]]", "[[ROLE-OWNER]]", "[[FACT-CANCELLATION-RULES]]"]
   tested_by: ["[[T63]]", "[[T64]]"]
@@ -18,3 +18,5 @@ source: "guide 20.5 HH-FIN-14; 23 (Refund); OWN-DEC-67, OWN-DEC-118"
 - Finance is never corrected by deleting transactions or rewriting accepted scope; corrections are new superseding records.
 - Write-off is never automatic (accounting treatment: human review with the accountant).
 - Cancellation refunds and charges follow [[FACT-CANCELLATION-RULES]] ([[OWN-DEC-134]]): with 24 hours or more notice before work starts the whole deposit is refunded; under 24 hours $50.00 is kept from the deposit and the rest refunded, or $50.00 is invoiced when no deposit was paid; after work started the customer owes the work done plus materials, which the Owner determines; when HandyHub cancels or moves a visit the customer chooses a free reschedule or a full refund. The Owner approves each one; nothing is refunded or charged automatically.
+
+**Changed by [[OWN-DEC-161]], [[OWN-DEC-195]] (2026-10-21):** late-cancellation outcomes follow [[FACT-CANCELLATION-RULES]]; waivers and refunds stay owner-only.

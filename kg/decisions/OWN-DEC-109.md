@@ -5,10 +5,12 @@ title: Worker completion sequence through owner quality review and handoff
 status: active
 area: quality
 links:
-  related: ["[[OWN-DEC-64]]", "[[OWN-DEC-68]]", "[[OWN-DEC-69]]", "[[OWN-DEC-75]]", "[[OWN-DEC-81]]", "[[OQ-CARE-NOTES-APPROVAL]]", "[[HH-QA-01]]", "[[HH-QA-02]]", "[[HH-QA-03]]", "[[HH-QA-04]]", "[[HH-QA-05]]", "[[HH-QA-09]]", "[[HH-WORK-06]]", "[[HH-PRIV-02]]"]
+  related: ["[[OWN-DEC-64]]", "[[OWN-DEC-68]]", "[[OWN-DEC-69]]", "[[OWN-DEC-75]]", "[[OWN-DEC-81]]", "[[OQ-CARE-NOTES-APPROVAL]]", "[[HH-QA-01]]", "[[HH-QA-02]]", "[[HH-QA-03]]", "[[HH-QA-04]]", "[[HH-QA-05]]", "[[HH-QA-09]]", "[[HH-WORK-06]]", "[[HH-PRIV-02]]", "[[OWN-DEC-157]]"]
   uses: ["[[FACT-REMINDER-CADENCES]]", "[[ENT-Photo]]"]
 source: "owner-answers-verbatim 2026-10-12T19:01:14.144Z [9 Complete]; decision-briefs 2026-10-12T19:02:18"
 ---
+Partly replaced by [[OWN-DEC-157]] (2026-10-21): the satisfaction check is the service-quality follow-up sent 48 hours after authorized final completion, released by staff.
+
 Owner, 2026-10-12, journey Step 9, completion.
 
 Question asked:

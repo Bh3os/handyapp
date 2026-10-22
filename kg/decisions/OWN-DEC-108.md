@@ -5,11 +5,13 @@ title: During work: job-specific SOP checklist, change orders, hazard pause
 status: active
 area: field
 links:
-  related: ["[[OWN-DEC-17]]", "[[OWN-DEC-68]]", "[[OWN-DEC-79]]", "[[OWN-DEC-80]]", "[[OWN-DEC-82]]", "[[OQ-SAFETY-REVIEW]]", "[[SOP-HI-01]]", "[[HH-PKT-03]]", "[[HH-WORK-01]]", "[[HH-WORK-02]]", "[[HH-WORK-04]]", "[[HH-WORK-05]]", "[[HH-WORK-07]]", "[[HH-WORK-09]]", "[[HH-CHG-01]]", "[[HH-CHG-02]]", "[[HH-CHG-03]]", "[[HH-CHG-04]]", "[[HH-INC-03]]"]
+  related: ["[[OWN-DEC-17]]", "[[OWN-DEC-68]]", "[[OWN-DEC-79]]", "[[OWN-DEC-80]]", "[[OWN-DEC-82]]", "[[OQ-SAFETY-REVIEW]]", "[[SOP-HI-01]]", "[[HH-PKT-03]]", "[[HH-WORK-01]]", "[[HH-WORK-02]]", "[[HH-WORK-04]]", "[[HH-WORK-05]]", "[[HH-WORK-07]]", "[[HH-WORK-09]]", "[[HH-CHG-01]]", "[[HH-CHG-02]]", "[[HH-CHG-03]]", "[[HH-CHG-04]]", "[[HH-INC-03]]", "[[OWN-DEC-168]]", "[[OWN-DEC-169]]"]
   constrained_by: ["[[RULE-SAFETY-GATES]]", "[[RULE-HUMAN-REVIEW]]"]
   uses: ["[[ENT-ChangeOrder]]", "[[ENT-Hold]]"]
 source: "owner-answers-verbatim 2026-10-12T19:01:14.144Z [8 During]; decision-briefs 2026-10-12T19:02:18"
 ---
+Partly replaced by [[OWN-DEC-168]], [[OWN-DEC-169]] (2026-10-21): change orders are valid 7 days and are the only way to change accepted work.
+
 Owner, 2026-10-12, journey Step 8, during work.
 
 Question asked:

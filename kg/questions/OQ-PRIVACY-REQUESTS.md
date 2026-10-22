@@ -2,12 +2,15 @@
 id: OQ-PRIVACY-REQUESTS
 type: question
 title: Privacy request rules no decision gives (deadlines, identity check, export contents, outcome notice)
-status: open
+status: superseded
 area: privacy
 links:
   related: ["[[HH-PRIV-03]]", "[[ENT-PrivacyRequest]]", "[[OWN-DEC-113]]", "[[OWN-DEC-71]]", "[[OQ-ATTORNEY-PRIVACY]]", "[[RULE-HUMAN-REVIEW]]", "[[TSK-0100]]"]
+  superseded_by: ["[[OWN-DEC-192]]", "[[OWN-DEC-201]]", "[[OWN-DEC-175]]"]
 source: "TSK-0100 privacy requests (apps/server/src/modules/privacy/requests.ts, plan.ts, export.ts)"
 ---
+**Answered by [[OWN-DEC-192]], [[OWN-DEC-201]], [[OWN-DEC-175]] (2026-10-21).** The outcome-notice wording is part of [[OQ-MESSAGES-OUTSIDE-THE-21]]; the legal exceptions stay with the attorney ([[OQ-ATTORNEY-PRIVACY]]).
+
 **Question:** what do the access, export, correction and deletion requests of [[HH-PRIV-03]] need that no decision gives yet?
 
 - **Response deadline:** how soon a request must be answered (and whether Kentucky or Indiana law sets one). Until answered: NOT CONFIGURED; the screens say so and nothing is promised to the customer.

@@ -18,3 +18,5 @@ A project conversation message, an outbound notification or reminder draft, or a
 **Invariants:** only listed automatic messages send without release ([[FACT-AUTOMATIC-MESSAGES]]); state, suppression and consent rechecked at send time; never contains access codes, card data, amounts in invoice or estimate notices, or incident details; sent messages immutable; one send per idempotency key.
 
 **Who may change:** staff per role; the customer writes in the project thread.
+
+**Changed by [[OWN-DEC-152]] (2026-10-21):** states and record fields of [[HH-COM-14]]; template approval kept apart from delivery.

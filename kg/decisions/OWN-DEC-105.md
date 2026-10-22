@@ -5,10 +5,12 @@ title: After approval: one job, automatic approval receipt, work windows
 status: active
 area: approval
 links:
-  related: ["[[OWN-DEC-103]]", "[[OWN-DEC-104]]", "[[OWN-DEC-119]]", "[[HH-EST-08]]", "[[HH-EST-10]]", "[[HH-SCH-04]]", "[[HH-SCH-05]]", "[[HH-SCH-06]]", "[[HH-BASE-06]]"]
+  related: ["[[OWN-DEC-103]]", "[[OWN-DEC-104]]", "[[OWN-DEC-119]]", "[[HH-EST-08]]", "[[HH-EST-10]]", "[[HH-SCH-04]]", "[[HH-SCH-05]]", "[[HH-SCH-06]]", "[[HH-BASE-06]]", "[[OWN-DEC-155]]", "[[OWN-DEC-156]]"]
   uses: ["[[FACT-AUTOMATIC-MESSAGES]]", "[[ENT-Job]]", "[[ENT-Visit]]"]
 source: "owner-answers-verbatim 2026-10-12T18:53:23.426Z [5.4 After]; decision-briefs 2026-10-12T18:53:59"
 ---
+Partly replaced by [[OWN-DEC-155]], [[OWN-DEC-156]] (2026-10-21): the approval confirmation links to the project instead of attaching the PDF; publishing work-appointment windows sends an automatic notice.
+
 Owner, 2026-10-12, journey Step 5.4, after approval.
 
 Question asked:

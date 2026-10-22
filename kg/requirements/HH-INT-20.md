@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: messaging
 links:
-  decided_by: ["[[OWN-DEC-95]]", "[[OWN-DEC-60]]", "[[OWN-DEC-65]]", "[[OWN-DEC-131]]"]
+  decided_by: ["[[OWN-DEC-95]]", "[[OWN-DEC-60]]", "[[OWN-DEC-65]]", "[[OWN-DEC-131]]", "[[OWN-DEC-151]]"]
   depends_on: ["[[HH-INT-10]]", "[[HH-COM-06]]", "[[HH-ARC-08]]"]
   constrained_by: ["[[RULE-LANGUAGES]]", "[[RULE-SYNTHETIC-DATA]]", "[[RULE-NO-INVENTED-FACTS]]"]
   uses: ["[[INT-Resend]]", "[[ENT-OutboxEvent]]", "[[ENT-Message]]", "[[FACT-AUTOMATIC-MESSAGES]]", "[[FACT-HOURS]]", "[[FACT-RESPONSE-TARGET]]", "[[FACT-PUBLIC-CONTACT]]"]
@@ -19,3 +19,5 @@ source: "OWN-DEC-95 (amends the staff-release rule OWN-DEC-65)"
 - Exactly one receipt per request: the submission idempotency key plus a unique outbox key per request mean double submits and retries create neither a duplicate request nor a duplicate email.
 - If delivery fails, the request stays saved and staff see a delivery issue with a **Retry** action in the queue ([[HH-OPS-01]]).
 - Staging sends only to approved test destinations.
+
+**Changed by [[OWN-DEC-151]] (2026-10-21):** the receipt email wording is MESSAGE 01.

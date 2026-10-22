@@ -2,12 +2,15 @@
 id: OQ-MARGIN-BASIS
 type: question
 title: Pricing margin basis
-status: open
+status: superseded
 area: estimates
 links:
   related: ["[[OWN-DEC-07]]", "[[OWN-DEC-32]]", "[[OWN-DEC-102]]"]
+  superseded_by: ["[[OWN-DEC-189]]"]
 source: "OWN-DEC-07, 32, 102"
 ---
+**Answered by [[OWN-DEC-189]] (2026-10-21).**
+
 **Question:** what margin or profit target, if any, should job costing compare estimates against?
 
 - **Who answers:** the owner (with the CPA).

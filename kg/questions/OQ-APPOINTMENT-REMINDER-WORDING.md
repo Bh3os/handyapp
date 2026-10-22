@@ -2,12 +2,15 @@
 id: OQ-APPOINTMENT-REMINDER-WORDING
 type: question
 title: The wording of the appointment reminder, and the open details of its draft
-status: open
+status: superseded
 area: messaging
 links:
   related: ["[[HH-COM-11]]", "[[OWN-DEC-107]]", "[[OWN-DEC-78]]", "[[FACT-REMINDER-CADENCES]]", "[[HH-COM-04]]", "[[HH-COM-05]]", "[[HH-COM-09]]", "[[OQ-BIRD-10DLC]]", "[[OQ-ESTIMATE-REMINDER-WORDING]]", "[[TSK-0067]]", "[[TSK-0066]]", "[[TSK-0070]]"]
+  superseded_by: ["[[OWN-DEC-151]]", "[[OWN-DEC-153]]"]
 source: "TSK-0067 (2026-10-21): OWN-DEC-107 names the reminder's content and timing; no owner wording exists for reminder.appointment"
 ---
+**Answered by [[OWN-DEC-151]], [[OWN-DEC-153]] (2026-10-21).** The reminder is now automatic and carries no address ([[OWN-DEC-158]]).
+
 **Question:** which exact email subject and body (and text-message body) should the appointment reminder use, and does the owner accept the PROPOSED details below?
 
 - **Who answers:** the owner (wording, channel, who releases); the A2P 10DLC campaign description for the reminder texts goes with [[OQ-BIRD-10DLC]] (human review: messaging compliance).

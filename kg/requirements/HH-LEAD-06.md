@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: intake
 links:
-  decided_by: ["[[OWN-DEC-101]]", "[[OWN-DEC-78]]"]
+  decided_by: ["[[OWN-DEC-101]]", "[[OWN-DEC-78]]", "[[OWN-DEC-153]]", "[[OWN-DEC-197]]"]
   depends_on: ["[[HH-LEAD-03]]", "[[HH-COM-09]]", "[[HH-COM-05]]"]
   constrained_by: ["[[RULE-DECIDED-VALUES-ACTIVE]]", "[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[ENT-Question]]", "[[ENT-Request]]", "[[ENT-Message]]", "[[FACT-REMINDER-CADENCES]]", "[[FACT-REOPEN-PERIOD]]", "[[FACT-HOURS]]"]
@@ -21,3 +21,5 @@ source: "OWN-DEC-101"
 - A customer reply within the reopen period ([[FACT-REOPEN-PERIOD]], an active configurable value) reopens the same request for staff review with its history kept. Reopening does not restore an expired estimate or appointment.
 - This rule never automatically cancels accepted, scheduled or paid work.
 - The other reminder cadences of [[OWN-DEC-78]] are unchanged by this rule.
+
+**Changed by [[OWN-DEC-153]], [[OWN-DEC-197]] (2026-10-21):** one automatic reminder 3 days after the notice was delivered; closing for no response checks the reminder's actual delivery and the absence of work, appointments and payments; after the reopen period staff may reopen with authorization or the customer is guided to a new request.

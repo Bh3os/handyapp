@@ -2,15 +2,18 @@
 id: OWN-DEC-65
 type: decision
 title: Customer emails are released by staff; codes and secure links send immediately
-status: active
+status: superseded
 area: messaging
 links:
   supersedes: ["[[OWN-DEC-41]]"]
   related: ["[[HH-COM-04]]", "[[HH-COM-05]]", "[[HH-AUTO-01]]"]
   uses: ["[[FACT-AUTOMATIC-MESSAGES]]"]
   part_of: ["[[S06]]"]
+  superseded_by: ["[[OWN-DEC-152]]", "[[OWN-DEC-153]]"]
 source: "vault-own-decisions.md OWN-DEC-65; two-websites-owner-resolutions.md R11; project chat 2026-10-12"
 ---
+**Superseded by [[OWN-DEC-152]], [[OWN-DEC-153]] (2026-10-21).**
+
 Owner wording (project chat, 2026-10-12): asked whether request receipts and status emails should go automatically, the owner chose "Staff release each email".
 
 Effect:

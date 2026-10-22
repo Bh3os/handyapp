@@ -6,10 +6,12 @@ status: active
 area: security
 links:
   supersedes: ["[[OWN-DEC-27]]"]
-  related: ["[[OWN-DEC-63]]", "[[OWN-DEC-73]]", "[[OWN-DEC-123]]", "[[ROLE-MATRIX]]", "[[HH-STAFF-01]]", "[[HH-STAFF-02]]", "[[HH-STAFF-03]]", "[[HH-SEC-02]]", "[[HH-SEC-06]]"]
+  related: ["[[OWN-DEC-63]]", "[[OWN-DEC-73]]", "[[OWN-DEC-123]]", "[[ROLE-MATRIX]]", "[[HH-STAFF-01]]", "[[HH-STAFF-02]]", "[[HH-STAFF-03]]", "[[HH-SEC-02]]", "[[HH-SEC-06]]", "[[OWN-DEC-200]]"]
   uses: ["[[FACT-AUTOMATIC-MESSAGES]]", "[[INT-Resend]]", "[[ENT-StaffUser]]"]
 source: "owner-answers-verbatim 2026-10-12T19:16:01.591Z [S0 Sign-in]; decision-briefs 2026-10-12T19:16:35"
 ---
+Partly replaced by [[OWN-DEC-200]] (2026-10-21): reactivating a disabled staff account needs a verified reset link and the Owner's permission review.
+
 Owner, 2026-10-12, staff journey S0, signing in.
 
 Question asked:

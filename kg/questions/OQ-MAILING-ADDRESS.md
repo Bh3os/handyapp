@@ -2,13 +2,16 @@
 id: OQ-MAILING-ADDRESS
 type: question
 title: Business mailing address for real estimates and invoices
-status: open
+status: superseded
 area: business
 links:
   related: ["[[OWN-DEC-126]]", "[[FACT-BUSINESS-ADDRESS]]", "[[OQ-LEGAL-ENTITY-NAME]]"]
   blocks: ["[[FACT-BUSINESS-ADDRESS]]"]
+  superseded_by: ["[[OWN-DEC-183]]"]
 source: "OWN-DEC-126; owner-answers-verbatim 2026-10-05T17:23 [Address]"
 ---
+**Answered by [[OWN-DEC-183]] (2026-10-21).** Whether the law requires an address on documents goes to the attorney and CPA packets ([[OWN-DEC-186]]).
+
 **Question:** what mailing address, if any, goes on real estimates and invoices, and is one legally required on them?
 
 - **Who answers:** the owner (the address); the attorney or CPA (whether it is required).
