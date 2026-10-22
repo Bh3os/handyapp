@@ -2,12 +2,15 @@
 id: OQ-QUESTION-HANDLING
 type: question
 title: Details of staff questions and customer replies that no decision gives
-status: open
+status: superseded
 area: intake
 links:
   related: ["[[HH-LEAD-03]]", "[[HH-LEAD-06]]", "[[OWN-DEC-98]]", "[[OWN-DEC-101]]", "[[FACT-REOPEN-PERIOD]]", "[[HH-PORT-09]]", "[[ROLE-MATRIX]]", "[[TSK-0051]]"]
+  superseded_by: ["[[OWN-DEC-192]]", "[[OWN-DEC-197]]"]
 source: "TSK-0051 (2026-10-21): OWN-DEC-98 and OWN-DEC-101 decide the flow; these details are readings made to build it"
 ---
+**Answered by [[OWN-DEC-192]], [[OWN-DEC-197]] (2026-10-21).**
+
 **Question:** does the owner confirm, or change, these PROPOSED readings of [[OWN-DEC-98]] and [[OWN-DEC-101]] that the software uses?
 
 - **Who answers:** the owner.

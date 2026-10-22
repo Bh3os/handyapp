@@ -2,12 +2,15 @@
 id: OQ-PACKET-DETAILS
 type: question
 title: The job packet details no decision gives
-status: open
+status: superseded
 area: field
 links:
   related: ["[[HH-PKT-01]]", "[[HH-PKT-02]]", "[[HH-PKT-07]]", "[[HH-DATA-08]]", "[[HH-OFF-02]]", "[[HH-PKT-04]]", "[[HH-WORK-13]]", "[[OWN-DEC-40]]", "[[OWN-DEC-81]]", "[[OWN-DEC-121]]", "[[FACT-SVC-ESCALATION-PATH]]", "[[OQ-WORKER-DATA-ACCESS]]", "[[OQ-SAFETY-REVIEW]]", "[[TSK-0069]]", "[[TSK-0071]]", "[[TSK-0072]]", "[[TSK-0077]]", "[[TSK-0079]]", "[[TSK-0082]]", "[[TSK-0103]]"]
+  superseded_by: ["[[OWN-DEC-192]]", "[[OWN-DEC-196]]", "[[OWN-DEC-172]]"]
 source: "TSK-0069 (2026-10-21): HH-PKT-01, HH-PKT-02 and HH-PKT-07 state the rules; the details below are PROPOSED, NOT CONFIGURED or wait for later tasks"
 ---
+**Answered by [[OWN-DEC-192]], [[OWN-DEC-196]], [[OWN-DEC-172]] (2026-10-21).**
+
 **Question:** does the owner approve, or change, these PROPOSED details of the job packet, and who sets the missing values?
 
 - **Who answers:** the owner; the emergency and stop-work wording, and its Spanish text, with the competent safety review ([[OQ-SAFETY-REVIEW]], [[HH-PKT-04]]).

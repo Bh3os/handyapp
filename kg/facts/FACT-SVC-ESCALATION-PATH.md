@@ -6,10 +6,12 @@ status: active
 area: safety
 links:
   constrained_by: ["[[RULE-SAFETY-GATES]]"]
-  decided_by: ["[[OWN-DEC-80]]", "[[OWN-DEC-149]]"]
+  decided_by: ["[[OWN-DEC-80]]", "[[OWN-DEC-149]]", "[[OWN-DEC-172]]"]
   related: ["[[FACT-SVC-STOP-WORK-RULE]]", "[[FACT-SVC-INCIDENT-REPORTING]]"]
 source: "vault Standard Of Operations/sop-picture-hanging.md section 19 (same text in all 26 SOPs); owner-answers-verbatim.md 2026-10-05T18:03:06Z and 18:17:56Z"
 ---
+**Changed by [[OWN-DEC-172]] (2026-10-21):** the escalation is owner first for every problem that is not life-threatening, and 911 immediately, without waiting, for an actual or suspected immediate threat to life or serious injury. `<owner decision: emergency contact>` = 911 for emergencies, then the Owner; `<owner decision: escalation order>` = the Owner, whose phone is read from the Owner's staff profile. When the Owner cannot be reached the affected work stays paused. Every packet shows "Call Owner — Report a Problem" and "Call 911 — Immediate Emergency".
+
 The escalation steps as written in section 19 of all 26 vault SOPs (PROPOSED wording, pending qualified review):
 
 > 1. Stop the affected work and keep yourself, occupants and pets away from the hazard; do not try to fix, move or disturb it (source: spec START-011; risk-triage playbook L7).

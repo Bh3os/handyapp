@@ -2,12 +2,15 @@
 id: OQ-WINDOW-HOURS
 type: question
 title: Hours of the Mornings, Afternoons and Evenings preferred windows
-status: open
+status: superseded
 area: intake
 links:
   related: ["[[OWN-DEC-92]]", "[[HH-INT-02]]", "[[FACT-HOURS]]"]
+  superseded_by: ["[[OWN-DEC-170]]"]
 source: "OWN-DEC-92 (owner-answers-verbatim 2026-10-12T18:31:16.913Z [2.3 Timing])"
 ---
+**Answered by [[OWN-DEC-170]] (2026-10-21).**
+
 **Question:** which hours do Mornings, Afternoons and Evenings cover on the request form? The owner asked to "Display configured window hours within 8 AM–10 PM" ([[OWN-DEC-92]]) but gave no hours.
 
 - **Who answers:** the owner (three start and end times inside [[FACT-HOURS]]).

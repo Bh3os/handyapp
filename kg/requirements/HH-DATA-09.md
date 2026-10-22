@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: records
 links:
-  decided_by: ["[[OWN-DEC-70]]", "[[OWN-DEC-71]]", "[[OWN-DEC-123]]", "[[OWN-DEC-124]]", "[[OWN-DEC-142]]"]
+  decided_by: ["[[OWN-DEC-70]]", "[[OWN-DEC-71]]", "[[OWN-DEC-123]]", "[[OWN-DEC-124]]", "[[OWN-DEC-142]]", "[[OWN-DEC-164]]", "[[OWN-DEC-176]]", "[[OWN-DEC-177]]"]
   constrained_by: ["[[RULE-HUMAN-REVIEW]]", "[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[FACT-RETENTION-SCHEDULE]]"]
   tested_by: ["[[T72]]"]
@@ -17,3 +17,5 @@ source: "guide 22.2; OWN-DEC-70"
 - Evidence uses void, supersede or archive, never ordinary deletion: issued invoices, payments, signed approvals and other protected records.
 - Tables are not soft-deleted indiscriminately and data is not kept forever: each record type follows its category. Audit records are kept 7 years under the schedule ([[OWN-DEC-142]]).
 - The deletion screens, confirmation wording and customer account deletion are in the privacy requirements ([[HH-PRIV-01]], [[HH-PRIV-03]]).
+
+**Changed by [[OWN-DEC-164]], [[OWN-DEC-176]], [[OWN-DEC-177]] (2026-10-21):** see the added rows of [[FACT-RETENTION-SCHEDULE]] and [[HH-PRIV-08]].

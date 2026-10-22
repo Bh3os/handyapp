@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: site
 links:
-  decided_by: ["[[OWN-DEC-88]]", "[[OWN-DEC-37]]", "[[OWN-DEC-100]]", "[[OWN-DEC-73]]"]
+  decided_by: ["[[OWN-DEC-88]]", "[[OWN-DEC-37]]", "[[OWN-DEC-100]]", "[[OWN-DEC-73]]", "[[OWN-DEC-179]]"]
   depends_on: ["[[HH-INT-16]]", "[[HH-LEAD-02]]"]
   constrained_by: ["[[RULE-NO-INVENTED-FACTS]]", "[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[ENT-CoverageRule]]", "[[ENT-Request]]", "[[FACT-SERVICE-AREA]]"]
@@ -30,3 +30,5 @@ The checker uses the same configured coverage rules ([[FACT-SERVICE-AREA]]) as s
 - Coverage is area eligibility only. It never confirms an appointment, date availability, price or travel charge. A ZIP that spans the boundary needs exact-address review before any appointment is confirmed.
 - Staff, not the checker, decide whether an outside-area request can be accepted ([[HH-LEAD-08]]).
 - The checker works behind the staging access gate: the site's call to the coverage API sends the credentials the gate needs. An end-to-end test runs the check with the gate enabled.
+
+**Changed by [[OWN-DEC-179]] (2026-10-21):** outcomes come from the owner's ZIP dataset and the verified address county: SERVED, EDGE, OUTSIDE, UNKNOWN (mapped to the four messages above).

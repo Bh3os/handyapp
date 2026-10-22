@@ -2,12 +2,15 @@
 id: OQ-MONETARY-LIMITS
 type: question
 title: Monetary approval limits per role
-status: open
+status: superseded
 area: staff
 links:
   related: ["[[OWN-DEC-28]]", "[[ROLE-MATRIX]]"]
+  superseded_by: ["[[OWN-DEC-173]]"]
 source: "OWN-DEC-28, 76, 118"
 ---
+**Answered by [[OWN-DEC-173]] (2026-10-21).**
+
 **Question:** what amount limits apply per role for publishing estimates, recording refunds or credits, and approving change orders?
 
 - **Who answers:** the owner.

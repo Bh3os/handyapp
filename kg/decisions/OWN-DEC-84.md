@@ -5,11 +5,13 @@ title: Service page content drafted by AI for all 26 services; published to priv
 status: active
 area: site
 links:
-  related: ["[[HH-CUS-02]]", "[[HH-SVC-01]]", "[[HH-SVC-02]]", "[[HH-BASE-04]]", "[[HH-BASE-06]]"]
+  related: ["[[HH-CUS-02]]", "[[HH-SVC-01]]", "[[HH-SVC-02]]", "[[HH-BASE-04]]", "[[HH-BASE-06]]", "[[OWN-DEC-180]]"]
   constrained_by: ["[[RULE-NO-INVENTED-FACTS]]"]
   part_of: ["[[C01]]"]
 source: "vault-own-decisions.md OWN-DEC-84; owner-answers-verbatim.md 2026-10-12T16:57 and 18:17 (journey Step 1 review); decision-briefs.md (OWN-DEC-84 as amended)"
 ---
+Partly replaced by [[OWN-DEC-180]] (2026-10-21): service pages that pass the quality review are published, production included, without per-service owner approval.
+
 Owner wording (project chat, 2026-10-12): "Draft content for all 26 services using the existing service files:
 - A clear, short description of included work and key exclusions.
 - Estimate approach: remote when sufficient details/photos are available; site visit when inspection or measurements are needed.

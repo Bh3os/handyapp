@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: intake
 links:
-  decided_by: ["[[OWN-DEC-98]]"]
+  decided_by: ["[[OWN-DEC-98]]", "[[OWN-DEC-197]]"]
   depends_on: ["[[HH-COM-06]]", "[[HH-PORT-09]]", "[[HH-ID-04]]"]
   constrained_by: ["[[RULE-SAFETY-GATES]]", "[[RULE-SERVER-AUTHZ]]", "[[RULE-LANGUAGES]]"]
   uses: ["[[ENT-Question]]", "[[ENT-Message]]", "[[ENT-Photo]]", "[[ENT-AuditEvent]]", "[[INT-Resend]]", "[[INT-Bird]]"]
@@ -30,3 +30,5 @@ Customer side:
 Records:
 - Questions, replies, attachments, authors and timestamps are kept append-only in project history. Answers update the request without erasing the original inputs or staff decisions.
 - Retries never send a duplicate notice. A delivery failure appears in the staff queue without losing the question, and never counts as customer non-response ([[HH-LEAD-06]]).
+
+**Changed by [[OWN-DEC-197]] (2026-10-21):** "I'm not sure" or "I don't know" may be offered for any appropriate question.

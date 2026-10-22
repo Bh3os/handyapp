@@ -5,10 +5,12 @@ title: Property and timing: full address, preferences, never an appointment
 status: active
 area: intake
 links:
-  related: ["[[OWN-DEC-56]]", "[[OWN-DEC-88]]", "[[HH-INT-02]]", "[[HH-CUS-03]]", "[[HH-SCH-01]]", "[[HH-SCH-02]]", "[[HH-CRM-02]]"]
+  related: ["[[OWN-DEC-56]]", "[[OWN-DEC-88]]", "[[HH-INT-02]]", "[[HH-CUS-03]]", "[[HH-SCH-01]]", "[[HH-SCH-02]]", "[[HH-CRM-02]]", "[[OWN-DEC-170]]"]
   uses: ["[[FACT-HOURS]]", "[[FACT-TIMEZONE]]", "[[FACT-PRICING-SAME-DAY-CHARGE]]", "[[FACT-SERVICE-AREA]]"]
 source: "owner-answers-verbatim 2026-10-12T18:31:16.913Z [2.3 Timing]; decision-briefs 2026-10-12T18:31:38"
 ---
+Partly replaced by [[OWN-DEC-170]] (2026-10-21): the window hours are 8–12, 12–5 and 5–10 and the notice reads "These are your preferred times only. Your appointment is not confirmed until HandyHub sends you a confirmed date and arrival window."
+
 Owner, 2026-10-12, journey Step 2.3, property and timing.
 
 Question asked:

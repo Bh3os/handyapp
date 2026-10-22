@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: portal
 links:
-  decided_by: ["[[OWN-DEC-105]]", "[[OWN-DEC-108]]", "[[OWN-DEC-103]]"]
+  decided_by: ["[[OWN-DEC-105]]", "[[OWN-DEC-108]]", "[[OWN-DEC-103]]", "[[OWN-DEC-169]]"]
   depends_on: ["[[HH-CHG-01]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[ENT-ChangeOrder]]", "[[ENT-Property]]", "[[ENT-Approval]]"]
@@ -17,3 +17,5 @@ source: "guide 9.2 HH-PORT-05; OWN-DEC-105, OWN-DEC-108"
 - The workspace has no generic "edit project" form that can change accepted scope. A customer's change request becomes a staff follow-up; scope or price changes need a change order that staff publish and the customer approves in its exact version. The original approval is never overwritten.
 - "Request Changes" on an estimate notifies staff and keeps the history.
 - Address changes that affect coverage, travel or readiness need staff review before dispatch.
+
+**Changed by [[OWN-DEC-169]] (2026-10-21):** every change after acceptance is a change order; the portal shows the original estimate, every approved change order and the current authorized total.

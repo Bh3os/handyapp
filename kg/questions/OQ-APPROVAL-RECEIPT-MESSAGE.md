@@ -2,12 +2,15 @@
 id: OQ-APPROVAL-RECEIPT-MESSAGE
 type: question
 title: Wording of the automatic approval receipt message, and whether the PDF is attached
-status: open
+status: superseded
 area: messaging
 links:
   related: ["[[OWN-DEC-105]]", "[[HH-EST-12]]", "[[FACT-AUTOMATIC-MESSAGES]]", "[[HH-COM-04]]", "[[TSK-0058]]"]
+  superseded_by: ["[[OWN-DEC-155]]", "[[OWN-DEC-151]]"]
 source: "TSK-0058 (2026-10-21): OWN-DEC-105 makes the approval receipt automatic and names its content, not its text"
 ---
+**Answered by [[OWN-DEC-155]], [[OWN-DEC-151]] (2026-10-21).**
+
 **Question:** which exact subject and body should the automatic approval receipt use (email, and text when the customer gave a number), and should the email attach the receipt PDF or only link to it in the project?
 
 - **Who answers:** the owner (approve a wording, as for the code message in [[OWN-DEC-150]]); the attachment choice also touches privacy ([[HH-COM-04]]: ordinary email and texts carry no amounts or private details).

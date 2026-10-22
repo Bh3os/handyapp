@@ -2,12 +2,15 @@
 id: OQ-ACCESS-LINK-LIFETIME
 type: question
 title: How long a customer's secure project-access link works
-status: open
+status: superseded
 area: identity
 links:
   related: ["[[HH-ID-06]]", "[[HH-ID-04]]", "[[OWN-DEC-141]]", "[[FACT-SESSION-TIMINGS]]", "[[ENT-ProjectAccessGrant]]", "[[TSK-0034]]"]
+  superseded_by: ["[[OWN-DEC-160]]"]
 source: "TSK-0034 (2026-10-21): HH-ID-06 names 24 hours as a configurable engineering default; OWN-DEC-141 accepted 24 hours for staff links only"
 ---
+**Answered by [[OWN-DEC-160]] (2026-10-21).**
+
 **Question:** how long should the single-project access link sent at submission keep working before the customer has to ask for a new one?
 
 - **Who answers:** the owner.

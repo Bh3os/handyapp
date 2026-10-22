@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: messaging
 links:
-  decided_by: ["[[OWN-DEC-78]]", "[[OWN-DEC-107]]", "[[OWN-DEC-113]]", "[[OWN-DEC-120]]", "[[OWN-DEC-124]]", "[[OWN-DEC-147]]"]
+  decided_by: ["[[OWN-DEC-78]]", "[[OWN-DEC-107]]", "[[OWN-DEC-113]]", "[[OWN-DEC-120]]", "[[OWN-DEC-124]]", "[[OWN-DEC-147]]", "[[OWN-DEC-153]]", "[[OWN-DEC-154]]"]
   depends_on: ["[[HH-COM-04]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[ENT-Message]]", "[[ENT-ConsentPreference]]", "[[ENT-Case]]"]
@@ -18,3 +18,5 @@ source: "guide 21.2 HH-COM-05; OWN-DEC-78, OWN-DEC-107, OWN-DEC-113"
 - Transactional communication preferences and marketing choices are separate. Having a phone number is never permission to text or market: a transactional text needs the SMS opt-in ([[HH-INT-22]]), and a marketing text also needs the separate marketing permission.
 - Inbound STOP, HELP and START keywords are honoured through Bird ([[INT-Bird]], [[OWN-DEC-147]]): STOP withdraws the SMS opt-in and START restores it, each recorded in the consent record immediately; HELP returns the help text ([[HH-COM-12]]).
 - Review invitations and satisfaction checks pause while a complaint or case is active on the project.
+
+**Changed by [[OWN-DEC-153]], [[OWN-DEC-154]] (2026-10-21):** reminders now send automatically, so the send-time recheck is the only gate before an automatic reminder; queued texts are rechecked for relevance, delivery and opt-out ([[HH-COM-15]]).

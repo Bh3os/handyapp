@@ -2,12 +2,15 @@
 id: OQ-ESTIMATE-REMINDER-WORDING
 type: question
 title: The wording of the unanswered-estimate reminders, and the open details of their drafts
-status: open
+status: superseded
 area: messaging
 links:
   related: ["[[HH-EST-14]]", "[[OWN-DEC-78]]", "[[OWN-DEC-132]]", "[[FACT-REMINDER-CADENCES]]", "[[HH-COM-04]]", "[[HH-COM-05]]", "[[OQ-BIRD-10DLC]]", "[[TSK-0060]]"]
+  superseded_by: ["[[OWN-DEC-151]]", "[[OWN-DEC-153]]"]
 source: "TSK-0060 (2026-10-21): HH-EST-14 asks for a neutral reminder template; no owner wording exists for reminder.unanswered_estimate"
 ---
+**Answered by [[OWN-DEC-151]], [[OWN-DEC-153]] (2026-10-21).**
+
 **Question:** which exact email subject and body (and text-message body) should the first and the final unanswered-estimate reminders use, and does the owner accept the PROPOSED details below?
 
 - **Who answers:** the owner (wording, channel and dismissal rules); the A2P 10DLC campaign description for the reminder texts goes with [[OQ-BIRD-10DLC]] (human review: messaging compliance).

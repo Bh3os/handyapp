@@ -5,11 +5,13 @@ title: Website facts the owner gave on 2026-10-05 (recorded late)
 status: active
 area: site
 links:
-  related: ["[[HH-FIN-02]]", "[[HH-CUS-02]]", "[[HH-BASE-04]]", "[[HH-SCH-03]]", "[[OWN-DEC-140]]"]
+  related: ["[[HH-FIN-02]]", "[[HH-CUS-02]]", "[[HH-BASE-04]]", "[[HH-SCH-03]]", "[[OWN-DEC-140]]", "[[OWN-DEC-165]]"]
   uses: ["[[FACT-VISIT-FEE]]", "[[FACT-DEPOSIT-RULE]]", "[[FACT-PAYMENT-DUE]]", "[[FACT-HOURS]]", "[[FACT-PRICING-DISCOUNTS]]", "[[FACT-PRICING-SAME-DAY-CHARGE]]", "[[FACT-SVC-HOME-AGE-LIMITS]]", "[[FACT-CUSTOMERS-SERVED]]"]
   part_of: ["[[C01]]", "[[C05]]"]
 source: "vault-own-decisions.md OWN-DEC-66; two-websites-owner-resolutions.md R12; owner-answers-verbatim.md 2026-10-05"
 ---
+Partly replaced by [[OWN-DEC-165]] (2026-10-21): discount eligibility and verification are decided: service members, veterans and military spouses, seniors 60+, returning customers within 12 months; staff verify.
+
 Partly replaced by [[OWN-DEC-140]]: no same-day charge; and [[OWN-DEC-145]]: discount shown as a totals row.
 
 Owner wording (in-chat answers, 2026-10-05, verbatim): deposit due "Before materials"; remaining balance "When the job is finished (Recommended)"; customers served "Home owners, renters, land lord and airbnb hosts"; visit hours "Everyday 8 morning till 10 at night"; discounts "Military and senoirs discounts also 10 usd discount for review and the returning customers 10% from the qoute", then for the $10 review discount "Drop it, just ask (Recommended)", for the military and senior amount "10% of the quote (Recommended)", for stacking "Only the biggest one (Recommended)", for eligibility "60+, spouses, last 12 months"; same-day or emergency jobs "Yes with a rush charge", priced "Priced per job (Recommended)"; homes built before 1978 "Decline those jobs for now"; popcorn ceilings "Decline older ceilings".

@@ -15,3 +15,5 @@ Append-only record of an important action: sign-ins and failures, role changes, 
 **Invariants:** append-only; immutability, redaction and the 7-year retention per [[HH-SEC-06]].
 
 **Who may change:** written by the server only; read access per [[HH-SEC-06]].
+
+**Changed by [[OWN-DEC-164]] (2026-10-21):** append-only during retention; owner-authorized deletion after 7 years only through [[HH-SEC-08]], with its own protected trail.

@@ -2,12 +2,15 @@
 id: OQ-ACCOUNT-CONTACT-NOTICE
 type: question
 title: The notice to the old email after a customer account's sign-in email changes
-status: open
+status: superseded
 area: identity
 links:
   related: ["[[HH-ID-11]]", "[[FACT-AUTOMATIC-MESSAGES]]", "[[ENT-CustomerAccount]]", "[[OWN-DEC-150]]", "[[TSK-0036]]"]
+  superseded_by: ["[[OWN-DEC-151]]"]
 source: "TSK-0036 (2026-10-21): HH-ID-11 says a sensitive contact change sends a notice to the old contact value; FACT-AUTOMATIC-MESSAGES does not list that notice and no wording exists"
 ---
+**Answered by [[OWN-DEC-151]] (2026-10-21).**
+
 **Question:** should the notice to the old email after a customer account's sign-in email changes send automatically (a fifteenth customer message on the automatic list), and which exact email subject and body should it use?
 
 - **Who answers:** the owner.

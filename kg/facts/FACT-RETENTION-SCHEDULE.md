@@ -5,10 +5,20 @@ title: Record retention schedule with owner deletion review
 status: active
 area: privacy
 links:
-  decided_by: ["[[OWN-DEC-70]]", "[[OWN-DEC-71]]", "[[OWN-DEC-113]]", "[[OWN-DEC-123]]", "[[OWN-DEC-142]]"]
+  decided_by: ["[[OWN-DEC-70]]", "[[OWN-DEC-71]]", "[[OWN-DEC-113]]", "[[OWN-DEC-123]]", "[[OWN-DEC-142]]", "[[OWN-DEC-164]]", "[[OWN-DEC-176]]", "[[OWN-DEC-177]]"]
   related: ["[[OQ-RETENTION-REVIEW]]", "[[HH-PRIV-01]]", "[[HH-DATA-09]]"]
 source: "OWN-DEC-70, 71, 113, 123, 142"
 ---
+**Changed by [[OWN-DEC-164]], [[OWN-DEC-176]], [[OWN-DEC-177]] (2026-10-21):** added rows (provisional, configurable):
+- Staff accounts: 7 years after departure (review threshold); access disabled at once.
+- Consent records: 5 years after the last relevant use (review threshold); never while the permission is active or a claim remains.
+- Settings and content history: while retained records depend on them.
+- Technical logs: 90 days.
+- Expired sessions and access links: minimal non-reusable metadata up to 30 days.
+- Requests that never became jobs: after the 2 years and the Owner's review, only reference, dates and final status remain ([[OWN-DEC-176]]).
+- Audit records: 7 years is a review threshold; deletion only through the owner-authorized retention workflow ([[OWN-DEC-164]]).
+No irreversible automatic deletion until the CPA and the attorney confirm ([[OQ-RETENTION-REVIEW]]).
+
 **Value (configurable schedule, [[OWN-DEC-70]]):**
 - Requests that never become jobs: 2 years after closure, then the owner's deletion-review queue (no separate 1-year contact-removal rule).
 - Unaccepted estimates: 2 years after expiration or closure.

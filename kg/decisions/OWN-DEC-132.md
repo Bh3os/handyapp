@@ -2,13 +2,16 @@
 id: OWN-DEC-132
 type: decision
 title: "Estimate reminders at +24 hours and +3 days, released any time"
-status: active
+status: superseded
 area: messaging
 links:
   related: ["[[OWN-DEC-78]]"]
   uses: ["[[FACT-REMINDER-CADENCES]]"]
+  superseded_by: ["[[OWN-DEC-153]]"]
 source: "owner answers 2026-10-20 (coordinator session)"
 ---
+**Superseded by [[OWN-DEC-153]] (2026-10-21).**
+
 Owner wording (2026-10-20): Q: "Estimate reminders: ... drafted at +3 days and a final one at +7 days ... Keep that?" Answer: "Faster: +24h / +3 days". Q: "Estimate reminder drafts (+24h, +3 days): should they also wait for contact hours 8 AM-10 PM like the others?" Answer: "No restriction".
 
 Effect:

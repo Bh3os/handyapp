@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: scheduling
 links:
-  decided_by: ["[[OWN-DEC-125]]"]
+  decided_by: ["[[OWN-DEC-125]]", "[[OWN-DEC-159]]"]
   depends_on: ["[[HH-DATA-06]]"]
   uses: ["[[ENT-Visit]]", "[[ENT-Property]]", "[[FACT-TIMEZONE]]"]
   tested_by: ["[[T41]]"]
@@ -17,3 +17,5 @@ source: "guide 14.1 HH-SCH-02"
 - The local date and arrival window chosen are stored with the zone, so moving across a daylight-saving change keeps the chosen local window.
 - A local time that does not exist (spring-forward gap) is refused with a clear message; a repeated local hour (fall-back) is stored unambiguously with its offset.
 - Customers always see the appointment's zone. Server time zone is never relied on; conversions are tested at both DST boundaries.
+
+**Changed by [[OWN-DEC-159]] (2026-10-21):** appointments use the property's zone (Eastern or Central); unknown zones are flagged, never assumed.

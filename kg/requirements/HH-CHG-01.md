@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: field
 links:
-  decided_by: ["[[OWN-DEC-108]]", "[[OWN-DEC-83]]", "[[OWN-DEC-145]]"]
+  decided_by: ["[[OWN-DEC-108]]", "[[OWN-DEC-83]]", "[[OWN-DEC-145]]", "[[OWN-DEC-168]]", "[[OWN-DEC-169]]"]
   constrained_by: ["[[RULE-MONEY-CENTS]]", "[[FACT-NO-MINIMUM]]", "[[FACT-TAX-NO-LINE]]"]
   uses: ["[[ENT-ChangeOrder]]", "[[ENT-Job]]"]
   tested_by: ["[[T53]]"]
@@ -22,3 +22,5 @@ Each change-order version ([[ENT-ChangeOrder]]) links to its job and holds:
 - drafter, publisher (estimator or Owner) and version number.
 
 States: `draft → reviewed → issued → approved / rejected / expired / superseded / withdrawn`.
+
+**Changed by [[OWN-DEC-168]], [[OWN-DEC-169]] (2026-10-21):** contents also include the original job and approved estimate references, the updated project total, deposit or payment adjustments, approval requirements and publication and expiry timestamps (valid 7 days); negative change orders document removed work or credits as a negative adjustment in the totals (PROPOSED reading).

@@ -5,10 +5,12 @@ title: Project record created at submission; guest project link
 status: active
 area: portal
 links:
-  related: ["[[OWN-DEC-63]]", "[[OWN-DEC-96]]", "[[HH-ID-01]]", "[[HH-ID-03]]", "[[HH-ID-04]]", "[[HH-ID-05]]", "[[HH-ID-09]]", "[[HH-ID-10]]", "[[HH-INT-14]]"]
+  related: ["[[OWN-DEC-63]]", "[[OWN-DEC-96]]", "[[HH-ID-01]]", "[[HH-ID-03]]", "[[HH-ID-04]]", "[[HH-ID-05]]", "[[HH-ID-09]]", "[[HH-ID-10]]", "[[HH-INT-14]]", "[[OWN-DEC-160]]"]
   uses: ["[[FACT-AUTOMATIC-MESSAGES]]"]
 source: "owner-answers-verbatim 2026-10-12T18:42:00.779Z [3.4 After]; decision-briefs 2026-10-12T18:43:44"
 ---
+Partly replaced by [[OWN-DEC-160]] (2026-10-21): guest links last 24 hours and their expiry never closes a project.
+
 Owner, 2026-10-12, journey Step 3.4, after the receipt.
 
 Question asked:

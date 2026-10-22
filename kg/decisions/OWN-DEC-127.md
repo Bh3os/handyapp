@@ -5,11 +5,13 @@ title: Estimate terms v1.0 drafted from agreed policies only
 status: active
 area: approval
 links:
-  related: ["[[OWN-DEC-72]]", "[[OWN-DEC-103]]", "[[OQ-ATTORNEY-TERMS]]", "[[OQ-TERMS-OWNER-APPROVAL]]", "[[HH-EST-06]]", "[[HH-PRIV-04]]"]
+  related: ["[[OWN-DEC-72]]", "[[OWN-DEC-103]]", "[[OQ-ATTORNEY-TERMS]]", "[[OQ-TERMS-OWNER-APPROVAL]]", "[[HH-EST-06]]", "[[HH-PRIV-04]]", "[[OWN-DEC-187]]"]
   uses: ["[[FACT-ESTIMATE-VALIDITY]]", "[[FACT-DEPOSIT-RULE]]", "[[FACT-PAYMENT-DUE]]", "[[FACT-PAYMENT-METHODS]]", "[[FACT-TAX-NO-LINE]]", "[[FACT-NO-MINIMUM]]", "[[FACT-NO-SURCHARGE]]", "[[FACT-REOPEN-PERIOD]]", "[[FACT-BUSINESS-NAME]]"]
   constrained_by: ["[[RULE-HUMAN-REVIEW]]", "[[RULE-NO-INVENTED-FACTS]]"]
 source: "owner-answers-verbatim 2026-10-12T19:53:27.289Z [Terms]; decision-briefs 2026-10-12T19:54:06"
 ---
+Partly replaced by [[OWN-DEC-187]] (2026-10-21): the owner approved terms v1.0 for real customer approvals; attorney review of the excluded clauses stays open.
+
 Owner, 2026-10-12, missing fact 4 (estimate terms).
 
 Question asked:

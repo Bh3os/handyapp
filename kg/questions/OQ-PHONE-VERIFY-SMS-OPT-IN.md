@@ -2,12 +2,15 @@
 id: OQ-PHONE-VERIFY-SMS-OPT-IN
 type: question
 title: Verifying a phone number that has no SMS opt-in, and changing the phone on the receipt
-status: open
+status: superseded
 area: identity
 links:
   related: ["[[HH-INT-13]]", "[[HH-INT-22]]", "[[OWN-DEC-96]]", "[[OWN-DEC-147]]", "[[OQ-BIRD-10DLC]]", "[[OQ-ATTORNEY-PRIVACY]]", "[[TSK-0033]]"]
+  superseded_by: ["[[OWN-DEC-178]]"]
 source: "TSK-0033 (2026-10-21): OWN-DEC-96 verifies the phone by code; HH-INT-22 allows no text, codes included, without a current SMS opt-in"
 ---
+**Answered by [[OWN-DEC-178]] (2026-10-21).**
+
 **Question:** how should a guest verify a phone number when the request did not include the SMS opt-in, and how should a corrected phone number get its own opt-in before a code can be texted to it?
 
 - **Who answers:** the owner, with the attorney review of the SMS wording ([[OQ-ATTORNEY-PRIVACY]]); the 10DLC campaign's opt-in description ([[OQ-BIRD-10DLC]]) names where opt-in happens.

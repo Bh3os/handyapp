@@ -5,9 +5,11 @@ title: "Offered appointment windows are held 24 hours"
 status: active
 area: scheduling
 links:
-  related: ["[[OWN-DEC-99]]", "[[OWN-DEC-105]]", "[[OWN-DEC-119]]"]
+  related: ["[[OWN-DEC-99]]", "[[OWN-DEC-105]]", "[[OWN-DEC-119]]", "[[OWN-DEC-194]]"]
 source: "owner answers 2026-10-20 (coordinator session)"
 ---
+Partly replaced by [[OWN-DEC-194]] (2026-10-21): the 24-hour hold starts when the offer is published to the customer.
+
 Owner wording (2026-10-20): Q: "When staff offer 2-3 appointment windows to a customer, should those windows be held (blocked for others) until the customer picks one?" Answer: "Hold for 24 hours".
 
 Effect:

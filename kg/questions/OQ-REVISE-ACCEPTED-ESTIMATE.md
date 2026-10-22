@@ -2,12 +2,15 @@
 id: OQ-REVISE-ACCEPTED-ESTIMATE
 type: question
 title: How an accepted estimate is changed - a new estimate version or a change order
-status: open
+status: superseded
 area: estimates
 links:
   related: ["[[HH-EST-04]]", "[[HH-PORT-05]]", "[[HH-CHG-02]]", "[[HH-EST-10]]", "[[OWN-DEC-118]]", "[[TSK-0055]]"]
+  superseded_by: ["[[OWN-DEC-169]]"]
 source: "TSK-0055 (2026-10-21): HH-EST-04 and HH-PORT-05 read differently for an accepted estimate"
 ---
+**Answered by [[OWN-DEC-169]] (2026-10-21).**
+
 **Question:** once the customer has accepted an estimate, is a change to it a new version of the same estimate (published, then approved again) or always a change order? [[HH-EST-04]] says "any edit to a published or accepted version creates a new version that needs its own approval", while [[HH-PORT-05]] says accepted scope or price changes need a change order that staff publish and the customer approves ([[HH-CHG-02]]), and [[HH-EST-10]] keeps accepted work from being recalculated.
 
 - **Who answers:** the owner.

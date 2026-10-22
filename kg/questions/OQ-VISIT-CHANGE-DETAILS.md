@@ -2,12 +2,15 @@
 id: OQ-VISIT-CHANGE-DETAILS
 type: question
 title: The reschedule, reassign, cancel and change-request details no decision gives
-status: open
+status: superseded
 area: scheduling
 links:
   related: ["[[HH-SCH-07]]", "[[HH-PORT-04]]", "[[OWN-DEC-107]]", "[[OWN-DEC-119]]", "[[OWN-DEC-134]]", "[[FACT-CANCELLATION-RULES]]", "[[FACT-AUTOMATIC-MESSAGES]]", "[[HH-FIN-14]]", "[[HH-OFF-07]]", "[[TSK-0066]]", "[[TSK-0069]]", "[[TSK-0070]]", "[[TSK-0089]]"]
+  superseded_by: ["[[OWN-DEC-192]]", "[[OWN-DEC-195]]"]
 source: "TSK-0066 (2026-10-21): HH-SCH-07 and HH-PORT-04 state the rules; the details below are PROPOSED or wait for later tasks"
 ---
+**Answered by [[OWN-DEC-192]], [[OWN-DEC-195]] (2026-10-21).**
+
 **Question:** does the owner approve, or change, these PROPOSED details of changing a booked visit?
 
 - **Who answers:** the owner; the customer-facing wording of the cancellation rules with the attorney ([[OQ-ATTORNEY-TERMS]]).

@@ -5,10 +5,12 @@ title: Brand HandyHub and domain handyhub247.com
 status: active
 area: business
 links:
-  related: ["[[HH-BASE-04]]", "[[HH-CUS-05]]"]
+  related: ["[[HH-BASE-04]]", "[[HH-CUS-05]]", "[[OWN-DEC-184]]"]
   uses: ["[[FACT-BUSINESS-NAME]]", "[[FACT-DOMAIN]]"]
 source: "vault-own-decisions.md OWN-DEC-02; owner facts L3 (2026-10-02)"
 ---
+Partly replaced by [[OWN-DEC-184]] (2026-10-21): the domain is not purchased yet.
+
 Owner wording (owner facts, 2026-10-02): "Brand HandyHub; domain handyhub247.com. Domain ownership/connection and 24/7 staffing are not established."
 
 Effect:

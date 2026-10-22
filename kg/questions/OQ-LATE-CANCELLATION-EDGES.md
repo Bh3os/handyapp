@@ -2,12 +2,15 @@
 id: OQ-LATE-CANCELLATION-EDGES
 type: question
 title: Late cancellations the cancellation rules do not decide
-status: open
+status: superseded
 area: payments
 links:
   related: ["[[FACT-CANCELLATION-RULES]]", "[[OWN-DEC-134]]", "[[OWN-DEC-99]]", "[[HH-FIN-14]]", "[[HH-PORT-04]]", "[[TSK-0066]]"]
+  superseded_by: ["[[OWN-DEC-161]]", "[[OWN-DEC-163]]"]
 source: "TSK-0066 (2026-10-21): cases FACT-CANCELLATION-RULES does not cover"
 ---
+**Answered by [[OWN-DEC-161]], [[OWN-DEC-163]] (2026-10-21).** Enforcement still waits for the attorney ([[OQ-ATTORNEY-TERMS]]).
+
 **Question:** what applies in these two cases of a final cancellation with less than 24 hours notice?
 
 1. **A verified deposit above zero but below $50.00** (for example a partly paid deposit): is all of it kept, is the rest of the $50.00 invoiced, or something else? The rules say "$50.00 kept; rest of any deposit refunded; with no deposit the $50.00 is invoiced".

@@ -10,6 +10,13 @@ links:
   related: ["[[OWN-DEC-96]]", "[[OWN-DEC-97]]", "[[OWN-DEC-103]]", "[[OWN-DEC-120]]", "[[OWN-DEC-124]]", "[[HH-COM-04]]", "[[HH-COM-05]]", "[[HH-AUTO-01]]"]
 source: "OWN-DEC-65, 95-111, 114, 119, 120; decision-briefs 2026-10-12T18:43-19:32"
 ---
+**Changed by [[OWN-DEC-151]], [[OWN-DEC-152]], [[OWN-DEC-153]], [[OWN-DEC-155]], [[OWN-DEC-156]], [[OWN-DEC-157]], [[OWN-DEC-158]] (2026-10-21):** the list below is replaced as follows; [[TSK-0119]] updates the numbered table and the seeded `messages.automatic` value together.
+- Automatic (customer): request received; verification code; secure access link; question notice; estimate-visit options; estimate visit confirmed; not-a-fit notice; estimate ready; estimate question answered (after staff release the answer); estimate reminder (3 days); question reminder (3 days); estimate approval confirmation (link only); work-appointment windows; work appointment confirmed; appointment reminder (24 hours before); appointment changed; visit cancelled; on the way; deposit invoice; proposed change; invoice ready; job complete (authorized final completion only); payment receipt (each confirmed recorded payment, partial payments say so); account email changed (old and new verified address).
+- Released by staff: staff replies (Send is the release); the service-quality follow-up 48 hours after completion; review requests and marketing (consent needed); deletion-outcome notices; unpaid-invoice reminders until [[OQ-MESSAGES-OUTSIDE-THE-21]] is answered; repeat-service reminders.
+- Released by the Owner: work paused, and other sensitive communications ([[OWN-DEC-152]]).
+- Content: the first name and non-sensitive reference numbers may appear; amounts, property addresses, access codes, tokens and private details never ([[OWN-DEC-158]]).
+- Email any hour; texts only after A2P 10DLC, within the recipient's local permitted hours ([[OWN-DEC-154]]).
+
 **Value:** one configured list (a single policy list in the notification outbox). Only these customer messages send automatically:
 
 | # | Message | Trigger | Decision |

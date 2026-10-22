@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: staff
 links:
-  decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-123]]"]
+  decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-123]]", "[[OWN-DEC-200]]"]
   depends_on: ["[[HH-STAFF-01]]", "[[HH-OPS-01]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[ENT-StaffUser]]", "[[ENT-RoleGrant]]", "[[ENT-Visit]]", "[[ENT-AuditEvent]]"]
@@ -18,3 +18,5 @@ source: "guide 10.1 HH-STAFF-02; OWN-DEC-114, OWN-DEC-123"
 - Disabling an account immediately blocks every new server operation and revokes all active sessions and tokens. A stale browser session cannot write after offboarding, including queued offline field writes.
 - The employee's job history and evidence are kept.
 - Their upcoming assignments are flagged for reassignment as queue items ([[HH-OPS-01]]); they are never silently cancelled. The person is removed from future capacity.
+
+**Changed by [[OWN-DEC-200]] (2026-10-21):** reactivation needs a verified reset link and the Owner's permission review; earlier roles are not restored automatically.

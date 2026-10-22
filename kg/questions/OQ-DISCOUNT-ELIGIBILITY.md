@@ -2,12 +2,15 @@
 id: OQ-DISCOUNT-ELIGIBILITY
 type: question
 title: How discount eligibility is verified
-status: open
+status: superseded
 area: estimates
 links:
   related: ["[[OWN-DEC-66]]", "[[FACT-PRICING-DISCOUNTS]]"]
+  superseded_by: ["[[OWN-DEC-165]]"]
 source: "OWN-DEC-66; owner-answers-verbatim 2026-10-05T17:29 [Eligibility]"
 ---
+**Answered by [[OWN-DEC-165]] (2026-10-21).**
+
 **Question:** how are military, senior (60+) and returning-customer (last 12 months) eligibility verified, and do military spouses qualify?
 
 - **Who answers:** the owner.

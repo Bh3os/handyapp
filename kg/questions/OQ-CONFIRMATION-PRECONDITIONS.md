@@ -2,12 +2,15 @@
 id: OQ-CONFIRMATION-PRECONDITIONS
 type: question
 title: The confirmation-precondition details no decision gives
-status: open
+status: superseded
 area: scheduling
 links:
   related: ["[[HH-SCH-06]]", "[[HH-SCH-05]]", "[[ENT-Hold]]", "[[HH-LEAD-04]]", "[[HH-CRM-02]]", "[[HH-WORK-02]]", "[[OWN-DEC-82]]", "[[OWN-DEC-137]]", "[[TSK-0064]]", "[[TSK-0074]]", "[[TSK-0077]]"]
+  superseded_by: ["[[OWN-DEC-192]]", "[[OWN-DEC-193]]", "[[OWN-DEC-167]]"]
 source: "TSK-0064 (2026-10-21): HH-SCH-06 lists the preconditions; the details below are PROPOSED or not yet recorded anywhere"
 ---
+**Answered by [[OWN-DEC-192]], [[OWN-DEC-193]], [[OWN-DEC-167]] (2026-10-21).**
+
 **Question:** does the owner approve, or change, these PROPOSED details of the confirmation check, and how are the three site preconditions below recorded?
 
 - **Who answers:** the owner.

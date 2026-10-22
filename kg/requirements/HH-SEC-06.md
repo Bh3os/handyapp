@@ -6,7 +6,7 @@ status: active
 priority: P0
 area: security
 links:
-  decided_by: ["[[OWN-DEC-123]]", "[[OWN-DEC-114]]", "[[OWN-DEC-117]]", "[[OWN-DEC-118]]", "[[OWN-DEC-70]]", "[[OWN-DEC-142]]"]
+  decided_by: ["[[OWN-DEC-123]]", "[[OWN-DEC-114]]", "[[OWN-DEC-117]]", "[[OWN-DEC-118]]", "[[OWN-DEC-70]]", "[[OWN-DEC-142]]", "[[OWN-DEC-164]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]"]
   uses: ["[[ENT-AuditEvent]]", "[[FACT-RETENTION-SCHEDULE]]"]
   tested_by: ["[[T28]]", "[[T64]]", "[[T74]]"]
@@ -33,3 +33,5 @@ Rules ([[OWN-DEC-123]]):
 - Passwords, tokens, access codes, raw secrets and sensitive message contents never appear in audit diffs or logs; they are redacted, and a test checks it.
 - The Owner sees the full audit log. Office staff see their own audit actions, plus the operational timeline of records their role may access. Estimators and Workers see no audit-log screen; they see only the record timelines their role allows (PROPOSED default from least privilege; the owner has not stated it).
 - Audit records are kept 7 years ([[FACT-RETENTION-SCHEDULE]], [[OWN-DEC-142]]), then go to the owner's deletion-review queue; records under a case or legal hold are kept until the hold ends. They are never deleted automatically.
+
+**Changed by [[OWN-DEC-164]] (2026-10-21):** deletion after 7 years is possible only through the retention workflow of [[HH-SEC-08]]; editing stays impossible.
