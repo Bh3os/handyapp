@@ -5,6 +5,7 @@ import pino from 'pino'
 import type { Logger } from '../platform/logger.js'
 import { BirdSmsSender, FakeSmsSender } from './bird/index.js'
 import { destinationPolicy, guardEmail, guardSms, type DestinationPolicy } from './destinations.js'
+import { LogEmailSender } from './log-email.js'
 import { FakeInboundReader, ResendInboundReader, type InboundEmailReader } from './inbound.js'
 import { FakeObjectStorage, R2ObjectStorage, type ObjectStorage } from './r2/index.js'
 import { FakeEmailSender, ResendEmailSender } from './resend/index.js'
@@ -40,8 +41,13 @@ export function createProviders(
   const fakeEmail = settings.email.adapter === 'fake' ? new FakeEmailSender() : null
   const fakeSms = settings.sms.adapter === 'fake' ? new FakeSmsSender() : null
   const fakeStorage = settings.storage.adapter === 'fake' ? new FakeObjectStorage() : null
+  // TSK-0112: the staging log sender (EMAIL_PROVIDER=log) writes allowed messages to the app's log, never sends.
   const email =
-    settings.email.adapter === 'resend' ? new ResendEmailSender(settings.email, options.fetchImpl) : fakeEmail
+    settings.email.adapter === 'resend'
+      ? new ResendEmailSender(settings.email, options.fetchImpl)
+      : settings.email.adapter === 'log'
+        ? new LogEmailSender(settings.testDestinations.emails, log)
+        : fakeEmail
   const sms = settings.sms.adapter === 'bird' ? new BirdSmsSender(settings.sms, options.fetchImpl) : fakeSms
   const storage = settings.storage.adapter === 'r2' ? new R2ObjectStorage(settings.storage) : fakeStorage
   const fakeInbound = settings.email.adapter === 'fake' ? new FakeInboundReader() : null
@@ -83,4 +89,5 @@ export type { DestinationPolicy } from './destinations.js'
 export type { InboundEmailReader } from './inbound.js'
 export type { ObjectStorage } from './r2/index.js'
 export type { ProviderSettings } from './settings.js'
+export { isTestProvider, TEST_PROVIDERS } from './types.js'
 export type { EmailMessage, EmailSender, SendOutcome, SmsMessage, SmsSender } from './types.js'

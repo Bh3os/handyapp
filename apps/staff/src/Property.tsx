@@ -9,7 +9,16 @@ import { SERVICE_AREA } from '@handyhub/domain/areas'
 import { ZONE_CHOICES, zoneFamily } from '@handyhub/domain/zones'
 import { LABEL_FAMILIES, type StaffKey, type StaffLocale } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
-import { useCallback, useEffect, useId, useRef, useState, type MouseEvent, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+} from 'react'
 import { call, idempotencyKey, type ApiErrorBody, type ApiResponse, type Fetch } from './api'
 import { codeLabel } from './Requests'
 
@@ -827,7 +836,9 @@ type Code = PropertyDetailView['accessCodes']['items'][number]
 
 /** The revealed value: shown until its time is up, the tab is hidden, Hide is pressed or the screen closes. */
 export function RevealedValue({ t, revealed, onHide }: { t: T; revealed: Revealed; onHide: () => void }) {
-  useEffect(() => {
+  // A layout effect, so the hide-on-hidden-tab listener is in place in the same commit that shows the value: a tab
+  // hidden right after the reveal can never leave the code on screen.
+  useLayoutEffect(() => {
     const left = Math.max(0, new Date(revealed.hideAt).getTime() - Date.now())
     const timer = setTimeout(onHide, left)
     const hidden = () => {

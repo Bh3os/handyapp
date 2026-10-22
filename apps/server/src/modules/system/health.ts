@@ -190,7 +190,8 @@ export function providerViews(settings: ProviderSettings | null | undefined): Pr
     if (!settings) return { channel, mode: 'unknown', provider: null, missing: [] }
     const s = settings[channel]
     if (s.adapter === 'not_configured') return { channel, mode: 'not_configured', provider: null, missing: s.missing }
-    if (s.adapter === 'fake') return { channel, mode: 'fake', provider: null, missing: [] }
+    // The staging log sender (TSK-0112) is a test provider like the fakes: nothing reaches a real inbox.
+    if (s.adapter === 'fake' || s.adapter === 'log') return { channel, mode: 'fake', provider: null, missing: [] }
     return { channel, mode: 'real', provider: real[channel], missing: [] }
   })
 }
