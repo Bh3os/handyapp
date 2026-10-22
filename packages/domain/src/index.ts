@@ -17,6 +17,7 @@ import { VISIT_MACHINE } from './visit.js'
 import { SOP_VERSION_MACHINE } from './sop.js'
 import { WINDOW_OFFER_MACHINE } from './window-offer.js'
 import { GATE_EXCEPTION_MACHINE } from './start-gate.js'
+import { COMPLAINT_CASE_MACHINE, INCIDENT_CASE_MACHINE } from './case.js'
 
 export const PACKAGE_NAME = '@handyhub/domain'
 
@@ -270,6 +271,9 @@ export const MACHINES = {
   'window_offer.lifecycle': WINDOW_OFFER_MACHINE,
   'sop_version.review': SOP_VERSION_MACHINE,
   'gate_exception.lifecycle': GATE_EXCEPTION_MACHINE,
+  // TSK-0093: the two case lifecycles of ENT-Case.
+  'complaint_case.lifecycle': COMPLAINT_CASE_MACHINE,
+  'incident_case.lifecycle': INCIDENT_CASE_MACHINE,
 } as const
 export type MachineKey = keyof typeof MACHINES
 type M<K extends MachineKey> = (typeof MACHINES)[K]
@@ -328,3 +332,55 @@ export type {
   PublicationInvalidationReason,
   PublicationSubject,
 } from './publication-approval.js'
+// TSK-0093 (HH-QA-06, HH-INC-01, HH-INC-02, HH-INC-04, ENT-Case): cases, their lifecycles and customer updates.
+export {
+  CASE_EVENTS,
+  CASE_KINDS,
+  CASE_SEVERITIES,
+  CASE_SOURCES,
+  CASE_STATES,
+  caseMachineOf,
+  COMPLAINT_CASE_MACHINE,
+  COMPLAINT_CATEGORIES,
+  COMPLAINT_SOURCES,
+  COMPLAINT_STATES,
+  CUSTOMER_UPDATE_DETAIL_MAX,
+  CUSTOMER_UPDATE_KINDS,
+  CUSTOMER_UPDATE_TEMPLATES,
+  customerUpdateText,
+  FOLLOW_UP_STATES,
+  FORBIDDEN_CASE_WORDING,
+  forbiddenCaseWording,
+  INCIDENT_CASE_MACHINE,
+  INCIDENT_STATES,
+  INCIDENT_TYPES,
+  initialStateOf,
+  isActiveCase,
+  isRestrictedKind,
+  kindOfIncident,
+  notifiesOwner,
+  OWNER_NOTIFIED_KINDS,
+  REFERRAL_PROFESSIONALS,
+  RESTRICTED_CASE_KINDS,
+  REVIEW_AREAS,
+  reviewAreasOf,
+  safetyPauseTruthful,
+} from './case.js'
+export type {
+  CaseEvent,
+  CaseFacts,
+  CaseKind,
+  CaseSeverity,
+  CaseSource,
+  CaseState,
+  ComplaintCategory,
+  ComplaintEvent,
+  ComplaintState,
+  CustomerUpdateKind,
+  FollowUpState,
+  IncidentEvent,
+  IncidentState,
+  IncidentType,
+  ReferralProfessional,
+  ReviewArea,
+} from './case.js'

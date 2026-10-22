@@ -158,9 +158,18 @@ export const ACTIONS = [
   'audit.view',
   'incident.report',
   'case.record_complaint',
+  // PROPOSED (TSK-0093): seeing the case list and status (Office: only that a restricted case exists and its status,
+  // OWN-DEC-143) and working a complaint (acknowledge, investigate, notes, follow-ups, customer update drafts and
+  // their release) are part of recording complaint cases, so they sit in that row with the same cells.
+  'case.view',
+  'case.manage',
   'incident.view_restricted',
   'case.refer_professional',
   'case.close',
+  // PROPOSED (TSK-0093): triaging an incident, resolving, reopening, linking a hold and releasing customer updates of
+  // a restricted case are the Owner's (ENT-Case: "the Owner triages, refers, resolves and closes"), in the row of
+  // referral and closure.
+  'case.triage',
   'privacy.request_export',
   'privacy.request_correction',
   'privacy.request_deletion',
@@ -632,7 +641,7 @@ export const MATRIX: readonly MatrixRow[] = [
     office: every('Own actions', 'own_staff'),
   }),
   row(STAFF, 'Report an incident', ['incident.report'], { owner: Y(), office: Y(), estimator: Y(), worker: A() }),
-  row(STAFF, 'Record a complaint case', ['case.record_complaint'], {
+  row(STAFF, 'Record a complaint case', ['case.record_complaint', 'case.view', 'case.manage'], {
     owner: Y(),
     office: Y(),
     // The customer raises a complaint by message (message.reply); staff record the case.
@@ -644,7 +653,9 @@ export const MATRIX: readonly MatrixRow[] = [
     worker: every('Own report only', 'own_staff'),
     customer: no('— (acknowledgement, progress, next step)'),
   }),
-  row(STAFF, 'Professional referral, case closure', ['case.refer_professional', 'case.close'], { owner: Y() }),
+  row(STAFF, 'Professional referral, case closure', ['case.refer_professional', 'case.close', 'case.triage'], {
+    owner: Y(),
+  }),
   row(
     STAFF,
     'Request export, correction or deletion',

@@ -24,6 +24,7 @@ import { accessModule } from './access/index.js'
 import { accountsModule } from './accounts/index.js'
 import { auditModule } from './audit/index.js'
 import { capacityModule } from './capacity/index.js'
+import { casesModule } from './cases/index.js'
 import { portalModule } from './portal/index.js'
 import { questionsModule } from './questions/index.js'
 import { SITE_MODULE } from './site/index.js'
@@ -137,6 +138,9 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     retentionModule(),
     // TSK-0100: privacy requests, the Owner's Delete or Archive decisions, the deletion log and customer downloads.
     privacyModule({ storage: deps.storage ?? null }),
+    // TSK-0093: cases (complaints, incidents, damage, injury and disputes), their restricted section and the customer's
+    // released updates.
+    casesModule({ storage: deps.storage ?? null }),
   ]
   // TSK-0141 (OWN-DEC-191): Staging Tools exist only in a positively identified staging or isolated test environment.
   const env = deps.environment

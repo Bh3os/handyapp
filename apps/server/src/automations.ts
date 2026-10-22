@@ -12,6 +12,7 @@ import {
   estimateResponseNoticeAutomations,
 } from './modules/estimates/index.js'
 import { onTheWayAutomation } from './modules/field/index.js'
+import { caseOpenedNoticeAutomation } from './modules/cases/index.js'
 import { depositQueueAutomation } from './modules/finance/index.js'
 import { deliveryStatusAutomation, linkHostsOf, releaseAutomation } from './modules/notifications/index.js'
 import { photoProcessAutomation } from './modules/photos/index.js'
@@ -117,6 +118,11 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     }),
     // TSK-0056: a customer's Request Changes or Decline notifies the responsible staff member (wording NOT CONFIGURED).
     ...estimateResponseNoticeAutomations({
+      providers: { email: deps.providers.email, sms: null, linkHosts },
+      staffAppUrl: deps.staffAppUrl,
+    }),
+    // TSK-0093 (HH-INC-04): damage, injury and disputes notify every active Owner (wording NOT CONFIGURED).
+    caseOpenedNoticeAutomation({
       providers: { email: deps.providers.email, sms: null, linkHosts },
       staffAppUrl: deps.staffAppUrl,
     }),

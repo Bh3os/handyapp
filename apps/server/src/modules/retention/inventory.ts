@@ -636,6 +636,64 @@ export const TABLES = {
     categories: [NS],
   },
   // TSK-0141: the staging-only test data management (never used in production; a production mark forbids a reset).
+  // TSK-0093 (0081): cases. Complaints are job records; incident, damage, injury and dispute records (incident class,
+  // restricted to the Owner and the reporter, OWN-DEC-143) are safety records, kept 10 years after closure.
+  'quality.cases': {
+    holds:
+      'Cases: complaints (category, severity, source, assignee, due date) and incident, damage, injury and dispute ' +
+      'cases (the reported type); state, reviewer, linked hold, resolution, re-check and closure; never fault, ' +
+      'liability or compensation',
+    classes: ['request_details', 'incident'],
+    categories: [J, S],
+  },
+  'quality.incident_reports': {
+    holds:
+      'The restricted factual report of an incident, damage, injury or dispute: what happened, people affected, ' +
+      'work areas, immediate actions and only the necessary medical detail; the Owner and the reporter only',
+    classes: ['incident'],
+    categories: [S],
+    protectedEvidence: true,
+  },
+  'quality.case_notes': {
+    holds:
+      'Complaint descriptions and additions (internal) and restricted incident notes (the Owner and the reporter ' +
+      'only), as staff wrote them',
+    classes: ['request_details', 'incident'],
+    categories: [J, S],
+  },
+  'quality.case_attachments': {
+    holds:
+      'Supporting photos of a case (metadata; the files are in R2), in the class of their case; never in the project ' +
+      'gallery, the customer view or a worker feed',
+    classes: ['photos', 'incident'],
+    categories: [J, S],
+    vendors: ['r2'],
+  },
+  'quality.case_follow_ups': {
+    holds: 'Corrective follow-up items of a case: what, who, due date, done or canceled with the note',
+    classes: ['request_details'],
+    categories: [J, S],
+  },
+  'quality.case_referrals': {
+    holds:
+      "The Owner's own record of an insurer, attorney or other professional referral of a case: who was referred to, " +
+      'the date and a note; never shown to customers',
+    classes: ['incident'],
+    categories: [S],
+    protectedEvidence: true,
+  },
+  'quality.case_customer_updates': {
+    holds:
+      'Neutral customer updates of a case (acknowledgment, progress, next step, safety pause): the exact text, who ' +
+      'drafted and who released it after review, and when',
+    classes: ['contact', 'request_details'],
+    categories: [J, S],
+  },
+  'quality.case_events': {
+    holds: 'The history of each case: every state change with who, when and the note given',
+    classes: ['logs_audit'],
+    categories: [J, S],
+  },
   'staging.environment_marks': {
     holds: 'Which environments identified themselves on this database (staging, local, ci or production) and when',
     classes: ['configuration'],

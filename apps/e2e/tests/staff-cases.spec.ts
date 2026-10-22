@@ -1,0 +1,567 @@
+// Cases in real browsers (TSK-0093; HH-QA-06, HH-INC-01, HH-INC-02, HH-INC-04, T24, T54, HH-A11Y-01, OWN-DEC-124,
+// OWN-DEC-143, RULE-HUMAN-REVIEW). An Estimator of this spec publishes an estimate through the staff API and the
+// customer approves it through the customer API; the worker's confirmed visit is a fixture tomorrow, so the assignment
+// holds at any hour the spec runs. The worker reports an injury from the job packet (the form names Stop Work / Report
+// Hazard first) and reads their own report; Office sees only that the case exists and its status, and records a
+// complaint on the request record, where a second one of the same category is added to the existing case. The Owner
+// reads the details (audited), sees the human-review areas and that no referral is recorded, and releases a neutral
+// acknowledgment; the customer then sees that acknowledgment only. This spec records a synthetic "approved and
+// attorney-reviewed" estimate terms v1.0 for its own run only and restores NOT CONFIGURED afterwards (a test fixture,
+// never the owner's sign-off). axe checks each state. Every visitor, address, account, name and note is synthetic
+// (RULE-SYNTHETIC-DATA).
+import { execFileSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
+import { AxeBuilder } from '@axe-core/playwright'
+import { createDb } from '@handyhub/db'
+import { ESTIMATE_TERMS } from '@handyhub/domain/legal'
+import { localDateOf, resolveWindow } from '@handyhub/domain/local-time'
+import { expect, test, type APIRequestContext, type Browser, type Page } from '@playwright/test'
+import { accessTokenFor, codeFor } from '../codes.js'
+import { verifyCountyOf } from '../county.js'
+import { verifyPropertyZone } from '../zones.js'
+import { passSecondFactor } from '../mfa.js'
+
+const databaseUrl = process.env['E2E_DATABASE_URL']
+const port = process.env['E2E_PORT'] ?? '4310'
+const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
+// This spec's own synthetic client address (RFC 5737): the request form and the sign-in limits count per network.
+const HEADERS = { 'x-forwarded-for': '198.51.100.193' }
+test.use({ extraHTTPHeaders: HEADERS })
+
+const cli = fileURLToPath(new URL('../../server/dist/cli/staff-access.js', import.meta.url))
+const ESTIMATOR = 'e2e-cases-estimator@example.test'
+const WORKER = 'e2e-cases-worker@example.test'
+// Built at runtime so no literal looks like a credential (RULE-SYNTHETIC-DATA).
+const pw = ['synthetic', 'staff', 'cases', 'passphrase', '93'].join(' ')
+const ZONE = 'America/Kentucky/Louisville'
+/** A run-unique suffix in base 36 (never a long run of digits in free text). */
+const run = Date.now().toString(36)
+
+async function axe(page: Page) {
+  const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
+  expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+}
+
+async function withDb<T>(fn: (db: ReturnType<typeof createDb>) => Promise<T>): Promise<T> {
+  const db = createDb(databaseUrl as string, { max: 1, applicationName: 'e2e-cases' })
+  try {
+    return await fn(db)
+  } finally {
+    await db.destroy()
+  }
+}
+
+/** A new active version of a configuration key, as recordPolicyVersion writes it (value null: NOT CONFIGURED). */
+async function recordVersion(key: string, value: unknown, sourceIds: string[]) {
+  await withDb((db) =>
+    db.transaction().execute(async (trx) => {
+      const latest = await trx
+        .selectFrom('platform.policy_version')
+        .select((eb) => eb.fn.max('version').as('max'))
+        .where('key', '=', key)
+        .executeTakeFirst()
+      await trx
+        .updateTable('platform.policy_version')
+        .set({ status: 'superseded' })
+        .where('key', '=', key)
+        .where('status', '=', 'active')
+        .execute()
+      await trx
+        .insertInto('platform.policy_version')
+        .values({
+          key,
+          version: Number(latest?.max ?? 0) + 1,
+          state: value === null ? 'not_configured' : 'configured',
+          value: value === null ? null : JSON.stringify(value),
+          proposed: value !== null,
+          source_ids: sourceIds,
+          changed_by: 'e2e',
+          change_reason: 'synthetic e2e configuration',
+        })
+        .execute()
+    }),
+  )
+}
+
+/** A request for DW-01 sent through the API: its reference, IDs and link. */
+async function sendRequest(request: APIRequestContext) {
+  const res = await request.post('/api/v1/public/requests', {
+    headers: { 'idempotency-key': ['synthetic', 'e2e', 'cases', 'request', run].join('-') },
+    data: {
+      formVersion: 'e2e-1',
+      privacyNoticeVersion: 'privacy-notice-1',
+      services: [{ serviceId: 'SVC-DW-01' }],
+      notSure: false,
+      description: 'Synthetic cases project: a wall patch.',
+      property: {
+        street: '193 Synthetic Case Court',
+        city: 'Testville',
+        state: 'KY',
+        zip: '40000',
+        propertyType: 'house',
+      },
+      timing: { flexible: true, needHelpToday: false, windows: ['mornings'] },
+      estimatePreference: 'online',
+      contact: {
+        fullName: 'Test Case Customer',
+        email: `cases-e2e-${run}@example.test`,
+        phone: '(502) 555-0193',
+        preferredChannel: 'email',
+      },
+      smsOptIn: false,
+      marketingOptIn: false,
+    },
+  })
+  expect(res.status()).toBe(201)
+  const reference = ((await res.json()) as { reference: string }).reference
+  const row = await withDb((db) =>
+    db
+      .selectFrom('identity.project_access_grants as g')
+      .innerJoin('intake.requests as r', 'r.id', 'g.request_id')
+      .innerJoin('crm.projects as p', 'p.id', 'r.project_id')
+      .select(['g.id', 'g.nonce', 'r.id as request_id', 'r.project_id', 'p.property_id'])
+      .where('r.reference', '=', reference)
+      .executeTakeFirstOrThrow(),
+  )
+  // TSK-0127: staff's address and county check, which a first confirmation needs.
+  await verifyCountyOf(databaseUrl as string, row.project_id)
+  // TSK-0123: a new property's zone is unknown; this spec plans visits, so its zone is recorded first.
+  await withDb((db) => verifyPropertyZone(db, row.project_id))
+  return {
+    reference,
+    requestId: row.request_id,
+    projectId: row.project_id,
+    propertyId: row.property_id,
+    grantId: row.id,
+    token: accessTokenFor(row),
+  }
+}
+
+/** Opens the link and enters the emailed code: the customer's session is verified and fresh. */
+async function openProject(page: Page, link: { token: string; grantId: string; reference: string }) {
+  await page.goto(`/access#${link.token}`)
+  await page.getByRole('button', { name: 'Open', exact: true }).click()
+  await page.getByRole('button', { name: 'Email me a code' }).click()
+  await expect(page.getByLabel('Code')).toBeFocused()
+  const row = await withDb((db) =>
+    db
+      .selectFrom('identity.verification_codes')
+      .select(['id', 'nonce'])
+      .where('subject_ref', '=', `grant:${link.grantId}:email`)
+      .orderBy('created_at', 'desc')
+      .limit(1)
+      .executeTakeFirstOrThrow(),
+  )
+  await page.getByLabel('Code').fill(codeFor(row))
+  await page.getByRole('button', { name: 'Open my project' }).click()
+  await expect(page.getByRole('heading', { name: 'Your project', exact: true })).toBeVisible()
+}
+
+/**
+ * One of this spec's staff accounts, added straight to the database (the first Owner is created by the staff sign-in
+ * spec, which must find no Owner yet whatever order the specs run in), signed in through the staff app in a browser of
+ * its own; writes go through the staff API with the session. The worker is active with synthetic working hours.
+ */
+async function staffSession(browser: Browser, email: string, role: 'estimator' | 'office' | 'worker', home: string) {
+  const id = await withDb((db) =>
+    db.transaction().execute(async (tx) => {
+      const existing = await tx
+        .selectFrom('identity.staff_users')
+        .select('id')
+        .where('email', '=', email)
+        .executeTakeFirst()
+      if (existing) return existing.id
+      const user = await tx
+        .insertInto('identity.staff_users')
+        .values({
+          email,
+          display_name: role === 'worker' ? 'Caseworker Synthetic' : `E2E Cases ${role}`,
+          locale: 'en',
+          ...(role === 'worker' ? { status: 'active', activated_at: new Date() } : {}),
+        })
+        .returning('id')
+        .executeTakeFirstOrThrow()
+      await tx.insertInto('identity.auth_identities').values({ staff_user_id: user.id }).execute()
+      await tx
+        .insertInto('identity.role_grants')
+        .values({ staff_user_id: user.id, kind: 'role', name: role, issued_by: 'e2e:cases', reason: null })
+        .execute()
+      if (role === 'worker') {
+        await tx
+          .insertInto('work.worker_schedules')
+          .values({ staff_user_id: user.id, version: 1, time_zone: ZONE, set_by: user.id, reason: 'E2E fixture' })
+          .execute()
+        for (let weekday = 1; weekday <= 7; weekday++)
+          await tx
+            .insertInto('work.working_hours')
+            .values({ staff_user_id: user.id, version: 1, weekday, start_minute: 0, end_minute: 24 * 60 })
+            .execute()
+      }
+      return user.id
+    }),
+  )
+  const link = new URL(
+    execFileSync(process.execPath, [cli, 'password-link', email], {
+      env: { ...process.env, HANDYHUB_ENV: 'ci', DATABASE_URL: databaseUrl, PORT: port, HOST: '127.0.0.1' },
+      encoding: 'utf8',
+      stdio: 'pipe',
+    }).split('\n')[0] as string,
+  ).pathname
+  const context = await browser.newContext({ extraHTTPHeaders: HEADERS })
+  const page = await context.newPage()
+  await page.goto(link)
+  await page.getByLabel('New password').fill(pw)
+  await page.getByRole('button', { name: 'Save password' }).click()
+  await expect(page.getByText('Your password is saved. Sign in with your new password.')).toBeVisible()
+  await page.goto('/staff/sign-in')
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password', { exact: true }).fill(pw)
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  // MFA is mandatory (TSK-0154): enrol on the account's first sign-in, the code afterwards.
+  await passSecondFactor(page)
+  await expect(page.getByRole('heading', { level: 1, name: home })).toBeVisible()
+  const csrf = ((await (await page.request.get('/api/v1/staff/auth/session')).json()) as { csrfToken: string })
+    .csrfToken
+  let k = 0
+  const write = async (method: 'POST' | 'PUT', url: string, data: unknown, version?: number) => {
+    const res = await page.request.fetch(url, {
+      method,
+      data,
+      headers: {
+        'x-csrf-token': csrf,
+        'idempotency-key': ['synthetic', 'e2e', 'cases', role, run, String(++k)].join('-'),
+        ...(version === undefined ? {} : { 'if-match': `"${version}"` }),
+      },
+    })
+    expect(res.status(), await res.text()).toBeLessThan(300)
+    return res.json() as Promise<Record<string, unknown>>
+  }
+  return { id, page, write, close: () => context.close() }
+}
+
+/** Tomorrow's local date: calendar arithmetic on the date, never the hour or the weekday. */
+function tomorrow(): string {
+  const d = new Date(`${localDateOf(new Date(), ZONE)}T12:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + 1)
+  return d.toISOString().slice(0, 10)
+}
+
+/**
+ * Tomorrow's confirmed work visit for the worker (the assignment: a confirmed reservation, whose access window lasts
+ * until the end of the visit's day), so the spec never depends on the hour it runs.
+ */
+async function tomorrowsVisit(link: { projectId: string; propertyId: string }, jobId: string, workerId: string) {
+  const w = resolveWindow({ date: tomorrow(), start: '09:10', end: '09:40', zone: ZONE })
+  if (!w.ok) throw new Error('fixture window')
+  return withDb((db) =>
+    db.transaction().execute(async (tx) => {
+      const v = await tx
+        .insertInto('work.visits')
+        .values({
+          purpose: 'service',
+          project_id: link.projectId,
+          job_id: jobId,
+          property_id: link.propertyId,
+          local_date: w.window.date,
+          window_start: w.window.start,
+          window_end: w.window.end,
+          time_zone: ZONE,
+          start_offset_minutes: w.window.startOffsetMinutes,
+          end_offset_minutes: w.window.endOffsetMinutes,
+          starts_at: w.window.startsAt,
+          ends_at: w.window.endsAt,
+          window_set_by: workerId,
+          expected_duration_minutes: 30,
+          preparation_buffer_minutes: 0,
+          travel_buffer_minutes: 0,
+          required_workers: 1,
+          created_by: workerId,
+        })
+        .returning(['id', 'version'])
+        .executeTakeFirstOrThrow()
+      await tx
+        .insertInto('work.reservations')
+        .values({
+          visit_id: v.id,
+          resource: 'worker',
+          staff_user_id: workerId,
+          role: 'lead',
+          kind: 'confirmed',
+          starts_at: w.window.startsAt,
+          ends_at: new Date(w.window.endsAt.getTime() + 30 * 60_000),
+          time_zone: ZONE,
+          assigned_by: workerId,
+        })
+        .execute()
+      await tx
+        .updateTable('work.visits')
+        .set({ state: 'confirmed', version: v.version + 1 })
+        .where('id', '=', v.id)
+        .execute()
+      return v.id
+    }),
+  )
+}
+
+const OFFICE = 'e2e-cases-office@example.test'
+const OWNER = 'e2e-owner@example.test'
+
+function staffAccess(...args: string[]): string {
+  const out = execFileSync(process.execPath, [cli, ...args], {
+    env: { ...process.env, HANDYHUB_ENV: 'ci', DATABASE_URL: databaseUrl, PORT: port, HOST: '127.0.0.1' },
+    encoding: 'utf8',
+    stdio: 'pipe',
+  })
+  return new URL(out.split('\n')[0] as string).pathname
+}
+/** The first Owner's invite, or a reset link when another spec already created the Owner. */
+function ownerLink(): string {
+  try {
+    return staffAccess('create-owner', OWNER, 'E2E Owner')
+  } catch {
+    return staffAccess('password-link', OWNER)
+  }
+}
+
+const CHECKS = Object.fromEntries(
+  ['coverage', 'service_fit', 'essential_facts', 'urgency', 'site_visit_need', 'staff_equipment', 'risk_flags'].map(
+    (c) => [c, { outcome: 'ok' }],
+  ),
+)
+
+test.describe('Cases: complaints and restricted incidents (TSK-0093)', () => {
+  test.describe.configure({ mode: 'serial' })
+  test.skip(!databaseUrl, 'needs E2E_DATABASE_URL (a fresh PostgreSQL 16 database)')
+
+  test.beforeAll(async () => {
+    await recordVersion(
+      'legal.estimate_terms',
+      {
+        documentId: ESTIMATE_TERMS.documentId,
+        status: 'approved',
+        attorneyReviewed: true,
+        preparedOn: ESTIMATE_TERMS.preparedOn,
+        contentSha256: ESTIMATE_TERMS.contentSha256,
+      },
+      ['HH-EST-13', 'OWN-DEC-127', 'TEST-SYNTHETIC'],
+    )
+  })
+  test.afterAll(async () => {
+    await recordVersion('legal.estimate_terms', null, ['HH-EST-13', 'OWN-DEC-127', 'OQ-TERMS-OWNER-APPROVAL'])
+  })
+
+  test('[HH-QA-06][HH-INC-01][HH-INC-02][HH-INC-04][T54][T24][HH-A11Y-01] a worker reports an injury from the job; only the Owner and the reporter read it; Office sees its status; the customer sees only the released update', async ({
+    page,
+    request,
+    browser,
+  }) => {
+    // Four staff sign-ins, an approval and three browsers: longer than one screen's spec.
+    test.setTimeout(120_000)
+    const estimator = await staffSession(browser, ESTIMATOR, 'estimator', 'Action queue')
+    const office = await staffSession(browser, OFFICE, 'office', 'Action queue')
+    const worker = await staffSession(browser, WORKER, 'worker', 'My Day')
+    const link = await sendRequest(request)
+    try {
+      await estimator.write('PUT', `/api/v1/staff/requests/${link.requestId}/qualification`, { checks: CHECKS }, 0)
+      const detail = (await (await estimator.page.request.get(`/api/v1/staff/requests/${link.requestId}`)).json()) as {
+        version: number
+      }
+      await estimator.write(
+        'POST',
+        `/api/v1/staff/requests/${link.requestId}/actions/online-estimate`,
+        { workPackages: ['SVC-DW-01'] },
+        detail.version,
+      )
+      const created = await estimator.write('POST', `/api/v1/staff/projects/${link.projectId}/estimates`, {})
+      const versionId = created['versionId'] as string
+      const number = created['number'] as string
+      const draft = (await (
+        await estimator.page.request.get(`/api/v1/staff/estimate-versions/${versionId}`)
+      ).json()) as { rowVersion: number; workPackages: { id: string }[] }
+      const saved = await estimator.write(
+        'PUT',
+        `/api/v1/staff/estimate-versions/${versionId}/draft`,
+        {
+          lines: [
+            {
+              kind: 'base',
+              workPackageId: draft.workPackages[0]?.id,
+              description: 'Synthetic: patch the wall',
+              quantity: '1',
+              unit: 'job',
+              unitPriceCents: 32_500,
+            },
+          ],
+          texts: { exclusions: ['Synthetic: roof repairs'] },
+        },
+        draft.rowVersion,
+      )
+      await estimator.write(
+        'POST',
+        `/api/v1/staff/estimate-versions/${versionId}/publish`,
+        {},
+        saved['rowVersion'] as number,
+      )
+      await openProject(page, link)
+      const url = `/api/v1/customer/projects/${link.reference}/estimates/${number}/versions/1`
+      const approved = await page.evaluate(
+        async ({ url, terms, key }) => {
+          const got = await fetch(url, { credentials: 'same-origin' })
+          if (got.status !== 200) return { step: 'view', status: got.status, body: await got.text() }
+          const shown = (await got.json()) as {
+            approval: {
+              contentDigest: string
+              selection: { totalCents: number; deposit: { amountCents: number | null } }
+            }
+          }
+          const res = await fetch(`${url}/approve`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json', 'idempotency-key': key },
+            body: JSON.stringify({
+              contentDigest: shown.approval.contentDigest,
+              options: [],
+              totalCents: shown.approval.selection.totalCents,
+              depositCents: shown.approval.selection.deposit.amountCents,
+              termsDocumentId: terms.documentId,
+              termsSha256: terms.sha256,
+              acceptTerms: true,
+              fullName: 'Test Case Customer',
+            }),
+          })
+          return { step: 'approve', status: res.status, body: await res.text() }
+        },
+        {
+          url,
+          terms: { documentId: ESTIMATE_TERMS.documentId, sha256: ESTIMATE_TERMS.contentSha256 },
+          key: ['e2e', 'cases', 'approve', run].join('-'),
+        },
+      )
+      expect(approved, JSON.stringify(approved)).toMatchObject({ step: 'approve', status: 201 })
+      const jobId = (
+        await withDb((db) =>
+          db.selectFrom('work.jobs').select('id').where('project_id', '=', link.projectId).executeTakeFirstOrThrow(),
+        )
+      ).id
+      await tomorrowsVisit(link, jobId, worker.id)
+
+      // The worker reports an injury from the job packet: the safety path is named first, the report is factual.
+      const w = worker.page
+      await w.goto(`/staff/packets/${jobId}`)
+      const incidents = w.getByTestId('job-incidents')
+      await incidents.getByRole('button', { name: 'Report an incident' }).click()
+      const form = incidents.getByTestId('incident-form')
+      await expect(form.getByText(/use Stop Work \/ Report Hazard/)).toBeVisible()
+      await form.getByLabel('What happened', { exact: true }).selectOption('injury')
+      await form.getByLabel('What happened, in facts').fill('Synthetic: a small cut while scoring drywall.')
+      await form.getByLabel('What was done right away').fill('Synthetic: first aid; work paused in the hallway.')
+      await axe(w)
+      await form.getByRole('button', { name: 'Send the report' }).click()
+      await expect(incidents.getByRole('status')).toContainText('The Owner is notified of damage, injury and disputes.')
+      await incidents.getByRole('link', { name: /^Case #\d+$/ }).click()
+      const own = w.getByTestId('case-restricted')
+      await expect(own).toContainText('Synthetic: a small cut while scoring drywall.')
+      await expect(own).toContainText('only the Owner and the person who reported it can see this section')
+      await expect(w.getByTestId('case-handling')).toHaveCount(0)
+      await axe(w)
+      const caseId = new URL(w.url()).pathname.split('/').pop() as string
+
+      // Office: the case exists and its status; never what it says.
+      const o = office.page
+      await o.goto('/staff/cases')
+      const row = o.getByTestId('case-row').filter({ hasText: link.reference })
+      await expect(row).toContainText('Restricted case')
+      await expect(row).toContainText('Reported')
+      await row.getByRole('link').click()
+      await expect(
+        o.getByText('This is a restricted case. You can see that it exists and its status only.'),
+      ).toBeVisible()
+      await expect(o.getByText(/small cut/)).toHaveCount(0)
+      await expect(o.getByTestId('case-restricted')).toHaveCount(0)
+      const refusedRead = await o.request.get(`/api/v1/staff/cases/${caseId}/restricted`)
+      expect(refusedRead.status()).toBe(403)
+      await axe(o)
+
+      // Office records a complaint on the request record; a second one of the same category adds to it.
+      await o.goto(`/staff/requests/${link.requestId}`)
+      const cases = o.getByTestId('project-cases')
+      const complain = async (text: string) => {
+        await cases.getByRole('button', { name: 'Record a complaint' }).click()
+        const c = cases.getByTestId('complaint-form')
+        await c.getByLabel('Due date').fill(tomorrow())
+        await c.getByLabel('What the customer said').fill(text)
+        await c.getByRole('button', { name: 'Record the complaint' }).click()
+        return c
+      }
+      await complain('Synthetic: the customer says the patch is visible.')
+      await expect(cases.getByTestId('case-row').filter({ hasText: 'Complaint' })).toHaveCount(1)
+      const again = await complain('Synthetic: the customer wrote again about the patch.')
+      const offer = again.getByTestId('add-to-existing')
+      await expect(offer).toContainText('is open for this category.')
+      await offer.getByRole('button', { name: 'Add to the existing case' }).click()
+      await expect(cases.getByTestId('complaint-form')).toHaveCount(0)
+      await expect(cases.getByTestId('case-row').filter({ hasText: 'Complaint' })).toHaveCount(1)
+      await axe(o)
+
+      // The Owner: the Owner Decisions item, the details, the review areas; a neutral update released after review.
+      await page.goto(ownerLink())
+      await page.getByLabel('New password').fill(pw)
+      await page.getByRole('button', { name: 'Save password' }).click()
+      await expect(page.getByText('Your password is saved. Sign in with your new password.')).toBeVisible()
+      await page.goto('/staff/sign-in')
+      await page.getByLabel('Email').fill(OWNER)
+      await page.getByLabel('Password', { exact: true }).fill(pw)
+      await page.getByRole('button', { name: 'Sign in' }).click()
+      await passSecondFactor(page)
+      await expect(page.getByRole('heading', { level: 1, name: 'Action queue' })).toBeVisible()
+      await page.goto(`/staff/cases/${caseId}`)
+      await expect(page.getByTestId('case-restricted')).toContainText('Synthetic: a small cut while scoring drywall.')
+      await expect(page.getByTestId('case-review-areas')).toContainText('Injury, Insurance')
+      await expect(page.getByTestId('case-referrals')).toContainText('No referral recorded.')
+      const updates = page.getByTestId('case-customer-updates')
+      await updates.getByLabel('Update', { exact: true }).selectOption('acknowledgment')
+      await updates.getByRole('button', { name: 'Draft the update' }).click()
+      const draftUpdate = updates.getByTestId('case-update')
+      await expect(draftUpdate).toContainText('Draft, not shown to the customer')
+      await axe(page)
+      await draftUpdate.getByRole('button', { name: 'Release to the customer' }).click()
+      await expect(draftUpdate).toContainText('Released to the customer')
+      // The Owner triages the case: the Owner becomes its reviewer and the Owner Decisions item is resolved.
+      const events = page.getByTestId('case-events')
+      await events.getByRole('button', { name: 'Triage' }).click()
+      await events.getByLabel('Severity').selectOption('moderate')
+      await events.getByRole('form', { name: 'Triage' }).getByRole('button', { name: 'Triage' }).click()
+      await expect(page.getByTestId('case-state')).toHaveText('Triaged')
+      const decisions = await withDb((db) =>
+        db
+          .selectFrom('ops.queue_items')
+          .select(['type', 'resolved_at'])
+          .where('subject_id', '=', caseId)
+          .where('type', '=', 'incident_notification')
+          .execute(),
+      )
+      expect(decisions).toEqual([{ type: 'incident_notification', resolved_at: expect.any(Date) }])
+
+      // The customer (this browser still holds the customer's session from the approval) sees the acknowledgment only:
+      // no kind, report, reporter or reviewer.
+      await page.goto(`/portal/p/${link.reference}`)
+      const shown = page.getByTestId('portal-case-updates')
+      await expect(shown).toContainText('We received your report and recorded it for review.')
+      await expect(page.getByText(/cut|injury|drywall|Caseworker/i)).toHaveCount(0)
+      await axe(page)
+      const recorded = await withDb((db) =>
+        db
+          .selectFrom('platform.audit_events')
+          .select('action')
+          .where('target_id', '=', caseId)
+          .where('action', '=', 'incident.view_restricted')
+          .execute(),
+      )
+      expect(recorded.length).toBeGreaterThan(0)
+    } finally {
+      await estimator.close()
+      await office.close()
+      await worker.close()
+    }
+  })
+})

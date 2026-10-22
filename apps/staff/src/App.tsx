@@ -13,6 +13,7 @@ import { EstimatePublishingSetting } from './EstimateLifecycle'
 import { ApprovalThresholdSetting } from './OwnerApproval'
 import { LegalDocumentsView, MailingAddressSetting } from './BusinessSettings'
 import { EstimateBuilder, EstimatesScreen } from './Estimates'
+import { CasePage, CasesScreen } from './Cases'
 import { CustomerRecord, CustomersScreen } from './Customers'
 import { InboxRecord, InboxScreen } from './Inbox'
 import { PropertyRecord } from './Property'
@@ -210,7 +211,11 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
             ? 'customers'
             : // A job packet (TSK-0069) is reached from My Day or the board; the server decides who may open it.
               // TSK-0073: the Start Work briefing is reached from My Day (a link, never a direct start).
-              route.screen === 'packets' || route.screen === 'loadouts' || route.screen === 'start'
+              // TSK-0093: a worker opens their own incident report from the job packet (the server decides who reads it).
+              route.screen === 'packets' ||
+                route.screen === 'loadouts' ||
+                route.screen === 'start' ||
+                (route.screen === 'cases' && !nav?.items.includes('cases'))
               ? nav?.items.includes('my-day')
                 ? 'my-day'
                 : 'schedule'
@@ -311,6 +316,11 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
               fetchImpl={doFetch}
               onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
             />
+          ) : route.page === 'screen' && shown === 'cases' && allowed ? (
+            <CasesScreen t={t} locale={locale} fetchImpl={doFetch} href={href} />
+          ) : route.page === 'record' && route.screen === 'cases' ? (
+            // TSK-0093: a case, from the Cases screen, a queue item or the job packet; the server decides what it shows.
+            <CasePage key={route.id} t={t} locale={locale} fetchImpl={doFetch} caseId={route.id} href={href} />
           ) : route.page === 'record' && route.screen === 'packets' ? (
             <JobPacketPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} href={href} />
           ) : route.page === 'record' && route.screen === 'loadouts' ? (

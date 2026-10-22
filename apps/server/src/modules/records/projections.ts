@@ -15,6 +15,7 @@
 // texts on the project and HandyHub's replies, each as who, how, when and the text as written; never a staff name,
 // an address, a delivery detail, an internal message or a message from a sender who is not the customer's contact.
 import {
+  CUSTOMER_UPDATE_KINDS,
   CUSTOMER_NEXT_ACTIONS,
   CUSTOMER_SITUATIONS,
   CUSTOMER_STEPS,
@@ -1495,6 +1496,40 @@ export const PRIVACY_EXPORT = customerView(
   }),
 )
 
+/**
+ * TSK-0093 (HH-QA-06, HH-INC-02, OWN-DEC-124, OWN-DEC-143): what the customer is told about the project's cases: only
+ * the updates staff released after review (an acknowledgment, progress, the next step, or "Work is paused for safety
+ * review."), per case, oldest first. Never the case kind, category, severity, report, notes, photos, reporter,
+ * reviewer, referral, hold or state: a case with no released update is not shown at all.
+ */
+export const PROJECT_CASES = customerView(
+  'project.cases',
+  'Case',
+  {
+    reference: STRING,
+    cases: {
+      type: 'array',
+      items: object({
+        caseNumber: { type: 'integer' },
+        updates: {
+          type: 'array',
+          items: object({ kind: enumOf(CUSTOMER_UPDATE_KINDS), text: STRING, releasedAt: DATE }),
+        },
+      }),
+    },
+  },
+  (r: {
+    reference: string
+    cases: readonly { caseNumber: number; updates: readonly { kind: string; text: string; releasedAt: Date }[] }[]
+  }) => ({
+    reference: r.reference,
+    cases: r.cases.map((c) => ({
+      caseNumber: c.caseNumber,
+      updates: c.updates.map((u) => ({ kind: u.kind, text: u.text, releasedAt: u.releasedAt.toISOString() })),
+    })),
+  }),
+)
+
 /** Every customer view, by name. */
 export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
   [
@@ -1526,5 +1561,6 @@ export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
     PRIVACY_REQUEST,
     PRIVACY_REQUESTS,
     PRIVACY_EXPORT,
+    PROJECT_CASES,
   ].map((v) => [v.name, v as CustomerView<never>]),
 )

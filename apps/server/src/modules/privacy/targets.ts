@@ -26,7 +26,14 @@
 //   appointment reminders of the project's visits (TSK-0067) name the visit, not a version, and stay as they are.
 import type { Db, Tx } from '@handyhub/db'
 import { sql } from 'kysely'
-import { HOLD_CHECKS, NOT_RECORDED_CHECKS } from '../retention/schedule.js'
+import { activeCaseCounts } from '../cases/active.js'
+import {
+  caseHoldFound,
+  HOLD_CHECKS,
+  holdCheckOutcomes,
+  NOT_RECORDED_CHECKS,
+  type CaseCounts,
+} from '../retention/schedule.js'
 
 type Reader = Db | Tx
 
@@ -98,15 +105,14 @@ async function openHolds(db: Reader, projectId: string | null): Promise<number |
   return n(r.n)
 }
 
-function holdChecks(open: number | null): CheckOutcome[] {
-  return [
-    open === null
-      ? { check: 'open_holds', result: 'not_applicable' }
-      : open > 0
-        ? { check: 'open_holds', result: 'found', count: open }
-        : { check: 'open_holds', result: 'none_found' },
-    ...NOT_RECORDED_CHECKS.map((check) => ({ check: check as DeletionCheck, result: 'not_recorded' as const })),
-  ]
+/** TSK-0093: the open cases of the record's project (complaints, disputes, investigations); null without a project. */
+async function openCases(db: Reader, projectId: string | null): Promise<CaseCounts | null> {
+  if (!projectId) return null
+  return (await activeCaseCounts(db, [projectId])).get(projectId) ?? { complaints: 0, disputes: 0, incidents: 0 }
+}
+
+function holdChecks(open: number | null, cases: CaseCounts | null = null): CheckOutcome[] {
+  return holdCheckOutcomes(open, cases) as CheckOutcome[]
 }
 
 const counted = (check: DeletionCheck, count: number): CheckOutcome =>
@@ -177,7 +183,8 @@ async function versionMessages(db: Reader, ids: readonly string[]): Promise<{ dr
 }
 
 function finish(p: Omit<TargetPreview, 'confirm'>): TargetPreview {
-  const blockers = [...new Set(p.blockers)]
+  // TSK-0093: an open complaint, dispute or incident case on the project holds the record like an open hold.
+  const blockers = [...new Set([...p.blockers, ...(caseHoldFound(p.checks) ? (['hold_found'] as const) : [])])]
   return {
     ...p,
     blockers,
@@ -252,6 +259,7 @@ export async function estimateTarget(
   const accepted = versions.filter((v) => v.state === 'accepted').length
   const active = versions.filter((v) => ['draft', 'in_review', 'published'].includes(v.effective)).length
   const holds = await openHolds(db, e.project_id)
+  const cases = await openCases(db, e.project_id)
   const objects = versions.filter((v) => v.customer_pdf_object_key).length + documents.length
   const audits = n(
     (
@@ -301,7 +309,7 @@ export async function estimateTarget(
       { kind: 'audit_entries', count: audits },
     ],
     checks: [
-      ...holdChecks(holds),
+      ...holdChecks(holds, cases),
       counted('signed_approvals', Math.max(approvals, accepted)),
       counted('approval_receipts', evidence.receipts),
       counted('jobs', jobs),
@@ -330,6 +338,7 @@ export async function requestTarget(db: Reader, requestId: string): Promise<Targ
       blockers: ['record_missing'],
     })
   const holds = await openHolds(db, r.project_id)
+  const cases = await openCases(db, r.project_id)
   const jobs = n(
     (
       await db
@@ -360,7 +369,7 @@ export async function requestTarget(db: Reader, requestId: string): Promise<Targ
     removes: [],
     keeps: [{ kind: 'project_and_request', count: 1 }],
     checks: [
-      ...holdChecks(holds),
+      ...holdChecks(holds, cases),
       counted('signed_approvals', approvals),
       counted('approval_receipts', evidence.receipts),
       counted('jobs', jobs),
@@ -379,6 +388,7 @@ export async function auditEntryTarget(db: Reader, eventId: string, projectId: s
     .where('id', '=', eventId)
     .executeTakeFirst()
   const holds = await openHolds(db, projectId)
+  const cases = await openCases(db, projectId)
   return finish({
     record: {
       type: 'audit_event',
@@ -390,7 +400,7 @@ export async function auditEntryTarget(db: Reader, eventId: string, projectId: s
     permanent: false,
     removes: [],
     keeps: [],
-    checks: holdChecks(holds),
+    checks: holdChecks(holds, cases),
     blockers: e ? ['audit_append_only', ...((holds ?? 0) > 0 ? (['hold_found'] as const) : [])] : ['record_missing'],
   })
 }

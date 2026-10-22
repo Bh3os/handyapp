@@ -108,6 +108,8 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
         'requestDeletion',
         'getCustomerDataExport',
         'getCustomerEstimateDownloads',
+        // TSK-0093 (HH-INC-02, T24): the released updates about the project's cases.
+        'getCustomerProjectCaseUpdates',
       ].sort(),
     )
     for (const r of customerRoutes) {

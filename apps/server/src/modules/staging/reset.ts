@@ -140,7 +140,17 @@ export const CLEARED_CATEGORIES = {
     'platform.message_delivery_events',
     'platform.message_delivery_attempts',
   ],
-  attachments: ['intake.photos', 'intake.question_reply_photos', 'work.before_photos'],
+  // TSK-0093 (0081): cases, their restricted reports, notes, follow-ups, referrals, customer updates and history.
+  cases: [
+    'quality.cases',
+    'quality.incident_reports',
+    'quality.case_notes',
+    'quality.case_follow_ups',
+    'quality.case_referrals',
+    'quality.case_customer_updates',
+    'quality.case_events',
+  ],
+  attachments: ['intake.photos', 'intake.question_reply_photos', 'work.before_photos', 'quality.case_attachments'],
   pending_messages: ['platform.outbox_events', 'platform.jobs'],
   sessions: [
     'identity.customer_sessions',
@@ -246,6 +256,8 @@ const STORED_FILES = [
   ['estimating.approval_receipts', 'object_key'],
   // TSK-0073 (0074): the before photos of field visits.
   ['work.before_photos', 'object_key'],
+  // TSK-0093 (0081): the supporting photos of cases.
+  ['quality.case_attachments', 'object_key'],
 ] as const
 
 /** Stored-file keys per removal job (the job payload is a comma-separated list). */

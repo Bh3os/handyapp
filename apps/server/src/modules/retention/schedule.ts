@@ -207,7 +207,38 @@ export type HoldCheckResult = 'found' | 'none_found' | 'not_applicable' | 'not_r
 export type HoldCheckOutcome = { check: HoldCheck; result: HoldCheckResult; count?: number }
 
 /**
- * The checks the software cannot run yet: none of these is recorded by it (cases, warranties, claims, tax filings,
- * legal or insurance holds), so each says `not_recorded` and the Owner checks it before deciding, never "none found".
+ * The checks the software cannot run yet: none of these is recorded by it (warranties, claims, tax filings, legal or
+ * insurance holds), so each says `not_recorded` and the Owner checks it before deciding, never "none found".
+ * TSK-0093: complaints, disputes and investigations are recorded as cases now: an open case found blocks (a case
+ * hold, OWN-DEC-124, HH-PRIV-03); none open is still not "none found" (a complaint or dispute handled outside the
+ * software cannot be ruled out), so the Owner still confirms it, like recorded payments.
  */
 export const NOT_RECORDED_CHECKS: readonly HoldCheck[] = HOLD_CHECKS.filter((c) => c !== 'open_holds')
+
+/** The open cases of a record's project, by the check they answer (TSK-0093). */
+export type CaseCounts = { readonly complaints: number; readonly disputes: number; readonly incidents: number }
+const CASE_CHECK: Partial<Record<HoldCheck, keyof CaseCounts>> = {
+  complaints: 'complaints',
+  disputes: 'disputes',
+  investigations: 'incidents',
+}
+
+/** Every hold check of a record: open holds on its project, open cases, and the kinds not recorded. */
+export function holdCheckOutcomes(openHolds: number | null, cases: CaseCounts | null): HoldCheckOutcome[] {
+  return [
+    openHolds === null
+      ? { check: 'open_holds', result: 'not_applicable' }
+      : openHolds > 0
+        ? { check: 'open_holds', result: 'found', count: openHolds }
+        : { check: 'open_holds', result: 'none_found' },
+    ...NOT_RECORDED_CHECKS.map((check): HoldCheckOutcome => {
+      const key = CASE_CHECK[check]
+      const n = key && cases ? cases[key] : 0
+      return n > 0 ? { check, result: 'found', count: n } : { check, result: 'not_recorded' }
+    }),
+  ]
+}
+
+/** A found case check holds the record like an open hold (TSK-0093). */
+export const caseHoldFound = (checks: readonly { check: string; result: string }[]): boolean =>
+  checks.some((c) => c.result === 'found' && c.check in CASE_CHECK)

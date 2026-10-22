@@ -141,7 +141,7 @@ describe('navigation by role (TSK-0040, HH-STAFF-06)', () => {
   it('[HH-STAFF-06] menu links move between screens with the keyboard-reachable links, in place', async () => {
     const navigate = vi.fn()
     render(<App path="/staff/" base="/staff/" fetchImpl={api(session('owner'))} navigate={navigate} />)
-    // TSK-0044 built the Customers screen and TSK-0065 the Scheduling board; Cases is still an unbuilt screen.
+    // TSK-0044 built the Customers screen, TSK-0065 the Scheduling board and TSK-0093 the Cases screen.
     const link = await screen.findByRole('link', { name: 'Scheduling board' })
     expect(link.getAttribute('href')).toBe('/staff/schedule')
     fireEvent.click(link)
@@ -150,7 +150,8 @@ describe('navigation by role (TSK-0040, HH-STAFF-06)', () => {
     expect(screen.queryByText('This screen is not available yet.')).toBeNull()
     fireEvent.click(screen.getByRole('link', { name: 'Cases' }))
     expect(navigate).toHaveBeenCalledWith('/staff/cases')
-    expect(screen.getByText('This screen is not available yet.')).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 1, name: 'Cases' })).toBeTruthy()
+    expect(screen.queryByText('This screen is not available yet.')).toBeNull()
     const customers = screen.getByRole('link', { name: 'Customers' })
     expect(customers.getAttribute('href')).toBe('/staff/customers')
     fireEvent.click(customers)
