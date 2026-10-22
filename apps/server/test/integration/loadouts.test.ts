@@ -379,7 +379,7 @@ const block = (who: Person, holdId: string, action: string, body: unknown, versi
 
 /**
  * Moves a work package to in_progress and rolls it back, to check the task-block backstop of migration 0063 on its
- * own. TSK-0073 (migration 0076) added the Start Work gate's own backstop (a start needs its passing evaluation in
+ * own. TSK-0073 (migration 0074) added the Start Work gate's own backstop (a start needs its passing evaluation in
  * the same transaction), covered by start-work.test.ts; it is set aside inside this rolled-back transaction only.
  */
 async function tryStart(workPackageId: string): Promise<'started' | string> {

@@ -114,7 +114,7 @@ export const CLEARED_CATEGORIES = {
     'work.visit_departures',
     'work.time_stamps',
     'work.time_stamp_corrections',
-    // TSK-0073, TSK-0074 (0076): site checks, Start Work evaluations and starts, and the administrative exceptions.
+    // TSK-0073, TSK-0074 (0074): site checks, Start Work evaluations and starts, and the administrative exceptions.
     'work.start_site_checks',
     'work.start_gate_evaluations',
     'work.work_starts',
@@ -244,7 +244,7 @@ const STORED_FILES = [
   ['estimating.estimate_documents', 'object_key'],
   ['estimating.estimate_versions', 'customer_pdf_object_key'],
   ['estimating.approval_receipts', 'object_key'],
-  // TSK-0073 (0076): the before photos of field visits.
+  // TSK-0073 (0074): the before photos of field visits.
   ['work.before_photos', 'object_key'],
 ] as const
 

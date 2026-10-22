@@ -32,7 +32,7 @@ export const HOLD_KINDS = ['review', 'job_requirement', 'critical_safety', 'task
 /**
  * The kinds of hold that block Start Work of the whole job while they block (TSK-0073; HH-WORK-01 items 5 and 6): the
  * same kinds that block confirmation. A task block blocks Start Work of its own work package (HH-PKT-06), read through
- * the loadout. Migration 0076 checks the same kinds in the database.
+ * the loadout. Migration 0074 checks the same kinds in the database.
  */
 export const START_BLOCKING_HOLD_KINDS = [
   'review',

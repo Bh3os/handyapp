@@ -151,7 +151,7 @@ export async function gateVisit(tx: Tx, visitId: string, lock = false): Promise<
   }
 }
 
-/** The job's row lock: hazard reports, critical holds and job-level holds are written under it (migration 0076). */
+/** The job's row lock: hazard reports, critical holds and job-level holds are written under it (migration 0074). */
 export async function lockJob(tx: Tx, jobId: string): Promise<void> {
   await tx.selectFrom('work.jobs').select('id').where('id', '=', jobId).forUpdate().execute()
 }

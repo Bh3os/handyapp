@@ -6,7 +6,7 @@
 //   (ENT-StartGateEvaluation) whatever the outcome. Only `ready` records the start (OWN-DEC-195 "actual contracted work
 //   started") with the packet, scope and SOP versions, the acknowledgment, the exceptions used and the server's time,
 //   and moves the job and its startable work packages to in_progress; the database refuses any of these without that
-//   evaluation in the same transaction, and while any hard hold blocks (migration 0076).
+//   evaluation in the same transaction, and while any hard hold blocks (migration 0074).
 // - Site checks: the worker's own answers on arrival. A site different from the packet raises a job-level Hold (with
 //   the worker's note) in the same transaction: the Owner assesses it and sets Ready with a note (PROPOSED).
 // - Before photos: checked like request photos (type, real content, size from uploads.limits), stored once under an
