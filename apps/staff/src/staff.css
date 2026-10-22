@@ -997,6 +997,8 @@
   margin-block: var(--hh-space-4);
 }
 .staff-messages__frame {
+  display: block;
+  box-sizing: border-box;
   width: 100%;
   min-height: 32rem;
   border: var(--hh-hairline);
