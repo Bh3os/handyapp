@@ -3,6 +3,8 @@
 // 0005 from the fact and decision nodes they cite. Every row read from the database is validated strictly against
 // its key's shape; an unknown key, an unknown field or a wrong type fails closed. Money is integer cents.
 
+import { isSupportedZone } from '@handyhub/domain'
+
 export class ConfigShapeError extends Error {
   override name = 'ConfigShapeError'
 }
@@ -232,6 +234,31 @@ export const CONFIG_KEYS = {
   // holdHours from the offer; staff offer minWindows to maxWindows windows at a time. Decided values, seeded active by
   // migration 0053.
   'scheduling.window_offers': shape({ holdHours: int(1, 24 * 366), minWindows: int(1, 10), maxWindows: int(1, 10) }),
+  // TSK-0123 (OWN-DEC-159, FACT-SERVICE-AREA): the IANA zone of each service-area county, from which a property's zone
+  // is derived (its ZIP's counties must all map to one zone). No authoritative county-to-zone list is in the
+  // repository: NOT CONFIGURED (migration 0066, OQ-COUNTY-TIME-ZONES) until one is supplied. Each zone must be an
+  // Eastern or Central IANA zone; a county is named once.
+  'geo.county_time_zones': (v: unknown, p: string) => {
+    const value = shape({
+      counties: listOf(
+        shape({
+          state: (s, q) => (typeof s === 'string' && /^[A-Z]{2}$/.test(s) ? s : fail(q, 'expected a state code')),
+          county: text,
+          zone: (z, q) => (isSupportedZone(z) ? z : fail(q, 'expected an Eastern or Central IANA zone')),
+        }),
+      ),
+    })(v, p)
+    const names = value.counties.map((c) => `${c.state}:${c.county}`)
+    if (new Set(names).size !== names.length) fail(`${p}.counties`, 'a county is listed twice')
+    return value
+  },
+  // TSK-0123 (HH-COM-15; final owner amendments 2026-10-22, reading 8): the window a non-urgent text may be sent in when
+  // the recipient's own zone cannot be established (9 AM–9 PM in the business Eastern zone). Applied by TSK-0122.
+  'sms.unknown_zone_hours': shape({
+    open: clock,
+    close: clock,
+    zone: (z, q) => (isSupportedZone(z) ? z : fail(q, 'expected an Eastern or Central IANA zone')),
+  }),
   // RULE-AI-WAVE2: only `false` is a valid value; the database refuses anything else as well.
   'ai.module': shape({ enabled: exactly(false) }),
 } as const satisfies Record<string, Parser<unknown>>

@@ -287,7 +287,9 @@ function OfferCard({
       </h3>
       {offer.status === 'open' ? (
         <>
-          <p data-testid="offer-held">{t('portal.appointment.offer.held', { time: when(offer.expiresAt) })}</p>
+          <p data-testid="offer-held">
+            {t('portal.appointment.offer.held', { time: when(offer.expiresAt, offer.windows[0]?.timeZone) })}
+          </p>
           <ul className="portal-offer__windows">
             {offer.windows.map((w) => (
               <li key={w.position} className="portal-offer__window" data-testid="offer-window">

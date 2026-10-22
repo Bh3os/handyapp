@@ -3209,6 +3209,7 @@
                     "issuerName",
                     "publishedAt",
                     "validUntil",
+                    "validUntilZone",
                     "lines",
                     "assumptions",
                     "exclusions",
@@ -3268,6 +3269,29 @@
                         "null"
                       ],
                       "format": "date-time"
+                    },
+                    "validUntilZone": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "zone",
+                            "business"
+                          ],
+                          "properties": {
+                            "zone": {
+                              "type": "string"
+                            },
+                            "business": {
+                              "type": "boolean"
+                            }
+                          }
+                        }
+                      ]
                     },
                     "lines": {
                       "type": "array",
@@ -21634,6 +21658,7 @@
                           "email",
                           "phone",
                           "preferredChannel",
+                          "timeZone",
                           "isPrimary",
                           "version",
                           "verification",
@@ -21658,6 +21683,36 @@
                           },
                           "preferredChannel": {
                             "type": "string"
+                          },
+                          "timeZone": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "state",
+                              "zone",
+                              "family"
+                            ],
+                            "properties": {
+                              "state": {
+                                "type": "string",
+                                "enum": [
+                                  "known",
+                                  "unknown"
+                                ]
+                              },
+                              "zone": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "family": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
                           },
                           "isPrimary": {
                             "type": "boolean"
@@ -23216,6 +23271,237 @@
           "freshAuthMinutes": null,
           "csrf": "required_with_staff_session",
           "audit": "customer.edit_contact",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customers.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/customers/{customerId}/contacts/{contactId}/time-zone": {
+      "put": {
+        "operationId": "setStaffContactTimeZone",
+        "summary": "Record a contact’s own time zone for texts",
+        "description": "TSK-0123 (OWN-DEC-159 item 5, HH-COM-15): staff with customer.edit (Owner; Office with a reason) record the IANA zone the contact receives texts in, as the customer gave it; null makes it unknown again. Only Eastern or Central zones (ZONE_NOT_SUPPORTED otherwise). The property’s zone is never taken as the recipient’s: while this is unknown the contact’s zone stays unknown and is flagged on the record. The change is kept with the values before and after (staff only). If-Match is the contact version.",
+        "tags": [
+          "customers"
+        ],
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          },
+          {
+            "name": "contactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "timeZone",
+                  "reason"
+                ],
+                "properties": {
+                  "timeZone": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 3,
+                    "maxLength": 64,
+                    "pattern": "^[A-Za-z]+(/[A-Za-z0-9_+-]+)+$"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "version"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "customer.edit",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer.set_contact_time_zone",
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/customers.test.ts"
@@ -26886,6 +27172,8 @@
                                   "retention.job_records",
                                   "retention.safety_records",
                                   "scheduling.window_offers",
+                                  "geo.county_time_zones",
+                                  "sms.unknown_zone_hours",
                                   "ai.module"
                                 ]
                               },
@@ -28438,6 +28726,8 @@
                                   "retention.job_records",
                                   "retention.safety_records",
                                   "scheduling.window_offers",
+                                  "geo.county_time_zones",
+                                  "sms.unknown_zone_hours",
                                   "ai.module"
                                 ]
                               },
@@ -30268,6 +30558,8 @@
                                   "retention.job_records",
                                   "retention.safety_records",
                                   "scheduling.window_offers",
+                                  "geo.county_time_zones",
+                                  "sms.unknown_zone_hours",
                                   "ai.module"
                                 ]
                               },
@@ -31674,6 +31966,8 @@
                                   "retention.job_records",
                                   "retention.safety_records",
                                   "scheduling.window_offers",
+                                  "geo.county_time_zones",
+                                  "sms.unknown_zone_hours",
                                   "ai.module"
                                 ]
                               },
@@ -33255,6 +33549,8 @@
                                   "retention.job_records",
                                   "retention.safety_records",
                                   "scheduling.window_offers",
+                                  "geo.county_time_zones",
+                                  "sms.unknown_zone_hours",
                                   "ai.module"
                                 ]
                               },
@@ -34661,6 +34957,8 @@
                                   "retention.job_records",
                                   "retention.safety_records",
                                   "scheduling.window_offers",
+                                  "geo.county_time_zones",
+                                  "sms.unknown_zone_hours",
                                   "ai.module"
                                 ]
                               },
@@ -36433,6 +36731,8 @@
                                   "retention.job_records",
                                   "retention.safety_records",
                                   "scheduling.window_offers",
+                                  "geo.county_time_zones",
+                                  "sms.unknown_zone_hours",
                                   "ai.module"
                                 ]
                               },
@@ -38027,6 +38327,8 @@
                                   "retention.job_records",
                                   "retention.safety_records",
                                   "scheduling.window_offers",
+                                  "geo.county_time_zones",
+                                  "sms.unknown_zone_hours",
                                   "ai.module"
                                 ]
                               },
@@ -39612,6 +39914,8 @@
                                   "retention.job_records",
                                   "retention.safety_records",
                                   "scheduling.window_offers",
+                                  "geo.county_time_zones",
+                                  "sms.unknown_zone_hours",
                                   "ai.module"
                                 ]
                               },
@@ -41202,6 +41506,8 @@
                                   "retention.job_records",
                                   "retention.safety_records",
                                   "scheduling.window_offers",
+                                  "geo.county_time_zones",
+                                  "sms.unknown_zone_hours",
                                   "ai.module"
                                 ]
                               },
@@ -43128,6 +43434,8 @@
                                   "retention.job_records",
                                   "retention.safety_records",
                                   "scheduling.window_offers",
+                                  "geo.county_time_zones",
+                                  "sms.unknown_zone_hours",
                                   "ai.module"
                                 ]
                               },
@@ -44713,6 +45021,8 @@
                                   "retention.job_records",
                                   "retention.safety_records",
                                   "scheduling.window_offers",
+                                  "geo.county_time_zones",
+                                  "sms.unknown_zone_hours",
                                   "ai.module"
                                 ]
                               },
@@ -46502,6 +46812,8 @@
                                   "retention.job_records",
                                   "retention.safety_records",
                                   "scheduling.window_offers",
+                                  "geo.county_time_zones",
+                                  "sms.unknown_zone_hours",
                                   "ai.module"
                                 ]
                               },
@@ -54101,7 +54413,10 @@
                           "type": "string"
                         },
                         "timeZone": {
-                          "type": "string"
+                          "type": [
+                            "string",
+                            "null"
+                          ]
                         },
                         "details": {
                           "type": "array",
@@ -67691,6 +68006,8 @@
                     "addressVersion",
                     "propertyType",
                     "timeZone",
+                    "zone",
+                    "zoneHistory",
                     "coverage",
                     "createdAt",
                     "details",
@@ -67746,7 +68063,150 @@
                       "type": "string"
                     },
                     "timeZone": {
-                      "type": "string"
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "zone": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "zone",
+                        "status",
+                        "basis",
+                        "family",
+                        "counties",
+                        "version"
+                      ],
+                      "properties": {
+                        "zone": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "unknown",
+                            "derived",
+                            "verified"
+                          ]
+                        },
+                        "basis": {
+                          "type": "string",
+                          "enum": [
+                            "zip_counties",
+                            "verified_county",
+                            "no_zip_rule",
+                            "zip_outside_area",
+                            "zip_boundary",
+                            "county_map_not_configured",
+                            "county_not_mapped",
+                            "counties_disagree",
+                            "assumption_withdrawn"
+                          ]
+                        },
+                        "family": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "eastern",
+                            "central",
+                            null
+                          ]
+                        },
+                        "counties": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "version": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "zoneHistory": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "version",
+                          "zone",
+                          "status",
+                          "basis",
+                          "counties",
+                          "previousZone",
+                          "reason",
+                          "by",
+                          "at"
+                        ],
+                        "properties": {
+                          "version": {
+                            "type": "integer"
+                          },
+                          "zone": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "basis": {
+                            "type": "string"
+                          },
+                          "counties": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "previousZone": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "by": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "at": {
+                            "type": "string"
+                          }
+                        }
+                      }
                     },
                     "coverage": {
                       "type": "string"
@@ -68284,7 +68744,8 @@
                       "required": [
                         "edit",
                         "setAccessCodes",
-                        "revealAccessCodes"
+                        "revealAccessCodes",
+                        "verifyTimeZone"
                       ],
                       "properties": {
                         "edit": {
@@ -68294,6 +68755,9 @@
                           "type": "boolean"
                         },
                         "revealAccessCodes": {
+                          "type": "boolean"
+                        },
+                        "verifyTimeZone": {
                           "type": "boolean"
                         }
                       }
@@ -70249,6 +70713,232 @@
         }
       }
     },
+    "/api/v1/staff/properties/{propertyId}/time-zone": {
+      "put": {
+        "operationId": "verifyPropertyTimeZone",
+        "summary": "Verify a property’s time zone",
+        "description": "TSK-0123 (OWN-DEC-159, HH-SCH-02): staff with customer.edit (Owner; Office with a reason) record the property’s IANA zone from the county of its verified address. The zone must be an Eastern or Central zone (read from the time-zone data, never a fixed offset): ZONE_NOT_SUPPORTED otherwise; when the configured county list (geo.county_time_zones) names the county with another zone, ZONE_COUNTY_MISMATCH. The zone history keeps every earlier state; the staff queue flag of an unknown zone resolves. Visits already planned keep the zone they were planned in. If-Match is the property version.",
+        "tags": [
+          "properties"
+        ],
+        "parameters": [
+          {
+            "name": "propertyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "timeZone",
+                  "county",
+                  "reason"
+                ],
+                "properties": {
+                  "timeZone": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 64,
+                    "pattern": "^[A-Za-z]+(/[A-Za-z0-9_+-]+)+$"
+                  },
+                  "county": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60,
+                    "pattern": "\\S"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "version"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "customer.edit",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "property.verify_time_zone",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/properties.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/properties/{propertyId}/type": {
       "put": {
         "operationId": "editPropertyType",
@@ -70515,6 +71205,7 @@
                 "question_reminder",
                 "deposit_due",
                 "visit_flagged",
+                "property_time_zone",
                 "deposit_waiver",
                 "start_work_exception",
                 "refund_request",
@@ -70643,6 +71334,7 @@
                               "question_reminder",
                               "deposit_due",
                               "visit_flagged",
+                              "property_time_zone",
                               "deposit_waiver",
                               "start_work_exception",
                               "refund_request",
@@ -70860,7 +71552,8 @@
                               "link_message",
                               "open_conversation",
                               "review_deposit",
-                              "reassign_visit"
+                              "reassign_visit",
+                              "verify_time_zone"
                             ]
                           },
                           "link": {
@@ -70918,6 +71611,7 @@
                           "question_reminder",
                           "deposit_due",
                           "visit_flagged",
+                          "property_time_zone",
                           "deposit_waiver",
                           "start_work_exception",
                           "refund_request",
@@ -71065,6 +71759,7 @@
                 "question_reminder",
                 "deposit_due",
                 "visit_flagged",
+                "property_time_zone",
                 "deposit_waiver",
                 "start_work_exception",
                 "refund_request",
@@ -71193,6 +71888,7 @@
                               "question_reminder",
                               "deposit_due",
                               "visit_flagged",
+                              "property_time_zone",
                               "deposit_waiver",
                               "start_work_exception",
                               "refund_request",
@@ -71410,7 +72106,8 @@
                               "link_message",
                               "open_conversation",
                               "review_deposit",
-                              "reassign_visit"
+                              "reassign_visit",
+                              "verify_time_zone"
                             ]
                           },
                           "link": {
@@ -71468,6 +72165,7 @@
                           "question_reminder",
                           "deposit_due",
                           "visit_flagged",
+                          "property_time_zone",
                           "deposit_waiver",
                           "start_work_exception",
                           "refund_request",
@@ -82094,6 +82792,8 @@
                               "retention.job_records",
                               "retention.safety_records",
                               "scheduling.window_offers",
+                              "geo.county_time_zones",
+                              "sms.unknown_zone_hours",
                               "ai.module"
                             ]
                           },

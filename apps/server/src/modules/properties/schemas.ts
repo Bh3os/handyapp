@@ -1,7 +1,15 @@
 // Contract schemas of the staff property routes (TSK-0045; HH-CRM-02, HH-CRM-03, HH-API-01). Every response object
 // lists its fields; anything else is stripped before it leaves the server. No response schema except the reveal's
 // has a field for an access code value.
-import { ACCESS_SECRET_KINDS, PROPERTY_DETAILS, PROPERTY_TEXT_DETAILS, STAFF_DETAIL_SOURCES } from '@handyhub/domain'
+import {
+  ACCESS_SECRET_KINDS,
+  PROPERTY_DETAILS,
+  PROPERTY_TEXT_DETAILS,
+  PROPERTY_ZONE_BASES,
+  PROPERTY_ZONE_STATUSES,
+  STAFF_DETAIL_SOURCES,
+  ZONE_FAMILIES,
+} from '@handyhub/domain'
 
 const S = { type: 'string' } as const
 const NS = { type: ['string', 'null'] } as const
@@ -34,13 +42,38 @@ const STAFF_REF = {
 }
 const ADDRESS = obj({ street: S, unit: NS, city: S, state: S, zip: S })
 
+/** TSK-0123 (OWN-DEC-159): the property's zone, its state and what it rests on; zone null while unknown. */
+export const ZONE_STATE = obj({
+  zone: NS,
+  status: { type: 'string', enum: PROPERTY_ZONE_STATUSES },
+  basis: { type: 'string', enum: PROPERTY_ZONE_BASES },
+  family: { type: ['string', 'null'], enum: [...ZONE_FAMILIES, null] },
+  counties: arr(S),
+  version: I,
+})
+
 export const PROPERTY_VIEW = obj({
   id: S,
   version: I,
   address: ADDRESS,
   addressVersion: I,
   propertyType: S,
-  timeZone: S,
+  /** The property's IANA zone; null while unknown (flagged for verification, never assumed). */
+  timeZone: NS,
+  zone: ZONE_STATE,
+  zoneHistory: arr(
+    obj({
+      version: I,
+      zone: NS,
+      status: S,
+      basis: S,
+      counties: arr(S),
+      previousZone: NS,
+      reason: NS,
+      by: STAFF_REF,
+      at: S,
+    }),
+  ),
   coverage: S,
   createdAt: S,
   details: arr(
@@ -97,7 +130,7 @@ export const PROPERTY_VIEW = obj({
     removed: arr(obj({ id: S, kind: S, label: NS, removedAt: S, removedBy: STAFF_REF, reason: S, createdAt: S })),
   }),
   history: arr(obj({ at: S, detail: S, action: S, source: S, by: STAFF_REF, reason: S })),
-  actions: obj({ edit: B, setAccessCodes: B, revealAccessCodes: B }),
+  actions: obj({ edit: B, setAccessCodes: B, revealAccessCodes: B, verifyTimeZone: B }),
 })
 
 export const ADDRESS_BODY = obj(
@@ -116,6 +149,13 @@ export const ADDRESS_BODY = obj(
 export const TYPE_BODY = obj({
   propertyType: { type: 'string', enum: ['house', 'apartment_condo', 'townhouse', 'rental_short_term'] },
   source: SOURCE,
+  reason: REASON,
+})
+
+/** TSK-0123: the zone staff verified, the county of the verified address it was read from, and why. */
+export const ZONE_BODY = obj({
+  timeZone: { type: 'string', minLength: 3, maxLength: 64, pattern: '^[A-Za-z]+(/[A-Za-z0-9_+-]+)+$' },
+  county: { type: 'string', minLength: 1, maxLength: 60, pattern: '\\S' },
   reason: REASON,
 })
 

@@ -1,6 +1,7 @@
 // Notifications module (TSK-0047): message types, the automatic-message policy, versioned templates and deliveries.
 // TSK-0032: failed deliveries open a staff retry item; NOTIFICATIONS_MODULE holds the staff Retry route (retry.ts).
 export { nextContactTime, zonedTimeToUtc } from './contact-hours.js'
+export { recipientTextHours, recipientTimeZone } from './recipient-zone.js'
 export {
   createDraft,
   deliveryIdempotencyKey,

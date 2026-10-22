@@ -123,7 +123,7 @@ export const PACKET_VIEW = obj({
     addressVersion: INT,
     directionsUrl: STR_OR_NULL,
     propertyType: STR,
-    timeZone: STR,
+    timeZone: STR_OR_NULL,
     details: arr(DETAIL),
     accessCodes: arr(obj({ id: STR, kind: STR, label: STR_OR_NULL, confirmedAt: STR })),
   }),

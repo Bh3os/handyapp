@@ -92,6 +92,8 @@ export const RECORD = obj({
       email: S,
       phone: S,
       preferredChannel: S,
+      /** TSK-0123 (OWN-DEC-159, HH-COM-15): the contact's own zone for texts; unknown is never assumed. */
+      timeZone: obj({ state: { type: 'string', enum: ['known', 'unknown'] }, zone: NS, family: NS }),
       isPrimary: B,
       version: I,
       verification: obj({ email: S, phone: S }),
@@ -203,6 +205,12 @@ export const CONTACT_EDIT_BODY = obj({
   email: { type: 'string', minLength: 3, maxLength: 254, pattern: '^\\s*[^\\s@]+@[^\\s@]+\\.[^\\s@]+\\s*$' },
   phone: { type: 'string', minLength: 7, maxLength: 30, pattern: '^[0-9 ()+.-]+$' },
   preferredChannel: { type: 'string', enum: ['email', 'call', 'text'] },
+  reason: REASON,
+})
+
+/** TSK-0123: the contact's own IANA zone for texts (null: unknown again), with the reason. */
+export const CONTACT_ZONE_BODY = obj({
+  timeZone: { type: ['string', 'null'], minLength: 3, maxLength: 64, pattern: '^[A-Za-z]+(/[A-Za-z0-9_+-]+)+$' },
   reason: REASON,
 })
 

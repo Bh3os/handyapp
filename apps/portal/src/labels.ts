@@ -77,11 +77,15 @@ export const TIMELINE_LABEL: Record<TimelineKind, CustomerKey> = {
   closed_no_response: 'portal.timeline.closed_no_response',
 }
 
-/** A moment in English, in the browser's time zone (named, so a time is never ambiguous). */
-export function when(iso: string): string {
+/**
+ * A moment in English, named with its zone so a time is never ambiguous: in `zone` when given (TSK-0123: a scheduling
+ * option's hold is shown in the property's zone, OWN-DEC-159 item 4), otherwise in the browser's time zone.
+ */
+export function when(iso: string, zone?: string): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return ''
   return new Intl.DateTimeFormat('en-US', {
+    ...(zone ? { timeZone: zone } : {}),
     year: 'numeric',
     month: 'long',
     day: 'numeric',
