@@ -206,6 +206,12 @@ export const CONFIG_KEYS = {
   // TSK-0038 (HH-ARC-10, OWN-DEC-59): how often an open customer project view refreshes itself, in seconds. PROPOSED
   // 30, inside the guide's "30-60 seconds by default"; no owner decision sets it.
   'portal.refresh': shape({ pollSeconds: int(10, 3600) }),
+  // TSK-0076 (HH-PRIV-02, ENT-ConsentPreference): the version of the photo publication notice a customer's consent to
+  // publish a field photo is recorded under. Its wording is legal text no node gives: NOT CONFIGURED (migration 0080,
+  // OQ-FIELD-PHOTO-DETAILS), so no publication permission can be recorded until the owner supplies it.
+  'media.publication_notice': shape({
+    documentId: matching(/^[a-z][a-z0-9-]{0,38}[0-9]$/, 'a document ID such as photo-publication-notice-1'),
+  }),
   // FACT-AUTOMATIC-MESSAGES (TSK-0047): the one list of messages that send without staff release. Codes are message
   // types of modules/notifications, which refuses an unknown code when it reads the list.
   'messages.automatic': shape({

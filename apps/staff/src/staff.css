@@ -1017,6 +1017,27 @@
   max-width: 100%;
 }
 
+/* TSK-0076: a job's field photos. */
+.staff-photos {
+  display: grid;
+  gap: var(--hh-space-3, 0.75rem);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.staff-photos__item {
+  border: 1px solid var(--hh-line);
+  border-radius: 6px;
+  padding: var(--hh-space-3, 0.75rem);
+  overflow-wrap: anywhere;
+}
+.staff-photos__item img {
+  display: block;
+  max-width: min(16rem, 100%);
+  height: auto;
+  border-radius: 4px;
+}
+
 /* TSK-0077: Call 911 first, then Stop Work / Report Hazard, prominent on every screen of an active job; large touch
    targets, wrapping text on a phone. */
 .staff-start__emergency {

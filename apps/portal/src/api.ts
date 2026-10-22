@@ -383,8 +383,55 @@ export type TabData =
   | (TabHead & { tab: 'documents'; state: 'listed'; estimates: EstimateListItem[]; invoices: InvoiceListItem[] })
   | (TabHead & { tab: 'appointments' | 'payments'; state: 'none' })
   | (TabHead & { tab: 'appointments'; state: 'listed'; offers: WindowOffer[]; appointments: Appointment[] })
-  | (TabHead & { tab: 'photos'; photos: PhotoCounts })
+  | (TabHead & {
+      tab: 'photos'
+      photos: PhotoCounts
+      yours: YourPhoto[]
+      shared: SharedPair[]
+      linkSeconds: number
+    })
 
+/** TSK-0076 (HH-PORT-11): one of the customer's own uploads, with its short-lived link once ready. */
+export type YourPhoto = {
+  id: string
+  state: 'quarantined' | 'ready' | 'rejected'
+  uploadedAt: string
+  url: string | null
+}
+/** A photo staff shared with the customer, with its short-lived link. */
+export type SharedPhoto = { id: string; sharedAt: string; url: string | null }
+/** A shared before and after photo of one service, paired where staff paired them. */
+export type SharedPair = { service: string; before: SharedPhoto | null; after: SharedPhoto | null }
+
+const httpsOrNull = (v: unknown): v is string | null => v === null || (isStr(v) && /^https:\/\//.test(v))
+function sharedPhoto(v: unknown): SharedPhoto | null | undefined {
+  if (v === null) return null
+  return isObj(v) && isStr(v['id']) && isDate(v['sharedAt']) && httpsOrNull(v['url'])
+    ? { id: v['id'], sharedAt: v['sharedAt'], url: v['url'] }
+    : undefined
+}
+function parsePhotoLists(v: Record<string, unknown>) {
+  if (!Array.isArray(v['yours']) || !Array.isArray(v['shared']) || !isSeconds(v['linkSeconds'])) return null
+  const yours = v['yours'].map((y) =>
+    isObj(y) &&
+    isStr(y['id']) &&
+    oneOf(['quarantined', 'ready', 'rejected'] as const)(y['state']) &&
+    isDate(y['uploadedAt']) &&
+    httpsOrNull(y['url'])
+      ? { id: y['id'], state: y['state'], uploadedAt: y['uploadedAt'], url: y['url'] }
+      : null,
+  )
+  const shared = v['shared'].map((g) => {
+    if (!isObj(g) || !isStr(g['service'])) return null
+    const before = sharedPhoto(g['before'])
+    const after = sharedPhoto(g['after'])
+    return before === undefined || after === undefined || (before === null && after === null)
+      ? null
+      : { service: g['service'], before, after }
+  })
+  if (yours.some((y) => y === null) || shared.some((g) => g === null)) return null
+  return { yours: yours as YourPhoto[], shared: shared as SharedPair[], linkSeconds: v['linkSeconds'] }
+}
 const TAB_STATE: Record<Exclude<WorkspaceTab, 'photos' | 'messages'>, string> = {
   documents: 'none',
   appointments: 'none',
@@ -401,7 +448,14 @@ export function parseTab(tab: WorkspaceTab, v: unknown): TabData | null {
   if (tab === 'photos') {
     const p = v['photos']
     if (!isObj(p) || !isSeconds(p['received']) || !isSeconds(p['processing']) || !isSeconds(p['failed'])) return null
-    return { ...head, tab, photos: { received: p['received'], processing: p['processing'], failed: p['failed'] } }
+    const lists = parsePhotoLists(v)
+    if (!lists) return null
+    return {
+      ...head,
+      tab,
+      photos: { received: p['received'], processing: p['processing'], failed: p['failed'] },
+      ...lists,
+    }
   }
   if (tab === 'messages') {
     const list = v['messages']

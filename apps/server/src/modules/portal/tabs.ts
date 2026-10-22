@@ -10,13 +10,17 @@
 //   issued invoices with their balance (TSK-0085); "none" while there is none. Payments: no payment record exists yet, so none is shown. Appointments (TSK-0063): the offered
 //   windows the customer can choose from and the confirmed visits (visits/offers.ts appointmentsOf); "none" while
 //   there is neither.
-// - Photos: the counts of the customer-visible photos (the customer's uploads, and photos staff shared) by state, the
-//   same counts the receipt shows; the photos themselves, their URLs and IDs are not sent (viewing: TSK-0076).
+// - Photos: the counts of the customer's uploads by state (the same counts the receipt shows); TSK-0076 (HH-PORT-11):
+//   the uploads themselves and the before and after photos staff shared, paired where possible, each ready one with a
+//   short-lived signed URL (field-photos/photos.ts customerPhotos). Internal and restricted photos are never read.
 import type { Db, Tx } from '@handyhub/db'
 import type { DataScope } from '@handyhub/policy'
 import { customerEstimateList, type CustomerEstimateListItem } from '../estimates/customer.js'
+import type { ObjectStorage } from '../../providers/index.js'
+import { customerPhotos, type CustomerUpload, type SharedGroup } from '../field-photos/photos.js'
 import { customerInvoiceList, type CustomerInvoiceItem } from '../finance/invoices.js'
-import { findProject, requestPhotos, type ConversationMessageRecord, type PhotoCounts } from '../records/index.js'
+import { PHOTO_URL_SECONDS } from '../photos/photos.js'
+import { findProject, type ConversationMessageRecord, type PhotoCounts } from '../records/index.js'
 import { appointmentsOf, type CustomerAppointment, type CustomerOffer } from '../visits/offers.js'
 import { refreshSeconds } from './overview.js'
 
@@ -37,18 +41,13 @@ export type TabAnswer =
     })
   | (Head & { tab: 'appointments' | 'payments'; state: 'none' })
   | (Head & { tab: 'appointments'; state: 'listed'; offers: CustomerOffer[]; appointments: CustomerAppointment[] })
-  | (Head & { tab: 'photos'; photos: PhotoCounts })
-
-/** The customer-visible photos of the project's request, counted by state (removed ones never). */
-async function photoCounts(db: Reader, scope: DataScope, projectId: string): Promise<PhotoCounts> {
-  const r = await db.selectFrom('intake.requests').select('id').where('project_id', '=', projectId).executeTakeFirst()
-  const rows = r ? ((await requestPhotos(db, scope, r.id, 'customer')) ?? []) : []
-  return {
-    received: rows.filter((p) => p.state === 'ready').length,
-    processing: rows.filter((p) => p.state === 'quarantined').length,
-    failed: rows.filter((p) => p.state === 'rejected').length,
-  }
-}
+  | (Head & {
+      tab: 'photos'
+      photos: PhotoCounts
+      yours: CustomerUpload[]
+      shared: SharedGroup[]
+      linkSeconds: number
+    })
 
 /** PROPOSED: the most messages one read lists (the newest ones, shown oldest first). */
 export const CONVERSATION_LIMIT = 500
@@ -97,6 +96,7 @@ export async function projectTab(
   reference: string,
   tab: WorkspaceTab,
   now = new Date(),
+  storage: ObjectStorage | null = null,
 ): Promise<TabAnswer | null> {
   const project = await findProject(db, scope, { reference })
   if (!project) return null
@@ -104,8 +104,10 @@ export async function projectTab(
   switch (tab) {
     case 'messages':
       return { ...head, tab, messages: await conversation(db, project.id) }
-    case 'photos':
-      return { ...head, tab, photos: await photoCounts(db, scope, project.id) }
+    case 'photos': {
+      const p = await customerPhotos(db, project.id, storage)
+      return { ...head, tab, photos: p.counts, yours: p.yours, shared: p.shared, linkSeconds: PHOTO_URL_SECONDS }
+    }
     case 'documents': {
       const estimates = (await customerEstimateList(db, scope, project.reference, now)) ?? []
       // TSK-0085: the issued invoices (never a draft), with their balance.

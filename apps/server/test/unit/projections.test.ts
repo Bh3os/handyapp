@@ -108,6 +108,8 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
         'requestDeletion',
         'getCustomerDataExport',
         'getCustomerEstimateDownloads',
+        // TSK-0076: one photo the customer may see, opened by its ID.
+        'getCustomerProjectPhoto',
         // TSK-0085: the issued invoice PDF's short-lived link.
         'getCustomerInvoiceDownload',
       ].sort(),
@@ -258,13 +260,38 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
     })
     for (const view of [PROJECT_DOCUMENTS, PROJECT_APPOINTMENTS, PROJECT_PAYMENTS])
       expect(view.project({ ...head, ...extra, state: 'none' })).toEqual({ ...out, state: 'none' })
+    // TSK-0076 (HH-PORT-11, HH-DATA-07): the Photos tab lists the customer's uploads and the shared before/after pairs:
+    // ID, state or service, time and a short-lived URL only; never a storage key, uploader, label or visibility class.
+    const shared = {
+      id: 'photo-2',
+      sharedAt: at,
+      url: 'https://fake-r2.invalid/x',
+      objectKey: 'jobs/x',
+      visibility: 'customer_shared',
+    }
     expect(
       PROJECT_PHOTOS.project({
         ...head,
         ...extra,
         photos: { received: 2, processing: 1, failed: 0, ids: ['photo-1'] } as never,
+        yours: [{ id: 'photo-1', state: 'ready', uploadedAt: at, url: null, uploaderKind: 'customer' } as never],
+        shared: [{ service: 'Drywall', before: shared, after: null, areaLabel: 'staff only' } as never],
+        linkSeconds: 300,
       }),
-    ).toEqual({ ...out, photos: { received: 2, processing: 1, failed: 0 } })
+    ).toEqual({
+      ...out,
+      photos: { received: 2, processing: 1, failed: 0 },
+      yours: [{ id: 'photo-1', state: 'ready', uploadedAt: '2026-10-21T12:00:00.000Z', url: null }],
+      shared: [
+        {
+          service: 'Drywall',
+          before: { id: 'photo-2', sharedAt: '2026-10-21T12:00:00.000Z', url: 'https://fake-r2.invalid/x' },
+          after: null,
+        },
+      ],
+      linkSeconds: 300,
+    })
+    expect(fieldNames(PROJECT_PHOTOS.schema).filter(forbiddenForCustomer)).toEqual([])
     // The states are closed sets: a tab cannot answer "paid", "read" or a list it does not have yet.
     expect(PROJECT_MESSAGES.schema).toMatchObject({
       additionalProperties: false,

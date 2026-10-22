@@ -10,7 +10,9 @@
 // - Site checks: the worker's own answers on arrival. A site different from the packet raises a job-level Hold (with
 //   the worker's note) in the same transaction: the Owner assesses it and sets Ready with a note (PROPOSED).
 // - Before photos: checked like request photos (type, real content, size from uploads.limits), stored once under an
-//   opaque key in the private bucket, internal, never served here (PROPOSED minimal record until TSK-0076).
+//   opaque key in the private bucket, internal, never served here. TSK-0076: they are field photos (work.field_photos)
+//   of the before phase; after photos, area labels, pairs, processing and sharing are in uploadFieldPhoto and the
+//   field-photos module.
 // - Exceptions: requested by an assigned worker with reason and evidence when the records show its one requirement
 //   missing; decided by the Owner (never the requester), approval with a fresh sign-in, a follow-up owner and deadline,
 //   and for the deposit the Owner's statement that the provider's own records show the payment.
@@ -34,8 +36,10 @@ import type { StaffActor } from '@handyhub/policy'
 import { sql } from 'kysely'
 import { ApiError, type FieldError } from '../../api/errors.js'
 import { loadConfig } from '../../platform/config/index.js'
+import { outbox } from '../../platform/outbox.js'
 import type { ObjectStorage } from '../../providers/index.js'
 import { depositView } from '../finance/deposits.js'
+import { FIELD_PHOTO_UPLOADED_EVENT } from '../field-photos/photos.js'
 import { contentProblems } from '../photos/content.js'
 import { photoLimits } from '../photos/photos.js'
 import { openQueueItem, resolveQueueItem } from '../queue/items.js'
@@ -241,7 +245,7 @@ export async function recordSiteCheck(tx: Tx, actor: StaffActor, visitId: string
   return { id: row.id, recordedAt: row.recorded_at, holdId, visit }
 }
 
-// --- Before photos -----------------------------------------------------------------------------------------------
+// --- Field photos (before and after) ------------------------------------------------------------------------------
 
 export class BeforePhotoError extends Error {
   constructor(readonly problem: string) {
@@ -249,16 +253,28 @@ export class BeforePhotoError extends Error {
   }
 }
 
-export async function uploadBeforePhoto(
+export type FieldPhotoPhase = 'before' | 'after'
+
+/**
+ * One field photo of a work package on an arrived visit (TSK-0073 before photos; TSK-0076 after photos, area labels,
+ * pairs and processing). Checked like request photos, stored once under an opaque key in the private bucket,
+ * quarantined until the photo processing checks the stored original again, internal until Owner or Office share it.
+ * An after photo needs the uploader's own work start on the visit; its pair is a before photo of the same package.
+ */
+export async function uploadFieldPhoto(
   tx: Tx,
   actor: StaffActor,
   visitId: string,
   input: {
+    phase: FieldPhotoPhase
     workPackageId: string
     bytes: Uint8Array
     declaredType: string
     storage: ObjectStorage | null
+    requestId: string
     deviceCapturedAt?: string | undefined
+    areaLabel?: string | undefined
+    pairOf?: string | undefined
   },
 ) {
   const visit = await lockedVisit(tx, visitId)
@@ -278,20 +294,43 @@ export async function uploadBeforePhoto(
     .executeTakeFirst()
   if (!pkg) throw new BeforePhotoError('unknown_work_package')
   if (!['arrived'].includes(visit.state)) throw conflict([field('visit', 'ARRIVED_FIRST')])
+  if (input.phase === 'after') {
+    const started = await tx
+      .selectFrom('work.work_starts')
+      .select('id')
+      .where('visit_id', '=', visit.id)
+      .where('staff_user_id', '=', actor.userId)
+      .executeTakeFirst()
+    if (!started) throw conflict([field('visit', 'START_WORK_FIRST')])
+  }
+  const pairOf = input.phase === 'after' ? input.pairOf : undefined
+  if (input.pairOf && input.phase !== 'after') throw new BeforePhotoError('pair_after_only')
+  if (pairOf) {
+    const pair = await tx
+      .selectFrom('work.field_photos')
+      .select('id')
+      .where('id', '=', pairOf)
+      .where('phase', '=', 'before')
+      .where('work_package_id', '=', pkg.id)
+      .executeTakeFirst()
+    if (!pair) throw new BeforePhotoError('unknown_pair')
+  }
+  const areaLabel = input.areaLabel?.trim() ? input.areaLabel.trim() : null
   const sha256 = createHash('sha256').update(input.bytes).digest('hex')
   const existing = await tx
-    .selectFrom('work.before_photos')
+    .selectFrom('work.field_photos')
     .select(['id', 'uploaded_at'])
     .where('visit_id', '=', visit.id)
     .where('work_package_id', '=', pkg.id)
+    .where('phase', '=', input.phase)
     .where('sha256', '=', sha256)
     .executeTakeFirst()
   if (existing) return { id: existing.id, uploadedAt: existing.uploaded_at, created: false, visit }
   const id = randomUUID()
   // Opaque key: no name, address or file name; the original is written once and never overwritten.
-  const key = `jobs/before-photos/${id}`
+  const key = `jobs/${input.phase}-photos/${id}`
   const row = await tx
-    .insertInto('work.before_photos')
+    .insertInto('work.field_photos')
     .values({
       id,
       job_id: visit.jobId,
@@ -304,13 +343,33 @@ export async function uploadBeforePhoto(
       byte_size: input.bytes.length,
       sha256,
       device_captured_at: input.deviceCapturedAt ? new Date(input.deviceCapturedAt) : null,
+      phase: input.phase,
+      area_label: areaLabel,
+      pair_of: pairOf ?? null,
     })
     .returning(['id', 'uploaded_at'])
     .executeTakeFirstOrThrow()
   // The row first (refused if the uploader is not assigned), then the object.
   await input.storage.put(key, input.bytes, declared)
-  await syncExceptionItem(tx, visit.jobId)
+  await outbox.add(tx, {
+    type: FIELD_PHOTO_UPLOADED_EVENT,
+    aggregate: { type: 'field_photo', id },
+    payload: { photoId: id },
+    idempotencyKey: `${FIELD_PHOTO_UPLOADED_EVENT}:${id}`,
+    requestId: input.requestId,
+  })
+  if (input.phase === 'before') await syncExceptionItem(tx, visit.jobId)
   return { id: row.id, uploadedAt: row.uploaded_at, created: true, visit }
+}
+
+/** A before photo (TSK-0073): a field photo of the before phase. */
+export function uploadBeforePhoto(
+  tx: Tx,
+  actor: StaffActor,
+  visitId: string,
+  input: Omit<Parameters<typeof uploadFieldPhoto>[3], 'phase' | 'pairOf'>,
+) {
+  return uploadFieldPhoto(tx, actor, visitId, { ...input, phase: 'before' })
 }
 
 // --- Exceptions --------------------------------------------------------------------------------------------------

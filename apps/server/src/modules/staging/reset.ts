@@ -152,8 +152,15 @@ export const CLEARED_CATEGORIES = {
     'platform.message_delivery_events',
     'platform.message_delivery_attempts',
   ],
-  // TSK-0077 (0079): the photos of Stop Work, hazard and issue reports.
-  attachments: ['intake.photos', 'intake.question_reply_photos', 'work.before_photos', 'work.issue_report_photos'],
+  attachments: [
+    'intake.photos',
+    'intake.question_reply_photos',
+    // TSK-0076 (0080): the before photos of 0074 are the field photos; publication permissions per photo.
+    'work.field_photos',
+    'work.photo_publication_permissions',
+    // TSK-0077 (0079): the photos of Stop Work, hazard and issue reports.
+    'work.issue_report_photos',
+  ],
   pending_messages: ['platform.outbox_events', 'platform.jobs'],
   sessions: [
     'identity.customer_sessions',
@@ -259,8 +266,9 @@ const STORED_FILES = [
   ['estimating.approval_receipts', 'object_key'],
   // TSK-0085: the issued invoice PDFs.
   ['finance.invoice_documents', 'object_key'],
-  // TSK-0073 (0074): the before photos of field visits.
-  ['work.before_photos', 'object_key'],
+  // TSK-0073 (0074), TSK-0076 (0080): the before and after photos of field visits.
+  ['work.field_photos', 'object_key'],
+  // TSK-0077 (0079): the photos of Stop Work, hazard and issue reports.
   ['work.issue_report_photos', 'object_key'],
 ] as const
 

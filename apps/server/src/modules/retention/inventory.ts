@@ -703,10 +703,11 @@ export const TABLES = {
     categories: [NS],
   },
   'work.equipment': { holds: 'Shared equipment items', classes: ['configuration'], categories: [NS] },
-  'work.before_photos': {
+  'work.field_photos': {
     holds:
-      'Before photos per work package and visit (metadata; the files are in R2), internal: who uploaded, when, the ' +
-      'device capture time when sent',
+      'Before and after photos per work package and visit (metadata; the files are in R2): who uploaded, when, the ' +
+      "device capture time when sent, the worker's area label, the before/after pair, the processing state and the " +
+      'visibility class with who last shared it',
     classes: ['photos'],
     categories: [J, S],
     vendors: ['r2'],
@@ -794,6 +795,14 @@ export const TABLES = {
       'substitutes; who and when',
     classes: ['request_details'],
     categories: [J, S],
+  },
+  'work.photo_publication_permissions': {
+    holds:
+      "A customer's evidenced permission to publish one field photo (purpose, channel, notice version), or its " +
+      'withdrawal: how the customer gave it, a staff reference to the evidence, the Owner who recorded it and when',
+    classes: ['contact'],
+    categories: [C, J],
+    protectedEvidence: true,
   },
   'work.reservation_flags': {
     holds: 'Appointments flagged by an availability change',

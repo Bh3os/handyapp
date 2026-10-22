@@ -29,6 +29,7 @@ import { RetentionScreen } from './Retention'
 import { ScheduleBoard } from './Schedule'
 import { SearchScreen, Screen, Shell, type Navigation } from './Shell'
 import { StaffScreen } from './StaffManagement'
+import { JobPhotosPage } from './JobPhotos'
 import { StartReviewPage, StartWorkPage } from './StartWork'
 import { JobSafety, SafetyHoldPage, flushPendingStops } from './StopWork'
 import { StagingTools } from './StagingTools'
@@ -222,7 +223,11 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
             ? 'customers'
             : // A job packet (TSK-0069) is reached from My Day or the board; the server decides who may open it.
               // TSK-0073: the Start Work briefing is reached from My Day (a link, never a direct start).
-              route.screen === 'packets' || route.screen === 'loadouts' || route.screen === 'start'
+              // TSK-0076: a job's field photos likewise.
+              route.screen === 'packets' ||
+                route.screen === 'loadouts' ||
+                route.screen === 'start' ||
+                route.screen === 'job-photos'
               ? nav?.items.includes('my-day')
                 ? 'my-day'
                 : 'schedule'
@@ -344,8 +349,10 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
             </>
           ) : route.page === 'record' && route.screen === 'start' ? (
             <StartWorkPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} visitId={route.id} href={href} />
+          ) : route.page === 'record' && route.screen === 'job-photos' ? (
+            <JobPhotosPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} />
           ) : route.page === 'record' && route.screen === 'start-review' ? (
-            <StartReviewPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} />
+            <StartReviewPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} href={href} />
           ) : route.page === 'record' && route.screen === 'safety-holds' ? (
             // TSK-0077: a safety queue item's link (a critical hold) opens its job's review page.
             <SafetyHoldPage
@@ -354,7 +361,7 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
               fetchImpl={doFetch}
               holdId={route.id}
               render={(jobId) => (
-                <StartReviewPage key={jobId} t={t} locale={locale} fetchImpl={doFetch} jobId={jobId} />
+                <StartReviewPage key={jobId} t={t} locale={locale} fetchImpl={doFetch} jobId={jobId} href={href} />
               )}
             />
           ) : route.page === 'record' && route.screen === 'visit-times' ? (

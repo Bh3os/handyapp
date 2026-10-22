@@ -23,6 +23,7 @@ import {
 } from './modules/finance/index.js'
 import { deliveryStatusAutomation, linkHostsOf, releaseAutomation } from './modules/notifications/index.js'
 import { photoProcessAutomation } from './modules/photos/index.js'
+import { fieldPhotoProcessAutomation } from './modules/field-photos/photos.js'
 import { queueAutomations } from './modules/queue/index.js'
 import { receiptEmailAutomation } from './modules/requests/receipt-email.js'
 import { responseClockAutomation } from './modules/requests/response-clock.js'
@@ -140,6 +141,8 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     deliveryStatusAutomation(),
     // TSK-0031: quarantined request photos are checked again before they may be served.
     photoProcessAutomation(deps.providers.storage),
+    // TSK-0076: quarantined field photos are checked again before they may be served or shared.
+    fieldPhotoProcessAutomation(deps.providers.storage),
     // TSK-0054: quarantined estimate documents are checked again before they may be used or served.
     estimateDocumentProcessAutomation(deps.providers.storage),
     // TSK-0055: a published estimate version expires at the end of its validity; publishing sends the automatic
