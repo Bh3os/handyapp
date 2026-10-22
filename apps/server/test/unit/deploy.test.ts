@@ -40,8 +40,12 @@ describe('Render deploy configuration (TSK-0003, INT-Render, RULE-SYNTHETIC-DATA
     expect(render).toMatch(/postgresMajorVersion: '16'/)
   })
 
-  it('the container migrates, then serves the built server', () => {
+  it('the container migrates, loads the services, SOPs and loadouts, then serves the built server', () => {
     expect(dockerfile).toContain('FROM node:24-slim')
-    expect(dockerfile).toContain('node packages/db/dist/cli/migrate.js && exec node apps/server/dist/main.js')
+    // A fresh database has no services until the registry is synced (TSK-0019); each sync is safe to repeat.
+    expect(dockerfile).toContain(
+      'node packages/db/dist/cli/migrate.js && node packages/db/dist/cli/services.js && ' +
+        'node packages/db/dist/cli/sops.js && node packages/db/dist/cli/loadouts.js && exec node apps/server/dist/main.js',
+    )
   })
 })
