@@ -237,6 +237,8 @@ test.describe('the receipt (TSK-0032)', () => {
           { type: 'delivery_failed', reason: 'delivery_not_configured', reference },
           // A form sent within seconds of opening is quietly flagged (HH-INT-11); either way staff see the request.
           { type: 'new_request', reason: expect.stringMatching(/^new_request(_flagged)?$/), reference },
+          // TSK-0123 (OWN-DEC-159): no county list is configured, so the property's zone is unknown and flagged.
+          { type: 'property_time_zone', reason: 'time_zone_unknown', reference },
         ],
       })
 
