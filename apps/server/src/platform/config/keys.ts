@@ -72,6 +72,30 @@ const legalDocument = shape({
   contentSha256: matching(/^[0-9a-f]{64}$/, 'a SHA-256 hex digest'),
 })
 
+/**
+ * One version of the estimate terms (TSK-0056, TSK-0144): a legal document version, with the owner's sign-off when the
+ * owner approved it (OWN-DEC-187). A sign-off is only recorded on an approved version; it names the owner and the
+ * decision node, never a staff user (OWN-DEC-128).
+ */
+const ownerSignOff = shape({
+  by: exactly('owner'),
+  decisionId: matching(/^OWN-DEC-[0-9]+$/, 'an owner decision ID such as OWN-DEC-187'),
+  source: text,
+  signedOn: matching(/^\d{4}-\d{2}-\d{2}$/, 'a date YYYY-MM-DD'),
+  wording: text,
+})
+type EstimateTermsVersion = ReturnType<typeof legalDocument> & {
+  readonly ownerSignOff?: ReturnType<typeof ownerSignOff>
+}
+const estimateTermsVersion = (v: unknown, p: string): EstimateTermsVersion => {
+  if (v === null || typeof v !== 'object' || Array.isArray(v) || !Object.hasOwn(v, 'ownerSignOff'))
+    return legalDocument(v, p)
+  const { ownerSignOff: signOff, ...rest } = v as Record<string, unknown>
+  const doc = legalDocument(rest, p)
+  if (doc.status !== 'approved') fail(`${p}.ownerSignOff`, 'a sign-off is recorded only on an approved version')
+  return { ...doc, ownerSignOff: ownerSignOff(signOff, `${p}.ownerSignOff`) }
+}
+
 /** One retention category's period (TSK-0099): what starts it, and the owner's deletion review after it. */
 const retentionPeriod = <const A extends string>(after: A, decidedYears: number) =>
   shape({
@@ -224,10 +248,9 @@ export const CONFIG_KEYS = {
   'legal.sms_disclosure': legalDocument,
   // TSK-0053 (HH-EST-13, OWN-DEC-127): the estimate terms each published version carries. NOT CONFIGURED (migration
   // 0028); publish readiness names it while it is missing. TSK-0056 wrote terms v1.0 (ESTIMATE_TERMS of
-  // @handyhub/domain/legal, documentId estimate-terms-1, owner review pending) but records no version of this key:
-  // recording it is the owner's legal-document sign-off (OQ-TERMS-OWNER-APPROVAL), and the customer view shows its
-  // wording only while the recorded content hash matches.
-  'legal.estimate_terms': legalDocument,
+  // @handyhub/domain/legal, documentId estimate-terms-1); the customer view shows its wording only while the recorded
+  // content hash matches. TSK-0144 (OWN-DEC-187): migration 0073 records v1.0 as approved with the owner's sign-off.
+  'legal.estimate_terms': estimateTermsVersion,
   // TSK-0098 (HH-SEC-06, OWN-DEC-142, OWN-DEC-70): how long audit records are kept (7 years), then the owner's
   // deletion-review queue. Automatic deletion is not a value this shape accepts, and holds always keep records.
   'retention.audit_log': shape({

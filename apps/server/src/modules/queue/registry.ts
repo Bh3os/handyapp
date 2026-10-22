@@ -40,6 +40,8 @@ export const QUEUE_ACTIONS = [
   'review_shortage',
   // TSK-0123: record the zone of a property whose zone is unknown.
   'verify_time_zone',
+  // TSK-0074: set Ready on a job-level Hold / Ready note once the requirement it names is resolved.
+  'review_job_hold',
 ] as const
 export type QueueAction = (typeof QUEUE_ACTIONS)[number]
 
@@ -340,6 +342,21 @@ export const QUEUE_ITEM_TYPES = [
     screen: 'schedule',
     path: 'loadouts',
   },
+  // TSK-0074 (HH-WORK-02, OWN-DEC-82, OWN-DEC-137): a job-level Hold / Ready note blocks confirming and starting the
+  // job until the Owner sets Ready with a note. One item per job while any of its job-level holds blocks, opened in
+  // the same transaction as the hold (set by staff, or raised by a worker's site check that found the site different)
+  // and resolved with the last one. Seen by the Owner (job_hold.set_ready); band and view are PROPOSED.
+  {
+    id: 'job_hold',
+    section: 'queue',
+    subject: 'job',
+    band: 'time_sensitive',
+    view: 'job_hold.set_ready',
+    reasons: ['job_on_hold', 'site_condition_differs'],
+    action: 'review_job_hold',
+    screen: 'schedule',
+    path: 'start-review',
+  },
   // TSK-0123 (OWN-DEC-159 item 13): a property whose zone is unknown while one of its projects is open, flagged for
   // verification; no visit is planned on it until its zone is known. Opened and resolved by the database in the same
   // transaction as the zone or the project changes (migration 0066, ops.sync_property_zone_item). Seen by the roles
@@ -371,9 +388,12 @@ export const QUEUE_ITEM_TYPES = [
     subject: 'job',
     band: 'time_sensitive',
     view: 'work.approve_exception',
-    reasons: ['start_work_exception_requested'],
+    // TSK-0074 (HH-WORK-03): a request to decide; then, every approved exception stays in the Owner's review queue
+    // while its follow-up (the pending upload, the reconciliation, the deferred walkthrough) is open.
+    reasons: ['start_work_exception_requested', 'start_work_exception_follow_up'],
     action: 'decide',
     screen: 'schedule',
+    path: 'start-review',
   },
   {
     id: 'refund_request',

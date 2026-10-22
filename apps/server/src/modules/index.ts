@@ -8,6 +8,7 @@ import { COVERAGE_MODULE } from './coverage/index.js'
 import type { EnvironmentName, StagingCheck } from '../config.js'
 import { estimatesModule } from './estimates/index.js'
 import { APPROVALS_MODULE } from './approvals/index.js'
+import { BUSINESS_MODULE } from './business/index.js'
 import { CUSTOMERS_MODULE } from './customers/index.js'
 import { inboxModule } from './inbox/index.js'
 import { loadoutsModule } from './loadouts/index.js'
@@ -27,6 +28,7 @@ import { portalModule } from './portal/index.js'
 import { questionsModule } from './questions/index.js'
 import { SITE_MODULE } from './site/index.js'
 import { sopsModule } from './sops/index.js'
+import { startModule } from './start/index.js'
 import { staffModule } from './staff/index.js'
 import { systemModule, type SystemDeps } from './system/index.js'
 import { verificationModule } from './verification/index.js'
@@ -85,6 +87,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     estimatesModule({ storage: deps.storage ?? null, testMark: deps.environment !== 'production' }),
     // TSK-0130: the Owner's approval before publishing over the threshold, its queue and the threshold setting.
     APPROVALS_MODULE,
+    // TSK-0144: Business settings (the mailing address the Owner enters) and the legal documents with their sign-off.
+    BUSINESS_MODULE,
     // TSK-0059: the deposit requirement, recorded deposit payments, the Owner's waiver (the gate is called by visits).
     FINANCE_MODULE,
     NOTIFICATIONS_MODULE,
@@ -123,6 +127,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     loadoutsModule(),
     // TSK-0070: My Day, On my way, Arrived and Finished per worker, the Owner's corrections and the accountant's CSV.
     fieldModule(),
+    // TSK-0073, TSK-0074: the Start Work gate, site checks, before photos, holds and the three exceptions.
+    startModule({ storage: deps.storage ?? null, ...(deps.environment ? { environment: deps.environment } : {}) }),
     // TSK-0097: staff management (the staff list, role and capability grants, offboarding and re-enabling).
     staffModule(),
     // TSK-0098: the audit-log screen (Owner every entry, Office their own actions; retention shown, never deleted).

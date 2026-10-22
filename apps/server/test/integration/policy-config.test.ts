@@ -38,12 +38,14 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
     // TSK-0119: messages.automatic version 2 (migration 0065, OWN-DEC-152); TSK-0121 adds the reminders as version 3
     // (migration 0075, OWN-DEC-153).
     // TSK-0123: migration 0066 recorded the decided business time zone as its second version (OWN-DEC-159).
-    // TSK-0121: migration 0075 recorded the automatic reminder cadences as the second version (OWN-DEC-153).
-    // Every other key is at version 1.
+    // Every key is at version 1 except these: TSK-0121 (migration 0075) recorded the automatic reminder cadences
+    // (OWN-DEC-153) and messages.automatic version 3; TSK-0144 (migration 0073) recorded the owner's sign-off of
+    // estimate terms v1.0 as its second version (OWN-DEC-187).
     const expected: Record<string, number> = {
       'messages.automatic': 3,
       'business.timezone': 2,
       'reminders.cadences': 2,
+      'legal.estimate_terms': 2,
     }
     for (const e of entries) expect(e.version, e.key).toBe(expected[e.key] ?? 1)
   })

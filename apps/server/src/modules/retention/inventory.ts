@@ -661,6 +661,21 @@ export const TABLES = {
     categories: [NS],
   },
   'work.equipment': { holds: 'Shared equipment items', classes: ['configuration'], categories: [NS] },
+  'work.before_photos': {
+    holds:
+      'Before photos per work package and visit (metadata; the files are in R2), internal: who uploaded, when, the ' +
+      'device capture time when sent',
+    classes: ['photos'],
+    categories: [J, S],
+    vendors: ['r2'],
+  },
+  'work.gate_exceptions': {
+    holds:
+      "Start Work administrative exceptions: the worker's reason and evidence (a payment provider's transaction " +
+      "reference for a deposit), the Owner's decision, follow-up owner and deadline, and how it ended",
+    classes: ['scheduling'],
+    categories: [J, S],
+  },
   'work.holds': {
     holds: 'Review and safety holds and loadout task blocks with their resolution and reviewer',
     classes: ['request_details'],
@@ -730,6 +745,20 @@ export const TABLES = {
     classes: ['scheduling', 'staff_account'],
     categories: [J],
   },
+  'work.start_gate_evaluations': {
+    holds:
+      'Each Start Work attempt: every prerequisite with its missing items and resolution owners, the outcome, the ' +
+      'packet, scope and SOP versions and the exceptions used',
+    classes: ['scheduling'],
+    categories: [J, S],
+  },
+  'work.start_site_checks': {
+    holds:
+      "A worker's site checks before Start Work (property, access, customer present, hazards reviewed, site as " +
+      'described or different with their note)',
+    classes: ['request_details'],
+    categories: [J, S],
+  },
   'work.time_stamps': {
     holds:
       "Each assigned worker's Arrived and Finished time per visit (server time; device time when sent); no pay data",
@@ -788,6 +817,13 @@ export const TABLES = {
     holds: 'Work packages of a project, one per service',
     classes: ['request_details'],
     categories: [R, J, A],
+  },
+  'work.work_starts': {
+    holds:
+      'Actual contracted work started, per worker and visit: the passing evaluation, the packet, scope and SOP ' +
+      'versions, the acknowledgment, any approved exception and the server time',
+    classes: ['scheduling'],
+    categories: [J, S],
   },
   'work.worker_schedules': {
     holds: "A staff member's schedule time zone",
