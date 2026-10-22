@@ -8,12 +8,14 @@
 //   state either: a send runs inside one transaction and the row moves straight to its outcome.
 // - PROVIDER_ACCEPTED: the provider took it (stored as queued with a provider message ID, or sent). Acceptance is never
 //   delivery. DELIVERED only where the provider reported delivery by status webhook (TSK-0048), and never for a test
-//   provider: a message intercepted by the fake provider of staging or CI is `intercepted` and stays PROVIDER_ACCEPTED.
+//   provider: a message intercepted by a test provider (the fakes of local and ci, the staging log sender) is
+//   `intercepted` and stays PROVIDER_ACCEPTED.
 //   "Read" is never shown: no provider measures it here.
 // - FAILED (with its error code and the names of missing variables), CANCELLED, EXPIRED (cancelled because what it
 //   offered expired) and SUPPRESSED (consent, opt-out or the test allowlist).
 // Template approval is separate: a template version is released content (template ID, version, source decisions);
 // whether a message can send is its readiness (templates.ts), and this is the state of one message.
+import { isTestProvider } from '../../providers/types.js'
 import { messageType } from './message-types.js'
 
 export const MESSAGE_LIFECYCLE = [
@@ -49,9 +51,12 @@ export type DeliveryFacts = {
   scheduled_at: Date | null
 }
 
-/** Whether a delivery went to a test provider (staging, CI): never reported as delivered (OWN-DEC-152 section 14). */
+/**
+ * Whether a delivery went to a test provider (the fakes of local and ci, the staging log sender of TSK-0112): never
+ * reported as delivered (OWN-DEC-152 section 14).
+ */
 export function isIntercepted(row: Pick<DeliveryFacts, 'provider'>): boolean {
-  return row.provider === 'fake'
+  return isTestProvider(row.provider)
 }
 
 /** Whether a message type is released by the Owner only (an unknown type is not). */

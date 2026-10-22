@@ -351,6 +351,11 @@ describe('[HH-COM-14][HH-COM-02] the message lifecycle reuses the stored deliver
     expect(lifecycleOf(row({ state: 'delivered', provider: 'resend' }), now)).toBe('DELIVERED')
     expect(lifecycleOf(row({ state: 'delivered', provider: 'fake' }), now)).toBe('PROVIDER_ACCEPTED')
     expect(isIntercepted({ provider: 'fake' })).toBe(true)
+    // TSK-0112: the staging log sender is a test provider too: its messages are never DELIVERED.
+    expect(lifecycleOf(row({ state: 'delivered', provider: 'log' }), now)).toBe('PROVIDER_ACCEPTED')
+    expect(lifecycleOf(row({ provider: 'log', provider_message_id: 'log-email-1' }), now)).toBe('PROVIDER_ACCEPTED')
+    expect(isIntercepted({ provider: 'log' })).toBe(true)
+    expect(isIntercepted({ provider: 'resend' })).toBe(false)
     expect(lifecycleOf(row({ state: 'failed' }), now)).toBe('FAILED')
     expect(lifecycleOf(row({ state: 'suppressed' }), now)).toBe('SUPPRESSED')
     expect(lifecycleOf(row({ state: 'cancelled', error_code: 'record_changed' }), now)).toBe('CANCELLED')
