@@ -1,7 +1,7 @@
-// The appointment reminder panel of the scheduling board (TSK-0067; HH-COM-11, HH-COM-05, HH-COM-09, OWN-DEC-78,
-// OWN-DEC-107). The API is a synthetic stand-in (RULE-SYNTHETIC-DATA).
+// The appointment reminder panel of the scheduling board (TSK-0067, TSK-0121; HH-COM-11, HH-COM-05, HH-COM-14,
+// OWN-DEC-153, OWN-DEC-107). The API is a synthetic stand-in (RULE-SYNTHETIC-DATA).
 import { staffTranslator } from '@handyhub/i18n'
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   AppointmentReminders,
@@ -15,40 +15,30 @@ const VISIT = '11111111-1111-4111-8111-111111111111'
 const D1 = '33333333-3333-4333-8333-333333333333'
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
+// Fixed instants far from the test run, so nothing depends on the clock.
+const FUTURE = '2999-01-04T15:00:00.000Z'
+const PAST = '2001-01-04T15:00:00.000Z'
 
-const draft = (over: Partial<AppointmentReminder> = {}): AppointmentReminder => ({
+const reminder = (over: Partial<AppointmentReminder> = {}): AppointmentReminder => ({
   id: D1,
   windowVersion: 1,
   current: true,
-  state: 'draft',
+  release: 'automatic',
+  state: 'queued',
   channel: 'email',
   reason: null,
-  content: {
-    visitWindow: 'Friday, October 30, 2026, 9:00 AM EDT – 10:00 AM EDT (America/Kentucky/Louisville)',
-    serviceAddress: '1 Synthetic Way, Testville, KY 40000',
-    preparationSteps: 'Synthetic: please clear a path to the ceiling.',
-  },
-  draftedAt: '2026-10-29T13:00:00.000Z',
-  releasedAt: null,
-  releasedBy: null,
-  sendAt: null,
+  scheduledAt: FUTURE,
+  sentAt: null,
   cancelledAt: null,
   cancelledBy: null,
-  actions: { release: true, dismiss: true },
   ...over,
 })
 const remindersView = (over: Partial<AppointmentRemindersView> = {}): AppointmentRemindersView => ({
   visitId: VISIT,
   visitState: 'confirmed',
-  cadence: {
-    state: 'CONFIGURED',
-    proposed: false,
-    hoursBefore: 24,
-    contactHoursOnly: true,
-    draftAt: '2026-10-29T13:00:00.000Z',
-  },
+  cadence: { state: 'CONFIGURED', proposed: false, hoursBefore: 24, dueAt: FUTURE },
   stoppedBy: null,
-  reminders: [draft()],
+  reminders: [reminder()],
   ...over,
 })
 
@@ -57,161 +47,83 @@ function renderPanel(fetchImpl: ReturnType<typeof vi.fn>, locale: 'en' | 'es' = 
   render(<AppointmentReminders t={t} fetchImpl={fetchImpl as unknown as typeof fetch} visitId={VISIT} />)
 }
 
-describe('[HH-COM-11] the appointment reminder panel', () => {
-  it('[OWN-DEC-107][OWN-DEC-78] shows the draft with its date and window, address and preparation; Send releases it', async () => {
-    const sent = remindersView({
-      reminders: [
-        draft({
-          state: 'queued',
-          releasedAt: '2026-10-29T14:00:00.000Z',
-          releasedBy: { id: 'staff-1', name: 'Synthetic Office' },
-          sendAt: '2026-10-29T14:00:00.000Z',
-          actions: { release: false, dismiss: false },
-        }),
-      ],
-    })
-    const fetchImpl = vi.fn(async (url: string) =>
-      url.endsWith('/release') ? json(200, sent) : json(200, remindersView()),
-    )
-    renderPanel(fetchImpl)
+describe('[HH-COM-11][OWN-DEC-153] the appointment reminder panel', () => {
+  it('shows the automatic reminder 24 hours before, scheduled; nothing to release or dismiss', async () => {
+    renderPanel(vi.fn(async () => json(200, remindersView())))
     const panel = await screen.findByTestId('appointment-reminders')
     expect(within(panel).getByRole('heading', { name: 'Appointment reminder' })).toBeTruthy()
-    expect(within(panel).getByText(/nothing is sent until you send it/)).toBeTruthy()
-    expect(within(panel).getByText(/^Drafted 24 hours before the arrival window/)).toBeTruthy()
-    const list = within(panel).getByRole('list', { name: 'Appointment reminder' })
-    expect(within(list).getByText('Reminder by Email')).toBeTruthy()
-    expect(within(list).getByText('Draft, not sent')).toBeTruthy()
-    expect(within(list).getByText('1 Synthetic Way, Testville, KY 40000')).toBeTruthy()
-    expect(within(list).getByText('Synthetic: please clear a path to the ceiling.')).toBeTruthy()
-    expect(within(list).getByText(/9:00 AM EDT/)).toBeTruthy()
-    fireEvent.click(within(panel).getByRole('button', { name: 'Send reminder' }))
-    await screen.findByText('Released for delivery. Its outcome shows here.')
-    const [url, init] = fetchImpl.mock.calls[1] as unknown as [string, RequestInit]
-    expect(url).toBe(`/api/v1/staff/appointment-reminders/${D1}/release`)
-    expect(init.method).toBe('POST')
-    expect((init.headers as Record<string, string>)['idempotency-key']).toMatch(/^staff-/)
-    expect(within(panel).getByText('Sending')).toBeTruthy()
-    expect(within(panel).getByText(/^Sent by Synthetic Office, /)).toBeTruthy()
-    // HH-COM-09: a released reminder waits for the contact hours, and the panel says when it sends.
-    expect(within(panel).getByText(/^Waiting for the contact hours: it sends /)).toBeTruthy()
-    expect(within(panel).queryByRole('button', { name: 'Send reminder' })).toBeNull()
+    expect(within(panel).getByText(/sent automatically 24 hours before the arrival window/)).toBeTruthy()
+    expect(within(panel).getByText(/never the address/)).toBeTruthy()
+    expect(within(panel).getByText(/^Sent automatically 24 hours before the arrival window: /)).toBeTruthy()
+    const item = within(panel).getByTestId('appointment-reminder')
+    expect(within(item).getByText('Reminder by Email')).toBeTruthy()
+    expect(within(item).getByText('Scheduled')).toBeTruthy()
+    expect(within(item).getByText(/^Due /)).toBeTruthy()
+    expect(within(panel).queryAllByRole('button')).toEqual([])
   })
 
-  it('[HH-COM-05][T65] a refused release names the reason and reloads: a canceled appointment', async () => {
-    const stopped = remindersView({
-      visitState: 'canceled',
-      stoppedBy: 'visit_canceled',
-      reminders: [
-        draft({
-          state: 'cancelled',
-          reason: 'visit_canceled',
-          cancelledAt: '2026-10-29T14:00:00.000Z',
-          cancelledBy: 'system',
-          actions: { release: false, dismiss: false },
-        }),
-      ],
-    })
-    let loads = 0
-    const fetchImpl = vi.fn(async (url: string) => {
-      if (url.endsWith('/release'))
-        return json(409, {
-          error: { code: 'CONFLICT', fieldErrors: [{ field: 'reminder', code: 'visit_canceled', message: '' }] },
-        })
-      return json(200, ++loads === 1 ? remindersView() : stopped)
-    })
-    renderPanel(fetchImpl)
-    fireEvent.click(await screen.findByRole('button', { name: 'Send reminder' }))
-    await screen.findByText('The reminder was not sent')
-    await screen.findByText('No reminder for this appointment now: The appointment was canceled.')
-    expect(screen.getByText('Reason: The appointment was canceled')).toBeTruthy()
-    expect(screen.getByText(/^Cancelled /)).toBeTruthy()
-  })
-
-  it('changed details say so; an earlier window’s reminder is marked; no preparation steps are made up', async () => {
-    const fetchImpl = vi.fn(async (url: string) =>
-      url.endsWith('/release')
-        ? json(409, {
-            error: { code: 'CONFLICT', fieldErrors: [{ field: 'reminder', code: 'details_changed', message: '' }] },
-          })
-        : json(
-            200,
-            remindersView({
-              reminders: [
-                draft({
-                  id: '44444444-4444-4444-8444-444444444444',
-                  windowVersion: 1,
-                  current: false,
-                  state: 'cancelled',
-                  reason: 'visit_rescheduled',
-                  cancelledAt: '2026-10-29T14:00:00.000Z',
-                  cancelledBy: 'system',
-                  actions: { release: false, dismiss: false },
-                }),
-                draft({ windowVersion: 2, content: { ...draft().content, preparationSteps: null } }),
-              ],
-            }),
-          ),
-    )
-    renderPanel(fetchImpl)
-    await screen.findByText('For an earlier date or window')
-    expect(screen.getByText('Reason: The appointment moved to another date or window')).toBeTruthy()
-    expect(screen.getByText('None were given with the offered windows.')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Send reminder' }))
-    await screen.findByText(/The address or the preparation steps changed\. The reminder now shows/)
-  })
-
-  it('dismiss keeps the draft as dismissed, with who dismissed it', async () => {
-    const dismissed = remindersView({
-      reminders: [
-        draft({
-          state: 'cancelled',
-          reason: 'dismissed',
-          cancelledAt: '2026-10-29T14:00:00.000Z',
-          cancelledBy: { id: 'staff-1', name: 'Synthetic Owner' },
-          actions: { release: false, dismiss: false },
-        }),
-      ],
-    })
-    const fetchImpl = vi.fn(async (url: string) =>
-      url.endsWith('/dismiss') ? json(200, dismissed) : json(200, remindersView()),
-    )
-    renderPanel(fetchImpl)
-    fireEvent.click(await screen.findByRole('button', { name: 'Dismiss' }))
-    await screen.findByText('Dismissed. The draft is kept and will not be sent.')
-    expect(screen.getByText(/^Dismissed by Synthetic Owner, /)).toBeTruthy()
-  })
-
-  it('[RULE-DECIDED-VALUES-ACTIVE] NOT CONFIGURED says so; a failed send reads not sent; no access shows nothing', async () => {
-    const fetchImpl = vi.fn(async () =>
-      json(
-        200,
-        remindersView({
-          cadence: { state: 'NOT_CONFIGURED' },
-          reminders: [
-            draft({ state: 'failed', reason: 'template_not_configured', actions: { release: false, dismiss: false } }),
-          ],
-        }),
+  it('[OWN-DEC-153] a reschedule cancels the earlier window; a late booking names why none is scheduled', async () => {
+    renderPanel(
+      vi.fn(async () =>
+        json(
+          200,
+          remindersView({
+            stoppedBy: null,
+            reminders: [
+              reminder({
+                current: false,
+                windowVersion: 1,
+                state: 'cancelled',
+                reason: 'visit_rescheduled',
+                scheduledAt: null,
+                cancelledAt: PAST,
+                cancelledBy: 'system',
+              }),
+              reminder({ id: 'x', windowVersion: 2, state: 'sent', scheduledAt: null, sentAt: PAST }),
+            ],
+          }),
+        ),
       ),
     )
-    renderPanel(fetchImpl)
-    await screen.findByText('The reminder interval is not configured, so no reminder is drafted.')
-    expect(screen.getByText('Not sent')).toBeTruthy()
-    expect(screen.getByText('Reason: No approved wording for this message yet (not configured)')).toBeTruthy()
+    await screen.findByText('For an earlier date or window')
+    expect(screen.getByText('Reason: The appointment moved to another date or window')).toBeTruthy()
+    expect(screen.getByText(/^Sent .*2001/)).toBeTruthy()
     cleanup()
-    const denied = vi.fn(async () => json(403, { error: { code: 'FORBIDDEN', fieldErrors: [] } }))
-    renderPanel(denied)
-    await vi.waitFor(() => expect(denied).toHaveBeenCalled())
-    expect(screen.queryByTestId('appointment-reminders')).toBeNull()
+    renderPanel(vi.fn(async () => json(200, remindersView({ stoppedBy: 'booked_within_interval', reminders: [] }))))
+    await screen.findByText(
+      'No reminder for this appointment now: Booked less than 24 hours ahead: no 24-hour reminder.',
+    )
   })
 
-  it('[HH-LANG-03] Spanish staff see the panel in Spanish', async () => {
+  it('[RULE-DECIDED-VALUES-ACTIVE] NOT CONFIGURED says so; a text kept off reads not sent with its reason', async () => {
+    renderPanel(
+      vi.fn(async () =>
+        json(
+          200,
+          remindersView({
+            cadence: { state: 'NOT_CONFIGURED' },
+            reminders: [reminder({ channel: 'sms', state: 'failed', reason: 'sms_disabled', scheduledAt: null })],
+          }),
+        ),
+      ),
+    )
+    await screen.findByText('The reminder interval is not configured, so no reminder is scheduled.')
+    expect(screen.getByText('Not sent')).toBeTruthy()
+    expect(screen.getByText('Reason: Texts are off until the A2P 10DLC registration is complete')).toBeTruthy()
+  })
+
+  it('nothing for a visit never confirmed without reminders; Spanish staff labels', async () => {
+    const fetchImpl = vi.fn(async () => json(200, remindersView({ visitState: 'tentative', reminders: [] })))
+    renderPanel(fetchImpl)
+    await vi.waitFor(() => expect(fetchImpl).toHaveBeenCalled())
+    expect(screen.queryByTestId('appointment-reminders')).toBeNull()
+    cleanup()
     renderPanel(
       vi.fn(async () => json(200, remindersView())),
       'es',
     )
-    const panel = await screen.findByTestId('appointment-reminders')
-    expect(within(panel).getByRole('heading', { name: 'Recordatorio de la cita' })).toBeTruthy()
-    expect(within(panel).getByRole('button', { name: 'Enviar recordatorio' })).toBeTruthy()
-    expect(within(panel).getByText('Dirección')).toBeTruthy()
+    await screen.findByRole('heading', { name: 'Recordatorio de la cita' })
+    expect(screen.getByText('Recordatorio por Correo electrónico')).toBeTruthy()
+    expect(screen.getByText('Programado')).toBeTruthy()
   })
 })

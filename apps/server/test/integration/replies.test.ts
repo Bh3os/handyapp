@@ -22,17 +22,14 @@ import {
 } from '../../src/modules/inbox/index.js'
 import { apiModules } from '../../src/modules/index.js'
 import {
-  createDraft,
   deliveryStatusAutomation,
   recordConsent,
   releaseAutomation,
-  releaseDraft,
   releaseTemplateVersion,
 } from '../../src/modules/notifications/index.js'
 import { responseClockAutomation } from '../../src/modules/requests/response-clock.js'
 import { createAutomationRegistry, type Automation } from '../../src/platform/automation.js'
 import { recordWebhookReceipt } from '../../src/providers/webhooks.js'
-import { loadConfig } from '../../src/platform/config/index.js'
 import { createWorker } from '../../src/platform/jobs.js'
 import { runWithContext } from '../../src/platform/request-context.js'
 import { createProviders } from '../../src/providers/index.js'
@@ -57,9 +54,10 @@ const fakeSms = providers.fakes.sms
 // past, so a job scheduled at that instant runs at once; the 8 AM opening after 11 PM is in the past too, and a held
 // job is kept from running by moving its run time into the future (the worker runs what is due by the real clock).
 const ELEVEN_PM = new Date('2026-01-15T04:00:00Z')
-const NEXT_EIGHT_AM = new Date('2026-01-15T13:00:00Z')
 const TEN_AM = new Date('2026-01-15T15:00:00Z')
 let clock = TEN_AM
+// TSK-0122: the clock the send job judges the permitted text hours by (default: 10 AM, inside every window).
+let sendClock = TEN_AM
 
 let t: TestDatabase
 let app: FastifyInstance
@@ -68,7 +66,7 @@ const staff = {} as Record<StaffRole, { id: string; cookie: string; csrf: string
 const fast = (a: Automation): Automation => ({ ...a, retry: { maxAttempts: 2, baseDelayMs: 1, maxDelayMs: 1 } })
 const release = fast(
   releaseAutomation(
-    { email: providers.email, sms: providers.sms, replyAddress: ADDRESS },
+    { email: providers.email, sms: providers.sms, replyAddress: ADDRESS, clock: () => sendClock },
     // TSK-0120: the reply email's values are read from the reply at send time.
     { recordChecks: { project: replyRecordCheck }, failureItem: replyFailureItem, values: replyValues(SITE) },
   ),
@@ -165,7 +163,17 @@ const reply = (role: StaffRole, p: Submitted, body: string, channel: 'email' | '
 type Options = {
   defaultChannel: string | null
   options: { channel: string; available: boolean; reason: string; preferred: boolean; destination: string }[]
-  contactHours: { state: string; applies: boolean; sendAt: string; open: string | null; zone: string | null }
+  deliveryHours: {
+    email: { sendAt: string }
+    text: {
+      state: string
+      open: string | null
+      close: string | null
+      zone: string | null
+      basis: string | null
+      sendAt: string
+    }
+  }
   templates: { email: string; sms: string }
 }
 const options = async (p: Submitted, role: StaffRole = 'office') => {
@@ -444,39 +452,35 @@ describe('Send is the release; the delivery is truthful (TSK-0050, HH-COM-08, HH
   })
 })
 
-describe('daily contact hours (TSK-0050, HH-COM-09, FACT-HOURS, FACT-TIMEZONE, T65)', () => {
-  it('[HH-COM-09][T65] a reply sent at 11 PM waits for 8 AM; the customer reads it on the project at once', async () => {
+describe('delivery hours (TSK-0050, TSK-0122, HH-COM-15, OWN-DEC-154, OWN-DEC-207, FACT-HOURS, T65)', () => {
+  // 9 AM EST on 15 January 2026 (the unknown-zone fallback's opening) and 8 AM CST (a Central recipient's opening).
+  const NINE_AM_EASTERN = new Date('2026-01-15T14:00:00Z')
+  const EIGHT_AM_CENTRAL = new Date('2026-01-15T14:00:00Z')
+
+  it('[HH-COM-08][HH-COM-15][T65][OWN-DEC-154] a reply emailed at 11 PM goes at once; the customer reads it on the project at once', async () => {
     clock = ELEVEN_PM
     const p = await submit('replies-hours@example.test', '(502) 555-0506')
     await verify(p.contactId, 'email')
     const o = await options(p)
-    expect(o.contactHours).toMatchObject({
-      state: 'closed',
-      applies: true,
-      open: '08:00',
-      zone: 'America/Kentucky/Louisville',
-      sendAt: NEXT_EIGHT_AM.toISOString(),
+    // The email at once; a text would wait: the customer's zone is not verified, so 9 AM–9 PM Eastern applies.
+    expect(o.deliveryHours).toEqual({
+      email: { sendAt: ELEVEN_PM.toISOString() },
+      text: {
+        state: 'closed',
+        open: '09:00',
+        close: '21:00',
+        zone: 'America/Kentucky/Louisville',
+        basis: 'unknown_zone_fallback',
+        sendAt: NINE_AM_EASTERN.toISOString(),
+      },
     })
     const res = await reply('office', p, 'Synthetic late reply.', 'email')
     expect(res.statusCode, res.body).toBe(201)
-    const out = res.json<{ delivery: { id: string; sendAt: string; heldForContactHours: boolean } }>().delivery
-    expect(out).toMatchObject({ sendAt: NEXT_EIGHT_AM.toISOString(), heldForContactHours: true })
+    const out = res.json<{ delivery: { id: string; sendAt: string; heldForTextHours: boolean } }>().delivery
+    expect(out).toMatchObject({ sendAt: ELEVEN_PM.toISOString(), heldForTextHours: false })
     expect((await jobsOf(out.id)).map((j) => [j.state, j.run_at.toISOString()])).toEqual([
-      ['queued', NEXT_EIGHT_AM.toISOString()],
+      ['queued', ELEVEN_PM.toISOString()],
     ])
-    await holdUntilOpening(out.id)
-    await drain()
-    expect(fakeEmail.calls.filter((c) => c.to === 'replies-hours@example.test')).toEqual([])
-    expect((await deliveryOf(out.id)).state).toBe('queued')
-    // The staff view says when it goes; the portal already shows the reply.
-    const conversation = (await get('office', `/staff/inbox/projects/${p.projectId}/conversation`)).json<{
-      conversationId: string
-    }>().conversationId
-    const thread = (await get('office', `/staff/inbox/conversations/${conversation}`)).json<{
-      messages: { delivery: { state: string; sendAt: string | null } }[]
-    }>()
-    expect(thread.messages[0]?.delivery).toMatchObject({ state: 'queued' })
-    expect(thread.messages[0]?.delivery.sendAt).not.toBeNull()
     const cookie = await customerCookie(p)
     const tab = await app.inject({
       method: 'GET',
@@ -484,58 +488,62 @@ describe('daily contact hours (TSK-0050, HH-COM-09, FACT-HOURS, FACT-TIMEZONE, T
       headers: { cookie },
     })
     expect(tab.json<{ messages: { text: string }[] }>().messages.map((m) => m.text)).toEqual(['Synthetic late reply.'])
-    // The hours begin: rechecked and sent once.
+    sendClock = ELEVEN_PM
+    await drain()
+    sendClock = TEN_AM
+    expect(fakeEmail.sent.filter((m) => m.to === 'replies-hours@example.test')).toHaveLength(1)
+    expect((await deliveryOf(out.id)).text_window).toBeNull()
+  })
+
+  it('[HH-COM-08][HH-COM-09][HH-COM-15][OWN-DEC-159] a text reply at 11 PM waits for 8 AM in the recipient’s verified zone, then sends once', async () => {
+    clock = ELEVEN_PM
+    await releaseReplyTemplates()
+    const p = await submit('replies-text-hours@example.test', '(502) 555-0190', {
+      preferredChannel: 'text',
+      smsOptIn: true,
+    })
+    await verify(p.contactId, 'phone')
+    await optIn('+15025550190')
+    // The recipient's own zone is Central (recorded by staff, TSK-0123): 8 AM–10 PM Central applies.
+    await sql`UPDATE crm.contacts SET time_zone = 'America/Chicago' WHERE id = ${p.contactId}`.execute(t.db)
+    const o = await options(p)
+    expect(o.deliveryHours.text).toEqual({
+      state: 'closed',
+      open: '08:00',
+      close: '22:00',
+      zone: 'America/Chicago',
+      basis: 'recipient_zone',
+      sendAt: EIGHT_AM_CENTRAL.toISOString(),
+    })
+    const res = await reply('office', p, 'Synthetic late text reply.', 'sms')
+    expect(res.statusCode, res.body).toBe(201)
+    const out = res.json<{ delivery: { id: string; sendAt: string; heldForTextHours: boolean } }>().delivery
+    expect(out).toMatchObject({ sendAt: EIGHT_AM_CENTRAL.toISOString(), heldForTextHours: true })
+    // The job wakes up before 8 AM Central (7:59): the send finds it outside the hours and holds it again, with a job
+    // of its own for 8 AM (kept from running here: these instants are in the past by the real clock).
+    sendClock = new Date(EIGHT_AM_CENTRAL.getTime() - 60_000)
+    await opening(out.id)
+    await createWorker({ db: t.db, registry: createAutomationRegistry([release]) }).runOnce()
+    await holdUntilOpening(out.id)
+    expect(fakeSms.calls.filter((c) => c.to === '+15025550190')).toEqual([])
+    expect((await jobsOf(out.id)).filter((j) => j.state === 'queued')).toHaveLength(1)
+    const held = await deliveryOf(out.id)
+    expect([held.state, held.error_code, held.text_window, held.scheduled_at?.toISOString()]).toEqual([
+      'queued',
+      'waiting_text_hours',
+      'recipient_zone',
+      EIGHT_AM_CENTRAL.toISOString(),
+    ])
+    // At 8:00 AM Central it is rechecked and sent once.
+    sendClock = EIGHT_AM_CENTRAL
     await opening(out.id)
     await drain()
     await drain()
-    expect(fakeEmail.sent.filter((m) => m.to === 'replies-hours@example.test')).toHaveLength(1)
-  })
-
-  it('[HH-COM-09][T65][OWN-DEC-132] released at 11 PM: a question reminder queues until 8 AM, an estimate reminder sends at once', async () => {
-    const config = await loadConfig(t.db)
-    const draft = (messageKey: string, id: string) =>
-      withTx(t.db, async (tx) => {
-        const { id: deliveryId } = await createDraft(tx, {
-          config,
-          messageKey,
-          destination: { channel: 'email', destination: `${id}@example.test`, permission: 'preferred' },
-          recipient: { kind: 'customer_contact', id: `contact-${id}`, destinations: [] },
-          subjectKey: `synthetic:${id}`,
-          record: { type: 'synthetic_record', id },
-          values: { projectLink: 'https://handyhub247.example/p/synthetic' },
-        })
-        return releaseDraft(tx, {
-          config,
-          deliveryId,
-          actor: { kind: 'staff', id: staff.office.id, roles: ['office'] },
-          automation: release,
-          requestId: `req-replies-${randomUUID()}`,
-          now: ELEVEN_PM,
-        })
-      })
-    expect((await draft('reminder.unanswered_question', 'replies-question')).runAt).toEqual(NEXT_EIGHT_AM)
-    expect((await draft('reminder.unanswered_estimate', 'replies-estimate')).runAt).toEqual(ELEVEN_PM)
-    // Inside the hours a held reminder goes at once.
-    const tenAm = await withTx(t.db, async (tx) => {
-      const { id } = await createDraft(tx, {
-        config,
-        messageKey: 'reminder.unanswered_question',
-        destination: { channel: 'email', destination: 'replies-question-2@example.test', permission: 'preferred' },
-        recipient: { kind: 'customer_contact', id: 'contact-q2', destinations: [] },
-        subjectKey: 'synthetic:replies-question-2',
-        record: { type: 'synthetic_record', id: 'q2' },
-        values: { projectLink: 'https://handyhub247.example/p/synthetic' },
-      })
-      return releaseDraft(tx, {
-        config,
-        deliveryId: id,
-        actor: { kind: 'staff', id: staff.office.id, roles: ['office'] },
-        automation: release,
-        requestId: `req-replies-${randomUUID()}`,
-        now: TEN_AM,
-      })
-    })
-    expect(tenAm.runAt).toEqual(TEN_AM)
+    sendClock = TEN_AM
+    expect(fakeSms.sent.filter((m) => m.to === '+15025550190')).toHaveLength(1)
+    const sent = await deliveryOf(out.id)
+    expect([sent.state, sent.error_code, sent.text_window]).toEqual(['queued', null, 'recipient_zone'])
+    expect(sent.provider_message_id).toBeTruthy()
   })
 })
 
@@ -571,7 +579,7 @@ describe('send-time rechecks and the response clock (TSK-0050, HH-COM-05, HH-LEA
 
   it('[HH-LEAD-05][HH-COM-01] a reply the provider sent stops the first-response clock; replying handles the waiting customer reply', async () => {
     clock = TEN_AM
-    const p = await submit('replies-clock@example.test', '(502) 555-0509')
+    const p = await submit('replies-clock@example.test', '(502) 555-0190')
     await verify(p.contactId, 'email')
     const clockRow = () =>
       t.db

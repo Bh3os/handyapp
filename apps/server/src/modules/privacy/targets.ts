@@ -157,12 +157,15 @@ export async function financialEvidence(
 /**
  * The reminder drafts of these versions that nobody released (TSK-0060): waiting or cancelled, never sent, with no
  * delivery event and no message: the estimate's own data, removed with it. A released reminder or a sent notice is a
- * message record and stays.
+ * message record and stays. TSK-0121: so is the automatic reminder that was cancelled before any send attempt (never
+ * handed to a provider); one that was attempted is a message record and stays.
  */
 const unreleasedDrafts = (ids: readonly string[]) => sql`
   FROM platform.message_deliveries d
   WHERE d.record_type = 'estimate_version' AND d.record_id = ANY(${sql.val([...ids])}::text[])
-    AND d.release = 'staff_released' AND d.released_by IS NULL AND d.state IN ('draft', 'cancelled')
+    AND ((d.release = 'staff_released' AND d.released_by IS NULL AND d.state IN ('draft', 'cancelled'))
+      OR (d.release = 'automatic' AND d.message_key = 'reminder.unanswered_estimate' AND d.state = 'cancelled'
+          AND d.attempts = 0 AND d.provider_message_id IS NULL))
     AND NOT EXISTS (SELECT 1 FROM platform.message_delivery_events e WHERE e.delivery_id = d.id)
     AND NOT EXISTS (SELECT 1 FROM comms.messages m WHERE m.delivery_id = d.id)`
 

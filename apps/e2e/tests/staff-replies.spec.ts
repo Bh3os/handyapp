@@ -2,7 +2,7 @@
 // HH-PORT-08, T66, OWN-DEC-120). A guest opens the project with the secure link and an emailed code (TSK-0034), which
 // verifies the email; Office staff reply from the project in a browser of their own; the customer reads the reply in
 // the portal's Messages tab. The e2e servers have no released reply wording, so the email is recorded truthfully as not
-// sent (or, outside the contact hours, as waiting for the opening); the reply itself is on the project at once. Every
+// sent; an email goes at any hour (TSK-0122, OWN-DEC-154); the reply itself is on the project at once. Every
 // visitor, address and account is synthetic (RULE-SYNTHETIC-DATA); nothing reaches a real provider.
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
@@ -181,9 +181,8 @@ test.describe('staff replies and the portal Messages tab (TSK-0050, HH-COM-08, H
       await expect(composer.getByRole('radio', { name: new RegExp(`Email to ${email}`) })).toBeChecked()
       await expect(composer.getByRole('radio', { name: /Text to/ })).toBeDisabled()
       await expect(composer.getByText(/no text opt-in/)).toBeVisible()
-      await expect(composer.getByTestId('reply-hours')).toHaveText(
-        /contact hours \(08:00–22:00, America\/Kentucky\/Louisville\)/,
-      )
+      // TSK-0122 (OWN-DEC-154): an email goes at once, at any hour; only texts wait for the permitted hours.
+      await expect(composer.getByTestId('reply-hours')).toHaveText(/^The email goes out at once, at any hour\./)
       // TSK-0120: the reply email is the owner's staff_reply_wrapper with its values: no missing-wording notice.
       await expect(composer.getByText(/No approved wording for reply emails yet/)).toHaveCount(0)
       await axe(staff)
@@ -191,8 +190,8 @@ test.describe('staff replies and the portal Messages tab (TSK-0050, HH-COM-08, H
       await composer.getByLabel('Reply').fill(text)
       await composer.getByRole('button', { name: 'Send' }).click()
       await expect(composer.getByText("Reply sent. It is on the customer's project page.")).toBeVisible()
-      // The reply is in the conversation with its truthful delivery: waiting for the contact hours, or queued with the
-      // ci test provider (TSK-0120), never shown as sent or delivered.
+      // The reply is in the conversation with its truthful delivery: queued with the ci test provider (TSK-0120), never
+      // shown as sent or delivered; an email never waits for the text hours (TSK-0122).
       const thread = staff.getByRole('region', { name: 'Customer messages' })
       const sent = thread.getByRole('listitem', { name: 'E2E Replies Office' })
       await expect(sent.getByText(text)).toBeVisible()
@@ -201,7 +200,7 @@ test.describe('staff replies and the portal Messages tab (TSK-0050, HH-COM-08, H
         await expect(
           thread
             .getByRole('listitem', { name: 'E2E Replies Office' })
-            .getByText(/^Queued$|Sends at .+ \(contact hours\)\./)
+            .getByText(/^Queued$/)
             .first(),
         ).toBeVisible({ timeout: 1000 })
       }).toPass({ timeout: 20_000 })

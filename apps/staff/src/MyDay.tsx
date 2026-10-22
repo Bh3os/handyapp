@@ -8,6 +8,7 @@
 //   not recorded: nothing is saved on the phone yet (offline drafts are TSK-0079) and nothing pretends to be synced.
 // - There is no ETA, no timer and no check-in between Arrived and Finished (OWN-DEC-149). Arrived never starts work:
 //   Start Work stays its own online check. Stop Work and Report Hazard stay available from the job packet.
+// - TSK-0073: an on-the-way or arrived visit links to its Start Work briefing and gate (never a direct start).
 import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { Button, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
@@ -315,6 +316,14 @@ function VisitCard({
               )}
               <p className="staff-request__hint">{t('myday.readinessNote')}</p>
             </div>
+          ) : null}
+          {v.jobId && (v.state === 'en_route' || v.state === 'arrived') && v.assignment === 'confirmed' ? (
+            // TSK-0073 (T46): a shortcut opens the briefing and its gate, never a direct start.
+            <p>
+              <a href={href(`/start/${v.visitId}`)} data-testid="myday-start">
+                {t('myday.openStart')}
+              </a>
+            </p>
           ) : null}
           {v.jobId && v.readiness ? (
             <p>

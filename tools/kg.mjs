@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Query tool for the knowledge graph in kg/ (no dependencies). Agents use it instead of reading kg/ file by file.
 // Usage: node tools/kg.mjs <index|lint|show|ctx|find|list|maps> ...   (see kg/README.md)
-import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync } from 'node:fs'
+import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync, renameSync } from 'node:fs'
 import { join, relative, basename, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -86,7 +86,11 @@ function index(quiet) {
   const { nodes, back, problems } = build()
   const idx = { nodes: {}, back }
   for (const [id, n] of Object.entries(nodes)) idx.nodes[id] = { ...n }
-  writeFileSync(INDEX, JSON.stringify(idx))
+  // Written to a temporary file and renamed into place, so a process reading the index while another rebuilds it
+  // (the tool tests run in parallel) never sees a half-written file.
+  const tmp = `${INDEX}.${process.pid}.tmp`
+  writeFileSync(tmp, JSON.stringify(idx))
+  renameSync(tmp, INDEX)
   if (!quiet) console.log(`indexed ${Object.keys(nodes).length} nodes; ${problems.length} problems (run lint)`)
   return idx
 }

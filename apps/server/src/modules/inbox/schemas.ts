@@ -182,15 +182,19 @@ export const REPLY_OPTIONS = obj({
   ),
   /** The channel Send uses without a choice: the preferred one while it is available; null: staff choose. */
   defaultChannel: { type: ['string', 'null'], enum: [...REPLY_CHANNELS, null] },
-  contactHours: obj({
-    /** open / closed now, or not_configured (the hours, zone or reply rule); applies: replies wait for them. */
-    state: state(['open', 'closed', 'not_configured']),
-    applies: B,
-    open: NS,
-    close: NS,
-    zone: NS,
-    /** When an email or text sent now would go out. */
-    sendAt: S,
+  /** TSK-0122 (OWN-DEC-154): when a reply sent now goes out, by channel. */
+  deliveryHours: obj({
+    /** An email goes at once, at any hour. */
+    email: obj({ sendAt: S }),
+    /** A text inside the recipient's permitted hours (open), or at their next opening (closed); not_configured: none. */
+    text: obj({
+      state: state(['open', 'closed', 'not_configured']),
+      open: NS,
+      close: NS,
+      zone: NS,
+      basis: { type: ['string', 'null'], enum: ['recipient_zone', 'unknown_zone_fallback', null] },
+      sendAt: S,
+    }),
   }),
   /** Whether released wording exists for a reply by each channel (message type staff.reply). */
   templates: obj({ email: state(['configured', 'not_configured']), sms: state(['configured', 'not_configured']) }),
@@ -204,5 +208,5 @@ export const REPLY_BODY = obj({
 export const REPLY_RESULT = obj({
   id: S,
   conversationId: S,
-  delivery: obj({ id: S, channel: S, state: S, sendAt: S, heldForContactHours: B }),
+  delivery: obj({ id: S, channel: S, state: S, sendAt: S, heldForTextHours: B }),
 })

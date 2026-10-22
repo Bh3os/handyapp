@@ -28,6 +28,7 @@ import { portalModule } from './portal/index.js'
 import { questionsModule } from './questions/index.js'
 import { SITE_MODULE } from './site/index.js'
 import { sopsModule } from './sops/index.js'
+import { startModule } from './start/index.js'
 import { staffModule } from './staff/index.js'
 import { systemModule, type SystemDeps } from './system/index.js'
 import { verificationModule } from './verification/index.js'
@@ -35,6 +36,7 @@ import { retentionModule } from './retention/index.js'
 import { privacyModule } from './privacy/index.js'
 import { visitsModule } from './visits/index.js'
 import { stagingModule, type StagingEnvironment } from './staging/index.js'
+import { launchModule, type LaunchGate } from './launch/index.js'
 import type { CodeKeySettings } from './identity/index.js'
 
 export type ModuleDeps = {
@@ -65,6 +67,13 @@ export type ModuleDeps = {
    * registered only when it identifies a staging, local or ci environment with STAGING_TOOLS=on; never in production.
    */
   staging?: { identified: boolean; checks: readonly StagingCheck[] }
+  /**
+   * TSK-0142: this process's cached launch phase (search indexing, app.ts), cleared when the Owner moves the phase.
+   * Unset: nothing is cached (every check reads the database).
+   */
+  launchGate?: LaunchGate | null
+  /** TSK-0142: the approved test destinations (TEST_EMAIL_DESTINATIONS), so the test accounts show who receives email. */
+  testEmailDestinations?: readonly string[]
 }
 
 const NO_CODE_KEY: CodeKeySettings = { state: 'not_configured', missing: ['CODE_HASH_KEY'] }
@@ -77,7 +86,11 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
       trustProxyHops: deps.trustProxyHops ?? 0,
     }),
     // TSK-0034: the submission issues the project's access grant with the code key.
-    requestsModule(deps.codeKey ? { codeKey: deps.codeKey } : {}),
+    // TSK-0142: in production the submission follows the launch phase (public submissions only in phase 3).
+    requestsModule({
+      ...(deps.codeKey ? { codeKey: deps.codeKey } : {}),
+      ...(deps.environment ? { environment: deps.environment } : {}),
+    }),
     COVERAGE_MODULE,
     photosModule({ storage: deps.storage ?? null }),
     SITE_MODULE,
@@ -126,6 +139,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     loadoutsModule(),
     // TSK-0070: My Day, On my way, Arrived and Finished per worker, the Owner's corrections and the accountant's CSV.
     fieldModule(),
+    // TSK-0073, TSK-0074: the Start Work gate, site checks, before photos, holds and the three exceptions.
+    startModule({ storage: deps.storage ?? null, ...(deps.environment ? { environment: deps.environment } : {}) }),
     // TSK-0097: staff management (the staff list, role and capability grants, offboarding and re-enabling).
     staffModule(),
     // TSK-0098: the audit-log screen (Owner every entry, Office their own actions; retention shown, never deleted).
@@ -134,6 +149,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     retentionModule(),
     // TSK-0100: privacy requests, the Owner's Delete or Archive decisions, the deletion log and customer downloads.
     privacyModule({ storage: deps.storage ?? null }),
+    // TSK-0142: the launch phase and its switches (the Owner moves it, with a recorded approval; phase 1 by default).
+    launchModule({ environment: deps.environment ?? 'local', gate: deps.launchGate ?? null }),
   ]
   // TSK-0141 (OWN-DEC-191): Staging Tools exist only in a positively identified staging or isolated test environment.
   const env = deps.environment
@@ -144,6 +161,7 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
         checks: deps.staging.checks,
         codeKey: deps.codeKey ?? NO_CODE_KEY,
         routes: modules.flatMap((m) => m.routes),
+        testEmailDestinations: deps.testEmailDestinations ?? null,
       }),
     )
   return modules
@@ -154,5 +172,5 @@ export const MODULES: readonly ApiModule[] = [
   ...apiModules({ secureCookies: true, mfaKey: null }),
   // TSK-0141: the contract lists the staging-only routes too (their descriptions say so); a server registers them
   // only in an identified staging or test environment, never in production.
-  stagingModule({ environment: 'staging', checks: [], codeKey: NO_CODE_KEY, routes: [] }),
+  stagingModule({ environment: 'staging', checks: [], codeKey: NO_CODE_KEY, routes: [], testEmailDestinations: null }),
 ]

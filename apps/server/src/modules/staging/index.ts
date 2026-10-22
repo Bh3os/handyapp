@@ -25,6 +25,7 @@ import { currentContext } from '../../platform/request-context.js'
 import type { CodeKeySettings } from '../identity/index.js'
 import { FRESH_AUTH_MINUTES } from '../identity/sessions.js'
 import { createFreshTestData, NOT_AVAILABLE, recordSeeding, SCENARIOS, type ScenarioOutcome } from './fresh-data.js'
+import { createTestAccounts, TEST_ACCOUNT_IDS, testAccountViews } from './test-accounts.js'
 import {
   CONFIRMATION_PHRASE,
   findCompletedRun,
@@ -39,6 +40,7 @@ import {
 
 export { CLEARED_CATEGORIES, CLEARED_TABLES, CONFIRMATION_PHRASE, PRESERVED, SELECTIVE_TABLES } from './reset.js'
 export { SCENARIOS, NOT_AVAILABLE } from './fresh-data.js'
+export { TEST_ACCOUNTS, TEST_ACCOUNT_IDS } from './test-accounts.js'
 
 export type StagingEnvironment = 'local' | 'ci' | 'staging'
 
@@ -51,6 +53,11 @@ export type StagingDeps = {
   codeKey: CodeKeySettings
   /** Every other module's routes, which the fresh test data goes through (invoke.ts). */
   routes: readonly RouteDef[]
+  /**
+   * TSK-0142: the approved test email addresses (TEST_EMAIL_DESTINATIONS), so the test accounts show whether their
+   * invite, code and link emails can arrive here; null when this process was not given them (shown as unknown).
+   */
+  testEmailDestinations?: readonly string[] | null
 }
 
 const TEST = 'test/integration/staging-reset.test.ts'
@@ -118,6 +125,19 @@ const RUN = obj({
   seeding: SEEDING,
 })
 
+const NB = { type: ['boolean', 'null'] } as const
+const TEST_ACCOUNT = obj({
+  id: { type: 'string', enum: [...TEST_ACCOUNT_IDS] },
+  kind: { type: 'string', enum: ['customer', 'guest', 'staff'] },
+  role: { type: ['string', 'null'], enum: ['owner', 'office', 'estimator', 'worker', null] },
+  email: S,
+  name: S,
+  state: { type: 'string', enum: ['not_created', 'invited', 'active', 'disabled', 'no_account'] },
+  reusable: NB,
+  mfaEnrolled: NB,
+  receivesEmail: NB,
+})
+
 const STATUS_SCHEMA = obj({
   environment: { type: 'string', enum: ['local', 'ci', 'staging'] },
   identified: B,
@@ -131,6 +151,7 @@ const STATUS_SCHEMA = obj({
   reusableAccounts: list(obj({ accountId: S, email: NS, phone: NS, state: S, designatedAt: DATE })),
   freshData: list(obj({ id: { type: 'string', enum: [...SCENARIOS] }, available: B, task: NS })),
   runs: list(RUN),
+  testAccounts: list(TEST_ACCOUNT),
 })
 
 const RESET_RESULT = obj({
@@ -281,6 +302,7 @@ export function stagingModule(deps: StagingDeps): ApiModule {
           })),
           freshData: SCENARIOS.map((s) => ({ id: s, available: !NOT_AVAILABLE[s], task: NOT_AVAILABLE[s] ?? null })),
           runs: await recentRuns(ctx.db),
+          testAccounts: await testAccountViews(ctx.db, deps.environment, deps.testEmailDestinations ?? null),
         },
       }
     },
@@ -488,5 +510,91 @@ export function stagingModule(deps: StagingDeps): ApiModule {
     },
   }
 
-  return { name: 'staging', routes: [status, reset, designate] }
+  const testAccounts: RouteDef = {
+    method: 'POST',
+    path: '/staff/staging/test-accounts',
+    operationId: 'createStagingTestAccounts',
+    summary: 'Create the Owner Acceptance Testing accounts',
+    description:
+      'STAGING ONLY (see getStagingTestData; never registered in production). Owner only (staff.invite: a fresh ' +
+      'sign-in, and the Owner role checked again). Refused with CONFLICT STAGING_NOT_IDENTIFIED unless every ' +
+      'environment check passes. Creates each fictional test account that does not exist yet (TSK-0142): Worker, ' +
+      'Estimator, Office and Owner as invited staff accounts with their role, each sent a single-use invite link ' +
+      'through the outbox (on staging only an approved test address receives it; no password is set or returned); ' +
+      'the Customer as a registered customer account made through the public request, contact verification and ' +
+      'account offer, designated reusable so resets keep it. The Guest Customer has no account by design. An ' +
+      'existing account is left as it is, so repeating is safe. Answers one outcome per account (created, exists, ' +
+      'blocked with the step and refusal codes, or no_account) and the accounts as getStagingTestData shows them. ' +
+      'Audited. No credential is ever part of the answer.',
+    actors: ['staff'],
+    permission: 'staff.invite',
+    kind: 'write',
+    idempotency: 'required',
+    expectedVersion: 'none',
+    rateLimit: 'none',
+    freshAuthMinutes: FRESH_AUTH_MINUTES,
+    audit: 'staging.create_test_accounts',
+    pagination: false,
+    test: 'test/integration/owner-acceptance.test.ts',
+    resource: async () => ({ subjectStaffId: 'new-account' }),
+    schema: {
+      // ROLE-MATRIX: inviting staff needs a written reason (kept with each role grant).
+      body: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['reason'],
+        properties: { reason: { type: 'string', minLength: 1, maxLength: 2000 } },
+      },
+      response: {
+        200: obj({
+          outcomes: list(
+            obj({
+              id: { type: 'string', enum: [...TEST_ACCOUNT_IDS] },
+              outcome: { type: 'string', enum: ['created', 'exists', 'blocked', 'no_account'] },
+              step: NS,
+              codes: list(S),
+            }),
+          ),
+          accounts: list(TEST_ACCOUNT),
+        }),
+      },
+    },
+    handler: async (ctx) => {
+      const actor = owner(ctx)
+      const tx = ctx.tx
+      if (!tx) throw new Error('createStagingTestAccounts runs in its write transaction')
+      const id = await identification(deps, ctx.db)
+      if (!id.identified) {
+        await ctx.auditAlways({
+          target: { type: 'staging_test_accounts' },
+          result: 'denied',
+          reason: 'staging_not_identified',
+        })
+        throw new ApiError('CONFLICT', { fieldErrors: [field('environment', 'STAGING_NOT_IDENTIFIED')] })
+      }
+      const requestId = currentContext()?.requestId ?? ctx.req.id
+      const outcomes = await createTestAccounts(tx, {
+        ownerId: actor.userId,
+        reason: (ctx.req.body as { reason: string }).reason.trim(),
+        fresh: {
+          db: ctx.db,
+          routes: deps.routes,
+          owner: { actor, authenticatedAt: ctx.authenticatedAt },
+          codeKey: deps.codeKey,
+          requestId,
+          runId: requestId,
+        },
+      })
+      await ctx.audit({
+        target: { type: 'staging_test_accounts' },
+        summary: { outcomes: outcomes.map((o) => `${o.id}:${o.outcome}`) },
+        reason: (ctx.req.body as { reason: string }).reason.trim(),
+      })
+      return {
+        body: { outcomes, accounts: await testAccountViews(tx, deps.environment, deps.testEmailDestinations ?? null) },
+      }
+    },
+  }
+
+  return { name: 'staging', routes: [status, reset, designate, testAccounts] }
 }
