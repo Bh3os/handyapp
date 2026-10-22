@@ -483,7 +483,7 @@ describe('[OWN-DEC-159][T41] Central and Eastern properties, DST gaps and repeat
   it('[OWN-DEC-159] a 24-hour reminder delay is elapsed time in a Central property across spring-forward', () => {
     const d = dstOf(CENTRAL)
     const visitStart = new Date(wallUtc(addLocalDays(d.springDate, 0), '10:00', d.spring.offsetAfter))
-    const due = appointmentReminderDueAt(visitStart, 24, new Date(visitStart.getTime() - 3 * DAY))
+    const due = appointmentReminderDueAt(visitStart, 24)
     expect(visitStart.getTime() - due.getTime()).toBe(24 * 60 * MIN)
     expect(localClockOf(due, CENTRAL)).toBe('09:00')
   })

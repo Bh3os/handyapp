@@ -14,7 +14,7 @@ import type { FastifyInstance } from 'fastify'
 import { sql } from 'kysely'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildApp } from '../../src/app.js'
-import { estimateReminderAutomations } from '../../src/modules/estimates/index.js'
+import { planEstimateReminder } from '../../src/modules/estimates/index.js'
 import { createStaffUser, setPasswordHash } from '../../src/modules/identity/accounts.js'
 import { startCustomerSession } from '../../src/modules/identity/customer-sessions.js'
 import { readCodeKey, type CodeKeySettings } from '../../src/modules/identity/index.js'
@@ -22,9 +22,8 @@ import { deriveCode } from '../../src/modules/identity/keys.js'
 import { hashPassword } from '../../src/modules/identity/passwords.js'
 import { MODULES } from '../../src/modules/index.js'
 import { forbiddenForCustomer } from '../../src/modules/records/index.js'
-import { createAutomationRegistry } from '../../src/platform/automation.js'
 import { loadConfig, recordPolicyVersion, type ConfigKey } from '../../src/platform/config/index.js'
-import { createWorker } from '../../src/platform/jobs.js'
+import { runWithContext } from '../../src/platform/request-context.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { testConfig } from '../fixtures/env.js'
 import { signInWithMfa } from '../fixtures/staff-mfa.js'
@@ -1017,19 +1016,14 @@ describe('[T17][T19][RULE-SERVER-AUTHZ] only an explicit POST of the verified cu
   })
 })
 
-/** TSK-0060's reminder automations: publishing schedules the drafts; a due job prepares one (nothing is sent). */
-const reminderRegistry = createAutomationRegistry(estimateReminderAutomations())
-async function drainReminders() {
-  const w = createWorker({ db: t.db, registry: reminderRegistry })
-  for (let i = 0; i < 12; i++) {
-    const r = await w.runOnce()
-    if (r.dispatched + r.succeeded + r.retried + r.failed + r.cancelled === 0) return
-  }
-}
-async function reminderDue(versionId: string, step: 'first' | 'final') {
-  await sql`UPDATE platform.jobs SET run_at = now() WHERE automation = 'estimate.reminder_draft'
-            AND job_key = ${`estimate.reminder_draft:${versionId}:${step}`}`.execute(t.db)
-  await drainReminders()
+/**
+ * TSK-0121: the version's automatic reminder, scheduled as the successful delivery of its estimate-ready notice
+ * schedules it (planEstimateReminder; the delivery itself is tested in estimate-reminders.test.ts).
+ */
+async function scheduleReminder(versionId: string) {
+  await runWithContext({ requestId: `req-approval-reminder-${randomUUID()}` }, () =>
+    withTx(t.db, (tx) => planEstimateReminder(tx, { versionId, deliveredAt: new Date(), requestId: 'test-plan' })),
+  )
 }
 const reminderRows = (versionId: string) =>
   t.db
@@ -1040,29 +1034,23 @@ const reminderRows = (versionId: string) =>
     .where('message_key', '=', 'reminder.unanswered_estimate')
     .orderBy('seq')
     .execute()
-const reminderItem = (versionId: string) =>
-  t.db
-    .selectFrom('ops.queue_items')
-    .selectAll()
-    .where('type', '=', 'estimate_reminder')
-    .where('subject_id', '=', versionId)
-    .execute()
 
-describe('[HH-EST-14][HH-EST-06][T65] the approval stops waiting reminder drafts in its own transaction (TSK-0060)', () => {
-  it('a first reminder waiting for release is cancelled as accepted by the approval; the final one is never drafted', async () => {
+describe('[HH-EST-14][HH-EST-06][T65][OWN-DEC-153] the approval cancels the scheduled reminder in its own transaction', () => {
+  it('a scheduled reminder is cancelled as accepted by the approval; a refused approval leaves it scheduled', async () => {
     const e = await published()
-    await drainReminders()
-    await reminderDue(e.versionId, 'first')
-    const [draft] = await reminderRows(e.versionId)
-    expect(draft).toMatchObject({ state: 'draft', release: 'staff_released', project_id: e.projectId })
-    expect((await reminderItem(e.versionId)).map((i) => i.resolution)).toEqual([null])
+    await scheduleReminder(e.versionId)
+    const scheduled = await reminderRows(e.versionId)
+    expect(scheduled.map((r) => [r.channel, r.state, r.release, r.project_id])).toEqual([
+      ['email', 'queued', 'automatic', e.projectId],
+      ['sms', 'queued', 'automatic', e.projectId],
+    ])
 
     const cookie = await customerCookie(e)
     const d = await detail(e, cookie)
-    // A refused approval writes nothing: the draft is still waiting.
+    // A refused approval writes nothing: the reminder is still scheduled.
     const refused = await customerPost(`${base(e)}/approve`, cookie, approvalBody(d, { totalCents: 100 }))
     expect(refused.statusCode).toBe(400)
-    expect((await reminderRows(e.versionId)).map((r) => r.state)).toEqual(['draft'])
+    expect((await reminderRows(e.versionId)).map((r) => r.state)).toEqual(['queued', 'queued'])
 
     const approved = await customerPost(`${base(e)}/approve`, cookie, approvalBody(d))
     expect(approved.statusCode, approved.body).toBe(201)
@@ -1071,23 +1059,24 @@ describe('[HH-EST-14][HH-EST-06][T65] the approval stops waiting reminder drafts
       .select(['created_at'])
       .where('version_id', '=', e.versionId)
       .executeTakeFirstOrThrow()
-    const [stopped] = await reminderRows(e.versionId)
-    expect(stopped).toMatchObject({ state: 'cancelled', error_code: 'accepted', cancelled_by: 'system' })
+    const stopped = await reminderRows(e.versionId)
+    expect(stopped.map((r) => [r.state, r.error_code, r.cancelled_by])).toEqual([
+      ['cancelled', 'accepted', 'system'],
+      ['cancelled', 'accepted', 'system'],
+    ])
     // The same transaction: the cancellation carries the approval's own database time (now() of that transaction).
-    expect(stopped?.cancelled_at?.getTime()).toBe(approval.created_at.getTime())
-    expect((await reminderItem(e.versionId)).map((i) => i.resolution)).toEqual(['stopped'])
+    expect(stopped[0]?.cancelled_at?.getTime()).toBe(approval.created_at.getTime())
     const audit = await t.db
       .selectFrom('platform.audit_events')
-      .select(['summary', 'actor_kind'])
-      .where('action', '=', 'estimate_reminder.stop')
-      .where('target_id', '=', draft?.id as string)
+      .select(['summary', 'action'])
+      .where('action', '=', 'notification.cancelled')
+      .where('target_id', '=', stopped[0]?.id as string)
       .execute()
     expect(audit.map((a) => a.summary)).toEqual([
-      { messageKey: 'reminder.unanswered_estimate', step: 'first', channel: 'email', reason: 'accepted' },
+      { messageKey: 'reminder.unanswered_estimate', channel: 'email', state: 'cancelled', errorCode: 'accepted' },
     ])
-
-    // The final reminder finds the version accepted: nothing more is drafted.
-    await reminderDue(e.versionId, 'final')
-    expect((await reminderRows(e.versionId)).map((r) => [r.state, r.error_code])).toEqual([['cancelled', 'accepted']])
+    // Planning again finds the version accepted: nothing more is scheduled.
+    await scheduleReminder(e.versionId)
+    expect((await reminderRows(e.versionId)).map((r) => r.state)).toEqual(['cancelled', 'cancelled'])
   })
 })

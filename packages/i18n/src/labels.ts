@@ -258,7 +258,7 @@ export const LABEL_FAMILIES = {
     'business.timezone',
     'reminders.cadences',
     'request.reopen_period',
-    'replies.contact_hours',
+    'messages.delivery_hours',
     'response.target',
     'session.timings',
     'uploads.limits',
@@ -292,6 +292,7 @@ export const LABEL_FAMILIES = {
     'visit.on_my_way',
     'geo.county_time_zones',
     'sms.unknown_zone_hours',
+    'sms.live_delivery',
     'ai.module',
   ],
   /** A property's time-zone state and what it rests on (TSK-0123; @handyhub/domain zones.ts). */
@@ -443,6 +444,12 @@ export const LABEL_FAMILIES = {
     'record_changed',
     'not_on_test_allowlist',
     'invalid_destination',
+    // TSK-0122 (OWN-DEC-154, OWN-DEC-190): live texts off until A2P 10DLC; the permitted text hours; TSK-0121.
+    'sms_disabled',
+    'text_hours_not_configured',
+    'waiting_text_hours',
+    'not_automatic',
+    'notice_not_delivered',
   ],
   /** Entries of a customer's activity history (apps/server/src/modules/customers/record.ts). */
   customerTimeline: [
@@ -1112,6 +1119,14 @@ export const LABEL_FAMILIES = {
     'visit_started',
     'already_reminded',
     'details_changed',
+    // TSK-0121, TSK-0122: the automatic reminders and the permitted text hours.
+    'booked_within_interval',
+    'replaced_by_automatic',
+    'not_automatic',
+    'notice_not_delivered',
+    'sms_disabled',
+    'text_hours_not_configured',
+    'waiting_text_hours',
   ],
   /** Deposit requirement states (ENT-DepositRequirement; TSK-0059). */
   depositState: ['not_required', 'required', 'partly_satisfied', 'satisfied', 'applied', 'waived'],

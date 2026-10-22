@@ -81,8 +81,12 @@ describe('automatic-message policy (TSK-0047, HH-COM-06, FACT-AUTOMATIC-MESSAGES
       NotificationPolicyError,
     )
     expect(() => automaticPolicy(configWith({ ...LIST, staffAccount: ['request.receipt'] }))).toThrow(/wrong audience/)
-    expect(() => automaticPolicy(configWith({ ...LIST, customer: ['reminder.unanswered_estimate'] }))).toThrow(
+    // A staff-released draft type has no committed trigger event; the routine reminders do (TSK-0121, OWN-DEC-153).
+    expect(() => automaticPolicy(configWith({ ...LIST, customer: ['reminder.satisfaction_check'] }))).toThrow(
       /no committed trigger/,
+    )
+    expect(automaticPolicy(configWith({ ...LIST, customer: ['reminder.unanswered_estimate'] })).list()).toContain(
+      'reminder.unanswered_estimate',
     )
   })
 })

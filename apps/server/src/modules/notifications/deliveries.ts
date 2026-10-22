@@ -43,20 +43,40 @@
 //   - the delivery records when it is due (scheduled_at), when the provider accepted it (sent_at) and the consent
 //     decision applied; every send attempt appends one row of retry history (message_delivery_attempts);
 //   - one-time codes go to the SMS provider as authentication messages (owner confirmation 2026-10-22).
+// - TSK-0122 (HH-COM-15, OWN-DEC-154, OWN-DEC-207, OWN-DEC-190; delivery-hours.ts): an email goes at once, at any hour;
+//   a non-urgent customer text goes only inside the recipient's permitted local hours. A text the send finds outside
+//   them stays queued with the next allowed time (scheduled_at, error code waiting_text_hours, the window in
+//   text_window) and its job is scheduled again for then, where everything is rechecked (record, consent, template,
+//   window). Codes, account security notices, access links and the On my way notice never wait. Live texts stay off
+//   until A2P 10DLC (sms.live_delivery): a text that would reach a carrier is recorded as failed (sms_disabled).
+//   Checks run in this order, so nothing waits that could never be sent: template, sender, consent, live switch,
+//   values, window.
+// - TSK-0121 (OWN-DEC-153): automatic reminders are scheduled deliveries (scheduleAutomaticDelivery): one queued row
+//   per destination, due at the reminder's time, sent by a notify.release job after the send-time recheck of its
+//   record; a change that ends the reminder's condition cancels the waiting rows (cancelWaitingDeliveries).
 import { createHash } from 'node:crypto'
-import type { Tx } from '@handyhub/db'
+import type { Db, Tx } from '@handyhub/db'
 import type { StaffLocale } from '@handyhub/i18n'
 import { sql, type SqlBool } from 'kysely'
 import { audit, type AuditActor } from '../../platform/audit.js'
 import type { Automation, JobContext, JobOutcome } from '../../platform/automation.js'
 import { loadConfig, type Config } from '../../platform/config/index.js'
-import { scheduleJob } from '../../platform/jobs.js'
+import { scheduleFollowUp, scheduleJob } from '../../platform/jobs.js'
 import { outbox } from '../../platform/outbox.js'
 import { currentContext } from '../../platform/request-context.js'
 import type { EmailSender, SmsSender } from '../../providers/index.js'
+import { isTestProvider } from '../../providers/types.js'
 import { projectReplyToken, replyAddress, type InboundAddress } from '../inbox/threading.js'
 import { openQueueItem, resolveQueueItem } from '../queue/items.js'
-import { nextContactTime } from './contact-hours.js'
+import {
+  deliveryTime,
+  heldToTextHours,
+  liveTextsEnabled,
+  nextTextTime,
+  textWindowFor,
+  WAITING_TEXT_HOURS,
+  type TextWindowBasis,
+} from './delivery-hours.js'
 import { LAYOUT_VERSION, TemplateValueError, TemplateValuesError } from './layout.js'
 import { messageCategory, messageType, type Channel } from './message-types.js'
 import { sendPermission } from './consent.js'
@@ -107,6 +127,11 @@ export type NotificationProviders = {
    * server's automations always pass them; only callers without a configured origin (tests) leave them unset.
    */
   linkHosts?: readonly string[]
+  /**
+   * TSK-0122: the clock the permitted text hours are judged by; default the real time. Tests pass a fixed instant so a
+   * send never depends on the time of day the suite runs.
+   */
+  clock?: () => Date
 }
 
 export class RetryableDeliveryError extends Error {
@@ -163,10 +188,15 @@ type DeliveryRow = {
   variables: unknown
   provider_message_id: string | null
   project_id: string | null
+  recipient_kind: string
+  recipient_id: string | null
 }
 
-/** What a send recorded on the delivery row. */
-export type SendResult = { state: string; errorCode: string | null }
+/**
+ * What a send recorded on the delivery row. `heldUntil`: the text waits for the recipient's permitted hours (TSK-0122);
+ * the row stays queued and the caller schedules its job again for that time.
+ */
+export type SendResult = { state: string; errorCode: string | null; heldUntil?: Date }
 
 /** Error codes of a message that cannot be sent until something is configured (a template, a channel). */
 export const NOT_CONFIGURED_ERRORS: ReadonlySet<string> = new Set([
@@ -174,6 +204,9 @@ export const NOT_CONFIGURED_ERRORS: ReadonlySet<string> = new Set([
   'channel_not_configured',
   // TSK-0119: the wording is released but the message's resolver does not supply its values yet.
   'template_values_not_wired',
+  // TSK-0122: live texts are off until A2P 10DLC (sms.live_delivery), or no permitted text window is configured.
+  'sms_disabled',
+  'text_hours_not_configured',
 ])
 
 /**
@@ -189,6 +222,7 @@ export function isOutcomeUnknown(errorCode: string | null | undefined): boolean 
 
 /** The audit action of a send's result: what truly happened to the delivery (HH-SEC-06). */
 export function deliveryAuditAction(result: SendResult): string {
+  if (result.heldUntil) return 'notification.held'
   if (result.state === 'failed')
     return isOutcomeUnknown(result.errorCode) ? 'notification.outcome_unknown' : 'notification.failed'
   if (result.state === 'suppressed') return 'notification.suppressed'
@@ -209,7 +243,13 @@ async function auditDelivery(
     action: deliveryAuditAction(result),
     target: { type: 'message_delivery', id: row.id },
     result: result.state === 'failed' ? 'failed' : 'succeeded',
-    summary: { messageKey: row.message_key, channel: row.channel, state: result.state, errorCode: result.errorCode },
+    summary: {
+      messageKey: row.message_key,
+      channel: row.channel,
+      state: result.state,
+      errorCode: result.errorCode,
+      ...(result.heldUntil ? { heldUntil: result.heldUntil.toISOString() } : {}),
+    },
     requestId: job.requestId,
   })
 }
@@ -305,9 +345,13 @@ async function send(
       ...versioned,
     })
   const decided = { ...versioned, consent_decision: 'allowed' }
+  const config = await loadConfig(tx)
+  // TSK-0122 (OWN-DEC-190): no text reaches a carrier until A2P 10DLC is complete. The fakes and the staging log sender
+  // intercept every message and reach no one, so they are not live texts.
+  if (channel === 'sms' && !isTestProvider(sender.provider) && !liveTextsEnabled(config))
+    return update({ state: 'failed', error_code: 'sms_disabled', ...decided })
   let rendered: { subject: string | null; body: string; html: string | null }
   try {
-    const config = await loadConfig(tx)
     const brand = config.get('business.name')
     const contact = config.get('business.public_contact')
     rendered = renderTemplate(template, values, {
@@ -330,6 +374,33 @@ async function send(
       missing_variables: err instanceof TemplateValuesError ? [...err.missing] : [],
       ...decided,
     })
+  }
+  // TSK-0122 (HH-COM-15): a non-urgent customer text waits for the recipient's permitted hours.
+  let textWindow: TextWindowBasis | null = null
+  if (channel === 'sms') {
+    textWindow = 'not_held'
+    if (heldToTextHours(messageType(row.message_key))) {
+      const window = await textWindowFor(tx, { kind: row.recipient_kind, id: row.recipient_id }, config)
+      if (!window) return update({ state: 'failed', error_code: 'text_hours_not_configured', ...decided })
+      const now = providers.clock?.() ?? new Date()
+      const at = nextTextTime(now, window)
+      if (at.getTime() > now.getTime()) {
+        // Not a send attempt: the row stays queued with its next allowed time and the window it waits for.
+        await tx
+          .updateTable('platform.message_deliveries')
+          .set({
+            scheduled_at: at,
+            error_code: WAITING_TEXT_HOURS,
+            text_window: window.basis,
+            ...decided,
+            updated_at: sql<Date>`now()`,
+          })
+          .where('id', '=', row.id)
+          .execute()
+        return { state: 'queued', errorCode: WAITING_TEXT_HOURS, heldUntil: at }
+      }
+      textWindow = window.basis
+    }
   }
   const idempotencyKey = deliveryIdempotencyKey(row.message_key, channel, row.subject_key, row.destination)
   // A customer email of a project replies to the project's token address (TSK-0049).
@@ -358,7 +429,7 @@ async function send(
                 : 'service',
           idempotencyKey,
         })
-  const base = { ...decided, provider: sender.provider }
+  const base = { ...decided, provider: sender.provider, ...(textWindow ? { text_window: textWindow } : {}) }
   switch (outcome.outcome) {
     case 'accepted':
       return update({
@@ -394,7 +465,8 @@ async function send(
  * delivery_failed item; a send handed over or suppressed resolves an open one. Nothing for messages without one.
  */
 async function syncFailureItem(tx: Tx, deliveryId: string, result: SendResult, item: FailureItem | undefined) {
-  if (!item) return
+  // A text waiting for its permitted hours has no outcome yet: an open delivery issue stays as it is.
+  if (!item || result.heldUntil) return
   // An unknown outcome has no Retry: an open delivery issue (from an earlier definite failure) is resolved, and the
   // delivery stays listed as failed in System health until it is reconciled against the provider (HH-ARC-09).
   if (result.state === 'failed' && isOutcomeUnknown(result.errorCode)) {
@@ -429,8 +501,10 @@ async function upsertDelivery(
     outboxEventId?: string | null
     variables?: Record<string, string>
     projectId?: string | null
+    /** TSK-0121: when a scheduled automatic message is due; default now. */
+    scheduledAt?: Date
   },
-): Promise<DeliveryRow> {
+): Promise<DeliveryRow & { inserted: boolean }> {
   const type = messageType(input.messageKey)
   const locale = contentLocale(type.audience, input.recipient.staffLocale)
   const inserted = await tx
@@ -453,13 +527,13 @@ async function upsertDelivery(
       variables: JSON.stringify(input.variables ?? {}),
       project_id: input.projectId ?? null,
       queued_at: input.state === 'queued' ? sql<Date>`now()` : null,
-      scheduled_at: input.state === 'queued' ? sql<Date>`now()` : null,
+      scheduled_at: input.state === 'queued' ? (input.scheduledAt ?? sql<Date>`now()`) : null,
     })
     .onConflict((oc) => oc.doNothing())
     .returningAll()
     .executeTakeFirst()
-  if (inserted) return inserted
-  return tx
+  if (inserted) return { ...inserted, inserted: true }
+  const existing = await tx
     .selectFrom('platform.message_deliveries')
     .selectAll()
     .where('message_key', '=', input.messageKey)
@@ -468,13 +542,16 @@ async function upsertDelivery(
     .where('recipient_kind', '=', input.recipient.kind)
     .where('destination', '=', input.destination.destination)
     .executeTakeFirstOrThrow()
+  return { ...existing, inserted: false }
 }
 
 /**
  * Deliveries of this event and message that a staff retry queued again (retry.ts) and this run did not send: they go
  * back to failed with the reason, so none reads queued for good (HH-COM-02). `keepIssue`: their delivery issue stays
  * open (the failure can be retried again); otherwise it is resolved with the same reason, as no Retry can send it.
- * Before a staff retry no automatic delivery is queued outside its own job's transaction, so only retried rows match.
+ * TSK-0122: a text waiting for its permitted hours is also queued outside its job's transaction; when the run finds it
+ * obsolete (`cancelWaiting`: the record changed, the recipient changed, the message left the automatic list) it is
+ * cancelled with the reason instead of being sent later (HH-COM-15). Otherwise only retried rows match.
  */
 async function settleUnsentRetries(
   tx: Tx,
@@ -483,12 +560,33 @@ async function settleUnsentRetries(
     messageKey: string
     errorCode: string
     keepIssue: boolean
+    cancelWaiting?: boolean
     sent?: readonly string[]
     job: { requestId: string }
     process: string
   },
 ): Promise<number> {
   if (!input.eventId) return 0
+  if (input.cancelWaiting) {
+    let w = tx
+      .updateTable('platform.message_deliveries')
+      .set({
+        state: 'cancelled',
+        error_code: input.errorCode,
+        cancelled_by: 'system',
+        cancelled_at: sql<Date>`now()`,
+        updated_at: sql<Date>`now()`,
+      })
+      .where('outbox_event_id', '=', input.eventId)
+      .where('message_key', '=', input.messageKey)
+      .where('release', '=', 'automatic')
+      .where('state', '=', 'queued')
+      .where('error_code', '=', WAITING_TEXT_HOURS)
+      .where('provider_message_id', 'is', null)
+    if (input.sent?.length) w = w.where('id', 'not in', input.sent)
+    for (const row of await w.returning(['id', 'message_key', 'channel']).execute())
+      await auditDelivery(tx, input.job, input.process, row, { state: 'cancelled', errorCode: input.errorCode })
+  }
   let q = tx
     .updateTable('platform.message_deliveries')
     .set({ state: 'failed', error_code: input.errorCode, updated_at: sql<Date>`now()` })
@@ -582,6 +680,7 @@ export function notificationAutomation(o: NotificationAutomationOptions): Automa
           messageKey: type.key,
           errorCode,
           keepIssue: false,
+          cancelWaiting: true,
           ...(sent ? { sent } : {}),
           job: ctx.job,
           process,
@@ -620,6 +719,12 @@ export function notificationAutomation(o: NotificationAutomationOptions): Automa
           const result = await send(ctx.tx, row, resolved.values, o.providers, final)
           await auditDelivery(ctx.tx, ctx.job, process, row, result)
           await syncFailureItem(ctx.tx, row.id, result, resolved.failureItem)
+          // TSK-0122: the text waits; this event's job runs again at its next allowed time and resolves it afresh.
+          if (result.heldUntil && ctx.job.eventId)
+            await scheduleFollowUp(ctx.tx, ctx.job, {
+              key: `${ctx.job.eventId}:notify.${type.key}:held:${row.id}:${result.heldUntil.getTime()}`,
+              runAt: result.heldUntil,
+            })
         }
       }
       // A retried delivery whose recipient or destination is no longer resolved was not sent by this run.
@@ -671,48 +776,28 @@ export async function createDraft(
   return { id: row.id }
 }
 
-/** Cadence keys of reminders, for the contact-hours rule (FACT-REMINDER-CADENCES, HH-COM-09). */
-const REMINDER_CADENCE: Record<string, string> = {
-  'reminder.unanswered_estimate': 'unansweredEstimate',
-  'reminder.unanswered_question': 'unansweredQuestion',
-  'reminder.appointment': 'appointment',
-  'reminder.satisfaction_check': 'satisfaction',
-  'reminder.unpaid_invoice': 'unpaidInvoice',
-  'reminder.repeat_service': 'repeatService',
-}
-
 /** The staff reply (TSK-0050, HH-COM-08): Send is its release. */
 export const STAFF_REPLY_MESSAGE_KEY = 'staff.reply'
 
 /**
- * Whether a released message of this type is held to the daily contact hours (HH-COM-09): a reminder whose cadence
- * says so (reminders.cadences; unanswered-estimate reminders are not, OWN-DEC-132), and the staff reply while
- * replies.contact_hours says so (TSK-0050, PROPOSED). Unknown while that configuration is NOT CONFIGURED.
+ * When a released or scheduled message may send (TSK-0122, OWN-DEC-154): an email at once, at any hour; a non-urgent
+ * customer text at the next opening of the recipient's permitted hours (deliveryTime). The send itself checks the
+ * window again, so this only spares a job that would wake up just to wait.
  */
-export function heldToContactHours(config: Config, messageKey: string): boolean | 'not_configured' {
-  if (messageKey === STAFF_REPLY_MESSAGE_KEY) {
-    const replies = config.get('replies.contact_hours')
-    return replies.state === 'CONFIGURED' ? replies.value.contactHoursOnly : 'not_configured'
-  }
-  const cadenceKey = REMINDER_CADENCE[messageKey]
-  if (!cadenceKey) return false
-  const cadences = config.get('reminders.cadences')
-  if (cadences.state !== 'CONFIGURED') return 'not_configured'
-  const cadence = (cadences.value as Record<string, { contactHoursOnly: boolean }>)[cadenceKey]
-  return cadence?.contactHoursOnly ?? false
-}
-
-/**
- * When a released draft may send: now, or the next contact-hours opening for messages held to those hours (reminders
- * whose cadence says so; staff replies while replies.contact_hours says so). While the rule, the hours or the zone
- * is NOT CONFIGURED no window is guessed and it sends now.
- */
-export function releaseTime(config: Config, messageKey: string, now: Date): Date {
-  if (heldToContactHours(config, messageKey) !== true) return now
-  const hours = config.get('contact.hours')
-  const zone = config.get('business.timezone')
-  if (hours.state !== 'CONFIGURED' || zone.state !== 'CONFIGURED') return now
-  return nextContactTime(now, hours.value, zone.value.zone)
+export async function releaseTime(
+  tx: Db | Tx,
+  config: Config,
+  row: { message_key: string; channel: string; recipient_kind: string; recipient_id: string | null },
+  now: Date,
+): Promise<Date> {
+  const t = await deliveryTime(tx, config, {
+    messageKey: row.message_key,
+    channel: row.channel as Channel,
+    recipientKind: row.recipient_kind,
+    recipientId: row.recipient_id,
+    now,
+  })
+  return t.at
 }
 
 /**
@@ -759,18 +844,24 @@ export type ReleaseValues = (
   row: { id: string; message_key: string; subject_key: string; project_id: string | null },
 ) => Promise<Readonly<Record<string, string>> | undefined>
 
-/** The automation that sends released drafts (scheduled per release). */
+/**
+ * The automation that sends released drafts and scheduled automatic messages (TSK-0121: the routine reminders), one job
+ * per delivery at its time. An automatic delivery is rechecked against the configured automatic list too.
+ */
 export function releaseAutomation(
   providers: NotificationProviders,
   options: { recordChecks?: RecordChecks; failureItem?: ReleaseFailureItem; values?: ReleaseValues } = {},
 ): Automation {
   return {
     name: 'notify.release',
-    trigger: { kind: 'schedule', description: 'one job per released draft, at its release time' },
+    trigger: {
+      kind: 'schedule',
+      description: 'one job per released draft or scheduled automatic message, at its time',
+    },
     identity: 'system.notifications',
-    inputs: { description: 'the released delivery row and its stored values', version: 1 },
+    inputs: { description: 'the delivery row, its stored values and its record as they are then', version: 1 },
     idempotency: 'one job per delivery; its tuple hash is the provider key',
-    effect: 'sends one staff-released message, approved test destinations only outside production',
+    effect: 'sends one released or scheduled message, approved test destinations only outside production',
     retry: NOTIFICATION_RETRY,
     timeoutMs: 30_000,
     exceptionOwner: 'office',
@@ -784,20 +875,9 @@ export function releaseAutomation(
         .where('id', '=', id)
         .forUpdate()
         .executeTakeFirst()
-      if (!row || row.state !== 'queued') return 'cancelled'
-      const check = row.record_type ? options.recordChecks?.[row.record_type] : undefined
-      const verdict: RecordCheckResult =
-        check && row.record_id
-          ? await check(ctx.tx, {
-              recordType: row.record_type as string,
-              recordId: row.record_id,
-              messageKey: row.message_key,
-              subjectKey: row.subject_key,
-            })
-          : 'current'
+      if (!row || row.state !== 'queued' || row.provider_message_id !== null) return 'cancelled'
       const item = options.failureItem ? await options.failureItem(ctx.tx, row) : undefined
-      if (verdict === 'stale' || (typeof verdict === 'object' && 'stale' in verdict)) {
-        const errorCode = verdict === 'stale' ? 'record_changed' : verdict.stale.slice(0, 120)
+      const stop = async (errorCode: string) => {
         await ctx.tx
           .updateTable('platform.message_deliveries')
           .set({
@@ -812,9 +892,26 @@ export function releaseAutomation(
         const cancelled = { state: 'cancelled', errorCode }
         await auditDelivery(ctx.tx, ctx.job, 'system.notifications', row, cancelled)
         await syncFailureItem(ctx.tx, row.id, cancelled, item)
-        return 'cancelled'
+        return 'cancelled' as const
       }
+      // TSK-0121: a scheduled automatic message taken off the configured list sends nothing (HH-COM-06).
+      if (row.release === 'automatic' && !automaticPolicy(await loadConfig(ctx.tx)).isAutomatic(row.message_key))
+        return stop('not_automatic')
+      const check = row.record_type ? options.recordChecks?.[row.record_type] : undefined
+      const verdict: RecordCheckResult =
+        check && row.record_id
+          ? await check(ctx.tx, {
+              recordType: row.record_type as string,
+              recordId: row.record_id,
+              messageKey: row.message_key,
+              subjectKey: row.subject_key,
+            })
+          : 'current'
+      if (verdict === 'stale' || (typeof verdict === 'object' && 'stale' in verdict))
+        return stop(verdict === 'stale' ? 'record_changed' : verdict.stale.slice(0, 120))
       if (verdict !== 'current') {
+        // A held reminder goes back to staff as a draft; an automatic message has no draft: it is cancelled.
+        if (row.release === 'automatic') return stop(`held_${verdict.hold}`)
         await ctx.tx
           .updateTable('platform.message_deliveries')
           .set({
@@ -836,9 +933,33 @@ export function releaseAutomation(
       const result = await send(ctx.tx, row, values, providers, final)
       await auditDelivery(ctx.tx, ctx.job, 'system.notifications', row, result)
       await syncFailureItem(ctx.tx, row.id, result, item)
+      // TSK-0122: the text waits for the recipient's permitted hours; a job of its own sends it then, after the rechecks.
+      if (result.heldUntil)
+        await scheduleJob(ctx.tx, RELEASE_DECLARATION, {
+          key: `${row.id}:held:${result.heldUntil.getTime()}`,
+          runAt: result.heldUntil,
+          payload: { deliveryId: row.id },
+          target: { type: 'message_delivery', id: row.id },
+          requestId: ctx.job.requestId,
+        })
       return 'done'
     },
   }
+}
+
+/** The scheduling declaration of notify.release (scheduling needs only its name and retry budget). */
+const RELEASE_DECLARATION: Automation = {
+  name: 'notify.release',
+  trigger: { kind: 'schedule', description: 'one job per released draft or scheduled automatic message, at its time' },
+  identity: 'system.notifications',
+  inputs: { description: 'the delivery row', version: 1 },
+  idempotency: 'one job per delivery',
+  effect: 'sends one released or scheduled message',
+  retry: NOTIFICATION_RETRY,
+  timeoutMs: 30_000,
+  exceptionOwner: 'office',
+  audit: { action: 'notification.processed' },
+  handle: async () => 'cancelled',
 }
 
 /** Staff release of a draft: audited, then sent by a `notify.release` job at its release time. */
@@ -855,7 +976,7 @@ export async function releaseDraft(
 ): Promise<{ runAt: Date }> {
   const draft = await tx
     .selectFrom('platform.message_deliveries')
-    .select(['message_key'])
+    .select(['message_key', 'channel', 'recipient_kind', 'recipient_id'])
     .where('id', '=', input.deliveryId)
     .where('state', '=', 'draft')
     .executeTakeFirst()
@@ -863,7 +984,7 @@ export async function releaseDraft(
   // OWN-DEC-152 section 3.2: a sensitive notice (work paused) is released by the Owner only, never by other staff.
   if (messageType(draft.message_key).ownerApproval && !input.actor.roles.includes('owner'))
     throw new DraftError(`${draft.message_key} is released by the Owner only`)
-  const runAt = releaseTime(input.config, draft.message_key, input.now ?? new Date())
+  const runAt = await releaseTime(tx, input.config, draft, input.now ?? new Date())
   const row = await tx
     .updateTable('platform.message_deliveries')
     .set({
@@ -893,4 +1014,122 @@ export async function releaseDraft(
     requestId: input.requestId,
   })
   return { runAt }
+}
+
+/**
+ * TSK-0121 (OWN-DEC-153 items 7, 9 and 10; HH-COM-06): schedules one automatic message (a routine reminder) for its due
+ * time: one queued delivery per destination of the recipient (release automatic), due at `dueAt` (a text at the next
+ * opening of the recipient's permitted hours after it), sent by its own notify.release job, which rechecks the
+ * automatic list, the record, consent, the template and the window at send time. Idempotent: the delivery tuple
+ * (message, channel, subject, destination) holds one row and the job key is the delivery's, so scheduling twice
+ * schedules nothing more and each reminder is sent once per subject and destination. Nothing is scheduled while the
+ * message is not on the configured automatic list. Each scheduled delivery is audited.
+ */
+export async function scheduleAutomaticDelivery(
+  tx: Tx,
+  input: {
+    config: Config
+    messageKey: string
+    recipient: Recipient
+    subjectKey: string
+    record: { type: string; id: string }
+    projectId: string | null
+    dueAt: Date
+    requestId: string
+    process: string
+  },
+): Promise<{ state: 'scheduled' | 'not_automatic'; deliveries: { id: string; channel: string; created: boolean }[] }> {
+  const type = messageType(input.messageKey)
+  if (!automaticPolicy(input.config).isAutomatic(type.key)) return { state: 'not_automatic', deliveries: [] }
+  const out: { id: string; channel: string; created: boolean }[] = []
+  for (const destination of input.recipient.destinations) {
+    if (!type.channels.includes(destination.channel)) continue
+    const at = await releaseTime(
+      tx,
+      input.config,
+      {
+        message_key: type.key,
+        channel: destination.channel,
+        recipient_kind: input.recipient.kind,
+        recipient_id: input.recipient.id ?? null,
+      },
+      input.dueAt,
+    )
+    const row = await upsertDelivery(tx, {
+      messageKey: type.key,
+      destination,
+      recipient: input.recipient,
+      subjectKey: input.subjectKey,
+      record: input.record,
+      release: 'automatic',
+      state: 'queued',
+      projectId: input.projectId,
+      scheduledAt: at,
+    })
+    out.push({ id: row.id, channel: row.channel, created: row.inserted })
+    if (!row.inserted) continue
+    await scheduleJob(tx, RELEASE_DECLARATION, {
+      key: row.id,
+      runAt: at,
+      payload: { deliveryId: row.id },
+      target: { type: 'message_delivery', id: row.id },
+      requestId: input.requestId,
+    })
+    await audit.record(tx, {
+      actor: { kind: 'system', process: input.process },
+      action: 'notification.scheduled',
+      target: { type: 'message_delivery', id: row.id },
+      summary: { messageKey: type.key, channel: row.channel, record: `${input.record.type}:${input.record.id}` },
+      requestId: input.requestId,
+    })
+  }
+  return { state: 'scheduled', deliveries: out }
+}
+
+/**
+ * TSK-0121 (OWN-DEC-153 item 4): cancels the waiting deliveries of an automatic message about a record (scheduled, or
+ * a text waiting for its hours; never one already handed to the provider) with the reason, each audited. Called in
+ * the transaction of the change that ends the message's condition; the send-time recheck stops anything left.
+ */
+export async function cancelWaitingDeliveries(
+  tx: Tx,
+  input: {
+    messageKey: string
+    recordType: string
+    recordId: string
+    reason: string
+    process: string
+    requestId: string
+    /** Only this subject (one window of a visit); default every subject of the record. */
+    subjectKey?: string
+    /** Keep the deliveries of this subject (the current window's reminder). */
+    exceptSubjectKey?: string
+  },
+): Promise<number> {
+  let q = tx
+    .updateTable('platform.message_deliveries')
+    .set({
+      state: 'cancelled',
+      error_code: input.reason.slice(0, 120),
+      cancelled_by: 'system',
+      cancelled_at: sql<Date>`now()`,
+      updated_at: sql<Date>`now()`,
+    })
+    .where('message_key', '=', input.messageKey)
+    .where('record_type', '=', input.recordType)
+    .where('record_id', '=', input.recordId)
+    .where('release', '=', 'automatic')
+    .where('state', '=', 'queued')
+    .where('provider_message_id', 'is', null)
+  if (input.subjectKey) q = q.where('subject_key', '=', input.subjectKey)
+  if (input.exceptSubjectKey) q = q.where('subject_key', '<>', input.exceptSubjectKey)
+  const rows = await q.returning(['id', 'message_key', 'channel']).execute()
+  for (const row of rows) {
+    await auditDelivery(tx, { requestId: input.requestId }, input.process, row, {
+      state: 'cancelled',
+      errorCode: input.reason,
+    })
+    await resolveQueueItem(tx, { type: 'delivery_failed', subjectId: row.id, resolution: 'cancelled' })
+  }
+  return rows.length
 }
