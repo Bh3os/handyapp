@@ -13,10 +13,12 @@ import { REQUEST_CLOSED_STATES } from '@handyhub/domain'
 import { sql } from 'kysely'
 import { audit } from '../../platform/audit.js'
 import { loadConfig } from '../../platform/config/index.js'
+import { activeCaseCounts } from '../cases/active.js'
 import {
   CATEGORY_DEFINITIONS,
-  NOT_RECORDED_CHECKS,
+  holdCheckOutcomes,
   PERIOD_CATEGORIES,
+  type CaseCounts,
   type HoldCheckOutcome,
   type PeriodCategory,
 } from './schedule.js'
@@ -146,17 +148,17 @@ async function openHolds(tx: Tx, projectIds: readonly string[]): Promise<Map<str
   return new Map(rows.map((r) => [r.project_id, Number(r.n)]))
 }
 
-/** The checks of one record: open holds on its project, and the kinds the software does not record yet. */
-export function holdChecksFor(projectId: string | null, holds: ReadonlyMap<string, number>): HoldCheckOutcome[] {
+/**
+ * The checks of one record: open holds and (TSK-0093) open cases on its project, and the kinds the software does not
+ * record yet.
+ */
+export function holdChecksFor(
+  projectId: string | null,
+  holds: ReadonlyMap<string, number>,
+  cases: ReadonlyMap<string, CaseCounts> = new Map(),
+): HoldCheckOutcome[] {
   const n = projectId === null ? null : (holds.get(projectId) ?? 0)
-  return [
-    n === null
-      ? { check: 'open_holds', result: 'not_applicable' }
-      : n > 0
-        ? { check: 'open_holds', result: 'found', count: n }
-        : { check: 'open_holds', result: 'none_found' },
-    ...NOT_RECORDED_CHECKS.map((check) => ({ check, result: 'not_recorded' as const })),
-  ]
+  return holdCheckOutcomes(n, projectId === null ? null : (cases.get(projectId) ?? null))
 }
 
 async function dbNow(tx: Tx): Promise<Date> {
@@ -191,9 +193,11 @@ export async function runRetentionScan(tx: Tx, options: ScanOptions): Promise<Sc
     const found = await find(tx, years, now, limit + 1)
     if (found.length > limit) more = true
     const batch = found.slice(0, limit)
-    const holds = await openHolds(tx, [...new Set(batch.flatMap((c) => (c.project_id ? [c.project_id] : [])))])
+    const projectIds = [...new Set(batch.flatMap((c) => (c.project_id ? [c.project_id] : [])))]
+    const holds = await openHolds(tx, projectIds)
+    const cases = await activeCaseCounts(tx, projectIds)
     for (const c of batch) {
-      const checks = holdChecksFor(c.project_id, holds)
+      const checks = holdChecksFor(c.project_id, holds, cases)
       const inserted = await tx
         .insertInto('privacy.retention_reviews')
         .values({

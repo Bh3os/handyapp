@@ -1560,6 +1560,126 @@ export interface PrivacyRetentionReviewsTable {
   request_id: string
 }
 
+export interface QualityCaseAttachmentsTable {
+  id: Generated<string>
+  case_id: string
+  object_key: string
+  content_type: string
+  byte_size: number
+  sha256: string
+  visibility_class: string
+  uploaded_by: string
+  uploaded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface QualityCaseCustomerUpdatesTable {
+  id: Generated<string>
+  case_id: string
+  kind: string
+  detail: string | null
+  body: string
+  state: Generated<string>
+  drafted_by: string
+  drafted_at: ColumnType<Date, Date | string | undefined, Date | string>
+  released_by: string | null
+  released_at: Timestamp | null
+  withdrawn_by: string | null
+  withdrawn_at: Timestamp | null
+  version: Generated<number>
+}
+
+export interface QualityCaseEventsTable {
+  id: Generated<string>
+  case_id: string
+  event: string
+  from_state: string | null
+  to_state: string
+  actor_id: string
+  note: string | null
+  at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface QualityCaseFollowUpsTable {
+  id: Generated<string>
+  case_id: string
+  description: string
+  assigned_to: string
+  due_on: string
+  state: Generated<string>
+  created_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  done_note: string | null
+  done_by: string | null
+  done_at: Timestamp | null
+  version: Generated<number>
+}
+
+export interface QualityCaseNotesTable {
+  id: Generated<string>
+  case_id: string
+  kind: string
+  source: string | null
+  body: string
+  visibility_class: string
+  written_by: string
+  written_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface QualityCaseReferralsTable {
+  id: Generated<string>
+  case_id: string
+  professional: string
+  note: string
+  referred_on: string
+  recorded_by: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface QualityCasesTable {
+  id: Generated<string>
+  number: Generated<number>
+  project_id: string
+  job_id: string | null
+  kind: string
+  incident_type: string | null
+  category: string | null
+  severity: string | null
+  source: string
+  state: string
+  reported_by: string
+  reported_at: ColumnType<Date, Date | string | undefined, Date | string>
+  assigned_to: string | null
+  due_on: string | null
+  reviewer_id: string | null
+  hold_id: string | null
+  hazard_report_id: string | null
+  resolution: string | null
+  resolved_by: string | null
+  resolved_at: Timestamp | null
+  recheck_required: Generated<boolean>
+  recheck_note: string | null
+  recheck_by: string | null
+  recheck_at: Timestamp | null
+  closed_by: string | null
+  closed_at: Timestamp | null
+  reopen_count: Generated<number>
+  version: Generated<number>
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface QualityIncidentReportsTable {
+  case_id: string
+  occurred_at: Timestamp | null
+  what_happened: string
+  people_affected: string | null
+  work_areas: string | null
+  immediate_actions: string | null
+  medical_detail: string | null
+  visibility_class: Generated<string>
+  reported_by: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface StagingEnvironmentMarksTable {
   id: Generated<string>
   seq: GeneratedAlways<string>
@@ -2301,6 +2421,14 @@ export interface Database {
   'privacy.privacy_requests': PrivacyPrivacyRequestsTable
   'privacy.retention_decisions': PrivacyRetentionDecisionsTable
   'privacy.retention_reviews': PrivacyRetentionReviewsTable
+  'quality.case_attachments': QualityCaseAttachmentsTable
+  'quality.case_customer_updates': QualityCaseCustomerUpdatesTable
+  'quality.case_events': QualityCaseEventsTable
+  'quality.case_follow_ups': QualityCaseFollowUpsTable
+  'quality.case_notes': QualityCaseNotesTable
+  'quality.case_referrals': QualityCaseReferralsTable
+  'quality.cases': QualityCasesTable
+  'quality.incident_reports': QualityIncidentReportsTable
   'staging.environment_marks': StagingEnvironmentMarksTable
   'staging.reset_runs': StagingResetRunsTable
   'staging.reusable_test_accounts': StagingReusableTestAccountsTable

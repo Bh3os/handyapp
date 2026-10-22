@@ -12,8 +12,17 @@
 //   a project this session cannot open shows its one neutral state and no tab at all.
 import { cents, formatUsd } from '@handyhub/money'
 import { Button, StateView, StatusBadge, Tabs, type StatusTone } from '@handyhub/ui'
+import { useEffect, useState } from 'react'
 import { AppointmentCard } from './Appointments'
-import { portalApi, type Fetch, type NextAction, type ProjectOverview, type QuestionList, type Waiting } from './api'
+import {
+  portalApi,
+  type CaseUpdates,
+  type Fetch,
+  type NextAction,
+  type ProjectOverview,
+  type QuestionList,
+  type Waiting,
+} from './api'
 import { ACTION_LABEL, SITUATION_LABEL, STEP_TEXT, t, TIMELINE_LABEL, WAITING_LABEL, when } from './labels'
 import { useLive } from './live'
 import { NotShown, RefreshLine } from './States'
@@ -183,6 +192,44 @@ function Overview({
   )
 }
 
+/**
+ * TSK-0093 (HH-QA-06, HH-INC-02): the updates HandyHub released about a concern on this project, as staff released them
+ * after review: an acknowledgment, progress, the next step or the safety pause. Nothing is shown while there is none.
+ */
+function CaseUpdatesSection({ reference, fetchImpl }: { reference: string; fetchImpl: Fetch }) {
+  const [data, setData] = useState<CaseUpdates | null>(null)
+  useEffect(() => {
+    let live = true
+    void portalApi.caseUpdates(fetchImpl, reference).then((r) => {
+      if (live) setData(r.ok ? r.data : null)
+    })
+    return () => {
+      live = false
+    }
+  }, [fetchImpl, reference])
+  if (!data || data.cases.length === 0) return null
+  return (
+    <section className="portal-case-updates" aria-labelledby="portal-case-updates" data-testid="portal-case-updates">
+      <h3 id="portal-case-updates" className="hh-h4">
+        {t('portal.cases.title')}
+      </h3>
+      {data.cases.map((c) => (
+        <div key={c.caseNumber}>
+          <h4 className="hh-h5">{t('portal.cases.case', { number: c.caseNumber })}</h4>
+          <ol>
+            {c.updates.map((u, i) => (
+              <li key={i}>
+                <p>{u.text}</p>
+                <p className="hh-small hh-muted">{t('portal.cases.when', { time: when(u.releasedAt) })}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ))}
+    </section>
+  )
+}
+
 /** The Overview with the questions from HandyHub, read beside it and refreshed with it while it is shown. */
 function OverviewWithQuestions({
   o,
@@ -262,6 +309,7 @@ export function Workspace({
                       onRefresh={() => void refresh()}
                     />
                     <h2 className="hh-visually-hidden">{t('portal.overview.title')}</h2>
+                    <CaseUpdatesSection reference={reference} fetchImpl={fetchImpl} />
                     {/* TSK-0051: a project HandyHub asked questions on reads them too (its timeline says so). */}
                     {live.data.timeline.some((e) => e.kind === 'more_information') ? (
                       <OverviewWithQuestions

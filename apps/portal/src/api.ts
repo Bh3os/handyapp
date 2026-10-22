@@ -1085,6 +1085,28 @@ export function parseQuestions(v: unknown): QuestionList | null {
   }
 }
 
+// Updates about the project's cases (TSK-0093; HH-QA-06, HH-INC-02): the customer view project.cases. Only updates staff
+// released after review; nothing else about a case reaches the customer.
+export const CASE_UPDATE_KINDS = ['acknowledgment', 'progress', 'next_step', 'safety_pause'] as const
+export type CaseUpdate = { kind: (typeof CASE_UPDATE_KINDS)[number]; text: string; releasedAt: string }
+export type CaseUpdates = { reference: string; cases: { caseNumber: number; updates: CaseUpdate[] }[] }
+
+export function parseCaseUpdates(v: unknown): CaseUpdates | null {
+  if (!isObj(v) || !isStr(v['reference']) || !Array.isArray(v['cases'])) return null
+  const cases: CaseUpdates['cases'] = []
+  for (const c of v['cases']) {
+    if (!isObj(c) || typeof c['caseNumber'] !== 'number' || !Array.isArray(c['updates'])) return null
+    const updates: CaseUpdate[] = []
+    for (const u of c['updates']) {
+      if (!isObj(u) || !oneOf(CASE_UPDATE_KINDS)(u['kind']) || !isStr(u['text']) || !isDate(u['releasedAt']))
+        return null
+      updates.push({ kind: u['kind'], text: u['text'], releasedAt: u['releasedAt'] })
+    }
+    cases.push({ caseNumber: c['caseNumber'], updates })
+  }
+  return { reference: v['reference'], cases }
+}
+
 /** The outcome of a write the page shows: done (with the answer), refused (with the server's codes), or failed. */
 export type PortalWriteResult<T> =
   | { ok: true; data: T }
@@ -1371,6 +1393,8 @@ async function dataExport(fetchImpl: Fetch, reference: string, request: string):
 
 export const portalApi = {
   projects: (f: Fetch) => read(f, '/customer/projects', parseList),
+  caseUpdates: (f: Fetch, reference: string) =>
+    read(f, `/customer/projects/${encodeURIComponent(reference)}/cases`, parseCaseUpdates),
   questions: (f: Fetch, reference: string) =>
     read(f, `/customer/projects/${encodeURIComponent(reference)}/questions`, parseQuestions),
   overview: (f: Fetch, reference: string) =>

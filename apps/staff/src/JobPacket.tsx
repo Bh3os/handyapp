@@ -20,6 +20,7 @@ import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { Button, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { call, type Fetch } from './api'
+import { JobIncidents } from './Cases'
 import { RevealedValue, type Revealed } from './Property'
 import { codeLabel } from './Requests'
 import { holdNoteText } from './StopWork'
@@ -990,6 +991,10 @@ export function JobPacketPage({
         <p>{t('packet.qualityReviewNext')}</p>
         <StateView kind="empty" title={t('packet.careNotesNone')} />
       </Section>
+      {/* TSK-0093 (HH-INC-01): report an incident quickly from the job, and the caller's own reports on it. */}
+      <div className="staff-packet__screen-only">
+        <JobIncidents t={t} locale={locale} fetchImpl={fetchImpl} jobId={jobId} href={href} />
+      </div>
     </article>
   )
 }

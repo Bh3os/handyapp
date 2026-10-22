@@ -152,6 +152,16 @@ export const CLEARED_CATEGORIES = {
     'platform.message_delivery_events',
     'platform.message_delivery_attempts',
   ],
+  // TSK-0093 (0081): cases, their restricted reports, notes, follow-ups, referrals, customer updates and history.
+  cases: [
+    'quality.cases',
+    'quality.incident_reports',
+    'quality.case_notes',
+    'quality.case_follow_ups',
+    'quality.case_referrals',
+    'quality.case_customer_updates',
+    'quality.case_events',
+  ],
   attachments: [
     'intake.photos',
     'intake.question_reply_photos',
@@ -160,6 +170,8 @@ export const CLEARED_CATEGORIES = {
     'work.photo_publication_permissions',
     // TSK-0077 (0079): the photos of Stop Work, hazard and issue reports.
     'work.issue_report_photos',
+    // TSK-0093 (0081): the supporting photos of cases.
+    'quality.case_attachments',
   ],
   pending_messages: ['platform.outbox_events', 'platform.jobs'],
   sessions: [
@@ -270,6 +282,8 @@ const STORED_FILES = [
   ['work.field_photos', 'object_key'],
   // TSK-0077 (0079): the photos of Stop Work, hazard and issue reports.
   ['work.issue_report_photos', 'object_key'],
+  // TSK-0093 (0081): the supporting photos of cases.
+  ['quality.case_attachments', 'object_key'],
 ] as const
 
 /** Stored-file keys per removal job (the job payload is a comma-separated list). */

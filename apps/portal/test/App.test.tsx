@@ -132,7 +132,9 @@ describe('the Overview (TSK-0038, HH-PORT-02, HH-PORT-03, T23)', () => {
     expect(within(screen.getByRole('region', { name: 'Appointment' })).getByText('No appointment yet')).toBeTruthy()
     expect(within(screen.getByRole('region', { name: 'Payments' })).getByText('Nothing to pay yet')).toBeTruthy()
     expect(screen.getByText(`Updated ${AT}`)).toBeTruthy()
-    expect(urls).toEqual([`/api/v1/customer/projects/${REF}/overview`])
+    // TSK-0093: the Overview also reads the released case updates (none here, so nothing is shown).
+    expect(urls).toEqual([`/api/v1/customer/projects/${REF}/overview`, `/api/v1/customer/projects/${REF}/cases`])
+    expect(screen.queryByTestId('portal-case-updates')).toBeNull()
   })
 
   it('[HH-PORT-02][OWN-DEC-98] waiting on the customer: "Waiting on you" with Reply, inactive with its reason until the reply screen exists', async () => {

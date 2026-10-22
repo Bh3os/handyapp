@@ -40,7 +40,7 @@ import type { Db, Tx } from '@handyhub/db'
 import { REQUEST_CLOSED_STATES } from '@handyhub/domain'
 import { sql } from 'kysely'
 import { loadConfig } from '../../platform/config/index.js'
-import { CATEGORY_DEFINITIONS, NOT_RECORDED_CHECKS, type RetentionCategory } from '../retention/schedule.js'
+import { CATEGORY_DEFINITIONS, holdCheckOutcomes, type RetentionCategory } from '../retention/schedule.js'
 import { estimateTarget, financialEvidence, type CheckOutcome, type DeletionCheck } from './targets.js'
 
 type Reader = Db | Tx
@@ -377,8 +377,31 @@ export async function customerPlan(db: Reader, subject: PlanSubject, now = new D
 
   const holds = await db.selectFrom('work.holds').select(['state']).where('project_id', 'in', inProjects).execute()
   const openHolds = holds.filter((h) => h.state === 'open' || h.state === 'under_review').length
-  add('safety_records', 'retain', openHolds, 'hold', 'safety_records')
-  add('safety_records', 'retain', holds.length - openHolds, 'retention_period', 'safety_records')
+  // TSK-0093 (OWN-DEC-124, HH-PRIV-03): the project's cases are kept: open ones under the case hold, closed ones for
+  // their retention period (complaints as job records; incident, damage, injury and dispute cases as safety records).
+  const cases = await db
+    .selectFrom('quality.cases')
+    .select(['kind', 'state'])
+    .where('project_id', 'in', inProjects)
+    .execute()
+  const complaintCases = cases.filter((c) => c.kind === 'complaint')
+  const restrictedCases = cases.filter((c) => c.kind !== 'complaint')
+  const openOf = (list: typeof cases) => list.filter((c) => c.state !== 'closed').length
+  add('safety_records', 'retain', openHolds + openOf(restrictedCases), 'hold', 'safety_records')
+  add(
+    'safety_records',
+    'retain',
+    holds.length - openHolds + restrictedCases.length - openOf(restrictedCases),
+    'retention_period',
+    'safety_records',
+  )
+  add('job_records', 'retain', openOf(complaintCases), 'hold', 'job_records')
+  add('job_records', 'retain', complaintCases.length - openOf(complaintCases), 'retention_period', 'job_records')
+  const caseCounts = {
+    complaints: openOf(complaintCases),
+    disputes: openOf(restrictedCases.filter((c) => c.kind === 'dispute')),
+    incidents: openOf(restrictedCases.filter((c) => c.kind !== 'dispute')),
+  }
 
   const contacts = await db
     .selectFrom('crm.contacts')
@@ -478,10 +501,7 @@ export async function customerPlan(db: Reader, subject: PlanSubject, now = new D
   add('financial_records', 'not_recorded', 0, null, 'financial_records')
 
   const checks: CheckOutcome[] = [
-    openHolds > 0
-      ? { check: 'open_holds', result: 'found', count: openHolds }
-      : { check: 'open_holds', result: 'none_found' },
-    ...NOT_RECORDED_CHECKS.map((check) => ({ check: check as DeletionCheck, result: 'not_recorded' as const })),
+    ...(holdCheckOutcomes(openHolds, caseCounts) as CheckOutcome[]),
     { check: 'issued_invoices', result: 'not_recorded' },
     payments > 0
       ? { check: 'payments', result: 'found', count: payments }

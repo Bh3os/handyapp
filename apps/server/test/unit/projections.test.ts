@@ -108,6 +108,8 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
         'requestDeletion',
         'getCustomerDataExport',
         'getCustomerEstimateDownloads',
+        // TSK-0093 (HH-INC-02, T24): the released updates about the project's cases.
+        'getCustomerProjectCaseUpdates',
         // TSK-0076: one photo the customer may see, opened by its ID.
         'getCustomerProjectPhoto',
         // TSK-0085: the issued invoice PDF's short-lived link.

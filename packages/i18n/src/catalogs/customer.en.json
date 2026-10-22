@@ -1098,6 +1098,9 @@
   "message.button.invoice": "View your invoice",
   "message.button.receipt": "View your receipt",
   "message.button.open": "Open the secure link",
+  "portal.cases.title": "Updates about your concern",
+  "portal.cases.case": "Concern {number}",
+  "portal.cases.when": "Shared {time}",
   "request.closed.title": "Online requests are not open yet",
   "request.closed.notYet": "We are not taking estimate requests through this website yet.",
   "request.closed.invitationOnly": "For now, estimate requests through this website are by invitation only."

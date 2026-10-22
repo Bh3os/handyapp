@@ -453,7 +453,13 @@ function QueueRow({
   const action = label(t, labelKey('queueAction', item.action))
   // Deny by default: a code the app has no label for is not shown.
   if (!type || !reason || !action) return null
-  const status = item.status && item.subjectType === 'request' ? label(t, labelKey('requestState', item.status)) : null
+  const status =
+    item.status && item.subjectType === 'request'
+      ? label(t, labelKey('requestState', item.status))
+      : // TSK-0093: a case's status (Office sees it for every case, restricted ones included: OWN-DEC-143).
+        item.status && item.subjectType === 'case'
+        ? label(t, labelKey('caseState', item.status))
+        : null
   const due = item.dueAt ? new Date(item.dueAt) : null
   const age = now.getTime() - new Date(item.openedAt).getTime()
   const open = (e: MouseEvent<HTMLAnchorElement>) => {

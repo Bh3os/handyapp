@@ -13,6 +13,7 @@ import { customerTranslator, type StaffKey, type StaffLocale } from '@handyhub/i
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
+import { ProjectCases } from './Cases'
 import { ConflictBanner, conflictOf, type Conflict } from './ConflictBanner'
 import { ProjectEstimates } from './Estimates'
 import { RequestQuestions } from './Questions'
@@ -358,6 +359,15 @@ export function RequestRecord({
       {/* TSK-0061: the project's visits (tentative estimate and work visits), for the roles that see the schedule. */}
       <ProjectVisitsSection
         key={`visits-${view.project.id}-${view.version}`}
+        t={t}
+        locale={locale}
+        fetchImpl={fetchImpl}
+        projectId={view.project.id}
+        href={href}
+      />
+      {/* TSK-0093: the project's cases, Record a complaint and Report an incident (the Owner, Office). */}
+      <ProjectCases
+        key={`cases-${view.project.id}`}
         t={t}
         locale={locale}
         fetchImpl={fetchImpl}
