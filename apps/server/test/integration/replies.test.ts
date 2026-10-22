@@ -32,6 +32,7 @@ import { runWithContext } from '../../src/platform/request-context.js'
 import { createProviders } from '../../src/providers/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
 import { testConfig } from '../fixtures/env.js'
+import { bodyOf } from '../fixtures/message-text.js'
 
 const ROLES: readonly StaffRole[] = ['owner', 'office', 'estimator', 'worker']
 const pw = ['synthetic', 'replies', 'passphrase', '50'].join(' ')
@@ -326,7 +327,8 @@ describe('Send is the release; the delivery is truthful (TSK-0050, HH-COM-08, HH
     await drain()
     expect(fakeEmail.calls.filter((c) => c.to === 'replies-unconfigured@example.test')).toEqual([])
     const d = await deliveryOf(out.delivery.id)
-    expect([d.state, d.error_code]).toEqual(['failed', 'template_not_configured'])
+    // TSK-0119: the owner's staff_reply_wrapper wording is released; its values are wired by TSK-0120 (not wired).
+    expect([d.state, d.error_code]).toEqual(['failed', 'template_values_not_wired'])
     // A staff exception with Retry on the project (HH-COM-02), and the reply itself is in the conversation.
     expect(await openItems('delivery_failed', d.id)).toEqual([
       expect.objectContaining({ reason: 'delivery_not_configured', reference: p.reference, project_id: p.projectId }),
@@ -347,7 +349,7 @@ describe('Send is the release; the delivery is truthful (TSK-0050, HH-COM-08, HH
         direction: 'outbound',
         body: 'Synthetic reply without wording.',
         author: expect.objectContaining({ kind: 'staff', name: 'Synthetic Replies owner' }),
-        delivery: { id: d.id, state: 'failed', errorCode: 'template_not_configured', sendAt: null, retry: true },
+        delivery: { id: d.id, state: 'failed', errorCode: 'template_values_not_wired', sendAt: null, retry: true },
       }),
     ])
     // The reply is listed on itself, not again among the project's notifications.
@@ -364,7 +366,7 @@ describe('Send is the release; the delivery is truthful (TSK-0050, HH-COM-08, HH
     await drain()
     const mails = fakeEmail.sent.filter((m) => m.to === 'replies-unconfigured@example.test')
     expect(mails).toHaveLength(1)
-    expect(mails[0]?.text).toBe('Synthetic test reply: Synthetic reply without wording.')
+    expect(bodyOf(mails[0]?.text)).toBe('Synthetic test reply: Synthetic reply without wording.')
     expect(mails[0]?.replyTo).toMatch(/^replies\+[a-z2-7]{20}@inbound\.example\.test$/)
     expect((await deliveryOf(d.id)).provider_message_id).toBe(mails[0]?.providerMessageId)
     expect(await openItems('delivery_failed', d.id)).toEqual([])

@@ -538,6 +538,12 @@ export const TABLES = {
     categories: [R, J],
     vendors: ['bird', 'resend'],
   },
+  // TSK-0119 (HH-COM-14): the retry history of a delivery, kept like the delivery it belongs to.
+  'platform.message_delivery_attempts': {
+    holds: 'Send attempts of message deliveries (retry history, metadata only)',
+    classes: ['technical'],
+    categories: [R, J],
+  },
   'platform.message_delivery_events': {
     holds: 'Provider delivery statuses',
     classes: ['technical'],

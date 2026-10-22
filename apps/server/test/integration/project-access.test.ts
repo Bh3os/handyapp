@@ -29,6 +29,7 @@ import { outbox } from '../../src/platform/outbox.js'
 import { createProviders } from '../../src/providers/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
 import { testConfig } from '../fixtures/env.js'
+import { bodyOf } from '../fixtures/message-text.js'
 
 const KEY: CodeKeySettings = readCodeKey({ HANDYHUB_ENV: 'ci', CODE_HASH_KEY: 'synthetic-access-link-key-'.repeat(2) })
 const PUBLIC = 'http://public.example.test'
@@ -45,7 +46,13 @@ const worker = (codeKey: CodeKeySettings = KEY) =>
     registry: createAutomationRegistry([
       ...queueAutomations(),
       codeDeliveryAutomation({ providers, codeKey: KEY }),
-      fast(accessLinkAutomation({ providers, codeKey, publicSiteUrl: PUBLIC })),
+      fast(
+        accessLinkAutomation({
+          providers: { ...providers, linkHosts: ['public.example.test'] },
+          codeKey,
+          publicSiteUrl: PUBLIC,
+        }),
+      ),
     ]),
   })
 async function drain(w = worker()) {
@@ -310,13 +317,14 @@ describe('the grant is created with the request (TSK-0034, HH-INT-21, HH-ID-04, 
 })
 
 describe('the access instructions send automatically (TSK-0034, HH-INT-21, HH-COM-06, OWN-DEC-97, T01)', () => {
-  it('[HH-INT-21][HH-COM-06] no owner wording exists: each destination records template_not_configured, staff get a delivery issue, the grant stays', async () => {
+  it('[HH-INT-21][HH-COM-06][HH-COM-13] the email wording is not wired yet and texts have none: each destination records why, staff get a delivery issue, the grant stays', async () => {
     const email = 'link-unconfigured@example.test'
     const s = await submitted(email, withTexts(email, '(502) 555-0148'))
     await drain()
     const rows = await accessDeliveries(s.grantId)
     expect(rows.map((d) => [d.channel, d.state, d.error_code, d.release, d.record_type, d.record_id])).toEqual([
-      ['email', 'failed', 'template_not_configured', 'automatic', 'project', s.projectId],
+      // TSK-0119: the owner's secure_access_link email wording is released; TSK-0120 wires its values.
+      ['email', 'failed', 'template_values_not_wired', 'automatic', 'project', s.projectId],
       ['sms', 'failed', 'template_not_configured', 'automatic', 'project', s.projectId],
     ])
     for (const d of rows) {
@@ -373,7 +381,7 @@ describe('the access instructions send automatically (TSK-0034, HH-INT-21, HH-CO
       await withTx(t.db, (tx) => rerunJob(tx, { jobId: job.id, key: 'replay', requestId: 'test-replay' }))
       await drain()
       const sent = (providers.fakes.email?.sent ?? []).filter((m) => m.to === email)
-      expect(sent.map((m) => m.text)).toEqual([`SYNTHETIC TEST TEMPLATE ${PUBLIC}/access#${s.token}`])
+      expect(sent.map((m) => bodyOf(m.text))).toEqual([`SYNTHETIC TEST TEMPLATE ${PUBLIC}/access#${s.token}`])
       // No phone text without this request's SMS opt-in.
       const rows = await accessDeliveries(s.grantId)
       expect(rows.map((d) => [d.channel, d.error_code, d.provider_message_id !== null])).toEqual([

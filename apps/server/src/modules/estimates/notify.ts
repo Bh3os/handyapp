@@ -11,9 +11,16 @@
 // - The link: the secure project-access landing does not exist yet (TSK-0034, HH-ID-05). Until it does there is no
 //   truthful link, so `projectLink` is not supplied and every delivery records template_values_missing instead of
 //   linking somewhere invented; nothing is shown as sent that was not. The landing task supplies `projectLink`.
+// - TSK-0119: the owner-style wording (estimate_ready, OQ-MESSAGES-OUTSIDE-THE-21) greets the contact's first name
+//   ("Hi there," without one, OWN-DEC-158) and names the estimate number; never an amount.
 import type { Tx } from '@handyhub/db'
 import type { Automation } from '../../platform/automation.js'
-import { notificationAutomation, type Destination, type NotificationProviders } from '../notifications/index.js'
+import {
+  firstNameOf,
+  notificationAutomation,
+  type Destination,
+  type NotificationProviders,
+} from '../notifications/index.js'
 
 export const ESTIMATE_READY_MESSAGE_KEY = 'estimate.ready'
 
@@ -32,6 +39,7 @@ export function estimateReadyAutomation(deps: EstimateReadyDeps): Automation {
       if (!id) return 'stale'
       const v = await tx
         .selectFrom('estimating.estimate_versions as v')
+        .innerJoin('estimating.estimates as e', 'e.id', 'v.estimate_id')
         .innerJoin('intake.requests as r', 'r.project_id', 'v.project_id')
         .innerJoin('crm.contacts as c', 'c.id', 'r.contact_id')
         .select([
@@ -39,7 +47,9 @@ export function estimateReadyAutomation(deps: EstimateReadyDeps): Automation {
           'v.project_id',
           'v.state',
           'v.valid_until',
+          'e.number',
           'c.id as contactId',
+          'c.full_name',
           'c.email',
           'c.phone_e164',
           'c.preferred_channel',
@@ -64,7 +74,11 @@ export function estimateReadyAutomation(deps: EstimateReadyDeps): Automation {
         subjectKey: `estimate_version:${v.id}`,
         record: { type: 'estimate_version', id: v.id },
         recipients: [{ kind: 'customer_contact', id: v.contactId, destinations }],
-        values: link ? { projectLink: link } : {},
+        values: {
+          customerName: firstNameOf(v.full_name),
+          estimateNumber: v.number,
+          ...(link ? { projectLink: link } : {}),
+        },
         // TSK-0049: the delivery records its project, so the email replies to the project's reply address.
         projectId: v.project_id,
       }

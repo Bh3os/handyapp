@@ -1130,6 +1130,24 @@ export interface PlatformMessageDeliveriesTable {
   project_id: string | null
   cancelled_by: string | null
   cancelled_at: Timestamp | null
+  template_id: string | null
+  layout_version: number | null
+  scheduled_at: Timestamp | null
+  sent_at: Timestamp | null
+  consent_decision: string | null
+  missing_variables: Generated<string[]>
+}
+
+export interface PlatformMessageDeliveryAttemptsTable {
+  id: GeneratedAlways<string>
+  delivery_id: string
+  attempt: number
+  state: string
+  error_code: string | null
+  provider: string | null
+  provider_message_id: string | null
+  template_version: number | null
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
 export interface PlatformMessageDeliveryEventsTable {
@@ -1155,6 +1173,7 @@ export interface PlatformMessageTemplateVersionsTable {
   source_ids: string[]
   released_by: string
   released_at: ColumnType<Date, Date | string | undefined, Date | string>
+  template_id: string | null
 }
 
 export interface PlatformMessageTemplatesTable {
@@ -1714,6 +1733,7 @@ export interface Database {
   'platform.idempotency_keys': PlatformIdempotencyKeysTable
   'platform.jobs': PlatformJobsTable
   'platform.message_deliveries': PlatformMessageDeliveriesTable
+  'platform.message_delivery_attempts': PlatformMessageDeliveryAttemptsTable
   'platform.message_delivery_events': PlatformMessageDeliveryEventsTable
   'platform.message_template_versions': PlatformMessageTemplateVersionsTable
   'platform.message_templates': PlatformMessageTemplatesTable

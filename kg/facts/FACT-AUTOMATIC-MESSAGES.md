@@ -17,24 +17,33 @@ source: "OWN-DEC-65, 95-111, 114, 119, 120; decision-briefs 2026-10-12T18:43-19:
 - Content: the first name and non-sensitive reference numbers may appear; amounts, property addresses, access codes, tokens and private details never ([[OWN-DEC-158]]).
 - Email any hour; texts only after A2P 10DLC, within the recipient's local permitted hours ([[OWN-DEC-154]]).
 
-**Value:** one configured list (a single policy list in the notification outbox). Only these customer messages send automatically:
+**Value:** one configured list (a single policy list in the notification outbox, `messages.automatic` version 2, migration 0065 of [[TSK-0119]]). Only these customer messages send automatically; each has its owner-worded template ([[OWN-DEC-151]], and the seven worded under the owner's 2026-10-22 answer recorded in [[OQ-MESSAGES-OUTSIDE-THE-21]]):
 
-| # | Message | Trigger | Decision |
-| --- | --- | --- | --- |
-| 1 | Request receipt (reference, services, summary, next steps, how to view the request) | request saved | [[OWN-DEC-95]] |
-| 2 | One-time verification code | customer asks for or resends a code | [[OWN-DEC-65]], [[OWN-DEC-96]] |
-| 3 | Secure project-access link / instructions (including re-requested access) | request saved; access re-requested | [[OWN-DEC-65]], [[OWN-DEC-97]] |
-| 4 | "HandyHub has a question about your request. View and reply securely." | staff publish a question | [[OWN-DEC-98]] |
-| 5 | Estimate-visit options available | staff publish visit windows | [[OWN-DEC-99]] |
-| 6 | Estimate visit confirmed | slot reserved | [[OWN-DEC-99]] |
-| 7 | Not-a-fit decision notice pointing to the project | staff publish the decision | [[OWN-DEC-100]] |
-| 8 | "Your HandyHub estimate is ready" (no amounts) | estimate version published | [[OWN-DEC-102]] |
-| 9 | Approval receipt with PDF of the approved estimate and terms | approval recorded | [[OWN-DEC-105]] |
-| 10 | Work appointment confirmed | work visit reserved | [[OWN-DEC-105]] |
-| 11 | Appointment changed | a reschedule/reassignment is committed (not merely requested) | [[OWN-DEC-119]] |
-| 12 | On-the-way notice with assigned workers' first names and the arrival window | the assigned worker taps "On my way" | [[OWN-DEC-107]] |
-| 13 | "Your HandyHub invoice is ready" (no amounts) | invoice issued | [[OWN-DEC-110]] |
-| 14 | Payment receipt | invoice reaches $0.00 (Paid); or staff record a verified onsite payment and send its receipt | [[OWN-DEC-111]], [[OWN-DEC-110]] |
+| # | Message | Trigger | Template ID | Decision |
+| --- | --- | --- | --- | --- |
+| 1 | Request receipt | request saved | `request_received` | [[OWN-DEC-95]], [[OWN-DEC-151]] |
+| 2 | One-time verification code | customer asks for or resends a code | `verification_code` | [[OWN-DEC-65]], [[OWN-DEC-96]] |
+| 3 | Secure project-access link (including re-requested access) | request saved; access re-requested | `secure_access_link` | [[OWN-DEC-97]], [[OWN-DEC-151]] |
+| 4 | Question notice | staff publish a question | `question_notice` | [[OWN-DEC-98]] |
+| 5 | Estimate-visit options available | staff publish visit windows | `estimate_visit_options` | [[OWN-DEC-99]], [[OWN-DEC-151]] |
+| 6 | Estimate visit confirmed | slot reserved | `estimate_visit_confirmed` | [[OWN-DEC-99]], [[OWN-DEC-151]] |
+| 7 | Not-a-fit decision notice pointing to the project | staff publish the decision | `not_a_fit` | [[OWN-DEC-100]] |
+| 8 | Estimate ready (no amounts) | estimate version published | `estimate_ready` | [[OWN-DEC-102]] |
+| 9 | Estimate question answered | staff release the answer | `estimate_follow_up` | [[OWN-DEC-151]], [[OWN-DEC-152]] |
+| 10 | Estimate approval confirmation (link only) | approval recorded | `estimate_approval_confirmation` | [[OWN-DEC-105]], [[OWN-DEC-155]] |
+| 11 | Work-appointment windows | staff publish work windows after approval | `work_appointment_windows` | [[OWN-DEC-156]] |
+| 12 | Work appointment confirmed | work visit reserved | `work_appointment_confirmed` | [[OWN-DEC-105]], [[OWN-DEC-151]] |
+| 13 | Appointment changed | a reschedule/reassignment is committed (not merely requested) | `appointment_changed` | [[OWN-DEC-119]] |
+| 14 | Visit cancelled | an authorized cancellation is committed (never a reschedule) | `visit_cancelled` | [[OWN-DEC-152]] |
+| 15 | On the way, with the assigned workers' first names and the arrival window | the assigned worker taps "On my way" | `on_the_way` | [[OWN-DEC-107]] |
+| 16 | Deposit invoice | deposit invoice officially issued | `deposit_invoice` | [[OWN-DEC-152]] |
+| 17 | Proposed change | change proposal published | `proposed_change` | [[OWN-DEC-152]] |
+| 18 | Invoice ready (no amounts) | invoice issued | `invoice_ready` | [[OWN-DEC-110]] |
+| 19 | Job complete | authorized final completion only | `job_complete` | [[OWN-DEC-152]] |
+| 20 | Payment receipt | each confirmed, recorded payment (a partial payment says so) | `payment_receipt` | [[OWN-DEC-111]], [[OWN-DEC-152]] |
+| 21 | Account email changed | sign-in email change completed (old and new verified address) | `account_email_changed` | [[OWN-DEC-151]], [[OWN-DEC-152]] |
+
+The estimate reminder, the question reminder and the appointment reminder ([[OWN-DEC-153]]) join this list when [[TSK-0121]] makes them automatic; until then they stay staff-released drafts with their owner-worded templates. A message whose template is released but whose values its event does not supply yet is recorded as failed (`template_values_not_wired`) and shown to staff, never sent ([[HH-COM-13]]); [[TSK-0120]] wires the events that exist today.
 
 Staff accounts (automatic): invitation and password-reset emails ([[OWN-DEC-114]]).
 

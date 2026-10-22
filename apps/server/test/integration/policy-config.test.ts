@@ -35,7 +35,8 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
     const config = await loadConfig(t.db)
     const entries = config.entries()
     expect(entries.map((e) => e.key)).toEqual(Object.keys(CONFIG_KEYS))
-    for (const e of entries) expect(e.version, e.key).toBe(1)
+    // TSK-0119: messages.automatic is at version 2 (migration 0065, OWN-DEC-152); every other key at version 1.
+    for (const e of entries) expect(e.version, e.key).toBe(e.key === 'messages.automatic' ? 2 : 1)
   })
 
   it('every seeded value carries source ids that are nodes of the graph', async () => {

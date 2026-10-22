@@ -192,7 +192,8 @@ test.describe('the receipt (TSK-0032)', () => {
           ),
         { timeout: 15_000 },
       )
-      .toEqual([{ state: 'failed', error_code: 'template_not_configured' }])
+      // TSK-0119: the owner's request_received wording is released; its values are wired by TSK-0120.
+      .toEqual([{ state: 'failed', error_code: 'template_values_not_wired' }])
     // TSK-0044 (HH-ID-02): when an earlier synthetic request shares this request's email, phone or address, staff also
     // get one duplicate suggestion to review (never a link); a suite run alone has none.
     const customerId = saved[0]?.customer_id as string

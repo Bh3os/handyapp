@@ -25,6 +25,7 @@ import { createProviders } from '../../src/providers/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
 import { testConfig } from '../fixtures/env.js'
+import { bodyOf } from '../fixtures/message-text.js'
 import { png } from '../fixtures/images.js'
 
 const pw = ['synthetic', 'receipt', 'passphrase', 'one'].join(' ')
@@ -211,9 +212,10 @@ const fact = readFileSync(new URL('../../../../kg/facts/FACT-RESPONSE-TARGET.md'
 const OWNER_RESPONSE = /receipt email, exact\): "([^"]+)"/.exec(fact)?.[1] ?? ''
 const SEPARATE = 'Your request is received. Pricing and your appointment will be confirmed separately.'
 
-describe('the receipt email stays NOT CONFIGURED until the owner approves its wording (TSK-0032, HH-INT-20, RULE-NO-INVENTED-FACTS)', () => {
-  it('[HH-INT-20][T12] no receipt template is seeded: the request is kept, nothing is sent, and staff get one delivery issue', async () => {
-    expect(await currentTemplate(t.db, 'request.receipt', 'email', 'en')).toBeNull()
+describe('the receipt email is not sent until its owner wording has its values (TSK-0032, TSK-0119, HH-INT-20, HH-COM-13, RULE-NO-INVENTED-FACTS)', () => {
+  it('[HH-INT-20][T12][HH-COM-13] the owner wording is released but not wired: the request is kept, nothing is sent, and staff get one delivery issue', async () => {
+    // TSK-0119: request_received (OWN-DEC-151) is released; its first name is wired by TSK-0120.
+    expect((await currentTemplate(t.db, 'request.receipt', 'email', 'en'))?.templateId).toBe('request_received')
     const email = 'receipt-unconfigured@example.test'
     const r = await submitted(email)
     const w = worker()
@@ -224,7 +226,7 @@ describe('the receipt email stays NOT CONFIGURED until the owner approves its wo
     expect(more).toEqual([])
     expect([d?.state, d?.error_code, d?.release, d?.audience, d?.locale]).toEqual([
       'failed',
-      'template_not_configured',
+      'template_values_not_wired',
       'automatic',
       'customer',
       'en',
@@ -237,12 +239,12 @@ describe('the receipt email stays NOT CONFIGURED until the owner approves its wo
     ])
   })
 
-  it('[HH-INT-20][T12][HH-SEC-06] a NOT CONFIGURED receipt is never audited as sent: the job is processed, the delivery failed', async () => {
+  it('[HH-INT-20][T12][HH-SEC-06] a receipt that cannot send is never audited as sent: the job is processed, the delivery failed', async () => {
     const email = 'receipt-unconfigured-audit@example.test'
     const r = await submitted(email)
     await worker().runOnce()
     const [d] = await deliveries(r.id)
-    expect(d?.error_code).toBe('template_not_configured')
+    expect(d?.error_code).toBe('template_values_not_wired')
     const events = await audited(r.id, d?.id as string)
     expect(events.filter((e) => e.action === 'notification.sent')).toEqual([])
     expect(events.filter((e) => e.action.startsWith('notification.'))).toEqual([
@@ -306,7 +308,7 @@ describe('one receipt per request (TSK-0032, HH-INT-20, HH-INT-10, T01)', () => 
     expect(sent).toHaveLength(1)
     const mail = sent[0]
     expect(mail?.subject).toBe(`Synthetic test receipt ${r.reference}`)
-    expect(mail?.text.split('\n')).toEqual([
+    expect(bodyOf(mail?.text).split('\n')).toEqual([
       'SYNTHETIC TEST TEMPLATE',
       r.reference,
       'Patching & Repair, Residential Interior Painting',
@@ -319,7 +321,7 @@ describe('one receipt per request (TSK-0032, HH-INT-20, HH-INT-10, T01)', () => 
     expect(mail?.text).not.toMatch(/Synthetic Way|555-0141|https?:|\bcode\b/i)
     const rows = await deliveries(r.id)
     expect(rows.map((d) => [d.state, d.template_version, d.provider, d.record_type, d.record_id, d.attempts])).toEqual([
-      ['queued', 1, 'fake', 'request', r.id, 1],
+      ['queued', 2, 'fake', 'request', r.id, 1],
     ])
     expect(rows[0]?.provider_message_id).toBe(mail?.providerMessageId)
     expect(await items('delivery_failed', rows[0]?.id as string)).toEqual([])
