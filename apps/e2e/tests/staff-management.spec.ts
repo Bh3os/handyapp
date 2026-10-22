@@ -11,6 +11,8 @@ import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { addLocalDays, localDateOf } from '@handyhub/domain/local-time'
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
+import { verifyCountyOf } from '../county.js'
+import { verifyPropertyZone } from '../zones.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
 const port = process.env['E2E_PORT'] ?? '4310'
@@ -138,6 +140,8 @@ async function bookedVisit(request: APIRequestContext, workerId: string): Promis
       .where('reference', '=', reference)
       .executeTakeFirstOrThrow(),
   )
+  // TSK-0123: a new property's zone is unknown; this spec plans visits, so its zone is recorded first.
+  await withDb((db) => verifyPropertyZone(db, row.project_id))
   const csrf = ((await (await request.get('/api/v1/staff/auth/session')).json()) as { csrfToken: string }).csrfToken
   let n = 0
   const write = async (method: 'post' | 'put', url: string, data: unknown, version?: number) => {
@@ -159,6 +163,8 @@ async function bookedVisit(request: APIRequestContext, workerId: string): Promis
     { customerExplanation: 'We need to see the synthetic ceiling.', workPackages: ['SVC-DW-02'] },
     1,
   )
+  // TSK-0127: staff's address and county check, which a first confirmation needs.
+  await verifyCountyOf(databaseUrl as string, row.project_id)
   const planned = (await write('post', `/staff/projects/${row.project_id}/visits`, {
     purpose: 'site_estimate',
     localDate: addLocalDays(localDateOf(new Date(), ZONE), 40),

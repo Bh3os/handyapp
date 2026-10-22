@@ -21,10 +21,24 @@ describe('ZIP check in the browser (TSK-0022, HH-CUS-03)', () => {
       zip: '99901',
       outcome: 'boundary',
       message: 'm',
+      note: null,
     })
     expect(fetchImpl).toHaveBeenCalledWith('/api/v1/public/coverage?zip=99901', {
       headers: { accept: 'application/json' },
       credentials: 'same-origin',
+    })
+  })
+
+  it('[HH-CUS-03][OWN-DEC-179] a PO Box or Unique ZIP comes with the note asking for the property ZIP', async () => {
+    const fetchImpl = vi.fn(() =>
+      json(200, { zip: '99905', outcome: 'unknown', code: 'UNKNOWN', configured: true, message: 'm', note: 'n' }),
+    )
+    expect(await checkZip('99905', fetchImpl)).toEqual({
+      kind: 'outcome',
+      zip: '99905',
+      outcome: 'unknown',
+      message: 'm',
+      note: 'n',
     })
   })
 

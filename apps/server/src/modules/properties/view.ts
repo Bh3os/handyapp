@@ -9,9 +9,10 @@
 // - access codes, for the roles that may enter or reveal them only, masked: kind, label, source, last confirmation
 //   and who revealed them when. The sealed value is never selected here, so no code can reach this view.
 import type { Db, Tx } from '@handyhub/db'
-import { PROPERTY_DETAILS, sameAddress, type PropertyAddress } from '@handyhub/domain'
+import { PROPERTY_DETAILS, sameAddress, zoneFamily, type PropertyAddress } from '@handyhub/domain'
 import { decide, type Action, type Actor, type DataScope } from '@handyhub/policy'
 import { propertyInScope } from '../../platform/data-scope.js'
+import { zoneHistory } from './zones.js'
 
 type Reader = Db | Tx
 export type StaffRef = { id: string; name: string | null }
@@ -94,7 +95,12 @@ export async function staffPropertyView(
       'zip',
       'property_type',
       'time_zone',
+      'time_zone_status',
+      'time_zone_basis',
+      'time_zone_counties',
+      'time_zone_version',
       'coverage_result',
+      'coverage_reason',
       'created_at',
       'version',
       'address_version',
@@ -133,6 +139,7 @@ export async function staffPropertyView(
     .orderBy('id')
     .limit(HISTORY_LIMIT)
     .execute()
+  const zones = await zoneHistory(db, id)
 
   const mayAct = { set: allowed(actor, 'access_code.set'), reveal: allowed(actor, 'access_code.reveal') }
   const codesVisible = mayAct.set || mayAct.reveal
@@ -172,12 +179,23 @@ export async function staffPropertyView(
         .execute()
     : []
 
+  // TSK-0127 (final owner amendments 2026-10-22): staff's verification of the address and county, current address.
+  const county = await db
+    .selectFrom('crm.property_county_verifications')
+    .select(['state', 'county', 'in_area', 'address_version', 'verified_by', 'verified_at'])
+    .where('property_id', '=', id)
+    .where('address_version', '=', p.address_version)
+    .orderBy('seq', 'desc')
+    .limit(1)
+    .executeTakeFirst()
   const names = await staffNames(db, [
+    ...(county ? [county.verified_by] : []),
     ...details.map((d) => d.confirmed_by),
     ...addresses.map((a) => a.recorded_by),
     ...history.map((h) => h.changed_by),
     ...codes.flatMap((c) => [c.confirmed_by, c.created_by, c.removed_by]),
     ...reveals.map((r) => r.staff_id),
+    ...zones.map((z) => z.recorded_by),
   ])
   const ref = (sid: string | null): StaffRef | null => (sid ? (names.get(sid) ?? { id: sid, name: null }) : null)
   const current = address(p)
@@ -189,7 +207,38 @@ export async function staffPropertyView(
     addressVersion: p.address_version,
     propertyType: p.property_type,
     timeZone: p.time_zone,
+    zone: {
+      zone: p.time_zone,
+      status: p.time_zone_status,
+      basis: p.time_zone_basis,
+      family: zoneFamily(p.time_zone),
+      counties: p.time_zone_counties,
+      version: p.time_zone_version,
+    },
+    zoneHistory: zones.map((z) => ({
+      version: z.zone_version,
+      zone: z.time_zone,
+      status: z.status,
+      basis: z.basis,
+      counties: z.counties,
+      previousZone: z.previous_zone,
+      reason: z.reason,
+      by: ref(z.recorded_by),
+      at: z.recorded_at.toISOString(),
+    })),
     coverage: p.coverage_result,
+    // TSK-0127: why (null for a property checked before reasons existed).
+    coverageReason: p.coverage_reason,
+    countyVerification: county
+      ? {
+          state: county.state,
+          county: county.county,
+          inArea: county.in_area,
+          addressVersion: county.address_version,
+          verifiedBy: ref(county.verified_by) as StaffRef,
+          verifiedAt: county.verified_at.toISOString(),
+        }
+      : null,
     createdAt: p.created_at.toISOString(),
     details: PROPERTY_DETAILS.map((detail) => {
       const d = details.find((x) => x.detail === detail)
@@ -282,6 +331,10 @@ export async function staffPropertyView(
       // The role's permission; entering, replacing and revealing also need the store configured (`store`).
       setAccessCodes: mayAct.set,
       revealAccessCodes: mayAct.reveal,
+      // TSK-0127: the roles that confirm visits verify the address and county they need.
+      verifyCounty: allowed(actor, 'visit.confirm'),
+      // TSK-0123: staff who edit the property record verify its zone.
+      verifyTimeZone: allowed(actor, 'customer.edit'),
     },
   }
 }

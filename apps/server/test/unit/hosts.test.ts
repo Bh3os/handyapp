@@ -1,5 +1,6 @@
 // Two origins: host sides, configuration, security headers and safe file lookup (TSK-0017; OWN-DEC-133, HH-ARC-06,
 // HH-SEC-02). Origins and pages are synthetic.
+import { PREVIEW_CSP } from '../../src/modules/notifications/index.js'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -105,9 +106,17 @@ describe('host sides and API surfaces (TSK-0017, HH-ARC-06)', () => {
 })
 
 describe('security headers (TSK-0017, HH-SEC-02)', () => {
-  const headersFor = (config: Config, side: 'public' | 'staff' | 'any', url: string) => {
-    const set: Record<string, string> = {}
-    const reply = { header: (k: string, v: string) => ((set[k] = v), reply) } as unknown as FastifyReply
+  const headersFor = (
+    config: Config,
+    side: 'public' | 'staff' | 'any',
+    url: string,
+    preset: Record<string, string> = {},
+  ) => {
+    const set: Record<string, string> = { ...preset }
+    const reply = {
+      header: (k: string, v: string) => ((set[k] = v), reply),
+      getHeader: (k: string) => set[k],
+    } as unknown as FastifyReply
     securityHeaders(config, contentSecurityPolicy({ scripts: [], styles: [] }))(
       { hostSide: side, url } as FastifyRequest,
       reply,
@@ -116,6 +125,20 @@ describe('security headers (TSK-0017, HH-SEC-02)', () => {
   }
   const production = { ...testConfig(), env: 'production', noindex: false } as Config
   const staging = { ...testConfig(), env: 'staging', noindex: true } as Config
+
+  it('[HH-SEC-02][HH-COM-14] only a sandboxed message preview keeps its own policy and may be framed by the app itself', () => {
+    const preview = headersFor(production, 'staff', '/api/v1/staff/message-templates/x/preview.html', {
+      'content-security-policy': PREVIEW_CSP,
+    })
+    expect(preview['content-security-policy']).toBe(PREVIEW_CSP)
+    expect(preview['x-frame-options']).toBe('SAMEORIGIN')
+    expect(PREVIEW_CSP).toMatch(/^sandbox; default-src 'none';/)
+    const other = headersFor(production, 'staff', '/x', {
+      'content-security-policy': "default-src *; frame-ancestors 'self'",
+    })
+    expect(other['content-security-policy']).toBe(contentSecurityPolicy({ scripts: [], styles: [] }))
+    expect(other['x-frame-options']).toBe('DENY')
+  })
 
   it('[HH-SEC-02] HSTS in staging and production only', () => {
     expect(headersFor(staging, 'public', '/')['strict-transport-security']).toBe(HSTS)

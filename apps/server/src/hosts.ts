@@ -111,8 +111,15 @@ export function securityHeaders(config: Config, csp: string) {
     const side = req.hostSide ?? 'any'
     const url = req.url.split('?')[0] ?? '/'
     reply.header('x-content-type-options', 'nosniff')
-    reply.header('x-frame-options', 'DENY')
-    reply.header('content-security-policy', csp)
+    // TSK-0119: a response that set its own sandboxed policy (the message preview page: no scripts, no requests) keeps
+    // it and may be framed by the same origin only; every other response gets the app's policy and no framing.
+    const own = reply.getHeader?.('content-security-policy')
+    if (typeof own === 'string' && own.startsWith('sandbox;') && own.includes("frame-ancestors 'self'")) {
+      reply.header('x-frame-options', 'SAMEORIGIN')
+    } else {
+      reply.header('x-frame-options', 'DENY')
+      reply.header('content-security-policy', csp)
+    }
     reply.header('cross-origin-opener-policy', 'same-origin')
     reply.header('referrer-policy', isPrivatePath(side, url) ? 'no-referrer' : 'strict-origin-when-cross-origin')
     if (https) reply.header('strict-transport-security', HSTS)

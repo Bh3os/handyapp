@@ -65,7 +65,13 @@ const worker = () =>
     registry: createAutomationRegistry([
       ...queueAutomations(),
       codeDeliveryAutomation({ providers, codeKey: KEY }),
-      fast(accessLinkAutomation({ providers, codeKey: KEY, publicSiteUrl: PUBLIC })),
+      fast(
+        accessLinkAutomation({
+          providers: { ...providers, linkHosts: ['public.example.test'] },
+          codeKey: KEY,
+          publicSiteUrl: PUBLIC,
+        }),
+      ),
     ]),
     logger: log,
   })

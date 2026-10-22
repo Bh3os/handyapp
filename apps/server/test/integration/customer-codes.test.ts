@@ -32,6 +32,7 @@ import { createWorker } from '../../src/platform/jobs.js'
 import { createLogger } from '../../src/platform/logger.js'
 import { createProviders } from '../../src/providers/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
+import { CODE_EMAIL_SUBJECT, codeEmailText, codeSmsText } from '../fixtures/code-message.js'
 import { testConfig } from '../fixtures/env.js'
 
 const KEY: CodeKeySettings = readCodeKey({ HANDYHUB_ENV: 'ci', CODE_HASH_KEY: 'synthetic-test-code-key-'.repeat(2) })
@@ -117,10 +118,8 @@ describe('issuing and delivering codes (TSK-0016, HH-INT-13, OWN-DEC-96)', () =>
     expect(Math.round((r.expiresAt.getTime() - before) / MIN)).toBe(10)
     const code = await deliveredCode(to)
     const msg = providers.fakes.email?.sent.at(-1)
-    expect(msg?.subject).toBe('Your HandyHub verification code')
-    expect(msg?.text).toBe(
-      `Your HandyHub verification code is ${code}. It expires in 10 minutes. If you did not ask for this code, you can ignore this message.`,
-    )
+    expect(msg?.subject).toBe(CODE_EMAIL_SUBJECT)
+    expect(msg?.text).toBe(codeEmailText(code))
     const row = await t.db
       .selectFrom('identity.verification_codes')
       .selectAll()
@@ -133,7 +132,8 @@ describe('issuing and delivering codes (TSK-0016, HH-INT-13, OWN-DEC-96)', () =>
         error_code: null,
         message_key: 'contact.verification_code',
         channel: 'email',
-        template_version: 1,
+        // TSK-0119: email version 2 (verification_code); the text keeps version 1.
+        template_version: 2,
       },
     ])
     expect(await verify({ destination: to, code })).toMatchObject({ ok: true, codeId: r.codeId, channel: 'email' })
@@ -155,9 +155,7 @@ describe('issuing and delivering codes (TSK-0016, HH-INT-13, OWN-DEC-96)', () =>
     const r = await issue({ channel: 'sms', destination: '+1 (502) 555-0142' })
     expect(r).toMatchObject({ status: 'issued', maskedDestination: '***0142' })
     const code = await deliveredCode('+15025550142')
-    expect(providers.fakes.sms?.sent.at(-1)?.text).toBe(
-      `Your HandyHub verification code is ${code}. It expires in 10 minutes. If you did not ask for this code, you can ignore this message.`,
-    )
+    expect(providers.fakes.sms?.sent.at(-1)?.text).toBe(codeSmsText(code))
     expect(await verify({ destination: '+15025550142', code })).toMatchObject({ ok: true, channel: 'sms' })
   })
 
@@ -210,10 +208,12 @@ describe('issuing and delivering codes (TSK-0016, HH-INT-13, OWN-DEC-96)', () =>
 
 describe('code message templates (TSK-0016, TSK-0047, OWN-DEC-150, T74)', () => {
   it("[OWN-DEC-150] the code message is seeded in the owner's wording for email and text, sourced to OWN-DEC-150", async () => {
+    // Version 1 of both channels is OWN-DEC-150's; TSK-0119 released email version 2 (verification_code) on top.
     const rows = await t.db
       .selectFrom('platform.message_template_versions')
       .select(['channel', 'locale', 'version', 'subject', 'body', 'source_ids', 'released_by', 'translation_review'])
       .where('message_key', '=', CODE_MESSAGE_KEY)
+      .where('version', '=', 1)
       .orderBy('channel')
       .execute()
     const body =
@@ -245,15 +245,13 @@ describe('code message templates (TSK-0016, TSK-0047, OWN-DEC-150, T74)', () => 
     )
   })
 
-  it('[OWN-DEC-150] a delivered code uses the released wording with the configured lifetime', async () => {
+  it('[OWN-DEC-150][HH-COM-13] a delivered code uses the newest released wording with the configured lifetime', async () => {
     const to = email()
     await issue({ destination: to })
     const code = await deliveredCode(to)
     const mail = providers.fakes.email?.sent.find((m) => m.to === to)
-    expect(mail?.subject).toBe('Your HandyHub verification code')
-    expect(mail?.text).toBe(
-      `Your HandyHub verification code is ${code}. It expires in 10 minutes. If you did not ask for this code, you can ignore this message.`,
-    )
+    expect(mail?.subject).toBe(CODE_EMAIL_SUBJECT)
+    expect(mail?.text).toBe(codeEmailText(code))
   })
 })
 

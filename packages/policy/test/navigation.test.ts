@@ -14,6 +14,7 @@ describe('staff navigation by role (TSK-0040, HH-STAFF-06)', () => {
         'estimates',
         'schedule',
         'inbox',
+        'messages',
         'payments',
         'cases',
         'staff',
@@ -28,12 +29,23 @@ describe('staff navigation by role (TSK-0040, HH-STAFF-06)', () => {
     })
     expect(navigationFor(['office'])).toEqual({
       home: 'queue',
-      items: ['queue', 'my-day', 'requests', 'customers', 'schedule', 'inbox', 'payments', 'cases', 'audit'],
+      items: [
+        'queue',
+        'my-day',
+        'requests',
+        'customers',
+        'schedule',
+        'inbox',
+        'messages',
+        'payments',
+        'cases',
+        'audit',
+      ],
       search: ['requests', 'customers'],
     })
     expect(navigationFor(['estimator'])).toEqual({
       home: 'queue',
-      items: ['queue', 'requests', 'customers', 'estimates', 'schedule', 'inbox'],
+      items: ['queue', 'requests', 'customers', 'estimates', 'schedule', 'inbox', 'messages'],
       search: ['requests', 'customers'],
     })
     // Worker grants are record-scoped (assigned jobs): they open from My Day, never from the menu or search.
@@ -49,7 +61,16 @@ describe('staff navigation by role (TSK-0040, HH-STAFF-06)', () => {
   it('[HH-STAFF-03] several role grants combine; every item is opened by a top-level matrix grant', () => {
     const both = navigationFor(['estimator', 'worker'])
     expect(both.home).toBe('queue')
-    expect(both.items).toEqual(['queue', 'my-day', 'requests', 'customers', 'estimates', 'schedule', 'inbox'])
+    expect(both.items).toEqual([
+      'queue',
+      'my-day',
+      'requests',
+      'customers',
+      'estimates',
+      'schedule',
+      'inbox',
+      'messages',
+    ])
     for (const role of STAFF_ROLES)
       for (const id of navigationFor([role]).items) {
         const item = NAV_ITEMS.find((i) => i.id === id)

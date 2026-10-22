@@ -146,6 +146,7 @@ export {
 } from './visit.js'
 export type { VisitEvent, VisitFacts, VisitPurpose, VisitState } from './visit.js'
 export * from './local-time.js'
+export * from './zones.js'
 export {
   CANCELLATION_INITIATORS,
   CANCELLATION_OUTCOMES,

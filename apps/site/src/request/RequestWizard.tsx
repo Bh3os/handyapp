@@ -783,7 +783,13 @@ export default function RequestWizard() {
           inputMode: 'numeric',
         })}
         <p className="hh-muted hh-request__coverage" role="status" aria-live="polite">
-          {coverage?.kind === 'outcome' ? coverage.message : coverage?.kind === 'failed' ? t('coverage.failed') : null}
+          {coverage?.kind === 'outcome'
+            ? coverage.note
+              ? `${coverage.message} ${coverage.note}`
+              : coverage.message
+            : coverage?.kind === 'failed'
+              ? t('coverage.failed')
+              : null}
         </p>
         {group(
           'property.propertyType',

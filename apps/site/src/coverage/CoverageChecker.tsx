@@ -53,6 +53,7 @@ export default function CoverageChecker({ requestPath = '/request' }: { requestP
             <p className="hh-coverage__message" data-outcome={result?.kind === 'outcome' ? result.outcome : 'failed'}>
               {answer}
             </p>
+            {result?.kind === 'outcome' && result.note ? <p className="hh-coverage__note">{result.note}</p> : null}
             <a className="hh-button" href={requestPath}>
               {t('coverage.continue')}
             </a>

@@ -2,8 +2,9 @@
 // OWN-DEC-126, FACT-AUTOMATIC-MESSAGES). A guest opens the project with the secure link and a code; this spec's
 // Estimator publishes an estimate at or under the deposit threshold; the customer approves it and sees the owner's next
 // step ("Estimate approved—choose your work appointment."), then the approval receipt PDF once the server's job has
-// issued it, in the estimate view and in Documents. The receipt message has no owner-approved wording: it is recorded
-// as template_not_configured per destination, never as sent, and staff see that on the estimate.
+// issued it, in the estimate view and in Documents. The receipt message is not sent: its email wording is released but
+// its values are not wired yet (TSK-0119) and texts have no wording; each destination is recorded as not sent, never as
+// sent, and staff see that on the estimate.
 // No estimate terms version is recorded by the migrations, and v1.0 is not approved for real customers (approval
 // answers NOT CONFIGURED everywhere). To exercise the flow, this spec records a synthetic "approved and
 // attorney-reviewed" v1.0 for its own run only and restores NOT CONFIGURED afterwards: a test fixture, never the
@@ -350,7 +351,8 @@ test.describe('The approval receipt: next step, PDF and truthful delivery (TSK-0
         { test_mark: true, terms_document_id: ESTIMATE_TERMS.documentId, content_type: 'application/pdf' },
       ])
       expect(stored.deliveries).toEqual([
-        { channel: 'email', state: 'failed', error_code: 'template_not_configured' },
+        // TSK-0119: the email wording is released (its values are wired by TSK-0120); texts have no wording yet.
+        { channel: 'email', state: 'failed', error_code: 'template_values_not_wired' },
         { channel: 'sms', state: 'failed', error_code: 'template_not_configured' },
       ])
 
@@ -367,7 +369,11 @@ test.describe('The approval receipt: next step, PDF and truthful delivery (TSK-0
       await estimator.page.goto(`/staff/estimates/${versionId}`)
       const panel = estimator.page.getByTestId('estimate-customer-approval')
       await expect(panel.getByTestId('approval-receipt-state')).toHaveText(/^Issued /)
-      await expect(panel.getByText('Email: Failed (Not sent: no approved wording for this message yet.)')).toBeVisible()
+      await expect(
+        panel.getByText(
+          'Email: Failed (Not sent: the approved wording is released, but this message does not supply its values yet.)',
+        ),
+      ).toBeVisible()
       await axe(estimator.page)
 
       // On a phone nothing scrolls sideways.

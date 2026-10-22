@@ -27,7 +27,8 @@ describe('queue item types (TSK-0041, HH-OPS-01)', () => {
   it('[HH-OPS-01] each type names a matrix action, a staff screen and only its own restricted reasons', () => {
     for (const type of QUEUE_ITEM_TYPES) {
       expect(ACTIONS).toContain(type.view)
-      expect(NAV_IDS).toContain(type.screen)
+      // A property record (TSK-0123) sits below the customer records: the same menu entry (apps/staff App.tsx).
+      expect(NAV_IDS).toContain(type.screen === 'properties' ? 'customers' : type.screen)
       const restricted = 'restricted' in type ? type.restricted : undefined
       if (restricted) {
         expect(ACTIONS).toContain(restricted.action)

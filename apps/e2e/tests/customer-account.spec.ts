@@ -300,12 +300,22 @@ test.describe('optional customer accounts (TSK-0036)', () => {
             .values({ message_key: 'account.contact_changed', channel: 'email', audience: 'customer' })
             .onConflict((oc) => oc.doNothing())
             .execute()
+          // TSK-0119: the owner's account_email_changed wording is released, but its values are wired by TSK-0120, so
+          // this e2e database releases a newer synthetic version without values (append-only, never an edit).
           const released = await tx
+            .selectFrom('platform.message_template_versions')
+            .select((eb) => eb.fn.max('version').as('v'))
+            .where('message_key', '=', 'account.contact_changed')
+            .where('channel', '=', 'email')
+            .where('locale', '=', 'en')
+            .executeTakeFirst()
+          const synthetic = await tx
             .selectFrom('platform.message_template_versions')
             .select('version')
             .where('message_key', '=', 'account.contact_changed')
+            .where('released_by', '=', 'e2e')
             .executeTakeFirst()
-          if (!released)
+          if (!synthetic)
             await tx
               .insertInto('platform.message_template_versions')
               .values({
@@ -313,7 +323,7 @@ test.describe('optional customer accounts (TSK-0036)', () => {
                 channel: 'email',
                 audience: 'customer',
                 locale: 'en',
-                version: 1,
+                version: Number(released?.v ?? 0) + 1,
                 subject: 'Synthetic e2e notice',
                 body: 'SYNTHETIC E2E TEMPLATE',
                 translation_review: 'source',
@@ -333,7 +343,12 @@ test.describe('optional customer accounts (TSK-0036)', () => {
               key: 'messages.automatic',
               version: active.version + 1,
               state: 'configured',
-              value: JSON.stringify({ ...list, customer: [...list.customer, 'account.contact_changed'] }),
+              value: JSON.stringify({
+                ...list,
+                customer: list.customer.includes('account.contact_changed')
+                  ? list.customer
+                  : [...list.customer, 'account.contact_changed'],
+              }),
               source_ids: ['TSK-0036'],
               changed_by: 'e2e',
               change_reason: 'Synthetic e2e: the notice of OQ-ACCOUNT-CONTACT-NOTICE',

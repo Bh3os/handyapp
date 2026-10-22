@@ -38,7 +38,7 @@ import {
   type CustomerSession,
   type StartedSession,
 } from '../identity/index.js'
-import { automaticPolicy, currentConsent, currentTemplate } from '../notifications/index.js'
+import { automaticPolicy, currentConsent, templateReadiness } from '../notifications/index.js'
 
 export type AccountChannel = 'email' | 'phone'
 export type ContactValue = { channel: AccountChannel; value: string }
@@ -419,7 +419,10 @@ export async function emailChangeMissing(db: Db | Tx, key: CodeKeySettings): Pro
   return [
     ...missing,
     ...(policy.isAutomatic(CONTACT_CHANGED_MESSAGE_KEY) ? [] : ['messages.automatic']),
-    ...((await currentTemplate(db, CONTACT_CHANGED_MESSAGE_KEY, 'email', 'en')) ? [] : [CONTACT_CHANGED_MESSAGE_KEY]),
+    // TSK-0119: the notice's released wording must also have its values supplied (templateReadiness).
+    ...((await templateReadiness(db, CONTACT_CHANGED_MESSAGE_KEY, 'email', 'en')).state === 'ready'
+      ? []
+      : [CONTACT_CHANGED_MESSAGE_KEY]),
   ]
 }
 
