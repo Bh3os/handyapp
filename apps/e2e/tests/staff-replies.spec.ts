@@ -188,7 +188,7 @@ test.describe('staff replies and the portal Messages tab (TSK-0050, HH-COM-08, H
       await composer.getByRole('button', { name: 'Send' }).click()
       await expect(composer.getByText("Reply sent. It is on the customer's project page.")).toBeVisible()
       // The reply is in the conversation with its truthful delivery: waiting for the contact hours, or not sent
-      // because no reply wording is released yet (never shown as sent).
+      // because the reply wording's values are not wired yet (TSK-0119) (never shown as sent).
       const thread = staff.getByRole('region', { name: 'Customer messages' })
       const sent = thread.getByRole('listitem', { name: 'E2E Replies Office' })
       await expect(sent.getByText(text)).toBeVisible()
@@ -197,7 +197,9 @@ test.describe('staff replies and the portal Messages tab (TSK-0050, HH-COM-08, H
         await expect(
           thread
             .getByRole('listitem', { name: 'E2E Replies Office' })
-            .getByText(/Not sent: no approved wording for this message yet\.|Sends at .+ \(contact hours\)\./),
+            .getByText(
+              /Not sent: the approved wording is released, but this message does not supply its values yet\.|Sends at .+ \(contact hours\)\./,
+            ),
         ).toBeVisible({ timeout: 1000 })
       }).toPass({ timeout: 20_000 })
       await expect(thread.getByText(/^Sent$|^Delivered$/)).toHaveCount(0)

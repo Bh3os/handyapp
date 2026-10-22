@@ -8,6 +8,8 @@
 // - it derives the code from the code key and the row's nonce, so a retried job renders the same code and reaches the
 //   provider under the same delivery key; the code is never stored, logged or carried in the outbox;
 // - the lifetime shown is the code's own, taken from configuration when it was issued.
+// - TSK-0119: email version 2 is the owner-style verification_code wording (migration 0065, recorded in
+//   OQ-MESSAGES-OUTSIDE-THE-21); the text keeps version 1 below. The message is classified as authentication.
 import type { Automation } from '../../platform/automation.js'
 import { loadConfig } from '../../platform/config/index.js'
 import { notificationAutomation, type NotificationProviders, type TemplateDraft } from '../notifications/index.js'

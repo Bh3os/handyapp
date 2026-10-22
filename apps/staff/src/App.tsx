@@ -1,12 +1,13 @@
 // Staff app (TSK-0014; HH-STAFF-01, OWN-DEC-114): sign-in, "Forgot password?", setting a password from an invite or
 // reset link, and the signed-in shell (TSK-0040: role navigation, EN/ES switch, offline indicator, search box) with
-// Sign out (TSK-0053: the estimates list and the estimate builder; TSK-0065: the scheduling board; TSK-0098: the audit log; TSK-0099: the retention reviews; TSK-0100: Delete or Archive, the deletion log and privacy requests; TSK-0069: the job packet and the worker's packet list on My Day; TSK-0071: the job loadout; TSK-0070: My Day and the visit times). Text comes from the staff catalogs (HH-LANG-02); the signed-in staff member's stored locale replaces the
+// Sign out (TSK-0053: the estimates list and the estimate builder; TSK-0065: the scheduling board; TSK-0098: the audit log; TSK-0119: message delivery and templates; TSK-0099: the retention reviews; TSK-0100: Delete or Archive, the deletion log and privacy requests; TSK-0069: the job packet and the worker's packet list on My Day; TSK-0071: the job loadout; TSK-0070: My Day and the visit times). Text comes from the staff catalogs (HH-LANG-02); the signed-in staff member's stored locale replaces the
 // default once the session is known, and switching it keeps every open form as it is (HH-OPS-04).
 import { staffTranslator, type StaffKey, type StaffLocale } from '@handyhub/i18n'
 import { Button, Card, Field, StateView } from '@handyhub/ui'
 import { useEffect, useState, type FormEvent } from 'react'
 import { call, setCsrfToken, type ApiErrorBody, type Fetch } from './api'
 import { AuditLogScreen } from './AuditLog'
+import { MessagesScreen } from './Messages'
 import { EstimatePublishingSetting } from './EstimateLifecycle'
 import { EstimateBuilder, EstimatesScreen } from './Estimates'
 import { CustomerRecord, CustomersScreen } from './Customers'
@@ -267,6 +268,8 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
             />
           ) : route.page === 'screen' && shown === 'audit' && allowed ? (
             <AuditLogScreen t={t} locale={locale} fetchImpl={doFetch} />
+          ) : route.page === 'screen' && shown === 'messages' && allowed ? (
+            <MessagesScreen t={t} locale={locale} fetchImpl={doFetch} />
           ) : route.page === 'screen' && shown === 'retention' && allowed ? (
             <RetentionScreen
               t={t}

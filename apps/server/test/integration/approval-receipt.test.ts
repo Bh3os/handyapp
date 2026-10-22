@@ -475,12 +475,13 @@ describe('[HH-EST-12][T33][FACT-AUTOMATIC-MESSAGES] the approval receipt: one PD
     expect(after.approval.receipt).not.toHaveProperty('objectKey')
     expect(JSON.stringify(after)).not.toContain(r.sha256)
 
-    // The message: one delivery per channel, English, NOT CONFIGURED (no owner-approved wording), never sent.
+    // The message: one delivery per channel, English, never sent. TSK-0119: the owner's email wording is released, its
+    // values are wired by TSK-0120 (not wired); texts have no wording (NOT CONFIGURED).
     expect(await deliveries(approval.id)).toEqual([
       {
         channel: 'email',
         state: 'failed',
-        error_code: 'template_not_configured',
+        error_code: 'template_values_not_wired',
         provider_message_id: null,
         subject_key: `estimate_approval:${approval.id}`,
         audience: 'customer',
@@ -546,7 +547,7 @@ describe('[HH-EST-12][T33][FACT-AUTOMATIC-MESSAGES] the approval receipt: one PD
     expect(lc.json<{ lifecycle: { customerApproval: unknown } }>().lifecycle.customerApproval).toMatchObject({
       receipt: { state: 'issued', byteSize: r.byte_size },
       receiptDeliveries: [
-        { channel: 'email', state: 'failed', errorCode: 'template_not_configured' },
+        { channel: 'email', state: 'failed', errorCode: 'template_values_not_wired' },
         { channel: 'sms', state: 'failed', errorCode: 'template_not_configured' },
       ],
     })

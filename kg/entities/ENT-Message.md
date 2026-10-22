@@ -20,3 +20,5 @@ A project conversation message, an outbound notification or reminder draft, or a
 **Who may change:** staff per role; the customer writes in the project thread.
 
 **Changed by [[OWN-DEC-152]] (2026-10-21):** states and record fields of [[HH-COM-14]]; template approval kept apart from delivery.
+
+**Built by [[TSK-0119]] (2026-10-22):** each delivery records the template ID, version and layout version, the time it is due (`scheduled_at`) and the provider's acceptance (`sent_at`), the consent decision applied and, on failure, the names (never the values) of the missing variables; `platform.message_delivery_attempts` holds the append-only retry history. The stored states (draft, queued, sent, delivered, failed, suppressed, cancelled) read as the lifecycle of [[HH-COM-14]] (DRAFT, PENDING_APPROVAL, SCHEDULED, QUEUED, PROVIDER_ACCEPTED, DELIVERED, FAILED, CANCELLED, EXPIRED, SUPPRESSED; APPROVED and SENDING are never resting states because release and send each commit in one transaction); a message a test provider intercepted is never shown as delivered.

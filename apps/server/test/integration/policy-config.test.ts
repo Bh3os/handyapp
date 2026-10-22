@@ -35,8 +35,11 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
     const config = await loadConfig(t.db)
     const entries = config.entries()
     expect(entries.map((e) => e.key)).toEqual(Object.keys(CONFIG_KEYS))
+    // TSK-0119: messages.automatic is at version 2 (migration 0065, OWN-DEC-152).
     // TSK-0123: migration 0066 recorded the decided business time zone as its second version (OWN-DEC-159).
-    for (const e of entries) expect(e.version, e.key).toBe(e.key === 'business.timezone' ? 2 : 1)
+    // Every other key is at version 1.
+    const second = new Set(['messages.automatic', 'business.timezone'])
+    for (const e of entries) expect(e.version, e.key).toBe(second.has(e.key) ? 2 : 1)
   })
 
   it('every seeded value carries source ids that are nodes of the graph', async () => {

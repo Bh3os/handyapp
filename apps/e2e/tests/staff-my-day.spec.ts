@@ -442,7 +442,8 @@ test.describe('My Day: On my way, Arrived and Finished (TSK-0070)', () => {
       await expect(card.getByTestId('myday-mine')).toContainText('On my way at')
       await axe(w)
 
-      // The automatic notice: once, recorded as not configured (never sent), no ETA in what was queued.
+      // The automatic notice: once, recorded as not sent (TSK-0119: the email wording is released but its values are
+      // wired by TSK-0120; texts have no wording), no ETA in what was queued.
       await expect
         .poll(() =>
           withDb((db) =>
@@ -455,7 +456,7 @@ test.describe('My Day: On my way, Arrived and Finished (TSK-0070)', () => {
           ),
         )
         .toEqual([
-          { channel: 'email', state: 'failed', error_code: 'template_not_configured' },
+          { channel: 'email', state: 'failed', error_code: 'template_values_not_wired' },
           { channel: 'sms', state: 'failed', error_code: 'template_not_configured' },
         ])
 

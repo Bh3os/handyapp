@@ -75,11 +75,19 @@ describe('the account routes (TSK-0036)', () => {
     expect(accountRef(uuid).length).toBeLessThanOrEqual(100)
   })
 
-  it('[HH-ID-11] the notice to the old email is its own message type, with no variables and no credential', () => {
+  it("[HH-ID-11][HH-COM-13] the notice to the old email is its own message type, with the owner wording's variables and no credential", () => {
     const type = messageType(CONTACT_CHANGED_MESSAGE_KEY)
     expect(type.audience).toBe('customer')
     expect(type.triggerEvents).toEqual([CONTACT_CHANGED_EVENT])
-    expect(type.variables).toEqual({})
+    // TSK-0119: account_email_changed (OWN-DEC-151): the first name, when it changed, and the support contact.
+    expect(Object.keys(type.variables).sort()).toEqual([
+      'changeDate',
+      'changeTime',
+      'customerName',
+      'supportContact',
+      'timeZone',
+    ])
+    expect(Object.values(type.variables)).not.toContain('credential')
     expect(messageTypeProblems(type)).toEqual([])
   })
 

@@ -36,6 +36,7 @@ import { recordWebhookReceipt } from '../../src/providers/webhooks.js'
 import { createProviders } from '../../src/providers/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
 import { testConfig } from '../fixtures/env.js'
+import { bodyOf } from '../fixtures/message-text.js'
 import { png } from '../fixtures/images.js'
 
 const ROLES: readonly StaffRole[] = ['owner', 'office', 'estimator', 'worker']
@@ -442,12 +443,24 @@ describe('publishing a question is the release; its notice is automatic (TSK-005
     await drain()
     const mails = fakeEmail.sent.filter((m) => m.to === p.email)
     // One notice per question, no private detail, linking to the question through the project's verified access.
+    // TSK-0119: the owner-style question_notice wording (the email; texts keep OWN-DEC-98's), with the request reference.
     expect(mails.map((m) => m.subject)).toEqual([
-      'HandyHub has a question about your request',
-      'HandyHub has a question about your request',
+      `HandyHub | We Have a Question About Your Request #${p.reference}`,
+      `HandyHub | We Have a Question About Your Request #${p.reference}`,
     ])
-    expect(mails.map((m) => m.text).sort()).toEqual(
-      [q1, q2].map((id) => `${NOTICE}\n\n${SITE}/portal/p/${p.reference}#question-${id}`).sort(),
+    expect(mails.map((m) => bodyOf(m.text).replace(/^Hi [^\n]*,/, 'Hi X,')).sort()).toEqual(
+      [q1, q2]
+        .map((id) =>
+          [
+            'Hi X,',
+            `HandyHub has a question about your request #${p.reference}.`,
+            'You can view the question and reply securely through your project page:',
+            `${SITE}/portal/p/${p.reference}#question-${id}`,
+            'Your answer helps us move your request to the next step.',
+            'The HandyHub Team',
+          ].join('\n\n'),
+        )
+        .sort(),
     )
     expect(mails.some((m) => m.text.includes('ceiling'))).toBe(false)
     // Handed to the provider is not yet sent: no reminder is scheduled until the provider reports the send.
@@ -590,7 +603,8 @@ describe('publishing a question is the release; its notice is automatic (TSK-005
     expect(notice).toEqual([
       {
         state: 'failed',
-        error_code: 'template_not_configured',
+        // TSK-0119: the owner's staff_customer_replied wording is released (also in Spanish); TSK-0120 wires its values.
+        error_code: 'template_values_not_wired',
         destination: 'office-questions@example.test',
         locale: 'es',
       },
@@ -680,11 +694,12 @@ describe('unanswered questions: reminders, contact hours and Closed—no respons
     expect(released.statusCode, released.body).toBe(200)
     expect(released.json()).toEqual({ released: 2, sendAt: NEXT_EIGHT_AM.toISOString(), heldForContactHours: true })
     expect(await openItems('question_reminder', p.requestId)).toEqual([])
-    // The opening comes; no reminder wording is released, so nothing is sent and staff see a delivery issue.
+    // The opening comes; the owner's email wording is released but its values are wired by TSK-0121, and texts have no
+    // wording, so nothing is sent and staff see a delivery issue.
     await drain()
     const sent = await deliveriesOf(`question:${id}:first`)
     expect(sent.map((d) => [d.state, d.error_code])).toEqual([
-      ['failed', 'template_not_configured'],
+      ['failed', 'template_values_not_wired'],
       ['failed', 'template_not_configured'],
     ])
     expect(await openItems('delivery_failed', sent[0]?.id as string)).toEqual([

@@ -58,7 +58,8 @@ type OfferableVisit = {
   equipment: string[]
 }
 
-const NOT_CONFIGURED = new Set(['template_not_configured', 'channel_not_configured'])
+// TSK-0119: released wording whose values are not wired yet is not configured for sending either.
+const NOT_CONFIGURED = new Set(['template_not_configured', 'channel_not_configured', 'template_values_not_wired'])
 const bcp47 = (locale: StaffLocale) => (locale === 'es' ? 'es-US' : 'en-US')
 const name = (t: T, s: StaffRef) => s.name ?? t('queue.unnamed')
 

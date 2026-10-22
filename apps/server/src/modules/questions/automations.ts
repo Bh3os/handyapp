@@ -27,6 +27,7 @@ import { loadConfig } from '../../platform/config/index.js'
 import { scheduleJob } from '../../platform/jobs.js'
 import {
   createDraft,
+  firstNameOf,
   notificationAutomation,
   type FailureItem,
   type NotificationProviders,
@@ -87,7 +88,12 @@ export function questionNoticeAutomation(deps: QuestionAutomationDeps): Automati
         // About the request: a successful send is a meaningful response for its first-response clock (TSK-0043).
         record: { type: 'request', id: target.requestId },
         recipients: [{ kind: 'customer_contact', id: target.contactId, destinations: target.destinations }],
-        values: link ? { projectLink: link } : {},
+        // TSK-0119: the owner-style notice greets the first name and names the request reference (OWN-DEC-158).
+        values: {
+          customerName: firstNameOf(target.fullName),
+          reference: target.reference,
+          ...(link ? { projectLink: link } : {}),
+        },
         failureItem: {
           reference: target.reference,
           projectId: target.projectId,

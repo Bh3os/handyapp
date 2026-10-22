@@ -126,7 +126,8 @@ async function sendNotice(f: ReturnType<typeof fakes>, email: string, phone: str
           { channel: 'sms', destination: phone, permission: 'permitted' },
         ]),
       ],
-      values: { projectLink: 'https://handyhub247.example/p/synthetic' },
+      // TSK-0119: the owner-style question notice greets the first name and names the request reference.
+      values: { customerName: 'Sam', reference: 'HH-0000TEST', projectLink: 'https://handyhub247.example/p/synthetic' },
     }),
   })
   await withTx(t.db, (tx) =>

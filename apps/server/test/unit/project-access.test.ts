@@ -44,7 +44,14 @@ describe('the access message (TSK-0034, HH-COM-06, FACT-AUTOMATIC-MESSAGES #3)',
   it('[HH-COM-06][HH-INT-21] project.access_link is triggered by the saved request or a reissue, and only it carries the link', () => {
     const type = messageType(ACCESS_LINK_MESSAGE_KEY)
     expect(type.triggerEvents).toEqual(['request.submitted', 'project.access_requested'])
-    expect(type.variables).toEqual({ accessLink: 'credential' })
+    // TSK-0119: the owner's secure_access_link wording uses secureAccessLink and its expiry; accessLink is what the
+    // resolver supplies until TSK-0120 wires them.
+    expect(type.variables).toEqual({
+      customerName: 'name',
+      secureAccessLink: 'credential',
+      linkExpiration: 'datetime',
+      accessLink: 'credential',
+    })
     // A template may put the link in the body, never in an email subject.
     const draft = {
       messageKey: ACCESS_LINK_MESSAGE_KEY,
