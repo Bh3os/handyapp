@@ -19,6 +19,10 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { call, idempotencyKey, setCsrfToken, upload, type ApiErrorBody, type Fetch } from './api'
 import { ReauthForm, useOwnerWrite } from './OwnerWrite'
 import { codeLabel } from './Requests'
+import { EmergencyCall, holdNoteText, JobSafety } from './StopWork'
+
+// TSK-0077: Call 911 lives with Stop Work (StopWork.tsx); the briefing still shows it first.
+export { EmergencyCall }
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
 type StaffRef = { id: string; name: string | null }
@@ -64,18 +68,6 @@ function codesText(t: T, e: ApiErrorBody): string {
   return e.fieldErrors.length
     ? e.fieldErrors.map((f) => codeLabel(t, 'startGateCode', f.code)).join(' ')
     : codeLabel(t, 'startGateCode', e.code)
-}
-
-/** Call 911: first on the page, a phone link that needs nothing else (OWN-DEC-172, OWN-DEC-208). */
-export function EmergencyCall({ t }: { t: T }) {
-  return (
-    <section className="staff-start__emergency" aria-label={t('start.emergency.title')} data-testid="start-call-911">
-      <a className="staff-start__call911" href="tel:911">
-        {t('start.emergency.call911')}
-      </a>
-      <p>{t('start.emergency.note')}</p>
-    </section>
-  )
 }
 
 function SiteCheckForm({
@@ -421,6 +413,17 @@ export function StartWorkPage({
   return (
     <main className="staff-start" aria-labelledby="start-title">
       <EmergencyCall t={t} />
+      {gate?.jobId ? (
+        // TSK-0077: Stop Work / Report Hazard, right after Call 911 and before the gate (never behind it).
+        <JobSafety
+          t={t}
+          locale={locale}
+          fetchImpl={fetchImpl}
+          jobId={gate.jobId}
+          visitId={gate.visitId}
+          call911={false}
+        />
+      ) : null}
       <h1 id="start-title">
         {gate
           ? t('start.title', { reference: gate.projectReference, number: gate.visitNumber })
@@ -874,7 +877,7 @@ export function StartReviewPage({
           <li key={h.holdId} data-kind={h.kind} data-state={h.state}>
             <strong>{codeLabel(t, 'holdKind', h.kind)}</strong> · {codeLabel(t, 'hazardCategory', h.category)} ·{' '}
             {codeLabel(t, 'holdState', h.state)}
-            <p>{h.note}</p>
+            <p>{holdNoteText(t, h.note)}</p>
             <p className="staff-request__hint">
               {t('start.review.raised', { who: h.raisedBy.name ?? '', time: when(h.raisedAt, locale) })}
             </p>
@@ -883,6 +886,9 @@ export function StartReviewPage({
           </li>
         ))}
       </ul>
+      {/* TSK-0077: the job's Stop Work, hazard and issue reports (restricted details as the server allows), the
+          Owner's review and the work-paused notice; Stop Work stays available here too. */}
+      <JobSafety t={t} locale={locale} fetchImpl={fetchImpl} jobId={view.jobId} />
       {view.actions.setHold ? (
         <SetHoldForm t={t} fetchImpl={fetchImpl} jobId={view.jobId} onDone={() => void load()} />
       ) : null}

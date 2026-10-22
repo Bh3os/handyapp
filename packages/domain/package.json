@@ -19,6 +19,11 @@
       "types": "./dist/coverage.d.ts",
       "default": "./dist/coverage.js"
     },
+    "./service-content": {
+      "@handyhub/source": "./src/service-content.ts",
+      "types": "./dist/service-content.d.ts",
+      "default": "./dist/service-content.js"
+    },
     "./legal": {
       "@handyhub/source": "./src/legal.ts",
       "types": "./dist/legal.d.ts",
@@ -43,6 +48,16 @@
       "@handyhub/source": "./src/capacity.ts",
       "types": "./dist/capacity.d.ts",
       "default": "./dist/capacity.js"
+    },
+    "./hazard": {
+      "@handyhub/source": "./src/hazard.ts",
+      "types": "./dist/hazard.d.ts",
+      "default": "./dist/hazard.js"
+    },
+    "./launch": {
+      "@handyhub/source": "./src/launch.ts",
+      "types": "./dist/launch.d.ts",
+      "default": "./dist/launch.js"
     }
   },
   "scripts": {

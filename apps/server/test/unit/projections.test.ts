@@ -110,6 +110,8 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
         'getCustomerEstimateDownloads',
         // TSK-0076: one photo the customer may see, opened by its ID.
         'getCustomerProjectPhoto',
+        // TSK-0085: the issued invoice PDF's short-lived link.
+        'getCustomerInvoiceDownload',
       ].sort(),
     )
     for (const r of customerRoutes) {

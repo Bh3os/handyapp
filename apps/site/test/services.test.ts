@@ -1,11 +1,13 @@
-// The service catalog and service pages (TSK-0021; HH-CUS-01, HH-CUS-02, OWN-DEC-51, OWN-DEC-66, OWN-DEC-84,
-// FACT-SVC-REFER-OUT-TASKS, RULE-NO-INVENTED-FACTS).
+// The service catalog and service pages (TSK-0021, TSK-0132; HH-CUS-01, HH-CUS-02, HH-QA-05, OWN-DEC-51, OWN-DEC-66,
+// OWN-DEC-84, OWN-DEC-180, FACT-SVC-REFER-OUT-TASKS, RULE-NO-INVENTED-FACTS).
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import registry from '@handyhub/db/seed/services.json'
-import { CATALOGS } from '@handyhub/i18n'
+import { MANUFACTURER_GUIDANCE, SERVICE_CONTENT } from '@handyhub/domain/service-content'
+import { CATALOGS, customerTranslator } from '@handyhub/i18n'
 import { describe, expect, it } from 'vitest'
 import { copyProblems } from '../src/site/claims.js'
+import { areaServed } from '../src/site/areas.js'
 import { applyListing, parseListedIds } from '../src/site/listing.js'
 import {
   CATEGORIES,
@@ -13,11 +15,13 @@ import {
   faqStructuredData,
   homeAgeLimits,
   NOT_SURE_HREF,
+  pageContent,
   relatedServices,
   requestHref,
   scopeFacts,
   serviceLimits,
   servicePath,
+  serviceStructuredData,
   siteServices,
 } from '../src/site/services.js'
 
@@ -50,9 +54,22 @@ describe('service catalog (TSK-0021, HH-CUS-01)', () => {
     expect(page).toContain('href={requestHref(service)}')
   })
 
-  it('[HH-CUS-01] related services are the other services of the same category', () => {
-    const related = relatedServices(byCode('DW-02'))
-    expect(related.map((s) => s.code)).toEqual(['DW-01', 'DW-03', 'DW-04'])
+  it('[HH-CUS-01][OWN-DEC-180] related services: the linked services of other categories, then the same category', () => {
+    expect(relatedServices(byCode('DW-02')).map((s) => s.code)).toEqual(['PT-01', 'DW-01', 'DW-03', 'DW-04'])
+    expect(relatedServices(byCode('PT-02')).map((s) => s.code)).toEqual(['HI-10', 'HI-11', 'PT-01', 'PT-03', 'PT-04'])
+    expect(relatedServices(byCode('CL-03')).map((s) => s.code)).toEqual([
+      'CL-01',
+      'CL-02',
+      'CL-04',
+      'CL-05',
+      'CL-06',
+      'CL-07',
+    ])
+    for (const s of siteServices())
+      expect(
+        relatedServices(s).some((r) => r.id === s.id),
+        s.code,
+      ).toBe(false)
   })
 
   it('[HH-CUS-01] every registry service name passes the copy lint', () => {
@@ -61,12 +78,62 @@ describe('service catalog (TSK-0021, HH-CUS-01)', () => {
 })
 
 describe('service page content (TSK-0021, HH-CUS-02, OWN-DEC-84)', () => {
-  it('[HH-CUS-02] with no approved description, preparation or FAQs, each shows a visible Not provided yet state', () => {
-    expect(customer['service.notProvided']).toBe('Not provided yet')
-    for (const part of ['description', 'preparation', 'faq']) expect(page).toContain(`data-not-provided="${part}"`)
-    // Nothing from the registry's draft content is rendered: no approved description exists (OQ-SERVICE-DESCRIPTIONS).
-    expect(registry.services.every((s) => s.content.description === null)).toBe(true)
-    expect(page).not.toMatch(/content\.description/)
+  it('[HH-CUS-02][OWN-DEC-180] every service page renders its quality-reviewed content, never a missing state', () => {
+    for (const entry of registry.services) {
+      const content = entry.content as { review?: { decision: string; task: string } }
+      expect(content.review, entry.id).toEqual({ decision: 'OWN-DEC-180', task: 'TSK-0132', reviewedOn: '2026-10-22' })
+      expect(entry.publicStatus, entry.id).toBe('published')
+    }
+    for (const s of siteServices()) {
+      const c = s.content
+      if (!c) throw new Error(`${s.code}: no reviewed content`)
+      expect(c.description.length, s.code).toBeGreaterThan(40)
+      expect(c.included.length, s.code).toBeGreaterThan(0)
+      expect(c.preparation.length, s.code).toBeGreaterThan(0)
+      expect(c.faqs.length, s.code).toBeGreaterThanOrEqual(3)
+      expect(c.faqs.length, s.code).toBeLessThanOrEqual(5)
+    }
+    expect(page).not.toMatch(/data-not-provided|notProvided/)
+    for (const part of ['description', 'included', 'excluded', 'preparation', 'care', 'faqs'])
+      expect(page).toContain(`data-testid="${part}"`)
+  })
+
+  it('[HH-CUS-02] a registry entry without reviewed content has no page content (a draft stays a draft)', () => {
+    expect(pageContent({ description: null })).toBeNull()
+    expect(pageContent(undefined)).toBeNull()
+    expect(() => pageContent({ description: 'x', included: 'y' })).toThrow()
+  })
+
+  it('[HH-QA-05][OWN-DEC-180] care lines on a page: general and product lines only; withheld lines never appear', () => {
+    for (const s of siteServices()) {
+      const reviewed = SERVICE_CONTENT[s.id]
+      if (!reviewed || !s.content) throw new Error(s.code)
+      expect(s.content.care).toEqual([...reviewed.care.lines, ...reviewed.care.product.map((p) => p.text)])
+      for (const p of reviewed.care.product) expect(p.text, `${s.code} ${p.key}`).toContain(MANUFACTURER_GUIDANCE)
+      const shown = JSON.stringify(s.content)
+      for (const w of [...reviewed.care.withheld, ...reviewed.withheldContent]) {
+        expect(shown, s.code).not.toContain(w.topic)
+        expect(shown, s.code).not.toContain(w.reason)
+      }
+      for (const f of reviewed.flags) expect(shown, s.code).not.toContain(f.text)
+    }
+    // The safety-critical lines named in OWN-DEC-180 item 6 are withheld on the services they apply to.
+    const withheld = (code: string) => SERVICE_CONTENT[`SVC-${code}`]?.care.withheld.length ?? 0
+    for (const code of [
+      'HI-02',
+      'HI-04',
+      'HI-05',
+      'HI-06',
+      'HI-07',
+      'HI-10',
+      'HI-11',
+      'DW-02',
+      'PT-02',
+      'PT-04',
+      'CL-06',
+      'CL-07',
+    ])
+      expect(withheld(code), code).toBeGreaterThan(0)
   })
 
   it('[HH-CUS-02][OWN-DEC-51] every page names the licensed-trade, structural, hazardous-material and access limits', () => {
@@ -128,21 +195,61 @@ describe('service page content (TSK-0021, HH-CUS-02, OWN-DEC-84)', () => {
   it('[HH-CUS-02][HH-BASE-04] no service-page text states a price, duration, credential, guarantee or review', () => {
     const keys = Object.keys(customer).filter((k) => k.startsWith('service.') || k.startsWith('services.'))
     expect(keys.length).toBeGreaterThan(40)
+    const noDuration = /\$\s?\d|\b\d+\s*(hours?|days?|weeks?|minutes?|lbs?|pounds?|feet|ft|inches)\b|same day/i
     for (const key of keys) {
       expect(copyProblems(customer[key] ?? ''), key).toEqual([])
-      expect(customer[key], key).not.toMatch(/\$\s?\d|\b\d+\s*(hours?|days?|weeks?|minutes?)\b|same day/i)
+      expect(customer[key], key).not.toMatch(noDuration)
+    }
+    for (const s of siteServices()) {
+      const c = s.content
+      if (!c) throw new Error(s.code)
+      const texts = [c.description, ...c.included, ...c.excluded, ...c.preparation, ...c.care]
+      for (const f of c.faqs) texts.push(f.question, f.answer)
+      for (const text of texts) {
+        expect(copyProblems(text), `${s.code}: ${text}`).toEqual([])
+        expect(text, s.code).not.toMatch(noDuration)
+        expect(text, s.code).not.toMatch(/\b(flawless|perfect\w*|eco-?(safe|friendly)|non-toxic|guarantee|5-star)/i)
+      }
+      // Removed claims never come back as included work (they may appear only as "not included" or in an answer).
+      for (const text of [c.description, ...c.included, ...c.care])
+        expect(text, s.code).not.toMatch(/\b(sanitiz\w*|disinfect\w*|steriliz\w*|air quality|energy|waterproof\w*)/i)
     }
   })
 
-  it('[HH-CUS-02][OWN-DEC-51] the FAQ structured data carries the limits text and cannot end its script tag', () => {
-    const json = faqStructuredData('Q?', 'A </script> B')
+  it('[HH-CUS-02][OWN-DEC-51] the FAQ structured data carries every question and cannot end its script tag', () => {
+    const json = faqStructuredData([
+      { question: 'Q1?', answer: 'A1' },
+      { question: 'Q?', answer: 'A </script> B' },
+    ])
     expect(json).not.toContain('</script>')
     expect(JSON.parse(json)).toEqual({
       '@context': 'https://schema.org',
       '@type': 'FAQPage',
-      mainEntity: [{ '@type': 'Question', name: 'Q?', acceptedAnswer: { '@type': 'Answer', text: 'A </script> B' } }],
+      mainEntity: [
+        { '@type': 'Question', name: 'Q1?', acceptedAnswer: { '@type': 'Answer', text: 'A1' } },
+        { '@type': 'Question', name: 'Q?', acceptedAnswer: { '@type': 'Answer', text: 'A </script> B' } },
+      ],
     })
-    expect(page).toContain("faqStructuredData(limitsQuestion, limits.join(' '))")
+    expect(page).toContain("{ question: limitsQuestion, answer: limits.join(' ') }")
+    expect(page).toContain('faqStructuredData(faqs)')
+  })
+
+  it('[HH-CUS-02][OWN-DEC-180] local search: a description and Service data naming the 11 counties, no address', () => {
+    const t = customerTranslator()
+    const s = byCode('PT-01')
+    const data = JSON.parse(serviceStructuredData(s, 'HandyHub', areaServed(t)))
+    expect(data['@type']).toBe('Service')
+    expect(data.name).toBe(s.name)
+    expect(data.description).toBe(s.content?.description)
+    expect(data.provider).toEqual({ '@type': 'LocalBusiness', name: 'HandyHub' })
+    expect(data.areaServed).toHaveLength(11)
+    expect(JSON.stringify(data)).not.toMatch(/address|telephone|email|price|rating/i)
+    expect(t.t('service.meta.description', { service: s.name })).toBe(
+      'Residential Interior Painting from HandyHub in the Louisville metro area of Kentucky and Southern Indiana. Free estimates—online or at your property.',
+    )
+    expect(copyProblems(t.t('service.meta.description', { service: s.name }))).toEqual([])
+    expect(page).toContain('description={description}')
+    expect(page).toContain('href="/areas"')
   })
 })
 
@@ -186,6 +293,23 @@ describe('listing from the API (TSK-0021, HH-CUS-01, OWN-DEC-84)', () => {
     applyListing(g.root, new Set(), 'Unavailable')
     expect(g.empty.hidden).toBe(false)
     expect(g.list.hidden).toBe(true)
+  })
+
+  it("[HH-CUS-01][OWN-DEC-180] a root that is itself the group (a page's related list) shows its listed items", () => {
+    const f = fakeRoot(['SVC-DW-01', 'SVC-CL-01'])
+    const list = { hidden: true }
+    const empty = { hidden: true }
+    const root = {
+      ...(f.root as unknown as Record<string, unknown>),
+      matches: (sel: string) => sel === '[data-listing-group]',
+      querySelectorAll: (sel: string) => (sel === '[data-service-id]' ? f.items : []),
+      querySelector: (sel: string) =>
+        sel === '[data-listing-status]' ? f.status : sel === '[data-listing-empty]' ? empty : list,
+    }
+    applyListing(root as unknown as ParentNode, new Set(['SVC-CL-01']), 'Unavailable')
+    expect(f.items.map((i) => i.hidden)).toEqual([true, false])
+    expect(list.hidden).toBe(false)
+    expect(empty.hidden).toBe(true)
   })
 
   it('[HH-CUS-01] an unreadable list shows the unavailable state and lists nothing', () => {

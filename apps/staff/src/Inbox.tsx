@@ -86,13 +86,17 @@ export type ReplyOptions = {
     reason: 'available' | 'unverified' | 'no_opt_in' | 'opted_out'
   }[]
   defaultChannel: ReplyChannel | null
-  contactHours: {
-    state: 'open' | 'closed' | 'not_configured'
-    applies: boolean
-    open: string | null
-    close: string | null
-    zone: string | null
-    sendAt: string
+  /** TSK-0122 (OWN-DEC-154): an email goes at once; a text inside the recipient's permitted hours. */
+  deliveryHours: {
+    email: { sendAt: string }
+    text: {
+      state: 'open' | 'closed' | 'not_configured'
+      open: string | null
+      close: string | null
+      zone: string | null
+      basis: 'recipient_zone' | 'unknown_zone_fallback' | null
+      sendAt: string
+    }
   }
   templates: { email: 'configured' | 'not_configured'; sms: 'configured' | 'not_configured' }
   maxLength: number
@@ -549,20 +553,25 @@ function ReplyComposer({
   const channel: ReplyChannel | null =
     options.defaultChannel ??
     (draft.channel && available.some((o) => o.channel === draft.channel) ? draft.channel : null)
-  const hours = options.contactHours
+  // TSK-0122: the email goes at once at any hour; a text waits for the customer's permitted local hours.
+  const text = options.deliveryHours.text
+  const hoursWindow = { open: text.open ?? '', close: text.close ?? '', zone: text.zone ?? '' }
+  const unknownZone = text.basis === 'unknown_zone_fallback'
+  const textHours =
+    text.state === 'not_configured'
+      ? t('inbox.reply.textHoursNotConfigured')
+      : text.state === 'open'
+        ? t(unknownZone ? 'inbox.reply.textOpenUnknownZone' : 'inbox.reply.textOpen', hoursWindow)
+        : t(unknownZone ? 'inbox.reply.textClosedUnknownZone' : 'inbox.reply.textClosed', {
+            ...hoursWindow,
+            time: when.format(new Date(text.sendAt)),
+          })
   const hoursText =
-    hours.state === 'not_configured'
-      ? t('inbox.reply.hoursNotConfigured')
-      : !hours.applies
-        ? t('inbox.reply.hoursNotApplied')
-        : hours.state === 'open'
-          ? t('inbox.reply.hoursOpen', { open: hours.open ?? '', close: hours.close ?? '', zone: hours.zone ?? '' })
-          : t('inbox.reply.hoursClosed', {
-              open: hours.open ?? '',
-              close: hours.close ?? '',
-              zone: hours.zone ?? '',
-              time: when.format(new Date(hours.sendAt)),
-            })
+    channel === 'sms'
+      ? textHours
+      : channel === 'email'
+        ? t('inbox.reply.emailNow')
+        : `${t('inbox.reply.emailNow')} ${textHours}`
   const reason = (o: ReplyOptions['options'][number]) => codeLabel(t, 'replyChannelReason', o.reason)
   async function send(e: FormEvent) {
     e.preventDefault()

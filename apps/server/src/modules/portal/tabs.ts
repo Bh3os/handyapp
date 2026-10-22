@@ -6,8 +6,8 @@
 //   the customer), and HandyHub's replies, at once when staff press Send (their email or text may still wait for the
 //   contact hours). Never an internal message, a staff name, an address or a delivery detail. TSK-0051: the customer
 //   writes in it from the portal too (channel 'portal').
-// - Documents: the estimate versions the customer received, each with its status (TSK-0056, HH-PORT-10); "none" while
-//   there is none. Payments: no payment record exists yet, so none is shown. Appointments (TSK-0063): the offered
+// - Documents: the estimate versions the customer received, each with its status (TSK-0056, HH-PORT-10), and the
+//   issued invoices with their balance (TSK-0085); "none" while there is none. Payments: no payment record exists yet, so none is shown. Appointments (TSK-0063): the offered
 //   windows the customer can choose from and the confirmed visits (visits/offers.ts appointmentsOf); "none" while
 //   there is neither.
 // - Photos: the counts of the customer's uploads by state (the same counts the receipt shows); TSK-0076 (HH-PORT-11):
@@ -18,6 +18,7 @@ import type { DataScope } from '@handyhub/policy'
 import { customerEstimateList, type CustomerEstimateListItem } from '../estimates/customer.js'
 import type { ObjectStorage } from '../../providers/index.js'
 import { customerPhotos, type CustomerUpload, type SharedGroup } from '../field-photos/photos.js'
+import { customerInvoiceList, type CustomerInvoiceItem } from '../finance/invoices.js'
 import { PHOTO_URL_SECONDS } from '../photos/photos.js'
 import { findProject, type ConversationMessageRecord, type PhotoCounts } from '../records/index.js'
 import { appointmentsOf, type CustomerAppointment, type CustomerOffer } from '../visits/offers.js'
@@ -32,7 +33,12 @@ type Head = { reference: string; refreshedAt: Date; refreshSeconds: number }
 export type TabAnswer =
   | (Head & { tab: 'messages'; messages: ConversationMessageRecord[] })
   | (Head & { tab: 'documents'; state: 'none' })
-  | (Head & { tab: 'documents'; state: 'listed'; estimates: CustomerEstimateListItem[] })
+  | (Head & {
+      tab: 'documents'
+      state: 'listed'
+      estimates: CustomerEstimateListItem[]
+      invoices: CustomerInvoiceItem[]
+    })
   | (Head & { tab: 'appointments' | 'payments'; state: 'none' })
   | (Head & { tab: 'appointments'; state: 'listed'; offers: CustomerOffer[]; appointments: CustomerAppointment[] })
   | (Head & {
@@ -104,7 +110,11 @@ export async function projectTab(
     }
     case 'documents': {
       const estimates = (await customerEstimateList(db, scope, project.reference, now)) ?? []
-      return estimates.length ? { ...head, tab, state: 'listed', estimates } : { ...head, tab, state: 'none' }
+      // TSK-0085: the issued invoices (never a draft), with their balance.
+      const invoices = await customerInvoiceList(db, project.id)
+      return estimates.length || invoices.length
+        ? { ...head, tab, state: 'listed', estimates, invoices }
+        : { ...head, tab, state: 'none' }
     }
     case 'appointments': {
       const a = await appointmentsOf(db, project.id, now)

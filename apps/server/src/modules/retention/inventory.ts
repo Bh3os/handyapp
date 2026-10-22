@@ -361,8 +361,50 @@ export const TABLES = {
     classes: ['payment_reference'],
     categories: [F],
   },
+  // TSK-0085, TSK-0086 (migration 0077): invoices and the ledger are financial records.
+  'finance.invoices': {
+    holds: 'Invoices: kind, state, number, totals in cents, deposit credit, the issuer and payment details as issued',
+    classes: ['payment_reference'],
+    categories: [F],
+    protectedEvidence: true,
+  },
+  'finance.invoice_lines': {
+    holds: "An invoice's lines: description, quantity, unit price and amount in cents (charges and credits)",
+    classes: ['payment_reference'],
+    categories: [F],
+    protectedEvidence: true,
+  },
+  'finance.invoice_deposit_credits': {
+    holds: "The verified deposit money credited once to a job's final invoice, in cents",
+    classes: ['payment_reference'],
+    categories: [F],
+    protectedEvidence: true,
+  },
+  'finance.invoice_documents': {
+    holds: 'Issued invoice PDFs: the file reference, its SHA-256 and size, the TEST mark (files in R2)',
+    classes: ['payment_reference'],
+    categories: [F],
+    protectedEvidence: true,
+    vendors: ['r2'],
+  },
+  'finance.refunds': {
+    holds: 'Refunds, credits and write-offs: amount in cents, reason, who requested and who approved, Square refund ID',
+    classes: ['payment_reference'],
+    categories: [F],
+    protectedEvidence: true,
+  },
+  'finance.payouts': {
+    holds: 'Square payouts recorded by hand: payout ID, net amount in cents and date',
+    classes: ['payment_reference'],
+    categories: [F],
+  },
+  'finance.provider_fees': {
+    holds: 'Square fees recorded by hand: amount in cents, date, the payment or payout they belong to',
+    classes: ['payment_reference'],
+    categories: [F],
+  },
   'finance.payment_allocations': {
-    holds: "A payment's application to its job's deposit requirement, in cents",
+    holds: "A payment's application to an invoice or its job's deposit requirement, in cents",
     classes: ['payment_reference'],
     categories: [F],
     protectedEvidence: true,
@@ -719,6 +761,33 @@ export const TABLES = {
     categories: [A],
     protectedEvidence: true,
   },
+  // TSK-0077 (ENT-IssueReport, HH-WORK-08, HH-WORK-09, HH-CHG-04, OWN-DEC-143): Stop Work, hazard and issue reports.
+  'work.issue_reports': {
+    holds:
+      'Stop Work / Report Hazard and issue reports: what was reported, its severity and text, the affected work ' +
+      'packages, the critical hold it wrote, an on-site resolution, who and when; injury and incident details ' +
+      'restricted to the Owner and the reporter',
+    classes: ['request_details', 'incident'],
+    categories: [J, S],
+  },
+  'work.issue_report_photos': {
+    holds: "Photos of a report (metadata; the files are in R2), taken only when safe, with the report's visibility",
+    classes: ['photos', 'incident'],
+    categories: [J, S],
+    vendors: ['r2'],
+  },
+  'work.issue_report_reviews': {
+    holds: "The Owner's review of a non-critical issue report: who, when and an optional note",
+    classes: ['request_details'],
+    categories: [J, S],
+  },
+  'work.stabilization_records': {
+    holds:
+      'Emergency stabilization of a Stop Work: trigger, actions, why necessary, evidence, Owner and customer ' +
+      'notification times and the follow-up',
+    classes: ['request_details', 'incident'],
+    categories: [J, S],
+  },
   'work.jobs': { holds: 'Jobs of approved projects', classes: ['request_details'], categories: [J, A] },
   'work.loadout_checks': {
     holds:
@@ -938,7 +1007,7 @@ export function renderDataInventory(): string {
     '  erasure the software does not perform; checks the software cannot run are confirmed by the Owner first. A blocked',
     '  deletion offers Archive; Keep longer brings the entry back later. Deletion needs a fresh sign-in and a reason.',
     '- Erasure performed today: estimates never accepted (versions, lines, internal costs and notes, documents, the',
-    "  customer's responses and selections, reminder drafts nobody released, and their stored files after the commit)",
+    "  customer's responses and selections, reminders never released or sent, and their stored files after the commit)",
     '  and login accounts (closed: sign-in values cleared, sessions and project links revoked). Messages sent about an',
     '  erased estimate keep only its reference. Signed approvals, approval receipts, jobs, deposit records and recorded',
     '  payments are protected evidence and block it. Requests that never became jobs keep their history',

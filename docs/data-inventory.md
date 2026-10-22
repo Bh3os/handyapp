@@ -33,7 +33,7 @@ data the schedule does not name (OQ-RETENTION-UNSCHEDULED).
 | Configuration and content (PROPOSED) | Decided values, service content, templates and rules, versioned | Staff by role; the Owner changes them | Versioned, append-only, citing their decisions; no customer data |
 | Technical records (PROPOSED) | Delivery, queues, limits and idempotency | Authorized technical and administrative scope | Hashed keys; redacted; no secrets |
 
-Not stored by the software yet: Incident, Worker timestamps, Analytics.
+Not stored by the software yet: Worker timestamps, Analytics.
 
 ## Vendor destinations
 
@@ -80,7 +80,7 @@ Data owner for every category: the Owner, who decides each deletion-review entry
   erasure the software does not perform; checks the software cannot run are confirmed by the Owner first. A blocked
   deletion offers Archive; Keep longer brings the entry back later. Deletion needs a fresh sign-in and a reason.
 - Erasure performed today: estimates never accepted (versions, lines, internal costs and notes, documents, the
-  customer's responses and selections, reminder drafts nobody released, and their stored files after the commit)
+  customer's responses and selections, reminders never released or sent, and their stored files after the commit)
   and login accounts (closed: sign-in values cleared, sessions and project links revoked). Messages sent about an
   erased estimate keep only its reference. Signed approvals, approval receipts, jobs, deposit records and recorded
   payments are protected evidence and block it. Requests that never became jobs keep their history
@@ -144,8 +144,15 @@ Data owner for every category: the Owner, who decides each deletion-review entry
 | `estimating.publication_approvals` | Owner approvals before publishing over the threshold: the version's price digest, totals and known costs in cents, the reasons, the linked project documents, who asked and decided, when, the comment | Estimate and approval, Staff accounts | `unaccepted_estimates`, `accepted_agreements` | Owner's deletion review after the period; nothing deleted automatically | Render |
 | `finance.deposit_requirements` | A job's deposit obligation in cents, its state and the staff-pasted Square payment link | Payment reference | `financial_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
 | `finance.deposit_waivers` | The Owner's job-specific deposit waivers with their written reason | Payment reference | `financial_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
-| `finance.payment_allocations` | A payment's application to its job's deposit requirement, in cents | Payment reference | `financial_records` | Archive, Void or audited correction; never ordinary deletion | Render |
+| `finance.invoice_deposit_credits` | The verified deposit money credited once to a job's final invoice, in cents | Payment reference | `financial_records` | Archive, Void or audited correction; never ordinary deletion | Render |
+| `finance.invoice_documents` | Issued invoice PDFs: the file reference, its SHA-256 and size, the TEST mark (files in R2) | Payment reference | `financial_records` | Archive, Void or audited correction; never ordinary deletion | Render, R2 |
+| `finance.invoice_lines` | An invoice's lines: description, quantity, unit price and amount in cents (charges and credits) | Payment reference | `financial_records` | Archive, Void or audited correction; never ordinary deletion | Render |
+| `finance.invoices` | Invoices: kind, state, number, totals in cents, deposit credit, the issuer and payment details as issued | Payment reference | `financial_records` | Archive, Void or audited correction; never ordinary deletion | Render |
+| `finance.payment_allocations` | A payment's application to an invoice or its job's deposit requirement, in cents | Payment reference | `financial_records` | Archive, Void or audited correction; never ordinary deletion | Render |
 | `finance.payments` | Staff-recorded payments: method, amount in cents, date, collector, transaction reference, check payer | Payment reference | `financial_records` | Archive, Void or audited correction; never ordinary deletion | Render |
+| `finance.payouts` | Square payouts recorded by hand: payout ID, net amount in cents and date | Payment reference | `financial_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
+| `finance.provider_fees` | Square fees recorded by hand: amount in cents, date, the payment or payout they belong to | Payment reference | `financial_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
+| `finance.refunds` | Refunds, credits and write-offs: amount in cents, reason, who requested and who approved, Square refund ID | Payment reference | `financial_records` | Archive, Void or audited correction; never ordinary deletion | Render |
 | `identity.auth_identities` | Staff password hashes | Staff accounts | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
 | `identity.customer_account_changes` | Changes to a customer account's sign-in contact | Contact | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
 | `identity.customer_accounts` | Optional customer accounts: sign-in email or phone, state | Contact | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
@@ -209,6 +216,9 @@ Data owner for every category: the Owner, who decides each deletion-review entry
 | `work.field_photos` | Before and after photos per work package and visit (metadata; the files are in R2): who uploaded, when, the device capture time when sent, the worker's area label, the before/after pair, the processing state and the visibility class with who last shared it | Interior and work photos | `job_records`, `safety_records` | Owner's deletion review after the period; nothing deleted automatically | Render, R2 |
 | `work.gate_exceptions` | Start Work administrative exceptions: the worker's reason and evidence (a payment provider's transaction reference for a deposit), the Owner's decision, follow-up owner and deadline, and how it ended | Visits and scheduling | `job_records`, `safety_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
 | `work.holds` | Review and safety holds and loadout task blocks with their resolution and reviewer | Request and project details | `requests_not_converted`, `job_records`, `safety_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
+| `work.issue_report_photos` | Photos of a report (metadata; the files are in R2), taken only when safe, with the report's visibility | Interior and work photos, Incident | `job_records`, `safety_records` | Owner's deletion review after the period; nothing deleted automatically | Render, R2 |
+| `work.issue_report_reviews` | The Owner's review of a non-critical issue report: who, when and an optional note | Request and project details | `job_records`, `safety_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
+| `work.issue_reports` | Stop Work / Report Hazard and issue reports: what was reported, its severity and text, the affected work packages, the critical hold it wrote, an on-site resolution, who and when; injury and incident details restricted to the Owner and the reporter | Request and project details, Incident | `job_records`, `safety_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
 | `work.job_packet_acknowledgment_invalidations` | Why and when a packet acknowledgment stopped counting: a critical packet version, the end of the worker's assignment or a disabled account (once each) | Visits and scheduling | `job_records`, `safety_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
 | `work.job_packet_acknowledgments` | A worker's own acknowledgment of one job packet version: who, when, the version, its content digest, the scope version and the SOP versions it covered | Visits and scheduling | `job_records`, `safety_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
 | `work.job_packet_exports` | Every print and PDF export of a job packet: who, when, which version, the latest version then | Logs and audit | `job_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
@@ -221,6 +231,7 @@ Data owner for every category: the Owner, who decides each deletion-review entry
 | `work.reservation_flags` | Appointments flagged by an availability change | Visits and scheduling | `requests_not_converted`, `job_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
 | `work.reservations` | Staff and equipment reserved for a visit | Visits and scheduling | `requests_not_converted`, `job_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
 | `work.scheduling_tasks` | Scheduling tasks of a job | Visits and scheduling | `job_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
+| `work.stabilization_records` | Emergency stabilization of a Stop Work: trigger, actions, why necessary, evidence, Owner and customer notification times and the follow-up | Request and project details, Incident | `job_records`, `safety_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
 | `work.start_gate_evaluations` | Each Start Work attempt: every prerequisite with its missing items and resolution owners, the outcome, the packet, scope and SOP versions and the exceptions used | Visits and scheduling | `job_records`, `safety_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
 | `work.start_site_checks` | A worker's site checks before Start Work (property, access, customer present, hazards reviewed, site as described or different with their note) | Request and project details | `job_records`, `safety_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
 | `work.time_off` | Recorded staff time off | Staff accounts | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |

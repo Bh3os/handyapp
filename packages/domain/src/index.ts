@@ -88,6 +88,8 @@ export {
 export type { HazardCategory, HoldFacts, HoldKind, HoldState, JobHoldCategory } from './hold.js'
 // TSK-0073, TSK-0074: the Start Work gate and its three owner-approved administrative exceptions.
 export * from './start-gate.js'
+// TSK-0077: Stop Work, Report Hazard and issue reports.
+export * from './hazard.js'
 export {
   addBusinessMinutes,
   BusinessHoursError,
@@ -328,3 +330,5 @@ export type {
   PublicationInvalidationReason,
   PublicationSubject,
 } from './publication-approval.js'
+// TSK-0142: the launch phases and their switches (OWN-DEC-191).
+export * from './launch.js'

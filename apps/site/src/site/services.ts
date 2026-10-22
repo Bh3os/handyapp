@@ -9,11 +9,13 @@
 //   FACT-HOURS (the approved homepage sentences of OWN-DEC-86);
 // - limits: FACT-SVC-EXCLUDED-SCOPE (OWN-DEC-51), FACT-SVC-SUSPECTED-HAZMAT, FACT-SVC-ACCESS-EQUIPMENT,
 //   FACT-SVC-HOME-AGE-LIMITS (OWN-DEC-66), FACT-SVC-REFER-OUT-TASKS, FACT-SVC-RESIDENTIAL-ONLY;
-// - scope the owner stated: FACT-SVC-DW01-REPAIR-SCOPE, FACT-SVC-CL07-SCOPE.
-// No owner-approved description, preparation steps or service FAQs exist yet (OQ-SERVICE-DESCRIPTIONS): those parts
-// show a visible "Not provided yet" state, never filler copy.
+// - scope the owner stated: FACT-SVC-DW01-REPAIR-SCOPE, FACT-SVC-CL07-SCOPE;
+// - the description, included and excluded work, preparation, FAQs, care notes and related services: the reviewed
+//   content of TSK-0132 (packages/domain/src/service-content.ts, copied into the registry with the OWN-DEC-180 review
+//   stamp). Only its customer parts are read here; withheld lines and the flags list never reach a page.
 import registry from '@handyhub/db/seed/services.json'
 import { serviceQuestions } from '@handyhub/domain/request-form'
+import type { ServiceFaq } from '@handyhub/domain/service-content'
 import type { CustomerKey } from '@handyhub/i18n'
 
 /** The four categories in the order of HH-CUS-01 and the request form (OWN-DEC-90). */
@@ -43,6 +45,20 @@ export type SiteService = {
   /** The labels of the questions the request form asks for this service (HH-SVC-03). */
   readonly questions: readonly string[]
   readonly homeAgeLimits: boolean
+  /** The reviewed page content (OWN-DEC-180), or null when the service has none. */
+  readonly content: PageContent | null
+}
+
+/** The customer parts of a service's reviewed content (TSK-0132). */
+export type PageContent = {
+  readonly description: string
+  readonly included: readonly string[]
+  readonly excluded: readonly string[]
+  readonly preparation: readonly string[]
+  readonly faqs: readonly ServiceFaq[]
+  /** General care lines, then the product-dependent lines (each tied to the manufacturer's guidance). */
+  readonly care: readonly string[]
+  readonly related: readonly string[]
 }
 
 type SeedEntry = {
@@ -53,6 +69,34 @@ type SeedEntry = {
   name: string
   intake: { guideInputs: string[] }
   homeAgeLimits: boolean
+  content: unknown
+}
+
+const strings = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === 'string')
+
+/** The customer parts of a registry entry's content; null for a draft (no reviewed description). */
+export function pageContent(content: unknown): PageContent | null {
+  if (typeof content !== 'object' || content === null) return null
+  const c = content as Record<string, unknown>
+  const care = (c['care'] ?? {}) as { lines?: unknown; product?: unknown }
+  const product = Array.isArray(care.product) ? (care.product as { text?: unknown }[]) : []
+  const faqs = Array.isArray(c['faqs']) ? (c['faqs'] as { question?: unknown; answer?: unknown }[]) : []
+  if (typeof c['description'] !== 'string') return null
+  if (!strings(c['included']) || !strings(c['excluded']) || !strings(c['preparation']) || !strings(c['related']))
+    throw new Error('service content: included, excluded, preparation and related must be string lists')
+  if (!strings(care.lines ?? []) || !product.every((p) => typeof p.text === 'string'))
+    throw new Error('service content: care lines must be strings')
+  if (!faqs.every((f) => typeof f.question === 'string' && typeof f.answer === 'string'))
+    throw new Error('service content: every FAQ needs a question and an answer')
+  return {
+    description: c['description'],
+    included: c['included'],
+    excluded: c['excluded'],
+    preparation: c['preparation'],
+    faqs: faqs as ServiceFaq[],
+    care: [...((care.lines as string[] | undefined) ?? []), ...product.map((p) => p.text as string)],
+    related: c['related'],
+  }
 }
 
 function isCategory(c: string): c is Category {
@@ -72,6 +116,7 @@ export function siteServices(entries: readonly SeedEntry[] = registry.services):
       name: s.name,
       questions: serviceQuestions(s.intake).map((q) => q.label),
       homeAgeLimits: s.homeAgeLimits,
+      content: pageContent(s.content),
     }
   })
   return CATEGORIES.flatMap((c) => out.filter((s) => s.category === c))
@@ -87,11 +132,14 @@ export const requestHref = (s: Pick<SiteService, 'id'>) => `/request?service=${e
 export const NOT_SURE_HREF = '/request?service=not-sure'
 
 /**
- * Related services: the other services of the same category, in registry order. PROPOSED: the graph names no
- * relations between services, so the category is the relation. Only the ones the site shows are listed at run time.
+ * Related services (OWN-DEC-180 item 9): first the services of other categories that the reviewed content links to
+ * (the boundary rules, for example repair before staining), then the other services of the same category, in registry
+ * order. PROPOSED: the graph names no relations between services. Only the ones the site shows are listed at run time.
  */
 export function relatedServices(service: SiteService, all: readonly SiteService[] = siteServices()): SiteService[] {
-  return all.filter((s) => s.category === service.category && s.id !== service.id)
+  const linked = (service.content?.related ?? []).flatMap((id) => all.filter((s) => s.id === id && s.id !== service.id))
+  const sameCategory = all.filter((s) => s.category === service.category && s.id !== service.id)
+  return [...linked, ...sameCategory.filter((s) => !linked.includes(s))]
 }
 
 /** Facts the owner gave about a service's scope (shown under "What's included"). */
@@ -151,11 +199,39 @@ export function considerations(s: Pick<SiteService, 'code' | 'homeAgeLimits'>): 
   ]
 }
 
-/** FAQ structured data (schema.org FAQPage) for the limits question; `<` is escaped so the JSON cannot end the tag. */
-export function faqStructuredData(question: string, answer: string): string {
+/**
+ * FAQ structured data (schema.org FAQPage): the service's questions and answers as the page shows them, then the
+ * limits question; `<` is escaped so the JSON cannot end the tag.
+ */
+export function faqStructuredData(faqs: readonly ServiceFaq[]): string {
   return JSON.stringify({
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    mainEntity: [{ '@type': 'Question', name: question, acceptedAnswer: { '@type': 'Answer', text: answer } }],
+    mainEntity: faqs.map((f) => ({
+      '@type': 'Question',
+      name: f.question,
+      acceptedAnswer: { '@type': 'Answer', text: f.answer },
+    })),
+  }).replace(/</g, '\\u003c')
+}
+
+/**
+ * Service structured data for local search (OWN-DEC-180 item 10; schema.org Service, PROPOSED type): the service name
+ * and reviewed description, the brand as provider, and the service area as the counties and states of
+ * FACT-SERVICE-AREA (areaServed as built for the Areas page). No address, telephone, price or rating.
+ */
+export function serviceStructuredData(
+  service: Pick<SiteService, 'name' | 'content'>,
+  brand: string,
+  areaServed: readonly unknown[],
+): string {
+  return JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    name: service.name,
+    serviceType: service.name,
+    ...(service.content ? { description: service.content.description } : {}),
+    provider: { '@type': 'LocalBusiness', name: brand },
+    areaServed,
   }).replace(/</g, '\\u003c')
 }

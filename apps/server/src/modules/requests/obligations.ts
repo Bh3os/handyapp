@@ -39,8 +39,49 @@ export const VISIT_OBLIGATION_CHECK: ObligationCheck = {
   },
 }
 
-/** The checks of the modules that exist: visits. Accepted estimates and payments add theirs. */
-export const DEFAULT_OBLIGATION_CHECKS: readonly ObligationCheck[] = [VISIT_OBLIGATION_CHECK]
+/**
+ * TSK-0121 (OWN-DEC-197 E4, OWN-DEC-208): an accepted estimate version of the project (the approval of TSK-0057) is
+ * accepted work.
+ */
+export const ACCEPTED_WORK_OBLIGATION_CHECK: ObligationCheck = {
+  fact: 'workAccepted',
+  source: 'approvals (TSK-0057)',
+  check: async (tx, projectId) => {
+    const found = await tx
+      .selectFrom('estimating.estimate_versions')
+      .select('id')
+      .where('project_id', '=', projectId)
+      .where('state', '=', 'accepted')
+      .limit(1)
+      .executeTakeFirst()
+    return found !== undefined
+  },
+}
+
+/**
+ * TSK-0121 (OWN-DEC-197 E4, OWN-DEC-208): a payment staff recorded on the project (TSK-0059). PROPOSED: a returned or
+ * voided payment still counts, so the Owner reviews it.
+ */
+export const PAYMENT_OBLIGATION_CHECK: ObligationCheck = {
+  fact: 'moneyReceived',
+  source: 'payments (TSK-0059)',
+  check: async (tx, projectId) => {
+    const found = await tx
+      .selectFrom('finance.payments')
+      .select('id')
+      .where('project_id', '=', projectId)
+      .limit(1)
+      .executeTakeFirst()
+    return found !== undefined
+  },
+}
+
+/** The checks of the modules that exist: visits, accepted estimates and recorded payments. */
+export const DEFAULT_OBLIGATION_CHECKS: readonly ObligationCheck[] = [
+  VISIT_OBLIGATION_CHECK,
+  ACCEPTED_WORK_OBLIGATION_CHECK,
+  PAYMENT_OBLIGATION_CHECK,
+]
 
 /** The three facts for a project, read inside the decision's transaction (after the project row is locked). */
 export async function obligationFacts(

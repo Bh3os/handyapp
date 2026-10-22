@@ -1,8 +1,10 @@
-// Unanswered-estimate reminder drafts and their stop rules against PostgreSQL 16 (TSK-0060; HH-EST-14, HH-COM-05,
-// HH-COM-09, T65, S01, OWN-DEC-78, OWN-DEC-132, FACT-REMINDER-CADENCES, RULE-SERVER-AUTHZ). Staff, customers, requests,
-// amounts and messages are synthetic (RULE-SYNTHETIC-DATA); nothing reaches a real provider. Here an approval
-// is the database move published -> accepted that TSK-0057's approval transaction makes; that the transaction itself
-// stops waiting drafts is tested with the real approval in estimate-approval.test.ts.
+// The automatic unanswered-estimate reminder and its stop rules against PostgreSQL 16 (TSK-0060, TSK-0121; HH-EST-14,
+// HH-COM-05, HH-COM-06, HH-COM-02, HH-COM-15, T65, S01, OWN-DEC-153, OWN-DEC-151, FACT-REMINDER-CADENCES,
+// RULE-SERVER-AUTHZ). Staff, customers, requests, amounts and messages are synthetic (RULE-SYNTHETIC-DATA); nothing
+// reaches a real provider. Here an approval is the database move published -> accepted that TSK-0057's approval
+// transaction makes; that the transaction itself stops the waiting reminder is tested with the real approval in
+// estimate-approval.test.ts. Time never depends on the clock: a due job is made due now, and the text hours are judged
+// by a fixed noon.
 import { randomUUID } from 'node:crypto'
 import { loadServiceSeed, syncServices, withTx } from '@handyhub/db'
 import { createTestDatabase, type TestDatabase } from '@handyhub/db/testing'
@@ -13,17 +15,26 @@ import { sql } from 'kysely'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildApp } from '../../src/app.js'
 import {
+  estimateReadyAutomation,
   estimateReminderAutomations,
+  estimateReminderFailureItem,
   estimateReminderRecordCheck,
+  estimateReminderValues,
   reminderStopReason,
 } from '../../src/modules/estimates/index.js'
 import { createStaffUser, setPasswordHash } from '../../src/modules/identity/accounts.js'
 import { inboxIntakeAutomation } from '../../src/modules/inbox/index.js'
 import { startCustomerSession } from '../../src/modules/identity/customer-sessions.js'
 import { hashPassword } from '../../src/modules/identity/passwords.js'
-import { recordConsent, releaseAutomation } from '../../src/modules/notifications/index.js'
+import {
+  deliveryStatusAutomation,
+  linkHostsOf,
+  recordConsent,
+  releaseAutomation,
+  releaseTemplateVersion,
+} from '../../src/modules/notifications/index.js'
 import { createAutomationRegistry, type Automation } from '../../src/platform/automation.js'
-import { recordPolicyVersion, type ConfigKey } from '../../src/platform/config/index.js'
+import { loadConfig, recordPolicyVersion, type ConfigKey } from '../../src/platform/config/index.js'
 import { createWorker } from '../../src/platform/jobs.js'
 import { runWithContext } from '../../src/platform/request-context.js'
 import { createProviders } from '../../src/providers/index.js'
@@ -31,6 +42,7 @@ import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
 import { recordWebhookReceipt } from '../../src/providers/webhooks.js'
 import { testConfig } from '../fixtures/env.js'
+import { bodyOf } from '../fixtures/message-text.js'
 import { signInWithMfa } from '../fixtures/staff-mfa.js'
 
 const pw = (n: number) => ['synthetic', 'estimate', 'reminders', 'passphrase', String(n)].join(' ')
@@ -39,6 +51,9 @@ type Person = (typeof PEOPLE)[number]
 const ROLE: Record<Person, string> = { owner: 'owner', estimator: 'estimator', other: 'estimator', office: 'office' }
 const SITE = 'http://127.0.0.1:4610'
 const MESSAGE = 'reminder.unanswered_estimate'
+const H = 3_600_000
+// The text hours are judged at a fixed noon in Louisville (EDT), never at the time the suite runs.
+const NOON = new Date('2026-10-20T16:00:00Z')
 
 let t: TestDatabase
 let app: FastifyInstance
@@ -51,15 +66,22 @@ const p = createProviders(readProviderSettings({ HANDYHUB_ENV: 'ci' }))
 if (!p.fakes.email || !p.fakes.sms || !p.email || !p.sms) throw new Error('ci uses the fakes')
 const fakeEmail = p.fakes.email
 const fakeSms = p.fakes.sms
-const release = releaseAutomation(
-  { email: p.email, sms: p.sms },
-  { recordChecks: { estimate_version: estimateReminderRecordCheck } },
-)
-const reminderAutomations = estimateReminderAutomations({ publicSiteUrl: SITE })
+const senders = { email: p.email, sms: p.sms, linkHosts: linkHostsOf(SITE, undefined), clock: () => NOON }
+const release = releaseAutomation(senders, {
+  recordChecks: { estimate_version: estimateReminderRecordCheck },
+  failureItem: estimateReminderFailureItem,
+  values: estimateReminderValues(SITE),
+})
 const fast = (a: Automation): Automation => ({ ...a, retry: { maxAttempts: 1, baseDelayMs: 1, maxDelayMs: 1 } })
 // TSK-0049 inbound intake: a customer's text arrives on the project from a stored (verified) webhook receipt.
 const intake = inboxIntakeAutomation({ inboundEmail: null, replyAddress: null })
-const registry = createAutomationRegistry([...reminderAutomations, fast(release), intake])
+const registry = createAutomationRegistry([
+  ...estimateReminderAutomations(),
+  estimateReadyAutomation({ providers: senders, publicSiteUrl: SITE }),
+  fast(release),
+  intake,
+  deliveryStatusAutomation(),
+])
 
 async function setConfig(key: ConfigKey, value: unknown, sourceIds = ['TEST-SYNTHETIC']) {
   await recordPolicyVersion(t.db, {
@@ -271,23 +293,17 @@ const reminders = (versionId: string) =>
     .where('record_type', '=', 'estimate_version')
     .where('record_id', '=', versionId)
     .where('message_key', '=', MESSAGE)
+    .orderBy('channel')
     .orderBy('seq')
     .execute()
-const draftJobs = (versionId: string) =>
+const notices = (versionId: string) =>
   t.db
-    .selectFrom('platform.jobs')
-    .select(['job_key', 'run_at', 'state', 'payload'])
-    .where('automation', '=', 'estimate.reminder_draft')
-    .where('target_id', '=', versionId)
-    .orderBy('run_at')
-    .execute()
-const itemOf = (versionId: string) =>
-  t.db
-    .selectFrom('ops.queue_items')
+    .selectFrom('platform.message_deliveries')
     .selectAll()
-    .where('type', '=', 'estimate_reminder')
-    .where('subject_id', '=', versionId)
-    .orderBy('opened_at', 'desc')
+    .where('record_type', '=', 'estimate_version')
+    .where('record_id', '=', versionId)
+    .where('message_key', '=', 'estimate.ready')
+    .orderBy('channel')
     .execute()
 const auditOf = (action: string, targetId: string) =>
   t.db
@@ -297,19 +313,48 @@ const auditOf = (action: string, targetId: string) =>
     .where('target_id', '=', targetId)
     .orderBy('seq')
     .execute()
+const issueOf = (deliveryId: string) =>
+  t.db
+    .selectFrom('ops.queue_items')
+    .selectAll()
+    .where('type', '=', 'delivery_failed')
+    .where('subject_id', '=', deliveryId)
+    .execute()
 
 /** Runs the worker until nothing is left to do now. */
 async function drain() {
   const w = createWorker({ db: t.db, registry })
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 20; i++) {
     const r = await w.runOnce()
     if (r.dispatched + r.succeeded + r.retried + r.failed + r.cancelled === 0) return
   }
 }
-/** Time passes: the version's reminder job (first or final) becomes due now. */
-async function due(versionId: string, step: 'first' | 'final') {
-  await sql`UPDATE platform.jobs SET run_at = now() WHERE automation = 'estimate.reminder_draft'
-            AND job_key = ${`estimate.reminder_draft:${versionId}:${step}`}`.execute(t.db)
+/** The provider reports the version's handed-over estimate-ready email sent (a status webhook): delivered now. */
+async function reportDelivered(versionId: string) {
+  await drain()
+  for (const d of await notices(versionId)) {
+    if (d.channel !== 'email' || !d.provider_message_id || d.state !== 'queued') continue
+    await runWithContext({ requestId: `req-estimate-reminders-${randomUUID()}` }, () =>
+      withTx(t.db, (tx) =>
+        recordWebhookReceipt(tx, {
+          provider: 'resend',
+          deliveryId: `evt-estimate-reminders-${randomUUID()}`,
+          eventType: 'email.sent',
+          providerMessageId: d.provider_message_id as string,
+          eventOccurredAt: new Date(),
+          payload: { type: 'email.sent', data: { email_id: d.provider_message_id } },
+          rawBody: Buffer.from('{}'),
+        }),
+      ),
+    )
+  }
+  await drain()
+}
+/** Time passes: the version's reminder deliveries become due now. */
+async function due(versionId: string) {
+  await sql`UPDATE platform.jobs SET run_at = now() WHERE automation = 'notify.release' AND state = 'queued'
+            AND target_id IN (SELECT id::text FROM platform.message_deliveries WHERE message_key = ${MESSAGE}
+                              AND record_id = ${versionId})`.execute(t.db)
   await drain()
 }
 /** The version move TSK-0057's approval records: the published version becomes accepted. */
@@ -318,17 +363,17 @@ const accept = (versionId: string) =>
       WHERE id = ${versionId}`.execute(t.db)
 
 type View = {
-  cadence: { state: string; firstHours?: number; finalHours?: number; firstAt?: string; finalAt?: string }
+  cadence: { state: string; afterDeliveryHours?: number; deliveredAt?: string | null; dueAt?: string | null }
   stoppedBy: string | null
   reminders: {
     id: string
-    step: string
+    release: string
     state: string
     channel: string
     reason: string | null
-    releasedBy: { id: string } | null
+    scheduledAt: string | null
+    sentAt: string | null
     cancelledBy: { id: string } | 'system' | null
-    actions: { release: boolean; dismiss: boolean }
   }[]
 }
 const view = async (versionId: string, who: Person = 'estimator') => {
@@ -336,10 +381,6 @@ const view = async (versionId: string, who: Person = 'estimator') => {
   expect(res.statusCode, res.body).toBe(200)
   return res.json<View>()
 }
-const releaseIt = (id: string, who: Person = 'estimator') =>
-  staffWrite(who, 'POST', `/api/v1/staff/estimate-reminders/${id}/release`)
-const dismissIt = (id: string, who: Person = 'estimator') =>
-  staffWrite(who, 'POST', `/api/v1/staff/estimate-reminders/${id}/dismiss`)
 
 async function customerCookie(e: Pick<Published, 'contactId' | 'projectId'>) {
   const s = await withTx(t.db, (tx) =>
@@ -378,217 +419,192 @@ const smsConsent = (e: Published, granted: boolean) =>
     }),
   )
 
-describe('[HH-EST-14][FACT-REMINDER-CADENCES][OWN-DEC-132] reminder drafts at the configured cadence', () => {
-  it('publishing schedules a first and a final draft 24 hours and 3 days after publishing; nothing is sent', async () => {
+describe('[HH-EST-14][FACT-REMINDER-CADENCES][OWN-DEC-153] one automatic reminder 3 days after delivery', () => {
+  it('publishing alone schedules nothing; the successful delivery schedules one reminder 72 hours after it', async () => {
     const e = await published()
     await drain()
-    const v = await versionRow(e.versionId)
-    const jobs = await draftJobs(e.versionId)
-    const publishedAt = (v.published_at as Date).getTime()
-    expect(jobs.map((j) => [j.job_key.split(':').at(-1), j.run_at.getTime() - publishedAt, j.state])).toEqual([
-      ['first', 24 * 3_600_000, 'queued'],
-      ['final', 72 * 3_600_000, 'queued'],
-    ])
-    // Before the first is due there is no draft and nothing in the queue.
+    // Handed to the provider, not yet reported sent: no reminder (a failed delivery never starts the clock).
     expect(await reminders(e.versionId)).toEqual([])
-    expect(await itemOf(e.versionId)).toEqual([])
-    const shown = await view(e.versionId)
-    expect(shown).toMatchObject({
-      cadence: { state: 'CONFIGURED', firstHours: 24, finalHours: 72 },
-      stoppedBy: null,
-      reminders: [],
-    })
-    expect(new Date(shown.cadence.firstAt as string).getTime()).toBe(publishedAt + 24 * 3_600_000)
-  })
-
-  it('at its time the first reminder is a staff-released draft with a queue item; it never sends by itself', async () => {
-    const e = await published()
-    await drain()
-    const sentBefore = fakeEmail.sent.length + fakeSms.sent.length
-    await due(e.versionId, 'first')
+    expect((await view(e.versionId)).cadence).toMatchObject({ state: 'CONFIGURED', deliveredAt: null, dueAt: null })
+    await reportDelivered(e.versionId)
+    const [email] = (await notices(e.versionId)).filter((d) => d.channel === 'email')
+    const deliveredAt = (email?.status_at as Date).getTime()
     const rows = await reminders(e.versionId)
-    expect(rows.map((r) => [r.subject_key, r.state, r.release, r.channel, r.locale, r.audience])).toEqual([
-      [`estimate_reminder:${e.versionId}:first`, 'draft', 'staff_released', 'email', 'en', 'customer'],
+    // One reminder per destination (the email, and the number whose text needs the SMS opt-in); no 24-hour one.
+    expect(rows.map((r) => [r.channel, r.subject_key, r.release, r.state, r.locale, r.audience])).toEqual([
+      ['email', `estimate_reminder:${e.versionId}`, 'automatic', 'queued', 'en', 'customer'],
+      ['sms', `estimate_reminder:${e.versionId}`, 'automatic', 'queued', 'en', 'customer'],
     ])
-    // The only value is the project workspace link: no amount, no estimate content, no code.
-    expect(rows[0]?.variables).toEqual({ projectLink: `${SITE}/portal/p/${e.reference}` })
-    expect(JSON.stringify(rows[0]?.variables)).not.toMatch(/420|\$/)
-    const items = await itemOf(e.versionId)
-    expect(items.map((i) => [i.reason, i.resolved_at, i.reference, i.assigned_staff_id])).toEqual([
-      ['estimate_reminder_first', null, e.reference, staff.estimator.userId],
+    expect((rows[0]?.scheduled_at as Date).getTime() - deliveredAt).toBe(72 * H)
+    // Automatic deliveries hold no stored values: they are read from the records when it sends.
+    expect(rows[0]?.variables).toEqual({})
+    const jobs = await t.db
+      .selectFrom('platform.jobs')
+      .select(['job_key', 'run_at', 'state'])
+      .where('job_key', '=', `notify.release:${rows[0]?.id}`)
+      .execute()
+    expect(jobs.map((j) => [j.state, j.run_at.getTime() - deliveredAt])).toEqual([['queued', 72 * H]])
+    expect(await auditOf('notification.scheduled', rows[0]?.id as string)).toHaveLength(1)
+    const shown = await view(e.versionId)
+    expect(shown.cadence).toMatchObject({ state: 'CONFIGURED', afterDeliveryHours: 72 })
+    expect(new Date(shown.cadence.dueAt as string).getTime()).toBe(deliveredAt + 72 * H)
+    expect(shown.reminders.map((r) => [r.channel, r.release, r.state])).toEqual([
+      ['email', 'automatic', 'queued'],
+      ['sms', 'automatic', 'queued'],
     ])
-    // Time passes and the worker runs again: still a draft, nothing sent.
-    await drain()
-    expect((await reminders(e.versionId)).map((r) => r.state)).toEqual(['draft'])
-    expect(fakeEmail.sent.length + fakeSms.sent.length).toBe(sentBefore)
-    expect(await auditOf('estimate_reminder.drafted', rows[0]?.id as string)).toHaveLength(1)
+    // Nobody releases or dismisses it any more: the TSK-0060 routes are gone.
+    for (const action of ['release', 'dismiss'])
+      expect(
+        (await staffWrite('estimator', 'POST', `/api/v1/staff/estimate-reminders/${rows[0]?.id}/${action}`)).statusCode,
+      ).toBe(404)
   })
 
-  it('[RULE-DECIDED-VALUES-ACTIVE] while the cadence is NOT CONFIGURED no reminder is scheduled', async () => {
-    const current = await t.db
-      .selectFrom('platform.policy_version')
-      .select('value')
-      .where('key', '=', 'reminders.cadences')
-      .where('status', '=', 'active')
-      .executeTakeFirstOrThrow()
-    await setConfig('reminders.cadences', null, ['TEST-SYNTHETIC'])
+  it('[HH-COM-06][OWN-DEC-151] at its time it sends once, in the owner wording with no amount; texts stay off', async () => {
+    const e = await published()
+    await reportDelivered(e.versionId)
+    const before = fakeEmail.sent.length
+    await due(e.versionId)
+    const rows = await reminders(e.versionId)
+    expect(rows.map((r) => [r.channel, r.state, r.error_code])).toEqual([
+      ['email', 'queued', null],
+      // No text wording is released until A2P 10DLC (TSK-0133): recorded as not sent, never as sent.
+      ['sms', 'failed', 'template_not_configured'],
+    ])
+    expect(rows[0]?.provider_message_id).toBeTruthy()
+    const sent = fakeEmail.sent.slice(before)
+    expect(sent).toHaveLength(1)
+    expect(sent[0]?.to).toBe(`estimate-reminders-${ip}@example.test`)
+    expect(sent[0]?.subject).toBe(`HandyHub | Following Up on Estimate #${e.number}`)
+    const body = bodyOf(sent[0]?.text)
+    expect(body).toContain('Hi Synthetic,')
+    expect(body).toContain(`${SITE}/portal/p/${e.reference}/documents/${encodeURIComponent(e.number)}/1`)
+    expect(body.replaceAll(e.reference, '').replaceAll(e.number, '')).not.toMatch(/420|\$/)
+    // The text's failure is a delivery issue staff see (not configured), never a customer non-response.
+    expect((await issueOf(rows[1]?.id as string)).map((i) => [i.reason, i.resolved_at])).toEqual([
+      ['delivery_not_configured', null],
+    ])
+    expect((await versionRow(e.versionId)).state).toBe('published')
+    // Running again (a retried job, a redelivered event, the plan of migration 0075) sends nothing more.
+    await reportDelivered(e.versionId)
+    await sql`UPDATE platform.jobs SET state = 'queued', run_at = now(), attempts = 0, finished_at = NULL
+              WHERE job_key = ${`notify.release:${rows[0]?.id}`}`.execute(t.db)
+    await withTx(t.db, (tx) =>
+      tx
+        .insertInto('platform.jobs')
+        .values({
+          automation: 'estimate.reminder_plan',
+          job_key: `estimate.reminder_plan:${e.versionId}:again`,
+          target_type: 'estimate_version',
+          target_id: e.versionId,
+          payload: '{}',
+          request_id: 'test-plan-again',
+          max_attempts: 1,
+        })
+        .execute(),
+    )
+    await drain()
+    expect(fakeEmail.sent.length - before).toBe(1)
+    expect((await reminders(e.versionId)).length).toBe(2)
+    const shown = await view(e.versionId)
+    expect(shown.reminders.map((r) => [r.channel, r.state, r.reason])).toEqual([
+      ['email', 'queued', null],
+      ['sms', 'failed', 'template_not_configured'],
+    ])
+  })
+
+  it('[RULE-DECIDED-VALUES-ACTIVE] NOT CONFIGURED cadence, or the reminder off the automatic list, schedules nothing', async () => {
+    const config = await loadConfig(t.db)
+    const cadences = config.get('reminders.cadences')
+    const automatic = config.get('messages.automatic')
+    if (cadences.state !== 'CONFIGURED' || automatic.state !== 'CONFIGURED')
+      throw new Error('migration 0075 seeds them')
+    await setConfig('reminders.cadences', null)
     try {
       const e = await published()
-      await drain()
-      expect(await draftJobs(e.versionId)).toEqual([])
+      await reportDelivered(e.versionId)
+      expect(await reminders(e.versionId)).toEqual([])
       expect((await view(e.versionId)).cadence).toEqual({ state: 'NOT_CONFIGURED' })
+      expect((await auditOf('estimate_reminder.not_scheduled', e.versionId)).map((a) => a.summary)).toEqual([
+        { messageKey: MESSAGE, reason: 'not_configured' },
+      ])
     } finally {
-      await setConfig('reminders.cadences', current.value, ['OWN-DEC-132'])
+      await setConfig('reminders.cadences', cadences.value, ['OWN-DEC-153'])
+    }
+    await setConfig('messages.automatic', {
+      ...automatic.value,
+      customer: automatic.value.customer.filter((k) => k !== MESSAGE),
+    })
+    try {
+      const e = await published()
+      await reportDelivered(e.versionId)
+      expect(await reminders(e.versionId)).toEqual([])
+    } finally {
+      await setConfig('messages.automatic', automatic.value, ['OWN-DEC-153'])
     }
   })
 
-  it('the final draft replaces a first draft nobody released (PROPOSED)', async () => {
-    const e = await published()
-    await drain()
-    await due(e.versionId, 'first')
-    await due(e.versionId, 'final')
-    const rows = await reminders(e.versionId)
-    expect(rows.map((r) => [r.subject_key.split(':').at(-1), r.state, r.error_code, r.cancelled_by])).toEqual([
-      ['first', 'cancelled', 'replaced_by_final', 'system'],
-      ['final', 'draft', null, null],
-    ])
-    expect((await itemOf(e.versionId)).map((i) => [i.reason, i.resolved_at])).toEqual([
-      ['estimate_reminder_final', null],
-    ])
-  })
+  it('[HH-COM-02][T65] a failed notice never starts the clock; a failed reminder is a delivery issue with Retry', async () => {
+    fakeEmail.script({ outcome: 'rejected', errorCode: 'synthetic_rejected' })
+    const failed = await published()
+    await reportDelivered(failed.versionId)
+    expect((await notices(failed.versionId)).find((d) => d.channel === 'email')?.state).toBe('failed')
+    expect(await reminders(failed.versionId)).toEqual([])
 
-  it('a text when the customer prefers texts and the SMS opt-in is current; otherwise email', async () => {
-    const e = await published({ preferred: 'text' })
-    const stopped = await published({ preferred: 'text' })
-    await smsConsent(stopped, false)
+    const e = await published()
+    await reportDelivered(e.versionId)
+    fakeEmail.script({ outcome: 'rejected', errorCode: 'synthetic_rejected' })
+    await due(e.versionId)
+    const [email] = await reminders(e.versionId)
+    expect([email?.state, email?.error_code]).toEqual(['failed', 'synthetic_rejected'])
+    const [issue] = await issueOf(email?.id as string)
+    expect(issue).toMatchObject({
+      reason: 'delivery_failed',
+      resolved_at: null,
+      assigned_staff_id: staff.estimator.userId,
+    })
+    // Never a customer non-response: the estimate stays pending and nothing stops.
+    expect(await reminderStopReason(t.db, e.versionId, new Date())).toBeNull()
+    const before = fakeEmail.sent.length
+    const retried = await staffWrite('estimator', 'POST', `/api/v1/staff/message-deliveries/${email?.id}/retry`)
+    expect(retried.statusCode, retried.body).toBe(200)
     await drain()
-    await due(e.versionId, 'first')
-    await due(stopped.versionId, 'first')
-    expect((await reminders(e.versionId)).map((r) => [r.channel, r.destination, r.channel_permission])).toEqual([
-      ['sms', e.phone, 'preferred'],
-    ])
-    expect((await reminders(stopped.versionId)).map((r) => [r.channel, r.channel_permission])).toEqual([
-      ['email', 'permitted'],
-    ])
+    expect(fakeEmail.sent.length - before).toBe(1)
+    expect((await reminders(e.versionId))[0]?.state).toBe('queued')
+    expect((await issueOf(email?.id as string))[0]?.resolved_at).not.toBeNull()
   })
 })
 
-describe('[HH-EST-14][T65][HH-COM-05] stop rules at draft, release and send time', () => {
-  it('approval before the reminder cancels it: no draft is prepared', async () => {
+describe('[HH-EST-14][T65][HH-COM-05][OWN-DEC-153] cancelled when its condition ends; rechecked at send time', () => {
+  it('approved before it is due: the send-time recheck cancels it with the reason; nothing is sent', async () => {
     const e = await published()
-    await drain()
+    await reportDelivered(e.versionId)
     await accept(e.versionId)
-    await due(e.versionId, 'first')
-    expect(await reminders(e.versionId)).toEqual([])
-    expect(await itemOf(e.versionId)).toEqual([])
-    const stopped = await auditOf('estimate_reminder.stop', e.versionId)
-    expect(stopped.map((a) => a.summary)).toEqual([
-      { messageKey: MESSAGE, step: 'first', reason: 'accepted', drafted: false },
+    const before = fakeEmail.sent.length
+    await due(e.versionId)
+    expect((await reminders(e.versionId)).map((r) => [r.channel, r.state, r.error_code, r.cancelled_by])).toEqual([
+      ['email', 'cancelled', 'accepted', 'system'],
+      ['sms', 'cancelled', 'accepted', 'system'],
     ])
+    expect(fakeEmail.sent.length).toBe(before)
     expect((await view(e.versionId, 'owner')).stoppedBy).toBe('accepted')
+    const [row] = await reminders(e.versionId)
+    expect(await auditOf('notification.cancelled', row?.id as string)).toHaveLength(1)
   })
 
-  it('recheck at send time: a reminder released, then the estimate approved before the send, is cancelled', async () => {
+  it('a customer response cancels the scheduled reminder at once, in its own transaction', async () => {
     const e = await published()
-    await drain()
-    await due(e.versionId, 'first')
-    const [draft] = await reminders(e.versionId)
-    const sentBefore = fakeEmail.sent.length
-    // The release is audited and its send job is due at once: an estimate reminder has no contact-hours wait.
-    await sql`UPDATE platform.jobs SET run_at = now() + interval '1 hour' WHERE automation = 'notify.release'`.execute(
-      t.db,
-    )
-    const res = await releaseIt(draft?.id as string)
-    expect(res.statusCode, res.body).toBe(200)
-    const job = await t.db
-      .selectFrom('platform.jobs')
-      .select(['run_at', 'created_at'])
-      .where('job_key', '=', `notify.release:${draft?.id}`)
-      .executeTakeFirstOrThrow()
-    expect(Math.abs(job.run_at.getTime() - job.created_at.getTime())).toBeLessThan(5_000)
-    expect((await reminders(e.versionId))[0]).toMatchObject({ state: 'queued', released_by: staff.estimator.userId })
-    expect((await itemOf(e.versionId))[0]).toMatchObject({ resolution: 'released' })
-    // The customer accepts before the send job runs.
-    await accept(e.versionId)
-    await drain()
-    expect((await reminders(e.versionId)).map((r) => [r.state, r.error_code])).toEqual([['cancelled', 'accepted']])
-    expect(fakeEmail.sent.length).toBe(sentBefore)
-    const audit = await auditOf('notification.cancelled', draft?.id as string)
-    expect(audit).toHaveLength(1)
-  })
-
-  it('a customer response cancels the waiting draft at once with its reason, and resolves the queue item', async () => {
-    const e = await published()
-    await drain()
-    await due(e.versionId, 'first')
+    await reportDelivered(e.versionId)
     await requestChanges(e)
-    const rows = await reminders(e.versionId)
-    expect(rows.map((r) => [r.state, r.error_code, r.cancelled_by])).toEqual([
+    expect((await reminders(e.versionId)).map((r) => [r.state, r.error_code, r.cancelled_by])).toEqual([
+      ['cancelled', 'customer_responded', 'system'],
       ['cancelled', 'customer_responded', 'system'],
     ])
-    expect((await itemOf(e.versionId))[0]).toMatchObject({ resolution: 'stopped' })
-    expect((await auditOf('estimate_reminder.stop', rows[0]?.id as string)).map((a) => a.summary)).toEqual([
-      { messageKey: MESSAGE, step: 'first', channel: 'email', reason: 'customer_responded' },
-    ])
-    // The version is still the published offer, but the final reminder is not drafted either.
     expect((await versionRow(e.versionId)).state).toBe('published')
-    await due(e.versionId, 'final')
-    expect((await reminders(e.versionId)).map((r) => r.subject_key.split(':').at(-1))).toEqual(['first'])
-    const res = await releaseIt(rows[0]?.id as string)
-    expect(res.statusCode).toBe(409)
-    expect(res.json<{ error: { fieldErrors: { code: string }[] } }>().error.fieldErrors[0]?.code).toBe(
-      'REMINDER_NOT_DRAFT',
-    )
   })
 
-  it('a release rechecks the stop rule: approved meanwhile, it refuses and keeps the draft cancelled with the reason', async () => {
+  it('a newer version supersedes the older one’s reminder; withdrawing stops the newer one; neither is sent', async () => {
     const e = await published()
-    await drain()
-    await due(e.versionId, 'first')
-    const [draft] = await reminders(e.versionId)
-    // Approved after the draft was prepared (the approval transaction is TSK-0057's).
-    await accept(e.versionId)
-    const shown = await view(e.versionId)
-    expect(shown.stoppedBy).toBe('accepted')
-    expect(shown.reminders[0]?.actions).toEqual({ release: false, dismiss: true })
-    const res = await releaseIt(draft?.id as string)
-    expect(res.statusCode).toBe(409)
-    expect(res.json<{ error: { fieldErrors: { field: string; code: string }[] } }>().error.fieldErrors).toEqual([
-      { field: 'reminder', code: 'accepted', message: expect.any(String) as string },
-    ])
-    expect((await reminders(e.versionId)).map((r) => [r.state, r.error_code, r.released_by])).toEqual([
-      ['cancelled', 'accepted', null],
-    ])
-    expect((await itemOf(e.versionId))[0]).toMatchObject({ resolution: 'stopped' })
-    const denied = await auditOf('estimate_reminder.release', draft?.id as string)
-    expect(denied.map((a) => a.result)).toEqual(['denied'])
-    const jobs = await t.db
-      .selectFrom('platform.jobs')
-      .select('id')
-      .where('job_key', '=', `notify.release:${draft?.id}`)
-      .execute()
-    expect(jobs).toEqual([])
-  })
-
-  it('an SMS STOP after the draft refuses the release (opt-out) and nothing is texted', async () => {
-    const e = await published({ preferred: 'text' })
-    await drain()
-    await due(e.versionId, 'first')
-    const [draft] = await reminders(e.versionId)
-    expect(draft?.channel).toBe('sms')
-    await smsConsent(e, false)
-    const texted = fakeSms.sent.length
-    const res = await releaseIt(draft?.id as string)
-    expect(res.statusCode).toBe(409)
-    expect(res.json<{ error: { fieldErrors: { code: string }[] } }>().error.fieldErrors[0]?.code).toBe('sms_opted_out')
-    expect((await reminders(e.versionId)).map((r) => [r.state, r.error_code])).toEqual([['cancelled', 'sms_opted_out']])
-    expect(fakeSms.sent.length).toBe(texted)
-  })
-
-  it('publishing a newer version stops the older version’s waiting draft (superseded); withdraw stops too', async () => {
-    const e = await published()
-    await drain()
-    await due(e.versionId, 'first')
+    await reportDelivered(e.versionId)
     const revised = await staffWrite('estimator', 'POST', `/api/v1/staff/estimate-versions/${e.versionId}/revise`)
     expect(revised.statusCode, revised.body).toBe(201)
     const v2 = revised.json<{ versionId: string }>().versionId
@@ -596,12 +612,16 @@ describe('[HH-EST-14][T65][HH-COM-05] stop rules at draft, release and send time
     expect(
       (await staffWrite('estimator', 'POST', `/api/v1/staff/estimate-versions/${v2}/publish`, {}, row)).statusCode,
     ).toBe(200)
-    expect((await reminders(e.versionId)).map((r) => [r.state, r.error_code])).toEqual([['cancelled', 'superseded']])
-    expect((await itemOf(e.versionId))[0]).toMatchObject({ resolution: 'stopped' })
-
-    await drain()
-    await due(v2, 'first')
-    expect((await reminders(v2)).map((r) => r.state)).toEqual(['draft'])
+    expect((await reminders(e.versionId)).map((r) => [r.state, r.error_code])).toEqual([
+      ['cancelled', 'superseded'],
+      ['cancelled', 'superseded'],
+    ])
+    // The new version gets its own reminder from its own delivery (one reminder per version).
+    await reportDelivered(v2)
+    expect((await reminders(v2)).map((r) => [r.subject_key, r.state])).toEqual([
+      [`estimate_reminder:${v2}`, 'queued'],
+      [`estimate_reminder:${v2}`, 'queued'],
+    ])
     const v2Row = await versionRow(v2)
     const out = await staffWrite(
       'estimator',
@@ -611,7 +631,14 @@ describe('[HH-EST-14][T65][HH-COM-05] stop rules at draft, release and send time
       v2Row.row_version,
     )
     expect(out.statusCode, out.body).toBe(200)
-    expect((await reminders(v2)).map((r) => [r.state, r.error_code])).toEqual([['cancelled', 'withdrawn']])
+    expect((await reminders(v2)).map((r) => [r.state, r.error_code])).toEqual([
+      ['cancelled', 'withdrawn'],
+      ['cancelled', 'withdrawn'],
+    ])
+    const before = fakeEmail.sent.length
+    await due(e.versionId)
+    await due(v2)
+    expect(fakeEmail.sent.length).toBe(before)
   })
 
   it('the stop rule reads every reason from the records as they are now', async () => {
@@ -636,83 +663,23 @@ describe('[HH-EST-14][T65][HH-COM-05] stop rules at draft, release and send time
   })
 })
 
-describe('[HH-EST-14][HH-COM-09][T65] a released estimate reminder sends at once; a failed delivery is a staff issue', () => {
-  it('sends at once at any hour; with the owner wording not wired yet it is recorded as not sent, never as sent', async () => {
+describe('[HH-EST-14][RULE-SERVER-AUTHZ] staff see the reminder', () => {
+  it('the Owner and Estimators see it; Office may not open the estimate screen; customers never', async () => {
     const e = await published()
-    await drain()
-    await due(e.versionId, 'first')
-    const [draft] = await reminders(e.versionId)
-    const res = await releaseIt(draft?.id as string, 'owner')
-    expect(res.statusCode, res.body).toBe(200)
-    await drain()
-    const [row] = await reminders(e.versionId)
-    // TSK-0119: the owner's estimate_reminder wording is released; its values are wired by TSK-0121 (not wired).
-    expect([row?.state, row?.error_code]).toEqual(['failed', 'template_values_not_wired'])
-    const shown = await view(e.versionId)
-    expect(shown.reminders[0]).toMatchObject({
-      state: 'failed',
-      reason: 'template_values_not_wired',
-      releasedBy: { id: staff.owner.userId },
-      actions: { release: false, dismiss: false },
-    })
-    // A failed delivery is never a customer non-response: the estimate is unchanged and the final is still drafted.
-    expect((await versionRow(e.versionId)).state).toBe('published')
-    expect(shown.stoppedBy).toBeNull()
-    await due(e.versionId, 'final')
-    expect((await reminders(e.versionId)).map((r) => [r.subject_key.split(':').at(-1), r.state])).toEqual([
-      ['first', 'failed'],
-      ['final', 'draft'],
-    ])
-  })
-})
-
-describe('[HH-EST-14][RULE-SERVER-AUTHZ] staff review, send and dismiss', () => {
-  it('dismiss keeps the draft as cancelled with who dismissed it; a second dismiss is a conflict', async () => {
-    const e = await published()
-    await drain()
-    await due(e.versionId, 'first')
-    const [draft] = await reminders(e.versionId)
-    const res = await dismissIt(draft?.id as string)
-    expect(res.statusCode, res.body).toBe(200)
-    expect(res.json<View>().reminders[0]).toMatchObject({
-      state: 'cancelled',
-      reason: 'dismissed',
-      cancelledBy: { id: staff.estimator.userId },
-    })
-    expect((await itemOf(e.versionId))[0]).toMatchObject({ resolution: 'dismissed' })
-    const audit = await auditOf('estimate_reminder.dismiss', draft?.id as string)
-    expect(audit.map((a) => [a.actor_kind, a.actor_id])).toEqual([['staff', staff.estimator.userId]])
-    expect((await dismissIt(draft?.id as string)).statusCode).toBe(409)
-  })
-
-  it('an Estimator releases only reminders of estimates they prepared; Office may not open the estimate screen', async () => {
-    const e = await published()
-    await drain()
-    await due(e.versionId, 'first')
-    const [draft] = await reminders(e.versionId)
-    expect((await releaseIt(draft?.id as string, 'other')).statusCode).toBe(403)
-    expect((await dismissIt(draft?.id as string, 'other')).statusCode).toBe(403)
-    const theirs = await view(e.versionId, 'other')
-    expect(theirs.reminders[0]?.actions).toEqual({ release: false, dismiss: false })
+    await reportDelivered(e.versionId)
+    expect((await view(e.versionId, 'other')).reminders).toHaveLength(2)
+    expect((await view(e.versionId, 'owner')).reminders).toHaveLength(2)
     expect((await staffGet('office', `/api/v1/staff/estimate-versions/${e.versionId}/reminders`)).statusCode).toBe(403)
-    expect((await reminders(e.versionId)).map((r) => r.state)).toEqual(['draft'])
-    // Unknown deliveries and other messages' deliveries are not found.
-    expect((await releaseIt(randomUUID(), 'owner')).statusCode).toBe(404)
-  })
-
-  it('a customer cannot reach the staff routes', async () => {
-    const e = await published()
-    const cookie = await customerCookie(e)
     const res = await app.inject({
       method: 'GET',
       url: `/api/v1/staff/estimate-versions/${e.versionId}/reminders`,
-      headers: { cookie },
+      headers: { cookie: await customerCookie(e) },
     })
     expect([401, 403, 404]).toContain(res.statusCode)
   })
 })
 
-describe('[HH-EST-14][T65] customer messages and question replies stop the waiting reminders (TSK-0049, TSK-0050, TSK-0051)', () => {
+describe('[HH-EST-14][T65] customer messages and question replies cancel the scheduled reminder (TSK-0049, TSK-0050, TSK-0051)', () => {
   let hook = 0
   /** A customer's text as the Bird webhook stores it (verified receipt and outbox event), then the inbox intake. */
   async function textIn(from: string, text: string) {
@@ -746,22 +713,17 @@ describe('[HH-EST-14][T65] customer messages and question replies stop the waiti
   const verifyPhone = (contactId: string) =>
     sql`UPDATE crm.contacts SET phone_verification = 'verified', phone_verified_value = phone_e164
         WHERE id = ${contactId}`.execute(t.db)
-  async function waitingDraft(e: Published) {
-    await drain()
-    await due(e.versionId, 'first')
+  async function scheduled(e: Published) {
+    await reportDelivered(e.versionId)
     const rows = await reminders(e.versionId)
-    expect(rows.map((r) => r.state)).toEqual(['draft'])
-    return rows[0]?.id as string
+    expect(rows.map((r) => r.state)).toEqual(['queued', 'queued'])
   }
   async function expectStopped(e: Published, reason: string) {
     expect((await reminders(e.versionId)).map((r) => [r.state, r.error_code, r.cancelled_by])).toEqual([
       ['cancelled', reason, 'system'],
+      ['cancelled', reason, 'system'],
     ])
-    expect((await itemOf(e.versionId))[0]).toMatchObject({ resolution: 'stopped' })
     expect((await view(e.versionId, 'owner')).stoppedBy).toBe(reason)
-    // The final reminder is not drafted either.
-    await due(e.versionId, 'final')
-    expect((await reminders(e.versionId)).map((r) => r.subject_key.split(':').at(-1))).toEqual(['first'])
   }
   const portalMessage = async (e: Published, text: string) =>
     app.inject({
@@ -775,27 +737,24 @@ describe('[HH-EST-14][T65] customer messages and question replies stop the waiti
       },
     })
 
-  it('an inbound text matched to the project cancels the waiting draft at once; an SMS keyword does not', async () => {
+  it('an inbound text matched to the project cancels it at once; an SMS keyword does not', async () => {
     const e = await published()
     await verifyPhone(e.contactId)
-    await waitingDraft(e)
-    // HELP is consent handling (TSK-0048), not a response: the draft keeps waiting.
+    await scheduled(e)
+    // HELP is consent handling (TSK-0048), not a response: the reminder keeps waiting.
     const help = await textIn(e.phone, 'HELP')
     expect(help).toMatchObject({ link_state: 'matched', project_id: e.projectId, keyword: 'help' })
     expect(await reminderStopReason(t.db, e.versionId, new Date())).toBeNull()
-    expect((await reminders(e.versionId)).map((r) => r.state)).toEqual(['draft'])
     const m = await textIn(e.phone, 'Synthetic: can we talk about the estimate?')
     expect(m).toMatchObject({ link_state: 'matched', project_id: e.projectId, keyword: null })
     await expectStopped(e, 'customer_message')
   })
 
-  it('a message staff link to the project from Needs Linking cancels the waiting draft (TSK-0049 link)', async () => {
+  it('a message staff link to the project from Needs Linking cancels it (TSK-0049 link)', async () => {
     const e = await published()
-    await waitingDraft(e)
-    // An unknown number: Needs Linking, on no project, so nothing stops yet.
+    await scheduled(e)
     const m = await textIn(`+1502555${String(9000 + hook).slice(-4)}`, 'Synthetic: about my estimate')
     expect(m).toMatchObject({ link_state: 'needs_linking', project_id: null })
-    expect((await reminders(e.versionId)).map((r) => r.state)).toEqual(['draft'])
     const linked = await staffWrite(
       'office',
       'POST',
@@ -807,18 +766,17 @@ describe('[HH-EST-14][T65] customer messages and question replies stop the waiti
     await expectStopped(e, 'customer_message')
   })
 
-  it('a message the customer writes in the portal cancels the waiting draft at once (TSK-0051 Messages)', async () => {
+  it('a message the customer writes in the portal cancels it at once (TSK-0051 Messages)', async () => {
     const e = await published()
-    await waitingDraft(e)
+    await scheduled(e)
     const res = await portalMessage(e, 'Synthetic: could the work start in the afternoon?')
     expect(res.statusCode, res.body).toBe(201)
     await expectStopped(e, 'customer_message')
   })
 
-  it('a reply to a question cancels the waiting draft at once (TSK-0051 question replies)', async () => {
+  it('a reply to a question cancels it at once (TSK-0051 question replies)', async () => {
     const e = await published()
-    await waitingDraft(e)
-    // A question HandyHub asked on the request and that is still open (synthetic fixture row).
+    await scheduled(e)
     const q = await t.db
       .insertInto('intake.questions')
       .values({
@@ -843,20 +801,33 @@ describe('[HH-EST-14][T65] customer messages and question replies stop the waiti
     expect(res.statusCode, res.body).toBe(201)
     await expectStopped(e, 'question_replied')
   })
+})
 
-  it('recheck at send time: a reminder released, then a customer message before the send, is cancelled', async () => {
-    const e = await published()
-    const id = await waitingDraft(e)
-    const sentBefore = fakeEmail.sent.length
-    // The worker does not run between the release and the message: the send job is still waiting.
-    expect((await releaseIt(id)).statusCode).toBe(200)
-    expect((await portalMessage(e, 'Synthetic: one more question first.')).statusCode).toBe(201)
-    // Released (queued), not a draft: the send job's record check stops it.
-    expect((await reminders(e.versionId)).map((r) => r.state)).toEqual(['queued'])
-    await drain()
-    expect((await reminders(e.versionId)).map((r) => [r.state, r.error_code])).toEqual([
-      ['cancelled', 'customer_message'],
+// Last in the file: it releases a synthetic text wording, which the tests above must not have.
+describe('[HH-COM-05] consent is rechecked at send time', () => {
+  it('an SMS STOP after scheduling suppresses the text at send time; the email still goes', async () => {
+    const e = await published({ preferred: 'text' })
+    await reportDelivered(e.versionId)
+    // Synthetic text wording for this test only (no reminder text is released until A2P 10DLC, TSK-0133).
+    await withTx(t.db, (tx) =>
+      releaseTemplateVersion(tx, {
+        messageKey: MESSAGE,
+        channel: 'sms',
+        locale: 'en',
+        subject: null,
+        body: 'Synthetic test reminder: {estimateLink}',
+        translationReview: 'source',
+        sourceIds: ['TSK-0121'],
+        releasedBy: 'staff-synthetic-owner',
+      }),
+    )
+    await smsConsent(e, false)
+    const texted = fakeSms.sent.length
+    await due(e.versionId)
+    expect((await reminders(e.versionId)).map((r) => [r.channel, r.state, r.error_code])).toEqual([
+      ['email', 'queued', null],
+      ['sms', 'suppressed', 'sms_opted_out'],
     ])
-    expect(fakeEmail.sent.length).toBe(sentBefore)
+    expect(fakeSms.sent.length).toBe(texted)
   })
 })

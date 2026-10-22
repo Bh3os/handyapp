@@ -10,8 +10,9 @@
 // - Pressing Send is the release (no second approval): in one transaction the reply is written to the project's
 //   customer conversation exactly as typed (the customer reads it in the portal's Messages tab at once), its one
 //   staff.reply delivery is drafted and released by the staff member, and a `notify.release` job sends it at the
-//   release time: at once inside the daily contact hours, otherwise at the next opening (replies.contact_hours,
-//   PROPOSED). The send rechecks the contact, consent and the template at send time; a delivery that fails becomes a
+//   release time. TSK-0122 (OWN-DEC-154, messages.delivery_hours): an email goes at once, at any hour; a text waits for
+//   the recipient's permitted local hours (8 AM–10 PM in their verified zone; 9 AM–9 PM Eastern while it is unknown),
+//   and the composer says which applies. The send rechecks the contact, consent and the template at send time; a delivery that fails becomes a
 //   delivery issue with Retry, and a retry presents the same provider idempotency key, so one reply is one message.
 // - The customer content language is English whatever the staff member's interface language (HH-COM-03): the reply
 //   template is the English one; the staff member's own text is kept as written. Card numbers are refused.
@@ -36,17 +37,16 @@ import {
   portalLink,
   present,
   templateReadiness,
-  heldToContactHours,
+  nextTextTime,
   releaseAutomation,
   releaseDraft,
-  releaseTime,
   STAFF_REPLY_MESSAGE_KEY,
+  textWindowFor,
   type FailureItem,
   type RecordCheck,
   type ReleaseFailureItem,
   type ReleaseValues,
 } from '../notifications/index.js'
-import { nextContactTime } from '../notifications/contact-hours.js'
 import { ensureConversation, resolveCustomerReplied, touchConversation } from './conversations.js'
 import {
   PROJECT_CONVERSATION,
@@ -180,31 +180,45 @@ export function channelRefusal(options: readonly ChannelOption[], channel: Reply
   return null
 }
 
-export type ContactHoursState = {
+/** When a text sent now would go out (TSK-0122, HH-COM-15). */
+export type TextHoursState = {
   state: 'open' | 'closed' | 'not_configured'
-  applies: boolean
   open: string | null
   close: string | null
   zone: string | null
+  /** The recipient's own verified zone, or the unknown-zone fallback window. */
+  basis: 'recipient_zone' | 'unknown_zone_fallback' | null
   sendAt: Date
 }
 
-/** The daily contact hours as they apply to a reply sent at `now` (HH-COM-09). */
-export function replyContactHours(config: Config, now: Date): ContactHoursState {
-  const held = heldToContactHours(config, STAFF_REPLY_MESSAGE_KEY)
-  const hours = config.get('contact.hours')
-  const zone = config.get('business.timezone')
-  const sendAt = releaseTime(config, STAFF_REPLY_MESSAGE_KEY, now)
-  if (held === 'not_configured' || hours.state !== 'CONFIGURED' || zone.state !== 'CONFIGURED')
-    return { state: 'not_configured', applies: false, open: null, close: null, zone: null, sendAt }
-  const inside = nextContactTime(now, hours.value, zone.value.zone).getTime() === now.getTime()
+/**
+ * How a reply sent at `now` is delivered (OWN-DEC-154): the email at once, at any hour; the text inside the
+ * recipient's permitted hours, or at their next opening. While the rule or the hours are NOT CONFIGURED a text is not
+ * sent at all (the send records why), and the composer says so.
+ */
+export async function replyDeliveryHours(
+  db: Db | Tx,
+  config: Config,
+  contactId: string | null,
+  now: Date,
+): Promise<{ email: { sendAt: Date }; text: TextHoursState }> {
+  const window = await textWindowFor(db, { kind: 'customer_contact', id: contactId }, config)
+  if (!window)
+    return {
+      email: { sendAt: now },
+      text: { state: 'not_configured', open: null, close: null, zone: null, basis: null, sendAt: now },
+    }
+  const at = nextTextTime(now, window)
   return {
-    state: inside ? 'open' : 'closed',
-    applies: held,
-    open: hours.value.open,
-    close: hours.value.close,
-    zone: zone.value.zone,
-    sendAt,
+    email: { sendAt: now },
+    text: {
+      state: at.getTime() === now.getTime() ? 'open' : 'closed',
+      open: window.open,
+      close: window.close,
+      zone: window.zone,
+      basis: window.basis,
+      sendAt: at,
+    },
   }
 }
 
@@ -214,7 +228,8 @@ export type SentReply = {
   deliveryId: string
   channel: ReplyChannel
   sendAt: Date
-  heldForContactHours: boolean
+  /** TSK-0122: the text waits for the recipient's permitted hours. */
+  heldForTextHours: boolean
 }
 
 export class ReplyError extends Error {
@@ -314,7 +329,7 @@ export async function sendReply(
     deliveryId: draft.id,
     channel: input.channel,
     sendAt: runAt,
-    heldForContactHours: runAt.getTime() > input.now.getTime(),
+    heldForTextHours: runAt.getTime() > input.now.getTime(),
   }
 }
 
@@ -489,8 +504,10 @@ export function replyRoutes(deps: ReplyDeps = {}): RouteDef[] {
       'whether each is permitted now (email: the address verified and service messages not withdrawn; text: the ' +
       'number verified and a current SMS opt-in, which a STOP withdraws), the channel Send uses without a choice ' +
       '(the preferred one while it is permitted; null: staff choose among the permitted ones, never switched ' +
-      'silently), the daily contact hours as they apply to a reply sent now (open or closed, and when its email or ' +
-      'text would go out), whether released reply wording exists per channel, and the longest reply.',
+      'silently), when a reply sent now goes out by each channel (TSK-0122: the email at once, at any hour; the text ' +
+      'inside the recipient’s permitted hours, 8 AM–10 PM in their verified zone or 9 AM–9 PM Eastern while it is ' +
+      'unknown, otherwise at their next opening), whether released reply wording exists per channel, and the longest ' +
+      'reply.',
     schema: { params: PROJECT_PARAMS, response: { 200: REPLY_OPTIONS } },
     handler: async (ctx) => {
       const { projectId } = ctx.req.params as { projectId: string }
@@ -498,7 +515,7 @@ export function replyRoutes(deps: ReplyDeps = {}): RouteDef[] {
       const contact = await replyContact(ctx.db, p.id)
       const opts = contact ? await channelOptions(ctx.db, contact.id) : []
       const config = await loadConfig(ctx.db)
-      const hours = replyContactHours(config, now())
+      const hours = await replyDeliveryHours(ctx.db, config, contact?.id ?? null, now())
       const template = async (channel: ReplyChannel) =>
         // TSK-0119: configured only when the released wording's values are supplied (templateReadiness).
         (await templateReadiness(ctx.db, STAFF_REPLY_MESSAGE_KEY, channel, 'en')).state === 'ready'
@@ -510,7 +527,10 @@ export function replyRoutes(deps: ReplyDeps = {}): RouteDef[] {
           preferred: contact?.preferred ?? 'call',
           options: opts,
           defaultChannel: defaultChannel(opts),
-          contactHours: { ...hours, sendAt: hours.sendAt.toISOString() },
+          deliveryHours: {
+            email: { sendAt: hours.email.sendAt.toISOString() },
+            text: { ...hours.text, sendAt: hours.text.sendAt.toISOString() },
+          },
           templates: { email: await template('email'), sms: await template('sms') },
           maxLength: REPLY_MAX_LENGTH,
         },
@@ -529,8 +549,8 @@ export function replyRoutes(deps: ReplyDeps = {}): RouteDef[] {
       'conversation exactly as written (the customer reads it in the portal’s Messages tab) and its one email or ' +
       'text is released through the chosen channel: the preferred channel while it is permitted, otherwise one of the ' +
       'permitted channels staff chose (CONFLICT PREFERRED_CHANNEL_AVAILABLE, CHANNEL_UNAVAILABLE or ' +
-      'NO_PERMITTED_CHANNEL otherwise; never switched silently). Inside the daily contact hours it goes at once; ' +
-      'outside them it waits for the next opening (replies.contact_hours). The consent, the contact and the English ' +
+      'NO_PERMITTED_CHANNEL otherwise; never switched silently). An email goes at once, at any hour; a text inside the ' +
+      'recipient’s permitted hours, otherwise at their next opening (messages.delivery_hours). The consent, the contact and the English ' +
       'template are rechecked at send time; the delivery records what truly happened, and a failure becomes a ' +
       'delivery issue with Retry. With the same Idempotency-Key a retried submission returns the first answer and ' +
       'sends nothing more. Card numbers are refused; never write passwords or access codes in a reply. The audit ' +
@@ -575,7 +595,7 @@ export function replyRoutes(deps: ReplyDeps = {}): RouteDef[] {
           channel: sent.channel,
           delivery: sent.deliveryId,
           sendAt: sent.sendAt.toISOString(),
-          heldForContactHours: sent.heldForContactHours,
+          heldForTextHours: sent.heldForTextHours,
         },
       })
       return {
@@ -588,7 +608,7 @@ export function replyRoutes(deps: ReplyDeps = {}): RouteDef[] {
             channel: sent.channel,
             state: 'queued',
             sendAt: sent.sendAt.toISOString(),
-            heldForContactHours: sent.heldForContactHours,
+            heldForTextHours: sent.heldForTextHours,
           },
         },
       }

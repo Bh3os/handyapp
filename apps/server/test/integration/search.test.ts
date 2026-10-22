@@ -4,13 +4,15 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createDb, loadServiceSeed, syncServices } from '@handyhub/db'
+import { createDb, loadServiceSeed, syncServices, withTx } from '@handyhub/db'
 import { createTestDatabase, type TestDatabase } from '@handyhub/db/testing'
 import { countySlug, SERVICE_AREA } from '@handyhub/domain/areas'
 import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildApp } from '../../src/app.js'
 import { testConfig } from '../fixtures/env.js'
+import { createStaffUser } from '../../src/modules/identity/accounts.js'
+import { recordPolicyVersion } from '../../src/platform/config/index.js'
 
 const NOINDEX = '<meta name="robots" content="noindex, nofollow" />'
 const page = (h1: string, head = '') => `<!doctype html><html><head>${head}<title>t</title></head><h1>${h1}</h1></html>`
@@ -35,14 +37,40 @@ let production: FastifyInstance
 let split: FastifyInstance
 beforeAll(async () => {
   t = await createTestDatabase()
+  // The registry publishes every quality-reviewed version (TSK-0132, OWN-DEC-180). For the environment rule: DW-01 is
+  // moved back to staging only, CL-01 to a draft; PT-01 stays published with its reviewed, approved version.
   await syncServices(t.db, loadServiceSeed())
-  // DW-01 shown on staging; PT-01 approved and published for production; CL-01 stays a draft.
   await t.db.updateTable('catalog.services').set({ public_status: 'staging' }).where('id', '=', 'SVC-DW-01').execute()
+  await t.db.updateTable('catalog.services').set({ public_status: 'draft' }).where('id', '=', 'SVC-CL-01').execute()
   await t.db
     .updateTable('catalog.services')
     .set({ public_status: 'published', published_version: 1 })
     .where('id', '=', 'SVC-PT-01')
     .execute()
+  // TSK-0142: production is indexed only in launch phase 3. This throwaway database is moved there by a synthetic
+  // Owner, one step at a time (phase 1 noindex is tested in launch-phase.test.ts).
+  await withTx(t.db, async (tx) => {
+    const owner = await createStaffUser(tx, {
+      email: 'owner-search@example.test',
+      displayName: 'Synthetic owner',
+      locale: 'en',
+      role: 'owner',
+      issuedBy: 'test',
+    })
+    await tx
+      .updateTable('identity.staff_users')
+      .set({ status: 'active', activated_at: new Date() })
+      .where('id', '=', owner.id)
+      .execute()
+    for (const phase of ['invited_customers', 'public'] as const)
+      await recordPolicyVersion(tx, {
+        key: 'launch.phase',
+        value: { phase },
+        sourceIds: ['TEST-SYNTHETIC'],
+        changedBy: owner.id,
+        reason: 'synthetic test configuration',
+      })
+  })
   ci = await buildApp({ config: { ...testConfig(), siteDir }, api: { db: t.db } })
   ci.get('/synthetic-failure', async () => {
     throw new Error('synthetic page failure')
@@ -131,7 +159,7 @@ describe('sitemap.xml (TSK-0023, HH-CUS-04, HH-CUS-05)', () => {
     expect(res.body).toContain('<loc>http://localhost/</loc>')
   })
 
-  it('[HH-CUS-05][OWN-DEC-84] production lists only the owner-approved, published services', async () => {
+  it('[HH-CUS-05][OWN-DEC-180] production lists only the published services with an approved version', async () => {
     const res = await production.inject({ method: 'GET', url: '/sitemap.xml', headers: { host: 'www.example.test' } })
     expect(locs(res.body)).toEqual(['/', '/areas', '/services', '/services/interior-painting'])
     expect(res.body).toContain('<loc>https://www.example.test/areas</loc>')

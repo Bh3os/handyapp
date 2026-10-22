@@ -14,6 +14,8 @@
 // - TSK-0063: the visits feed the status (windows offered for the customer to choose, a confirmed visit) and the
 //   appointment beside it: the next confirmed visit with its date, arrival window, address, purpose and preparation
 //   instructions (visits/offers.ts appointmentsOf, the same customer view as the Appointments tab).
+// - TSK-0077: an open or under-review critical safety hold of the project makes the status "Work is paused for safety
+//   review." and nothing more: the hazard, its report and every staff detail stay on the server.
 import type { Db, Tx } from '@handyhub/db'
 import {
   customerStatus,
@@ -155,6 +157,16 @@ async function overviewFor(db: Reader, project: { id: string; reference: string 
   // TSK-0059: the job's deposit for the payment summary (the amount due, verified and pending money, the Square link).
   const payment = await customerDeposit(db, project.id)
   const visits = overviewVisitFacts(await appointmentsOf(db, project.id, now), p.state === 'approved')
+  // TSK-0077 (HH-WORK-09, T48): an unresolved critical safety hold shows only "Work is paused for safety review.":
+  // no hazard, report, note or worker is read for the customer (HH-INC-02).
+  const safety = await db
+    .selectFrom('work.holds')
+    .select('id')
+    .where('project_id', '=', project.id)
+    .where('kind', '=', 'critical_safety')
+    .where('state', 'in', ['open', 'under_review'])
+    .limit(1)
+    .executeTakeFirst()
   const facts: PortalFacts = {
     requestState: r.state as RequestState,
     projectState: p.state as ProjectState,
@@ -166,6 +178,7 @@ async function overviewFor(db: Reader, project: { id: string; reference: string 
     visitWindowsOffered: visits.visitWindowsOffered,
     workWindowsOffered: visits.workWindowsOffered,
     ...(visits.visit ? { visit: visits.visit } : {}),
+    ...(safety ? { hold: 'safety' as const } : {}),
   }
   const status = customerStatus(facts)
   // The entry that put the project where it is now dates the status and carries its customer text.
