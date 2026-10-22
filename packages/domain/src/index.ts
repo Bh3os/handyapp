@@ -16,6 +16,7 @@ import { REQUEST_MACHINE } from './request.js'
 import { VISIT_MACHINE } from './visit.js'
 import { SOP_VERSION_MACHINE } from './sop.js'
 import { WINDOW_OFFER_MACHINE } from './window-offer.js'
+import { GATE_EXCEPTION_MACHINE } from './start-gate.js'
 
 export const PACKAGE_NAME = '@handyhub/domain'
 
@@ -81,8 +82,12 @@ export {
   HOLD_MACHINE,
   HOLD_STATES,
   isBlockingHold,
+  JOB_HOLD_CATEGORIES,
+  START_BLOCKING_HOLD_KINDS,
 } from './hold.js'
-export type { HazardCategory, HoldFacts, HoldKind, HoldState } from './hold.js'
+export type { HazardCategory, HoldFacts, HoldKind, HoldState, JobHoldCategory } from './hold.js'
+// TSK-0073, TSK-0074: the Start Work gate and its three owner-approved administrative exceptions.
+export * from './start-gate.js'
 export {
   addBusinessMinutes,
   BusinessHoursError,
@@ -264,6 +269,7 @@ export const MACHINES = {
   'visit.lifecycle': VISIT_MACHINE,
   'window_offer.lifecycle': WINDOW_OFFER_MACHINE,
   'sop_version.review': SOP_VERSION_MACHINE,
+  'gate_exception.lifecycle': GATE_EXCEPTION_MACHINE,
 } as const
 export type MachineKey = keyof typeof MACHINES
 type M<K extends MachineKey> = (typeof MACHINES)[K]
