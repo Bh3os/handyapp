@@ -657,7 +657,10 @@ describe('[HH-EST-04][C05] what publishing pins, stores and sends', () => {
     expect(`${sent[0]?.subject} ${sent[0]?.text} ${sent[0]?.html}`.replaceAll(number, '')).not.toMatch(
       /\$|1,25|total|deposit/i,
     )
-    expect(`${sent[0]?.subject} ${sent[0]?.text}`.replaceAll(number, '')).not.toMatch(/\d{3,}/)
+    // The project reference in the link is random and may hold digits of its own, so it is set aside too.
+    expect(`${sent[0]?.subject} ${sent[0]?.text}`.replaceAll(number, '').replaceAll(email.reference, '')).not.toMatch(
+      /\d{3,}/,
+    )
 
     // A version withdrawn before the job runs sends nothing (stale).
     const later = await readyDraft()

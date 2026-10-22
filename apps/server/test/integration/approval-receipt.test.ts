@@ -518,7 +518,8 @@ describe('[HH-EST-12][T33][FACT-AUTOMATIC-MESSAGES] the approval receipt: one PD
     expect(confirmation?.text).toContain(`We've received and recorded your approval of estimate #${number}`)
     expect(confirmation?.text).toContain(`https://site.example.test/portal/p/${e.reference}`)
     // Link only: no amount, no attachment (OWN-DEC-155, OWN-DEC-158).
-    expect(confirmation?.text.replaceAll(number, '')).not.toMatch(/\$|\d{3,}/)
+    // The project reference in the link is random and may hold digits of its own, so it is set aside too.
+    expect(confirmation?.text.replaceAll(number, '').replaceAll(e.reference, '')).not.toMatch(/\$|\d{3,}/)
     expect(confirmation).not.toHaveProperty('attachments')
     expect(fakes.fakeSms.calls.length).toBe(textsBefore)
     // A delivery failure (the text with no wording) becomes a staff action item; the approval is never undone.
