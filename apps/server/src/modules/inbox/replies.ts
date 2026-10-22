@@ -32,6 +32,9 @@ import { projectInScope } from '../../platform/data-scope.js'
 import {
   createDraft,
   currentConsent,
+  firstNameOf,
+  portalLink,
+  present,
   templateReadiness,
   heldToContactHours,
   releaseAutomation,
@@ -41,6 +44,7 @@ import {
   type FailureItem,
   type RecordCheck,
   type ReleaseFailureItem,
+  type ReleaseValues,
 } from '../notifications/index.js'
 import { nextContactTime } from '../notifications/contact-hours.js'
 import { ensureConversation, resolveCustomerReplied, touchConversation } from './conversations.js'
@@ -346,6 +350,37 @@ export const replyRecordCheck: RecordCheck = async (tx, input) => {
       ? m.email_verification === 'verified' && m.email_verified_value === to && m.email.trim().toLowerCase() === to
       : m.phone_verification === 'verified' && m.phone_verified_value === to && m.phone_e164 === to
   return ok ? 'current' : 'stale'
+}
+
+/**
+ * TSK-0120 (OWN-DEC-151 staff_reply_wrapper, OWN-DEC-154, OWN-DEC-158): the reply email's values at send time, read
+ * from the reply itself: the customer's first name ("Hi there," without one), the project reference, the display name
+ * of the staff member who pressed Send, the text exactly as written and the project's portal page (where the customer
+ * reads and answers it). Other message types get nothing here.
+ */
+export function replyValues(publicSiteUrl: string | undefined): ReleaseValues {
+  return async (tx, row) => {
+    if (row.message_key !== STAFF_REPLY_MESSAGE_KEY) return undefined
+    const id = row.subject_key.startsWith('reply:') ? row.subject_key.slice('reply:'.length) : ''
+    if (!UUID_RE.test(id)) return {}
+    const m = await tx
+      .selectFrom('comms.messages as m')
+      .innerJoin('crm.projects as p', 'p.id', 'm.project_id')
+      .leftJoin('crm.contacts as c', 'c.id', 'm.contact_id')
+      .leftJoin('identity.staff_users as u', 'u.id', 'm.author_staff_id')
+      .select(['m.body_text', 'p.reference', 'c.full_name', 'u.display_name'])
+      .where('m.id', '=', id)
+      .where('m.direction', '=', 'outbound')
+      .executeTakeFirst()
+    if (!m) return {}
+    return present({
+      customerName: firstNameOf(m.full_name),
+      reference: m.reference,
+      staffDisplayName: m.display_name,
+      staffMessage: m.body_text,
+      projectLink: portalLink(publicSiteUrl, m.reference),
+    })
+  }
 }
 
 /** A failed reply opens a delivery issue on its project, owned by the project's responsible staff member. */

@@ -25,6 +25,7 @@ import {
   inboxIntakeAutomation,
   replyFailureItem,
   replyRecordCheck,
+  replyValues,
   type InboundAddress,
 } from './modules/inbox/index.js'
 import { contactChangedNoticeAutomation } from './modules/accounts/notice.js'
@@ -38,8 +39,11 @@ import {
   estimateVisitConfirmedAutomation,
   estimateVisitOptionsAutomation,
   scheduleChangeStaffAutomation,
+  visitCancelledAutomation,
   windowOfferExpiryAutomation,
+  workVisitOptionsAutomation,
 } from './modules/visits/index.js'
+import { notAFitNoticeAutomation } from './modules/requests/not-a-fit-notice.js'
 import { objectErasureAutomation } from './modules/privacy/log.js'
 import type { CodeKeySettings } from './modules/identity/index.js'
 import type { RecordChecks, ReleaseFailureItem } from './modules/notifications/index.js'
@@ -81,6 +85,16 @@ export const releaseFailureItem: ReleaseFailureItem = async (tx, row) =>
 export function buildAutomations(deps: AutomationDeps): Automation[] {
   // TSK-0119 (HH-COM-13): links in messages may point only at the configured public and staff origins.
   const linkHosts = linkHostsOf(deps.publicSiteUrl, deps.staffAppUrl)
+  // TSK-0120: the visit notices' senders and the public site's base URL for their portal links.
+  const visitNotices = {
+    providers: {
+      email: deps.providers.email,
+      sms: deps.providers.sms,
+      replyAddress: deps.replyAddress ?? null,
+      linkHosts,
+    },
+    publicSiteUrl: deps.publicSiteUrl,
+  }
   return [
     staffLinkEmailAutomation(deps),
     // TSK-0048: provider statuses and SMS keywords from the stored webhook receipts.
@@ -99,6 +113,7 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
         replyAddress: deps.replyAddress ?? null,
         linkHosts,
       },
+      publicSiteUrl: deps.publicSiteUrl,
     }),
     // TSK-0056: a customer's Request Changes or Decline notifies the responsible staff member (wording NOT CONFIGURED).
     ...estimateResponseNoticeAutomations({
@@ -116,7 +131,8 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     // The one `notify.release` registration: every record type's send-time check is listed here.
     releaseAutomation(
       { email: deps.providers.email, sms: deps.providers.sms, replyAddress: deps.replyAddress ?? null, linkHosts },
-      { recordChecks: RELEASE_RECORD_CHECKS, failureItem: releaseFailureItem },
+      // TSK-0120: a staff reply's email values are read from the reply at send time (replyValues).
+      { recordChecks: RELEASE_RECORD_CHECKS, failureItem: releaseFailureItem, values: replyValues(deps.publicSiteUrl) },
     ),
     // TSK-0058: each approval's receipt PDF, issued once, and the automatic approval receipt message
     // (FACT-AUTOMATIC-MESSAGES #9; wording NOT CONFIGURED: each delivery records template_not_configured).
@@ -129,6 +145,7 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
         replyAddress: deps.replyAddress ?? null,
         linkHosts,
       },
+      publicSiteUrl: deps.publicSiteUrl,
     }),
     // TSK-0041: action queue items from the modules' committed events.
     ...queueAutomations(),
@@ -137,6 +154,16 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     // TSK-0032: the automatic receipt email, once per saved request (HH-INT-20); email only.
     receiptEmailAutomation({
       providers: { email: deps.providers.email, sms: null, replyAddress: deps.replyAddress ?? null, linkHosts },
+    }),
+    // TSK-0120: the automatic not-a-fit notice after an authorized staff member's formal decision (#7, OWN-DEC-209).
+    notAFitNoticeAutomation({
+      providers: {
+        email: deps.providers.email,
+        sms: deps.providers.sms,
+        replyAddress: deps.replyAddress ?? null,
+        linkHosts,
+      },
+      publicSiteUrl: deps.publicSiteUrl,
     }),
     // TSK-0043: a meaningful customer message whose delivery succeeded stops the first-response clock.
     responseClockAutomation(),
@@ -158,29 +185,31 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
       inboundEmail: deps.providers.inboundEmail ?? null,
       replyAddress: deps.replyAddress ?? null,
     }),
-    // TSK-0036: the notice to the old email after an account's sign-in email changed (HH-ID-11); sends only once the
-    // owner lists it as automatic and approves its wording (OQ-ACCOUNT-CONTACT-NOTICE).
+    // TSK-0036, TSK-0120: the notice to the old and the new email after an account's sign-in email changed (HH-ID-11,
+    // account_email_changed of OWN-DEC-151).
     contactChangedNoticeAutomation({ providers: { email: deps.providers.email, sms: null, linkHosts } }),
     // TSK-0099: the daily retention scan opens Owner deletion-review entries; it never deletes anything.
     retentionReviewAutomation(),
     // TSK-0063: an offer's hold ends at its expiry (OWN-DEC-144); the automatic estimate-visit options, estimate-visit
-    // confirmed and work appointment confirmed notices (FACT-AUTOMATIC-MESSAGES #5, #6, #10; wording NOT CONFIGURED).
+    // confirmed and work appointment confirmed notices (FACT-AUTOMATIC-MESSAGES #5, #6, #12). TSK-0120: their values
+    // are wired, and publishing work-visit windows sends the work-appointment windows notice (#11, OWN-DEC-156).
     windowOfferExpiryAutomation(),
-    estimateVisitOptionsAutomation({ providers: { email: deps.providers.email, sms: deps.providers.sms, linkHosts } }),
-    estimateVisitConfirmedAutomation({
-      providers: { email: deps.providers.email, sms: deps.providers.sms, linkHosts },
-    }),
-    appointmentConfirmedAutomation({ providers: { email: deps.providers.email, sms: deps.providers.sms, linkHosts } }),
-    // TSK-0066: a committed reschedule or reassignment notifies the customer once (#11, wording NOT CONFIGURED); every
-    // committed change notifies the affected workers (staff notice, wording NOT CONFIGURED).
-    appointmentChangedAutomation({ providers: { email: deps.providers.email, sms: deps.providers.sms, linkHosts } }),
+    estimateVisitOptionsAutomation(visitNotices),
+    workVisitOptionsAutomation(visitNotices),
+    estimateVisitConfirmedAutomation(visitNotices),
+    appointmentConfirmedAutomation(visitNotices),
+    // TSK-0066: a committed reschedule or reassignment notifies the customer once (#13); every committed change
+    // notifies the affected workers (staff notice, wording NOT CONFIGURED). TSK-0120: a committed cancellation sends
+    // the visit-cancelled notice (#14; its transaction already cancelled the visit's waiting reminders).
+    appointmentChangedAutomation(visitNotices),
+    visitCancelledAutomation(visitNotices),
     scheduleChangeStaffAutomation({
       providers: { email: deps.providers.email, sms: null, linkHosts },
       staffAppUrl: deps.staffAppUrl,
     }),
-    // TSK-0070: an assigned worker's accepted On my way sends the automatic on-the-way notice once (#12, wording NOT
-    // CONFIGURED: each delivery records template_not_configured).
-    onTheWayAutomation({ providers: { email: deps.providers.email, sms: deps.providers.sms } }),
+    // TSK-0070: an assigned worker's accepted On my way sends the automatic on-the-way notice once (#15; TSK-0120 wires
+    // the values of its owner-authorized wording, OWN-DEC-209).
+    onTheWayAutomation(visitNotices),
     // TSK-0067: the appointment reminder draft of each confirmed visit's window, at the configured interval before it
     // (staff-released, never automatic); its send-time check is the visit entry of RELEASE_RECORD_CHECKS.
     ...appointmentReminderAutomations({ publicSiteUrl: deps.publicSiteUrl }),

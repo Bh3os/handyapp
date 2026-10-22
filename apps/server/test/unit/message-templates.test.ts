@@ -184,14 +184,17 @@ describe('[HH-COM-13][OWN-DEC-158] release checks refuse what a template may nev
   })
 
   it('[HH-COM-13] knows which released variables a resolver does not supply yet', () => {
-    expect(suppliedVariables(messageType('request.receipt'))).not.toContain('customerName')
+    // TSK-0120 wired the events that exist today; a message whose event does not exist yet (the deposit invoice,
+    // TSK-0085) still supplies nothing.
+    expect(suppliedVariables(messageType('request.receipt'))).toContain('customerName')
+    expect(suppliedVariables(messageType('invoice.deposit'))).toEqual([])
     expect(
       unwiredVariables({
-        messageKey: 'request.receipt',
-        subject: 'HandyHub | We have #{reference}',
-        body: 'Hi {customerName},\n\n#{reference}',
+        messageKey: 'invoice.deposit',
+        subject: 'HandyHub | Deposit Invoice #{invoiceNumber}',
+        body: 'Hi {customerName},\n\n#{jobNumber} {invoiceLink}',
       }),
-    ).toEqual(['customerName'])
+    ).toEqual(['customerName', 'invoiceLink', 'invoiceNumber', 'jobNumber'])
     expect(
       unwiredVariables({ messageKey: 'question.notice', subject: null, body: 'Hi {customerName}, {projectLink}' }),
     ).toEqual([])

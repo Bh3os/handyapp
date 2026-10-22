@@ -10,10 +10,9 @@
 //   viewing the request are the separate automatic access message (FACT-AUTOMATIC-MESSAGES #3, TSK-0034); until its
 //   landing exists there is no truthful link, so `projectLink` is not supplied and a template that needs it fails
 //   visibly (template_values_missing) instead of linking somewhere invented.
-// The wording itself is a released template version of `request.receipt`. The owner has approved the receipt page's
-// wording (OWN-DEC-94) and the email's content list (OWN-DEC-95), not an email text, so no version is seeded: the
-// message stays NOT CONFIGURED (each delivery records template_not_configured and staff get a delivery issue with
-// Retry) until the owner approves its wording (OQ-RECEIPT-EMAIL-WORDING). Nothing is shown as sent that was not.
+// The wording itself is a released template version of `request.receipt`: the owner's request_received (OWN-DEC-151,
+// migration 0065). TSK-0120 supplies its values (the first name, "Hi there," without one, and the reference), so the
+// receipt is sent; a missing template or value is still recorded as failed with a delivery issue, never as sent.
 // A failed delivery keeps the request saved and opens one delivery_failed queue item owned by the request's
 // responsible staff member (unassigned until one is set: Office and the Owner see it), with Retry (retry.ts).
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
@@ -21,7 +20,7 @@ import { nextStepsLines } from '@handyhub/domain/request-form'
 import type { Tx } from '@handyhub/db'
 import type { Automation } from '../../platform/automation.js'
 import { loadConfig, type Config } from '../../platform/config/index.js'
-import { notificationAutomation, type NotificationProviders } from '../notifications/index.js'
+import { firstNameOf, notificationAutomation, type NotificationProviders } from '../notifications/index.js'
 
 export const RECEIPT_MESSAGE_KEY = 'request.receipt'
 
@@ -109,6 +108,7 @@ export function receiptEmailAutomation(deps: ReceiptEmailDeps): Automation {
           'r.responsible_staff_id',
           'r.preferred_channel',
           'c.id as contactId',
+          'c.full_name',
           'c.email',
         ])
         .where('r.id', '=', id)
@@ -116,6 +116,8 @@ export function receiptEmailAutomation(deps: ReceiptEmailDeps): Automation {
       if (!r) return 'stale'
       const values = await receiptValues(tx, r.id, await loadConfig(tx))
       if (!values) return 'stale'
+      // TSK-0120 (OWN-DEC-158): the owner's wording greets the first name ("Hi there," without one).
+      values['customerName'] = firstNameOf(r.full_name)
       return {
         subjectKey: `request:${r.id}`,
         record: { type: 'request', id: r.id },

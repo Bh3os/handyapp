@@ -749,10 +749,20 @@ export type ReleaseFailureItem = (
   },
 ) => Promise<FailureItem | undefined>
 
+/**
+ * TSK-0120 (HH-COM-13): the values a released message's resolver adds at send time to the ones stored with its draft
+ * (the staff reply's greeting, reference, author, text and project link), read from its own records; undefined for a
+ * message it does not supply. A value it leaves out fails the render visibly with its name.
+ */
+export type ReleaseValues = (
+  tx: Tx,
+  row: { id: string; message_key: string; subject_key: string; project_id: string | null },
+) => Promise<Readonly<Record<string, string>> | undefined>
+
 /** The automation that sends released drafts (scheduled per release). */
 export function releaseAutomation(
   providers: NotificationProviders,
-  options: { recordChecks?: RecordChecks; failureItem?: ReleaseFailureItem } = {},
+  options: { recordChecks?: RecordChecks; failureItem?: ReleaseFailureItem; values?: ReleaseValues } = {},
 ): Automation {
   return {
     name: 'notify.release',
@@ -821,7 +831,9 @@ export function releaseAutomation(
       // TSK-0050: a temporary failure on the last attempt is recorded as failed (with its delivery issue, if any) instead
       // of leaving the delivery queued for good.
       const final = ctx.job.maxAttempts !== undefined && ctx.job.attempt >= ctx.job.maxAttempts
-      const result = await send(ctx.tx, row, (row.variables ?? {}) as Record<string, string>, providers, final)
+      const extra = options.values ? await options.values(ctx.tx, row) : undefined
+      const values = { ...((row.variables ?? {}) as Record<string, string>), ...(extra ?? {}) }
+      const result = await send(ctx.tx, row, values, providers, final)
       await auditDelivery(ctx.tx, ctx.job, 'system.notifications', row, result)
       await syncFailureItem(ctx.tx, row.id, result, item)
       return 'done'
