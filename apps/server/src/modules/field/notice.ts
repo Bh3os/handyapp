@@ -6,17 +6,27 @@
 //   happen once on the way, but arrived or completed since, or reassigned to nobody) sends nothing (stale).
 // - It carries the assigned workers' first names (the first word of each display name; a worker without one is left
 //   out, never invented) and the confirmed arrival window in the property's zone, in English (RULE-LANGUAGES). There
-//   is no ETA, no live location and no tracking link. Its wording is not approved yet, so each delivery is recorded
-//   as failed with template_not_configured and staff see the delivery issue with Retry; the visit stays on the way.
-import { firstName, windowText } from '@handyhub/domain'
+//   is no ETA, no live location and no tracking link. Its wording is the owner-authorized on_the_way (OWN-DEC-209);
+//   TSK-0120 supplies its values (first name, visit reference, window, project link), so the email is sent; a failed
+//   delivery is a staff delivery issue with Retry and the visit stays on the way.
+import { firstName } from '@handyhub/domain'
 import type { Automation } from '../../platform/automation.js'
-import { notificationAutomation, type NotificationProviders } from '../notifications/index.js'
-import { destinationsOf, requestOf } from '../visits/offers.js'
-import { storedWindow } from '../visits/visits.js'
+import {
+  firstNameOf,
+  notificationAutomation,
+  portalLink,
+  valuesFor,
+  type NotificationProviders,
+} from '../notifications/index.js'
+import { destinationsOf, requestOf, visitValues } from '../visits/offers.js'
 
 export const ON_THE_WAY_NOTICE = 'visit.on_the_way'
 
-export type OnTheWayDeps = { providers: NotificationProviders }
+export type OnTheWayDeps = {
+  providers: NotificationProviders
+  /** TSK-0120: the public site's base URL for the portal link; undefined while not configured. */
+  publicSiteUrl?: string | undefined
+}
 
 export function onTheWayAutomation(deps: OnTheWayDeps): Automation {
   return notificationAutomation({
@@ -52,11 +62,14 @@ export function onTheWayAutomation(deps: OnTheWayDeps): Automation {
         subjectKey: `visit_on_my_way:${v.id}`,
         record: { type: 'visit', id: v.id },
         recipients: [{ kind: 'customer_contact', id: r.contactId, destinations: destinationsOf(r) }],
-        // Customer messages are English (RULE-LANGUAGES); the secure project link is not supplied yet.
-        values: {
-          ...(names.length ? { workerFirstNames: names.join(', ') } : {}),
-          arrivalWindow: windowText(storedWindow(v), 'en-US'),
-        },
+        // Customer messages are English (RULE-LANGUAGES). TSK-0120: the owner-authorized wording's values (OWN-DEC-209:
+        // the visit reference, the team's first names and the confirmed window; never a location).
+        values: valuesFor(ON_THE_WAY_NOTICE, {
+          customerName: firstNameOf(r.full_name),
+          workerFirstNames: names.length ? names.join(', ') : null,
+          ...visitValues(v, r.reference),
+          projectLink: portalLink(deps.publicSiteUrl, r.reference),
+        }),
         failureItem: { reference: r.reference, projectId: v.project_id, assignedStaffId: r.responsible_staff_id },
       }
     },

@@ -66,7 +66,8 @@ const TYPES: readonly MessageType[] = [
     channels: ['email'],
     triggerEvents: ['request.submitted'],
     variables: vars('customerName', 'reference', 'services', 'summary', 'nextSteps', 'projectLink'),
-    supplied: ['reference', 'services', 'summary', 'nextSteps'],
+    // TSK-0120: the owner's wording uses the first name and the reference; the receipt carries no link.
+    supplied: ['customerName', 'reference', 'services', 'summary', 'nextSteps'],
     sourceIds: ['OWN-DEC-95', 'HH-INT-20', 'OWN-DEC-151'],
   },
   {
@@ -87,7 +88,6 @@ const TYPES: readonly MessageType[] = [
     channels: both,
     triggerEvents: ['request.submitted', 'project.access_requested'],
     variables: vars('customerName', 'secureAccessLink', 'linkExpiration', 'accessLink'),
-    supplied: ['accessLink'],
     sourceIds: ['OWN-DEC-65', 'OWN-DEC-97', 'OWN-DEC-151'],
   },
   {
@@ -106,7 +106,6 @@ const TYPES: readonly MessageType[] = [
     channels: both,
     triggerEvents: ['estimate_visit.windows_published'],
     variables: vars('customerName', 'reference', 'appointmentLink', 'holdExpiration', 'projectLink'),
-    supplied: [],
     sourceIds: ['OWN-DEC-99', 'OWN-DEC-151'],
   },
   {
@@ -125,7 +124,6 @@ const TYPES: readonly MessageType[] = [
       'visitWindow',
       'projectLink',
     ),
-    supplied: ['visitWindow'],
     sourceIds: ['OWN-DEC-99', 'OWN-DEC-151'],
   },
   {
@@ -135,7 +133,6 @@ const TYPES: readonly MessageType[] = [
     channels: both,
     triggerEvents: ['decision.not_a_fit_published'],
     variables: vars('customerName', 'reference', 'projectLink'),
-    supplied: [],
     sourceIds: ['OWN-DEC-100', 'OWN-DEC-209'],
   },
   {
@@ -165,7 +162,6 @@ const TYPES: readonly MessageType[] = [
     channels: both,
     triggerEvents: ['estimate.approved'],
     variables: vars('customerName', 'estimateNumber', 'projectLink'),
-    supplied: [],
     sourceIds: ['OWN-DEC-105', 'OWN-DEC-151', 'OWN-DEC-155'],
   },
   {
@@ -175,7 +171,6 @@ const TYPES: readonly MessageType[] = [
     channels: both,
     triggerEvents: ['work_visit.windows_published'],
     variables: vars('customerName', 'jobNumber', 'appointmentLink', 'holdExpiration'),
-    supplied: [],
     sourceIds: ['OWN-DEC-151', 'OWN-DEC-156'],
   },
   {
@@ -195,7 +190,6 @@ const TYPES: readonly MessageType[] = [
       'visitWindow',
       'projectLink',
     ),
-    supplied: ['visitWindow'],
     sourceIds: ['OWN-DEC-105', 'OWN-DEC-151'],
   },
   {
@@ -214,7 +208,6 @@ const TYPES: readonly MessageType[] = [
       'visitWindow',
       'projectLink',
     ),
-    supplied: ['visitWindow'],
     sourceIds: ['OWN-DEC-119', 'OWN-DEC-209'],
   },
   {
@@ -225,7 +218,6 @@ const TYPES: readonly MessageType[] = [
     // A committed cancellation is a change of kind 'canceled' (TSK-0066); never a reschedule (OWN-DEC-152 R2-Q2).
     triggerEvents: ['appointment.change_committed'],
     variables: vars('customerName', 'visitNumber'),
-    supplied: [],
     sourceIds: ['OWN-DEC-151', 'OWN-DEC-152'],
   },
   {
@@ -244,8 +236,7 @@ const TYPES: readonly MessageType[] = [
       'arrivalWindow',
       'projectLink',
     ),
-    // TSK-0070 supplies the workers' first names and the window; the owner wording's values are wired by TSK-0120.
-    supplied: ['workerFirstNames', 'arrivalWindow'],
+    // TSK-0070 supplied the workers' first names and the window; TSK-0120 the rest of the owner wording's values.
     sourceIds: ['OWN-DEC-107', 'OWN-DEC-209'],
   },
   {
@@ -300,8 +291,8 @@ const TYPES: readonly MessageType[] = [
     sourceIds: ['OWN-DEC-111', 'OWN-DEC-110', 'OWN-DEC-151', 'OWN-DEC-152'],
   },
   // TSK-0036 (HH-ID-11): the notice after a customer account's sign-in email changed, to the old and the new verified
-  // address. Worded by the owner (account_email_changed, OWN-DEC-151) and automatic (OWN-DEC-152); its values are
-  // wired by TSK-0120, so until then changing a sign-in email answers NOT CONFIGURED. It carries no link or code.
+  // address. Worded by the owner (account_email_changed, OWN-DEC-151) and automatic (OWN-DEC-152); TSK-0120 wires its
+  // values, so changing a sign-in email is available. It carries no link or code.
   {
     key: 'account.contact_changed',
     templateId: 'account_email_changed',
@@ -309,7 +300,6 @@ const TYPES: readonly MessageType[] = [
     channels: both,
     triggerEvents: ['customer_account.contact_changed'],
     variables: vars('customerName', 'changeDate', 'changeTime', 'timeZone', 'supportContact'),
-    supplied: [],
     category: 'account_security',
     sourceIds: ['HH-ID-11', 'OQ-ACCOUNT-CONTACT-NOTICE', 'OWN-DEC-151'],
   },
@@ -338,7 +328,8 @@ const TYPES: readonly MessageType[] = [
     templateId: 'staff_customer_replied',
     audience: 'staff',
     channels: ['email'],
-    triggerEvents: ['question.customer_replied'],
+    // TSK-0120: a question reply, or the first customer message of a conversation since staff last handled it.
+    triggerEvents: ['question.customer_replied', 'conversation.customer_replied'],
     variables: vars(
       'staffName',
       'customerName',
@@ -348,7 +339,6 @@ const TYPES: readonly MessageType[] = [
       'staffProjectLink',
       'appLink',
     ),
-    supplied: ['appLink'],
     sourceIds: ['OWN-DEC-98', 'OWN-DEC-151'],
   },
   {
@@ -399,7 +389,6 @@ const TYPES: readonly MessageType[] = [
     channels: both,
     triggerEvents: [],
     variables: vars('customerName', 'reference', 'staffDisplayName', 'staffMessage', 'replyText', 'projectLink'),
-    supplied: ['replyText', 'projectLink'],
     sourceIds: ['OWN-DEC-120', 'OWN-DEC-151'],
   },
   // The Owner reviews and releases the work-paused notice (OWN-DEC-152 section 3.2); TSK-0077 builds its draft.

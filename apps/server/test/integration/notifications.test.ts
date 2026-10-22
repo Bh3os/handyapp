@@ -341,9 +341,10 @@ describe('automatic messages: one automation plus one job per event (TSK-0047, H
     )
     await event('question.published', 'q-real')
     await createWorker({ db: t.db, registry: createAutomationRegistry([automation, access]) }).runOnce()
-    // TSK-0119: the owner's request_received wording is released; its values are wired by TSK-0120.
+    // TSK-0120: the owner's request_received wording is wired; a resolver that leaves its reference out fails with that
+    // name (the first name has its "Hi there," fallback), never a send.
     expect((await deliveries('request:r-1')).map((r) => [r.state, r.error_code, r.missing_variables])).toEqual([
-      ['failed', 'template_values_not_wired', ['customerName']],
+      ['failed', 'template_values_missing', ['reference']],
     ])
     expect((await deliveries('question:q-real')).map((r) => [r.state, r.error_code])).toEqual([
       ['suppressed', 'not_on_test_allowlist'],

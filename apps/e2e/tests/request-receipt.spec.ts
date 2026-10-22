@@ -187,14 +187,15 @@ test.describe('the receipt (TSK-0032)', () => {
           withDb((db) =>
             db
               .selectFrom('platform.message_deliveries')
-              .select(['state', 'error_code'])
+              .select(['state', 'error_code', 'provider'])
               .where('subject_key', '=', `request:${requestId}`)
               .execute(),
           ),
         { timeout: 15_000 },
       )
-      // TSK-0119: the owner's request_received wording is released; its values are wired by TSK-0120.
-      .toEqual([{ state: 'failed', error_code: 'template_values_not_wired' }])
+      // TSK-0120: the owner's request_received wording with its values, handed once to the test provider of ci
+      // (intercepted: accepted, never delivered to anyone).
+      .toEqual([{ state: 'queued', error_code: null, provider: 'fake' }])
     // TSK-0044 (HH-ID-02): when an earlier synthetic request shares this request's email, phone or address, staff also
     // get one duplicate suggestion to review (never a link); a suite run alone has none.
     const customerId = saved[0]?.customer_id as string
@@ -233,10 +234,8 @@ test.describe('the receipt (TSK-0032)', () => {
       .toEqual({
         suggestion: 'as expected',
         items: [
-          { type: 'delivery_failed', reason: 'delivery_not_configured', reference },
-          // TSK-0034: the secure access message (FACT-AUTOMATIC-MESSAGES #3) has no released wording either
-          // (OQ-ACCESS-LINK-WORDING), so it is its own delivery issue for the same request.
-          { type: 'delivery_failed', reason: 'delivery_not_configured', reference },
+          // TSK-0120: the receipt and the secure access link are sent (no text without the SMS opt-in), so neither is
+          // a delivery issue.
           // A form sent within seconds of opening is quietly flagged (HH-INT-11); either way staff see the request.
           { type: 'new_request', reason: expect.stringMatching(/^new_request(_flagged)?$/), reference },
           // TSK-0123 (OWN-DEC-159): no county list is configured, so the property's zone is unknown and flagged.
