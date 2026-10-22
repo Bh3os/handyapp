@@ -212,44 +212,53 @@ const fact = readFileSync(new URL('../../../../kg/facts/FACT-RESPONSE-TARGET.md'
 const OWNER_RESPONSE = /receipt email, exact\): "([^"]+)"/.exec(fact)?.[1] ?? ''
 const SEPARATE = 'Your request is received. Pricing and your appointment will be confirmed separately.'
 
-describe('the receipt email is not sent until its owner wording has its values (TSK-0032, TSK-0119, HH-INT-20, HH-COM-13, RULE-NO-INVENTED-FACTS)', () => {
-  it('[HH-INT-20][T12][HH-COM-13] the owner wording is released but not wired: the request is kept, nothing is sent, and staff get one delivery issue', async () => {
-    // TSK-0119: request_received (OWN-DEC-151) is released; its first name is wired by TSK-0120.
+describe('the receipt email sends automatically in the owner wording (TSK-0032, TSK-0119, TSK-0120, HH-INT-20, HH-COM-13, OWN-DEC-151)', () => {
+  it('[HH-INT-20][T01][HH-COM-13][OWN-DEC-158] request_received with the first name and the reference, once; no address, number, code or link', async () => {
     expect((await currentTemplate(t.db, 'request.receipt', 'email', 'en'))?.templateId).toBe('request_received')
-    const email = 'receipt-unconfigured@example.test'
+    const email = 'receipt-owner-wording@example.test'
     const r = await submitted(email)
     const w = worker()
     await w.runOnce()
     await w.runOnce()
-    expect(sentTo(email)).toEqual([])
+    await w.runOnce()
+    const sent = sentTo(email)
+    expect(sent.map((m) => m.subject)).toEqual([`HandyHub | We've Received Your Request #${r.reference}`])
+    const text = sent[0]?.text ?? ''
+    expect(text).toMatch(/^Hi Test,\n\nThank you for contacting HandyHub!\n\n/)
+    expect(text).toContain(`We've received your request #${r.reference}.`)
+    expect(text).toContain('this is a request confirmation, not a confirmed appointment or final price')
+    expect(text).not.toMatch(/Synthetic Way|555-0141|https?:|\bcode\b/i)
     const [d, ...more] = await deliveries(r.id)
     expect(more).toEqual([])
-    expect([d?.state, d?.error_code, d?.release, d?.audience, d?.locale]).toEqual([
-      'failed',
-      'template_values_not_wired',
+    expect([d?.state, d?.error_code, d?.release, d?.audience, d?.locale, d?.provider]).toEqual([
+      'queued',
+      null,
       'automatic',
       'customer',
       'en',
+      'fake',
     ])
-    // The request is saved and staff see it; the failure is its own item, saying why.
+    // The request is saved and staff see it; no delivery issue.
     expect(await items('new_request', r.id)).toHaveLength(1)
-    const issue = await items('delivery_failed', d?.id as string)
-    expect(issue.map((i) => [i.reason, i.reference, i.project_id, i.resolved_at])).toEqual([
-      ['delivery_not_configured', r.reference, r.project_id, null],
-    ])
+    expect(await items('delivery_failed', d?.id as string)).toEqual([])
   })
 
-  it('[HH-INT-20][T12][HH-SEC-06] a receipt that cannot send is never audited as sent: the job is processed, the delivery failed', async () => {
-    const email = 'receipt-unconfigured-audit@example.test'
+  it('[HH-INT-20][T12][HH-SEC-06] a receipt the provider rejects is never audited as sent: the job is processed, the delivery failed, staff get one issue', async () => {
+    const email = 'receipt-rejected-audit@example.test'
     const r = await submitted(email)
+    fakes.fake.script({ outcome: 'rejected', errorCode: 'http_422_validation_error' })
     await worker().runOnce()
     const [d] = await deliveries(r.id)
-    expect(d?.error_code).toBe('template_values_not_wired')
+    expect([d?.state, d?.error_code]).toEqual(['failed', 'http_422_validation_error'])
     const events = await audited(r.id, d?.id as string)
     expect(events.filter((e) => e.action === 'notification.sent')).toEqual([])
     expect(events.filter((e) => e.action.startsWith('notification.'))).toEqual([
       { action: 'notification.failed', target_type: 'message_delivery', result: 'failed', actor_id: null },
       { action: 'notification.processed', target_type: 'request', result: 'succeeded', actor_id: null },
+    ])
+    const issue = await items('delivery_failed', d?.id as string)
+    expect(issue.map((i) => [i.reason, i.reference, i.project_id, i.resolved_at])).toEqual([
+      ['delivery_failed', r.reference, r.project_id, null],
     ])
   })
 })

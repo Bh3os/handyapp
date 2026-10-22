@@ -317,26 +317,34 @@ describe('the grant is created with the request (TSK-0034, HH-INT-21, HH-ID-04, 
 })
 
 describe('the access instructions send automatically (TSK-0034, HH-INT-21, HH-COM-06, OWN-DEC-97, T01)', () => {
-  it('[HH-INT-21][HH-COM-06][HH-COM-13] the email wording is not wired yet and texts have none: each destination records why, staff get a delivery issue, the grant stays', async () => {
+  it('[HH-INT-21][HH-COM-06][HH-COM-13][OWN-DEC-160] the owner wording goes by email with the link and its 24-hour expiry; texts have none: recorded, staff get a delivery issue, the grant stays', async () => {
     const email = 'link-unconfigured@example.test'
     const s = await submitted(email, withTexts(email, '(502) 555-0148'))
     await drain()
     const rows = await accessDeliveries(s.grantId)
     expect(rows.map((d) => [d.channel, d.state, d.error_code, d.release, d.record_type, d.record_id])).toEqual([
-      // TSK-0119: the owner's secure_access_link email wording is released; TSK-0120 wires its values.
-      ['email', 'failed', 'template_values_not_wired', 'automatic', 'project', s.projectId],
+      // TSK-0120: the owner's secure_access_link email with its values; texts have no wording until A2P 10DLC.
+      ['email', 'queued', null, 'automatic', 'project', s.projectId],
       ['sms', 'failed', 'template_not_configured', 'automatic', 'project', s.projectId],
     ])
-    for (const d of rows) {
-      const items = await t.db
-        .selectFrom('ops.queue_items')
-        .select(['reason', 'reference', 'project_id'])
-        .where('type', '=', 'delivery_failed')
-        .where('subject_id', '=', d.id)
-        .execute()
-      expect(items).toEqual([{ reason: 'delivery_not_configured', reference: s.reference, project_id: s.projectId }])
-    }
-    expect(lastText(email)).toBe('')
+    const sms = rows.find((d) => d.channel === 'sms')
+    const items = await t.db
+      .selectFrom('ops.queue_items')
+      .select(['reason', 'reference', 'project_id'])
+      .where('type', '=', 'delivery_failed')
+      .where(
+        'subject_id',
+        'in',
+        rows.map((d) => d.id),
+      )
+      .execute()
+    expect(items).toEqual([{ reason: 'delivery_not_configured', reference: s.reference, project_id: s.projectId }])
+    expect(sms).toBeDefined()
+    const text = lastText(email)
+    expect(text).toMatch(/^Hi Test,\n\nYou can securely access your HandyHub project using the link below:/)
+    expect(text).toContain(`${PUBLIC}/access#${s.token}`)
+    expect(text).toMatch(/this link expires on [A-Z][a-z]+ \d{1,2}, \d{4} at \d{1,2}:\d{2} [AP]M (EDT|EST|CDT|CST)\./)
+    expect(lastText('+15025550148')).toBe('')
     // The rendered link is never stored with the delivery.
     expect(JSON.stringify(rows)).not.toContain(s.token)
   })

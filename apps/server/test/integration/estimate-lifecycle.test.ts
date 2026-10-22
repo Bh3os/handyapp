@@ -607,7 +607,7 @@ describe('[HH-EST-04][C05] what publishing pins, stores and sends', () => {
       .where('subject_key', '=', `estimate_version:${d.versionId}`)
       .orderBy('channel')
       .execute()
-    // One delivery per channel. The secure project link does not exist yet (TSK-0034), so the email records the
+    // One delivery per channel. Without a configured public site there is no portal link, so the email records the
     // missing link instead of linking somewhere invented; a text needs the customer's SMS opt-in.
     expect(deliveries).toEqual([
       {
@@ -623,19 +623,19 @@ describe('[HH-EST-04][C05] what publishing pins, stores and sends', () => {
     ])
     expect(fakes.email?.sent ?? []).toEqual([])
 
-    // With the link the landing task will supply, the email says only that the estimate is ready, with the link
-    // (TSK-0119: the owner-style estimate_ready wording, the estimate number and the first name, never an amount).
+    // TSK-0120: with the public site configured, the email says only that the estimate is ready, with the project's
+    // portal link (the owner-style estimate_ready wording, the estimate number and the first name, never an amount).
     const linked = await readyDraft()
     const email = await t.db
       .selectFrom('intake.requests as r')
       .innerJoin('crm.contacts as c', 'c.id', 'r.contact_id')
-      .select('c.email')
+      .select(['c.email', 'r.reference'])
       .where('r.id', '=', linked.id)
       .executeTakeFirstOrThrow()
     const allowed = createProviders(readProviderSettings({ HANDYHUB_ENV: 'ci', TEST_EMAIL_DESTINATIONS: email.email }))
     const withLink = estimateReadyAutomation({
       providers: { email: allowed.email, sms: allowed.sms },
-      projectLink: async () => 'https://example.test/synthetic-project-link',
+      publicSiteUrl: 'https://example.test',
     })
     expect((await publish('estimator', linked.versionId, linked.view.rowVersion)).statusCode).toBe(200)
     await createWorker({ db: t.db, registry: createAutomationRegistry([withLink]) }).runOnce()
@@ -651,8 +651,8 @@ describe('[HH-EST-04][C05] what publishing pins, stores and sends', () => {
     ).number
     expect(sent[0]).toMatchObject({ to: email.email, subject: `HandyHub | Your Estimate #${number} Is Ready` })
     expect(sent[0]?.text).toMatch(new RegExp(`^Hi [^\\n]+,\\n\\nYour HandyHub estimate #${number} is ready\\.`))
-    expect(sent[0]?.text).toContain('\n\nhttps://example.test/synthetic-project-link\n\n')
-    expect(sent[0]?.html).toContain('href="https://example.test/synthetic-project-link"')
+    expect(sent[0]?.text).toContain(`\n\nhttps://example.test/portal/p/${email.reference}\n\n`)
+    expect(sent[0]?.html).toContain(`href="https://example.test/portal/p/${email.reference}"`)
     // No amount anywhere in the message (FACT-AUTOMATIC-MESSAGES: no amounts, only a secure link).
     expect(`${sent[0]?.subject} ${sent[0]?.text} ${sent[0]?.html}`.replaceAll(number, '')).not.toMatch(
       /\$|1,25|total|deposit/i,

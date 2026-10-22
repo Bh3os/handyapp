@@ -1,8 +1,8 @@
 // Expired or revoked access fails safely with a neutral recovery page, in a real browser (TSK-0035; HH-ID-09, HH-ID-06,
 // HH-ID-08, HH-ID-03, T18). The link token and the codes a test enters are derived from the database with the e2e
-// servers' synthetic code key (codes.ts); every visitor, address and number is synthetic (RULE-SYNTHETIC-DATA). The
-// e2e database has no released wording of the access message (OQ-ACCESS-LINK-WORDING), so asking for a new link is
-// honestly NOT CONFIGURED here, for every contact alike; the sending itself is covered by the integration tests.
+// servers' synthetic code key (codes.ts); every visitor, address and number is synthetic (RULE-SYNTHETIC-DATA).
+// TSK-0120: the access message is the owner's secure_access_link with its values wired, so asking for a new link is
+// accepted with the same neutral answer for every contact alike; a new link goes only to a known contact.
 import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
@@ -15,7 +15,8 @@ const future = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10)
 const HEADERS = { 'x-forwarded-for': '198.51.100.36' }
 test.use({ extraHTTPHeaders: HEADERS })
 
-const NOT_CONFIGURED = "A new link can't be requested here right now. Your request is saved."
+const DONE =
+  'Thanks. If these details match a HandyHub request, a new secure link is on its way to the contact details on that request. It opens your project only after a one-time code.'
 
 async function axe(page: Page) {
   const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
@@ -110,10 +111,10 @@ test.describe('neutral recovery for expired or revoked access (TSK-0035)', () =>
 
     await recovery.getByLabel('Email or mobile phone').fill(email)
     await recovery.getByRole('button', { name: 'Send a new link' }).click()
-    await expect(recovery.getByText(NOT_CONFIGURED)).toBeVisible()
+    await expect(recovery.getByText(DONE)).toBeVisible()
     await recovery.getByLabel('Email or mobile phone').fill('nobody-e2e@example.test')
     await recovery.getByRole('button', { name: 'Send a new link' }).click()
-    await expect(recovery.getByText(NOT_CONFIGURED)).toBeVisible()
+    await expect(recovery.getByText(DONE)).toBeVisible()
     const reissues = posts.filter((p) => p.path === '/api/v1/public/access/reissue')
     expect(reissues.map((p) => JSON.parse(p.body) as unknown)).toEqual([
       { token: link.token, contact: email },
@@ -122,20 +123,20 @@ test.describe('neutral recovery for expired or revoked access (TSK-0035)', () =>
     // The same answer either way, from the API directly as well (request IDs aside).
     const answer = async (contact: string) => {
       const res = await request.post('/api/v1/public/access/reissue', { data: { token: link.token, contact } })
-      const body = (await res.json()) as { error: { requestId?: string } }
-      delete body.error.requestId
-      return [res.status(), body]
+      return [res.status(), await res.json()]
     }
     expect(await answer(email)).toEqual(await answer('nobody-e2e@example.test'))
-    // Nothing was issued, and the token never travelled in a URL or left this origin.
+    // Only the known contact got new links (the page's ask and the direct one); the unknown one nothing. The token
+    // never travelled in a URL or left this origin.
     const grants = await withDb((db) =>
       db
         .selectFrom('identity.project_access_grants')
         .select('issued_reason')
         .where('project_id', '=', link.projectId)
+        .orderBy('created_at')
         .execute(),
     )
-    expect(grants.map((g) => g.issued_reason)).toEqual(['submission'])
+    expect(grants.map((g) => g.issued_reason)).toEqual(['submission', 'reissue', 'reissue'])
     const origin = new URL(page.url()).origin
     expect(urls.filter((u) => new URL(u).origin !== origin)).toEqual([])
     expect(urls.filter((u) => u.includes(link.token))).toEqual([])
@@ -223,7 +224,7 @@ test.describe('neutral recovery for expired or revoked access (TSK-0035)', () =>
       await expect(recovery.getByText('Request reference')).toBeVisible()
       await recovery.getByLabel('Email or mobile phone').fill('(502) 555-0138')
       await recovery.getByRole('button', { name: 'Send a new link' }).click()
-      await expect(recovery.getByText(NOT_CONFIGURED)).toBeVisible()
+      await expect(recovery.getByText(DONE)).toBeVisible()
     } finally {
       await context.close()
     }
