@@ -565,6 +565,44 @@ export interface EstimatingEstimatesTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface EstimatingPublicationApprovalsTable {
+  id: Generated<string>
+  subject_type: string
+  subject_id: string
+  estimate_version_id: string | null
+  project_id: string
+  reference: string
+  document_version: number
+  content_digest: string
+  state: string
+  basis: string
+  reasons: string[]
+  flags: Generated<string[]>
+  proposed_total_cents: Int8
+  highest_total_cents: Int8 | null
+  subtotal_cents: Int8 | null
+  discount_cents: Int8 | null
+  discount_category: string | null
+  adjustment_cents: Int8 | null
+  revised_project_value_cents: Int8 | null
+  combined_project_cents: Int8
+  threshold_cents: Int8 | null
+  threshold_version: number | null
+  labor_cost_cents: Int8 | null
+  material_cost_cents: Int8 | null
+  costs_complete: boolean | null
+  linked: ColumnType<JsonValue, string | undefined, string>
+  requested_by: string
+  requested_at: ColumnType<Date, Date | string | undefined, Date | string>
+  decided_by: string | null
+  decided_at: Timestamp | null
+  decision_comment: string | null
+  invalidated_at: Timestamp | null
+  invalidated_reason: string | null
+  used_at: Timestamp | null
+  row_version: Generated<number>
+}
+
 export interface FinanceDepositRequirementsTable {
   id: Generated<string>
   job_id: string
@@ -1846,6 +1884,7 @@ export interface Database {
   'estimating.estimate_version_internals': EstimatingEstimateVersionInternalsTable
   'estimating.estimate_versions': EstimatingEstimateVersionsTable
   'estimating.estimates': EstimatingEstimatesTable
+  'estimating.publication_approvals': EstimatingPublicationApprovalsTable
   'finance.deposit_requirements': FinanceDepositRequirementsTable
   'finance.deposit_waivers': FinanceDepositWaiversTable
   'finance.payment_allocations': FinancePaymentAllocationsTable

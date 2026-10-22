@@ -119,6 +119,39 @@ describe('the lifecycle panel (TSK-0055, HH-EST-04)', () => {
     expect(screen.getByText('Resolve every reason under “Ready to publish?” first.')).toBeTruthy()
   })
 
+  it('[HH-EST-16] Publish waits for the Owner over the threshold; the Owner publishes, which records the approval', () => {
+    const waiting = { status: 'pending', actions: { publishApproves: false } }
+    renderPanel({ ...view(), ownerApproval: waiting } as View, vi.fn())
+    const button = screen.getByRole('button', { name: 'Publish' }) as HTMLButtonElement
+    expect(button.disabled).toBe(true)
+    expect(screen.getByText("Publishing waits for the Owner's approval.")).toBeTruthy()
+    cleanup()
+    renderPanel(
+      { ...view(), ownerApproval: { status: 'required', actions: { publishApproves: true } } } as View,
+      vi.fn(),
+    )
+    expect((screen.getByRole('button', { name: 'Publish' }) as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('[HH-EST-16] a refusal for want of the Owner names the state and each reason in words', async () => {
+    const fetchImpl = vi.fn(async () =>
+      json(409, {
+        error: {
+          code: 'CONFLICT',
+          fieldErrors: [
+            { field: 'ownerApproval', code: 'OWNER_APPROVAL_REQUIRED', message: '' },
+            { field: 'ownerApproval.reasons', code: 'combined_project_total', message: '' },
+          ],
+        },
+      }),
+    )
+    renderPanel(view(), fetchImpl)
+    fireEvent.click(screen.getByRole('button', { name: 'Publish' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Publish now' }))
+    await screen.findByText("Publishing this version needs the Owner's approval first.")
+    expect(screen.getByText("This project's documents together are over the threshold")).toBeTruthy()
+  })
+
   it('[T26] a refusal names every reason: the role, a NOT CONFIGURED value, a line and a review hold', async () => {
     const fetchImpl = vi.fn(async () =>
       json(409, {

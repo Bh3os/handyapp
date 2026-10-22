@@ -102,6 +102,12 @@ export const CONFIG_KEYS = {
   'tax.mode': shape({ mode: oneOf(['no_tax_line']) }),
   'estimate.validity': shape({ days: int(1, 365), from: exactly('published') }),
   'estimate.publishing_roles': shape({ roles: listOf(oneOf(['owner', 'office', 'estimator', 'worker'])) }),
+  // TSK-0130 (FACT-OWNER-APPROVAL-THRESHOLD, OWN-DEC-173): publishing an estimate or a change order above this needs the
+  // Owner's approval first; "greater than", so exactly the threshold needs none. The Owner changes it (audited).
+  'owner_approval.threshold': shape({ thresholdCents: int(1), comparison: exactly('greater_than') }),
+  // TSK-0130 (final owner amendments 2026-10-22 to OWN-DEC-173): a discretionary credit from this amount needs the
+  // Owner's approval. No amount is decided for "material": PROPOSED 1 cent, so every discretionary credit (proposed).
+  'owner_approval.discretionary_credit': shape({ materialFromCents: int(1) }),
   'payment.term_default': shape({ term: oneOf(['due_on_receipt']) }),
   'payment.methods': shape({
     methods: listOf(oneOf(['square_payment_link', 'square_tap_to_pay', 'cash', 'check', 'zelle', 'cash_app', 'chime'])),

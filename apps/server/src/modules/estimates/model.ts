@@ -37,6 +37,7 @@ import { type Action, decide, type StaffActor } from '@handyhub/policy'
 import { sql } from 'kysely'
 import { ApiError, type FieldError } from '../../api/errors.js'
 import { loadConfig } from '../../platform/config/index.js'
+import { refreshEstimateApprovals } from './owner-approval.js'
 import { computeVersionTotals, discountFor, pricingPolicies } from './pricing.js'
 
 /** Versions whose content can still change (ENT-EstimateVersion). */
@@ -532,6 +533,8 @@ export async function saveDraft(
     })
     .where('id', '=', versionId)
     .execute()
+  // TSK-0130 (HH-EST-16): a change of price or scope invalidates an open Owner approval of this version.
+  await refreshEstimateApprovals(tx, actor, versionId)
   return {
     rowVersion,
     complete: t !== null,

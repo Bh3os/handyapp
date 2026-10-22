@@ -20,7 +20,8 @@ import type { ApiContext, RouteDef } from '../../api/route.js'
 import { loadConfig } from '../../platform/config/index.js'
 import { syncEstimateItem } from '../queue/index.js'
 import { documentsView } from './documents.js'
-import { lifecycleView, type LifecycleView } from './lifecycle.js'
+import { lifecycleView, publishingRoles, type LifecycleView } from './lifecycle.js'
+import { ownerApprovalView } from './owner-approval.js'
 import { createEstimate, type DraftInput, EDITABLE_STATES, saveDraft } from './model.js'
 import { staffEstimateVersion } from './projections.js'
 import { documentDetails, readinessOf, versionSnapshot } from './readiness.js'
@@ -146,6 +147,8 @@ export async function builderView(db: Reader, actor: StaffActor, versionId: stri
       allowed(actor, v.projectId),
     // TSK-0055: publishing, the lifecycle actions and the version history.
     lifecycle: (await lifecycleView(db, actor, versionId, config)) as LifecycleView,
+    // TSK-0130 (HH-EST-16): whether publishing needs the Owner's approval, the records and the caller's actions.
+    ownerApproval: await ownerApprovalView(db, actor, versionId, config, publishingRoles(config)),
   }
 }
 

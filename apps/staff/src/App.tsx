@@ -9,6 +9,7 @@ import { call, setCsrfToken, type ApiErrorBody, type Fetch } from './api'
 import { AuditLogScreen } from './AuditLog'
 import { MessagesScreen } from './Messages'
 import { EstimatePublishingSetting } from './EstimateLifecycle'
+import { ApprovalThresholdSetting } from './OwnerApproval'
 import { EstimateBuilder, EstimatesScreen } from './Estimates'
 import { CustomerRecord, CustomersScreen } from './Customers'
 import { InboxRecord, InboxScreen } from './Inbox'
@@ -258,6 +259,11 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
             <>
               <ConfigurationScreen t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
               <EstimatePublishingSetting t={t} fetchImpl={doFetch} />
+              <ApprovalThresholdSetting
+                t={t}
+                fetchImpl={doFetch}
+                onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
+              />
             </>
           ) : route.page === 'screen' && shown === 'staff' && allowed ? (
             <StaffScreen

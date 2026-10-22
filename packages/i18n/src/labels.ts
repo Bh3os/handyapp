@@ -96,6 +96,8 @@ export const LABEL_FAMILIES = {
     'invoice_overdue_decision',
     'cancellation_review',
     'visit_cancellation_review',
+    // TSK-0130: an estimate version waiting for the Owner's approval before publishing.
+    'estimate_publication_approval',
     'incident_notification',
   ],
   /** Why a queue item needs action (HH-OPS-02 "reason"). */
@@ -147,6 +149,19 @@ export const LABEL_FAMILIES = {
     'critical_shortage',
     // TSK-0067: an appointment reminder draft waiting for release.
     'appointment_reminder',
+    // TSK-0130: why a document waits for the Owner's approval before publishing.
+    'threshold_not_configured',
+    'over_threshold',
+    'options_over_threshold',
+    'change_order_adjustment',
+    'revised_project_value',
+    'combined_project_total',
+    'adjustment_over_threshold',
+    'negative_margin',
+    'discretionary_discount',
+    'discretionary_credit',
+    'refund',
+    'undocumented_correction',
     // TSK-0123: the property's time zone is unknown.
     'time_zone_unknown',
   ],
@@ -232,6 +247,8 @@ export const LABEL_FAMILIES = {
     'tax.mode',
     'estimate.validity',
     'estimate.publishing_roles',
+    'owner_approval.threshold',
+    'owner_approval.discretionary_credit',
     'payment.term_default',
     'payment.methods',
     'payment.instructions',
@@ -561,6 +578,16 @@ export const LABEL_FAMILIES = {
     'VERSION_EDITABLE',
     'NO_NEWER_VERSION',
     'FACTS_MISSING',
+    // TSK-0130 (HH-EST-16): the Owner's approval before publishing.
+    'OWNER_APPROVAL_REQUIRED',
+    'OWNER_APPROVAL_PENDING',
+    'OWNER_APPROVAL_REJECTED',
+    'OWNER_APPROVAL_NOT_REQUIRED',
+    'TOTALS_INCOMPLETE',
+    'VERSION_NOT_EDITABLE',
+    'APPROVAL_NOT_PENDING',
+    'COMMENT_REQUIRED',
+    'OWNER_MFA_REQUIRED',
   ],
   /**
    * The customer's responses to an estimate version (TSK-0056, HH-EST-09; migration 0043,
@@ -776,6 +803,7 @@ export const LABEL_FAMILIES = {
     'portal',
     'project_access',
     'property',
+    'publication_approval',
     'question',
     'queue',
     'request',
@@ -1141,6 +1169,28 @@ export const LABEL_FAMILIES = {
     'resources',
     'dependencies',
   ],
+  /**
+   * TSK-0130 (HH-EST-16, OWN-DEC-173): why publishing waits for the Owner, an approval record's state, the builder's
+   * status, how an approval came about and why it stopped counting (@handyhub/domain publication-approval.ts).
+   */
+  publicationApprovalReason: [
+    'threshold_not_configured',
+    'over_threshold',
+    'options_over_threshold',
+    'change_order_adjustment',
+    'revised_project_value',
+    'combined_project_total',
+    'adjustment_over_threshold',
+    'negative_margin',
+    'discretionary_discount',
+    'discretionary_credit',
+    'refund',
+    'undocumented_correction',
+  ],
+  publicationApprovalState: ['pending', 'approved', 'rejected', 'invalidated'],
+  publicationApprovalStatus: ['closed', 'incomplete', 'not_required', 'required', 'pending', 'approved', 'rejected'],
+  publicationApprovalBasis: ['request', 'owner_publication'],
+  publicationInvalidation: ['content_changed', 'not_required'],
   /** Where a worker's own packet acknowledgment stands, and why one stopped counting (TSK-0072). */
   acknowledgmentState: ['acknowledged', 'required', 'invalidated', 'not_assigned'],
   acknowledgmentInvalidation: ['critical_change', 'assignment_removed', 'account_disabled'],

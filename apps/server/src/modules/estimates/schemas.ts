@@ -2,6 +2,7 @@
 // response objects list every field, so nothing undeclared (an internal value in particular) leaves the server.
 import { LINE_KINDS } from '@handyhub/money'
 import { CONFIG_KEYS } from '../../platform/config/index.js'
+import { OWNER_APPROVAL } from '../approvals/schemas.js'
 import { DOCUMENT_ROLES, DOCUMENT_SOURCES, DOCUMENT_STATES } from './documents.js'
 import { LIFECYCLE } from './lifecycle-schemas.js'
 import { DRAFT_LIMITS, QUANTITY_SOURCES, TEXT_LISTS } from './model.js'
@@ -341,6 +342,7 @@ export const VERSION_VIEW = {
     'documents',
     'canEdit',
     'lifecycle',
+    'ownerApproval',
   ],
   properties: {
     id: { type: 'string' },
@@ -426,6 +428,8 @@ export const VERSION_VIEW = {
     canEdit: { type: 'boolean' },
     // TSK-0055: what publishing pinned, the lifecycle actions the caller may take and the version history.
     lifecycle: LIFECYCLE,
+    // TSK-0130 (HH-EST-16): the Owner's approval before publishing over the threshold.
+    ownerApproval: OWNER_APPROVAL,
   },
 } as const
 

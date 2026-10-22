@@ -8,6 +8,7 @@
 // The view actions of the queue section and the screens are PROPOSED mappings (the matrix names who acts, not who
 // sees a list); the Owner Decisions types use the owner-only action of each decision as the matrix states it.
 // Labels come from the staff catalogs (label families queueItemType, queueReason and queueAction).
+import { PUBLICATION_APPROVAL_REASONS } from '@handyhub/domain'
 import type { Action } from '@handyhub/policy'
 
 export const QUEUE_SECTIONS = ['queue', 'owner_decisions'] as const
@@ -431,6 +432,21 @@ export const QUEUE_ITEM_TYPES = [
     reasons: ['work_cancellation_requested'],
     action: 'decide',
     screen: 'schedule',
+  },
+  // TSK-0130 (HH-EST-16, OWN-DEC-173): an estimate version waiting for the Owner's approval before it is published
+  // (over the threshold, the project's documents together over it, or flagged). One item per version while its
+  // approval is pending; resolved when the Owner decides, when a change of price or scope invalidates it, or when the
+  // Owner publishes it. The link opens the version, whose Owner approval panel shows the details and the decision.
+  // Change-order approvals (TSK-0082) add their own type.
+  {
+    id: 'estimate_publication_approval',
+    section: 'owner_decisions',
+    subject: 'estimate_version',
+    band: 'time_sensitive',
+    view: 'estimate.approve_publication',
+    reasons: [...PUBLICATION_APPROVAL_REASONS],
+    action: 'decide',
+    screen: 'estimates',
   },
   {
     id: 'incident_notification',

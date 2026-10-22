@@ -35,6 +35,7 @@ import {
   PUBLISHING_SETTING,
   REASON_BODY,
 } from './lifecycle-schemas.js'
+import { requestEstimateApproval } from './owner-approval.js'
 import { builderView, staffActor, versionProjectOf } from './routes.js'
 import { CREATE_RESULT, VERSION_PARAMS, VERSION_VIEW } from './schemas.js'
 
@@ -140,7 +141,13 @@ export function lifecycleRoutes(deps: LifecycleDeps): RouteDef[] {
         tx,
         actor,
         versionId,
-        { storage: deps.storage, testMark: deps.testMark, expiry },
+        {
+          storage: deps.storage,
+          testMark: deps.testMark,
+          expiry,
+          // TSK-0130 (OWN-DEC-204): the Owner's own publication counts as approval only after the second factor.
+          secondFactor: ctx.req.staffSession?.state === 'complete' && ctx.req.staffSession.mfaEnrolled === true,
+        },
         { expectedRowVersion: ctx.expectedVersion() },
       )
       const view = await builderView(tx, actor, versionId)
@@ -159,6 +166,7 @@ export function lifecycleRoutes(deps: LifecycleDeps): RouteDef[] {
           customerPdfSha256: out.customerPdf.sha256,
           superseded: out.superseded ? { versionId: out.superseded.versionId, version: out.superseded.version } : null,
           requestsEstimated: out.requestsEstimated,
+          ownerApproval: out.ownerApproval,
         },
       })
       if (out.superseded)
@@ -167,6 +175,52 @@ export function lifecycleRoutes(deps: LifecycleDeps): RouteDef[] {
           target: { type: 'estimate_version', id: out.superseded.versionId },
           summary: { estimateNumber: view.estimateNumber, version: out.superseded.version, by: view.version },
         })
+      return { body: view, version: out.rowVersion }
+    },
+  }
+
+  // TSK-0130 (HH-EST-16, OWN-DEC-173): ask the Owner to approve this exact version before it is published.
+  const requestOwnerApproval: RouteDef = {
+    ...common,
+    method: 'POST',
+    path: '/staff/estimate-versions/:versionId/owner-approval',
+    operationId: 'requestEstimateOwnerApproval',
+    summary: 'Ask the Owner to approve publishing this estimate version',
+    description:
+      'Staff with estimate.publish (as for publishing: the Owner always; an Estimator while the publishing policy ' +
+      'grants it), on a draft or in-review version of an open project with its totals, with If-Match: the row ' +
+      'version shown. Refused unless publishing it needs the Owner (its final proposed total, or the highest total ' +
+      "its options allow, over owner_approval.threshold; the project's estimates together over it; a negative " +
+      'margin; or the threshold NOT CONFIGURED). Records a pending approval of this exact price and scope (a ' +
+      'SHA-256 digest) with what the Owner is shown, and opens the Owner Decisions item; asking again for the same ' +
+      'content returns the open one. A later change of price or scope invalidates it. Audited. Returns the builder ' +
+      'view.',
+    permission: 'estimate.publish',
+    decisionContext: publishingContext,
+    expectedVersion: 'required',
+    audit: 'publication_approval.request',
+    resource: versionProjectOf,
+    test: 'test/integration/publication-approvals.test.ts',
+    schema: { params: VERSION_PARAMS, body: EMPTY_BODY, response: { 200: VERSION_VIEW } },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const actor = staffActor(ctx)
+      const { versionId } = ctx.req.params as { versionId: string }
+      const config = await loadConfig(tx)
+      const out = await requestEstimateApproval(tx, actor, versionId, {
+        expectedRowVersion: ctx.expectedVersion(),
+        publishingRoles: publishingRoles(config),
+        config,
+      })
+      await ctx.audit({
+        target: { type: 'publication_approval', id: out.approvalId },
+        summary: {
+          ...(out.summary as Record<string, string | number | null | string[]>),
+          versionId,
+          repeated: !out.created,
+        },
+      })
+      const view = await builderView(tx, actor, versionId)
       return { body: view, version: out.rowVersion }
     },
   }
@@ -352,5 +406,16 @@ export function lifecycleRoutes(deps: LifecycleDeps): RouteDef[] {
     },
   }
 
-  return [publish, requestReview, returnToDraft, withdraw, expire, recordDecline, revise, getPublishing, putPublishing]
+  return [
+    publish,
+    requestOwnerApproval,
+    requestReview,
+    returnToDraft,
+    withdraw,
+    expire,
+    recordDecline,
+    revise,
+    getPublishing,
+    putPublishing,
+  ]
 }
