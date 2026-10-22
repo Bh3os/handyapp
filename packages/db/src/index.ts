@@ -40,8 +40,9 @@ export { SEEDERS } from './seeders.js'
 export {
   databaseIdentity,
   isLocalDatabaseUrl,
+  isStagingDatabaseName,
   MARK_ENVIRONMENTS,
-  STAGING_DATABASE_NAME,
+  STAGING_DATABASE_PATTERN,
   recordEnvironmentMark,
   type DatabaseIdentity,
   type MarkEnvironment,

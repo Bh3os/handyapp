@@ -8,10 +8,15 @@ import type { Db, Tx } from './client.js'
 export const MARK_ENVIRONMENTS = ['local', 'ci', 'staging', 'production'] as const
 
 /**
- * The staging database's name (render.yaml databaseName). A staging reset runs only on a database of this name: the
- * server checks it and the database itself refuses a staging run elsewhere (staging.environment_database_ok, 0069).
+ * The staging database's name (render.yaml databaseName): handyhub_staging_db, or with the random 4-character suffix
+ * Render appends each time the database is recreated (handyhub_staging_db_vdqz). No production database uses the
+ * prefix. A staging reset runs only on a database whose name matches: the server checks it and the database itself
+ * refuses a staging run elsewhere (staging.environment_database_ok, migration 0069, the same pattern).
  */
-export const STAGING_DATABASE_NAME = 'handyhub_staging_db'
+export const STAGING_DATABASE_PATTERN = /^handyhub_staging_db(_[a-z0-9]{4})?$/
+
+/** Whether a database name is the staging database's. */
+export const isStagingDatabaseName = (name: string): boolean => STAGING_DATABASE_PATTERN.test(name)
 
 const LOOPBACK_HOSTS = new Set(['localhost', '::1', '[::1]'])
 
@@ -64,7 +69,7 @@ export type DatabaseIdentity = {
   servedProduction: boolean
   /** The environments marked, oldest first, without repeats. */
   marks: MarkEnvironment[]
-  /** current_database(): a staging reset needs STAGING_DATABASE_NAME. */
+  /** current_database(): a staging reset needs a name matching STAGING_DATABASE_PATTERN. */
   database: string
 }
 

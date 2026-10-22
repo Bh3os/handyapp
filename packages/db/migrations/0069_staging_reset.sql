@@ -4,8 +4,9 @@
 -- command), so they record what the processes said they were, not an independent fact. A production server that
 -- cannot record or confirm its mark refuses to start, so a database that production used carries the mark; a
 -- database that no production server ever started on is protected by the other checks only. Those are: a staging
--- reset runs only on the database named as staging (current_database() = 'handyhub_staging_db', the databaseName of
--- render.yaml; @handyhub/db STAGING_DATABASE_NAME), and a local or ci reset only when the server's DATABASE_URL
+-- reset runs only on the database named as staging (current_database() handyhub_staging_db, or with the 4-character
+-- suffix Render appends on every recreate: render.yaml databaseName; @handyhub/db STAGING_DATABASE_PATTERN, a prefix
+-- no production database uses), and a local or ci reset only when the server's DATABASE_URL
 -- names a loopback host or a local socket (checked by the server, as the database cannot see the URL).
 -- - environment_marks: every environment a server or migration run identified itself as on this database (written
 --   at boot and after migrating). Append-only. Once a production mark exists no other mark is accepted, and the
@@ -71,14 +72,15 @@ $$;
 COMMENT ON FUNCTION staging.database_identified() IS
   'True only for a database marked as staging, local or ci that has never been marked production (TSK-0141).';
 
--- A staging reset runs only on the staging database (render.yaml databaseName; @handyhub/db STAGING_DATABASE_NAME);
+-- A staging reset runs only on the staging database (render.yaml databaseName; @handyhub/db STAGING_DATABASE_PATTERN);
 -- local and ci are confined to a loopback or socket connection by the server (the database cannot see the URL).
 CREATE FUNCTION staging.environment_database_ok(environment text) RETURNS boolean LANGUAGE sql STABLE
   SET search_path = pg_catalog, pg_temp AS $$
-  SELECT environment IN ('local', 'ci') OR (environment = 'staging' AND current_database() = 'handyhub_staging_db')
+  SELECT environment IN ('local', 'ci')
+      OR (environment = 'staging' AND current_database() ~ '^handyhub_staging_db(_[a-z0-9]{4})?$')
 $$;
 COMMENT ON FUNCTION staging.environment_database_ok(text) IS
-  'False for a staging run on any database but handyhub_staging_db (TSK-0141).';
+  'False for a staging run on any database but handyhub_staging_db[_xxxx] (TSK-0141).';
 
 CREATE TABLE staging.reusable_test_accounts (
   account_id    uuid PRIMARY KEY REFERENCES identity.customer_accounts (id),

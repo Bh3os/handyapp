@@ -13,7 +13,7 @@
 //   RESET TEST DATA. Every attempt, refused or not, is in the append-only audit log; every run is in the protected
 //   staging trail (staging.reset_runs).
 import type { Db } from '@handyhub/db'
-import { databaseIdentity, STAGING_DATABASE_NAME } from '@handyhub/db'
+import { databaseIdentity, isStagingDatabaseName } from '@handyhub/db'
 import type { StaffActor } from '@handyhub/policy'
 import { sql } from 'kysely'
 import { createHash } from 'node:crypto'
@@ -151,7 +151,7 @@ type Check = { id: (typeof CHECK_IDS)[number]; ok: boolean }
 
 /**
  * The process checks with the database's own (read now), all of which must pass: marked as a test database and never
- * as production, and in staging the staging database itself (STAGING_DATABASE_NAME, render.yaml). The database
+ * as production, and in staging the staging database itself (STAGING_DATABASE_PATTERN, render.yaml). The database
  * applies the same name rule to the run row (migration 0069), so this check is not the only one.
  */
 export async function stagingIdentification(
@@ -163,7 +163,7 @@ export async function stagingIdentification(
     ...deps.checks.map((c) => ({ id: c.id, ok: c.ok })),
     { id: 'database_marked', ok: identity.marks.some((m) => m !== 'production') },
     { id: 'database_never_production', ok: !identity.servedProduction },
-    { id: 'database_name', ok: deps.environment !== 'staging' || identity.database === STAGING_DATABASE_NAME },
+    { id: 'database_name', ok: deps.environment !== 'staging' || isStagingDatabaseName(identity.database) },
   ]
   return { identified: identity.identified && checks.every((c) => c.ok), checks }
 }

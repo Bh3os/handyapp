@@ -223,7 +223,7 @@ describe('Staging Tools exist only in an identified staging or test environment 
   })
 
   it('[HH-OPS-05] a staging reset runs only on the staging database: the server and the database refuse it elsewhere', async () => {
-    // This ci test database is marked, but it is not handyhub_staging_db.
+    // This ci test database is marked, but its name is not the staging database's.
     const ci = await stagingIdentification({ environment: 'ci', checks: [] }, t.db)
     expect(ci.identified).toBe(true)
     const staging = await stagingIdentification({ environment: 'staging', checks: [] }, t.db)

@@ -65,7 +65,11 @@ services:
 
 databases:
   - name: handyhub-staging-db
-    databaseName: handyhub_staging_db
+    # Render appends a random 4-character suffix to the database name each time the database is recreated (now
+    # handyhub_staging_db_vdqz). Staging Tools (TSK-0141) accept a staging reset only on a database named
+    # handyhub_staging_db or handyhub_staging_db_<4 lower-case letters or digits> (@handyhub/db
+    # STAGING_DATABASE_PATTERN, migration 0069), a prefix no production database uses.
+    databaseName: handyhub_staging_db_vdqz
     user: handyhub_staging_db_user
     plan: free
     region: ohio
