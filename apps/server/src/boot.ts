@@ -3,7 +3,7 @@
 // With a database: the provider webhooks (/webhooks/bird, /webhooks/resend) and the in-process job worker run too;
 // the worker stops and the pool closes when the app closes.
 import { randomUUID } from 'node:crypto'
-import { createDb, withTx } from '@handyhub/db'
+import { createDb, recordEnvironmentMark, withTx } from '@handyhub/db'
 import type { FastifyInstance } from 'fastify'
 import { buildApp } from './app.js'
 import { buildAutomations } from './automations.js'
@@ -73,6 +73,14 @@ export async function boot(env: Readonly<Record<string, string | undefined>>, op
       secrets: providers.webhookSecrets,
       trustProxyHops: config.trustProxyHops,
     })
+    // TSK-0141: the database records which environment this server is (a production mark forbids every staging reset
+    // for good). Best effort: a database not yet migrated never stops the server; the next start marks it.
+    try {
+      const mark = await recordEnvironmentMark(db, config.env, 'server_boot')
+      if (mark === 'refused') app.log.warn('environment mark refused: this database served production')
+    } catch (err) {
+      app.log.warn({ err }, 'environment mark not recorded')
+    }
     // The first Owner (HH-STAFF-01 safe bootstrap): only while no Owner exists; one invite through the outbox.
     if (config.bootstrapOwner) {
       const owner = config.bootstrapOwner

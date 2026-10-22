@@ -70,6 +70,9 @@ export default defineConfig({
         CODE_HASH_KEY: E2E_CODE_KEY,
         // The access-code store of the property record (TSK-0045); the other servers leave it NOT CONFIGURED.
         ACCESS_CODE_ENCRYPTION_KEY: E2E_ACCESS_CODE_KEY,
+        // TSK-0141: the Staging Tools (Reset Test Data) on this isolated ci server only; the other servers leave them
+        // off, so their staging routes do not exist. The migration run before it marks the e2e database as ci.
+        STAGING_TOOLS: 'on',
         ...(databaseUrl ? { DATABASE_URL: databaseUrl, TEST_EMAIL_DESTINATIONS: 'e2e-owner@example.test' } : {}),
         // TSK-0049: synthetic webhook signing secrets and receiving address, so the inbox spec can post signed
         // inbound email and texts to this server (the one that runs the jobs). The other servers keep inbound NOT

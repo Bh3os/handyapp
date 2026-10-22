@@ -41,6 +41,8 @@ export const ENV_VARS = {
   LOG_LEVEL: 'fatal, error, warn, info, debug, trace or silent. Default info.',
   JOB_WORKER:
     'on or off. Default on: with a database, this process also runs the job worker. off: it serves requests only and leaves the jobs to another process on the same database.',
+  STAGING_TOOLS:
+    "on or off. Default off. on: the Owner Dashboard's Staging Tools (Reset Test Data, TSK-0141) exist, only in staging or an isolated local or ci test environment, and only on a database marked as such; refused in production (the service does not start).",
   CODE_HASH_KEY:
     'Key for one-time codes and client-address digests, at least 32 characters (TSK-0016). Unset in staging or production: codes NOT CONFIGURED; local and ci use a random key per process. Secret.',
 } as const
@@ -132,6 +134,33 @@ export interface Config {
   accessGate: AccessGateSettings
   /** Outside production every response carries X-Robots-Tag: noindex and robots.txt disallows everything. */
   noindex: boolean
+  /**
+   * STAGING_TOOLS=on (TSK-0141): the explicit staging flag of Reset Test Data. Never true in production (refused at
+   * boot); the routes exist only when stagingToolsEnvironment() also identifies the environment.
+   */
+  stagingTools: boolean
+}
+
+/** Environments in which the Staging Tools may exist at all: staging and the isolated local and ci test systems. */
+export const STAGING_TOOL_ENVIRONMENTS: readonly EnvironmentName[] = ['local', 'ci', 'staging']
+
+export type StagingCheck = { id: 'environment' | 'flag' | 'access_gate'; ok: boolean }
+
+/**
+ * The process side of the staging identification (TSK-0141; OWN-DEC-191, HH-OPS-05): HANDYHUB_ENV is staging, local
+ * or ci, STAGING_TOOLS is on, and in staging the access gate is in front of every route. The database side is
+ * checked on every call (staging.database_identified, migration 0069). Every check must pass.
+ */
+export function stagingToolsEnvironment(config: Pick<Config, 'env' | 'stagingTools' | 'accessGate'>): {
+  identified: boolean
+  checks: StagingCheck[]
+} {
+  const checks: StagingCheck[] = [
+    { id: 'environment', ok: STAGING_TOOL_ENVIRONMENTS.includes(config.env) },
+    { id: 'flag', ok: config.stagingTools === true && config.env !== 'production' },
+    { id: 'access_gate', ok: config.env !== 'staging' || config.accessGate.enabled },
+  ]
+  return { identified: checks.every((c) => c.ok), checks }
 }
 
 /** Tester names: a letter or digit, then letters, digits, ".", "_" or "-" (RFC 7617 forbids ":" in a user-id). */
@@ -232,6 +261,10 @@ export function loadConfig(source: Readonly<Record<string, string | undefined>>)
     accessGate = { enabled: true, realm: `HandyHub ${env}`, users: parseAccessGateUsers(gateRaw) }
   }
 
+  const stagingTools = oneOf('STAGING_TOOLS', get('STAGING_TOOLS') ?? 'off', ['on', 'off'] as const) === 'on'
+  if (stagingTools && env === 'production')
+    throw new ConfigError('STAGING_TOOLS is refused in production: Reset Test Data never exists there (OWN-DEC-191)')
+
   const logLevelRaw = get('LOG_LEVEL')
   const port = integer('PORT', get('PORT'), 3000, 0, 65535)
   const host = get('HOST') ?? '127.0.0.1'
@@ -291,6 +324,7 @@ export function loadConfig(source: Readonly<Record<string, string | undefined>>)
     jobWorker: oneOf('JOB_WORKER', get('JOB_WORKER') ?? 'on', ['on', 'off'] as const) === 'on',
     accessGate,
     noindex: env !== 'production',
+    stagingTools,
   }
 }
 

@@ -55,6 +55,10 @@ services:
       # NOT CONFIGURED (codes cannot be entered or revealed) (TSK-0045, HH-CRM-03).
       - key: ACCESS_CODE_ENCRYPTION_KEY
         sync: false
+      # Staging Tools (TSK-0141, OWN-DEC-191): Reset Test Data in the Owner Dashboard. Staging only: the server refuses
+      # this variable in production, and a reset also needs the database to be marked staging and never production.
+      - key: STAGING_TOOLS
+        value: 'on'
       # Proxies that append to X-Forwarded-For in front of the service; set once measured on Render (default 0).
       - key: TRUST_PROXY_HOPS
         sync: false

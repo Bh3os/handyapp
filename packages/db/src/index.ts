@@ -26,6 +26,7 @@ export {
   runSeeders,
   SEED_ENVIRONMENTS,
   SeedRefusedError,
+  syntheticContacts,
   seedEnvironment,
   TEST_EMAIL_DOMAINS,
   TEST_PHONE_AREA_CODES,
@@ -36,6 +37,14 @@ export {
   type SeedOptions,
 } from './seed.js'
 export { SEEDERS } from './seeders.js'
+export {
+  databaseIdentity,
+  MARK_ENVIRONMENTS,
+  recordEnvironmentMark,
+  type DatabaseIdentity,
+  type MarkEnvironment,
+  type MarkSource,
+} from './environment.js'
 export {
   canAutoSchedule,
   contentHash,

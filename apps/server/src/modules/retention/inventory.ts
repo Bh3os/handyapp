@@ -594,6 +594,31 @@ export const TABLES = {
     classes: ['logs_audit'],
     categories: [NS],
   },
+  // TSK-0141: the staging-only test data management (never used in production; a production mark forbids a reset).
+  'staging.environment_marks': {
+    holds: 'Which environments identified themselves on this database (staging, local, ci or production) and when',
+    classes: ['configuration'],
+    categories: [NS],
+    protectedEvidence: true,
+  },
+  'staging.reset_runs': {
+    holds:
+      'The protected staging trail of Reset Test Data: the Owner, time, mode, counts removed and kept, checks and ' +
+      'error codes; never personal content',
+    classes: ['logs_audit'],
+    categories: [NS],
+    protectedEvidence: true,
+  },
+  'staging.reusable_test_accounts': {
+    holds: 'The customer accounts the Owner designated as reusable test accounts (account reference, who, when)',
+    classes: ['technical'],
+    categories: [NS],
+  },
+  'staging.test_data_seedings': {
+    holds: 'What Reset & Create Fresh Test Data created: scenario outcomes, refusal codes and fictional references',
+    classes: ['logs_audit'],
+    categories: [NS],
+  },
   'work.equipment': { holds: 'Shared equipment items', classes: ['configuration'], categories: [NS] },
   'work.holds': {
     holds: 'Review and safety holds with their resolution and reviewer',
