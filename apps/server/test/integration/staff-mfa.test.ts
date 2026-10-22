@@ -4,7 +4,7 @@
 // only enrolment, the challenge and sign-out; the Owner resets a lost authenticator; offboarding removes it; an
 // Owner's own lost authenticator is recovered with a recovery code or the operations command. Accounts, keys and codes
 // are synthetic (RULE-SYNTHETIC-DATA).
-import { withTx } from '@handyhub/db'
+import { withTx, type Tx } from '@handyhub/db'
 import { createTestDatabase, type TestDatabase } from '@handyhub/db/testing'
 import { STAFF_ROLES, type StaffRole } from '@handyhub/policy'
 import type { FastifyInstance } from 'fastify'
@@ -67,7 +67,7 @@ const auditOf = (action: string, targetId: string) =>
     .orderBy('seq')
     .execute()
 /** The operations command's transaction, with its correlation ID (as cli/staff-access.ts runs it). */
-const ops = <T>(fn: (tx: Parameters<Parameters<typeof withTx>[1]>[0]) => Promise<T>) =>
+const ops = <T>(fn: (tx: Tx) => Promise<T>) =>
   runWithContext({ requestId: `ops:test-${Date.now().toString(36)}` }, () => withTx(t.db, fn))
 let seq = 0
 const idem = () => ({ 'idempotency-key': `synthetic-mfa-${String(++seq).padStart(6, '0')}-${Date.now().toString(36)}` })
