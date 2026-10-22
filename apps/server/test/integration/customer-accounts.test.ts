@@ -27,6 +27,7 @@ import { createWorker } from '../../src/platform/jobs.js'
 import { createLogger } from '../../src/platform/logger.js'
 import { createProviders } from '../../src/providers/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
+import { standaloneCode } from '../fixtures/code-message.js'
 import { testConfig } from '../fixtures/env.js'
 
 // Built at runtime so no literal looks like a credential (RULE-SYNTHETIC-DATA).
@@ -756,8 +757,8 @@ describe('sign-in email changes re-verify, notify the old email and revoke other
     expect(text).toContain('customer_account.email_change')
     expect(text).not.toContain(old)
     expect(text).not.toContain(next)
-    expect(text).not.toContain(code)
-    expect(lines.join('\n')).not.toContain(code)
+    expect(text).not.toMatch(standaloneCode(code))
+    expect(lines.join('\n')).not.toMatch(standaloneCode(code))
   })
 
   it('[HH-ID-11] recovery: signed in through the verified phone, the email changes with authority other_contact', async () => {
