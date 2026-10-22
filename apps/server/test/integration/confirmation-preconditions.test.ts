@@ -398,7 +398,8 @@ const customerGet = async (p: Project, tab: 'appointments' | 'overview') => {
 }
 const pay = async (jobId: string) => {
   const paid = await staffWrite('office', 'POST', `/api/v1/staff/jobs/${jobId}/deposit/payments`, {
-    receivedOn: new Date().toISOString().slice(0, 10),
+    // The business date (migration 0005's zone), as the server's IN_FUTURE check reads it, not the UTC date.
+    receivedOn: localDateOf(new Date(), 'America/Kentucky/Louisville'),
     method: 'cash',
     amountCents: 30_000,
   })
