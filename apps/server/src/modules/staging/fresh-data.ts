@@ -497,7 +497,14 @@ export async function createFreshTestData(deps: FreshDataDeps): Promise<Scenario
     } catch (err) {
       if (err instanceof Blocked)
         return { id, state: 'blocked', references: [], step: err.step, codes: err.codes, task: null }
-      return { id, state: 'failed', references: [], step: null, codes: ['INTERNAL', err instanceof Error ? err.name : 'Error'], task: null }
+      return {
+        id,
+        state: 'failed',
+        references: [],
+        step: null,
+        codes: ['INTERNAL', err instanceof Error ? err.name : 'Error'],
+        task: null,
+      }
     }
   }
 

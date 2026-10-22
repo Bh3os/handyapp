@@ -3037,5 +3037,6 @@
   "staging.refused.STAGING_NOT_IDENTIFIED": "Rechazado: este entorno no está identificado con certeza como staging.",
   "staging.refused.RESET_RUNNING": "Rechazado: hay otro restablecimiento en curso.",
   "staging.refused.other": "El restablecimiento fue rechazado. Inténtelo de nuevo.",
-  "staging.loadFailed": "No se pudo cargar la gestión de datos de prueba."
+  "staging.loadFailed": "No se pudo cargar la gestión de datos de prueba.",
+  "enum.stagingKept.loadout_versions": "Cargas por servicio (herramientas y materiales)"
 }

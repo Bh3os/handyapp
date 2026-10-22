@@ -1129,6 +1129,7 @@ export const LABEL_FAMILIES = {
     'services',
     'service_versions',
     'sop_versions',
+    'loadout_versions',
     'configuration_versions',
     'message_templates',
     'coverage_rule_sets',

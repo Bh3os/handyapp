@@ -228,6 +228,12 @@ CREATE TRIGGER retention_reviews_no_truncate BEFORE TRUNCATE ON privacy.retentio
 DROP TRIGGER job_scope_snapshots_no_truncate ON work.job_scope_snapshots;
 CREATE TRIGGER job_scope_snapshots_no_truncate BEFORE TRUNCATE ON work.job_scope_snapshots
   FOR EACH STATEMENT WHEN (NOT staging.reset_permitted()) EXECUTE FUNCTION platform.reject_append_only_change();
+DROP TRIGGER job_packet_acknowledgments_no_truncate ON work.job_packet_acknowledgments;
+CREATE TRIGGER job_packet_acknowledgments_no_truncate BEFORE TRUNCATE ON work.job_packet_acknowledgments
+  FOR EACH STATEMENT WHEN (NOT staging.reset_permitted()) EXECUTE FUNCTION platform.reject_append_only_change();
+DROP TRIGGER job_packet_ack_invalidations_no_truncate ON work.job_packet_acknowledgment_invalidations;
+CREATE TRIGGER job_packet_ack_invalidations_no_truncate BEFORE TRUNCATE ON work.job_packet_acknowledgment_invalidations
+  FOR EACH STATEMENT WHEN (NOT staging.reset_permitted()) EXECUTE FUNCTION platform.reject_append_only_change();
 DROP TRIGGER jobs_no_truncate ON work.jobs;
 CREATE TRIGGER jobs_no_truncate BEFORE TRUNCATE ON work.jobs
   FOR EACH STATEMENT WHEN (NOT staging.reset_permitted()) EXECUTE FUNCTION platform.reject_append_only_change();
@@ -259,7 +265,9 @@ BEGIN
     'work.holds', 'work.job_packet_exports', 'work.job_packet_views', 'work.job_packets', 'work.reservation_flags',
     'work.reservations', 'work.scheduling_tasks', 'work.visit_change_requests', 'work.visit_changes',
     'work.visit_windows', 'work.visits', 'work.window_offer_options', 'work.window_offers',
-    'work.work_package_sop_pins', 'work.work_packages'
+    'work.work_package_sop_pins', 'work.work_packages',
+    'work.visit_departures', 'work.time_stamps', 'work.time_stamp_corrections', 'work.work_package_loadouts',
+    'work.loadout_checks'
   ] LOOP
     EXECUTE format(
       'CREATE TRIGGER %I BEFORE TRUNCATE ON %s FOR EACH STATEMENT WHEN (NOT staging.reset_permitted()) '

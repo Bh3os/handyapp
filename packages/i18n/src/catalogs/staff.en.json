@@ -3037,5 +3037,6 @@
   "staging.refused.STAGING_NOT_IDENTIFIED": "Refused: this environment is not positively identified as staging.",
   "staging.refused.RESET_RUNNING": "Refused: another reset is running.",
   "staging.refused.other": "The reset was refused. Try again.",
-  "staging.loadFailed": "Test data management could not be loaded."
+  "staging.loadFailed": "Test data management could not be loaded.",
+  "enum.stagingKept.loadout_versions": "Service loadouts (tools and materials)"
 }
