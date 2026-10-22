@@ -596,7 +596,8 @@ export const PROJECT_VISITS = {
   properties: {
     projectId: { type: 'string' },
     projectState: { type: 'string' },
-    timeZone: { type: 'string' },
+    // TSK-0123: the property's zone; null while it is unknown (no visit is planned until it is verified).
+    timeZone: { type: ['string', 'null'] },
     businessTimeZone: {
       anyOf: [
         {

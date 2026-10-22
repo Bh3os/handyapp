@@ -61,6 +61,7 @@ describe('property record contract (TSK-0045, HH-CRM-02, HH-CRM-03)', () => {
       'getStaffProperty',
       'editPropertyAddress',
       'editPropertyType',
+      'verifyPropertyTimeZone',
       'editPropertyDetail',
       'confirmPropertyDetail',
       'addAccessCode',

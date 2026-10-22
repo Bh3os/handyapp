@@ -147,7 +147,8 @@ export type PacketContent = {
     readonly propertyId: string
     readonly addressVersion: number
     readonly propertyType: string
-    readonly timeZone: string
+    /** The property's zone; null while it is unknown (TSK-0123: never assumed). Each visit carries its own zone. */
+    readonly timeZone: string | null
     readonly details: readonly PacketDetail[]
     readonly accessCodes: readonly PacketAccessCode[]
   }

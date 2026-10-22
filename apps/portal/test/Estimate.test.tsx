@@ -56,6 +56,7 @@ const estimate = (over: Record<string, unknown> = {}) => ({
   issuerName: 'Handyhub LLC',
   publishedAt: '2026-10-21T14:00:00.000Z',
   validUntil: '2026-11-05T04:59:59.999Z',
+  validUntilZone: { zone: 'America/Chicago', business: false },
   lines: [
     {
       position: 1,
@@ -326,6 +327,20 @@ describe('the customer estimate view (TSK-0056, HH-EST-06, HH-EST-09)', () => {
     expect(screen.getByText("This estimate can't be approved here yet.")).toBeTruthy()
     expect(screen.getByText("The wording of the estimate terms is waiting for the owner's approval.")).toBeTruthy()
     expect(screen.getByText('Not answering never approves an estimate.')).toBeTruthy()
+  })
+
+  it('[HH-SCH-02][OWN-DEC-159] the end of validity is shown with its time in the property zone, or as business time', async () => {
+    // 2026-11-05T04:59:59.999Z is the end of November 4 in business time (EST); in a Central property it reads 10:59 PM CST.
+    open(api().fetchImpl)
+    const valid = await screen.findByTestId('estimate-valid-until', undefined, { timeout: 5_000 })
+    expect(valid.textContent).toMatch(/^November 4, 2026.*10:59\sPM CST$/)
+    cleanup()
+    open(
+      api({ detail: () => estimate({ validUntilZone: { zone: 'America/Kentucky/Louisville', business: true } }) })
+        .fetchImpl,
+    )
+    const business = await screen.findByTestId('estimate-valid-until')
+    expect(business.textContent).toMatch(/^November 4, 2026.*11:59\sPM EST, HandyHub business time$/)
   })
 
   it('[RULE-NO-INVENTED-FACTS] terms NOT CONFIGURED: no wording at all, only the missing state', async () => {

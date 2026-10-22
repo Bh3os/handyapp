@@ -214,6 +214,7 @@ export interface CrmContactsTable {
   version: Generated<number>
   email_verified_value: string | null
   phone_verified_value: string | null
+  time_zone: string | null
 }
 
 export interface CrmCustomerNotesTable {
@@ -264,12 +265,16 @@ export interface CrmPropertiesTable {
   state: string
   zip: string
   property_type: string
-  time_zone: string
+  time_zone: string | null
   coverage_result: string
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   version: Generated<number>
   coverage_rule_set: number | null
   address_version: Generated<number>
+  time_zone_status: Generated<string>
+  time_zone_basis: Generated<string>
+  time_zone_counties: Generated<string[]>
+  time_zone_version: Generated<number>
 }
 
 export interface CrmPropertyAddressesTable {
@@ -307,6 +312,19 @@ export interface CrmPropertyDetailsTable {
   confirmed_at: Timestamp
   confirmed_by: string | null
   version: Generated<number>
+}
+
+export interface CrmPropertyTimeZonesTable {
+  property_id: string
+  zone_version: number
+  time_zone: string | null
+  status: string
+  basis: string
+  counties: Generated<string[]>
+  previous_zone: string | null
+  reason: string | null
+  recorded_by: string | null
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
 export interface CrmRecordChangesTable {
@@ -1776,6 +1794,7 @@ export interface Database {
   'crm.property_addresses': CrmPropertyAddressesTable
   'crm.property_changes': CrmPropertyChangesTable
   'crm.property_details': CrmPropertyDetailsTable
+  'crm.property_time_zones': CrmPropertyTimeZonesTable
   'crm.record_changes': CrmRecordChangesTable
   'crm.record_links': CrmRecordLinksTable
   'estimating.approval_receipts': EstimatingApprovalReceiptsTable

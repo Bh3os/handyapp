@@ -31,6 +31,7 @@ function detail(over: Partial<CustomerDetail> = {}): CustomerDetail {
         email: 'synthetic@example.test',
         phone: '+15025550144',
         preferredChannel: 'email',
+        timeZone: { state: 'unknown', zone: null, family: null },
         isPrimary: true,
         version: 1,
         verification: { email: 'verified', phone: 'unverified' },

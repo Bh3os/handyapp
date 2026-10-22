@@ -86,6 +86,8 @@ export const LABEL_FAMILIES = {
     'deposit_due',
     'visit_flagged',
     'loadout_shortage',
+    // TSK-0123: a property whose time zone is unknown.
+    'property_time_zone',
     'deposit_waiver',
     'start_work_exception',
     'refund_request',
@@ -145,6 +147,8 @@ export const LABEL_FAMILIES = {
     'critical_shortage',
     // TSK-0067: an appointment reminder draft waiting for release.
     'appointment_reminder',
+    // TSK-0123: the property's time zone is unknown.
+    'time_zone_unknown',
   ],
   /** The one action button of a queue item (HH-OPS-02); it opens the record's screen. */
   queueAction: [
@@ -164,6 +168,7 @@ export const LABEL_FAMILIES = {
     'review_deposit',
     'reassign_visit',
     'review_shortage',
+    'verify_time_zone',
   ],
   /**
    * System health (TSK-0101; HH-NFR-02): the checks, their states, metrics and notes, as the server's health report
@@ -267,8 +272,25 @@ export const LABEL_FAMILIES = {
     'retention.safety_records',
     'scheduling.window_offers',
     'visit.on_my_way',
+    'geo.county_time_zones',
+    'sms.unknown_zone_hours',
     'ai.module',
   ],
+  /** A property's time-zone state and what it rests on (TSK-0123; @handyhub/domain zones.ts). */
+  zoneStatus: ['unknown', 'derived', 'verified'],
+  zoneBasis: [
+    'zip_counties',
+    'verified_county',
+    'no_zip_rule',
+    'zip_outside_area',
+    'zip_boundary',
+    'county_map_not_configured',
+    'county_not_mapped',
+    'counties_disagree',
+    'assumption_withdrawn',
+  ],
+  /** The supported US zone families (OWN-DEC-159: Eastern and Central). */
+  zoneFamily: ['eastern', 'central'],
   /** Staff qualification of a request (TSK-0042; HH-LEAD-02). */
   qualificationCheck: [
     'coverage',

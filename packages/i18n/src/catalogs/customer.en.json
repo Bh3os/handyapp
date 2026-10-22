@@ -838,6 +838,7 @@
   "portal.estimate.versionStatus": "Version {version}: {status}",
   "portal.estimate.details": "Estimate details",
   "portal.estimate.document": "View the estimate document (PDF)",
+  "portal.estimate.validUntilBusiness": "{time}, HandyHub business time",
   "portal.estimate.terms.title": "Estimate terms",
   "portal.estimate.terms.show": "Read the estimate terms in full",
   "portal.estimate.terms.fullPage": "Open the estimate terms on their own page",

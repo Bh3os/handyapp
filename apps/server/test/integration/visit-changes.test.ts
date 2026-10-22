@@ -37,6 +37,7 @@ import { readProviderSettings } from '../../src/providers/settings.js'
 import { recordPolicyVersion } from '../../src/platform/config/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { testConfig } from '../fixtures/env.js'
+import { verifyPropertyZone } from '../fixtures/zones.js'
 
 const ZONE = 'America/Kentucky/Louisville'
 const KEY: CodeKeySettings = readCodeKey({
@@ -226,6 +227,8 @@ async function siteVisitProject(): Promise<Project> {
     .select(['id', 'project_id', 'contact_id'])
     .where('reference', '=', reference)
     .executeTakeFirstOrThrow()
+  // TSK-0123: the property's zone is unknown until verified; these tests plan visits, so it is verified first.
+  await verifyPropertyZone(t.db, { projectId: row.project_id })
   const grant = await t.db
     .selectFrom('identity.project_access_grants')
     .select('id')

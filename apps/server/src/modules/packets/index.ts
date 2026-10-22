@@ -368,7 +368,8 @@ export function packetsModule(deps: PacketsDeps = {}): ApiModule {
         view: viewBody,
         locale: localeOf(ctx),
         printedAt: now,
-        timeZone: row.content.site_access.timeZone,
+        // The property's zone, else the zone the visits were planned in; UTC (named on every time) when neither is known.
+        timeZone: row.content.site_access.timeZone ?? row.content.schedule.visits[0]?.timeZone ?? 'UTC',
       })
       // Recorded and audited before the bytes leave: an export that cannot be recorded is not served.
       await withTx(ctx.db, (tx) => recordExport(tx, ctx, row, latest.version, 'pdf'))
