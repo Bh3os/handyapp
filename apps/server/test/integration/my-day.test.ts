@@ -21,7 +21,14 @@ import {
   type Db,
 } from '@handyhub/db'
 import { createTestDatabase, type TestDatabase } from '@handyhub/db/testing'
-import { addLocalDays, localDateOf, resolveWindow } from '@handyhub/domain'
+import {
+  addLocalDays,
+  localClockOf,
+  localDateOf,
+  offsetMinutesAt,
+  resolveLocalTime,
+  resolveWindow,
+} from '@handyhub/domain'
 import { ESTIMATE_TERMS } from '@handyhub/domain/legal'
 import type { FastifyInstance } from 'fastify'
 import { sql } from 'kysely'
@@ -392,22 +399,43 @@ async function bookedVisit(p: Project, date: string, worker: Person): Promise<{ 
 }
 
 /** A confirmed work visit on `date` early in the day for the given team (lead first), see the header. */
-let slot = 0
-/** Each fixture visit gets its own early slot of the day, so one worker's fixtures never overlap. */
-const SLOTS = ['00:05', '01:05', '02:05', '03:05', '04:05', '05:05', '06:05'] as const
-async function fixtureVisit(
-  p: Project,
-  jobId: string,
-  date: string,
-  team: Person[],
-  /** A start of the form hh:05 or hh:20 (the window is 30 minutes long); otherwise the next slot. */
-  at?: `${string}:05` | `${string}:20`,
-): Promise<string> {
-  const start = at ?? (SLOTS[slot++ % SLOTS.length] as string)
-  const [h, m] = start.split(':').map(Number) as [number, number]
-  const end = `${String(h).padStart(2, '0')}:${String(m + 30).padStart(2, '0')}`
-  const w = resolveWindow({ date, start, end, zone: ZONE })
-  if (!w.ok) throw new Error('fixture window')
+const SLOT_MINUTES = 30
+/** Slots taken per local date and worker, so one worker's fixtures never overlap. */
+const taken = new Map<string, Set<number>>()
+/**
+ * The first free 30-minute slot after local midnight of `date` for the whole team: a 15-minute window and its
+ * 15-minute covering reservation. Slots count real minutes from midnight (a DST day skips the slot it cannot
+ * express), so even the fifth visit of one worker starts within two hours of midnight: On my way (three hours
+ * before the window, OWN-DEC-107) is open whenever the suite runs on that local day, at any hour (HH-SCH-08, T47).
+ */
+function fixtureWindow(date: string, team: Person[]) {
+  const midnight = resolveLocalTime(date, '00:00', ZONE)
+  if (midnight.kind !== 'unique') throw new Error('fixture midnight')
+  for (let k = 0; k < 24; k++) {
+    if (team.some((who) => taken.get(`${date}|${who}`)?.has(k))) continue
+    const startsAt = new Date(midnight.at.instant.getTime() + k * SLOT_MINUTES * 60_000)
+    const endsAt = new Date(startsAt.getTime() + (SLOT_MINUTES / 2) * 60_000)
+    if (localDateOf(startsAt, ZONE) !== date) break
+    const w = resolveWindow({
+      date,
+      start: localClockOf(startsAt, ZONE),
+      end: localClockOf(endsAt, ZONE),
+      zone: ZONE,
+      startOffsetMinutes: offsetMinutesAt(startsAt, ZONE),
+      endOffsetMinutes: offsetMinutesAt(endsAt, ZONE),
+    })
+    if (!w.ok) continue
+    for (const who of team) {
+      const set = taken.get(`${date}|${who}`) ?? new Set<number>()
+      set.add(k)
+      taken.set(`${date}|${who}`, set)
+    }
+    return w.window
+  }
+  throw new Error('fixture window')
+}
+async function fixtureVisit(p: Project, jobId: string, date: string, team: Person[]): Promise<string> {
+  const window = fixtureWindow(date, team)
   return withTx(t.db, async (tx) => {
     const v = await tx
       .insertInto('work.visits')
@@ -416,16 +444,16 @@ async function fixtureVisit(
         project_id: p.projectId,
         job_id: jobId,
         property_id: p.propertyId,
-        local_date: w.window.date,
-        window_start: w.window.start,
-        window_end: w.window.end,
+        local_date: window.date,
+        window_start: window.start,
+        window_end: window.end,
         time_zone: ZONE,
-        start_offset_minutes: w.window.startOffsetMinutes,
-        end_offset_minutes: w.window.endOffsetMinutes,
-        starts_at: w.window.startsAt,
-        ends_at: w.window.endsAt,
+        start_offset_minutes: window.startOffsetMinutes,
+        end_offset_minutes: window.endOffsetMinutes,
+        starts_at: window.startsAt,
+        ends_at: window.endsAt,
         window_set_by: ids.office,
-        expected_duration_minutes: 30,
+        expected_duration_minutes: SLOT_MINUTES / 2,
         preparation_buffer_minutes: 0,
         travel_buffer_minutes: 0,
         required_workers: team.length,
@@ -442,8 +470,8 @@ async function fixtureVisit(
           staff_user_id: ids[who],
           role: i === 0 ? 'lead' : 'member',
           kind: 'confirmed',
-          starts_at: w.window.startsAt,
-          ends_at: new Date(w.window.endsAt.getTime() + 30 * 60_000),
+          starts_at: window.startsAt,
+          ends_at: new Date(window.endsAt.getTime() + (SLOT_MINUTES / 2) * 60_000),
           time_zone: ZONE,
           assigned_by: ids.office,
         })
@@ -1034,8 +1062,8 @@ describe('[HH-DATA-08][HH-PKT-06][HH-OFF-09] the seam of My Day, the packet ackn
     const p = await project()
     const lost = await withdrawnEstimate(p)
     const jobId = await approve(p)
-    // Its own early slot (Ben's other visit today is later), so On my way is open whenever the suite runs.
-    const visitId = await fixtureVisit(p, jobId, today(), ['ben'], '00:20')
+    // Ben's first free early slot of today, so On my way is open whenever the suite runs.
+    const visitId = await fixtureVisit(p, jobId, today(), ['ben'])
     const item = async () => {
       const v = (await myDay('ben')).visits.find((x) => x.visitId === visitId)
       if (!v?.readiness) throw new Error('the visit and its readiness are on My Day')
