@@ -371,7 +371,7 @@ type VisitView = {
   windowVersion: number
   assignments: Assignment[]
   offers: OfferView[]
-  notices: { messageKey: string; state: string; errorCode: string | null }[]
+  notices: { messageKey: string; channel: string; state: string; errorCode: string | null }[]
   actions: { changeWindow: boolean; confirm: boolean; offerWindows: boolean }
 }
 type Visits = {
@@ -1185,7 +1185,7 @@ describe('[RULE-SERVER-AUTHZ][T19] offers are authorized on the server', () => {
 })
 
 describe('[FACT-AUTOMATIC-MESSAGES][OWN-DEC-99] the automatic notices are recorded truthfully', () => {
-  it('[FACT-AUTOMATIC-MESSAGES][HH-COM-06] options and confirmation notices: wording NOT CONFIGURED, never sent, shown to staff', async () => {
+  it('[FACT-AUTOMATIC-MESSAGES][HH-COM-06][HH-COM-13] options and confirmation notices: email wording released but not wired, texts NOT CONFIGURED; never sent, shown to staff', async () => {
     const providers = createProviders(readProviderSettings({ HANDYHUB_ENV: 'ci' }))
     const registry = createAutomationRegistry([
       estimateVisitOptionsAutomation({ providers: { email: providers.email, sms: providers.sms } }),
@@ -1199,16 +1199,22 @@ describe('[FACT-AUTOMATIC-MESSAGES][OWN-DEC-99] the automatic notices are record
     await worker.runOnce()
     const offerNotices = (await visitOf(p.projectId, v.id)).offers[0]?.notices
     expect(offerNotices).toEqual([
-      { messageKey: 'estimate_visit.options', channel: 'email', state: 'failed', errorCode: 'template_not_configured' },
+      // TSK-0119: the owner's email wording is released; its values are wired by TSK-0120. Texts have no wording yet.
+      {
+        messageKey: 'estimate_visit.options',
+        channel: 'email',
+        state: 'failed',
+        errorCode: 'template_values_not_wired',
+      },
       { messageKey: 'estimate_visit.options', channel: 'sms', state: 'failed', errorCode: 'template_not_configured' },
     ])
     expect(await select(p, 1, 1)).toMatchObject({ statusCode: 200 })
     await worker.runOnce()
     await worker.runOnce()
     const visit = await visitOf(p.projectId, v.id)
-    expect(visit.notices.map((n) => [n.messageKey, n.state, n.errorCode])).toEqual([
-      ['estimate_visit.confirmed', 'failed', 'template_not_configured'],
-      ['estimate_visit.confirmed', 'failed', 'template_not_configured'],
+    expect(visit.notices.map((n) => [n.messageKey, n.channel, n.state, n.errorCode])).toEqual([
+      ['estimate_visit.confirmed', 'email', 'failed', 'template_values_not_wired'],
+      ['estimate_visit.confirmed', 'sms', 'failed', 'template_not_configured'],
     ])
     expect(providers.fakes.email?.sent ?? []).toEqual([])
     expect(providers.fakes.sms?.sent ?? []).toEqual([])

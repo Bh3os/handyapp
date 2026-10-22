@@ -32,6 +32,7 @@ import { loadConfig } from '../../platform/config/index.js'
 import { rerunJob, scheduleJob } from '../../platform/jobs.js'
 import { currentContext } from '../../platform/request-context.js'
 import { isOutcomeUnknown, releaseAutomation, releaseTime, STAFF_REPLY_MESSAGE_KEY } from './deliveries.js'
+import { MESSAGE_VIEW_ROUTES } from './message-routes.js'
 import { automaticPolicy } from './policy.js'
 
 const DELIVERY_ID = {
@@ -175,7 +176,14 @@ const retryDelivery: RouteDef = {
     if (!job) throw new ApiError('CONFLICT')
     await tx
       .updateTable('platform.message_deliveries')
-      .set({ state: 'queued', error_code: null, queued_at: sql<Date>`now()`, updated_at: sql<Date>`now()` })
+      .set({
+        state: 'queued',
+        error_code: null,
+        missing_variables: [],
+        queued_at: sql<Date>`now()`,
+        scheduled_at: sql<Date>`now()`,
+        updated_at: sql<Date>`now()`,
+      })
       .where('id', '=', row.id)
       .execute()
     // One new run per accepted retry: the row lock and the checks above admit one retry per failure, and a re-run
@@ -239,7 +247,14 @@ async function retryReply(ctx: ApiContext, tx: Tx, row: RetryRow): Promise<ApiRe
   const runAt = releaseTime(await loadConfig(tx), row.message_key, new Date())
   await tx
     .updateTable('platform.message_deliveries')
-    .set({ state: 'queued', error_code: null, queued_at: sql<Date>`now()`, updated_at: sql<Date>`now()` })
+    .set({
+      state: 'queued',
+      error_code: null,
+      missing_variables: [],
+      queued_at: sql<Date>`now()`,
+      scheduled_at: runAt,
+      updated_at: sql<Date>`now()`,
+    })
     .where('id', '=', row.id)
     .execute()
   await scheduleJob(tx, RELEASE_JOB, {
@@ -262,4 +277,7 @@ async function retryReply(ctx: ApiContext, tx: Tx, row: RetryRow): Promise<ApiRe
   return { body: { id: row.id, state: 'queued' } }
 }
 
-export const NOTIFICATIONS_MODULE: ApiModule = { name: 'notifications', routes: [retryDelivery] }
+export const NOTIFICATIONS_MODULE: ApiModule = {
+  name: 'notifications',
+  routes: [retryDelivery, ...MESSAGE_VIEW_ROUTES],
+}

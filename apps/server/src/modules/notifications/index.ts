@@ -1,4 +1,4 @@
-// Notifications module (TSK-0047): message types, the automatic-message policy, versioned templates and deliveries.
+// Notifications module (TSK-0047; TSK-0119: the variable registry, the branded layout, the status model and views): message types, the automatic-message policy, versioned templates and deliveries.
 // TSK-0032: failed deliveries open a staff retry item; NOTIFICATIONS_MODULE holds the staff Retry route (retry.ts).
 export { nextContactTime, zonedTimeToUtc } from './contact-hours.js'
 export {
@@ -53,7 +53,44 @@ export {
   SMS_KEYWORDS,
   type SmsKeyword,
 } from './status.js'
-export { MESSAGE_TYPES, messageType, type Audience, type Channel, type MessageType } from './message-types.js'
+export {
+  MESSAGE_TYPES,
+  messageCategory,
+  messageType,
+  suppliedVariables,
+  type Audience,
+  type Channel,
+  type MessageCategory,
+  type MessageType,
+} from './message-types.js'
+export {
+  footerLines,
+  LAYOUT_VERSION,
+  MESSAGE_COLOURS,
+  parseBody,
+  placeholdersOf,
+  renderLayout,
+  TemplateValueError,
+  TemplateValuesError,
+  type LayoutContext,
+  type Rendered,
+} from './layout.js'
+export { isIntercepted, LIFECYCLE_GROUPS, lifecycleOf, MESSAGE_LIFECYCLE, type MessageLifecycle } from './lifecycle.js'
+export { maskDestination, MESSAGE_VIEW_ROUTES, PREVIEW_CSP } from './message-routes.js'
+export {
+  firstNameOf,
+  isSensitiveVariable,
+  linkHostsOf,
+  linkProblem,
+  SAMPLE_LINK_HOSTS,
+  SAMPLE_VALUES,
+  TEMPLATE_VARIABLES,
+  valueProblem,
+  variableSpec,
+  type VariableKind,
+  type VariableName,
+  type VariableSpec,
+} from './variables.js'
 export {
   assertAutomatic,
   automaticPolicy,
@@ -69,7 +106,10 @@ export {
   renderTemplate,
   TemplateError,
   templateProblems,
+  templateReadiness,
+  unwiredVariables,
   type ContentLocale,
+  type RenderOptions,
   type ReleasedTemplate,
   type TemplateDraft,
 } from './templates.js'

@@ -22,6 +22,8 @@ export const NAV_ITEMS = [
   { id: 'estimates', gate: ['estimate.draft'] },
   { id: 'schedule', gate: ['schedule.view_board'] },
   { id: 'inbox', gate: ['message.reply'] },
+  // TSK-0119 (HH-COM-14): message delivery states, retries and template previews, for the staff who release messages.
+  { id: 'messages', gate: ['message.release_draft'] },
   { id: 'payments', gate: ['payment.view'] },
   { id: 'cases', gate: ['case.record_complaint'] },
   { id: 'staff', gate: ['staff.invite'] },

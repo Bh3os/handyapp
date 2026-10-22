@@ -183,6 +183,7 @@ Data owner for every category: the Owner, who decides each deletion-review entry
 | `platform.idempotency_keys` | Idempotency keys with the stored response (24 hours, PROPOSED engineering default) | Technical records | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
 | `platform.jobs` | Background jobs and their state | Technical records | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
 | `platform.message_deliveries` | Outgoing messages: type, destination, variables, delivery state | Contact, Technical records | `requests_not_converted`, `job_records` | Owner's deletion review after the period; nothing deleted automatically | Render, Bird, Resend |
+| `platform.message_delivery_attempts` | Send attempts of message deliveries (retry history, metadata only) | Technical records | `requests_not_converted`, `job_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
 | `platform.message_delivery_events` | Provider delivery statuses | Technical records | `requests_not_converted`, `job_records` | Owner's deletion review after the period; nothing deleted automatically | Render |
 | `platform.message_template_versions` | Approved message wording per language | Configuration and content | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
 | `platform.message_templates` | Message types | Configuration and content | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |

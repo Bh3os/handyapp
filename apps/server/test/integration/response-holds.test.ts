@@ -257,7 +257,8 @@ async function publishQuestion(requestId: string, f = fakes()) {
           ],
         },
       ],
-      values: { projectLink: 'https://handyhub247.example/p/synthetic' },
+      // TSK-0119: the owner-style question notice names the request reference.
+      values: { reference: 'HH-0000TEST', projectLink: 'https://handyhub247.example/p/synthetic' },
     }),
   })
   await withTx(t.db, (tx) =>

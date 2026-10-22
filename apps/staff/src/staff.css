@@ -988,3 +988,31 @@
   text-align: left;
   vertical-align: top;
 }
+
+/* TSK-0119: message delivery and template previews. The email preview is a sandboxed frame of the rendered HTML. */
+.staff-messages__preview {
+  border: var(--hh-hairline);
+  border-radius: var(--hh-radius-sm);
+  padding: var(--hh-space-4);
+  margin-block: var(--hh-space-4);
+}
+.staff-messages__frame {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 32rem;
+  border: var(--hh-hairline);
+  border-radius: var(--hh-radius-sm);
+  background: var(--hh-surface);
+}
+.staff-messages__text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+/* Message states are full sentences ("Approved wording released; values not wired yet"):
+   they wrap on a phone instead of widening the page. */
+.staff-messages .hh-badge {
+  white-space: normal;
+  max-width: 100%;
+}
