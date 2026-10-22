@@ -126,6 +126,14 @@ export const CLEARED_CATEGORIES = {
     'finance.deposit_requirements',
     'finance.deposit_waivers',
     'estimating.approval_receipts',
+    // TSK-0085, TSK-0086 (0077): invoices, their lines, deposit credits and PDFs; refunds, Square payouts and fees.
+    'finance.invoices',
+    'finance.invoice_lines',
+    'finance.invoice_deposit_credits',
+    'finance.invoice_documents',
+    'finance.refunds',
+    'finance.payouts',
+    'finance.provider_fees',
   ],
   conversations: [
     'comms.conversations',
@@ -244,6 +252,8 @@ const STORED_FILES = [
   ['estimating.estimate_documents', 'object_key'],
   ['estimating.estimate_versions', 'customer_pdf_object_key'],
   ['estimating.approval_receipts', 'object_key'],
+  // TSK-0085: the issued invoice PDFs.
+  ['finance.invoice_documents', 'object_key'],
   // TSK-0073 (0074): the before photos of field visits.
   ['work.before_photos', 'object_key'],
 ] as const

@@ -156,8 +156,10 @@ export function portalModule(
         'The Documents tab (TSK-0056, HH-PORT-10). state "listed": the estimate versions the customer received, newest ' +
         'first, each with its number, version, status (current, approved, declined, expired, superseded, withdrawn), ' +
         'dates and stored total in integer cents, and for an approved version its approval receipt PDF (TSK-0058: ' +
-        'preparing or issued). state "none": no customer document exists yet (invoices, receipts and care notes come ' +
-        'with their own tasks).',
+        'preparing or issued); TSK-0085: the issued invoices (never a draft), newest first, each current or ' +
+        'superseded, with its payment state, issue date, total, the balance still owed from confirmed payments and ' +
+        'credits, any pending check and its PDF (preparing or issued). state "none": no customer document exists yet ' +
+        '(receipts, change orders and care notes come with their own tasks).',
     },
     {
       tab: 'photos',
