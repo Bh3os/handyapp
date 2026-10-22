@@ -23,6 +23,7 @@ import { call, type Fetch } from './api'
 import { JobIncidents } from './Cases'
 import { RevealedValue, type Revealed } from './Property'
 import { codeLabel } from './Requests'
+import { holdNoteText } from './StopWork'
 import { WorkPackageSop } from './WorkPackageSop'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
@@ -880,7 +881,7 @@ export function JobPacketPage({
                   <StatusBadge tone="danger">{codeLabel(t, 'holdState', h.state)}</StatusBadge>{' '}
                   <strong>{codeLabel(t, 'hazardCategory', h.category)}</strong> · {codeLabel(t, 'holdKind', h.kind)}
                 </p>
-                <p>{h.note}</p>
+                <p>{holdNoteText(t, h.note)}</p>
                 <p className="staff-request__hint">{t('packet.holdRaised', { time: when(h.raisedAt) })}</p>
               </li>
             ))}

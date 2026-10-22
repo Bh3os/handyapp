@@ -156,17 +156,21 @@ export function portalModule(
         'The Documents tab (TSK-0056, HH-PORT-10). state "listed": the estimate versions the customer received, newest ' +
         'first, each with its number, version, status (current, approved, declined, expired, superseded, withdrawn), ' +
         'dates and stored total in integer cents, and for an approved version its approval receipt PDF (TSK-0058: ' +
-        'preparing or issued). state "none": no customer document exists yet (invoices, receipts and care notes come ' +
-        'with their own tasks).',
+        'preparing or issued); TSK-0085: the issued invoices (never a draft), newest first, each current or ' +
+        'superseded, with its payment state, issue date, total, the balance still owed from confirmed payments and ' +
+        'credits, any pending check and its PDF (preparing or issued). state "none": no customer document exists yet ' +
+        '(receipts, change orders and care notes come with their own tasks).',
     },
     {
       tab: 'photos',
       operationId: 'getCustomerProjectPhotos',
       view: PROJECT_PHOTOS as CustomerView<never>,
       says:
-        'The Photos tab: the customer-visible photos of the project (the customer’s uploads and photos staff ' +
-        'shared) counted by state: received (ready), processing (quarantined) and failed (rejected). No photo, ' +
-        'URL or ID; internal and restricted photos are not counted.',
+        'The Photos tab (TSK-0076, HH-PORT-11): the customer’s own uploads (request and reply photos) counted by ' +
+        'state (received: ready, processing: quarantined, failed: rejected) and listed, each ready one with a signed ' +
+        'URL valid for linkSeconds; and the before and after photos staff shared with the customer, grouped by ' +
+        'service and paired where staff paired them and both are shared. Internal and restricted photos are never ' +
+        'read, listed or counted (OWN-DEC-106); no marketing state is sent.',
     },
     {
       tab: 'appointments',
@@ -200,7 +204,14 @@ export function portalModule(
     projection: view,
     schema: { ...overview.schema, response: { 200: view.schema } },
     handler: async (ctx) => {
-      const answer = await projectTab(ctx.db, ctx.scope, (ctx.req.params as { reference: string }).reference, tab)
+      const answer = await projectTab(
+        ctx.db,
+        ctx.scope,
+        (ctx.req.params as { reference: string }).reference,
+        tab,
+        new Date(),
+        deps.storage ?? null,
+      )
       if (!answer) throw new ApiError('NOT_FOUND')
       return { body: view.project(answer as never) }
     },

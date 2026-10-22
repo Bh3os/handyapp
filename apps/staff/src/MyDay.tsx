@@ -15,6 +15,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { call, idempotencyKey, type Fetch } from './api'
 import { MyJobPackets } from './JobPacket'
 import { codeLabel } from './Requests'
+import { StopWorkPanel } from './StopWork'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
 
@@ -334,6 +335,13 @@ function VisitCard({
                   <a href={href(`/loadouts/${v.jobId}`)}>{t('myday.openLoadout')}</a>
                 </>
               ) : null}
+              {/* TSK-0076: before and after photos of the job. */}
+              {v.state === 'arrived' && v.assignment === 'confirmed' ? (
+                <>
+                  {' · '}
+                  <a href={href(`/job-photos/${v.jobId}`)}>{t('myday.openPhotos')}</a>
+                </>
+              ) : null}
             </p>
           ) : null}
           {mine.length > 0 ? <p data-testid="myday-mine">{mine.join(' · ')}</p> : null}
@@ -367,6 +375,10 @@ function VisitCard({
           </div>
           {v.state === 'arrived' && v.mine.arrivedAt && !v.mine.finishedAt ? (
             <p className="staff-request__hint">{t('myday.arrivedNote')}</p>
+          ) : null}
+          {v.jobId && (v.state === 'en_route' || v.state === 'arrived') && v.assignment === 'confirmed' ? (
+            // TSK-0077 (HH-WORK-09): Stop Work / Report Hazard on the active visit, inline, never disabled.
+            <StopWorkPanel t={t} fetchImpl={fetchImpl} jobId={v.jobId} visitId={v.visitId} />
           ) : null}
           {problem ? (
             <p role="alert" className="hh-field__error" data-testid="myday-problem">

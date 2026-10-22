@@ -12,7 +12,8 @@ import type { FastifyInstance } from 'fastify'
 import { sql } from 'kysely'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildApp } from '../../src/app.js'
-import { estimateReminderAutomations } from '../../src/modules/estimates/index.js'
+import { estimateReminderAutomations, planEstimateReminder } from '../../src/modules/estimates/index.js'
+import { runWithContext } from '../../src/platform/request-context.js'
 import { createStaffUser, setPasswordHash } from '../../src/modules/identity/accounts.js'
 import { startCustomerSession } from '../../src/modules/identity/customer-sessions.js'
 import { readCodeKey, type CodeKeySettings } from '../../src/modules/identity/index.js'
@@ -31,6 +32,7 @@ import { recordPolicyVersion } from '../../src/platform/config/index.js'
 import { createWorker } from '../../src/platform/jobs.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { testConfig } from '../fixtures/env.js'
+import { reviewOutcome, standInQualityReview } from '../fixtures/quality-review.js'
 import { signInWithMfa } from '../fixtures/staff-mfa.js'
 
 const KEY: CodeKeySettings = readCodeKey({
@@ -580,6 +582,58 @@ describe('the Owner Delete action on a review entry (TSK-0100, HH-PRIV-05, HH-DA
       .where('review_id', '=', entry.id)
       .executeTakeFirstOrThrow()
     expect(decision).toMatchObject({ decision: 'archive', blockers: ['protected_evidence'], decided_by: ids.owner })
+  })
+
+  it('[HH-PRIV-05][HH-DATA-09][HH-FIN-04] delete blocked by an issued invoice archives instead', async () => {
+    const e = await withdrawnEstimate()
+    await scan(later(2, 2))
+    const entry = await entryFor(e.estimateId)
+    const revised = await write('estimator', `/staff/estimate-versions/${e.versionId}/revise`, {})
+    expect(revised.statusCode, revised.body).toBeLessThan(300)
+    await publish(revised.json<{ versionId: string }>().versionId)
+    await approve(e, 2, await customerCookie(e))
+    const job = await t.db
+      .selectFrom('work.jobs as j')
+      .innerJoin('estimating.approvals as a', 'a.id', 'j.approval_id')
+      .select(['j.id'])
+      .where('a.estimate_id', '=', e.estimateId)
+      .executeTakeFirstOrThrow()
+    // A draft is working data: before issue the check is still the Owner's (never "none found").
+    const prepared = await write('office', `/staff/jobs/${job.id}/invoices/final-draft`, {})
+    expect(prepared.statusCode, prepared.body).toBe(200)
+    const draft = prepared.json<{ final: { id: string; version: number } }>().final
+    const before = (await get('owner', `/staff/retention-reviews/${entry.id}/deletion`)).json<{
+      target: { checks: { check: string; result: string; count?: number }[] }
+    }>()
+    expect(before.target.checks).toContainEqual({ check: 'issued_invoices', result: 'not_recorded' })
+    // Issued after the review passes (the stand-in of fixtures/quality-review.ts, this throwaway database only).
+    await standInQualityReview(t.db)
+    await reviewOutcome(t.db, job.id, 'passed')
+    const issued = await write('office', `/staff/invoices/${draft.id}/issue`, {}, draft.version)
+    expect(issued.statusCode, issued.body).toBe(200)
+
+    const preview = (await get('owner', `/staff/retention-reviews/${entry.id}/deletion`)).json<{
+      target: { blockers: string[]; checks: { check: string; result: string; count?: number }[]; confirm: string[] }
+    }>()
+    expect(preview.target.checks).toContainEqual({ check: 'issued_invoices', result: 'found', count: 1 })
+    expect(preview.target.blockers).toContain('protected_evidence')
+    expect(preview.target.confirm).not.toContain('issued_invoices')
+    const res = await write('owner', `/staff/retention-reviews/${entry.id}/delete`, {
+      reason: 'Synthetic: confirm anyway.',
+      confirmedChecks: ALL_CHECKS,
+    })
+    expect(res.statusCode).toBe(409)
+    expect(res.json<{ error: { fieldErrors: { code: string }[] } }>().error.fieldErrors.map((f) => f.code)).toContain(
+      'PROTECTED_EVIDENCE',
+    )
+    expect(await count('finance.invoices', 'id', draft.id)).toBe(1)
+    expect(await count('estimating.estimates', 'id', e.estimateId)).toBe(1)
+    const archived = await write('owner', `/staff/retention-reviews/${entry.id}/archive`, {
+      reason: 'Synthetic: kept as invoice evidence.',
+    })
+    expect(archived.statusCode, archived.body).toBe(200)
+    expect(archived.json()).toMatchObject({ status: { state: 'archived' }, blockers: ['protected_evidence'] })
+    expect(await count('finance.invoices', 'id', draft.id)).toBe(1)
   })
 
   it('[HH-PRIV-05] an open hold blocks deletion; requests and audit entries are not erased; Keep longer comes back', async () => {
@@ -1168,8 +1222,8 @@ describe('deletions re-applied after a restore (TSK-0100, T72, HH-PRIV-03)', () 
   })
 })
 
-describe('erasing an estimate whose project has messages, questions and replies (TSK-0100 with TSK-0051, TSK-0060)', () => {
-  const registry = createAutomationRegistry(estimateReminderAutomations({ publicSiteUrl: 'http://127.0.0.1:4610' }))
+describe('erasing an estimate whose project has messages, questions and replies (TSK-0100 with TSK-0051, TSK-0121)', () => {
+  const registry = createAutomationRegistry(estimateReminderAutomations())
   /** Runs the reminder jobs that are due now (the worker knows only the reminder automations). */
   async function drain() {
     const w = createWorker({ db: t.db, registry })
@@ -1178,11 +1232,11 @@ describe('erasing an estimate whose project has messages, questions and replies 
       if (r.dispatched + r.succeeded + r.retried + r.failed + r.cancelled === 0) return
     }
   }
-  const due = async (versionId: string, step: 'first' | 'final') => {
-    await sql`UPDATE platform.jobs SET run_at = now() WHERE automation = 'estimate.reminder_draft'
-              AND job_key = ${`estimate.reminder_draft:${versionId}:${step}`}`.execute(t.db)
-    await drain()
-  }
+  /** TSK-0121: the version's automatic reminder, as its successful delivery schedules it. */
+  const schedule = (versionId: string) =>
+    runWithContext({ requestId: `req-privacy-reminder-${randomUUID()}` }, () =>
+      withTx(t.db, (tx) => planEstimateReminder(tx, { versionId, deliveredAt: new Date(), requestId: 'test-plan' })),
+    )
   const deliveries = (versionId: string) =>
     t.db
       .selectFrom('platform.message_deliveries')
@@ -1213,15 +1267,14 @@ describe('erasing an estimate whose project has messages, questions and replies 
     expect(res.statusCode, res.body).toBe(200)
   }
 
-  it('[HH-PRIV-05][HH-EST-14] reminder drafts nobody released go with the estimate; a sent message keeps only the reference', async () => {
+  it('[HH-PRIV-05][HH-EST-14] a reminder never sent goes with the estimate; a sent message keeps only the reference', async () => {
     const e = await publishedEstimate()
     await drain()
-    await due(e.versionId, 'first')
-    await due(e.versionId, 'final')
-    // The first draft was replaced by the final one; both are waiting or cancelled drafts nobody released.
+    await schedule(e.versionId)
+    // The automatic reminder is scheduled (email and text) and nothing was sent yet.
     expect((await deliveries(e.versionId)).map((d) => [d.message_key, d.state])).toEqual([
-      ['reminder.unanswered_estimate', 'cancelled'],
-      ['reminder.unanswered_estimate', 'draft'],
+      ['reminder.unanswered_estimate', 'queued'],
+      ['reminder.unanswered_estimate', 'queued'],
     ])
     const drafted = await deliveries(e.versionId)
     // A message the customer received about the version (synthetic: the estimate-ready notice, sent).
@@ -1246,7 +1299,7 @@ describe('erasing an estimate whose project has messages, questions and replies 
       .returning('id')
       .executeTakeFirstOrThrow()
     await withdraw(e.versionId, e.rowVersion)
-    expect((await deliveries(e.versionId)).filter((d) => d.state === 'draft')).toEqual([])
+    expect((await deliveries(e.versionId)).filter((d) => d.state === 'queued')).toEqual([])
     await scan(later(2, 2))
     const entry = await entryFor(e.estimateId)
 
@@ -1338,14 +1391,15 @@ describe('erasing an estimate whose project has messages, questions and replies 
     expect(moved.statusCode, moved.body).toBe(200)
     const e = await publishedEstimate(r)
     await drain()
-    await due(e.versionId, 'first')
-    expect((await deliveries(e.versionId)).map((d) => d.state)).toEqual(['draft'])
+    await schedule(e.versionId)
+    // The question reply came before publishing, so the reminder is scheduled (email and text).
+    expect((await deliveries(e.versionId)).map((d) => d.state)).toEqual(['queued', 'queued'])
     await withdraw(e.versionId, e.rowVersion)
     await scan(later(2, 2))
     const entry = await entryFor(e.estimateId)
     const p = (await get('owner', `/staff/retention-reviews/${entry.id}/deletion`)).json<Preview>()
     expect(p.target.blockers).toEqual([])
-    expect(p.target.removes).toContainEqual({ kind: 'reminder_drafts', count: 1 })
+    expect(p.target.removes).toContainEqual({ kind: 'reminder_drafts', count: 2 })
 
     const res = await write('owner', `/staff/retention-reviews/${entry.id}/delete`, {
       reason: 'Synthetic: past its period.',

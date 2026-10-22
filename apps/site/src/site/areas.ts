@@ -65,10 +65,15 @@ export function areaStructuredData(
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
     name: brand,
-    areaServed: area.map((c) => ({
-      '@type': 'AdministrativeArea',
-      name: countyView(t, c).name,
-      containedInPlace: { '@type': 'State', name: t.t(STATE_LABEL[c.state]) },
-    })),
+    areaServed: areaServed(t, area),
   }).replace(/</g, '\\u003c')
+}
+
+/** The service area as schema.org AdministrativeArea entries: each county with its state (FACT-SERVICE-AREA). */
+export function areaServed(t: Translator<CustomerKey>, area: readonly ServiceAreaCounty[] = SERVICE_AREA) {
+  return area.map((c) => ({
+    '@type': 'AdministrativeArea',
+    name: countyView(t, c).name,
+    containedInPlace: { '@type': 'State', name: t.t(STATE_LABEL[c.state]) },
+  }))
 }

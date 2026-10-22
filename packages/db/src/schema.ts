@@ -631,13 +631,91 @@ export interface FinanceDepositWaiversTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface FinanceInvoiceDepositCreditsTable {
+  id: Generated<string>
+  invoice_id: string
+  job_id: string
+  deposit_requirement_id: string
+  amount_cents: Int8
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface FinanceInvoiceDocumentsTable {
+  id: Generated<string>
+  invoice_id: string
+  project_id: string
+  object_key: string
+  content_type: string
+  byte_size: number
+  sha256: string
+  test_mark: boolean
+  renderer_version: number
+  issued_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface FinanceInvoiceLinesTable {
+  id: Generated<string>
+  invoice_id: string
+  position: number
+  kind: string
+  source: string
+  source_position: number | null
+  line_kind: string | null
+  service_code: string | null
+  description: string
+  quantity: string | null
+  unit: string | null
+  unit_price_cents: Int8 | null
+  amount_cents: Int8
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface FinanceInvoicesTable {
+  id: Generated<string>
+  project_id: string
+  job_id: string
+  kind: string
+  state: Generated<string>
+  approval_id: string
+  scope_snapshot_id: string | null
+  scope_version: number | null
+  deposit_requirement_id: string | null
+  currency: Generated<string>
+  charges_cents: Int8
+  credit_lines_cents: ColumnType<string, bigint | number | string | undefined, bigint | number | string>
+  subtotal_cents: Int8
+  discount_cents: ColumnType<string, bigint | number | string | undefined, bigint | number | string>
+  discount_category: string | null
+  discount_percent_bps: number | null
+  total_cents: Int8
+  deposit_credit_cents: ColumnType<string, bigint | number | string | undefined, bigint | number | string>
+  payment_term: string
+  payment_term_text: string
+  test_mark: boolean
+  prepared_by: string | null
+  prepared_at: ColumnType<Date, Date | string | undefined, Date | string>
+  sequence: number | null
+  number: string | null
+  issued_at: Timestamp | null
+  issued_by: string | null
+  issuer_name: string | null
+  issuer_mailing_address: string[] | null
+  public_phone: string | null
+  public_email: string | null
+  payment_instructions: Json | null
+  policy_versions: Json | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
+}
+
 export interface FinancePaymentAllocationsTable {
   id: Generated<string>
   payment_id: string
-  deposit_requirement_id: string
+  deposit_requirement_id: string | null
   amount_cents: Int8
   allocated_by: string
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  invoice_id: string | null
 }
 
 export interface FinancePaymentsTable {
@@ -655,6 +733,50 @@ export interface FinancePaymentsTable {
   state: string
   cleared_by: string | null
   cleared_at: Timestamp | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
+}
+
+export interface FinancePayoutsTable {
+  id: Generated<string>
+  provider: string
+  reference: string
+  amount_cents: Int8
+  currency: Generated<string>
+  paid_out_on: string
+  recorded_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface FinanceProviderFeesTable {
+  id: Generated<string>
+  provider: string
+  payment_id: string | null
+  payout_id: string | null
+  amount_cents: Int8
+  currency: Generated<string>
+  incurred_on: string
+  reference: string | null
+  recorded_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface FinanceRefundsTable {
+  id: Generated<string>
+  project_id: string
+  job_id: string
+  type: string
+  payment_id: string | null
+  invoice_id: string | null
+  amount_cents: Int8
+  reason: string
+  requested_by: string
+  state: string
+  approved_by: string | null
+  approved_at: Timestamp | null
+  staff_session_id: string | null
+  authenticated_at: Timestamp | null
+  provider_confirmation: string | null
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   version: Generated<number>
 }
@@ -1243,6 +1365,7 @@ export interface PlatformMessageDeliveriesTable {
   sent_at: Timestamp | null
   consent_decision: string | null
   missing_variables: Generated<string[]>
+  text_window: string | null
 }
 
 export interface PlatformMessageDeliveryAttemptsTable {
@@ -1600,7 +1723,16 @@ export interface StagingTestDataSeedingsTable {
   request_id: string
 }
 
-export interface WorkBeforePhotosTable {
+export interface WorkEquipmentTable {
+  id: Generated<string>
+  name: string
+  created_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  retired_at: Timestamp | null
+  retired_by: string | null
+}
+
+export interface WorkFieldPhotosTable {
   id: Generated<string>
   job_id: string
   project_id: string
@@ -1613,15 +1745,16 @@ export interface WorkBeforePhotosTable {
   sha256: string
   device_captured_at: Timestamp | null
   uploaded_at: ColumnType<Date, Date | string | undefined, Date | string>
-}
-
-export interface WorkEquipmentTable {
-  id: Generated<string>
-  name: string
-  created_by: string
-  created_at: ColumnType<Date, Date | string | undefined, Date | string>
-  retired_at: Timestamp | null
-  retired_by: string | null
+  phase: string
+  area_label: string | null
+  pair_of: string | null
+  state: Generated<string>
+  rejection_reason: string | null
+  processed_at: Timestamp | null
+  visibility: Generated<string>
+  visibility_changed_by: string | null
+  visibility_changed_at: Timestamp | null
+  version: Generated<number>
 }
 
 export interface WorkGateExceptionsTable {
@@ -1675,6 +1808,55 @@ export interface WorkHoldsTable {
   version: Generated<number>
   resolution_evidence: string | null
   reviewer_qualification: string | null
+}
+
+export interface WorkIssueReportPhotosTable {
+  id: Generated<string>
+  report_id: string
+  job_id: string
+  project_id: string
+  staff_user_id: string
+  object_key: string
+  content_type: string
+  byte_size: number
+  sha256: string
+  device_captured_at: Timestamp | null
+  uploaded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface WorkIssueReportReviewsTable {
+  report_id: string
+  reviewed_by: string
+  note: string | null
+  reviewed_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface WorkIssueReportsTable {
+  id: string
+  job_id: string
+  project_id: string
+  visit_id: string | null
+  kind: string
+  hazard: string | null
+  category: string | null
+  severity: string
+  description: string | null
+  affected_work_package_ids: Generated<string[]>
+  visibility: string
+  next_owner: string
+  people_kept_away: boolean | null
+  emergency_services_called: boolean | null
+  resolved_on_site: Generated<boolean>
+  resolution_what_happened: string | null
+  resolution_steps: string | null
+  resolution_materials: string | null
+  resolution_check: string | null
+  hold_id: string | null
+  job_state_before: string
+  job_paused: boolean
+  reported_by: string
+  reported_at: ColumnType<Date, Date | string | undefined, Date | string>
+  device_recorded_at: Timestamp | null
 }
 
 export interface WorkJobPacketAcknowledgmentInvalidationsTable {
@@ -1781,6 +1963,22 @@ export interface WorkLoadoutChecksTable {
   recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface WorkPhotoPublicationPermissionsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  photo_id: string
+  project_id: string
+  customer_id: string
+  purpose: string
+  channel: string
+  granted: boolean
+  notice_version: string | null
+  evidence_kind: string
+  evidence_reference: string
+  recorded_by: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface WorkReservationFlagsTable {
   id: Generated<string>
   reservation_id: string
@@ -1820,6 +2018,22 @@ export interface WorkSchedulingTasksTable {
   state: Generated<string>
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   version: Generated<number>
+}
+
+export interface WorkStabilizationRecordsTable {
+  id: Generated<string>
+  report_id: string
+  job_id: string
+  project_id: string
+  recorded_by: string
+  trigger_text: string
+  actions: string
+  why_necessary: string
+  evidence: string | null
+  owner_notified_at: Timestamp | null
+  customer_notified_at: Timestamp | null
+  follow_up: string | null
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
 export interface WorkStartGateEvaluationsTable {
@@ -2143,8 +2357,15 @@ export interface Database {
   'estimating.publication_approvals': EstimatingPublicationApprovalsTable
   'finance.deposit_requirements': FinanceDepositRequirementsTable
   'finance.deposit_waivers': FinanceDepositWaiversTable
+  'finance.invoice_deposit_credits': FinanceInvoiceDepositCreditsTable
+  'finance.invoice_documents': FinanceInvoiceDocumentsTable
+  'finance.invoice_lines': FinanceInvoiceLinesTable
+  'finance.invoices': FinanceInvoicesTable
   'finance.payment_allocations': FinancePaymentAllocationsTable
   'finance.payments': FinancePaymentsTable
+  'finance.payouts': FinancePayoutsTable
+  'finance.provider_fees': FinanceProviderFeesTable
+  'finance.refunds': FinanceRefundsTable
   'identity.auth_identities': IdentityAuthIdentitiesTable
   'identity.customer_account_changes': IdentityCustomerAccountChangesTable
   'identity.customer_accounts': IdentityCustomerAccountsTable
@@ -2212,10 +2433,13 @@ export interface Database {
   'staging.reset_runs': StagingResetRunsTable
   'staging.reusable_test_accounts': StagingReusableTestAccountsTable
   'staging.test_data_seedings': StagingTestDataSeedingsTable
-  'work.before_photos': WorkBeforePhotosTable
   'work.equipment': WorkEquipmentTable
+  'work.field_photos': WorkFieldPhotosTable
   'work.gate_exceptions': WorkGateExceptionsTable
   'work.holds': WorkHoldsTable
+  'work.issue_report_photos': WorkIssueReportPhotosTable
+  'work.issue_report_reviews': WorkIssueReportReviewsTable
+  'work.issue_reports': WorkIssueReportsTable
   'work.job_packet_acknowledgment_invalidations': WorkJobPacketAcknowledgmentInvalidationsTable
   'work.job_packet_acknowledgments': WorkJobPacketAcknowledgmentsTable
   'work.job_packet_exports': WorkJobPacketExportsTable
@@ -2224,9 +2448,11 @@ export interface Database {
   'work.job_scope_snapshots': WorkJobScopeSnapshotsTable
   'work.jobs': WorkJobsTable
   'work.loadout_checks': WorkLoadoutChecksTable
+  'work.photo_publication_permissions': WorkPhotoPublicationPermissionsTable
   'work.reservation_flags': WorkReservationFlagsTable
   'work.reservations': WorkReservationsTable
   'work.scheduling_tasks': WorkSchedulingTasksTable
+  'work.stabilization_records': WorkStabilizationRecordsTable
   'work.start_gate_evaluations': WorkStartGateEvaluationsTable
   'work.start_site_checks': WorkStartSiteChecksTable
   'work.time_off': WorkTimeOffTable

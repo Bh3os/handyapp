@@ -16,3 +16,8 @@ export const codeEmailText = (code: string, minutes = 10) =>
 
 export const codeSmsText = (code: string, minutes = 10) =>
   `Your HandyHub verification code is ${code}. It expires in ${minutes} minutes. If you did not ask for this code, you can ignore this message.`
+
+// A leaked code shows as its own token (quoted, after a space or "="). A random six-digit code can also turn up inside
+// a timestamp, a pid or a UUID by chance, which is not a leak, so the check ignores matches with a digit or letter
+// beside them.
+export const standaloneCode = (code: string) => new RegExp(`(?<![0-9A-Za-z])${code}(?![0-9A-Za-z])`)

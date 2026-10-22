@@ -42,7 +42,8 @@ describe('site shell (TSK-0020, HH-CUS-05, RULE-LANGUAGES)', () => {
     expect(layout).toContain('<html lang="en">')
     // TSK-0023: public pages are indexable in production; the server keeps every other environment out of search.
     expect(layout).toContain('{noindex ? <meta name="robots" content="noindex, nofollow" /> : null}')
-    expect(layout).toContain('const { title, noindex = false } = Astro.props')
+    expect(layout).toContain('const { title, noindex = false, description } = Astro.props')
+    expect(layout).toContain('<meta name="description" content={description} />')
     expect(layout).toMatch(/href="#main"/)
     expect(layout).toMatch(/<header[\s>]/)
     expect(layout).toMatch(/<main id="main"/)

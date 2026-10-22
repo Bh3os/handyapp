@@ -13,8 +13,10 @@ interface Props {
   title: string
   /** Keeps the page out of search engines and out of the sitemap (TSK-0023). */
   noindex?: boolean
+  /** The page's search description (TSK-0132, local SEO); omitted when the page has none. */
+  description?: string
 }
-const { title, noindex = false } = Astro.props
+const { title, noindex = false, description } = Astro.props
 const t = customerTranslator()
 ---
 
@@ -24,6 +26,7 @@ const t = customerTranslator()
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     {noindex ? <meta name="robots" content="noindex, nofollow" /> : null}
+    {description ? <meta name="description" content={description} /> : null}
     <title>{title}</title>
   </head>
   <body class="hh-site">

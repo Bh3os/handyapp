@@ -1,17 +1,18 @@
-// Unanswered-estimate reminder drafts and their stop rules in a real browser (TSK-0060; HH-EST-14, HH-COM-05,
-// HH-COM-09, T65, S01, OWN-DEC-78, OWN-DEC-132). An Estimator of this spec publishes an estimate through the staff API;
-// the first reminder's time is brought forward in the database (24 hours pass), the draft appears in the action
-// queue, and the Estimator sends it from the estimate's reminders panel. No wording is approved for the reminder, so
-// it is recorded as not sent (NOT CONFIGURED), never as sent. The final reminder is drafted at its time and stops when
-// the estimate is withdrawn. No estimate terms version is recorded by the migrations, so this spec records terms v1.0
-// as "owner review pending" for its own run and restores NOT CONFIGURED afterwards. Every visitor, address, account
-// and amount is synthetic (RULE-SYNTHETIC-DATA).
+// The automatic unanswered-estimate reminder and its stop rules in a real browser (TSK-0060, TSK-0121; HH-EST-14,
+// HH-COM-05, HH-COM-14, T65, S01, OWN-DEC-153). An Estimator of this spec publishes an estimate through the staff API;
+// the provider reports the estimate-ready email sent (a signed status webhook), which schedules the one reminder
+// 3 days later; its time is brought forward in the database (3 days pass) and it goes out by email in the owner's
+// wording, while the text is recorded as not sent (no text wording until A2P 10DLC), with a delivery issue. Nobody
+// releases it: the estimate's reminder panel shows it scheduled, then sent. A withdrawal stops it. No estimate terms
+// version is recorded by the migrations, so this spec records terms v1.0 as "owner review pending" for its own run and
+// restores NOT CONFIGURED afterwards. Every visitor, address, account and amount is synthetic (RULE-SYNTHETIC-DATA).
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { ESTIMATE_TERMS } from '@handyhub/domain/legal'
 import { expect, test, type APIRequestContext, type Browser, type Page } from '@playwright/test'
+import { E2E_RESEND_WEBHOOK_SECRET, signedDelivery } from '../inbound.js'
 import { passSecondFactor } from '../mfa.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
@@ -187,39 +188,43 @@ const CHECKS = Object.fromEntries(
   ),
 )
 
-/** The version's reminder draft jobs, once the in-process worker has scheduled them after publishing. */
-const draftJobs = (versionId: string) =>
+const MESSAGE = 'reminder.unanswered_estimate'
+const notices = (versionId: string) =>
   withDb((db) =>
     db
-      .selectFrom('platform.jobs')
-      .select(['job_key', 'run_at'])
-      .where('automation', '=', 'estimate.reminder_draft')
-      .where('target_id', '=', versionId)
-      .orderBy('run_at')
-      .execute(),
-  )
-/** Time passes: the reminder job (first or final) is due now, and the worker runs it within its next poll. */
-const bringForward = (versionId: string, step: 'first' | 'final') =>
-  withDb((db) =>
-    db
-      .updateTable('platform.jobs')
-      .set({ run_at: new Date() })
-      .where('job_key', '=', `estimate.reminder_draft:${versionId}:${step}`)
+      .selectFrom('platform.message_deliveries')
+      .select(['id', 'channel', 'state', 'provider_message_id', 'status_at'])
+      .where('record_type', '=', 'estimate_version')
+      .where('record_id', '=', versionId)
+      .where('message_key', '=', 'estimate.ready')
+      .where('channel', '=', 'email')
       .execute(),
   )
 const deliveries = (versionId: string) =>
   withDb((db) =>
     db
       .selectFrom('platform.message_deliveries')
-      .select(['subject_key', 'state', 'error_code'])
+      .select(['id', 'channel', 'state', 'error_code', 'scheduled_at', 'provider_message_id'])
       .where('record_type', '=', 'estimate_version')
       .where('record_id', '=', versionId)
-      .where('message_key', '=', 'reminder.unanswered_estimate')
-      .orderBy('seq')
+      .where('message_key', '=', MESSAGE)
+      .orderBy('channel')
       .execute(),
   )
+/** Time passes: the reminder's send jobs are due now, and the worker runs them within its next poll. */
+const bringForward = (versionId: string) =>
+  withDb(async (db) => {
+    const ids = (await deliveries(versionId)).map((d) => d.id)
+    await db
+      .updateTable('platform.jobs')
+      .set({ run_at: new Date() })
+      .where('automation', '=', 'notify.release')
+      .where('state', '=', 'queued')
+      .where('target_id', 'in', ids)
+      .execute()
+  })
 
-test.describe('unanswered-estimate reminder drafts and their stop rules (TSK-0060)', () => {
+test.describe('the automatic unanswered-estimate reminder and its stop rules (TSK-0060, TSK-0121)', () => {
   test.describe.configure({ mode: 'serial' })
   test.skip(!databaseUrl, 'needs E2E_DATABASE_URL (a fresh PostgreSQL 16 database)')
 
@@ -241,7 +246,7 @@ test.describe('unanswered-estimate reminder drafts and their stop rules (TSK-006
     await recordVersion('legal.estimate_terms', null, ['HH-EST-13', 'OWN-DEC-127', 'OQ-ATTORNEY-TERMS'])
   })
 
-  test('[HH-EST-14][T65][HH-COM-09][OWN-DEC-132] drafts at the cadence, staff send them, and a withdrawal stops the rest', async ({
+  test('[HH-EST-14][T65][OWN-DEC-153] one automatic reminder 3 days after delivery; sent by email; a withdrawal stops it', async ({
     request,
     browser,
   }) => {
@@ -290,71 +295,70 @@ test.describe('unanswered-estimate reminder drafts and their stop rules (TSK-006
         saved['rowVersion'] as number,
       )
 
-      // Publishing schedules the first and the final draft, 24 hours and 3 days later (FACT-REMINDER-CADENCES).
-      await expect.poll(async () => (await draftJobs(versionId)).length, { timeout: 15_000 }).toBe(2)
-      const version = await withDb((db) =>
-        db
-          .selectFrom('estimating.estimate_versions')
-          .select('published_at')
-          .where('id', '=', versionId)
-          .executeTakeFirstOrThrow(),
-      )
-      const publishedAt = (version.published_at as Date).getTime()
-      const jobs = await draftJobs(versionId)
-      expect(jobs.map((j) => Math.round((j.run_at.getTime() - publishedAt) / 3_600_000))).toEqual([24, 72])
+      // Handed to the provider is not delivered: no reminder yet. The provider reports the email sent.
+      await expect
+        .poll(async () => (await notices(versionId))[0]?.provider_message_id ?? null, { timeout: 15_000 })
+        .not.toBeNull()
+      expect(await deliveries(versionId)).toEqual([])
+      const [notice] = await notices(versionId)
+      const sent = signedDelivery(E2E_RESEND_WEBHOOK_SECRET, {
+        type: 'email.sent',
+        created_at: new Date().toISOString(),
+        data: { email_id: notice?.provider_message_id },
+      })
+      expect((await page.request.post('/webhooks/resend', sent)).status()).toBe(200)
+      // One reminder per destination, 72 hours after that successful delivery (OWN-DEC-153; no 24-hour reminder).
+      await expect.poll(async () => (await deliveries(versionId)).length, { timeout: 15_000 }).toBe(2)
+      const deliveredAt = ((await notices(versionId))[0]?.status_at as Date).getTime()
+      const scheduled = await deliveries(versionId)
+      expect(scheduled.map((d) => [d.channel, d.state])).toEqual([
+        ['email', 'queued'],
+        ['sms', 'queued'],
+      ])
+      expect(Math.round(((scheduled[0]?.scheduled_at as Date).getTime() - deliveredAt) / 3_600_000)).toBe(72)
 
-      // The estimate's page lists the schedule; no reminder is drafted yet.
+      // The estimate's page shows it scheduled; nobody sends or dismisses it.
       await page.goto(`/staff/estimates/${versionId}`)
       const panel = page.getByTestId('estimate-reminders')
-      await expect(panel.getByRole('heading', { name: 'Customer reminders' })).toBeVisible()
-      await expect(panel.getByText(/^First reminder drafted /)).toBeVisible()
-      await expect(panel.getByText('No reminder has been drafted yet.')).toBeVisible()
-
-      // 24 hours pass: the first reminder is a draft waiting in the action queue; nothing was sent.
-      await bringForward(versionId, 'first')
-      await expect
-        .poll(async () => (await deliveries(versionId)).map((d) => d.state), { timeout: 15_000 })
-        .toEqual(['draft'])
-      await page.goto('/staff')
-      await page.getByLabel('Reference', { exact: true }).fill(link.reference)
-      await page.getByRole('button', { name: 'Apply filters' }).click()
-      const item = page.getByRole('listitem').filter({ hasText: 'Estimate reminder to send' })
-      await expect(item.getByText('The first reminder for an unanswered estimate is ready to send')).toBeVisible()
-      await axe(page)
-      await item.getByRole('link', { name: link.reference }).click()
-      await expect(page).toHaveURL(new RegExp(`/staff/estimates/${versionId}$`))
-      const reminders = panel.getByRole('list', { name: 'Customer reminders' })
-      await expect(reminders.getByText('First reminder by Email')).toBeVisible()
-      await expect(reminders.getByText('Draft, not sent')).toBeVisible()
+      await expect(panel.getByRole('heading', { name: 'Customer reminder' })).toBeVisible()
+      await expect(panel.getByText(/^Delivered .*; the reminder is due /)).toBeVisible()
+      const reminders = panel.getByRole('list', { name: 'Customer reminder' })
+      await expect(reminders.getByText('Reminder by Email')).toBeVisible()
+      await expect(reminders.getByText('Scheduled').first()).toBeVisible()
+      await expect(panel.getByRole('button')).toHaveCount(0)
       await axe(page)
 
-      // Sent at once (any hour); the owner's wording is released (TSK-0119) but its values are wired by TSK-0121, so it
-      // is recorded as not sent, never as sent.
-      await panel.getByRole('button', { name: 'Send reminder' }).click()
-      await expect(panel.getByText('Sent for delivery. Its outcome shows here.')).toBeVisible()
+      // Three days pass: the email goes once; the text has no wording until A2P 10DLC and is recorded as not sent.
+      await bringForward(versionId)
       await expect
-        .poll(async () => (await deliveries(versionId)).map((d) => [d.state, d.error_code]), { timeout: 15_000 })
-        .toEqual([['failed', 'template_values_not_wired']])
+        .poll(async () => (await deliveries(versionId)).map((d) => [d.channel, d.state, d.error_code]), {
+          timeout: 15_000,
+        })
+        .toEqual([
+          ['email', 'queued', null],
+          ['sms', 'failed', 'template_not_configured'],
+        ])
+      expect((await deliveries(versionId))[0]?.provider_message_id).toBeTruthy()
       await page.reload()
-      await expect(reminders.getByText('Not sent', { exact: true })).toBeVisible()
-      await expect(
-        reminders.getByText('Reason: The approved wording is released, but its values are not supplied yet'),
-      ).toBeVisible()
-      await expect(reminders.getByText(/^Sent by E2E Reminder Estimator, /)).toBeVisible()
+      const email = reminders.getByTestId('estimate-reminder').filter({ hasText: 'Reminder by Email' })
+      await expect(email.getByText('Sent', { exact: true })).toBeVisible()
+      const text = reminders.getByTestId('estimate-reminder').filter({ hasText: 'Reminder by Text messages' })
+      await expect(text.getByText('Not sent', { exact: true })).toBeVisible()
+      await expect(text.getByText('Reason: No approved wording for this message yet (not configured)')).toBeVisible()
+      // The text's failure is a delivery issue for staff; no item asks anyone to release a reminder.
       const queue = async () =>
         (
           (await (await page.request.get(`/api/v1/staff/queue?reference=${link.reference}`)).json()) as {
             items: { type: string; reason: string }[]
           }
-        ).items.filter((i) => i.type === 'estimate_reminder')
-      expect(await queue()).toEqual([])
+        ).items
+      expect((await queue()).filter((i) => i.type === 'estimate_reminder')).toEqual([])
+      expect((await queue()).filter((i) => i.type === 'delivery_failed').map((i) => i.reason)).toEqual([
+        'delivery_not_configured',
+      ])
+      await axe(page)
 
-      // Three days pass: the final reminder is drafted; then the estimate is withdrawn and it stops at once.
-      await bringForward(versionId, 'final')
-      await expect
-        .poll(async () => (await deliveries(versionId)).map((d) => d.state), { timeout: 15_000 })
-        .toEqual(['failed', 'draft'])
-      expect((await queue()).map((i) => i.reason)).toEqual(['estimate_reminder_final'])
+      // The estimate is withdrawn: its reminder is stopped for good.
       const current = (await (await page.request.get(`/api/v1/staff/estimate-versions/${versionId}`)).json()) as {
         rowVersion: number
       }
@@ -365,20 +369,12 @@ test.describe('unanswered-estimate reminder drafts and their stop rules (TSK-006
         current.rowVersion,
       )
       await page.reload()
-      await expect(panel.getByText('Reminders stopped: The estimate was withdrawn.')).toBeVisible()
-      await expect(reminders.getByText('Final reminder by Email')).toBeVisible()
-      await expect(reminders.getByText('Reason: The estimate was withdrawn')).toBeVisible()
-      await expect(panel.getByRole('button', { name: 'Send reminder' })).toHaveCount(0)
-      expect(await queue()).toEqual([])
-      expect((await deliveries(versionId)).map((d) => [d.state, d.error_code])).toEqual([
-        ['failed', 'template_values_not_wired'],
-        ['cancelled', 'withdrawn'],
-      ])
+      await expect(panel.getByText('Reminder stopped: The estimate was withdrawn.')).toBeVisible()
       await axe(page)
 
       // On a phone the reminders panel fits the screen: nothing in it scrolls sideways.
       await page.setViewportSize({ width: 375, height: 740 })
-      await expect(panel.getByRole('heading', { name: 'Customer reminders' })).toBeVisible()
+      await expect(panel.getByRole('heading', { name: 'Customer reminder' })).toBeVisible()
       const box = await panel.boundingBox()
       expect(box !== null && box.x >= 0 && box.x + box.width <= 375).toBe(true)
       expect(

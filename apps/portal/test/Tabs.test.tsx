@@ -45,7 +45,13 @@ const head = (refreshSeconds = 0) => ({ reference: REF, refreshedAt: NOW, refres
 const TAB_BODY: Record<WorkspaceTab, (s?: number) => unknown> = {
   messages: (s) => ({ ...head(s), messages: [] }),
   documents: (s) => ({ ...head(s), state: 'none' }),
-  photos: (s) => ({ ...head(s), photos: { received: 0, processing: 0, failed: 0 } }),
+  photos: (s) => ({
+    ...head(s),
+    photos: { received: 0, processing: 0, failed: 0 },
+    yours: [],
+    shared: [],
+    linkSeconds: 300,
+  }),
   appointments: (s) => ({ ...head(s), state: 'none' }),
   payments: (s) => ({ ...head(s), state: 'none' }),
 }
@@ -189,18 +195,52 @@ describe('the six tabs (TSK-0039, HH-PORT-09, T69)', () => {
     expect(p.textContent).not.toMatch(/delivered|read|sent by|@/i)
   })
 
-  it('[HH-PORT-09][HH-PORT-11] Photos: the counts by state as the server sent them, and that viewing is not available here yet', async () => {
+  it('[HH-PORT-09][HH-PORT-11][HH-QA-05] Photos: the customer’s own uploads and the before and after photos HandyHub shared, paired by service', async () => {
+    const url = (id: string) => `https://fake-r2.invalid/x/${id}?sig=1`
     const { fetchImpl } = api({
-      photos: () => json(200, { ...head(), photos: { received: 2, processing: 1, failed: 1 } }),
+      photos: () =>
+        json(200, {
+          ...head(),
+          photos: { received: 1, processing: 1, failed: 0 },
+          yours: [
+            { id: 'u1', state: 'ready', uploadedAt: SENT, url: url('u1') },
+            { id: 'u2', state: 'quarantined', uploadedAt: SENT, url: null },
+          ],
+          shared: [
+            {
+              service: 'Patching & Repair',
+              before: { id: 'b1', sharedAt: SENT, url: url('b1') },
+              after: { id: 'a1', sharedAt: SENT, url: url('a1') },
+            },
+            { service: 'Interior Painting', before: null, after: { id: 'a2', sharedAt: SENT, url: url('a2') } },
+          ],
+          linkSeconds: 300,
+        }),
     })
     open(fetchImpl, 'photos')
     const p = await screen.findByRole('tabpanel')
-    expect(await within(p).findByText('Received: 2')).toBeTruthy()
-    expect(within(p).getByText('Processing: 1')).toBeTruthy()
-    expect(within(p).getByText('Failed: 1')).toBeTruthy()
-    expect(within(p).getByText("Viewing photos here isn't available yet.")).toBeTruthy()
-    expect(within(p).queryByRole('img')).toBeNull()
+    expect(await within(p).findByText('Before and after photos from HandyHub')).toBeTruthy()
+    const shared = within(p).getByTestId('portal-shared-photos')
+    expect(within(shared).getByRole('img', { name: 'Patching & Repair: before' }).getAttribute('src')).toBe(url('b1'))
+    expect(within(shared).getByRole('img', { name: 'Patching & Repair: after' }).getAttribute('src')).toBe(url('a1'))
+    expect(within(shared).getByRole('img', { name: 'Interior Painting: after' })).toBeTruthy()
+    expect(within(shared).queryByRole('img', { name: 'Interior Painting: before' })).toBeNull()
+    expect(within(p).getByText('Received: 1')).toBeTruthy()
+    expect(within(p).getByRole('img', { name: 'Your photo 1' })).toBeTruthy()
+    expect(within(p).getByText('Your photo 2 is being checked.')).toBeTruthy()
+    expect(within(p).getByText('Photo links work for a few minutes and renew when this page refreshes.')).toBeTruthy()
     expect(selected().textContent).toBe('Photos')
+  })
+
+  it('[HH-PORT-11] Photos: nothing yet says what will appear, including photos HandyHub asks for', async () => {
+    const { fetchImpl } = api()
+    open(fetchImpl, 'photos')
+    const p = await screen.findByRole('tabpanel')
+    expect(await within(p).findByText('No photos yet')).toBeTruthy()
+    expect(
+      within(p).getByText('When HandyHub asks you for photos, you can add them to your reply to the question.'),
+    ).toBeTruthy()
+    expect(within(p).queryByRole('img')).toBeNull()
   })
 
   it('[T66][HH-PORT-09][HH-ARC-10] an opened tab stays as it was while another is shown, does not poll while hidden, and refreshes when shown again', async () => {
@@ -257,6 +297,27 @@ describe('the six tabs (TSK-0039, HH-PORT-09, T69)', () => {
     expect(parseTab('documents', TAB_BODY.messages())).toBeNull()
     expect(parseTab('photos', { ...head(), photos: { received: -1, processing: 0, failed: 0 } })).toBeNull()
     expect(parseTab('photos', { ...head(), photos: [] })).toBeNull()
+    // TSK-0076: the lists are part of the view; a link that is not https or a pair with neither photo is refused.
+    const counts = { received: 0, processing: 0, failed: 0 }
+    expect(parseTab('photos', { ...head(), photos: counts })).toBeNull()
+    expect(
+      parseTab('photos', {
+        ...head(),
+        photos: counts,
+        yours: [{ id: 'u', state: 'ready', uploadedAt: SENT, url: 'javascript:alert(1)' }],
+        shared: [],
+        linkSeconds: 300,
+      }),
+    ).toBeNull()
+    expect(
+      parseTab('photos', {
+        ...head(),
+        photos: counts,
+        yours: [],
+        shared: [{ service: 'X', before: null, after: null }],
+        linkSeconds: 300,
+      }),
+    ).toBeNull()
     expect(parseTab('appointments', null)).toBeNull()
   })
 })
@@ -270,7 +331,14 @@ describe('customer content is English only (TSK-0039, HH-PORT-08, HH-LANG-01, T0
   it('[T04][HH-PORT-08][RULE-LANGUAGES] every tab renders in English: lang="en", and no Spanish staff string or mark', async () => {
     expect(spanishOnly.length).toBeGreaterThan(100)
     const { fetchImpl } = api({
-      photos: () => json(200, { ...head(), photos: { received: 1, processing: 1, failed: 1 } }),
+      photos: () =>
+        json(200, {
+          ...head(),
+          photos: { received: 1, processing: 1, failed: 1 },
+          yours: [],
+          shared: [],
+          linkSeconds: 300,
+        }),
     })
     const { container } = open(fetchImpl)
     await screen.findByRole('tablist')

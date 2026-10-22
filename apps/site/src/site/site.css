@@ -497,3 +497,25 @@
   min-height: var(--hh-target);
   color: var(--hh-link);
 }
+
+/* Service page content (TSK-0132; HH-CUS-02, OWN-DEC-180): the not-included list, the FAQs and the service-area link.
+   Works at 320 px and 200% text (HH-A11Y-02). */
+.hh-service__body h3 {
+  margin: var(--hh-space-4) 0 var(--hh-space-2);
+}
+.hh-service__faqs {
+  display: grid;
+  gap: var(--hh-space-6);
+}
+.hh-service__faq h3 {
+  margin-top: 0;
+}
+.hh-service__faq p {
+  margin: 0;
+}
+.hh-service__glance dd a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--hh-target);
+  color: var(--hh-link);
+}

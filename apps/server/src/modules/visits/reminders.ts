@@ -1,64 +1,60 @@
-// Appointment reminder drafts 24 hours before (TSK-0067; HH-COM-11, HH-COM-05, HH-COM-06, HH-COM-09, T65, C07, S06,
-// OWN-DEC-78, OWN-DEC-107, FACT-REMINDER-CADENCES, ENT-Visit, ENT-Message, RULE-DECIDED-VALUES-ACTIVE,
-// RULE-SERVER-AUTHZ, RULE-NO-INVENTED-FACTS).
+// The automatic appointment reminder 24 hours before (TSK-0067, TSK-0121; HH-COM-11, HH-COM-05, HH-COM-06, HH-COM-15,
+// T65, T41, C07, S06, OWN-DEC-153, OWN-DEC-107, OWN-DEC-151, OWN-DEC-158, OWN-DEC-159, FACT-REMINDER-CADENCES,
+// ENT-Visit, ENT-Message, RULE-DECIDED-VALUES-ACTIVE, RULE-SERVER-AUTHZ, RULE-NO-INVENTED-FACTS).
 // - Schedule: a visit becoming confirmed (appointment.reserved, estimate_visit.reserved) or a committed reschedule
-//   (appointment.change_committed) runs appointment.reminder_schedule, which schedules one draft job for the visit's
-//   current window at the configured interval before the arrival window starts (reminders.cadences.appointment
-//   .hoursBefore: the owner's 24 hours, OWN-DEC-107). Confirmed less than that ahead, the job is due at once. While
-//   the cadence is NOT CONFIGURED nothing is scheduled; no interval is made up.
-// - Drafts, never sends (OWN-DEC-78): the job (appointment.reminder_draft) prepares one staff-released draft of
-//   reminder.appointment holding the confirmed date and arrival window, the service address and the preparation steps
-//   staff gave the customer with the offered windows (when there are none, nothing is made up), plus the project link
-//   while the public site's address is configured. It opens the queue item appointment_reminder; nothing is sent
-//   until a staff member releases the draft.
-// - Release: a released appointment reminder sends inside the daily contact hours (HH-COM-09, the cadence's
-//   contactHoursOnly): released outside them it waits for the next opening (notify.release, releaseTime).
-// - Recheck (HH-COM-05, OWN-DEC-107 "suppress outdated, canceled, or duplicate reminders"): when the draft is prepared,
-//   when staff release it and again by the send job (the send-time record check of the one notify.release
-//   registration, automations.ts): the visit must still be confirmed, at the window the reminder was drafted for,
-//   before that window starts; no reminder of the same window may already have been sent; the address and the
-//   preparation steps must be the ones the draft holds. Channel permission and consent are rechecked at release and
-//   at send (an SMS STOP suppresses a text).
-// - A reschedule or a cancellation (TSK-0066) cancels the visit's waiting reminders (drafts, and released ones not yet
-//   handed to the provider) in its own transaction, with the reason and an audit event; the rescheduled visit gets a
-//   new draft for its new window. Any other way a visit leaves 'confirmed' cancels them in the database (migration
-//   0060).
-// - Wording: no template version of reminder.appointment is released (OQ-APPOINTMENT-REMINDER-WORDING), so a released
-//   reminder is recorded as failed with template_not_configured and staff see the delivery issue, never a send.
-// - PROPOSED (OQ-APPOINTMENT-REMINDER-WORDING): one draft per reminder on the customer's preferred channel (a text
-//   when they prefer texts and may be texted now, otherwise email); a reassignment keeps the reminder (its date,
-//   window, address and preparation do not change); Owner and Office release or dismiss (the roles that manage booked
-//   visits); "approved preparation steps" are the preparation instructions staff wrote with the window offer.
+//   (appointment.change_committed) runs appointment.reminder_schedule, which schedules the reminder of the visit's
+//   current window (OWN-DEC-153 items 3 and 6): one queued delivery per destination (the email, and the mobile number,
+//   whose text needs the SMS opt-in and waits for the recipient's permitted hours), due the configured elapsed hours
+//   before the arrival window starts (reminders.cadences.appointment.hoursBefore, 24; elapsed time, so a DST change
+//   never moves it by an hour, OWN-DEC-159 item 10), sent by its notify.release job. A visit booked less than that
+//   ahead gets no "24-hour" reminder (booked_within_interval). While the cadence is NOT CONFIGURED nothing is
+//   scheduled; no interval is made up. Nobody releases it (OWN-DEC-153).
+// - Content: the owner's appointment_reminder wording (OWN-DEC-151) with the first name, the confirmed date, the
+//   arrival window and its zone (the visit's own property zone) and the visit reference, read when it sends; never the
+//   address (OWN-DEC-158).
+// - Recheck (HH-COM-05, OWN-DEC-107 "suppress outdated, canceled, or duplicate reminders"): when it is scheduled and
+//   again by the send job (the send-time record check of the one notify.release registration, automations.ts): the
+//   visit must still be confirmed, at the window the reminder was scheduled for, before that window starts. Channel
+//   permission and consent are rechecked at send (an SMS STOP suppresses a text).
+// - A reschedule or a cancellation (TSK-0066) cancels the visit's waiting reminders in its own transaction, with the
+//   reason and an audit event; the rescheduled visit gets a new reminder for its new window (recalculated). Any other
+//   way a visit leaves 'confirmed' cancels them in the database (migration 0060). The delivery tuple (message, channel,
+//   subject = visit and window version, destination) holds one row, so a window is reminded once per destination.
+// - PROPOSED: a reassignment keeps the reminder (its date and window do not change).
 import type { Db, Tx } from '@handyhub/db'
-import { windowText } from '@handyhub/domain'
-import { decide, type StaffActor } from '@handyhub/policy'
+import { afterElapsedHours } from '@handyhub/domain'
 import { sql } from 'kysely'
 import { audit } from '../../platform/audit.js'
 import type { Automation, JobOutcome } from '../../platform/automation.js'
 import { loadConfig, type Config } from '../../platform/config/index.js'
-import { scheduleJob } from '../../platform/jobs.js'
 import { currentContext } from '../../platform/request-context.js'
 import {
-  createDraft,
+  contactDestinations,
+  firstNameOf,
   NOTIFICATION_RETRY,
-  sendPermission,
-  type Destination,
+  portalLink,
+  present,
+  scheduleAutomaticDelivery,
+  visitNumberOf,
+  visitWindowValues,
   type FailureItem,
   type RecordCheck,
   type ReleaseFailureItem,
+  type ReleaseValues,
 } from '../notifications/index.js'
-import { openQueueItem, resolveQueueItem } from '../queue/items.js'
+import { resolveQueueItem } from '../queue/items.js'
 import { storedWindow } from './visits.js'
 
 type Reader = Db | Tx
 
 export const APPOINTMENT_REMINDER_MESSAGE_KEY = 'reminder.appointment'
+/** The queue item of the staff-released drafts before TSK-0121 (no longer opened). */
 export const APPOINTMENT_REMINDER_ITEM = 'appointment_reminder'
 const RECORD_TYPE = 'visit'
 const PROCESS = 'system.appointment_reminders'
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-/** Why an appointment reminder is not drafted or sent (HH-COM-11, OWN-DEC-107: outdated, canceled, duplicate). */
+/** Why an appointment reminder is not scheduled or sent (HH-COM-11, OWN-DEC-107: outdated, canceled, duplicate). */
 export const APPOINTMENT_REMINDER_STOP_REASONS = [
   'visit_canceled',
   'visit_rescheduled',
@@ -68,13 +64,10 @@ export const APPOINTMENT_REMINDER_STOP_REASONS = [
   'visit_no_access',
   'visit_not_confirmed',
   'visit_started',
-  'already_reminded',
-  'details_changed',
+  // TSK-0121 (OWN-DEC-153): booked less than the interval ahead: no "24-hour" reminder.
+  'booked_within_interval',
 ] as const
 export type AppointmentReminderStopReason = (typeof APPOINTMENT_REMINDER_STOP_REASONS)[number]
-
-/** Staff dismissed the draft (PROPOSED: kept as cancelled, never sent). */
-export const DISMISSED = 'dismissed'
 
 /** One reminder per visit and window version: a rescheduled visit's reminder is a new subject. */
 export const appointmentReminderSubject = (visitId: string, windowVersion: number) =>
@@ -85,34 +78,29 @@ export function windowVersionOf(subjectKey: string): number | null {
 }
 
 export type AppointmentReminderCadence =
-  | {
-      readonly state: 'CONFIGURED'
-      readonly version: number
-      readonly proposed: boolean
-      readonly hoursBefore: number
-      readonly contactHoursOnly: boolean
-    }
+  | { readonly state: 'CONFIGURED'; readonly version: number; readonly proposed: boolean; readonly hoursBefore: number }
   | { readonly state: 'NOT_CONFIGURED'; readonly version: number | null }
 
 /** The configured appointment-reminder interval (FACT-REMINDER-CADENCES); NOT CONFIGURED when the key is unset. */
 export function appointmentReminderCadence(config: Config): AppointmentReminderCadence {
   const entry = config.get('reminders.cadences')
   if (entry.state !== 'CONFIGURED') return { state: 'NOT_CONFIGURED', version: entry.version }
-  const c = entry.value.appointment
   return {
     state: 'CONFIGURED',
     version: entry.version,
     proposed: entry.proposed,
-    hoursBefore: c.hoursBefore,
-    contactHoursOnly: c.contactHoursOnly,
+    hoursBefore: entry.value.appointment.hoursBefore,
   }
 }
 
-const HOUR_MS = 3_600_000
-/** When the draft is due: the interval before the arrival window starts, or at once when that time has passed. */
-export function appointmentReminderDueAt(startsAt: Date, hoursBefore: number, now: Date): Date {
-  const due = new Date(startsAt.getTime() - hoursBefore * HOUR_MS)
-  return due.getTime() < now.getTime() ? now : due
+/** When the reminder is due: the interval in elapsed hours before the arrival window starts (DST-safe). */
+export function appointmentReminderDueAt(startsAt: Date, hoursBefore: number): Date {
+  return afterElapsedHours(startsAt, -hoursBefore)
+}
+
+/** Whether a visit confirmed at `bookedAt` was booked at least the interval ahead (otherwise: no reminder). */
+export function bookedAheadEnough(startsAt: Date, bookedAt: Date, hoursBefore: number): boolean {
+  return appointmentReminderDueAt(startsAt, hoursBefore).getTime() >= bookedAt.getTime()
 }
 
 const STATE_STOPS: Readonly<Record<string, AppointmentReminderStopReason>> = {
@@ -123,66 +111,6 @@ const STATE_STOPS: Readonly<Record<string, AppointmentReminderStopReason>> = {
   no_access: 'visit_no_access',
 }
 
-/** The reminder's content: the confirmed date and arrival window, the address and the preparation steps. */
-export type ReminderContent = { visitWindow: string; serviceAddress: string; preparationSteps: string | null }
-
-/** The address as one line (street, unit, city, state and ZIP as the property record holds them). */
-export function addressLine(p: { street: string; unit: string | null; city: string; state: string; zip: string }) {
-  return [p.street, p.unit, `${p.city}, ${p.state.toUpperCase()} ${p.zip}`].filter((x) => x && x.trim()).join(', ')
-}
-
-/** The content of a visit's reminder from the records as they are now; null for an unknown visit. */
-export async function reminderContent(db: Reader, visitId: string): Promise<ReminderContent | null> {
-  const v = await db
-    .selectFrom('work.visits as v')
-    .innerJoin('crm.properties as p', 'p.id', 'v.property_id')
-    .select([
-      'v.local_date',
-      'v.window_start',
-      'v.window_end',
-      'v.time_zone',
-      'v.start_offset_minutes',
-      'v.end_offset_minutes',
-      'v.starts_at',
-      'v.ends_at',
-      'p.street',
-      'p.unit',
-      'p.city',
-      'p.state',
-      'p.zip',
-    ])
-    .where('v.id', '=', visitId)
-    .executeTakeFirst()
-  if (!v) return null
-  // The preparation steps staff wrote with the offer the customer selected (shown in the portal's Appointments tab).
-  const offer = await db
-    .selectFrom('work.window_offers')
-    .select('preparation_instructions')
-    .where('visit_id', '=', visitId)
-    .where('state', '=', 'selected')
-    .orderBy('number', 'desc')
-    .limit(1)
-    .executeTakeFirst()
-  return {
-    // Customer messages are English (RULE-LANGUAGES).
-    visitWindow: windowText(storedWindow(v), 'en-US'),
-    serviceAddress: addressLine(v),
-    preparationSteps: offer?.preparation_instructions ?? null,
-  }
-}
-
-const contentValues = (c: ReminderContent): Record<string, string> => ({
-  visitWindow: c.visitWindow,
-  serviceAddress: c.serviceAddress,
-  ...(c.preparationSteps ? { preparationSteps: c.preparationSteps } : {}),
-})
-
-/** Whether the stored draft values still match the address and preparation steps of the records now. */
-function sameDetails(stored: unknown, now: ReminderContent): boolean {
-  const s = (stored ?? {}) as Record<string, unknown>
-  return s['serviceAddress'] === now.serviceAddress && (s['preparationSteps'] ?? null) === now.preparationSteps
-}
-
 async function dbNow(db: Reader): Promise<Date> {
   const r = await sql<{ now: Date }>`SELECT now() AS now`.execute(db)
   return new Date((r.rows[0] as { now: Date }).now)
@@ -190,7 +118,7 @@ async function dbNow(db: Reader): Promise<Date> {
 
 /**
  * The stop rule of a visit's reminder for one window version as the records are now (HH-COM-11): the reason it is not
- * drafted or sent, or null while the visit is confirmed at that window and the window has not started.
+ * scheduled or sent, or null while the visit is confirmed at that window and the window has not started.
  */
 export async function appointmentReminderStopReason(
   db: Reader,
@@ -210,18 +138,6 @@ export async function appointmentReminderStopReason(
   return null
 }
 
-/** A reminder of the same visit and window already handed to the provider (a duplicate would follow). */
-async function alreadyReminded(db: Reader, subjectKey: string, exceptId?: string): Promise<boolean> {
-  let q = db
-    .selectFrom('platform.message_deliveries')
-    .select('id')
-    .where('message_key', '=', APPOINTMENT_REMINDER_MESSAGE_KEY)
-    .where('subject_key', '=', subjectKey)
-    .where((eb) => eb.or([eb('state', 'in', ['sent', 'delivered']), eb('provider_message_id', 'is not', null)]))
-  if (exceptId) q = q.where('id', '<>', exceptId)
-  return (await q.limit(1).executeTakeFirst()) !== undefined
-}
-
 const requestIdOf = (fallback: string) => currentContext()?.requestId ?? fallback
 
 const waitingRows = (tx: Tx, visitId: string) =>
@@ -238,38 +154,19 @@ const waitingRows = (tx: Tx, visitId: string) =>
     .forUpdate()
     .execute()
 
-/** Resolves the visit's queue item once none of its reminders is waiting for release. */
-export async function syncAppointmentReminderItem(tx: Tx, visitId: string, resolution: string): Promise<void> {
-  const waiting = await tx
-    .selectFrom('platform.message_deliveries')
-    .select('id')
-    .where('record_type', '=', RECORD_TYPE)
-    .where('record_id', '=', visitId)
-    .where('message_key', '=', APPOINTMENT_REMINDER_MESSAGE_KEY)
-    .where('state', '=', 'draft')
-    .limit(1)
-    .executeTakeFirst()
-  if (!waiting) await resolveQueueItem(tx, { type: APPOINTMENT_REMINDER_ITEM, subjectId: visitId, resolution })
-}
-
-/**
- * Cancels one waiting reminder (a draft, or a released one not yet handed to the provider) with its reason, audited
- * by who cancelled it: the system for a stop rule, the staff member for a dismissal.
- */
-export async function cancelAppointmentReminder(
+/** Cancels one waiting reminder with its reason, audited as the system's stop. */
+async function cancelAppointmentReminder(
   tx: Tx,
   row: { id: string; subject_key: string; channel: string },
   reason: string,
-  by: { kind: 'system' } | { kind: 'staff'; id: string; roles: readonly string[] },
   requestId: string,
-  options: { audit?: boolean } = {},
 ): Promise<boolean> {
   const done = await tx
     .updateTable('platform.message_deliveries')
     .set({
       state: 'cancelled',
       error_code: reason,
-      cancelled_by: by.kind === 'staff' ? by.id : 'system',
+      cancelled_by: 'system',
       cancelled_at: sql<Date>`now()`,
       updated_at: sql<Date>`now()`,
     })
@@ -279,10 +176,9 @@ export async function cancelAppointmentReminder(
     )
     .executeTakeFirst()
   if (Number(done.numUpdatedRows) === 0) return false
-  if (options.audit === false) return true
   await audit.record(tx, {
-    actor: by.kind === 'staff' ? by : { kind: 'system', process: PROCESS },
-    action: by.kind === 'staff' ? 'appointment_reminder.dismiss' : 'appointment_reminder.stop',
+    actor: { kind: 'system', process: PROCESS },
+    action: 'appointment_reminder.stop',
     target: { type: 'message_delivery', id: row.id },
     summary: {
       messageKey: APPOINTMENT_REMINDER_MESSAGE_KEY,
@@ -292,15 +188,15 @@ export async function cancelAppointmentReminder(
     },
     requestId,
   })
+  await resolveQueueItem(tx, { type: 'delivery_failed', subjectId: row.id, resolution: 'cancelled' })
   return true
 }
 
 /**
- * Cancels the visit's waiting reminders whose stop rule now applies (HH-COM-11): called in the transaction of each
- * change that makes them outdated (a reschedule, after the window moved: the old window's reminder). A cancellation
- * names its reason and calls this just before the visit's state changes, so the event is audited here rather than
- * left to the database backstop (migration 0060). A released reminder already with the provider is not touched.
- * Returns how many were cancelled.
+ * Cancels the visit's waiting reminders whose stop rule now applies (HH-COM-11, OWN-DEC-153 items 4 and 6): called in
+ * the transaction of each change that makes them outdated (a reschedule, after the window moved: the old window's
+ * reminder; a cancellation, with its reason, just before the visit's state changes; the worker's On my way). A reminder
+ * already with the provider is not touched. Returns how many were cancelled.
  */
 export async function stopAppointmentReminders(
   tx: Tx,
@@ -314,36 +210,21 @@ export async function stopAppointmentReminders(
     const reason =
       options.reason ?? (wv === null ? 'visit_rescheduled' : await appointmentReminderStopReason(tx, visitId, wv, now))
     if (!reason) continue
-    if (await cancelAppointmentReminder(tx, row, reason, { kind: 'system' }, requestIdOf(`visit-reminder:${visitId}`)))
-      cancelled++
+    if (await cancelAppointmentReminder(tx, row, reason, requestIdOf(`visit-reminder:${visitId}`))) cancelled++
   }
-  await syncAppointmentReminderItem(tx, visitId, 'stopped')
   return cancelled
 }
 
 /**
  * The send-time recheck of an appointment reminder (registered with the one notify.release automation): the visit is
- * still confirmed at the window the reminder was drafted for and that window has not started, no reminder of it was
- * already sent, and the address and preparation steps are the ones the reminder holds.
+ * still confirmed at the window the reminder was scheduled for and that window has not started.
  */
 export const appointmentReminderRecordCheck: RecordCheck = async (tx, input) => {
   if (input.messageKey !== APPOINTMENT_REMINDER_MESSAGE_KEY) return 'current'
   const wv = windowVersionOf(input.subjectKey)
   if (wv === null || !UUID_RE.test(input.recordId)) return { stale: 'visit_not_confirmed' }
   const reason = await appointmentReminderStopReason(tx, input.recordId, wv, await dbNow(tx))
-  if (reason) return { stale: reason }
-  if (await alreadyReminded(tx, input.subjectKey)) return { stale: 'already_reminded' }
-  const content = await reminderContent(tx, input.recordId)
-  const stored = await tx
-    .selectFrom('platform.message_deliveries')
-    .select('variables')
-    .where('message_key', '=', APPOINTMENT_REMINDER_MESSAGE_KEY)
-    .where('subject_key', '=', input.subjectKey)
-    .where('state', '=', 'queued')
-    .limit(1)
-    .executeTakeFirst()
-  if (!content || (stored && !sameDetails(stored.variables, content))) return { stale: 'details_changed' }
-  return 'current'
+  return reason ? { stale: reason } : 'current'
 }
 
 /** The project's request facts the reminder needs (its contact, reference and responsible staff member). */
@@ -355,6 +236,7 @@ async function requestFacts(db: Reader, projectId: string) {
       'r.reference',
       'r.responsible_staff_id',
       'c.id as contactId',
+      'c.full_name',
       'c.email',
       'c.phone_e164',
       'c.preferred_channel',
@@ -364,7 +246,7 @@ async function requestFacts(db: Reader, projectId: string) {
     .executeTakeFirst()
 }
 
-/** The delivery issue of a failed released appointment reminder (HH-COM-02, OWN-DEC-107 "record delivery failures"). */
+/** The delivery issue of a failed appointment reminder (HH-COM-02, OWN-DEC-107 "record delivery failures"). */
 export const appointmentReminderFailureItem: ReleaseFailureItem = async (tx, row): Promise<FailureItem | undefined> => {
   if (row.message_key !== APPOINTMENT_REMINDER_MESSAGE_KEY || row.record_type !== RECORD_TYPE || !row.record_id)
     return undefined
@@ -376,122 +258,85 @@ export const appointmentReminderFailureItem: ReleaseFailureItem = async (tx, row
 }
 
 /**
- * The channel of a reminder (PROPOSED, as for the estimate reminders): a text when the customer prefers texts and may
- * be texted now (the SMS opt-in is current, no STOP), otherwise email.
+ * The values of the owner's appointment_reminder wording, read when it sends (TSK-0121, OWN-DEC-151, OWN-DEC-158): the
+ * first name, the confirmed date, the arrival window and its zone (the visit's property zone, its short name at that
+ * instant), the visit reference and the project link. Never the address.
  */
-async function reminderDestination(
-  tx: Tx,
-  contact: { email: string; phone_e164: string; preferred_channel: string },
-): Promise<Destination> {
-  if (contact.preferred_channel === 'text' && contact.phone_e164) {
-    const sms = await sendPermission(tx, {
-      channel: 'sms',
-      destination: contact.phone_e164,
-      audience: 'customer',
-      messageKey: APPOINTMENT_REMINDER_MESSAGE_KEY,
+export function appointmentReminderValues(publicSiteUrl: string | undefined): ReleaseValues {
+  return async (tx, row) => {
+    if (row.message_key !== APPOINTMENT_REMINDER_MESSAGE_KEY) return undefined
+    const visitId = /^appointment_reminder:([0-9a-f-]{36}):w\d+$/i.exec(row.subject_key)?.[1]
+    if (!visitId || !UUID_RE.test(visitId)) return {}
+    const v = await tx.selectFrom('work.visits').selectAll().where('id', '=', visitId).executeTakeFirst()
+    if (!v) return {}
+    const r = await requestFacts(tx, v.project_id)
+    if (!r) return {}
+    const w = visitWindowValues(storedWindow(v))
+    return present({
+      customerName: firstNameOf(r.full_name),
+      date: w.visitDate,
+      start: w.startTime,
+      end: w.endTime,
+      zone: w.timeZone,
+      visitNumber: visitNumberOf(r.reference, v.number),
+      projectLink: portalLink(publicSiteUrl, r.reference),
     })
-    if (sms.allowed) return { channel: 'sms', destination: contact.phone_e164, permission: 'preferred' }
-  }
-  return {
-    channel: 'email',
-    destination: contact.email,
-    permission: contact.preferred_channel === 'email' ? 'preferred' : 'permitted',
   }
 }
 
-export type AppointmentReminderDeps = {
-  /** The public site's base URL for the project link; undefined while not configured (the link is left out). */
-  publicSiteUrl?: string | undefined
-}
-
-/** One draft job per visit and window version: prepares the staff-released draft unless a stop rule applies. */
-export function appointmentReminderDraftAutomation(deps: AppointmentReminderDeps = {}): Automation {
-  return {
-    name: 'appointment.reminder_draft',
-    trigger: { kind: 'schedule', description: 'the reminder of a confirmed visit, before its arrival window' },
-    identity: PROCESS,
-    inputs: {
-      description: 'the visit (job target) and the window version it was scheduled for; records read when it runs',
-      version: 1,
-    },
-    idempotency: 'one job per visit and window version; one draft per window version, channel and destination',
-    effect: 'prepares one staff-released appointment reminder draft and its queue item; never sends anything',
-    retry: { maxAttempts: 5, baseDelayMs: 60_000, maxDelayMs: 3_600_000 },
-    timeoutMs: 10_000,
-    exceptionOwner: 'office',
-    audit: { action: 'appointment_reminder.draft' },
-    handle: async ({ tx, job }): Promise<JobOutcome> => {
-      const visitId = job.target.id
-      const windowVersion = Number(job.payload['windowVersion'])
-      if (!visitId || !UUID_RE.test(visitId) || !Number.isInteger(windowVersion)) return 'cancelled'
-      // The visit's lock first (the order of every visit change), so a reschedule or cancellation serializes with it.
-      const v = await tx
-        .selectFrom('work.visits')
-        .select(['id', 'project_id', 'state', 'window_version', 'starts_at'])
-        .where('id', '=', visitId)
-        .forUpdate()
-        .executeTakeFirst()
-      if (!v) return 'cancelled'
-      const now = await dbNow(tx)
-      await stopAppointmentReminders(tx, visitId)
-      const subjectKey = appointmentReminderSubject(visitId, windowVersion)
-      const reason =
-        (await appointmentReminderStopReason(tx, visitId, windowVersion, now)) ??
-        ((await alreadyReminded(tx, subjectKey)) ? 'already_reminded' : null)
-      if (reason) {
-        await audit.record(tx, {
-          actor: { kind: 'system', process: PROCESS },
-          action: 'appointment_reminder.stop',
-          target: { type: RECORD_TYPE, id: visitId },
-          summary: { messageKey: APPOINTMENT_REMINDER_MESSAGE_KEY, windowVersion, reason, drafted: false },
-          requestId: job.requestId,
-        })
-        return 'cancelled'
-      }
-      const r = await requestFacts(tx, v.project_id)
-      const content = await reminderContent(tx, visitId)
-      if (!r || !content) return 'cancelled'
-      const destination = await reminderDestination(tx, r)
-      const base = deps.publicSiteUrl?.replace(/\/$/, '')
-      const draft = await createDraft(tx, {
-        config: await loadConfig(tx),
+/**
+ * Schedules the reminder of a visit's window (TSK-0121): unless a stop rule applies, the visit was booked less than the
+ * interval ahead or the cadence is NOT CONFIGURED. The reminders of its earlier windows are cancelled first.
+ */
+export async function planAppointmentReminder(
+  tx: Tx,
+  input: { visitId: string; windowVersion: number; bookedAt: Date; requestId: string },
+): Promise<JobOutcome> {
+  // The visit's lock first (the order of every visit change), so a reschedule or cancellation serializes with it.
+  const v = await tx
+    .selectFrom('work.visits')
+    .select(['id', 'project_id', 'state', 'window_version', 'starts_at'])
+    .where('id', '=', input.visitId)
+    .forUpdate()
+    .executeTakeFirst()
+  if (!v) return 'cancelled'
+  await stopAppointmentReminders(tx, input.visitId)
+  const config = await loadConfig(tx)
+  const cadence = appointmentReminderCadence(config)
+  const startsAt = new Date(v.starts_at)
+  const reason =
+    (await appointmentReminderStopReason(tx, input.visitId, input.windowVersion, await dbNow(tx))) ??
+    (cadence.state === 'CONFIGURED' && !bookedAheadEnough(startsAt, input.bookedAt, cadence.hoursBefore)
+      ? 'booked_within_interval'
+      : null)
+  if (reason || cadence.state !== 'CONFIGURED') {
+    await audit.record(tx, {
+      actor: { kind: 'system', process: PROCESS },
+      action: 'appointment_reminder.not_scheduled',
+      target: { type: RECORD_TYPE, id: input.visitId },
+      summary: {
         messageKey: APPOINTMENT_REMINDER_MESSAGE_KEY,
-        destination,
-        recipient: { kind: 'customer_contact', id: r.contactId, destinations: [destination] },
-        subjectKey,
-        record: { type: RECORD_TYPE, id: visitId },
-        values: {
-          ...contentValues(content),
-          ...(base ? { projectLink: `${base}/portal/p/${encodeURIComponent(r.reference)}` } : {}),
-        },
-        projectId: v.project_id,
-      })
-      await openQueueItem(tx, {
-        type: APPOINTMENT_REMINDER_ITEM,
-        subjectId: visitId,
-        reason: 'appointment_reminder',
-        projectId: v.project_id,
-        reference: r.reference,
-        status: 'draft',
-        // PROPOSED: due by the start of the arrival window.
-        dueAt: new Date(v.starts_at),
-      })
-      await audit.record(tx, {
-        actor: { kind: 'system', process: PROCESS },
-        action: 'appointment_reminder.drafted',
-        target: { type: 'message_delivery', id: draft.id },
-        summary: {
-          messageKey: APPOINTMENT_REMINDER_MESSAGE_KEY,
-          visit: visitId,
-          windowVersion,
-          channel: destination.channel,
-          preparationSteps: content.preparationSteps !== null,
-        },
-        requestId: job.requestId,
-      })
-      return 'done'
-    },
+        windowVersion: input.windowVersion,
+        reason: reason ?? 'not_configured',
+      },
+      requestId: input.requestId,
+    })
+    return 'cancelled'
   }
+  const r = await requestFacts(tx, v.project_id)
+  if (!r) return 'cancelled'
+  const scheduled = await scheduleAutomaticDelivery(tx, {
+    config,
+    messageKey: APPOINTMENT_REMINDER_MESSAGE_KEY,
+    recipient: { kind: 'customer_contact', id: r.contactId, destinations: contactDestinations(r) },
+    subjectKey: appointmentReminderSubject(input.visitId, input.windowVersion),
+    record: { type: RECORD_TYPE, id: input.visitId },
+    projectId: v.project_id,
+    dueAt: appointmentReminderDueAt(startsAt, cadence.hoursBefore),
+    requestId: input.requestId,
+    process: PROCESS,
+  })
+  return scheduled.state === 'scheduled' ? 'done' : 'cancelled'
 }
 
 /** The committed events after which a visit's current window needs its reminder. */
@@ -502,67 +347,81 @@ export const REMINDER_SCHEDULE_EVENTS = [
 ] as const
 
 /**
- * A confirmed visit (or a committed reschedule) schedules the draft job of its current window at the configured
- * interval before the window starts, or at once when that time has passed. NOT CONFIGURED schedules nothing.
+ * A confirmed visit (or a committed reschedule) schedules the reminder of its current window, measured from when the
+ * event was committed (the booking time). NOT CONFIGURED schedules nothing.
  */
-export function appointmentReminderScheduleAutomation(draft: Automation): Automation {
+export function appointmentReminderScheduleAutomation(): Automation {
   return {
     name: 'appointment.reminder_schedule',
     trigger: { kind: 'event', eventTypes: [...REMINDER_SCHEDULE_EVENTS] },
     identity: PROCESS,
     inputs: {
-      description: 'the committed visit event; the visit and the cadence as they are when it runs',
-      version: 1,
+      description: 'the committed visit event and when it was committed; the visit and the cadence when it runs',
+      version: 2,
     },
-    idempotency: 'one draft job per visit and window version (job key: visit and window version)',
-    effect: 'schedules the reminder draft job of a confirmed visit’s current window',
+    idempotency: 'one delivery per visit, window version and destination (the delivery tuple)',
+    effect: 'schedules the automatic reminder of a confirmed visit’s current window',
     retry: NOTIFICATION_RETRY,
     timeoutMs: 10_000,
     exceptionOwner: 'office',
     audit: { action: 'appointment_reminder.schedule' },
-    handle: async ({ tx, job, log }): Promise<JobOutcome> => {
+    handle: async ({ tx, job }): Promise<JobOutcome> => {
       const visitId = job.target.id
       if (!visitId || !UUID_RE.test(visitId)) return 'cancelled'
       const v = await tx
         .selectFrom('work.visits')
-        .select(['id', 'state', 'window_version', 'starts_at'])
+        .select(['window_version'])
         .where('id', '=', visitId)
         .executeTakeFirst()
-      if (!v || v.state !== 'confirmed') return 'cancelled'
-      const now = await dbNow(tx)
-      if (new Date(v.starts_at).getTime() <= now.getTime()) return 'cancelled'
-      const cadence = appointmentReminderCadence(await loadConfig(tx))
-      if (cadence.state !== 'CONFIGURED') {
-        log.warn({ visitId }, 'reminders.cadences is NOT CONFIGURED; no appointment reminder is scheduled')
-        return 'cancelled'
-      }
-      await scheduleJob(tx, draft, {
-        key: `${visitId}:w${v.window_version}`,
-        runAt: appointmentReminderDueAt(new Date(v.starts_at), cadence.hoursBefore, now),
-        payload: { windowVersion: v.window_version, cadenceVersion: cadence.version },
-        target: { type: RECORD_TYPE, id: visitId },
+      if (!v) return 'cancelled'
+      // The booking time is when the confirming (or rescheduling) event was committed, not when the job runs.
+      const ev = job.eventId
+        ? await tx
+            .selectFrom('platform.outbox_events')
+            .select('created_at')
+            .where('id', '=', job.eventId)
+            .executeTakeFirst()
+        : undefined
+      return planAppointmentReminder(tx, {
+        visitId,
+        windowVersion: v.window_version,
+        bookedAt: ev ? new Date(ev.created_at) : await dbNow(tx),
         requestId: job.requestId,
       })
-      return 'done'
     },
   }
 }
 
-/** The appointment reminder automations, wired together. */
-export function appointmentReminderAutomations(deps: AppointmentReminderDeps = {}): Automation[] {
-  const draft = appointmentReminderDraftAutomation(deps)
-  return [appointmentReminderScheduleAutomation(draft), draft]
+/** Plans the reminder of a visit confirmed before TSK-0121 (migration 0075), for the window and booking time given. */
+export function appointmentReminderPlanAutomation(): Automation {
+  return {
+    name: 'appointment.reminder_plan',
+    trigger: { kind: 'schedule', description: 'one job per confirmed visit window to plan its reminder' },
+    identity: PROCESS,
+    inputs: {
+      description: 'the visit (job target), its window version and booking time; the records then',
+      version: 1,
+    },
+    idempotency: 'one delivery per visit, window version and destination (the delivery tuple)',
+    effect: 'schedules the automatic reminder of a confirmed visit’s window',
+    retry: NOTIFICATION_RETRY,
+    timeoutMs: 10_000,
+    exceptionOwner: 'office',
+    audit: { action: 'appointment_reminder.plan' },
+    handle: async ({ tx, job }): Promise<JobOutcome> => {
+      const visitId = job.target.id
+      const windowVersion = Number(job.payload['windowVersion'])
+      const bookedAt = typeof job.payload['bookedAt'] === 'string' ? new Date(job.payload['bookedAt']) : null
+      if (!visitId || !UUID_RE.test(visitId) || !Number.isInteger(windowVersion)) return 'cancelled'
+      if (!bookedAt || Number.isNaN(bookedAt.getTime())) return 'cancelled'
+      return planAppointmentReminder(tx, { visitId, windowVersion, bookedAt, requestId: job.requestId })
+    },
+  }
 }
 
-const allows = (actor: StaffActor, action: 'message.release_draft' | 'visit.reschedule', projectId: string) =>
-  decide(actor, action, { projectId }, { now: new Date(), online: true }).effect === 'allow'
-
-/**
- * Who may release or dismiss a visit's reminders (PROPOSED): message.release_draft together with visit.reschedule,
- * the roles that manage booked visits (Owner, Office).
- */
-export function mayReleaseAppointmentReminder(actor: StaffActor, projectId: string): boolean {
-  return allows(actor, 'message.release_draft', projectId) && allows(actor, 'visit.reschedule', projectId)
+/** The appointment reminder automations. */
+export function appointmentReminderAutomations(): Automation[] {
+  return [appointmentReminderScheduleAutomation(), appointmentReminderPlanAutomation()]
 }
 
 type StaffRef = { id: string; name: string | null }
@@ -570,44 +429,35 @@ type StaffRef = { id: string; name: string | null }
 export type AppointmentReminderView = {
   id: string
   windowVersion: number | null
-  /** Drafted for the visit's current window. */
+  /** Scheduled for the visit's current window. */
   current: boolean
+  /** automatic (TSK-0121), or a staff-released draft from before it (kept as history). */
+  release: 'automatic' | 'staff_released'
   state: string
   channel: string
-  /** Why it stopped, was dismissed, suppressed or not sent (a stop reason or a delivery error code). */
+  /** Why it stopped, was suppressed, failed or waits (a stop reason or a delivery error code). */
   reason: string | null
-  content: ReminderContent
-  draftedAt: string
-  releasedAt: string | null
-  releasedBy: StaffRef | null
-  /** A released reminder waiting to send: when its send job runs (the next contact-hours opening, or now). */
-  sendAt: string | null
+  /** When it is due (a text: the next allowed time of the recipient's permitted hours). */
+  scheduledAt: string | null
+  sentAt: string | null
   cancelledAt: string | null
   cancelledBy: StaffRef | 'system' | null
-  actions: { release: boolean; dismiss: boolean }
 }
 
 export type AppointmentRemindersView = {
   visitId: string
   visitState: string
-  cadence:
-    | { state: 'CONFIGURED'; proposed: boolean; hoursBefore: number; contactHoursOnly: boolean; draftAt: string }
-    | { state: 'NOT_CONFIGURED' }
-  /** The stop rule for the current window as the records are now: once set, its reminder is not drafted or sent. */
+  cadence: { state: 'CONFIGURED'; proposed: boolean; hoursBefore: number; dueAt: string } | { state: 'NOT_CONFIGURED' }
+  /** The stop rule for the current window as the records are now: once set, its reminder is not sent. */
   stoppedBy: AppointmentReminderStopReason | null
   reminders: AppointmentReminderView[]
 }
 
 /**
- * The reminders of one visit for the staff screen: the interval and when the current window's draft is due, whether
- * a stop rule applies now, and every reminder drafted with its content and what happened to it (the channel only;
- * the destination is not shown).
+ * The reminders of one visit for the staff screen: the interval and when the current window's reminder is due, whether
+ * a stop rule applies now, and every delivery with what happened to it (the channel only; never the destination).
  */
-export async function appointmentRemindersView(
-  db: Reader,
-  actor: StaffActor,
-  visitId: string,
-): Promise<AppointmentRemindersView | null> {
+export async function appointmentRemindersView(db: Reader, visitId: string): Promise<AppointmentRemindersView | null> {
   const v = await db
     .selectFrom('work.visits')
     .select(['id', 'project_id', 'state', 'window_version', 'starts_at'])
@@ -622,13 +472,12 @@ export async function appointmentRemindersView(
     .select([
       'id',
       'subject_key',
+      'release',
       'state',
       'channel',
       'error_code',
-      'variables',
-      'created_at',
-      'queued_at',
-      'released_by',
+      'scheduled_at',
+      'sent_at',
       'cancelled_by',
       'cancelled_at',
     ])
@@ -637,25 +486,12 @@ export async function appointmentRemindersView(
     .where('message_key', '=', APPOINTMENT_REMINDER_MESSAGE_KEY)
     .orderBy('seq')
     .execute()
-  const ids = [
-    ...new Set(rows.flatMap((r) => [r.released_by, r.cancelled_by]).filter((x): x is string => !!x && x !== 'system')),
-  ].filter((x) => UUID_RE.test(x))
+  const ids = [...new Set(rows.map((r) => r.cancelled_by).filter((x): x is string => !!x && UUID_RE.test(x)))]
   const people = ids.length
     ? await db.selectFrom('identity.staff_users').select(['id', 'display_name']).where('id', 'in', ids).execute()
     : []
   const names = new Map(people.map((p) => [String(p.id), p.display_name]))
-  const ref = (id: string | null) => (id ? { id, name: names.get(id) ?? null } : null)
-  const queued = rows.filter((r) => r.state === 'queued').map((r) => `notify.release:${r.id}`)
-  const jobs = queued.length
-    ? await db
-        .selectFrom('platform.jobs')
-        .select(['job_key', 'run_at'])
-        .where('job_key', 'in', queued)
-        .where('state', 'in', ['queued', 'running'])
-        .execute()
-    : []
-  const runAt = new Map(jobs.map((j) => [j.job_key, new Date(j.run_at).toISOString()]))
-  const may = mayReleaseAppointmentReminder(actor, v.project_id)
+  const iso = (d: Date | null) => (d ? new Date(d).toISOString() : null)
   return {
     visitId,
     visitState: v.state,
@@ -665,40 +501,31 @@ export async function appointmentRemindersView(
             state: 'CONFIGURED',
             proposed: cadence.proposed,
             hoursBefore: cadence.hoursBefore,
-            contactHoursOnly: cadence.contactHoursOnly,
-            draftAt: new Date(new Date(v.starts_at).getTime() - cadence.hoursBefore * HOUR_MS).toISOString(),
+            dueAt: appointmentReminderDueAt(new Date(v.starts_at), cadence.hoursBefore).toISOString(),
           }
         : { state: 'NOT_CONFIGURED' },
     stoppedBy,
     reminders: rows.map((r) => {
       const wv = windowVersionOf(r.subject_key)
-      const s = (r.variables ?? {}) as Record<string, unknown>
-      const current = wv === v.window_version
       return {
         id: r.id,
         windowVersion: wv,
-        current,
+        current: wv === v.window_version,
+        release: r.release === 'automatic' ? 'automatic' : 'staff_released',
         state: r.state,
         channel: r.channel,
         reason: r.error_code,
-        content: {
-          visitWindow: typeof s['visitWindow'] === 'string' ? s['visitWindow'] : '',
-          serviceAddress: typeof s['serviceAddress'] === 'string' ? s['serviceAddress'] : '',
-          preparationSteps: typeof s['preparationSteps'] === 'string' ? s['preparationSteps'] : null,
-        },
-        draftedAt: r.created_at.toISOString(),
-        releasedAt: r.released_by && r.queued_at ? r.queued_at.toISOString() : null,
-        releasedBy: ref(r.released_by),
-        sendAt: r.state === 'queued' ? (runAt.get(`notify.release:${r.id}`) ?? null) : null,
-        cancelledAt: r.cancelled_at?.toISOString() ?? null,
-        cancelledBy: r.cancelled_by === 'system' ? 'system' : ref(r.cancelled_by),
-        actions: {
-          release: r.state === 'draft' && may && current && stoppedBy === null,
-          dismiss: r.state === 'draft' && may,
-        },
+        // Due later only while it waits: once the provider accepted it, it reads as sent (sentAt).
+        scheduledAt: r.state === 'queued' && !r.sent_at ? iso(r.scheduled_at) : null,
+        sentAt: iso(r.sent_at),
+        cancelledAt: iso(r.cancelled_at),
+        cancelledBy:
+          r.cancelled_by === 'system'
+            ? 'system'
+            : r.cancelled_by
+              ? { id: r.cancelled_by, name: names.get(r.cancelled_by) ?? null }
+              : null,
       }
     }),
   }
 }
-
-export { contentValues as reminderValues, sameDetails as reminderDetailsCurrent, alreadyReminded }

@@ -543,11 +543,44 @@ type EstimateListRecord = {
   totalCents: number
   receipt: 'preparing' | 'issued' | null
 }
+// TSK-0085 (HH-PORT-10, HH-FIN-04): the issued invoices (never a draft), each current or superseded (voided and
+// reissued), its payment state, issue date, total, the balance still owed from confirmed payments and credits, any
+// pending check, and its PDF (being prepared or issued).
+const INVOICE_LIST_ITEM = object({
+  number: STRING,
+  kind: enumOf(['deposit', 'final']),
+  status: enumOf(['current', 'superseded']),
+  state: enumOf(['issued', 'partially_paid', 'paid', 'voided']),
+  issuedAt: DATE,
+  totalCents: CENTS,
+  balanceCents: CENTS,
+  pendingCents: CENTS,
+  document: enumOf(['preparing', 'issued']),
+})
+type InvoiceListRecord = {
+  number: string
+  kind: string
+  status: string
+  state: string
+  issuedAt: Date
+  totalCents: number
+  balanceCents: number
+  pendingCents: number
+  document: 'preparing' | 'issued'
+}
 const listedView = customerView(
   'project.documents',
   'Document',
-  { ...TAB_FIELDS, state: enumOf(['none', 'listed']), estimates: { type: 'array', items: ESTIMATE_LIST_ITEM } },
-  (r: TabRecord & ({ state: 'none' } | { state: 'listed'; estimates: EstimateListRecord[] })) => ({
+  {
+    ...TAB_FIELDS,
+    state: enumOf(['none', 'listed']),
+    estimates: { type: 'array', items: ESTIMATE_LIST_ITEM },
+    invoices: { type: 'array', items: INVOICE_LIST_ITEM },
+  },
+  (
+    r: TabRecord &
+      ({ state: 'none' } | { state: 'listed'; estimates: EstimateListRecord[]; invoices?: InvoiceListRecord[] }),
+  ) => ({
     ...tabHead(r),
     state: r.state,
     estimates:
@@ -560,6 +593,20 @@ const listedView = customerView(
             validUntil: e.validUntil ? e.validUntil.toISOString() : null,
             totalCents: e.totalCents,
             receipt: e.receipt,
+          }))
+        : undefined,
+    invoices:
+      r.state === 'listed'
+        ? (r.invoices ?? []).map((i) => ({
+            number: i.number,
+            kind: i.kind,
+            status: i.status,
+            state: i.state,
+            issuedAt: i.issuedAt.toISOString(),
+            totalCents: i.totalCents,
+            balanceCents: i.balanceCents,
+            pendingCents: i.pendingCents,
+            document: i.document,
           }))
         : undefined,
   }),
@@ -603,14 +650,63 @@ export const PROJECT_PAYMENTS = tabView('project.payments', 'Invoice', ['none'] 
 
 const COUNT = { type: 'integer', minimum: 0 } as const
 export type PhotoCounts = { received: number; processing: number; failed: number }
-/** The Photos tab: how many customer-visible photos the project has, by state; never a photo, URL or ID. */
+type UploadRecord = { id: string; state: string; uploadedAt: Date; url: string | null }
+type SharedRecord = { id: string; sharedAt: Date; url: string | null }
+type SharedGroupRecord = { service: string; before: SharedRecord | null; after: SharedRecord | null }
+const SHARED_PHOTO = object({ id: STRING, sharedAt: DATE, url: { type: ['string', 'null'] } })
+const SHARED_OR_NULL = { anyOf: [{ type: 'null' }, SHARED_PHOTO] } as const
+const sharedOf = (p: SharedRecord | null) => (p ? { id: p.id, sharedAt: p.sharedAt.toISOString(), url: p.url } : null)
+/**
+ * The Photos tab (TSK-0039 counts; TSK-0076, HH-PORT-11, OWN-DEC-106): the customer's own uploads (request and reply
+ * photos), counted by state and listed with a short-lived URL once ready, and the before and after photos staff shared,
+ * grouped by service and paired where staff paired them. Internal and restricted photos are never read for it.
+ */
 export const PROJECT_PHOTOS = customerView(
   'project.photos',
   'Photo',
-  { ...TAB_FIELDS, photos: object({ received: COUNT, processing: COUNT, failed: COUNT }) },
-  (r: TabRecord & { photos: PhotoCounts }) => ({
+  {
+    ...TAB_FIELDS,
+    photos: object({ received: COUNT, processing: COUNT, failed: COUNT }),
+    yours: {
+      type: 'array',
+      items: object({
+        id: STRING,
+        state: enumOf(['quarantined', 'ready', 'rejected']),
+        uploadedAt: DATE,
+        url: { type: ['string', 'null'] },
+      }),
+    },
+    shared: {
+      type: 'array',
+      items: object({ service: STRING, before: SHARED_OR_NULL, after: SHARED_OR_NULL }),
+    },
+    linkSeconds: { type: 'integer', minimum: 1 },
+  },
+  (
+    r: TabRecord & {
+      photos: PhotoCounts
+      yours: readonly UploadRecord[]
+      shared: readonly SharedGroupRecord[]
+      linkSeconds: number
+    },
+  ) => ({
     ...tabHead(r),
     photos: { received: r.photos.received, processing: r.photos.processing, failed: r.photos.failed },
+    yours: r.yours.map((u) => ({ id: u.id, state: u.state, uploadedAt: u.uploadedAt.toISOString(), url: u.url })),
+    shared: r.shared.map((g) => ({ service: g.service, before: sharedOf(g.before), after: sharedOf(g.after) })),
+    linkSeconds: r.linkSeconds,
+  }),
+)
+
+/** One photo the customer may see, opened by its ID (TSK-0076): a fresh short-lived link, nothing else. */
+export const PHOTO_LINK = customerView(
+  'photo.link',
+  'Photo',
+  { id: STRING, url: STRING, expiresInSeconds: { type: 'integer', minimum: 1 } },
+  (p: { id: string; url: string; expiresInSeconds: number }) => ({
+    id: p.id,
+    url: p.url,
+    expiresInSeconds: p.expiresInSeconds,
   }),
 )
 
@@ -1135,6 +1231,34 @@ const DOWNLOAD = object({
   url: STRING,
   expiresAt: DATE,
 })
+// TSK-0085 (HH-PORT-10): the issued invoice's PDF, by the same short-lived link.
+const INVOICE_DOWNLOAD = object({
+  kind: enumOf(['invoice_pdf']),
+  contentType: STRING,
+  byteSize: { type: 'integer', minimum: 1 },
+  url: STRING,
+  expiresAt: DATE,
+})
+export const INVOICE_DOWNLOADS = customerView(
+  'invoice.downloads',
+  'Invoice',
+  { reference: STRING, number: STRING, documents: { type: 'array', items: INVOICE_DOWNLOAD } },
+  (r: {
+    reference: string
+    number: string
+    documents: readonly { kind: 'invoice_pdf'; contentType: string; byteSize: number; url: string; expiresAt: Date }[]
+  }) => ({
+    reference: r.reference,
+    number: r.number,
+    documents: r.documents.map((d) => ({
+      kind: d.kind,
+      contentType: d.contentType,
+      byteSize: d.byteSize,
+      url: d.url,
+      expiresAt: d.expiresAt.toISOString(),
+    })),
+  }),
+)
 export type DownloadRecord = {
   kind: 'estimate_pdf' | 'estimate_document'
   contentType: string
@@ -1542,6 +1666,7 @@ export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
     PROJECT_MESSAGES,
     PROJECT_DOCUMENTS,
     PROJECT_PHOTOS,
+    PHOTO_LINK,
     PROJECT_APPOINTMENTS,
     PROJECT_PAYMENTS,
     CUSTOMER_ACCOUNT,
@@ -1558,6 +1683,7 @@ export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
     QUESTION_REPLY_RESULT,
     PORTAL_MESSAGE_SENT,
     DOCUMENT_DOWNLOADS,
+    INVOICE_DOWNLOADS,
     PRIVACY_REQUEST,
     PRIVACY_REQUESTS,
     PRIVACY_EXPORT,

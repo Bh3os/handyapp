@@ -8,9 +8,12 @@
 //   received, each with its status, each opening the estimate view, and for an approved version its approval receipt
 //   PDF (TSK-0058: ready in the estimate view, or being prepared); nothing yet, with what will appear, while there is
 //   none. TSK-0100 (HH-PRIV-06): each version offers its download, a short-lived link the server issues only when
-//   asked. Appointments (TSK-0063): the windows offered to choose from and the confirmed visits (Appointments.tsx);
-//   nothing yet while there is neither. Payments: nothing exists yet. Photos: how many photos the project has by
-//   state, the same counts as the receipt, and that viewing them here is not available yet.
+//   asked. TSK-0085: the issued invoices, current or superseded, with their payment state, the balance still owed and
+//   any pending check, and the PDF by the same kind of short-lived link. Appointments (TSK-0063): the windows offered
+//   to choose from and the confirmed visits (Appointments.tsx); nothing yet while there is neither. Payments: nothing
+//   exists yet. Photos (TSK-0076, HH-PORT-11): the customer's own uploads (counts as on the receipt, and the photos)
+//   and the before and after photos HandyHub shared, paired by service; links are short-lived and renew with each
+//   refresh.
 // - A tab once opened stays mounted while another is shown, so anything typed in it survives a tab switch.
 // English only, from the customer catalog; the wording no decision gives is PROPOSED (OQ-PORTAL-WORDING).
 import type { CustomerKey } from '@handyhub/i18n'
@@ -26,6 +29,8 @@ import {
   type Download,
   type EstimateListItem,
   type Fetch,
+  type InvoiceListItem,
+  type SharedPhoto,
   type TabData,
   type WorkspaceTab,
 } from './api'
@@ -63,6 +68,7 @@ function Empty({ title, text, more }: { title: CustomerKey; text: CustomerKey; m
 const DOWNLOAD_LABEL: Record<Download['kind'], CustomerKey> = {
   estimate_pdf: 'portal.documents.download.estimate_pdf',
   estimate_document: 'portal.documents.download.estimate_document',
+  invoice_pdf: 'portal.documents.download.invoice_pdf',
 }
 const kb = (bytes: number) => Math.max(1, Math.round(bytes / 1024))
 
@@ -115,7 +121,7 @@ function Estimates({
 }) {
   return (
     <>
-      <h3 className="hh-h3">{t('portal.documents.estimates.title')}</h3>
+      {estimates.length ? <h3 className="hh-h3">{t('portal.documents.estimates.title')}</h3> : null}
       <ul className="portal-documents">
         {estimates.map((e) => {
           const href = estimatePath(reference, e.number, e.version)
@@ -149,7 +155,102 @@ function Estimates({
           )
         })}
       </ul>
-      <p className="hh-muted">{t('portal.documents.others')}</p>
+    </>
+  )
+}
+
+const INVOICE_STATE: Record<InvoiceListItem['state'], CustomerKey> = {
+  issued: 'portal.documents.invoice.state.issued',
+  partially_paid: 'portal.documents.invoice.state.partially_paid',
+  paid: 'portal.documents.invoice.state.paid',
+  voided: 'portal.documents.invoice.state.voided',
+}
+
+/** The issued invoice's PDF: a short-lived link asked for when the customer wants it. */
+function InvoiceDownload({ reference, i, fetchImpl }: { reference: string; i: InvoiceListItem; fetchImpl: Fetch }) {
+  const [links, setLinks] = useState<Download[] | null>(null)
+  const [pending, setPending] = useState(false)
+  const [failed, setFailed] = useState(false)
+  if (i.document !== 'issued') return <p className="hh-small hh-muted">{t('portal.documents.invoice.preparing')}</p>
+  async function load() {
+    setPending(true)
+    setFailed(false)
+    const r = await portalApi.invoiceDownload(fetchImpl, { reference, number: i.number })
+    setPending(false)
+    if (!r.ok) return setFailed(true)
+    setLinks(r.data)
+  }
+  if (links)
+    return (
+      <ul className="portal-downloads">
+        {links.map((d) => (
+          <li key={d.kind}>
+            <a href={d.url} target="_blank" rel="noopener noreferrer" download>
+              {t(DOWNLOAD_LABEL[d.kind], { size: kb(d.byteSize) })}
+            </a>
+          </li>
+        ))}
+        <li className="hh-small hh-muted">{t('portal.documents.download.expires')}</li>
+      </ul>
+    )
+  return (
+    <>
+      <Button variant="secondary" pending={pending} onClick={() => void load()}>
+        {t('portal.documents.invoice.get', { number: i.number })}
+      </Button>
+      {failed ? <StateView kind="error" title={t('portal.documents.download.failed')} /> : null}
+    </>
+  )
+}
+
+/** TSK-0085 (HH-PORT-10, HH-FIN-04): the issued invoices, each current or superseded, with the balance still owed. */
+function Invoices({
+  reference,
+  invoices,
+  fetchImpl,
+}: {
+  reference: string
+  invoices: readonly InvoiceListItem[]
+  fetchImpl: Fetch
+}) {
+  if (invoices.length === 0) return null
+  return (
+    <>
+      <h3 className="hh-h3">{t('portal.documents.invoices.title')}</h3>
+      <ul className="portal-documents" data-testid="documents-invoices">
+        {invoices.map((i) => (
+          <li key={i.number} className="portal-documents__item">
+            <p>
+              <strong>
+                {t(i.kind === 'deposit' ? 'portal.documents.invoice.depositName' : 'portal.documents.invoice.name', {
+                  number: i.number,
+                })}
+              </strong>{' '}
+              <StatusBadge tone={i.status === 'current' ? 'info' : 'neutral'}>
+                {t(
+                  i.status === 'current'
+                    ? 'portal.documents.invoice.status.current'
+                    : 'portal.documents.invoice.status.superseded',
+                )}
+              </StatusBadge>{' '}
+              <StatusBadge tone={i.state === 'paid' ? 'success' : 'neutral'}>{t(INVOICE_STATE[i.state])}</StatusBadge>
+            </p>
+            <p className="hh-small hh-muted">
+              {t('portal.documents.invoice.issued', { date: day(i.issuedAt) })}
+              {` · ${t('portal.documents.invoice.total', { total: formatUsd(cents(i.totalCents)) })}`}
+            </p>
+            {i.status === 'current' ? (
+              <p data-testid="documents-invoice-balance">
+                {t('portal.documents.invoice.balance', { balance: formatUsd(cents(i.balanceCents)) })}
+                {i.pendingCents > 0
+                  ? ` ${t('portal.documents.invoice.pending', { amount: formatUsd(cents(i.pendingCents)) })}`
+                  : ''}
+              </p>
+            ) : null}
+            <InvoiceDownload reference={reference} i={i} fetchImpl={fetchImpl} />
+          </li>
+        ))}
+      </ul>
     </>
   )
 }
@@ -290,6 +391,91 @@ function Composer({
   )
 }
 
+/**
+ * The Photos tab (TSK-0076; HH-PORT-11, OWN-DEC-106): the customer's own uploads and the before and after photos
+ * HandyHub shared, paired by service where staff paired them. Links are short-lived and renew with each refresh.
+ * PROPOSED wording (OQ-PORTAL-WORDING).
+ */
+function Photos({ data }: { data: Extract<TabData, { tab: 'photos' }> }) {
+  const { received, processing, failed } = data.photos
+  if (received + processing + failed === 0 && data.shared.length === 0)
+    return <Empty title="portal.photos.none.title" text="portal.photos.none.text" more="portal.photos.replyHint" />
+  const shot = (p: SharedPhoto | null, alt: string, label: CustomerKey) =>
+    p ? (
+      <figure className="portal-photos__figure">
+        {p.url ? (
+          <a href={p.url} target="_blank" rel="noopener noreferrer">
+            <img src={p.url} alt={alt} loading="lazy" />
+          </a>
+        ) : (
+          <p className="hh-muted">{t('portal.photos.unavailable')}</p>
+        )}
+        <figcaption>{t(label)}</figcaption>
+      </figure>
+    ) : null
+  return (
+    <>
+      {data.shared.length ? (
+        <section aria-labelledby="portal-photos-shared">
+          <h3 id="portal-photos-shared" className="hh-h3">
+            {t('portal.photos.shared.title')}
+          </h3>
+          <p className="hh-muted">{t('portal.photos.shared.intro')}</p>
+          <ul className="portal-photos" data-testid="portal-shared-photos">
+            {data.shared.map((g) => (
+              <li key={(g.after ?? g.before)?.id} className="portal-photos__pair">
+                <p>
+                  <strong>{g.service}</strong>
+                </p>
+                <div className="portal-photos__row">
+                  {shot(g.before, t('portal.photos.beforeAlt', { service: g.service }), 'portal.photos.before')}
+                  {shot(g.after, t('portal.photos.afterAlt', { service: g.service }), 'portal.photos.after')}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      {received + processing + failed > 0 ? (
+        <section aria-labelledby="portal-photos-yours">
+          <h3 id="portal-photos-yours" className="hh-h3">
+            {t('portal.photos.yours.title')}
+          </h3>
+          <ul className="portal-photo-counts">
+            <li>{t('request.receipt.photos.received', { count: received })}</li>
+            <li>{t('request.receipt.photos.processing', { count: processing })}</li>
+            <li>{t('request.receipt.photos.failed', { count: failed })}</li>
+          </ul>
+          <ul className="portal-photos portal-photos__row" data-testid="portal-your-photos">
+            {data.yours.map((y, i) => (
+              <li key={y.id}>
+                {y.state === 'ready' && y.url ? (
+                  <a href={y.url} target="_blank" rel="noopener noreferrer">
+                    <img src={y.url} alt={t('portal.photos.yours.alt', { n: i + 1 })} loading="lazy" />
+                  </a>
+                ) : (
+                  <p className="hh-muted">
+                    {t(
+                      y.state === 'rejected'
+                        ? 'portal.photos.yours.failed'
+                        : y.state === 'quarantined'
+                          ? 'portal.photos.yours.processing'
+                          : 'portal.photos.unavailable',
+                      { n: i + 1 },
+                    )}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      <p className="hh-muted">{t('portal.photos.links')}</p>
+      <p className="hh-muted">{t('portal.photos.replyHint')}</p>
+    </>
+  )
+}
+
 function Content({
   data,
   fetchImpl,
@@ -311,12 +497,16 @@ function Content({
       )
     case 'documents':
       return data.state === 'listed' ? (
-        <Estimates
-          reference={data.reference}
-          estimates={data.estimates}
-          onNavigate={onNavigate}
-          fetchImpl={fetchImpl}
-        />
+        <>
+          <Estimates
+            reference={data.reference}
+            estimates={data.estimates}
+            onNavigate={onNavigate}
+            fetchImpl={fetchImpl}
+          />
+          <Invoices reference={data.reference} invoices={data.invoices} fetchImpl={fetchImpl} />
+          <p className="hh-muted">{t('portal.documents.others')}</p>
+        </>
       ) : (
         <Empty title="portal.documents.none.title" text="portal.documents.none.text" />
       )
@@ -334,22 +524,8 @@ function Content({
       )
     case 'payments':
       return <Empty title="portal.payment.none.title" text="portal.payment.none.text" more="portal.payments.recorded" />
-    case 'photos': {
-      const { received, processing, failed } = data.photos
-      if (received + processing + failed === 0)
-        return <Empty title="portal.photos.none.title" text="portal.photos.none.text" />
-      return (
-        <>
-          <h3 className="hh-h3">{t('request.receipt.photos.title')}</h3>
-          <ul className="portal-photo-counts">
-            <li>{t('request.receipt.photos.received', { count: received })}</li>
-            <li>{t('request.receipt.photos.processing', { count: processing })}</li>
-            <li>{t('request.receipt.photos.failed', { count: failed })}</li>
-          </ul>
-          <p className="hh-muted">{t('portal.photos.notShown')}</p>
-        </>
-      )
-    }
+    case 'photos':
+      return <Photos data={data} />
   }
 }
 

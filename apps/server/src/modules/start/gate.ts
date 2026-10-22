@@ -277,12 +277,14 @@ export async function latestSiteCheck(tx: Tx, visitId: string, staffUserId: stri
     : null
 }
 
-/** Before photos of the visit, counted per work package. */
+/** Before photos of the visit, counted per work package; a photo processing rejected never counts (TSK-0076). */
 export async function beforePhotoCounts(tx: Tx, visitId: string): Promise<Map<string, number>> {
   const rows = await tx
-    .selectFrom('work.before_photos')
+    .selectFrom('work.field_photos')
     .select(['work_package_id', sql<number>`count(*)::integer`.as('n')])
     .where('visit_id', '=', visitId)
+    .where('phase', '=', 'before')
+    .where('state', '<>', 'rejected')
     .groupBy('work_package_id')
     .execute()
   return new Map(rows.map((r) => [r.work_package_id, Number(r.n)]))

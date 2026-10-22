@@ -119,6 +119,10 @@ export const CLEARED_CATEGORIES = {
     'work.start_gate_evaluations',
     'work.work_starts',
     'work.gate_exceptions',
+    // TSK-0077 (0079): Stop Work, hazard and issue reports, their photos, stabilization records and reviews.
+    'work.issue_reports',
+    'work.stabilization_records',
+    'work.issue_report_reviews',
   ],
   payments: [
     'finance.payments',
@@ -126,6 +130,14 @@ export const CLEARED_CATEGORIES = {
     'finance.deposit_requirements',
     'finance.deposit_waivers',
     'estimating.approval_receipts',
+    // TSK-0085, TSK-0086 (0077): invoices, their lines, deposit credits and PDFs; refunds, Square payouts and fees.
+    'finance.invoices',
+    'finance.invoice_lines',
+    'finance.invoice_deposit_credits',
+    'finance.invoice_documents',
+    'finance.refunds',
+    'finance.payouts',
+    'finance.provider_fees',
   ],
   conversations: [
     'comms.conversations',
@@ -150,7 +162,17 @@ export const CLEARED_CATEGORIES = {
     'quality.case_customer_updates',
     'quality.case_events',
   ],
-  attachments: ['intake.photos', 'intake.question_reply_photos', 'work.before_photos', 'quality.case_attachments'],
+  attachments: [
+    'intake.photos',
+    'intake.question_reply_photos',
+    // TSK-0076 (0080): the before photos of 0074 are the field photos; publication permissions per photo.
+    'work.field_photos',
+    'work.photo_publication_permissions',
+    // TSK-0077 (0079): the photos of Stop Work, hazard and issue reports.
+    'work.issue_report_photos',
+    // TSK-0093 (0081): the supporting photos of cases.
+    'quality.case_attachments',
+  ],
   pending_messages: ['platform.outbox_events', 'platform.jobs'],
   sessions: [
     'identity.customer_sessions',
@@ -254,8 +276,12 @@ const STORED_FILES = [
   ['estimating.estimate_documents', 'object_key'],
   ['estimating.estimate_versions', 'customer_pdf_object_key'],
   ['estimating.approval_receipts', 'object_key'],
-  // TSK-0073 (0074): the before photos of field visits.
-  ['work.before_photos', 'object_key'],
+  // TSK-0085: the issued invoice PDFs.
+  ['finance.invoice_documents', 'object_key'],
+  // TSK-0073 (0074), TSK-0076 (0080): the before and after photos of field visits.
+  ['work.field_photos', 'object_key'],
+  // TSK-0077 (0079): the photos of Stop Work, hazard and issue reports.
+  ['work.issue_report_photos', 'object_key'],
   // TSK-0093 (0081): the supporting photos of cases.
   ['quality.case_attachments', 'object_key'],
 ] as const

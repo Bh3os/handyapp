@@ -30,8 +30,11 @@ import { RetentionScreen } from './Retention'
 import { ScheduleBoard } from './Schedule'
 import { SearchScreen, Screen, Shell, type Navigation } from './Shell'
 import { StaffScreen } from './StaffManagement'
+import { JobPhotosPage } from './JobPhotos'
 import { StartReviewPage, StartWorkPage } from './StartWork'
+import { JobSafety, SafetyHoldPage, flushPendingStops } from './StopWork'
 import { StagingTools } from './StagingTools'
+import { LaunchPhaseSetting } from './LaunchPhase'
 import { ConfigurationScreen, HealthScreen } from './System'
 import { VisitTimesPage } from './VisitTimes'
 
@@ -184,6 +187,16 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
     }
   }, [needsSession])
 
+  // TSK-0077 (HH-OFF-03): a Stop Work saved on this phone while offline is sent once a session exists and whenever the
+  // phone is back online, with its own key (recorded once).
+  useEffect(() => {
+    if (!session) return
+    const flush = () => void flushPendingStops(doFetch)
+    flush()
+    window.addEventListener('online', flush)
+    return () => window.removeEventListener('online', flush)
+  }, [session])
+
   async function signOut() {
     setSigningOut(true)
     await call(doFetch, '/staff/auth/sign-out', { method: 'POST' })
@@ -212,15 +225,17 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
             : // A job packet (TSK-0069) is reached from My Day or the board; the server decides who may open it.
               // TSK-0073: the Start Work briefing is reached from My Day (a link, never a direct start).
               // TSK-0093: a worker opens their own incident report from the job packet (the server decides who reads it).
+              // TSK-0076: a job's field photos likewise.
               route.screen === 'packets' ||
                 route.screen === 'loadouts' ||
                 route.screen === 'start' ||
+                route.screen === 'job-photos' ||
                 (route.screen === 'cases' && !nav?.items.includes('cases'))
               ? nav?.items.includes('my-day')
                 ? 'my-day'
                 : 'schedule'
               : // TSK-0070: a visit's Arrived and Finished times sit below the schedule; the server decides who sees them.
-                route.screen === 'visit-times' || route.screen === 'start-review'
+                route.screen === 'visit-times' || route.screen === 'start-review' || route.screen === 'safety-holds'
                 ? 'schedule'
                 : route.screen
           : route.page === 'home'
@@ -284,6 +299,13 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
                 fetchImpl={doFetch}
                 onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
               />
+              {/* TSK-0142: the launch phase and its switches (the Owner only; phase 1 until the Owner approves more). */}
+              <LaunchPhaseSetting
+                t={t}
+                locale={locale}
+                fetchImpl={doFetch}
+                onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
+              />
               <MailingAddressSetting
                 t={t}
                 fetchImpl={doFetch}
@@ -322,14 +344,34 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
             // TSK-0093: a case, from the Cases screen, a queue item or the job packet; the server decides what it shows.
             <CasePage key={route.id} t={t} locale={locale} fetchImpl={doFetch} caseId={route.id} href={href} />
           ) : route.page === 'record' && route.screen === 'packets' ? (
-            <JobPacketPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} href={href} />
+            // TSK-0077: Stop Work / Report Hazard and Report an issue on the job's screen, before the packet loads.
+            <>
+              <JobSafety key={`safety-${route.id}`} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} issues />
+              <JobPacketPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} href={href} />
+            </>
           ) : route.page === 'record' && route.screen === 'loadouts' ? (
             // A job's loadout (TSK-0071), from its packet or the Owner's loadout_shortage queue item.
-            <LoadoutPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} href={href} />
+            <>
+              <JobSafety key={`safety-${route.id}`} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} />
+              <LoadoutPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} href={href} />
+            </>
           ) : route.page === 'record' && route.screen === 'start' ? (
             <StartWorkPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} visitId={route.id} href={href} />
+          ) : route.page === 'record' && route.screen === 'job-photos' ? (
+            <JobPhotosPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} />
           ) : route.page === 'record' && route.screen === 'start-review' ? (
-            <StartReviewPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} />
+            <StartReviewPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} href={href} />
+          ) : route.page === 'record' && route.screen === 'safety-holds' ? (
+            // TSK-0077: a safety queue item's link (a critical hold) opens its job's review page.
+            <SafetyHoldPage
+              key={route.id}
+              t={t}
+              fetchImpl={doFetch}
+              holdId={route.id}
+              render={(jobId) => (
+                <StartReviewPage key={jobId} t={t} locale={locale} fetchImpl={doFetch} jobId={jobId} href={href} />
+              )}
+            />
           ) : route.page === 'record' && route.screen === 'visit-times' ? (
             <VisitTimesPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} visitId={route.id} />
           ) : (route.page === 'screen' || route.page === 'home') && shown === 'my-day' && allowed ? (

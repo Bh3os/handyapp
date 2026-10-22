@@ -413,7 +413,9 @@ export function startModule(deps: { storage: ObjectStorage | null; environment?:
       'and the size against uploads.limits; NOT CONFIGURED limits or storage answer UNAVAILABLE), stored once under ' +
       'an opaque key in the private bucket, internal, never shown to the customer here. The same bytes again for ' +
       'the same package answer the same photo (200). PROPOSED: at least one per work package of the job, on this ' +
-      'visit, before Start Work (field photos, TSK-0076, add processing, sharing and after photos).',
+      'visit, before Start Work (a rejected one does not count). TSK-0076: a field photo of the before phase, ' +
+      'quarantined until processed and internal until shared (POST /staff/visits/:visitId/field-photos adds after ' +
+      'photos, area labels and pairs).',
     actors: ['staff'],
     permission: 'job.add_photo',
     kind: 'write',
@@ -439,6 +441,7 @@ export function startModule(deps: { storage: ObjectStorage | null; environment?:
           bytes,
           declaredType: String(ctx.req.headers['content-type'] ?? ''),
           storage: deps.storage,
+          requestId: requestIdOf(ctx),
           deviceCapturedAt: q.deviceCapturedAt,
         })
       } catch (err) {

@@ -235,6 +235,21 @@ export type EstimateListItem = {
   /** TSK-0058 (HH-PORT-10): an approved version's approval receipt PDF, issued or being prepared; null otherwise. */
   receipt: ReceiptState | null
 }
+// TSK-0085 (HH-PORT-10, HH-FIN-04): an issued invoice of the Documents tab, never a draft.
+export const INVOICE_STATUSES = ['current', 'superseded'] as const
+export const INVOICE_STATES = ['issued', 'partially_paid', 'paid', 'voided'] as const
+export type InvoiceListItem = {
+  number: string
+  kind: 'deposit' | 'final'
+  status: (typeof INVOICE_STATUSES)[number]
+  state: (typeof INVOICE_STATES)[number]
+  issuedAt: string
+  totalCents: number
+  /** Still owed from confirmed payments and credits; a pending check does not reduce it. */
+  balanceCents: number
+  pendingCents: number
+  document: 'preparing' | 'issued'
+}
 export const RECEIPT_STATES = ['preparing', 'issued'] as const
 export type ReceiptState = (typeof RECEIPT_STATES)[number]
 /** TSK-0058 (OWN-DEC-105): the step after approval, worded by the portal in the owner's words. */
@@ -365,11 +380,58 @@ export type ConversationMessage = {
 export type TabData =
   | (TabHead & { tab: 'messages'; messages: ConversationMessage[] })
   | (TabHead & { tab: 'documents'; state: 'none' })
-  | (TabHead & { tab: 'documents'; state: 'listed'; estimates: EstimateListItem[] })
+  | (TabHead & { tab: 'documents'; state: 'listed'; estimates: EstimateListItem[]; invoices: InvoiceListItem[] })
   | (TabHead & { tab: 'appointments' | 'payments'; state: 'none' })
   | (TabHead & { tab: 'appointments'; state: 'listed'; offers: WindowOffer[]; appointments: Appointment[] })
-  | (TabHead & { tab: 'photos'; photos: PhotoCounts })
+  | (TabHead & {
+      tab: 'photos'
+      photos: PhotoCounts
+      yours: YourPhoto[]
+      shared: SharedPair[]
+      linkSeconds: number
+    })
 
+/** TSK-0076 (HH-PORT-11): one of the customer's own uploads, with its short-lived link once ready. */
+export type YourPhoto = {
+  id: string
+  state: 'quarantined' | 'ready' | 'rejected'
+  uploadedAt: string
+  url: string | null
+}
+/** A photo staff shared with the customer, with its short-lived link. */
+export type SharedPhoto = { id: string; sharedAt: string; url: string | null }
+/** A shared before and after photo of one service, paired where staff paired them. */
+export type SharedPair = { service: string; before: SharedPhoto | null; after: SharedPhoto | null }
+
+const httpsOrNull = (v: unknown): v is string | null => v === null || (isStr(v) && /^https:\/\//.test(v))
+function sharedPhoto(v: unknown): SharedPhoto | null | undefined {
+  if (v === null) return null
+  return isObj(v) && isStr(v['id']) && isDate(v['sharedAt']) && httpsOrNull(v['url'])
+    ? { id: v['id'], sharedAt: v['sharedAt'], url: v['url'] }
+    : undefined
+}
+function parsePhotoLists(v: Record<string, unknown>) {
+  if (!Array.isArray(v['yours']) || !Array.isArray(v['shared']) || !isSeconds(v['linkSeconds'])) return null
+  const yours = v['yours'].map((y) =>
+    isObj(y) &&
+    isStr(y['id']) &&
+    oneOf(['quarantined', 'ready', 'rejected'] as const)(y['state']) &&
+    isDate(y['uploadedAt']) &&
+    httpsOrNull(y['url'])
+      ? { id: y['id'], state: y['state'], uploadedAt: y['uploadedAt'], url: y['url'] }
+      : null,
+  )
+  const shared = v['shared'].map((g) => {
+    if (!isObj(g) || !isStr(g['service'])) return null
+    const before = sharedPhoto(g['before'])
+    const after = sharedPhoto(g['after'])
+    return before === undefined || after === undefined || (before === null && after === null)
+      ? null
+      : { service: g['service'], before, after }
+  })
+  if (yours.some((y) => y === null) || shared.some((g) => g === null)) return null
+  return { yours: yours as YourPhoto[], shared: shared as SharedPair[], linkSeconds: v['linkSeconds'] }
+}
 const TAB_STATE: Record<Exclude<WorkspaceTab, 'photos' | 'messages'>, string> = {
   documents: 'none',
   appointments: 'none',
@@ -386,7 +448,14 @@ export function parseTab(tab: WorkspaceTab, v: unknown): TabData | null {
   if (tab === 'photos') {
     const p = v['photos']
     if (!isObj(p) || !isSeconds(p['received']) || !isSeconds(p['processing']) || !isSeconds(p['failed'])) return null
-    return { ...head, tab, photos: { received: p['received'], processing: p['processing'], failed: p['failed'] } }
+    const lists = parsePhotoLists(v)
+    if (!lists) return null
+    return {
+      ...head,
+      tab,
+      photos: { received: p['received'], processing: p['processing'], failed: p['failed'] },
+      ...lists,
+    }
   }
   if (tab === 'messages') {
     const list = v['messages']
@@ -397,8 +466,18 @@ export function parseTab(tab: WorkspaceTab, v: unknown): TabData | null {
   }
   if (tab === 'documents' && v['state'] === 'listed') {
     const list = Array.isArray(v['estimates']) ? v['estimates'].map(listItem) : null
-    if (!list || list.length === 0 || list.some((e) => e === null)) return null
-    return { ...head, tab, state: 'listed', estimates: list as EstimateListItem[] }
+    // TSK-0085: the issued invoices (absent from an older server: none).
+    const invoices =
+      v['invoices'] === undefined ? [] : Array.isArray(v['invoices']) ? v['invoices'].map(invoiceItem) : null
+    if (!list || !invoices || list.some((e) => e === null) || invoices.some((i) => i === null)) return null
+    if (list.length + invoices.length === 0) return null
+    return {
+      ...head,
+      tab,
+      state: 'listed',
+      estimates: list as EstimateListItem[],
+      invoices: invoices as InvoiceListItem[],
+    }
   }
   if (tab === 'appointments' && v['state'] === 'listed') {
     const offers = Array.isArray(v['offers']) ? v['offers'].map(parseOffer) : null
@@ -447,6 +526,15 @@ function listItem(v: unknown): EstimateListItem | null {
   const receipt = v['receipt'] === undefined ? null : v['receipt']
   if (receipt !== null && !oneOf(RECEIPT_STATES)(receipt)) return null
   return { number, version, status, publishedAt, validUntil, totalCents, receipt }
+}
+
+function invoiceItem(v: unknown): InvoiceListItem | null {
+  if (!isObj(v)) return null
+  const { number, kind, status, state, issuedAt, totalCents, balanceCents, pendingCents, document } = v
+  if (!isStr(number) || !oneOf(['deposit', 'final'] as const)(kind) || !oneOf(INVOICE_STATUSES)(status)) return null
+  if (!oneOf(INVOICE_STATES)(state) || !isDate(issuedAt) || !oneOf(RECEIPT_STATES)(document)) return null
+  if (!isCents(totalCents) || !isCents(balanceCents) || !isCents(pendingCents)) return null
+  return { number, kind, status, state, issuedAt, totalCents, balanceCents, pendingCents, document }
 }
 
 function parseReceipt(v: unknown): Receipt | null {
@@ -1113,7 +1201,7 @@ export const portalWrites = {
 }
 
 // Document downloads (TSK-0100, HH-PRIV-06): short-lived links the server issues after its checks.
-export const DOWNLOAD_KINDS = ['estimate_pdf', 'estimate_document'] as const
+export const DOWNLOAD_KINDS = ['estimate_pdf', 'estimate_document', 'invoice_pdf'] as const
 export type DownloadKind = (typeof DOWNLOAD_KINDS)[number]
 export type Download = { kind: DownloadKind; contentType: string; byteSize: number; url: string; expiresAt: string }
 export function parseDownloads(v: unknown): Download[] | null {
@@ -1332,6 +1420,13 @@ export const portalApi = {
   verify,
   downloads: (f: Fetch, ref: { reference: string; number: string; version: number }) =>
     read(f, `${versionPath(ref)}/documents`, parseDownloads),
+  // TSK-0085: the issued invoice's PDF.
+  invoiceDownload: (f: Fetch, ref: { reference: string; number: string }) =>
+    read(
+      f,
+      `/customer/projects/${encodeURIComponent(ref.reference)}/invoices/${encodeURIComponent(ref.number)}/document`,
+      parseDownloads,
+    ),
   privacy: (f: Fetch, reference: string) =>
     read(f, `/customer/projects/${encodeURIComponent(reference)}/privacy-requests`, parsePrivacyList),
   requestPrivacy,

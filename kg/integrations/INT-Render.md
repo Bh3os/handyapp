@@ -16,3 +16,5 @@ The app runs as one Render web service with Render PostgreSQL.
 - **Production:** happens only on the owner's go decision ([[OQ-GO-DECISION]]).
 
 **Changed by [[OWN-DEC-185]] (2026-10-21):** production: one Starter web service and the smallest paid Render Postgres with point-in-time recovery plus a nightly logical backup to R2; ESTIMATE about $13–15 per month fixed, prices to confirm on Render before buying; created only when the owner approves phase 2 ([[OWN-DEC-191]]).
+
+**2026-10-22 ([[TSK-0106]], [[TSK-0111]]):** the staging database was recreated (render.yaml: `handyhub_staging_db_vdqz`); the coordinator reports that this free database expires on 2026-11-21 (the 2026-11-03 date above was the earlier database's). Runbooks: `docs/runbooks/` (release, outages, restore, go checklist). The container migrates at start, so older code never starts against a newer schema: a release with a migration is corrected forward, never rolled back. Restores are rehearsed in CI against a pg_dump and once on a disposable local database, not yet on Render.
