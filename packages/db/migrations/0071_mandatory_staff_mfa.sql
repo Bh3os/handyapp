@@ -1,4 +1,4 @@
--- 0070 Mandatory MFA for every active staff account (TSK-0154; HH-STAFF-01, HH-SEC-02, HH-STAFF-02, HH-SEC-06,
+-- 0071 Mandatory MFA for every active staff account (TSK-0154; HH-STAFF-01, HH-SEC-02, HH-STAFF-02, HH-SEC-06,
 -- OWN-DEC-202, OWN-DEC-200). The TOTP authenticator and recovery codes of TSK-0015 (migration 0013) stay; they become
 -- required for every staff role (Owner, Office/Dispatcher, Estimator, Worker).
 -- - staff_sessions.state gains 'mfa_enrollment': a correct password for an account without a confirmed authenticator.

@@ -13,7 +13,7 @@
 //   'mfa_enrollment' session after its password, which acts for nobody and reaches only enrolment and sign-out until
 //   the authenticator is confirmed (at most MFA_PENDING_MINUTES too). Only a 'complete' session of a user with a
 //   confirmed authenticator acts for its user: a complete session whose user has none (it cannot be created: the
-//   database refuses it, migration 0070) is revoked as 'mfa_required' and refused.
+//   database refuses it, migration 0071) is revoked as 'mfa_required' and refused.
 import type { Db, Tx } from '@handyhub/db'
 import { sql } from 'kysely'
 import { loadConfig, requireConfigured } from '../../platform/config/index.js'

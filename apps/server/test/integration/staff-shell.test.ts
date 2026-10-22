@@ -8,6 +8,7 @@ import { buildApp } from '../../src/app.js'
 import { createStaffUser, setPasswordHash } from '../../src/modules/identity/accounts.js'
 import { hashPassword } from '../../src/modules/identity/passwords.js'
 import { testConfig } from '../fixtures/env.js'
+import { signInWithMfa } from '../fixtures/staff-mfa.js'
 
 const pw = (n: number) => ['synthetic', 'shell', 'passphrase', 'number', String(n)].join(' ')
 const ROLES = ['owner', 'office', 'estimator', 'worker'] as const
@@ -37,8 +38,9 @@ afterAll(async () => {
   await t?.drop()
 })
 
+/** A complete sign-in: the password, then the mandatory second factor (TSK-0154). */
 const signIn = (email: string, password = pw(1)) =>
-  app.inject({ method: 'POST', url: '/api/v1/staff/auth/sign-in', payload: { email, password } })
+  signInWithMfa(app, { method: 'POST', url: '/api/v1/staff/auth/sign-in', payload: { email, password } })
 const cookieOf = (res: { headers: Record<string, unknown> }) =>
   String(res.headers['set-cookie']).split(';')[0] as string
 

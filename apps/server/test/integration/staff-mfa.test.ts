@@ -388,7 +388,7 @@ describe('offboarding and reactivation (TSK-0154, HH-STAFF-02, OWN-DEC-200, OWN-
   })
 })
 
-describe('accounts from before mandatory MFA (TSK-0154, migration 0070)', () => {
+describe('accounts from before mandatory MFA (TSK-0154, migration 0071)', () => {
   it('[HH-STAFF-01][HH-SEC-02] the database refuses a complete session without a confirmed authenticator', async () => {
     const insert = withTx(t.db, (tx) =>
       tx
@@ -400,7 +400,7 @@ describe('accounts from before mandatory MFA (TSK-0154, migration 0070)', () => 
   })
 
   it('[HH-STAFF-01] a session left from optional MFA acts for nobody and the account enrols at its next sign-in', async () => {
-    // The state before migration 0070: a complete session of an account without an authenticator.
+    // The state before migration 0071: a complete session of an account without an authenticator.
     const token = 'B'.repeat(43)
     const { createHash } = await import('node:crypto')
     await sql`ALTER TABLE identity.staff_sessions DISABLE TRIGGER staff_sessions_complete_needs_factor`.execute(t.db)
