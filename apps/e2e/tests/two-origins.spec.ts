@@ -3,6 +3,7 @@
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { expect, test, type Page } from '@playwright/test'
+import { passSecondFactor } from '../mfa.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
 const port = process.env['E2E_SPLIT_PORT'] ?? '4312'
@@ -65,6 +66,8 @@ test.describe('two origins (TSK-0017, OWN-DEC-133, HH-ARC-06)', () => {
     await page.getByLabel('Email').fill(OWNER)
     await page.getByLabel('Password', { exact: true }).fill(password)
     await page.getByRole('button', { name: 'Sign in' }).click()
+    // MFA is mandatory (TSK-0154): enrol on the account's first sign-in, the code afterwards.
+    await passSecondFactor(page)
     await expect(page.getByText('Signed in as E2E Owner', { exact: true })).toBeVisible()
 
     // The staff cookie is host-only: the browser keeps it for the staff host and sends it nowhere else.

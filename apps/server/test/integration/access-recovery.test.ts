@@ -26,7 +26,7 @@ import { codeDeliveryAutomation, readCodeKey, type CodeKeySettings } from '../..
 import { releaseTemplateVersion } from '../../src/modules/notifications/index.js'
 import { queueAutomations } from '../../src/modules/queue/index.js'
 import { createAutomationRegistry, type Automation } from '../../src/platform/automation.js'
-import { loadConfig } from '../../src/platform/config/index.js'
+import { loadConfig, recordPolicyVersion } from '../../src/platform/config/index.js'
 import { createWorker } from '../../src/platform/jobs.js'
 import { createLogger } from '../../src/platform/logger.js'
 import { createProviders } from '../../src/providers/index.js'
@@ -253,18 +253,38 @@ async function rowsContaining(secrets: readonly string[]): Promise<string[]> {
   return hits
 }
 
-describe('while the access message has no released wording, no reissue claims a link (TSK-0035, HH-ID-09)', () => {
-  it('[HH-ID-09][HH-ID-03] every reissue request is the same 503 NOT_CONFIGURED, known or unknown, and nothing is issued', async () => {
+describe('while the access message cannot be sent, no reissue claims a link (TSK-0035, TSK-0120, HH-ID-09)', () => {
+  it('[HH-ID-09][HH-ID-03] off the automatic list: every reissue request is the same 503 NOT_CONFIGURED, known or unknown, and nothing is issued', async () => {
     const email = 'recover-unconfigured@example.test'
     const s = await submitted(email)
-    const known = await post('/reissue', { reference: s.reference, contact: email })
-    const unknown = await post('/reissue', { reference: 'HH-00000000', contact: 'nobody@example.test' })
-    const byLink = await post('/reissue', { token: s.token, contact: email })
-    expect(known.statusCode).toBe(503)
-    expect(known.json().error.code).toBe('NOT_CONFIGURED')
-    expect(observed(unknown)).toEqual(observed(known))
-    expect(observed(byLink)).toEqual(observed(known))
-    expect((await grantsOf(s.projectId)).map((g) => g.issued_reason)).toEqual(['submission'])
+    // TSK-0120 wired the owner's secure_access_link, so the message is taken off the list here for a moment (a
+    // synthetic configuration version in this test database only) and the list is put back afterwards.
+    const list = (await loadConfig(t.db)).get('messages.automatic')
+    if (list.state !== 'CONFIGURED') throw new Error('messages.automatic is seeded')
+    const version = (value: typeof list.value, reason: string) =>
+      recordPolicyVersion(t.db, {
+        key: 'messages.automatic',
+        value,
+        sourceIds: ['TSK-0035'],
+        changedBy: 'staff-synthetic-owner',
+        reason,
+      })
+    await version(
+      { ...list.value, customer: list.value.customer.filter((k) => k !== 'project.access_link') },
+      'Synthetic test: the access message taken off the list',
+    )
+    try {
+      const known = await post('/reissue', { reference: s.reference, contact: email })
+      const unknown = await post('/reissue', { reference: 'HH-00000000', contact: 'nobody@example.test' })
+      const byLink = await post('/reissue', { token: s.token, contact: email })
+      expect(known.statusCode).toBe(503)
+      expect(known.json().error.code).toBe('NOT_CONFIGURED')
+      expect(observed(unknown)).toEqual(observed(known))
+      expect(observed(byLink)).toEqual(observed(known))
+      expect((await grantsOf(s.projectId)).map((g) => g.issued_reason)).toEqual(['submission'])
+    } finally {
+      await version(list.value, 'Synthetic test: the list restored')
+    }
   })
 })
 

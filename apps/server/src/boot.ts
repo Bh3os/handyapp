@@ -3,12 +3,13 @@
 // With a database: the provider webhooks (/webhooks/bird, /webhooks/resend) and the in-process job worker run too;
 // the worker stops and the pool closes when the app closes.
 import { randomUUID } from 'node:crypto'
-import { createDb, withTx } from '@handyhub/db'
+import { createDb, databaseIdentity, recordEnvironmentMark, withTx } from '@handyhub/db'
 import type { FastifyInstance } from 'fastify'
 import { buildApp } from './app.js'
 import { buildAutomations } from './automations.js'
 import { loadConfig, publicSiteUrl } from './config.js'
 import { ensureBootstrapOwner } from './modules/identity/accounts.js'
+import { MFA_NOT_CONFIGURED_LOG } from './modules/identity/mfa.js'
 import { codeDeliveryAutomation, readCodeKey } from './modules/identity/index.js'
 import { ensureRetentionScan } from './modules/retention/index.js'
 import { createAutomationRegistry } from './platform/automation.js'
@@ -73,6 +74,29 @@ export async function boot(env: Readonly<Record<string, string | undefined>>, op
       secrets: providers.webhookSecrets,
       trustProxyHops: config.trustProxyHops,
     })
+    // TSK-0141: the database records which environment this server is (a production mark forbids every staging reset
+    // for good). In production the mark is required: a server that cannot record or confirm it does not start, so a
+    // database production used is always marked. Elsewhere best effort: a database not yet migrated never stops a
+    // test server; the next start marks it.
+    if (config.env === 'production') {
+      try {
+        await recordEnvironmentMark(db, 'production', 'server_boot')
+        if (!(await databaseIdentity(db)).servedProduction) throw new Error('the production mark is not recorded')
+      } catch (err) {
+        await app.close()
+        await db.destroy()
+        throw new Error('production server refused to start: the database environment mark could not be recorded', {
+          cause: err,
+        })
+      }
+    } else {
+      try {
+        const mark = await recordEnvironmentMark(db, config.env, 'server_boot')
+        if (mark === 'refused') app.log.warn('environment mark refused: this database served production')
+      } catch (err) {
+        app.log.warn({ err }, 'environment mark not recorded')
+      }
+    }
     // The first Owner (HH-STAFF-01 safe bootstrap): only while no Owner exists; one invite through the outbox.
     if (config.bootstrapOwner) {
       const owner = config.bootstrapOwner
@@ -99,6 +123,8 @@ export async function boot(env: Readonly<Record<string, string | undefined>>, op
       await db.destroy()
     })
   }
+  // TSK-0154 (OWN-DEC-202): MFA is mandatory, so without the sealing key every staff sign-in is refused (fail closed).
+  if (!config.mfaKey) app.log.error({ variable: 'MFA_ENCRYPTION_KEY', env: config.env }, MFA_NOT_CONFIGURED_LOG)
   const address = await app.listen({ port: config.port, host: config.host })
   return { app, config, address }
 }

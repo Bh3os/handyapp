@@ -21,7 +21,6 @@ import {
   resolveCustomerSession,
   type CodeKeySettings,
 } from '../../src/modules/identity/index.js'
-import { releaseTemplateVersion } from '../../src/modules/notifications/index.js'
 import { createAutomationRegistry } from '../../src/platform/automation.js'
 import { loadConfig, recordPolicyVersion } from '../../src/platform/config/index.js'
 import { createWorker } from '../../src/platform/jobs.js'
@@ -273,36 +272,36 @@ const counts = async () => {
   }
 }
 
-let noticeReleased = false
-/** The owner's decision the notice still waits for (OQ-ACCOUNT-CONTACT-NOTICE), made in this test database only. */
-async function enableContactNotice() {
-  if (noticeReleased) return
-  noticeReleased = true
-  await withTx(t.db, async (tx) => {
-    await releaseTemplateVersion(tx, {
-      messageKey: 'account.contact_changed',
-      channel: 'email',
-      locale: 'en',
-      subject: 'Synthetic test notice',
-      body: 'SYNTHETIC TEST TEMPLATE: the sign-in email changed.',
-      translationReview: 'source',
-      sourceIds: ['TSK-0036'],
-      releasedBy: 'test',
-    })
-  })
+/**
+ * TSK-0120: the owner's account_email_changed wording is wired, so the notice can be sent and the change is available.
+ * To show the change waits whenever the notice cannot be sent, a test takes the notice off messages.automatic for a
+ * moment (a synthetic configuration version in this test database only) and puts the list back afterwards.
+ */
+async function withoutContactNotice(run: () => Promise<void>) {
   const list = (await loadConfig(t.db)).get('messages.automatic')
   if (list.state !== 'CONFIGURED') throw new Error('messages.automatic is seeded')
-  // TSK-0119: version 2 of the list already makes the notice automatic (OWN-DEC-152); the synthetic version above,
-  // newer than the owner wording whose values TSK-0120 wires, is what makes it ready in this test database.
-  if (list.value.customer.includes('account.contact_changed')) return
   await recordPolicyVersion(t.db, {
     key: 'messages.automatic',
-    value: { ...list.value, customer: [...list.value.customer, 'account.contact_changed'] },
+    value: { ...list.value, customer: list.value.customer.filter((k) => k !== 'account.contact_changed') },
     sourceIds: ['TSK-0036'],
     changedBy: 'staff-synthetic-owner',
-    reason: 'Synthetic test: the notice of OQ-ACCOUNT-CONTACT-NOTICE',
+    reason: 'Synthetic test: the notice taken off the list',
   })
+  try {
+    await run()
+  } finally {
+    await recordPolicyVersion(t.db, {
+      key: 'messages.automatic',
+      value: list.value,
+      sourceIds: ['TSK-0036'],
+      changedBy: 'staff-synthetic-owner',
+      reason: 'Synthetic test: the list restored',
+    })
+  }
 }
+/** The notices of a sign-in email change the test provider took (the owner's account_email_changed). */
+const changeNotices = () =>
+  (providers.fakes.email?.sent ?? []).filter((m) => m.subject === 'HandyHub | Your Account Email Was Changed')
 
 describe('enrollment from the receipt offer links only the verified project, without duplicates (T20)', () => {
   it('[HH-ID-10][HH-INT-14][T20][HH-ID-03] one account, only this project; the same IDs; nothing duplicated; the other project of the same email stays unlinked until it is verified', async () => {
@@ -351,7 +350,7 @@ describe('enrollment from the receipt offer links only the verified project, wit
       phone: null,
       projects: [{ reference: first.reference }],
       freshVerification: true,
-      emailChange: 'not_configured',
+      emailChange: 'available',
     })
 
     // Enrolling again links nothing twice and creates no second account.
@@ -645,25 +644,27 @@ describe('account sessions: timings, Sign Out and revocation (HH-ID-11, T22)', (
 })
 
 describe('sign-in email changes re-verify, notify the old email and revoke other sessions (HH-ID-11, T22)', () => {
-  it('[HH-ID-11] while the notice to the old email cannot be sent, the change is NOT CONFIGURED and nothing changes', async () => {
-    expect(noticeReleased).toBe(false)
+  it('[HH-ID-11] while the notice cannot be sent (off the automatic list), the change is NOT CONFIGURED and nothing changes', async () => {
     const email = 'change-unconfigured@example.test'
     const s = await submitted(email)
     await verifyOnReceipt(s, 'email', email)
     const { cookie } = await enrollOnReceipt(s, 'email', email)
-    expect((await call('GET', '/customer/account', { cookie })).json().emailChange).toBe('not_configured')
-    const res = await call('POST', '/customer/account/email/codes', {
-      cookie,
-      payload: { email: 'change-unconfigured-new@example.test' },
+    await withoutContactNotice(async () => {
+      expect((await call('GET', '/customer/account', { cookie })).json().emailChange).toBe('not_configured')
+      const res = await call('POST', '/customer/account/email/codes', {
+        cookie,
+        payload: { email: 'change-unconfigured-new@example.test' },
+      })
+      expect(res.statusCode).toBe(503)
+      expect(res.json().error.code).toBe('NOT_CONFIGURED')
     })
-    expect(res.statusCode).toBe(503)
-    expect(res.json().error.code).toBe('NOT_CONFIGURED')
     expect(await codesTo('change-unconfigured-new@example.test')).toBe(0)
     expect((await accountsWith(email))[0]?.sign_in_email).toBe(email)
+    // TSK-0120: with the owner's wording wired, the change is available.
+    expect((await call('GET', '/customer/account', { cookie })).json().emailChange).toBe('available')
   })
 
   it('[HH-ID-11][T22] a fresh sign-in and a code to the new email change it; the old email is told, keeps no access, and every other session ends', async () => {
-    await enableContactNotice()
     const old = 'change-old@example.test'
     const next = 'change-new@example.test'
     const s = await submitted(old)
@@ -722,12 +723,22 @@ describe('sign-in email changes re-verify, notify the old email and revoke other
     expect((await call('POST', '/public/account/sign-in/codes', { payload: { contact: old } })).statusCode).toBe(202)
     expect(await codesTo(old)).toBe(oldCodes)
 
-    // The notice went to the old email only, after commit, without any account detail.
+    // TSK-0120 (MESSAGE 21, scenario I): the notice went to the old and to the new verified address, once each, after
+    // commit, in the owner's wording: when it happened and the support contact, never a link, a code or an account
+    // detail. A replayed job sends nothing more.
     await drain()
-    const notices = (providers.fakes.email?.sent ?? []).filter((m) =>
-      m.text.includes('SYNTHETIC TEST TEMPLATE: the sign-in'),
-    )
-    expect(notices.map((m) => m.to)).toEqual([old])
+    const notices = changeNotices().filter((m) => m.to === old || m.to === next)
+    expect(notices.map((m) => m.to).sort()).toEqual([next, old].sort())
+    for (const m of notices) {
+      expect(m.text).toMatch(
+        /^Hi Test,\n\nThis email confirms that the sign-in email address associated with your HandyHub account was changed on [A-Z][a-z]+day, [A-Z][a-z]+ \d{1,2}, \d{4} at \d{1,2}:\d{2} [AP]M \((EDT|EST|CDT|CST)\)\./,
+      )
+      // FACT-PUBLIC-CONTACT: the labelled placeholders while the public contact is NOT CONFIGURED.
+      expect(m.text).toContain('Phone: Placeholder — not provided yet · Email: Placeholder — not provided yet')
+      expect(m.text).not.toMatch(/https?:|\b\d{6}\b/)
+    }
+    await drain()
+    expect(changeNotices().filter((m) => m.to === old || m.to === next)).toHaveLength(2)
     const change = await t.db
       .selectFrom('identity.customer_account_changes')
       .selectAll()
@@ -750,7 +761,6 @@ describe('sign-in email changes re-verify, notify the old email and revoke other
   })
 
   it('[HH-ID-11] recovery: signed in through the verified phone, the email changes with authority other_contact', async () => {
-    await enableContactNotice()
     const email = 'recover-email@example.test'
     const phone = '+15025550182'
     const s = await submitted(email, '(502) 555-0182')
@@ -781,7 +791,6 @@ describe('sign-in email changes re-verify, notify the old email and revoke other
   })
 
   it('[HH-ID-11][HH-ID-03] an email another account already has is refused only after its code proved it is the customer’s', async () => {
-    await enableContactNotice()
     const a = await submitted('inuse-a@example.test')
     const b = await submitted('inuse-b@example.test')
     await verifyOnReceipt(a, 'email', 'inuse-a@example.test')

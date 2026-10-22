@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url'
 import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { expect, test, type Browser, type Page } from '@playwright/test'
+import { passSecondFactor } from '../mfa.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
 const port = process.env['E2E_PORT'] ?? '4310'
@@ -44,6 +45,8 @@ async function setPasswordAndSignIn(page: Page, email: string, password: string)
   await page.getByLabel('Email').fill(email)
   await page.getByLabel('Password', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Sign in' }).click()
+  // MFA is mandatory (TSK-0154): enrol on the account's first sign-in, the code afterwards.
+  await passSecondFactor(page)
 }
 
 async function axe(page: Page) {

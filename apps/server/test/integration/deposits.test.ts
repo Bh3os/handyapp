@@ -33,6 +33,7 @@ import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { verifyCountyOf } from '../fixtures/county.js'
 import { testConfig } from '../fixtures/env.js'
 import { verifyPropertyZone } from '../fixtures/zones.js'
+import { signInWithMfa, TEST_MFA_KEY } from '../fixtures/staff-mfa.js'
 
 const KEY: CodeKeySettings = readCodeKey({
   HANDYHUB_ENV: 'ci',
@@ -78,7 +79,7 @@ async function setConfig(key: ConfigKey, value: unknown) {
 
 const email = (p: Person) => `${p}-deposit-gate@example.test`
 async function signIn(p: Person): Promise<[string, string]> {
-  const res = await app.inject({
+  const res = await signInWithMfa(app, {
     method: 'POST',
     url: '/api/v1/staff/auth/sign-in',
     payload: { email: email(p), password: pw(1) },
@@ -900,11 +901,11 @@ describe('[HH-SCH-06][HH-SCH-11][HH-FIN-02][T36] planning or changing a work-vis
   let ungated: FastifyInstance
   let ungatedOwner: [string, string]
   beforeAll(async () => {
-    const modules = apiModules({ secureCookies: false, mfaKey: null, codeKey: KEY, trustProxyHops: 1 }).map((m) =>
-      m.name === 'visits' ? visitsModule({ workVisitGates: [] }) : m,
+    const modules = apiModules({ secureCookies: false, mfaKey: TEST_MFA_KEY, codeKey: KEY, trustProxyHops: 1 }).map(
+      (m) => (m.name === 'visits' ? visitsModule({ workVisitGates: [] }) : m),
     )
     ungated = await buildApp({ config: testConfig({ TRUST_PROXY_HOPS: '1' }), api: { db: t.db, modules } })
-    const res = await ungated.inject({
+    const res = await signInWithMfa(ungated, {
       method: 'POST',
       url: '/api/v1/staff/auth/sign-in',
       payload: { email: email('owner'), password: pw(1) },

@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url'
 import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { expect, test, type APIRequestContext, type Browser, type Page } from '@playwright/test'
+import { passSecondFactor } from '../mfa.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
 const port = process.env['E2E_PORT'] ?? '4310'
@@ -108,6 +109,8 @@ async function officeSession(browser: Browser) {
   await page.getByLabel('Email').fill(OFFICE)
   await page.getByLabel('Password', { exact: true }).fill(pw)
   await page.getByRole('button', { name: 'Sign in' }).click()
+  // MFA is mandatory (TSK-0154): enrol on the account's first sign-in, the code afterwards.
+  await passSecondFactor(page)
   await expect(page.getByRole('heading', { level: 1, name: 'Action queue' })).toBeVisible()
   return { page, close: () => context.close() }
 }
@@ -123,7 +126,8 @@ test.describe('message delivery and templates (TSK-0119)', () => {
     const office = await officeSession(browser)
     const p = office.page
     try {
-      // The receipt's delivery is recorded once its job ran: released wording, values not wired yet.
+      // The receipt's delivery is recorded once its job ran (TSK-0120: its values are wired; the ci test provider
+      // intercepts it).
       await expect
         .poll(
           () =>
@@ -138,24 +142,20 @@ test.describe('message delivery and templates (TSK-0119)', () => {
             ),
           { timeout: 15_000 },
         )
-        .toEqual([{ state: 'failed', error_code: 'template_values_not_wired', template_id: 'request_received' }])
+        .toEqual([{ state: 'queued', error_code: null, template_id: 'request_received' }])
 
       await p.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Message delivery' }).click()
       await expect(p.getByRole('heading', { level: 1, name: 'Message delivery' })).toBeVisible()
       await p.getByLabel('Project reference').fill(reference)
       await p.getByRole('button', { name: 'Apply' }).click()
-      // The project's messages: its receipt (and its access link, also not wired yet).
+      // The project's messages: its receipt (and its access link).
       const items = p.getByRole('list', { name: 'Messages' }).locator('li[data-message-key="request.receipt"]')
       await expect(items).toHaveCount(1)
       const item = items.first()
       await expect(item.getByText('request.receipt')).toBeVisible()
-      await expect(item.getByText('Failed', { exact: true })).toBeVisible()
-      await expect(
-        item.getByText('Not sent: the approved wording is released, but this message does not supply its values yet.', {
-          exact: true,
-        }),
-      ).toBeVisible()
-      await expect(item.getByText('Values: customerName')).toBeVisible()
+      // Accepted by the test provider, never shown as delivered (OWN-DEC-152 section 14).
+      await expect(item.getByText('Accepted by the provider', { exact: true })).toBeVisible()
+      await expect(item.getByText('Test provider: intercepted, never delivered to anyone')).toBeVisible()
       await expect(item.getByText(/^Email to m•••@example\.test$/)).toBeVisible()
       await expect(item.getByText('Delivered', { exact: true })).toHaveCount(0)
       await axe(p)
@@ -166,7 +166,7 @@ test.describe('message delivery and templates (TSK-0119)', () => {
       const receipt = templates.locator('li[data-template-key="request.receipt"]')
       await expect(receipt.getByText('Template ID request_received')).toBeVisible()
       await expect(receipt).toHaveCount(1)
-      await expect(receipt.getByText('Approved wording released; values not wired yet')).toBeVisible()
+      await expect(receipt.getByText('Ready to send')).toBeVisible()
       await receipt.getByRole('button', { name: 'Preview' }).click()
       await expect(p.getByText("Subject: HandyHub | We've Received Your Request #HH-0000TEST")).toBeVisible()
       await expect(p.getByText(/Thank you for contacting HandyHub!/).first()).toBeVisible()

@@ -630,6 +630,7 @@ export {
   customerRequestsOf,
   requestVisitChange,
   scheduleChangeStaffAutomation,
+  visitCancelledAutomation,
   type CustomerChangeRequest,
 } from './changes.js'
 export { DEPOSIT_GATE, WORK_VISIT_GATES, unmetGates, type WorkVisitGate, type WorkVisitJob } from './gates.js'
@@ -642,6 +643,7 @@ export {
   requestOtherTimes,
   selectWindow,
   windowOfferExpiryAutomation,
+  workVisitOptionsAutomation,
   type CustomerAppointment,
   type CustomerAppointments,
   type CustomerOffer,

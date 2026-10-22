@@ -36,6 +36,7 @@ import { createProviders } from '../../src/providers/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
 import { testConfig } from '../fixtures/env.js'
+import { signInWithMfa } from '../fixtures/staff-mfa.js'
 
 const KEY: CodeKeySettings = readCodeKey({
   HANDYHUB_ENV: 'ci',
@@ -86,7 +87,12 @@ const worker = (store: FakeObjectStorage | null = storage, maxAttempts = 3) =>
     registry: createAutomationRegistry([
       ...queueAutomations(),
       fast(approvalReceiptDocumentAutomation(store), maxAttempts),
-      fast(approvalReceiptNoticeAutomation({ providers: { email: fakes.email, sms: fakes.sms } })),
+      fast(
+        approvalReceiptNoticeAutomation({
+          providers: { email: fakes.email, sms: fakes.sms },
+          publicSiteUrl: 'https://site.example.test',
+        }),
+      ),
     ]),
   })
 const tick = () => new Promise((r) => setTimeout(r, 15))
@@ -99,7 +105,7 @@ async function drain(store: FakeObjectStorage | null = storage, maxAttempts = 3)
 }
 
 async function signIn(p: Person): Promise<[string, string]> {
-  const res = await app.inject({
+  const res = await signInWithMfa(app, {
     method: 'POST',
     url: '/api/v1/staff/auth/sign-in',
     payload: { email: `${p}-approval-receipt@example.test`, password: pw(1) },
@@ -487,14 +493,14 @@ describe('[HH-EST-12][T33][FACT-AUTOMATIC-MESSAGES] the approval receipt: one PD
     expect(after.approval.receipt).not.toHaveProperty('objectKey')
     expect(JSON.stringify(after)).not.toContain(r.sha256)
 
-    // The message: one delivery per channel, English, never sent. TSK-0119: the owner's email wording is released, its
-    // values are wired by TSK-0120 (not wired); texts have no wording (NOT CONFIGURED).
+    // The message: one delivery per channel, English. TSK-0120: the owner's email wording (link only, OWN-DEC-155) is
+    // sent once with its values; texts have no wording (NOT CONFIGURED) and are never sent.
     expect(await deliveries(approval.id)).toEqual([
       {
         channel: 'email',
-        state: 'failed',
-        error_code: 'template_values_not_wired',
-        provider_message_id: null,
+        state: 'queued',
+        error_code: null,
+        provider_message_id: expect.stringMatching(/^fake-email-/),
         subject_key: `estimate_approval:${approval.id}`,
         audience: 'customer',
         locale: 'en',
@@ -512,16 +518,31 @@ describe('[HH-EST-12][T33][FACT-AUTOMATIC-MESSAGES] the approval receipt: one PD
         project_id: e.projectId,
       },
     ])
-    expect(fakes.fakeEmail.calls.length).toBe(emailsBefore)
+    expect(fakes.fakeEmail.calls.length).toBe(emailsBefore + 1)
+    const confirmation = fakes.fakeEmail.calls.at(-1)
+    const number = (
+      await t.db
+        .selectFrom('estimating.estimates')
+        .select('number')
+        .where('id', '=', approval.estimate_id)
+        .executeTakeFirstOrThrow()
+    ).number
+    expect(confirmation?.subject).toBe(`HandyHub | Estimate #${number} Approved`)
+    expect(confirmation?.text).toContain(`We've received and recorded your approval of estimate #${number}`)
+    expect(confirmation?.text).toContain(`https://site.example.test/portal/p/${e.reference}`)
+    // Link only: no amount, no attachment (OWN-DEC-155, OWN-DEC-158).
+    // The project reference in the link is random and may hold digits of its own, so it is set aside too.
+    expect(confirmation?.text.replaceAll(number, '').replaceAll(e.reference, '')).not.toMatch(/\$|\d{3,}/)
+    expect(confirmation).not.toHaveProperty('attachments')
     expect(fakes.fakeSms.calls.length).toBe(textsBefore)
-    // A delivery failure becomes a staff action item; the approval is never undone.
+    // A delivery failure (the text with no wording) becomes a staff action item; the approval is never undone.
     const items = await t.db
       .selectFrom('ops.queue_items')
       .select(['type', 'reason', 'reference', 'resolved_at'])
       .where('type', '=', 'delivery_failed')
       .where('project_id', '=', e.projectId)
       .execute()
-    expect(items).toHaveLength(2)
+    expect(items).toHaveLength(1)
     expect(items.every((i) => i.reason === 'delivery_not_configured' && i.resolved_at === null)).toBe(true)
     expect(
       (
@@ -551,7 +572,7 @@ describe('[HH-EST-12][T33][FACT-AUTOMATIC-MESSAGES] the approval receipt: one PD
     })
     expect(await receipts(approval.id)).toEqual(issued)
     expect(await deliveries(approval.id)).toHaveLength(2)
-    expect(fakes.fakeEmail.calls.length).toBe(emailsBefore)
+    expect(fakes.fakeEmail.calls.length).toBe(emailsBefore + 1)
 
     // Staff see the receipt and the truthful delivery states on the estimate.
     const lc = await staffGet('estimator', `/api/v1/staff/estimate-versions/${e.versionId}`)
@@ -559,7 +580,7 @@ describe('[HH-EST-12][T33][FACT-AUTOMATIC-MESSAGES] the approval receipt: one PD
     expect(lc.json<{ lifecycle: { customerApproval: unknown } }>().lifecycle.customerApproval).toMatchObject({
       receipt: { state: 'issued', byteSize: r.byte_size },
       receiptDeliveries: [
-        { channel: 'email', state: 'failed', errorCode: 'template_values_not_wired' },
+        { channel: 'email', state: 'queued', errorCode: null },
         { channel: 'sms', state: 'failed', errorCode: 'template_not_configured' },
       ],
     })

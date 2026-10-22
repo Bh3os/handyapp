@@ -25,6 +25,7 @@ import { createProviders } from '../../src/providers/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
 import { testConfig } from '../fixtures/env.js'
+import { signInWithMfa } from '../fixtures/staff-mfa.js'
 
 const pw = (n: number) => ['synthetic', 'portal', 'estimates', 'passphrase', String(n)].join(' ')
 const PEOPLE = ['owner', 'estimator'] as const
@@ -67,7 +68,7 @@ async function setConfig(key: ConfigKey, value: unknown, sourceIds = ['TEST-SYNT
 }
 
 async function signIn(p: Person): Promise<[string, string]> {
-  const res = await app.inject({
+  const res = await signInWithMfa(app, {
     method: 'POST',
     url: '/api/v1/staff/auth/sign-in',
     payload: { email: `${p}-portal-estimates@example.test`, password: pw(1) },

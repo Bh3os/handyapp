@@ -7,6 +7,7 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { AxeBuilder } from '@axe-core/playwright'
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
+import { passSecondFactor } from '../mfa.js'
 
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const databaseUrl = process.env['E2E_DATABASE_URL']
@@ -103,6 +104,8 @@ test.describe('the first-response clock and review holds (TSK-0043)', () => {
     await page.getByLabel('Email').fill(OWNER)
     await page.getByLabel('Password', { exact: true }).fill(pw(1))
     await page.getByRole('button', { name: 'Sign in' }).click()
+    // MFA is mandatory (TSK-0154): enrol on the account's first sign-in, the code afterwards.
+    await passSecondFactor(page)
     await expect(page.getByRole('heading', { level: 1, name: 'Action queue' })).toBeVisible()
   })
 
@@ -148,13 +151,13 @@ test.describe('the first-response clock and review holds (TSK-0043)', () => {
     await page.getByRole('button', { name: 'Confirm: Ask a Question' }).click()
     await expect(page.getByText('Done. The request has moved on.')).toBeVisible()
 
-    // Answered and handled: the new-request item leaves the queue. The request's failed receipt (TSK-0032) and its
-    // failed project access link (TSK-0034), both NOT CONFIGURED, stay listed as their own delivery items.
+    // Answered and handled: the new-request item leaves the queue. TSK-0120: the receipt and the project access link
+    // were sent (their values are wired), so neither is a delivery issue.
     await page.getByRole('link', { name: 'Back to the action queue' }).click()
     await queue.getByLabel('Reference').fill(reference)
     await queue.getByRole('button', { name: 'Apply filters' }).click()
-    await expect(page.getByRole('listitem', { name: new RegExp(`Delivery failure ${reference}`) })).toHaveCount(2)
     await expect(item).toHaveCount(0)
+    await expect(page.getByRole('listitem', { name: new RegExp(`Delivery failure ${reference}`) })).toHaveCount(0)
   })
 
   test('[HH-LEAD-04][T40][RULE-SAFETY-GATES] a hazard flag opens a review hold that blocks estimating until the Owner resolves it', async ({

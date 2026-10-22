@@ -5,10 +5,10 @@
 //   question.notice is on messages.automatic. Its wording is the owner's (OWN-DEC-98, template version 1 of migration
 //   0008). One delivery per question, channel and destination; a failed one is a delivery issue with Retry and never
 //   starts the reminder clock.
-// - notify.staff_notice.customer_reply: the automatic staff notification of a customer's reply, to the request's
-//   responsible staff member (by email, in their own interface language). No wording for it was approved, so no
-//   template is seeded: its delivery is recorded as template_not_configured (OQ-QUESTION-WORDING), never as sent; the
-//   "question replied" queue item carries the reply to staff either way.
+// - notify.staff_notice.customer_reply: the automatic staff notification of a customer's reply, to the responsible
+//   staff member (by email, in their own interface language), in the owner's staff_customer_replied wording
+//   (OWN-DEC-151; Spanish AI-reviewed). TSK-0120 supplies its values and adds the conversation's replies, grouped (see
+//   replyStaffNoticeAutomation); the queue items carry the reply to staff either way.
 // - questions.delivery_outcome: a question's notice or reminder whose delivery succeeded records the time once on the
 //   question: the notice's successful send schedules the two reminder drafts (first and final, both measured from it);
 //   the final reminder's actual send schedules the "may close" queue item 24 hours later (configured cadence).
@@ -25,10 +25,16 @@ import { sql } from 'kysely'
 import type { Automation } from '../../platform/automation.js'
 import { loadConfig } from '../../platform/config/index.js'
 import { scheduleJob } from '../../platform/jobs.js'
+import { labelKey, staffTranslator, type StaffKey } from '@handyhub/i18n'
+import { listingScope } from '@handyhub/policy'
 import {
+  businessZone,
   createDraft,
   firstNameOf,
+  instantText,
   notificationAutomation,
+  present,
+  staffLink,
   type FailureItem,
   type NotificationProviders,
   type RecordCheck,
@@ -105,46 +111,145 @@ export function questionNoticeAutomation(deps: QuestionAutomationDeps): Automati
   })
 }
 
-/** The automatic staff notification of a customer's reply (FACT-AUTOMATIC-MESSAGES "staff notifications"). */
+/**
+ * The automatic staff notification of a customer's reply (FACT-AUTOMATIC-MESSAGES "staff notifications",
+ * staff_customer_replied of OWN-DEC-151). TSK-0120: from a reply to a question (question.customer_replied) and from the
+ * first customer message of a conversation since staff last handled it (conversation.customer_replied):
+ * - authorized assigned staff only: the responsible staff member of the request (question) or project (conversation),
+ *   with an active account and a role that may see the record (request.view, message.reply); nobody else, and no one
+ *   is invented when none is assigned (the unassigned queue item is the notice);
+ * - deduplicated and grouped: the subject is the open queue item the reply belongs to (question_replied of the
+ *   request, customer_replied of the conversation), so replies while that item stays open send one notice, and a
+ *   retried job or a redelivered event sends nothing more;
+ * - in the staff member's own language (English or Spanish), with the customer's display name, the project reference,
+ *   when the reply arrived (business zone), the project's status and the staff app link; never the message text.
+ */
 export function replyStaffNoticeAutomation(deps: QuestionAutomationDeps): Automation {
   return notificationAutomation({
     messageKey: REPLY_STAFF_NOTICE,
     providers: deps.providers,
     resolve: async ({ tx, job }) => {
-      const id = job.target.id
-      if (!id || !UUID_RE.test(id)) return 'stale'
-      const r = await tx
-        .selectFrom('intake.question_replies as qr')
-        .innerJoin('intake.requests as r', 'r.id', 'qr.request_id')
-        .select(['qr.id', 'r.id as request_id', 'r.project_id', 'r.responsible_staff_id'])
-        .where('qr.id', '=', id)
+      const conversation = job.eventType === CONVERSATION_REPLIED
+      const subject = conversation
+        ? await conversationReplySubject(tx, job.payload)
+        : await questionReplySubject(tx, job.target.id)
+      if (!subject) return 'stale'
+      const p = await tx
+        .selectFrom('crm.projects as p')
+        .innerJoin('crm.customers as cu', 'cu.id', 'p.customer_id')
+        .select(['p.id', 'p.reference', 'p.state', 'p.responsible_staff_id', 'cu.display_name'])
+        .where('p.id', '=', subject.projectId)
         .executeTakeFirst()
+      if (!p) return 'stale'
+      const responsible = conversation ? p.responsible_staff_id : subject.requestResponsible
       // No responsible staff member: the queue item (unassigned) is the notification; no one is invented.
-      if (!r || !r.responsible_staff_id || !UUID_RE.test(r.responsible_staff_id)) return 'stale'
+      if (!responsible || !UUID_RE.test(responsible)) return 'stale'
       const staff = await tx
         .selectFrom('identity.staff_users')
-        .select(['id', 'email', 'locale'])
-        .where('id', '=', r.responsible_staff_id)
+        .select(['id', 'email', 'locale', 'display_name'])
+        .where('id', '=', responsible)
         .where('status', '=', 'active')
         .executeTakeFirst()
       if (!staff) return 'stale'
-      const appLink = deps.staffAppUrl ? `${deps.staffAppUrl.replace(/\/$/, '')}/requests/${r.request_id}` : null
+      const grants = await tx
+        .selectFrom('identity.role_grants')
+        .select(['kind', 'name'])
+        .where('staff_user_id', '=', staff.id)
+        .where('ended_at', 'is', null)
+        .where('effective_from', '<=', sql<Date>`now()`)
+        .execute()
+      const roles = grants.filter((g) => g.kind === 'role').map((g) => g.name)
+      const capabilities = grants.filter((g) => g.kind === 'capability').map((g) => g.name)
+      if (listingScope(roles, capabilities, conversation ? 'message.reply' : 'request.view') === 'none') return 'stale'
+      const locale = staff.locale === 'es' ? 'es' : 'en'
+      const zone = businessZone(await loadConfig(tx))
+      const link = staffLink(deps.staffAppUrl, `requests/${subject.requestId}`)
       return {
-        subjectKey: `question_reply:${r.id}`,
-        record: { type: 'request', id: r.request_id },
+        subjectKey: subject.key,
+        record: { type: 'request', id: subject.requestId },
         recipients: [
           {
             kind: 'staff_user',
             id: staff.id,
-            staffLocale: staff.locale === 'es' ? 'es' : 'en',
+            staffLocale: locale,
             destinations: [{ channel: 'email', destination: staff.email, permission: 'staff_account' }],
           },
         ],
-        values: appLink ? { appLink } : {},
-        projectId: r.project_id,
+        values: present({
+          staffName: staff.display_name,
+          customerName: p.display_name,
+          reference: p.reference,
+          receivedDateTime: zone ? instantText(subject.at, zone, locale === 'es' ? 'es-US' : 'en-US') : null,
+          projectStatus: staffTranslator(locale).t(labelKey('projectState', p.state) as StaffKey),
+          staffProjectLink: link,
+          appLink: link,
+        }),
+        projectId: p.id,
       }
     },
   })
+}
+
+const CONVERSATION_REPLIED = 'conversation.customer_replied'
+
+type ReplySubject = {
+  key: string
+  projectId: string
+  requestId: string
+  requestResponsible: string | null
+  at: Date
+}
+
+/** A question reply's notice subject: the question_replied item of its request that the reply opened or refreshed. */
+async function questionReplySubject(tx: Tx, replyId: string | null): Promise<ReplySubject | null> {
+  if (!replyId || !UUID_RE.test(replyId)) return null
+  const r = await tx
+    .selectFrom('intake.question_replies as qr')
+    .innerJoin('intake.requests as r', 'r.id', 'qr.request_id')
+    .select(['qr.id', 'qr.created_at', 'r.id as request_id', 'r.project_id', 'r.responsible_staff_id'])
+    .where('qr.id', '=', replyId)
+    .executeTakeFirst()
+  if (!r) return null
+  const item = await tx
+    .selectFrom('ops.queue_items')
+    .select('id')
+    .where('type', '=', 'question_replied')
+    .where('subject_id', '=', r.request_id)
+    .where('opened_at', '<=', r.created_at)
+    .orderBy('opened_at', 'desc')
+    .limit(1)
+    .executeTakeFirst()
+  return {
+    key: item ? `question_replied:${item.id}` : `question_reply:${r.id}`,
+    projectId: r.project_id,
+    requestId: r.request_id,
+    requestResponsible: r.responsible_staff_id,
+    at: new Date(r.created_at),
+  }
+}
+
+/** A conversation's notice subject: the customer_replied item the event names, while the project has a request. */
+async function conversationReplySubject(tx: Tx, payload: Record<string, unknown>): Promise<ReplySubject | null> {
+  const itemId = typeof payload['itemId'] === 'string' && UUID_RE.test(payload['itemId']) ? payload['itemId'] : null
+  const projectId =
+    typeof payload['projectId'] === 'string' && UUID_RE.test(payload['projectId']) ? payload['projectId'] : null
+  const at = typeof payload['at'] === 'string' ? new Date(payload['at']) : null
+  if (!itemId || !projectId || !at || Number.isNaN(at.getTime())) return null
+  const request = await tx
+    .selectFrom('intake.requests')
+    .select(['id', 'responsible_staff_id'])
+    .where('project_id', '=', projectId)
+    .orderBy('submitted_at')
+    .limit(1)
+    .executeTakeFirst()
+  if (!request) return null
+  return {
+    key: `customer_replied:${itemId}`,
+    projectId,
+    requestId: request.id,
+    requestResponsible: request.responsible_staff_id,
+    at,
+  }
 }
 
 const SCHEDULE_RETRY = { maxAttempts: 5, baseDelayMs: 1_000, maxDelayMs: 60_000 } as const

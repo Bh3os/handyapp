@@ -245,118 +245,14 @@ test.describe('optional customer accounts (TSK-0036)', () => {
   })
 
   test.describe('the sign-in email change (HH-ID-11, T22)', () => {
-    let original: unknown = null
-    test.afterAll(async () => {
-      if (!databaseUrl || original === null) return
-      // The automatic list goes back to its earlier value (a new version; policy rows are never edited).
-      await withDb((db) =>
-        db.transaction().execute(async (tx) => {
-          const latest = await tx
-            .selectFrom('platform.policy_version')
-            .select((eb) => eb.fn.max('version').as('v'))
-            .where('key', '=', 'messages.automatic')
-            .executeTakeFirstOrThrow()
-          await tx
-            .updateTable('platform.policy_version')
-            .set({ status: 'superseded' })
-            .where('key', '=', 'messages.automatic')
-            .where('status', '=', 'active')
-            .execute()
-          await tx
-            .insertInto('platform.policy_version')
-            .values({
-              key: 'messages.automatic',
-              version: Number(latest.v) + 1,
-              state: 'configured',
-              value: JSON.stringify(original),
-              source_ids: ['TSK-0036'],
-              changed_by: 'e2e',
-              change_reason: 'Synthetic e2e restore',
-            })
-            .execute()
-        }),
-      )
-    })
-
     test('[T22][HH-ID-11] a fresh sign-in and a code to the new email change it; the other browser is signed out and the old email no longer signs in', async ({
       page,
       browser,
     }) => {
       const email = 'account-change-e2e@example.test'
       const next = 'account-moved-e2e@example.test'
-      // The owner's decision the notice waits for (OQ-ACCOUNT-CONTACT-NOTICE), in this e2e database only.
-      await withDb((db) =>
-        db.transaction().execute(async (tx) => {
-          const active = await tx
-            .selectFrom('platform.policy_version')
-            .select(['version', 'value'])
-            .where('key', '=', 'messages.automatic')
-            .where('status', '=', 'active')
-            .executeTakeFirstOrThrow()
-          original = active.value
-          const list = active.value as { customer: string[] }
-          await tx
-            .insertInto('platform.message_templates')
-            .values({ message_key: 'account.contact_changed', channel: 'email', audience: 'customer' })
-            .onConflict((oc) => oc.doNothing())
-            .execute()
-          // TSK-0119: the owner's account_email_changed wording is released, but its values are wired by TSK-0120, so
-          // this e2e database releases a newer synthetic version without values (append-only, never an edit).
-          const released = await tx
-            .selectFrom('platform.message_template_versions')
-            .select((eb) => eb.fn.max('version').as('v'))
-            .where('message_key', '=', 'account.contact_changed')
-            .where('channel', '=', 'email')
-            .where('locale', '=', 'en')
-            .executeTakeFirst()
-          const synthetic = await tx
-            .selectFrom('platform.message_template_versions')
-            .select('version')
-            .where('message_key', '=', 'account.contact_changed')
-            .where('released_by', '=', 'e2e')
-            .executeTakeFirst()
-          if (!synthetic)
-            await tx
-              .insertInto('platform.message_template_versions')
-              .values({
-                message_key: 'account.contact_changed',
-                channel: 'email',
-                audience: 'customer',
-                locale: 'en',
-                version: Number(released?.v ?? 0) + 1,
-                subject: 'Synthetic e2e notice',
-                body: 'SYNTHETIC E2E TEMPLATE',
-                translation_review: 'source',
-                source_ids: ['TSK-0036'],
-                released_by: 'e2e',
-              })
-              .execute()
-          await tx
-            .updateTable('platform.policy_version')
-            .set({ status: 'superseded' })
-            .where('key', '=', 'messages.automatic')
-            .where('status', '=', 'active')
-            .execute()
-          await tx
-            .insertInto('platform.policy_version')
-            .values({
-              key: 'messages.automatic',
-              version: active.version + 1,
-              state: 'configured',
-              value: JSON.stringify({
-                ...list,
-                customer: list.customer.includes('account.contact_changed')
-                  ? list.customer
-                  : [...list.customer, 'account.contact_changed'],
-              }),
-              source_ids: ['TSK-0036'],
-              changed_by: 'e2e',
-              change_reason: 'Synthetic e2e: the notice of OQ-ACCOUNT-CONTACT-NOTICE',
-            })
-            .execute()
-        }),
-      )
-
+      // TSK-0120: the owner's account_email_changed wording is wired (OWN-DEC-151), so the change is available as
+      // configured; nothing is released or listed for this spec.
       const otherContext = await browser.newContext({ extraHTTPHeaders: HEADERS })
       const other = await otherContext.newPage()
       try {
@@ -403,6 +299,24 @@ test.describe('optional customer accounts (TSK-0036)', () => {
             .execute(),
         )
         expect(ended.length).toBeGreaterThanOrEqual(1)
+
+        // TSK-0120 (MESSAGE 21, scenario I): the notice to the old and to the new address, once each, handed to the
+        // ci test provider (never shown as delivered).
+        await expect
+          .poll(
+            () =>
+              withDb((db) =>
+                db
+                  .selectFrom('platform.message_deliveries')
+                  .select(['destination', 'state', 'provider'])
+                  .where('message_key', '=', 'account.contact_changed')
+                  .where('destination', 'in', [email, next])
+                  .orderBy('destination')
+                  .execute(),
+              ),
+            { timeout: 15_000 },
+          )
+          .toEqual([email, next].sort().map((destination) => ({ destination, state: 'queued', provider: 'fake' })))
       } finally {
         await otherContext.close()
       }

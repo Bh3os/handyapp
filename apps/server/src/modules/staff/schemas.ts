@@ -189,6 +189,18 @@ export const DISABLED = {
   },
 } as const
 
+/** The Owner's reset of a staff member's authenticator (TSK-0154). */
+export const MFA_RESET = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['member', 'sessionsRevoked', 'recoveryCodesRemoved'],
+  properties: {
+    member: MEMBER,
+    sessionsRevoked: { type: 'integer' },
+    recoveryCodesRemoved: { type: 'integer' },
+  },
+} as const
+
 export const LINK_SENT = {
   type: 'object',
   additionalProperties: false,

@@ -13,6 +13,7 @@ import { addLocalDays, localDateOf } from '@handyhub/domain/local-time'
 import { expect, test, type Browser, type Page } from '@playwright/test'
 import { verifyCountyOf } from '../county.js'
 import { verifyPropertyZone } from '../zones.js'
+import { passSecondFactor } from '../mfa.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
 const port = process.env['E2E_PORT'] ?? '4310'
@@ -170,6 +171,8 @@ async function officeSession(browser: Browser) {
   await page.getByLabel('Email').fill(OFFICE)
   await page.getByLabel('Password', { exact: true }).fill(pw)
   await page.getByRole('button', { name: 'Sign in' }).click()
+  // MFA is mandatory (TSK-0154): enrol on the account's first sign-in, the code afterwards.
+  await passSecondFactor(page)
   await expect(page.getByRole('heading', { level: 1, name: 'Action queue' })).toBeVisible()
   return { page, close: () => context.close() }
 }

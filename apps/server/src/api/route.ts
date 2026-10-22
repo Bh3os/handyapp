@@ -114,6 +114,13 @@ export interface RouteDef {
   rateLimit: RateLimit
   /** Owner-only and other sensitive actions: a password or second factor entered within this many minutes. */
   freshAuthMinutes?: number
+  /**
+   * TSK-0154 (OWN-DEC-202, MFA mandatory for every staff role): the route answers a staff session that has passed the
+   * password but not yet the second factor. Only authentication routes may say so: enrolling the authenticator, the
+   * challenge, sign-out, and the guest routes that never read a session (sign-in, password links). Every other route
+   * refuses such a session with UNAUTHENTICATED (field `session`, code MFA_REQUIRED) before anything else runs.
+   */
+  beforeSecondFactor?: true
   /** The audit action recorded on success, or 'none' for reads. */
   audit: string | 'none'
   pagination: boolean
@@ -211,6 +218,8 @@ export function routeProblems(route: RouteDef): string[] {
   if (route.idempotencyConflict && route.idempotency !== 'required')
     p.push(`${id}: only routes with an idempotency key describe an idempotency conflict`)
   if (route.pagination && route.method !== 'GET') p.push(`${id}: only GET routes paginate`)
+  if (route.beforeSecondFactor && (route.permission !== AUTHENTICATION || surfaceOf(route.path) !== 'staff'))
+    p.push(`${id}: only staff authentication routes answer a session before its second factor`)
   if (route.rateLimit !== 'none' && (route.rateLimit.limit < 1 || route.rateLimit.windowSeconds < 1))
     p.push(`${id}: rate limit needs a positive limit and window`)
   const success = Object.keys(route.schema.response).map(Number)

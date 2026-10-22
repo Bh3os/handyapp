@@ -103,6 +103,7 @@ describe('environment schema (TSK-0003, OWN-DEC-73, RULE-SYNTHETIC-DATA)', () =>
       'STAFF_APP_URL',
       'STAFF_DIR',
       'STAFF_ORIGIN',
+      'STAGING_TOOLS',
       'TRUST_PROXY_HOPS',
     ])
   })

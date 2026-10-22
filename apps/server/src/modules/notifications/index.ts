@@ -1,4 +1,6 @@
-// Notifications module (TSK-0047; TSK-0119: the variable registry, the branded layout, the status model and views): message types, the automatic-message policy, versioned templates and deliveries.
+// Notifications module (TSK-0047; TSK-0119: the variable registry, the branded layout, the status model and views;
+// TSK-0120: the values automatic messages supply, values.ts): message types, the automatic-message policy, versioned
+// templates and deliveries.
 // TSK-0032: failed deliveries open a staff retry item; NOTIFICATIONS_MODULE holds the staff Retry route (retry.ts).
 export { nextContactTime, zonedTimeToUtc } from './contact-hours.js'
 export { recipientTextHours, recipientTimeZone } from './recipient-zone.js'
@@ -18,6 +20,7 @@ export {
   heldToContactHours,
   STAFF_REPLY_MESSAGE_KEY,
   type ReleaseFailureItem,
+  type ReleaseValues,
   RetryableDeliveryError,
   syncDeliveryFailureOwner,
   type Destination,
@@ -114,3 +117,20 @@ export {
   type ReleasedTemplate,
   type TemplateDraft,
 } from './templates.js'
+export {
+  businessZone,
+  dateText,
+  estimatePageLink,
+  instantText,
+  jobNumberOf,
+  portalLink,
+  present,
+  projectDisplayZone,
+  staffLink,
+  supportContactText,
+  timeText,
+  valuesFor,
+  visitNumberOf,
+  visitWindowValues,
+  zoneLabel,
+} from './values.js'

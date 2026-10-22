@@ -16,6 +16,7 @@ import { createDb } from '@handyhub/db'
 import { ESTIMATE_TERMS } from '@handyhub/domain/legal'
 import { expect, test, type APIRequestContext, type Browser, type Page } from '@playwright/test'
 import { accessTokenFor, codeFor } from '../codes.js'
+import { passSecondFactor } from '../mfa.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
 const port = process.env['E2E_PORT'] ?? '4310'
@@ -194,6 +195,8 @@ async function estimatorSession(browser: Browser) {
   await page.getByLabel('Email').fill(ESTIMATOR)
   await page.getByLabel('Password', { exact: true }).fill(pw)
   await page.getByRole('button', { name: 'Sign in' }).click()
+  // MFA is mandatory (TSK-0154): enrol on the account's first sign-in, the code afterwards.
+  await passSecondFactor(page)
   await expect(page.getByRole('heading', { level: 1, name: 'Action queue' })).toBeVisible()
   const csrf = ((await (await page.request.get('/api/v1/staff/auth/session')).json()) as { csrfToken: string })
     .csrfToken
@@ -325,7 +328,7 @@ test.describe('The approval receipt: next step, PDF and truthful delivery (TSK-0
       expect(await download.getAttribute('href')).toMatch(/^https:\/\/fake-r2\.invalid\/estimates\/receipts\/.+sig=/)
       await axe(page)
 
-      // One receipt, recorded with its hash and the approval's TEST mark; the message is NOT CONFIGURED, never sent.
+      // One receipt, recorded with its hash and the approval's TEST mark; one confirmation email (link only).
       const stored = await withDb(async (db) => {
         const a = await db
           .selectFrom('estimating.approvals')
@@ -351,8 +354,8 @@ test.describe('The approval receipt: next step, PDF and truthful delivery (TSK-0
         { test_mark: true, terms_document_id: ESTIMATE_TERMS.documentId, content_type: 'application/pdf' },
       ])
       expect(stored.deliveries).toEqual([
-        // TSK-0119: the email wording is released (its values are wired by TSK-0120); texts have no wording yet.
-        { channel: 'email', state: 'failed', error_code: 'template_values_not_wired' },
+        // TSK-0120: the email with its values (intercepted by the ci test provider); texts have no wording yet.
+        { channel: 'email', state: 'queued', error_code: null },
         { channel: 'sms', state: 'failed', error_code: 'template_not_configured' },
       ])
 
@@ -369,11 +372,8 @@ test.describe('The approval receipt: next step, PDF and truthful delivery (TSK-0
       await estimator.page.goto(`/staff/estimates/${versionId}`)
       const panel = estimator.page.getByTestId('estimate-customer-approval')
       await expect(panel.getByTestId('approval-receipt-state')).toHaveText(/^Issued /)
-      await expect(
-        panel.getByText(
-          'Email: Failed (Not sent: the approved wording is released, but this message does not supply its values yet.)',
-        ),
-      ).toBeVisible()
+      // TSK-0120: the confirmation email went to the ci test provider (queued, never shown as delivered).
+      await expect(panel.getByText('Email: Queued', { exact: true })).toBeVisible()
       await axe(estimator.page)
 
       // On a phone nothing scrolls sideways.

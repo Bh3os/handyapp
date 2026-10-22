@@ -20,6 +20,7 @@ import { hashPassword } from '../../src/modules/identity/passwords.js'
 import { createLogger } from '../../src/platform/logger.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { testConfig } from '../fixtures/env.js'
+import { signInWithMfa, TEST_MFA_KEY } from '../fixtures/staff-mfa.js'
 
 const ROLES: readonly StaffRole[] = ['owner', 'office', 'estimator', 'worker']
 const pw = ['synthetic', 'properties', 'passphrase', '45'].join(' ')
@@ -144,7 +145,7 @@ async function customerCookie(contactRef: string, projectIds: string[]) {
 async function signInAll(server: FastifyInstance) {
   const out = {} as Record<StaffRole, { id: string; cookie: string; csrf: string }>
   for (const role of ROLES) {
-    const res = await server.inject({
+    const res = await signInWithMfa(server, {
       method: 'POST',
       url: '/api/v1/staff/auth/sign-in',
       payload: { email: `${role}-properties@example.test`, password: pw },
@@ -773,7 +774,7 @@ describe('the reveal rule is decided with the business date (TSK-0045, T28)', ()
     }
     const probed = await buildApp({
       config: testConfig(),
-      api: { db: t.db, modules: [...apiModules({ secureCookies: false, mfaKey: null }), probe] },
+      api: { db: t.db, modules: [...apiModules({ secureCookies: false, mfaKey: TEST_MFA_KEY }), probe] },
     })
     try {
       const sessions = await signInAll(probed)

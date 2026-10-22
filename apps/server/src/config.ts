@@ -2,6 +2,7 @@
 // variable names only; the owner sets every value in Render. An invalid or missing required value refuses to start,
 // and every error names the variable, never its value.
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
+import { isLocalDatabaseUrl } from '@handyhub/db'
 import { Secret } from './providers/types.js'
 
 export const ENVIRONMENTS = ['local', 'ci', 'staging', 'production'] as const
@@ -34,13 +35,15 @@ export const ENV_VARS = {
     'Email of the first Owner. While no Owner exists, the server creates that invited account at start and emails one invite link; no password is ever set from the environment.',
   BOOTSTRAP_OWNER_NAME: 'Optional display name of the first Owner.',
   MFA_ENCRYPTION_KEY:
-    'Key that seals staff authenticator (TOTP) secrets, at least 32 random characters. Unset: optional MFA is NOT CONFIGURED (enrolment refused; nothing else changes). Secret.',
+    'Key that seals staff authenticator (TOTP) secrets, at least 32 random characters. MFA is mandatory for every staff account (OWN-DEC-202): unset, staff sign-in is refused in every environment (fail closed; the server logs MFA_NOT_CONFIGURED at start and on each refused sign-in). Never change it once set: sealed authenticators would no longer open. Secret.',
   ACCESS_CODE_ENCRYPTION_KEY:
     'Key that seals property access codes (gate, lockbox, alarm and door codes; TSK-0045), at least 32 random characters, different from MFA_ENCRYPTION_KEY. Unset: the access-code store is NOT CONFIGURED (codes cannot be entered or revealed; nothing else changes). Secret.',
   TRUST_PROXY_HOPS: 'Proxies in front of the service that append to X-Forwarded-For. Default 0.',
   LOG_LEVEL: 'fatal, error, warn, info, debug, trace or silent. Default info.',
   JOB_WORKER:
     'on or off. Default on: with a database, this process also runs the job worker. off: it serves requests only and leaves the jobs to another process on the same database.',
+  STAGING_TOOLS:
+    "on or off. Default off. on: the Owner Dashboard's Staging Tools (Reset Test Data, TSK-0141) exist, only in staging or an isolated local or ci test environment, and only on a database marked as such; refused in production (the service does not start).",
   CODE_HASH_KEY:
     'Key for one-time codes and client-address digests, at least 32 characters (TSK-0016). Unset in staging or production: codes NOT CONFIGURED; local and ci use a random key per process. Secret.',
 } as const
@@ -121,7 +124,10 @@ export interface Config {
   bootstrapOwner: { email: string; displayName: string | null } | null
   /** Secure, `__Host-` session cookies: staging and production. */
   secureCookies: boolean
-  /** Seals TOTP secrets (optional MFA); null while not configured. Printing it shows '[REDACTED]'. */
+  /**
+   * Seals TOTP secrets (MFA, mandatory for every staff role: TSK-0154); null while not configured, which refuses every
+   * staff sign-in. Printing it shows '[REDACTED]'.
+   */
   mfaKey: Secret | null
   /** Seals property access codes (TSK-0045); null while the store is NOT CONFIGURED. Printing it shows '[REDACTED]'. */
   accessCodeKey: Secret | null
@@ -132,6 +138,36 @@ export interface Config {
   accessGate: AccessGateSettings
   /** Outside production every response carries X-Robots-Tag: noindex and robots.txt disallows everything. */
   noindex: boolean
+  /**
+   * STAGING_TOOLS=on (TSK-0141): the explicit staging flag of Reset Test Data. Never true in production (refused at
+   * boot); the routes exist only when stagingToolsEnvironment() also identifies the environment.
+   */
+  stagingTools: boolean
+}
+
+/** Environments in which the Staging Tools may exist at all: staging and the isolated local and ci test systems. */
+export const STAGING_TOOL_ENVIRONMENTS: readonly EnvironmentName[] = ['local', 'ci', 'staging']
+
+export type StagingCheck = { id: 'environment' | 'flag' | 'access_gate' | 'database_host'; ok: boolean }
+
+/**
+ * The process side of the staging identification (TSK-0141; OWN-DEC-191, HH-OPS-05): HANDYHUB_ENV is staging, local
+ * or ci, STAGING_TOOLS is on, in staging the access gate is in front of every route, and in local or ci DATABASE_URL
+ * reaches PostgreSQL on this machine only (a loopback host or a local socket: an isolated test system never resets a
+ * remote database). The database side is checked on every call (staging.database_identified, the staging database
+ * name; migration 0070). Every check must pass.
+ */
+export function stagingToolsEnvironment(config: Pick<Config, 'env' | 'stagingTools' | 'accessGate' | 'databaseUrl'>): {
+  identified: boolean
+  checks: StagingCheck[]
+} {
+  const checks: StagingCheck[] = [
+    { id: 'environment', ok: STAGING_TOOL_ENVIRONMENTS.includes(config.env) },
+    { id: 'flag', ok: config.stagingTools === true && config.env !== 'production' },
+    { id: 'access_gate', ok: config.env !== 'staging' || config.accessGate.enabled },
+    { id: 'database_host', ok: config.env === 'staging' || isLocalDatabaseUrl(config.databaseUrl) },
+  ]
+  return { identified: checks.every((c) => c.ok), checks }
 }
 
 /** Tester names: a letter or digit, then letters, digits, ".", "_" or "-" (RFC 7617 forbids ":" in a user-id). */
@@ -232,6 +268,10 @@ export function loadConfig(source: Readonly<Record<string, string | undefined>>)
     accessGate = { enabled: true, realm: `HandyHub ${env}`, users: parseAccessGateUsers(gateRaw) }
   }
 
+  const stagingTools = oneOf('STAGING_TOOLS', get('STAGING_TOOLS') ?? 'off', ['on', 'off'] as const) === 'on'
+  if (stagingTools && env === 'production')
+    throw new ConfigError('STAGING_TOOLS is refused in production: Reset Test Data never exists there (OWN-DEC-191)')
+
   const logLevelRaw = get('LOG_LEVEL')
   const port = integer('PORT', get('PORT'), 3000, 0, 65535)
   const host = get('HOST') ?? '127.0.0.1'
@@ -291,6 +331,7 @@ export function loadConfig(source: Readonly<Record<string, string | undefined>>)
     jobWorker: oneOf('JOB_WORKER', get('JOB_WORKER') ?? 'on', ['on', 'off'] as const) === 'on',
     accessGate,
     noindex: env !== 'production',
+    stagingTools,
   }
 }
 

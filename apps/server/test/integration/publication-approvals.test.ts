@@ -9,11 +9,11 @@ import { sql } from 'kysely'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildApp } from '../../src/app.js'
 import { createStaffUser, setPasswordHash } from '../../src/modules/identity/accounts.js'
-import { currentCode } from '../../src/modules/identity/mfa.js'
 import { hashPassword } from '../../src/modules/identity/passwords.js'
 import { loadConfig, recordPolicyVersion, type ConfigKey } from '../../src/platform/config/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { testConfig } from '../fixtures/env.js'
+import { signInWithMfa } from '../fixtures/staff-mfa.js'
 
 const pw = (n: number) => ['synthetic', 'approval', 'passphrase', 'number', String(n)].join(' ')
 const PEOPLE = ['owner', 'office', 'estimator', 'worker'] as const
@@ -28,7 +28,7 @@ const csrf = {} as Record<Person, string>
 const ids = {} as Record<Person, string>
 
 async function signIn(p: Person): Promise<[string, string]> {
-  const res = await app.inject({
+  const res = await signInWithMfa(app, {
     method: 'POST',
     url: '/api/v1/staff/auth/sign-in',
     payload: { email: `${p}-approval@example.test`, password: pw(1) },
@@ -104,23 +104,17 @@ function write(who: Person, method: 'POST' | 'PUT', url: string, payload: unknow
 }
 
 /**
- * The Owner enrols an authenticator (TSK-0015) after a fresh password entry; the confirming session has completed the
- * second factor (OWN-DEC-202), which the Owner's own publication over the threshold needs (OWN-DEC-204).
+ * A session of the Owner that has passed only the password (OWN-DEC-202, TSK-0154): it waits for the authenticator
+ * code and reaches no staff operation, so the Owner's publication without the second factor never happens.
  */
-async function ownerSecondFactor() {
-  const reauth = await write('owner', 'POST', '/api/v1/staff/auth/reauth', { password: pw(1) })
-  expect(reauth.statusCode).toBe(200)
-  cookies.owner = String(reauth.headers['set-cookie']).split(';')[0] as string
-  csrf.owner = reauth.json<{ csrfToken: string }>().csrfToken
-  const started = await write('owner', 'POST', '/api/v1/staff/auth/mfa/enroll', undefined)
-  expect(started.statusCode).toBe(200)
-  const secret = started.json<{ secret: string }>().secret
-  const confirmed = await write('owner', 'POST', '/api/v1/staff/auth/mfa/confirm', { code: currentCode(secret) })
-  expect(confirmed.statusCode).toBe(200)
-  cookies.owner = String(confirmed.headers['set-cookie']).split(';')[0] as string
-  const session = await get('owner', '/api/v1/staff/auth/session')
-  expect(session.json()).toMatchObject({ mfaEnrolled: true })
-  csrf.owner = session.json<{ csrfToken: string }>().csrfToken
+async function ownerPasswordOnly(): Promise<string> {
+  const res = await app.inject({
+    method: 'POST',
+    url: '/api/v1/staff/auth/sign-in',
+    payload: { email: 'owner-approval@example.test', password: pw(1) },
+  })
+  expect(res.json()).toEqual({ mfaRequired: true, step: 'verify' })
+  return String(res.headers['set-cookie']).split(';')[0] as string
 }
 
 const ALL_OK = Object.fromEntries(
@@ -535,12 +529,21 @@ describe("[HH-EST-16] the Owner's own publication counts as approval, with its e
       status: 'required',
       actions: { request: false, decide: false, publishApproves: true },
     })
-    // OWN-DEC-204: without the second factor the Owner's publication is no approval evidence, and nothing changes.
-    const refused = await publish('owner', d.versionId, d.view.rowVersion)
-    expect(refused.statusCode).toBe(403)
-    expect(codes(refused)).toEqual([['ownerApproval', 'OWNER_MFA_REQUIRED']])
+    // OWN-DEC-204 with OWN-DEC-202: without the second factor the Owner's session reaches no publication at all (the
+    // approval check's own OWNER_MFA_REQUIRED stays behind it), and nothing changes.
+    const refused = await app.inject({
+      method: 'POST',
+      url: `/api/v1/staff/estimate-versions/${d.versionId}/publish`,
+      payload: {},
+      headers: {
+        cookie: await ownerPasswordOnly(),
+        'idempotency-key': key('pre-mfa'),
+        'if-match': `"${d.view.rowVersion}"`,
+      },
+    })
+    expect(refused.statusCode).toBe(401)
+    expect(codes(refused)).toEqual([['session', 'MFA_REQUIRED']])
     expect(await stateOf(d.versionId)).toBe('draft')
-    await ownerSecondFactor()
     const res = await publish('owner', d.versionId, d.view.rowVersion)
     expect(res.statusCode).toBe(200)
     const record = await t.db

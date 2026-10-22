@@ -49,6 +49,7 @@ import { readProviderSettings } from '../../src/providers/settings.js'
 import { verifyCountyOf } from '../fixtures/county.js'
 import { testConfig } from '../fixtures/env.js'
 import { verifyPropertyZone } from '../fixtures/zones.js'
+import { signInWithMfa } from '../fixtures/staff-mfa.js'
 
 const ZONE = 'America/Kentucky/Louisville'
 const KEY: CodeKeySettings = readCodeKey({
@@ -83,7 +84,7 @@ const day = (n: number) => addLocalDays(today(), n)
 const WEEK = [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({ weekday, start: '08:00', end: '20:00' }))
 
 async function signIn(p: Person): Promise<[string, string]> {
-  const res = await app.inject({
+  const res = await signInWithMfa(app, {
     method: 'POST',
     url: '/api/v1/staff/auth/sign-in',
     headers: { 'x-forwarded-for': '198.51.100.170' },
@@ -515,7 +516,10 @@ async function runNotices() {
   const worker = createWorker({
     db: t.db,
     registry: createAutomationRegistry([
-      onTheWayAutomation({ providers: { email: providers.email, sms: providers.sms } }),
+      onTheWayAutomation({
+        providers: { email: providers.email, sms: providers.sms },
+        publicSiteUrl: 'https://site.example.test',
+      }),
     ]),
   })
   for (let i = 0; i < 3; i++) await worker.runOnce()
@@ -712,7 +716,8 @@ describe('[HH-SCH-08][HH-PORT-07][T65] On my way: the assigned worker’s tap, o
       .execute()
     expect(audited.map((a) => (a.summary as { recorded: boolean }).recorded)).toEqual([true, false])
 
-    // The notice: once, by the configured channels; its wording is NOT CONFIGURED, so it is recorded, never sent.
+    // The notice: once, by the configured channels (TSK-0120: the owner-authorized email with its values; texts have no
+    // wording until A2P 10DLC).
     await runNotices()
     await runNotices()
     const deliveries = await t.db
@@ -721,10 +726,14 @@ describe('[HH-SCH-08][HH-PORT-07][T65] On my way: the assigned worker’s tap, o
       .where('subject_key', '=', `visit_on_my_way:${visitId}`)
       .execute()
     expect(deliveries).toEqual([
-      // TSK-0119: the on_the_way email wording (OWN-DEC-209) is released; its values are wired by TSK-0120.
-      { message_key: 'visit.on_the_way', channel: 'email', state: 'failed', error_code: 'template_values_not_wired' },
+      { message_key: 'visit.on_the_way', channel: 'email', state: 'queued', error_code: null },
       { message_key: 'visit.on_the_way', channel: 'sms', state: 'failed', error_code: 'template_not_configured' },
     ])
+    const notice = (providers.fakes.email?.sent ?? []).filter((m) => m.subject === 'HandyHub | Our Team Is on the Way')
+    expect(notice).toHaveLength(1)
+    expect(notice[0]?.text).toMatch(/Our team is on the way for your HandyHub visit #HH-[0-9A-Z]{8}-V\d+\./)
+    expect(notice[0]?.text).toMatch(/Arrival window: \d{1,2}:\d{2} [AP]M – \d{1,2}:\d{2} [AP]M \((EDT|EST|CDT|CST)\)/)
+    expect(notice[0]?.text).not.toMatch(/\bETA\b|minutes away|location/i)
 
     // The portal: "On the way" only now that it is recorded; no worker name, no ETA.
     const after = await customerGet(p, 'overview')

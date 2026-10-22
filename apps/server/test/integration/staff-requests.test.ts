@@ -13,7 +13,11 @@ import { newRequestQueueAutomation } from '../../src/modules/queue/index.js'
 import { requestsModule } from '../../src/modules/requests/index.js'
 import { createAutomationRegistry } from '../../src/platform/automation.js'
 import { createWorker } from '../../src/platform/jobs.js'
+import { notAFitNoticeAutomation } from '../../src/modules/requests/not-a-fit-notice.js'
+import { createProviders } from '../../src/providers/index.js'
+import { readProviderSettings } from '../../src/providers/settings.js'
 import { testConfig } from '../fixtures/env.js'
+import { signInWithMfa, TEST_MFA_KEY } from '../fixtures/staff-mfa.js'
 
 const pw = (n: number) => ['synthetic', 'requests', 'passphrase', 'number', String(n)].join(' ')
 const PEOPLE = ['owner', 'office', 'office2', 'estimator', 'worker'] as const
@@ -33,7 +37,7 @@ const owedCsrf = {} as Record<Person, string>
 const withAppointment = new Set<string>()
 
 async function signIn(server: FastifyInstance, p: Person): Promise<[string, string]> {
-  const res = await server.inject({
+  const res = await signInWithMfa(server, {
     method: 'POST',
     url: '/api/v1/staff/auth/sign-in',
     payload: { email: `${p}-requests@example.test`, password: pw(1) },
@@ -48,7 +52,7 @@ beforeAll(async () => {
   t = await createTestDatabase()
   await syncServices(t.db, loadServiceSeed())
   app = await buildApp({ config: testConfig({ TRUST_PROXY_HOPS: '1' }), api: { db: t.db } })
-  const modules = apiModules({ secureCookies: false, mfaKey: null }).map((m) =>
+  const modules = apiModules({ secureCookies: false, mfaKey: TEST_MFA_KEY }).map((m) =>
     m.name === 'requests'
       ? requestsModule({
           obligationChecks: [
@@ -636,6 +640,27 @@ describe('the four actions (TSK-0042, HH-LEAD-02, HH-SVC-04, OWN-DEC-99, OWN-DEC
       .where('aggregate_id', '=', r.id)
       .execute()
     expect(events.map((e) => e.type)).toContain('decision.not_a_fit_published')
+    // TSK-0120 (FACT-AUTOMATIC-MESSAGES #7, OWN-DEC-209): after commit, the not-a-fit notice once by email, respectful
+    // and neutral, pointing to the project; no reason, no internal note in the message; a replay sends nothing more.
+    const providers = createProviders(readProviderSettings({ HANDYHUB_ENV: 'ci' }))
+    const notice = createWorker({
+      db: t.db,
+      registry: createAutomationRegistry([
+        notAFitNoticeAutomation({
+          providers: { email: providers.email, sms: providers.sms },
+          publicSiteUrl: 'https://site.example.test',
+        }),
+      ]),
+    })
+    for (let i = 0; i < 3; i++) await notice.runOnce()
+    const mails = (providers.fakes.email?.sent ?? []).filter((m) => m.subject.includes(r.reference))
+    expect(mails.map((m) => m.subject)).toEqual([`HandyHub | Update on Your Request #${r.reference}`])
+    expect(mails[0]?.text).toMatch(/^Hi Synthetic,\n\nThank you for considering HandyHub for your request #/)
+    expect(mails[0]?.text).toContain('we are not able to take on this project')
+    expect(mails[0]?.text).toContain(`https://site.example.test/portal/p/${r.reference}`)
+    expect(mails[0]?.text).not.toMatch(/outside the area|risk note/i)
+    for (let i = 0; i < 2; i++) await notice.runOnce()
+    expect((providers.fakes.email?.sent ?? []).filter((m) => m.subject.includes(r.reference))).toHaveLength(1)
     const again = await write(
       'office',
       'POST',

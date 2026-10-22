@@ -332,6 +332,26 @@ describe('accounts, AI and unknown actions are denied by default (RULE-AI-WAVE2,
         )
   })
 
+  it('[HH-STAFF-02][HH-STAFF-01] resetting a lost authenticator (TSK-0154): Owner only, F, never oneself', () => {
+    const subject = { subjectStaffId: 'worker-1' }
+    expect(effect(decide(owner, 'staff.reset_mfa', subject, ctx({ reason: 'x' })))).toBe('FRESH_AUTH_REQUIRED')
+    const fresh = { ...owner, freshAuth: true }
+    expect(effect(decide(fresh, 'staff.reset_mfa', subject, ctx()))).toBe('REASON_REQUIRED')
+    expect(decide(fresh, 'staff.reset_mfa', subject, ctx({ reason: 'Lost phone' }))).toMatchObject({
+      effect: 'allow',
+      audit: true,
+    })
+    expect(effect(decide(fresh, 'staff.reset_mfa', { subjectStaffId: 'owner-1' }, ctx({ reason: 'x' })))).toBe(
+      'SELF_GRANT',
+    )
+    for (const role of ['office', 'estimator', 'worker'] as const)
+      expect(
+        effect(
+          decide({ ...staff(`${role}-1`, [role]), freshAuth: true }, 'staff.reset_mfa', subject, ctx({ reason: 'x' })),
+        ),
+      ).toBe('NOT_PERMITTED')
+  })
+
   it('one person holding several roles gets the union, each capability still explicit (OWN-DEC-28)', () => {
     expect(decide(owner, 'visit.tap_arrived', { ...job, assignments: [] }, ctx())).toMatchObject({
       effect: 'deny',

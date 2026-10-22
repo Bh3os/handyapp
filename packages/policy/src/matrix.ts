@@ -143,6 +143,10 @@ export const ACTIONS = [
   // PROPOSED (TSK-0097): re-enabling a disabled account gives access back, so it sits in the grant row with its fresh
   // sign-in and reason (ENT-StaffUser: "disabled -> active only by the Owner with a fresh sign-in").
   'staff.enable',
+  // PROPOSED (TSK-0154, OWN-DEC-202): resetting a staff member's lost authenticator ends every session and lets the
+  // next sign-in enrol a new one, which gives access back, so it sits in the grant row with its fresh sign-in, reason
+  // and never-oneself rule (an Owner's own lost authenticator: a recovery code or the operations command).
+  'staff.reset_mfa',
   'staff.disable',
   'staff.revoke_sessions',
   'staff.start_password_recovery',
@@ -610,9 +614,12 @@ export const MATRIX: readonly MatrixRow[] = [
   row(MESSAGES, 'Change policy values', ['policy_values.change'], { owner: Y('F', F) }),
 
   // Staff, audit, cases and privacy
-  row(STAFF, 'Invite staff, grant roles or capabilities', ['staff.invite', 'staff.grant_role', 'staff.enable'], {
-    owner: Y('F', { ...F, conditions: ['not_self_subject'] }),
-  }),
+  row(
+    STAFF,
+    'Invite staff, grant roles or capabilities',
+    ['staff.invite', 'staff.grant_role', 'staff.enable', 'staff.reset_mfa'],
+    { owner: Y('F', { ...F, conditions: ['not_self_subject'] }) },
+  ),
   row(
     STAFF,
     'Disable account, revoke sessions, start password recovery',

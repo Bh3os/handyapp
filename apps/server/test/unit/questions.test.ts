@@ -40,7 +40,8 @@ describe('question deliveries (TSK-0051, HH-COM-06, OWN-DEC-98)', () => {
     expect(MESSAGE_TYPES.get(QUESTION_REMINDER)).toMatchObject({ audience: 'customer', triggerEvents: [] })
     expect(MESSAGE_TYPES.get(REPLY_STAFF_NOTICE)).toMatchObject({
       audience: 'staff',
-      triggerEvents: ['question.customer_replied'],
+      // TSK-0120: also the first customer message of a conversation since staff last handled it.
+      triggerEvents: ['question.customer_replied', 'conversation.customer_replied'],
     })
     // The reminder drafts are prominent: a time-sensitive queue item, released by the roles that release drafts.
     expect(QUEUE_ITEM_TYPES.find((q) => q.id === 'question_reminder')).toMatchObject({

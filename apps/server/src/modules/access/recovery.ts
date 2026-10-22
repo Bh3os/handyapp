@@ -27,7 +27,7 @@ import { loadConfig } from '../../platform/config/index.js'
 import { outbox } from '../../platform/outbox.js'
 import { currentContext } from '../../platform/request-context.js'
 import { normaliseDestination, type CodeKeySettings } from '../identity/index.js'
-import { templateReadiness } from '../notifications/index.js'
+import { automaticPolicy, templateReadiness } from '../notifications/index.js'
 import { issueGrant, projectOfAnyGrant } from './grants.js'
 import { ACCESS_LINK_MESSAGE_KEY, ACCESS_REQUESTED_EVENT } from './link-message.js'
 import { projectIdOf } from './projects.js'
@@ -55,6 +55,8 @@ export async function reissueMissing(db: Db | Tx, key: CodeKeySettings): Promise
     ...(key.state === 'configured' ? [] : key.missing),
     ...(config.get('access.grants').state === 'CONFIGURED' ? [] : ['access.grants']),
     ...(config.get('access.recovery').state === 'CONFIGURED' ? [] : ['access.recovery']),
+    // TSK-0120: the access message must be on the automatic list, or no new link would be sent.
+    ...(automaticPolicy(config).isAutomatic(ACCESS_LINK_MESSAGE_KEY) ? [] : ['messages.automatic']),
     // TSK-0119: the access message's released wording must also have its values supplied (templateReadiness).
     ...((await templateReadiness(db, ACCESS_LINK_MESSAGE_KEY, 'email', 'en')).state === 'ready'
       ? []

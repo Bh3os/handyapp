@@ -13,7 +13,13 @@ import { buildApp } from '../../src/app.js'
 import { createStaffUser, setPasswordHash } from '../../src/modules/identity/accounts.js'
 import { startCustomerSession } from '../../src/modules/identity/customer-sessions.js'
 import { hashPassword } from '../../src/modules/identity/passwords.js'
-import { inboxModule, replyFailureItem, replyRecordCheck, type InboundAddress } from '../../src/modules/inbox/index.js'
+import {
+  inboxModule,
+  replyFailureItem,
+  replyRecordCheck,
+  replyValues,
+  type InboundAddress,
+} from '../../src/modules/inbox/index.js'
 import { apiModules } from '../../src/modules/index.js'
 import {
   createDraft,
@@ -32,12 +38,14 @@ import { runWithContext } from '../../src/platform/request-context.js'
 import { createProviders } from '../../src/providers/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
 import { testConfig } from '../fixtures/env.js'
-import { bodyOf } from '../fixtures/message-text.js'
+import { signInWithMfa, TEST_MFA_KEY } from '../fixtures/staff-mfa.js'
 
 const ROLES: readonly StaffRole[] = ['owner', 'office', 'estimator', 'worker']
 const pw = ['synthetic', 'replies', 'passphrase', '50'].join(' ')
 const CARD = ['4111', '1111', '1111', '1111'].join(' ')
 const ADDRESS: InboundAddress = { local: 'replies', domain: 'inbound.example.test' }
+/** TSK-0120: the synthetic public site the portal links point at. */
+const SITE = 'https://site.example.test'
 const settings = readProviderSettings({ HANDYHUB_ENV: 'ci', INBOUND_EMAIL_ADDRESS: 'replies@inbound.example.test' })
 const providers = createProviders(settings)
 if (!providers.email || !providers.sms || !providers.fakes.email || !providers.fakes.sms)
@@ -61,7 +69,8 @@ const fast = (a: Automation): Automation => ({ ...a, retry: { maxAttempts: 2, ba
 const release = fast(
   releaseAutomation(
     { email: providers.email, sms: providers.sms, replyAddress: ADDRESS },
-    { recordChecks: { project: replyRecordCheck }, failureItem: replyFailureItem },
+    // TSK-0120: the reply email's values are read from the reply at send time.
+    { recordChecks: { project: replyRecordCheck }, failureItem: replyFailureItem, values: replyValues(SITE) },
   ),
 )
 async function drain(automations: Automation[] = [release]) {
@@ -219,8 +228,8 @@ const releaseReplyTemplates = () =>
 beforeAll(async () => {
   t = await createTestDatabase()
   await syncServices(t.db, loadServiceSeed())
-  const modules = apiModules({ secureCookies: false, mfaKey: null, system: { providers: settings } }).map((m) =>
-    m.name === 'inbox' ? inboxModule({ providers: settings, now: () => clock }) : m,
+  const modules = apiModules({ secureCookies: false, mfaKey: TEST_MFA_KEY, system: { providers: settings } }).map(
+    (m) => (m.name === 'inbox' ? inboxModule({ providers: settings, now: () => clock }) : m),
   )
   app = await buildApp({ config: testConfig({ TRUST_PROXY_HOPS: '1' }), api: { db: t.db, modules } })
   const hash = await hashPassword(pw)
@@ -236,7 +245,7 @@ beforeAll(async () => {
       await setPasswordHash(tx, user.id, hash)
       return user.id
     })
-    const res = await app.inject({
+    const res = await signInWithMfa(app, {
       method: 'POST',
       url: '/api/v1/staff/auth/sign-in',
       payload: { email: `${role}-replies@example.test`, password: pw },
@@ -315,23 +324,27 @@ describe('the reply channel: preferred and permitted, never switched silently (T
 })
 
 describe('Send is the release; the delivery is truthful (TSK-0050, HH-COM-08, HH-COM-02, T66)', () => {
-  it('[HH-COM-02][HH-COM-08] without released reply wording the reply is on the project and its email is recorded as not sent, with Retry', async () => {
+  it('[HH-COM-08][HH-COM-02][OWN-DEC-151][TSK-0120] the reply email is the owner wording with the text as written; a rejected send is a delivery issue whose Retry sends once', async () => {
     clock = TEN_AM
     const p = await submit('replies-unconfigured@example.test', '(502) 555-0503')
     await verify(p.contactId, 'email')
-    expect((await options(p)).templates).toEqual({ email: 'not_configured', sms: 'not_configured' })
-    const res = await reply('owner', p, 'Synthetic reply without wording.', 'email')
+    // The email wording is the owner's staff_reply_wrapper with its values supplied; texts have none (A2P 10DLC).
+    expect((await options(p)).templates).toEqual({ email: 'configured', sms: 'not_configured' })
+    // Earlier tests' released replies go first, so the scripted answer is this reply's own.
+    await drain()
+    // The provider rejects the first send.
+    fakeEmail.script({ outcome: 'rejected', errorCode: 'http_422_validation_error' })
+    const res = await reply('owner', p, 'Synthetic reply in the owner wording.', 'email')
     expect(res.statusCode, res.body).toBe(201)
     const out = res.json<{ id: string; conversationId: string; delivery: { id: string; sendAt: string } }>()
     expect(out.delivery.sendAt).toBe(TEN_AM.toISOString())
     await drain()
-    expect(fakeEmail.calls.filter((c) => c.to === 'replies-unconfigured@example.test')).toEqual([])
+    expect(fakeEmail.sent.filter((c) => c.to === 'replies-unconfigured@example.test')).toEqual([])
     const d = await deliveryOf(out.delivery.id)
-    // TSK-0119: the owner's staff_reply_wrapper wording is released; its values are wired by TSK-0120 (not wired).
-    expect([d.state, d.error_code]).toEqual(['failed', 'template_values_not_wired'])
-    // A staff exception with Retry on the project (HH-COM-02), and the reply itself is in the conversation.
+    expect([d.state, d.error_code]).toEqual(['failed', 'http_422_validation_error'])
+    // A staff exception with Retry on the project (HH-COM-02), and the reply itself is in the conversation at once.
     expect(await openItems('delivery_failed', d.id)).toEqual([
-      expect.objectContaining({ reason: 'delivery_not_configured', reference: p.reference, project_id: p.projectId }),
+      expect.objectContaining({ reason: 'delivery_failed', reference: p.reference, project_id: p.projectId }),
     ])
     const thread = (await get('owner', `/staff/inbox/conversations/${out.conversationId}`)).json<{
       messages: {
@@ -347,16 +360,15 @@ describe('Send is the release; the delivery is truthful (TSK-0050, HH-COM-08, HH
       expect.objectContaining({
         id: out.id,
         direction: 'outbound',
-        body: 'Synthetic reply without wording.',
+        body: 'Synthetic reply in the owner wording.',
         author: expect.objectContaining({ kind: 'staff', name: 'Synthetic Replies owner' }),
-        delivery: { id: d.id, state: 'failed', errorCode: 'template_values_not_wired', sendAt: null, retry: true },
+        delivery: { id: d.id, state: 'failed', errorCode: 'http_422_validation_error', sendAt: null, retry: true },
       }),
     ])
     // The reply is listed on itself, not again among the project's notifications.
     expect(thread.deliveries).toEqual([])
 
-    // Once wording is released, Retry sends it once.
-    await releaseReplyTemplates()
+    // Retry sends it once, in the owner's wording.
     const retried = await write('owner', `/staff/message-deliveries/${d.id}/retry`, {})
     expect(retried.statusCode, retried.body).toBe(200)
     expect((await write('owner', `/staff/message-deliveries/${d.id}/retry`, {})).statusCode).toBe(409)
@@ -366,10 +378,15 @@ describe('Send is the release; the delivery is truthful (TSK-0050, HH-COM-08, HH
     await drain()
     const mails = fakeEmail.sent.filter((m) => m.to === 'replies-unconfigured@example.test')
     expect(mails).toHaveLength(1)
-    expect(bodyOf(mails[0]?.text)).toBe('Synthetic test reply: Synthetic reply without wording.')
+    expect(mails[0]?.subject).toBe(`HandyHub | New Message About Your Project #${p.reference}`)
+    expect(mails[0]?.text).toMatch(/^Hi Rae,\n\nYou have a new message from the HandyHub team/)
+    expect(mails[0]?.text).toContain('Message from Synthetic Replies owner:\n\nSynthetic reply in the owner wording.')
+    expect(mails[0]?.text).toContain(`${SITE}/portal/p/${p.reference}`)
     expect(mails[0]?.replyTo).toMatch(/^replies\+[a-z2-7]{20}@inbound\.example\.test$/)
     expect((await deliveryOf(d.id)).provider_message_id).toBe(mails[0]?.providerMessageId)
     expect(await openItems('delivery_failed', d.id)).toEqual([])
+    // Later tests use a synthetic wording of their own.
+    await releaseReplyTemplates()
   })
 
   it('[T66][HH-COM-03][HH-COM-02] a Spanish-locale staff reply goes out in the English template; a retried Send and a retried job send one message', async () => {

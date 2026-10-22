@@ -17,6 +17,7 @@ import { runWithContext } from '../../src/platform/request-context.js'
 import { verifyCountyOf } from '../fixtures/county.js'
 import { testConfig } from '../fixtures/env.js'
 import { verifyPropertyZone } from '../fixtures/zones.js'
+import { signInWithMfa } from '../fixtures/staff-mfa.js'
 
 const ZONE = 'America/Kentucky/Louisville'
 const pw = (n: number) => ['synthetic', 'staff', 'management', 'passphrase', String(n)].join(' ')
@@ -60,7 +61,7 @@ let seq = 0
 const key = (what: string) => `synthetic-${what}-${String(++seq).padStart(6, '0')}-${randomUUID()}`
 
 async function signIn(p: Person, password = pw(1)): Promise<Auth> {
-  const res = await app.inject({
+  const res = await signInWithMfa(app, {
     method: 'POST',
     url: '/api/v1/staff/auth/sign-in',
     headers: { 'x-forwarded-for': '198.51.100.197' },
@@ -455,7 +456,7 @@ describe('[HH-STAFF-02][T27] offboarding', () => {
       expect((await send(a, 'PUT', '/staff/auth/session/locale', { locale: 'es' })).statusCode).toBe(401)
       expect((await planVisit(a, project, day(6))).statusCode).toBe(401)
     }
-    const again = await app.inject({
+    const again = await signInWithMfa(app, {
       method: 'POST',
       url: '/api/v1/staff/auth/sign-in',
       headers: { 'x-forwarded-for': '198.51.100.197' },
@@ -553,7 +554,7 @@ describe('[HH-STAFF-02][T27] offboarding', () => {
       .executeTakeFirstOrThrow()
     expect(outbox.payload).toMatchObject({ purpose: 'reset' })
     // The old password never comes back.
-    const old = await app.inject({
+    const old = await signInWithMfa(app, {
       method: 'POST',
       url: '/api/v1/staff/auth/sign-in',
       headers: { 'x-forwarded-for': '198.51.100.197' },

@@ -37,6 +37,8 @@ import { readProviderSettings } from '../../src/providers/settings.js'
 import { signWebhook } from '../../src/providers/webhooks.js'
 import { registerWebhookRoutes } from '../../src/providers/webhooks.js'
 import { testConfig } from '../fixtures/env.js'
+import { signInWithMfa } from '../fixtures/staff-mfa.js'
+import { replyStaffNoticeAutomation } from '../../src/modules/questions/automations.js'
 
 const ROLES: readonly StaffRole[] = ['owner', 'office', 'estimator', 'worker']
 const pw = ['synthetic', 'inbox', 'passphrase', '49'].join(' ')
@@ -246,7 +248,7 @@ beforeAll(async () => {
       await setPasswordHash(tx, user.id, hash)
       return user.id
     })
-    const res = await app.inject({
+    const res = await signInWithMfa(app, {
       method: 'POST',
       url: '/api/v1/staff/auth/sign-in',
       payload: { email: `${role}-inbox@example.test`, password: pw },
@@ -339,7 +341,7 @@ describe('verified, replay-safe, de-duplicated inbound webhooks (TSK-0049, HH-CO
     })
     expect(res.statusCode).toBe(503)
     expect(res.json()).toEqual({ error: 'inbound_not_configured' })
-    const owner = await bare.inject({
+    const owner = await signInWithMfa(bare, {
       method: 'POST',
       url: '/api/v1/staff/auth/sign-in',
       payload: { email: 'owner-inbox@example.test', password: pw },
@@ -903,5 +905,72 @@ describe('the inbox follows reviewed merges (TSK-0049 with TSK-0046; HH-COM-07, 
       customer_id: a.customerId,
       contact_id: a.contactId,
     })
+  })
+})
+
+describe('the staff notice of a customer reply: assigned, authorized, grouped (TSK-0120, OWN-DEC-151 staff_customer_replied, OWN-DEC-152 scenario G)', () => {
+  const noticeProviders = createProviders(readProviderSettings({ HANDYHUB_ENV: 'ci' }))
+  const notices = async () => {
+    const w = createWorker({
+      db: t.db,
+      registry: createAutomationRegistry([
+        replyStaffNoticeAutomation({
+          providers: { email: noticeProviders.email, sms: null },
+          publicSiteUrl: undefined,
+          staffAppUrl: 'https://staff.example.test',
+        }),
+      ]),
+    })
+    for (let i = 0; i < 5; i++) await w.runOnce()
+  }
+  const mailFor = (reference: string) =>
+    (noticeProviders.fakes.email?.sent ?? []).filter((m) => m.subject.includes(reference))
+
+  it('[HH-COM-06][OWN-DEC-152] one notice per open reply item, to the assigned staff member only; handled, the next reply notifies again', async () => {
+    const s = await submit({
+      fullName: 'Blake Synthetic Grouped',
+      email: 'grouped-120@example.test',
+      phone: '(502) 555-0412',
+    })
+    await sql`UPDATE crm.projects SET responsible_staff_id = ${staff.office.id} WHERE id = ${s.projectId}`.execute(t.db)
+    const token = await withTx(t.db, (tx) => projectReplyToken(tx, s.projectId))
+    const first = await deliver('resend', emailIn('grouped-120@example.test', [replyAddress(ADDRESS, token)]))
+    await deliver('resend', emailIn('grouped-120@example.test', [replyAddress(ADDRESS, token)]))
+    await notices()
+    const sent = mailFor(s.reference)
+    // Grouped: two messages while the "customer replied" item stays open, one notice.
+    expect(sent.map((m) => [m.to, m.subject])).toEqual([
+      ['office-inbox@example.test', `HandyHub Staff | Customer Replied to #${s.reference}`],
+    ])
+    expect(sent[0]?.text).toContain('Customer: Blake Synthetic Grouped')
+    const request = await t.db
+      .selectFrom('intake.requests')
+      .select('id')
+      .where('project_id', '=', s.projectId)
+      .executeTakeFirstOrThrow()
+    expect(sent[0]?.text).toContain(`https://staff.example.test/requests/${request.id}`)
+    // Never the message itself.
+    expect(sent[0]?.text).not.toContain('Synthetic inbound body.')
+    await notices()
+    expect(mailFor(s.reference)).toHaveLength(1)
+    // Staff mark it handled; the next message opens a new item and notifies once more.
+    const handled = await write('office', `/staff/inbox/conversations/${first.conversation_id}/handled`, {})
+    expect(handled.statusCode, handled.body).toBe(200)
+    await deliver('resend', emailIn('grouped-120@example.test', [replyAddress(ADDRESS, token)]))
+    await notices()
+    expect(mailFor(s.reference)).toHaveLength(2)
+  })
+
+  it('[RULE-SERVER-AUTHZ] nobody is assigned, or the assigned account is not active: no notice, the queue item is the notice', async () => {
+    const s = await submit({
+      fullName: 'Casey Synthetic Unassigned',
+      email: 'unassigned-120@example.test',
+      phone: '(502) 555-0413',
+    })
+    const token = await withTx(t.db, (tx) => projectReplyToken(tx, s.projectId))
+    const m = await deliver('resend', emailIn('unassigned-120@example.test', [replyAddress(ADDRESS, token)]))
+    await notices()
+    expect(mailFor(s.reference)).toEqual([])
+    expect(await openItems('customer_replied', m.conversation_id as string)).toHaveLength(1)
   })
 })

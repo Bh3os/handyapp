@@ -38,6 +38,7 @@ import { readProviderSettings } from '../../src/providers/settings.js'
 import { testConfig } from '../fixtures/env.js'
 import { bodyOf } from '../fixtures/message-text.js'
 import { png } from '../fixtures/images.js'
+import { signInWithMfa, TEST_MFA_KEY } from '../fixtures/staff-mfa.js'
 
 const ROLES: readonly StaffRole[] = ['owner', 'office', 'estimator', 'worker']
 const pw = ['synthetic', 'questions', 'passphrase', '51'].join(' ')
@@ -359,7 +360,7 @@ beforeAll(async () => {
   await syncServices(t.db, loadServiceSeed())
   const modules = apiModules({
     secureCookies: false,
-    mfaKey: null,
+    mfaKey: TEST_MFA_KEY,
     storage: providers.storage,
     system: { providers: settings },
   }).map((m) =>
@@ -384,7 +385,7 @@ beforeAll(async () => {
       await setPasswordHash(tx, user.id, hash)
       return user.id
     })
-    const res = await app.inject({
+    const res = await signInWithMfa(app, {
       method: 'POST',
       url: '/api/v1/staff/auth/sign-in',
       payload: { email: `${role}-questions@example.test`, password: pw },
@@ -588,8 +589,8 @@ describe('publishing a question is the release; its notice is automatic (TSK-005
     const view = await staffView(p)
     expect(view.questions[0]?.reply).toMatchObject({ text: answer, notSure: true, photos: [{ id: photoId }] })
     expect(view.repliesWaiting).toBe(true)
-    // The assigned staff member is notified: the queue item, and the staff notice (no wording released: recorded
-    // truthfully as not sent).
+    // The assigned staff member is notified: the queue item, and the staff notice (TSK-0120: the owner's
+    // staff_customer_replied wording in the staff member's Spanish, with its values; never the reply's text).
     expect(await openItems('question_replied', p.requestId)).toEqual([
       expect.objectContaining({ reason: 'question_replied', assigned_staff_id: staff.office.id }),
     ])
@@ -601,17 +602,23 @@ describe('publishing a question is the release; its notice is automatic (TSK-005
       .where('record_id', '=', p.requestId)
       .execute()
     expect(notice).toEqual([
-      {
-        state: 'failed',
-        // TSK-0119: the owner's staff_customer_replied wording is released (also in Spanish); TSK-0120 wires its values.
-        error_code: 'template_values_not_wired',
-        destination: 'office-questions@example.test',
-        locale: 'es',
-      },
+      { state: 'queued', error_code: null, destination: 'office-questions@example.test', locale: 'es' },
     ])
-    // The last open question answered: the request goes back to HandyHub's review.
+    const staffMailOf = () =>
+      (providers.fakes.email?.sent ?? []).filter(
+        (m) => m.to === 'office-questions@example.test' && m.subject.includes(p.reference),
+      )
+    const staffMail = staffMailOf()
+    expect(staffMail.map((m) => m.subject)).toEqual([`HandyHub Staff | El cliente respondió a #${p.reference}`])
+    expect(staffMail[0]?.text).toContain(`Referencia: ${p.reference}`)
+    expect(staffMail[0]?.text).toContain(`http://127.0.0.1:4999/staff/requests/${p.requestId}`)
+    expect(staffMail[0]?.text).not.toContain('12 feet')
+    // The last open question answered: the request goes back to HandyHub's review. While the reply item stays open,
+    // a second reply is grouped with the first: no second notice (TSK-0120, deduplicated and grouped).
     expect((await replyTo(cookie, p, q2, { text: 'Synthetic: last spring.' })).statusCode).toBe(201)
     expect((await requestRow(p)).state).toBe('reviewing')
+    await drain()
+    expect(staffMailOf()).toHaveLength(1)
     // Reviewing the replies resolves the item.
     expect((await write('office', `/staff/requests/${p.requestId}/questions/replies-reviewed`, {})).json()).toEqual({
       reviewed: true,

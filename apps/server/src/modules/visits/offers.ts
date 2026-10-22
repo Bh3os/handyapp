@@ -19,11 +19,11 @@
 //   A window that cannot be kept answers CONFLICT with nothing changed, and the customer can choose another offered
 //   window or ask for other times. The customer asks for other times (an optional note) without restarting the
 //   request: every hold is released and staff get a queue item.
-// - Notices (FACT-AUTOMATIC-MESSAGES): publishing estimate-visit windows triggers estimate_visit.options (#5); a
-//   reserved estimate visit estimate_visit.confirmed (#6); a reserved work visit appointment.confirmed (#10). Their
-//   wording is not approved yet (no released template): each delivery is recorded as failed with
-//   template_not_configured and staff see the delivery issue; nothing reads as sent. The list names no notice for
-//   work-visit windows (OQ-WORK-WINDOW-OFFER-NOTICE): none is triggered for them.
+// - Notices (FACT-AUTOMATIC-MESSAGES): publishing estimate-visit windows triggers estimate_visit.options (#5) and,
+//   TSK-0120 (OWN-DEC-156), publishing work-visit windows work_visit.options (#11); a reserved estimate visit
+//   estimate_visit.confirmed (#6); a reserved work visit appointment.confirmed (#12). Their wording is the owner's
+//   (migration 0065) and TSK-0120 supplies its values, so the emails are sent once each; a confirmation is sent only
+//   after the reservation committed. Texts have no wording until A2P 10DLC and are recorded as template_not_configured.
 // - PROPOSED (no owner rule): staff withdraw an open offer with a reason; a work visit's windows pass the job's
 //   scheduling gates when offered and again when selected (WORK_VISIT_GATES, the deposit gate of TSK-0059 first);
 //   selecting at or after the hold time is refused as expired, the customer is told the times are no longer held and
@@ -43,7 +43,6 @@ import {
   offerProblems,
   onSiteRange,
   reservedRange,
-  windowText,
   type Interval,
   type LocalWindow,
 } from '@handyhub/domain'
@@ -56,7 +55,19 @@ import { scheduleJob } from '../../platform/jobs.js'
 import { outbox } from '../../platform/outbox.js'
 import { currentContext } from '../../platform/request-context.js'
 import { alternatives, capacitySettings, evaluate, type ReservationRequest } from '../capacity/resources.js'
-import { notificationAutomation, type Destination, type NotificationProviders } from '../notifications/index.js'
+import {
+  firstNameOf,
+  instantText,
+  jobNumberOf,
+  notificationAutomation,
+  portalLink,
+  present,
+  valuesFor,
+  visitNumberOf,
+  visitWindowValues,
+  type Destination,
+  type NotificationProviders,
+} from '../notifications/index.js'
 import { openQueueItem, resolveQueueItem } from '../queue/items.js'
 import { findProject } from '../records/index.js'
 import { customerRequestsOf } from './changes.js'
@@ -75,10 +86,12 @@ type Reader = Db | Tx
 const field = (f: string, code: string): FieldError => ({ field: f, code, message: '' })
 
 export const ESTIMATE_VISIT_OPTIONS_EVENT = 'estimate_visit.windows_published'
+/** TSK-0120 (OWN-DEC-156): publishing work-visit windows triggers the work_appointment_windows notice. */
+export const WORK_VISIT_OPTIONS_EVENT = 'work_visit.windows_published'
 export const ESTIMATE_VISIT_RESERVED_EVENT = 'estimate_visit.reserved'
 export const APPOINTMENT_RESERVED_EVENT = 'appointment.reserved'
-/** The automatic notice a published offer triggers, by purpose; null: none is on the list (work visits). */
-export const OFFER_NOTICE = { estimate: 'estimate_visit.options', work: null } as const
+/** The automatic notice a published offer triggers, by purpose (FACT-AUTOMATIC-MESSAGES #5 and #11). */
+export const OFFER_NOTICE = { estimate: 'estimate_visit.options', work: 'work_visit.options' } as const
 export const CONFIRMED_NOTICE = { estimate: 'estimate_visit.confirmed', work: 'appointment.confirmed' } as const
 
 /** PROPOSED input bounds (no owner value). */
@@ -111,6 +124,7 @@ export async function requestOf(db: Reader, projectId: string) {
       'r.reference',
       'r.responsible_staff_id',
       'c.id as contactId',
+      'c.full_name',
       'c.email',
       'c.phone_e164',
       'c.preferred_channel',
@@ -378,14 +392,16 @@ export async function offerWindows(
   await sql`RELEASE SAVEPOINT window_offer_holds`.execute(tx)
 
   const requestId = requestIdOf(`window-offer:${offer.id}`)
-  if (!work)
-    await outbox.add(tx, {
-      type: ESTIMATE_VISIT_OPTIONS_EVENT,
-      aggregate: { type: 'window_offer', id: offer.id, version: offer.version },
-      payload: { visitId: v.id, number: offer.number },
-      idempotencyKey: `${ESTIMATE_VISIT_OPTIONS_EVENT}:${offer.id}`,
-      requestId,
-    })
+  // The committed event of the automatic options notice: estimate-visit options (#5) or, TSK-0120, work-appointment
+  // windows (#11, OWN-DEC-156). One per offer: its id is the notice's subject.
+  const optionsEvent = work ? WORK_VISIT_OPTIONS_EVENT : ESTIMATE_VISIT_OPTIONS_EVENT
+  await outbox.add(tx, {
+    type: optionsEvent,
+    aggregate: { type: 'window_offer', id: offer.id, version: offer.version },
+    payload: { visitId: v.id, number: offer.number },
+    idempotencyKey: `${optionsEvent}:${offer.id}`,
+    requestId,
+  })
   await scheduleJob(tx, deps.expiry, {
     key: offer.id,
     runAt: expiresAt,
@@ -1050,7 +1066,11 @@ export function overviewVisitFacts(a: CustomerAppointments, projectApproved: boo
 
 // --- Automatic notices (FACT-AUTOMATIC-MESSAGES #5, #6, #10) ------------------------------------------------------
 
-export type VisitNoticeDeps = { providers: NotificationProviders }
+export type VisitNoticeDeps = {
+  providers: NotificationProviders
+  /** TSK-0120: the public site's base URL for the portal links; undefined while not configured (no link is made up). */
+  publicSiteUrl?: string | undefined
+}
 
 export function destinationsOf(r: { email: string; phone_e164: string; preferred_channel: string }): Destination[] {
   return [
@@ -1067,10 +1087,23 @@ export function destinationsOf(r: { email: string; phone_e164: string; preferred
   ]
 }
 
-/** #5 "Estimate-visit options available": sent while the offer is still open and held (else stale: nothing sent). */
-export function estimateVisitOptionsAutomation(deps: VisitNoticeDeps): Automation {
+/** The date and arrival window of a visit and its customer-facing reference (TSK-0120). */
+export function visitValues(
+  v: Parameters<typeof storedWindow>[0] & { number: number },
+  reference: string,
+): Record<string, string> {
+  return { ...visitWindowValues(storedWindow(v)), visitNumber: visitNumberOf(reference, v.number) }
+}
+
+/**
+ * #5 "Estimate-visit options available" and #11 "Work-appointment windows" (OWN-DEC-156): sent while the offer is
+ * still open and held (else stale: nothing sent), once per offer. TSK-0120: the first name, the request reference
+ * (estimate visit) or the job reference (work visit), the portal's Appointments tab and the hold's end in the visit's
+ * property zone.
+ */
+function optionsAutomation(messageKey: string, work: boolean, deps: VisitNoticeDeps): Automation {
   return notificationAutomation({
-    messageKey: OFFER_NOTICE.estimate,
+    messageKey,
     providers: deps.providers,
     resolve: async ({ tx, job }) => {
       const id = job.target.id
@@ -1078,10 +1111,10 @@ export function estimateVisitOptionsAutomation(deps: VisitNoticeDeps): Automatio
       const o = await tx
         .selectFrom('work.window_offers as o')
         .innerJoin('work.visits as v', 'v.id', 'o.visit_id')
-        .select(['o.id', 'o.project_id', 'o.state', 'o.expires_at', 'v.purpose'])
+        .select(['o.id', 'o.project_id', 'o.state', 'o.expires_at', 'v.purpose', 'v.time_zone'])
         .where('o.id', '=', id)
         .executeTakeFirst()
-      if (!o || o.state !== 'open' || isWorkVisitPurpose(o.purpose)) return 'stale'
+      if (!o || o.state !== 'open' || isWorkVisitPurpose(o.purpose) !== work) return 'stale'
       if ((await dbNow(tx)).getTime() >= new Date(o.expires_at).getTime()) return 'stale'
       const r = await requestOf(tx, o.project_id)
       if (!r) return 'stale'
@@ -1089,12 +1122,40 @@ export function estimateVisitOptionsAutomation(deps: VisitNoticeDeps): Automatio
         subjectKey: `window_offer:${o.id}`,
         record: { type: 'window_offer', id: o.id },
         recipients: [{ kind: 'customer_contact', id: r.contactId, destinations: destinationsOf(r) }],
-        // The secure project link is not supplied yet (see estimates/notify.ts); the wording is NOT CONFIGURED.
-        values: {},
+        values: present({
+          customerName: firstNameOf(r.full_name),
+          ...(work ? { jobNumber: jobNumberOf(r.reference) } : { reference: r.reference }),
+          appointmentLink: portalLink(deps.publicSiteUrl, r.reference, 'appointments'),
+          holdExpiration: instantText(new Date(o.expires_at), o.time_zone),
+          ...(work ? {} : { projectLink: portalLink(deps.publicSiteUrl, r.reference) }),
+        }),
         failureItem: { reference: r.reference, projectId: o.project_id, assignedStaffId: r.responsible_staff_id },
+        projectId: o.project_id,
       }
     },
   })
+}
+
+/** #5 "Estimate-visit options available" (OWN-DEC-99). */
+export const estimateVisitOptionsAutomation = (deps: VisitNoticeDeps) =>
+  optionsAutomation(OFFER_NOTICE.estimate, false, deps)
+/** #11 "Work-appointment windows" (OWN-DEC-156), once per published work-visit offer. */
+export const workVisitOptionsAutomation = (deps: VisitNoticeDeps) => optionsAutomation(OFFER_NOTICE.work, true, deps)
+
+/** The approved service names of a visit's job (OWN-DEC-158: the catalog names only), or null when it has none. */
+async function jobServiceNames(tx: Tx, jobId: string | null): Promise<string | null> {
+  if (!jobId) return null
+  const rows = await tx
+    .selectFrom('work.work_packages as w')
+    .innerJoin('catalog.service_versions as s', (j) =>
+      j.onRef('s.service_id', '=', 'w.service_id').onRef('s.version', '=', 'w.service_version'),
+    )
+    .select('s.name')
+    .where('w.job_id', '=', jobId)
+    .orderBy('w.position')
+    .execute()
+  const names = [...new Set(rows.map((r) => r.name))]
+  return names.length ? names.join(', ') : null
 }
 
 function confirmedAutomation(messageKey: string, work: boolean, deps: VisitNoticeDeps): Automation {
@@ -1113,9 +1174,16 @@ function confirmedAutomation(messageKey: string, work: boolean, deps: VisitNotic
         subjectKey: `visit:${v.id}`,
         record: { type: 'visit', id: v.id },
         recipients: [{ kind: 'customer_contact', id: r.contactId, destinations: destinationsOf(r) }],
-        // Customer messages are English (RULE-LANGUAGES); the project link is not supplied yet.
-        values: { visitWindow: windowText(storedWindow(v), 'en-US') },
+        // Customer messages are English (RULE-LANGUAGES). TSK-0120: the owner wording's values, from the visit as
+        // it is confirmed now (its property zone); a work appointment also names its job and approved services.
+        values: valuesFor(messageKey, {
+          customerName: firstNameOf(r.full_name),
+          ...visitValues(v, r.reference),
+          projectLink: portalLink(deps.publicSiteUrl, r.reference),
+          ...(work ? { jobNumber: jobNumberOf(r.reference), serviceName: await jobServiceNames(tx, v.job_id) } : {}),
+        }),
         failureItem: { reference: r.reference, projectId: v.project_id, assignedStaffId: r.responsible_staff_id },
+        projectId: v.project_id,
       }
     },
   })
