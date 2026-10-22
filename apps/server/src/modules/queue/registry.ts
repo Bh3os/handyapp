@@ -395,6 +395,19 @@ export const QUEUE_ITEM_TYPES = [
     screen: 'schedule',
     path: 'start-review',
   },
+  // TSK-0086 (HH-FIN-07, T59): money of a job's payments not applied to anything (an overpayment, or a deposit payment
+  // beyond the deposit) stays the customer's money for the Owner's credit or refund decision (TSK-0089 decides it).
+  // One item per job while any remains; seen by the Owner (payment.credit). Band PROPOSED.
+  {
+    id: 'unallocated_credit',
+    section: 'owner_decisions',
+    subject: 'job',
+    band: 'other',
+    view: 'payment.credit',
+    reasons: ['overpayment'],
+    action: 'decide',
+    screen: 'payments',
+  },
   {
     id: 'refund_request',
     section: 'owner_decisions',

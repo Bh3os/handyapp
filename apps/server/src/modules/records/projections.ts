@@ -542,11 +542,44 @@ type EstimateListRecord = {
   totalCents: number
   receipt: 'preparing' | 'issued' | null
 }
+// TSK-0085 (HH-PORT-10, HH-FIN-04): the issued invoices (never a draft), each current or superseded (voided and
+// reissued), its payment state, issue date, total, the balance still owed from confirmed payments and credits, any
+// pending check, and its PDF (being prepared or issued).
+const INVOICE_LIST_ITEM = object({
+  number: STRING,
+  kind: enumOf(['deposit', 'final']),
+  status: enumOf(['current', 'superseded']),
+  state: enumOf(['issued', 'partially_paid', 'paid', 'voided']),
+  issuedAt: DATE,
+  totalCents: CENTS,
+  balanceCents: CENTS,
+  pendingCents: CENTS,
+  document: enumOf(['preparing', 'issued']),
+})
+type InvoiceListRecord = {
+  number: string
+  kind: string
+  status: string
+  state: string
+  issuedAt: Date
+  totalCents: number
+  balanceCents: number
+  pendingCents: number
+  document: 'preparing' | 'issued'
+}
 const listedView = customerView(
   'project.documents',
   'Document',
-  { ...TAB_FIELDS, state: enumOf(['none', 'listed']), estimates: { type: 'array', items: ESTIMATE_LIST_ITEM } },
-  (r: TabRecord & ({ state: 'none' } | { state: 'listed'; estimates: EstimateListRecord[] })) => ({
+  {
+    ...TAB_FIELDS,
+    state: enumOf(['none', 'listed']),
+    estimates: { type: 'array', items: ESTIMATE_LIST_ITEM },
+    invoices: { type: 'array', items: INVOICE_LIST_ITEM },
+  },
+  (
+    r: TabRecord &
+      ({ state: 'none' } | { state: 'listed'; estimates: EstimateListRecord[]; invoices?: InvoiceListRecord[] }),
+  ) => ({
     ...tabHead(r),
     state: r.state,
     estimates:
@@ -559,6 +592,20 @@ const listedView = customerView(
             validUntil: e.validUntil ? e.validUntil.toISOString() : null,
             totalCents: e.totalCents,
             receipt: e.receipt,
+          }))
+        : undefined,
+    invoices:
+      r.state === 'listed'
+        ? (r.invoices ?? []).map((i) => ({
+            number: i.number,
+            kind: i.kind,
+            status: i.status,
+            state: i.state,
+            issuedAt: i.issuedAt.toISOString(),
+            totalCents: i.totalCents,
+            balanceCents: i.balanceCents,
+            pendingCents: i.pendingCents,
+            document: i.document,
           }))
         : undefined,
   }),
@@ -1134,6 +1181,34 @@ const DOWNLOAD = object({
   url: STRING,
   expiresAt: DATE,
 })
+// TSK-0085 (HH-PORT-10): the issued invoice's PDF, by the same short-lived link.
+const INVOICE_DOWNLOAD = object({
+  kind: enumOf(['invoice_pdf']),
+  contentType: STRING,
+  byteSize: { type: 'integer', minimum: 1 },
+  url: STRING,
+  expiresAt: DATE,
+})
+export const INVOICE_DOWNLOADS = customerView(
+  'invoice.downloads',
+  'Invoice',
+  { reference: STRING, number: STRING, documents: { type: 'array', items: INVOICE_DOWNLOAD } },
+  (r: {
+    reference: string
+    number: string
+    documents: readonly { kind: 'invoice_pdf'; contentType: string; byteSize: number; url: string; expiresAt: Date }[]
+  }) => ({
+    reference: r.reference,
+    number: r.number,
+    documents: r.documents.map((d) => ({
+      kind: d.kind,
+      contentType: d.contentType,
+      byteSize: d.byteSize,
+      url: d.url,
+      expiresAt: d.expiresAt.toISOString(),
+    })),
+  }),
+)
 export type DownloadRecord = {
   kind: 'estimate_pdf' | 'estimate_document'
   contentType: string
@@ -1523,6 +1598,7 @@ export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
     QUESTION_REPLY_RESULT,
     PORTAL_MESSAGE_SENT,
     DOCUMENT_DOWNLOADS,
+    INVOICE_DOWNLOADS,
     PRIVACY_REQUEST,
     PRIVACY_REQUESTS,
     PRIVACY_EXPORT,

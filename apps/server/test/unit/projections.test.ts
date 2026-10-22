@@ -108,6 +108,8 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
         'requestDeletion',
         'getCustomerDataExport',
         'getCustomerEstimateDownloads',
+        // TSK-0085: the issued invoice PDF's short-lived link.
+        'getCustomerInvoiceDownload',
       ].sort(),
     )
     for (const r of customerRoutes) {

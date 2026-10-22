@@ -361,8 +361,50 @@ export const TABLES = {
     classes: ['payment_reference'],
     categories: [F],
   },
+  // TSK-0085, TSK-0086 (migration 0077): invoices and the ledger are financial records.
+  'finance.invoices': {
+    holds: 'Invoices: kind, state, number, totals in cents, deposit credit, the issuer and payment details as issued',
+    classes: ['payment_reference'],
+    categories: [F],
+    protectedEvidence: true,
+  },
+  'finance.invoice_lines': {
+    holds: "An invoice's lines: description, quantity, unit price and amount in cents (charges and credits)",
+    classes: ['payment_reference'],
+    categories: [F],
+    protectedEvidence: true,
+  },
+  'finance.invoice_deposit_credits': {
+    holds: "The verified deposit money credited once to a job's final invoice, in cents",
+    classes: ['payment_reference'],
+    categories: [F],
+    protectedEvidence: true,
+  },
+  'finance.invoice_documents': {
+    holds: 'Issued invoice PDFs: the file reference, its SHA-256 and size, the TEST mark (files in R2)',
+    classes: ['payment_reference'],
+    categories: [F],
+    protectedEvidence: true,
+    vendors: ['r2'],
+  },
+  'finance.refunds': {
+    holds: 'Refunds, credits and write-offs: amount in cents, reason, who requested and who approved, Square refund ID',
+    classes: ['payment_reference'],
+    categories: [F],
+    protectedEvidence: true,
+  },
+  'finance.payouts': {
+    holds: 'Square payouts recorded by hand: payout ID, net amount in cents and date',
+    classes: ['payment_reference'],
+    categories: [F],
+  },
+  'finance.provider_fees': {
+    holds: 'Square fees recorded by hand: amount in cents, date, the payment or payout they belong to',
+    classes: ['payment_reference'],
+    categories: [F],
+  },
   'finance.payment_allocations': {
-    holds: "A payment's application to its job's deposit requirement, in cents",
+    holds: "A payment's application to an invoice or its job's deposit requirement, in cents",
     classes: ['payment_reference'],
     categories: [F],
     protectedEvidence: true,

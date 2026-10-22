@@ -13,6 +13,7 @@ import { cents, centsFromDecimal, formatUsd } from '@handyhub/money'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { call, idempotencyKey, setCsrfToken, type ApiErrorBody, type Fetch } from './api'
+import { JobInvoices } from './JobInvoices'
 import { codeLabel } from './Requests'
 
 type T = (key: StaffKey, values?: Record<string, string | number | Date>) => string
@@ -101,6 +102,8 @@ export function JobDepositPage({ t, fetchImpl, jobId }: { t: T; fetchImpl: Fetch
         {t('deposit.pageTitle')}
       </h1>
       <JobDeposit t={t} fetchImpl={fetchImpl} jobId={jobId} page />
+      {/* TSK-0085, TSK-0086: the job's invoices beside its deposit. */}
+      <JobInvoices t={t} fetchImpl={fetchImpl} jobId={jobId} />
     </section>
   )
 }

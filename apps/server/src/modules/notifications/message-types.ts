@@ -254,7 +254,8 @@ const TYPES: readonly MessageType[] = [
     channels: both,
     triggerEvents: ['invoice.deposit_issued'],
     variables: vars('customerName', 'invoiceNumber', 'jobNumber', 'invoiceLink'),
-    supplied: [],
+    // TSK-0085: the deposit invoice's issue supplies every value (the link: the project's Documents tab).
+    supplied: ['customerName', 'invoiceNumber', 'jobNumber', 'invoiceLink'],
     sourceIds: ['OWN-DEC-151', 'OWN-DEC-152'],
   },
   {
@@ -274,7 +275,8 @@ const TYPES: readonly MessageType[] = [
     channels: both,
     triggerEvents: ['invoice.issued'],
     variables: vars('customerName', 'invoiceNumber', 'invoiceLink', 'projectLink'),
-    supplied: [],
+    // TSK-0085: the final invoice's issue supplies every value (the invoice link: the project's Documents tab).
+    supplied: ['customerName', 'invoiceNumber', 'invoiceLink', 'projectLink'],
     sourceIds: ['OWN-DEC-110', 'OWN-DEC-209'],
   },
   {
