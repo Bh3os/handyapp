@@ -85,7 +85,7 @@ describe('queue item types (TSK-0041, HH-OPS-01)', () => {
     expect([type.subject, type.action, deepLink(type, 'v1')]).toEqual(['visit', 'release_reminder', '/schedule/v1'])
   })
 
-  it('[HH-EST-16][HH-OPS-01] estimates waiting for the Owner\'s approval are Owner Decisions, the Owner\'s alone (TSK-0130)', () => {
+  it("[HH-EST-16][HH-OPS-01] estimates waiting for the Owner's approval are Owner Decisions, the Owner's alone (TSK-0130)", () => {
     expect(visibleTypes(staff('owner'), 'owner_decisions').all).toContain('estimate_publication_approval')
     for (const role of ['office', 'estimator', 'worker'] as const) {
       const v = visibleTypes(staff(role), 'owner_decisions')

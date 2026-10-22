@@ -138,7 +138,11 @@ export type ApprovalSubject = {
   readonly adjustmentCents: number | null
   readonly revisedProjectValueCents: number | null
   /** Known costs of the offer; a category with nothing entered is null (never invented). */
-  readonly costs: { readonly laborCents: number | null; readonly materialCents: number | null; readonly complete: boolean } | null
+  readonly costs: {
+    readonly laborCents: number | null
+    readonly materialCents: number | null
+    readonly complete: boolean
+  } | null
   /** Who prepared the document (shown to the Owner; the costs follow estimate.view_internal_cost of that preparer). */
   readonly preparedBy: string
 }

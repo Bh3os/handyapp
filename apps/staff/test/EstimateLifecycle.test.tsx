@@ -119,6 +119,20 @@ describe('the lifecycle panel (TSK-0055, HH-EST-04)', () => {
     expect(screen.getByText('Resolve every reason under “Ready to publish?” first.')).toBeTruthy()
   })
 
+  it('[HH-EST-16] Publish waits for the Owner over the threshold; the Owner publishes, which records the approval', () => {
+    const waiting = { status: 'pending', actions: { publishApproves: false } }
+    renderPanel({ ...view(), ownerApproval: waiting } as View, vi.fn())
+    const button = screen.getByRole('button', { name: 'Publish' }) as HTMLButtonElement
+    expect(button.disabled).toBe(true)
+    expect(screen.getByText("Publishing waits for the Owner's approval.")).toBeTruthy()
+    cleanup()
+    renderPanel(
+      { ...view(), ownerApproval: { status: 'required', actions: { publishApproves: true } } } as View,
+      vi.fn(),
+    )
+    expect((screen.getByRole('button', { name: 'Publish' }) as HTMLButtonElement).disabled).toBe(false)
+  })
+
   it('[T26] a refusal names every reason: the role, a NOT CONFIGURED value, a line and a review hold', async () => {
     const fetchImpl = vi.fn(async () =>
       json(409, {
