@@ -377,11 +377,16 @@ const check = (
 const block = (who: Person, holdId: string, action: string, body: unknown, version: number) =>
   staffWrite(who, 'POST', `/api/v1/staff/loadout-blocks/${holdId}/actions/${action}`, body, version)
 
-/** Moves a work package to in_progress the way the Start Work transaction will (TSK-0073), then rolls it back. */
+/**
+ * Moves a work package to in_progress and rolls it back, to check the task-block backstop of migration 0063 on its
+ * own. TSK-0073 (migration 0076) added the Start Work gate's own backstop (a start needs its passing evaluation in
+ * the same transaction), covered by start-work.test.ts; it is set aside inside this rolled-back transaction only.
+ */
 async function tryStart(workPackageId: string): Promise<'started' | string> {
   const rollback = new Error('rollback')
   try {
     await t.db.transaction().execute(async (tx) => {
+      await sql`ALTER TABLE work.work_packages DISABLE TRIGGER work_packages_start_guard`.execute(tx)
       await tx.updateTable('work.work_packages').set({ state: 'in_progress' }).where('id', '=', workPackageId).execute()
       throw rollback
     })

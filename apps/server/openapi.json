@@ -20851,6 +20851,693 @@
         }
       }
     },
+    "/api/v1/staff/critical-holds/{holdId}/actions/cancel": {
+      "post": {
+        "operationId": "cancelCriticalHold",
+        "summary": "Cancel a critical safety hold entered in error",
+        "description": "Staff with hold.release_critical (the Owner), never on a critical safety hold they raised (OWN-DEC-38: never relaxed, even for a sole administrator; such a hold stays open until a second administrator exists), with the version they saw. With a fresh sign-in and the reason it was entered in error.",
+        "tags": [
+          "start"
+        ],
+        "parameters": [
+          {
+            "name": "holdId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "holdId",
+                    "kind",
+                    "state",
+                    "version",
+                    "jobId"
+                  ],
+                  "properties": {
+                    "holdId": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "jobId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "hold.release_critical",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": 5,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "hold.cancel_critical",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/start-work.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/critical-holds/{holdId}/actions/resolve": {
+      "post": {
+        "operationId": "resolveCriticalHold",
+        "summary": "Release a critical safety hold with its evidence",
+        "description": "Staff with hold.release_critical (the Owner), never on a critical safety hold they raised (OWN-DEC-38: never relaxed, even for a sole administrator; such a hold stays open until a second administrator exists), with the version they saw. With a fresh sign-in. Releases a hold under review only with how it was resolved, the resolution evidence, the reviewer who assessed it and their qualification (a qualified person where the hazard needs one; the software records it and does not judge competence). Resuming work still needs the gate again.",
+        "tags": [
+          "start"
+        ],
+        "parameters": [
+          {
+            "name": "holdId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "resolutionNote",
+                  "evidence",
+                  "reviewer",
+                  "reviewerQualification"
+                ],
+                "properties": {
+                  "resolutionNote": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "pattern": "\\S"
+                  },
+                  "evidence": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "pattern": "\\S"
+                  },
+                  "reviewer": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "\\S"
+                  },
+                  "reviewerQualification": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "holdId",
+                    "kind",
+                    "state",
+                    "version",
+                    "jobId"
+                  ],
+                  "properties": {
+                    "holdId": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "jobId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "hold.release_critical",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": 5,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "hold.release_critical",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/start-work.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/critical-holds/{holdId}/actions/start-review": {
+      "post": {
+        "operationId": "startCriticalHoldReview",
+        "summary": "Start the review of a critical safety hold",
+        "description": "Staff with hold.release_critical (the Owner), never on a critical safety hold they raised (OWN-DEC-38: never relaxed, even for a sole administrator; such a hold stays open until a second administrator exists), with the version they saw. Starts the review of an open critical safety hold; it keeps blocking.",
+        "tags": [
+          "start"
+        ],
+        "parameters": [
+          {
+            "name": "holdId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "holdId",
+                    "kind",
+                    "state",
+                    "version",
+                    "jobId"
+                  ],
+                  "properties": {
+                    "holdId": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "jobId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "hold.release_critical",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "hold.start_review",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/start-work.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/customer-links/{linkId}/reverse": {
       "post": {
         "operationId": "reverseRecordLink",
@@ -61101,6 +61788,231 @@
         }
       }
     },
+    "/api/v1/staff/job-holds/{holdId}/actions/set-ready": {
+      "post": {
+        "operationId": "setJobHoldReady",
+        "summary": "Set Ready on a job-level Hold / Ready note",
+        "description": "Staff with job_hold.set_ready (the Owner), with the version they saw. Sets Ready on any job-level Hold / Ready note, including one the Owner set (OWN-DEC-137), with a note recording how the requirement was resolved; the Owner is recorded as the reviewer. Never a critical safety hold, a review hold or a task block (NOT_FOUND here): those have their own documented paths.",
+        "tags": [
+          "start"
+        ],
+        "parameters": [
+          {
+            "name": "holdId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "resolutionNote"
+                ],
+                "properties": {
+                  "resolutionNote": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "holdId",
+                    "kind",
+                    "state",
+                    "version",
+                    "jobId"
+                  ],
+                  "properties": {
+                    "holdId": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "jobId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job_hold.set_ready",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "job_hold.set_ready",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/start-work.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/jobs/{jobId}/deposit": {
       "get": {
         "operationId": "getJobDeposit",
@@ -63216,6 +64128,224 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/deposits.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/jobs/{jobId}/job-holds": {
+      "post": {
+        "operationId": "setJobHold",
+        "summary": "Set the job-level Hold with a note",
+        "description": "Staff with job_hold.set (the Owner; Office and the Estimator, PROPOSED cells). Puts the job on Hold with a note naming the unresolved requirement (OWN-DEC-82: no license or credential module; licenses and permits are checked by the Owner outside the software) and its category. Written under the job lock: while it blocks, the job's visits cannot be confirmed and work cannot start. Only the Owner sets Ready, with a note. The packet gets a new version (a critical change: every assigned worker reviews it again).",
+        "tags": [
+          "start"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "category",
+                  "note"
+                ],
+                "properties": {
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "permit_licensing",
+                      "licensed_trade",
+                      "structural",
+                      "hazardous_material",
+                      "site_condition",
+                      "other"
+                    ]
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "holdId",
+                    "kind",
+                    "state",
+                    "version",
+                    "jobId"
+                  ],
+                  "properties": {
+                    "holdId": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "jobId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job_hold.set",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "job_hold.set",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/start-work.test.ts"
         }
       }
     },
@@ -66640,6 +67770,532 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/job-packets.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/jobs/{jobId}/start-review": {
+      "get": {
+        "operationId": "getStartReview",
+        "summary": "A job's holds and Start Work exceptions",
+        "description": "Staff with job_hold.set (the Owner; Office and the Estimator, PROPOSED cells). The holds of the job that block Start Work (job-level Hold / Ready notes, critical safety holds, intake review holds) open or under review, and the ones resolved or cancelled, with the actions the caller may take: the Owner sets Ready on any job-level note (including one the Owner set) and reviews, resolves or cancels a critical safety hold they did not raise. For the Owner (work.approve_exception) also every exception of the job with its reason, evidence, where it stands, its follow-up (a pending upload or reconciliation stays open until resolved) and the Owner's actions; nobody else sees exceptions here.",
+        "tags": [
+          "start"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "projectReference",
+                    "jobState",
+                    "holds",
+                    "exceptions",
+                    "followUpOwners",
+                    "actions"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "projectReference": {
+                      "type": "string"
+                    },
+                    "jobState": {
+                      "type": "string"
+                    },
+                    "holds": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "holdId",
+                          "kind",
+                          "category",
+                          "source",
+                          "state",
+                          "version",
+                          "note",
+                          "raisedBy",
+                          "raisedAt",
+                          "resolutionNote",
+                          "reviewer",
+                          "resolvedAt",
+                          "actions"
+                        ],
+                        "properties": {
+                          "holdId": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "review",
+                              "job_requirement",
+                              "critical_safety"
+                            ]
+                          },
+                          "category": {
+                            "type": "string"
+                          },
+                          "source": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string"
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "note": {
+                            "type": "string"
+                          },
+                          "raisedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "raisedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "resolutionNote": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "reviewer": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "resolvedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "actions": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "setReady",
+                              "startReview",
+                              "resolve",
+                              "cancel"
+                            ],
+                            "properties": {
+                              "setReady": {
+                                "type": "boolean"
+                              },
+                              "startReview": {
+                                "type": "boolean"
+                              },
+                              "resolve": {
+                                "type": "boolean"
+                              },
+                              "cancel": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "exceptions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "visitId",
+                          "visitNumber",
+                          "kind",
+                          "requirement",
+                          "state",
+                          "ending",
+                          "reason",
+                          "evidence",
+                          "requestedBy",
+                          "requestedAt",
+                          "decidedBy",
+                          "decidedAt",
+                          "decisionNote",
+                          "followUpOwner",
+                          "followUpDue",
+                          "followUp",
+                          "version",
+                          "actions"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "visitId": {
+                            "type": "string"
+                          },
+                          "visitNumber": {
+                            "type": "integer"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "customer_not_present",
+                              "before_photo_upload_failed",
+                              "deposit_bookkeeping_pending"
+                            ]
+                          },
+                          "requirement": {
+                            "type": "string",
+                            "enum": [
+                              "assignment",
+                              "site_identity",
+                              "scope_acknowledged",
+                              "sop_language",
+                              "job_holds",
+                              "safety_holds",
+                              "critical_resources",
+                              "site_condition",
+                              "before_photos",
+                              "deposit"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "requested",
+                              "approved",
+                              "declined",
+                              "invalidated",
+                              "expired"
+                            ]
+                          },
+                          "ending": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "visit_ended",
+                              "scope_changed",
+                              "site_changed",
+                              "access_changed",
+                              "assignment_changed",
+                              null
+                            ]
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "evidence": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "authorization": {
+                                "type": "string"
+                              },
+                              "contact": {
+                                "type": "string"
+                              },
+                              "workPackageIds": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "photosOnDevice": {
+                                "type": "integer"
+                              },
+                              "failure": {
+                                "type": "string"
+                              },
+                              "provider": {
+                                "type": "string"
+                              },
+                              "transactionReference": {
+                                "type": "string"
+                              },
+                              "amountCents": {
+                                "type": "integer"
+                              }
+                            }
+                          },
+                          "requestedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "requestedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "decidedBy": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "decidedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "decisionNote": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "followUpOwner": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "followUpDue": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "followUp": {
+                            "type": "string",
+                            "enum": [
+                              "none",
+                              "open",
+                              "resolved"
+                            ]
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "actions": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "approve",
+                              "decline"
+                            ],
+                            "properties": {
+                              "approve": {
+                                "type": "boolean"
+                              },
+                              "decline": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "followUpOwners": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "setHold"
+                      ],
+                      "properties": {
+                        "setHold": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job_hold.set",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/start-work.test.ts"
         }
       }
     },
@@ -86838,6 +88494,7 @@
                 "deposit_due",
                 "visit_flagged",
                 "loadout_shortage",
+                "job_hold",
                 "property_time_zone",
                 "deposit_waiver",
                 "start_work_exception",
@@ -86969,6 +88626,7 @@
                               "deposit_due",
                               "visit_flagged",
                               "loadout_shortage",
+                              "job_hold",
                               "property_time_zone",
                               "deposit_waiver",
                               "start_work_exception",
@@ -87190,7 +88848,8 @@
                               "review_deposit",
                               "reassign_visit",
                               "review_shortage",
-                              "verify_time_zone"
+                              "verify_time_zone",
+                              "review_job_hold"
                             ]
                           },
                           "link": {
@@ -87249,6 +88908,7 @@
                           "deposit_due",
                           "visit_flagged",
                           "loadout_shortage",
+                          "job_hold",
                           "property_time_zone",
                           "deposit_waiver",
                           "start_work_exception",
@@ -87400,6 +89060,7 @@
                 "deposit_due",
                 "visit_flagged",
                 "loadout_shortage",
+                "job_hold",
                 "property_time_zone",
                 "deposit_waiver",
                 "start_work_exception",
@@ -87531,6 +89192,7 @@
                               "deposit_due",
                               "visit_flagged",
                               "loadout_shortage",
+                              "job_hold",
                               "property_time_zone",
                               "deposit_waiver",
                               "start_work_exception",
@@ -87752,7 +89414,8 @@
                               "review_deposit",
                               "reassign_visit",
                               "review_shortage",
-                              "verify_time_zone"
+                              "verify_time_zone",
+                              "review_job_hold"
                             ]
                           },
                           "link": {
@@ -87811,6 +89474,7 @@
                           "deposit_due",
                           "visit_flagged",
                           "loadout_shortage",
+                          "job_hold",
                           "property_time_zone",
                           "deposit_waiver",
                           "start_work_exception",
@@ -99996,6 +101660,470 @@
         }
       }
     },
+    "/api/v1/staff/start-exceptions/{exceptionId}/actions/approve": {
+      "post": {
+        "operationId": "approveStartException",
+        "summary": "Approve a Start Work exception",
+        "description": "Staff with work.approve_exception (the Owner) with a fresh sign-in and the version they saw; never the person who requested it (OWN_REQUEST). Approves one requested exception for its one requirement, job and visit, naming the follow-up owner and deadline; a deposit exception needs providerVerified: true, the Owner's statement that the provider's own records show the payment and its reference. Refused once it ended (the visit ended, or a relevant change in scope, site, access or assignment since the request). It is listed in the review queue while its follow-up (pending upload or reconciliation) is open. An approval never covers a hold, a safety, legal, qualification, scope, authorization or access requirement.",
+        "tags": [
+          "start"
+        ],
+        "parameters": [
+          {
+            "name": "exceptionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "followUpOwnerId",
+                  "followUpDue"
+                ],
+                "properties": {
+                  "followUpOwnerId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                  },
+                  "followUpDue": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  },
+                  "providerVerified": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "exceptionId",
+                    "kind",
+                    "state",
+                    "version"
+                  ],
+                  "properties": {
+                    "exceptionId": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "customer_not_present",
+                        "before_photo_upload_failed",
+                        "deposit_bookkeeping_pending"
+                      ]
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "work.approve_exception",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": 5,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "work.approve_exception",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/start-work.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/start-exceptions/{exceptionId}/actions/decline": {
+      "post": {
+        "operationId": "declineStartException",
+        "summary": "Decline a Start Work exception",
+        "description": "Staff with work.approve_exception (the Owner), with a reason and the version they saw; never the requester.",
+        "tags": [
+          "start"
+        ],
+        "parameters": [
+          {
+            "name": "exceptionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "exceptionId",
+                    "kind",
+                    "state",
+                    "version"
+                  ],
+                  "properties": {
+                    "exceptionId": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "customer_not_present",
+                        "before_photo_upload_failed",
+                        "deposit_bookkeeping_pending"
+                      ]
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "work.approve_exception",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "work.decline_exception",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/start-work.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/system/configuration": {
       "get": {
         "operationId": "getSystemConfiguration",
@@ -103657,6 +105785,255 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/my-day.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/visits/{visitId}/before-photos": {
+      "post": {
+        "operationId": "uploadBeforePhoto",
+        "summary": "Upload one before photo of a work package",
+        "description": "Staff with job.add_photo, assigned to this arrived visit. Raw JPEG, PNG or WebP bytes for the work package in the query (a package of the visit's job). Checked like request photos (the real content, the declared type and the size against uploads.limits; NOT CONFIGURED limits or storage answer UNAVAILABLE), stored once under an opaque key in the private bucket, internal, never shown to the customer here. The same bytes again for the same package answer the same photo (200). PROPOSED: at least one per work package of the job, on this visit, before Start Work (field photos, TSK-0076, add processing, sharing and after photos).",
+        "tags": [
+          "start"
+        ],
+        "parameters": [
+          {
+            "name": "visitId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "workPackageId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "deviceCapturedAt",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/png": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/webp": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "photoId",
+                    "workPackageId",
+                    "uploadedAt",
+                    "created"
+                  ],
+                  "properties": {
+                    "photoId": {
+                      "type": "string"
+                    },
+                    "workPackageId": {
+                      "type": "string"
+                    },
+                    "uploadedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "created": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "photoId",
+                    "workPackageId",
+                    "uploadedAt",
+                    "created"
+                  ],
+                  "properties": {
+                    "photoId": {
+                      "type": "string"
+                    },
+                    "workPackageId": {
+                      "type": "string"
+                    },
+                    "uploadedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "created": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job.add_photo",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "before-photo-upload",
+            "limit": 120,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "work.before_photo",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/start-work.test.ts"
         }
       }
     },
@@ -111970,6 +114347,1392 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/appointment-reminders.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/visits/{visitId}/site-checks": {
+      "post": {
+        "operationId": "recordStartSiteCheck",
+        "summary": "Record the worker's site check before Start Work",
+        "description": "Staff with job.record_checklist_step, assigned to this arrived visit: their own answers: the property and site identified, access available, the customer (or authorized representative) present, the hazards and controls of the packet reviewed, and the site as the packet describes it or different (a note saying what differs is required). A difference raises a job-level Hold with that note in the same transaction, under the job lock: the job cannot be confirmed or started until the Owner sets Ready with a note. The latest check of a worker counts; it never clears a hold. ARRIVED_FIRST before the visit arrived. If anything is unsafe: stop, keep people away, call; emergencies call 911 at once.",
+        "tags": [
+          "start"
+        ],
+        "parameters": [
+          {
+            "name": "visitId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "propertyConfirmed",
+                  "accessAvailable",
+                  "customerPresent",
+                  "hazardsReviewed",
+                  "siteCondition"
+                ],
+                "properties": {
+                  "propertyConfirmed": {
+                    "type": "boolean"
+                  },
+                  "accessAvailable": {
+                    "type": "boolean"
+                  },
+                  "customerPresent": {
+                    "type": "boolean"
+                  },
+                  "hazardsReviewed": {
+                    "type": "boolean"
+                  },
+                  "siteCondition": {
+                    "type": "string",
+                    "enum": [
+                      "as_described",
+                      "differs"
+                    ]
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "siteCheckId",
+                    "recordedAt",
+                    "holdId"
+                  ],
+                  "properties": {
+                    "siteCheckId": {
+                      "type": "string"
+                    },
+                    "recordedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "holdId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job.record_checklist_step",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "work.site_check",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/start-work.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/visits/{visitId}/start": {
+      "post": {
+        "operationId": "startWork",
+        "summary": "Start Work (contracted work started)",
+        "description": "Staff with work.start, assigned to this visit, online. One transaction under the visit's and the job's row locks: the packet is brought up to date and every prerequisite and exception is evaluated again, and the evaluation is recorded whatever its outcome. `packetVersion` is the version the caller's briefing showed; a newer one refuses the start (PACKET_CHANGED_SINCE_VIEWED). Anything missing refuses it with CONFLICT naming every missing item (field gate.<prerequisite>, code), after recording the evaluation. A ready evaluation records the start (actual contracted work started, OWN-DEC-195) with the packet, scope and SOP versions, the acknowledgment, any approved exception and the server time, and moves the job and its planned or ready work packages to in_progress. No role, flag or field skips any of it; the database refuses a start without its passing evaluation, and while any review, job-level or critical safety hold is open.",
+        "tags": [
+          "start"
+        ],
+        "parameters": [
+          {
+            "name": "visitId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "packetVersion"
+                ],
+                "properties": {
+                  "packetVersion": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "started",
+                    "startId",
+                    "startedAt",
+                    "evaluationId",
+                    "jobState",
+                    "jobStateBefore",
+                    "packetVersion",
+                    "scopeVersion",
+                    "sopVersionIds",
+                    "acknowledgmentId",
+                    "exceptionIds",
+                    "workPackagesStarted"
+                  ],
+                  "properties": {
+                    "started": {
+                      "type": "boolean"
+                    },
+                    "startId": {
+                      "type": "string"
+                    },
+                    "startedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "evaluationId": {
+                      "type": "string"
+                    },
+                    "jobState": {
+                      "type": "string"
+                    },
+                    "jobStateBefore": {
+                      "type": "string"
+                    },
+                    "packetVersion": {
+                      "type": "integer"
+                    },
+                    "scopeVersion": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "sopVersionIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "acknowledgmentId": {
+                      "type": "string"
+                    },
+                    "exceptionIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "workPackagesStarted": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "work.start",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "work.start",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/start-work.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/visits/{visitId}/start-exceptions": {
+      "post": {
+        "operationId": "requestStartException",
+        "summary": "Request an administrative Start Work exception",
+        "description": "Staff with work.request_exception (a worker assigned to this visit, on the way or arrived). Exactly one of the three exceptions of OWN-DEC-68, with a reason and its evidence: customer_not_present (how the customer authorized unattended access, and the contact who is reachable; the scope must be accepted and the access instructions recorded, and the worker records the site check first: the site inspection and safety checks are never deferred, only the walkthrough), before_photo_upload_failed (the work packages whose photos are captured and still on the device, how many, and the failure; missing capture is never excepted) or deposit_bookkeeping_pending (the provider, the transaction reference and the amount in cents, at least the deposit due; a statement or screenshot is not enough: the Owner verifies it in the provider). Refused (CONFLICT) unless the records show that one requirement missing now; one live request per kind and visit. It covers one requirement, one job and one visit, and ends with the visit or a relevant change. Any other kind is refused (VALIDATION_FAILED): no fourth exception exists, and safety, legal, qualification, scope, authorization and access are never excepted. The Owner decides it from the review queue.",
+        "tags": [
+          "start"
+        ],
+        "parameters": [
+          {
+            "name": "visitId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "kind",
+                      "reason",
+                      "evidence"
+                    ],
+                    "properties": {
+                      "kind": {
+                        "const": "customer_not_present"
+                      },
+                      "reason": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "pattern": "\\S"
+                      },
+                      "evidence": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "authorization",
+                          "contact"
+                        ],
+                        "properties": {
+                          "authorization": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1000,
+                            "pattern": "\\S"
+                          },
+                          "contact": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 300,
+                            "pattern": "\\S"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "kind",
+                      "reason",
+                      "evidence"
+                    ],
+                    "properties": {
+                      "kind": {
+                        "const": "before_photo_upload_failed"
+                      },
+                      "reason": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "pattern": "\\S"
+                      },
+                      "evidence": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "workPackageIds",
+                          "photosOnDevice",
+                          "failure"
+                        ],
+                        "properties": {
+                          "workPackageIds": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 26,
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                            }
+                          },
+                          "photosOnDevice": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 500
+                          },
+                          "failure": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1000,
+                            "pattern": "\\S"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "kind",
+                      "reason",
+                      "evidence"
+                    ],
+                    "properties": {
+                      "kind": {
+                        "const": "deposit_bookkeeping_pending"
+                      },
+                      "reason": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "pattern": "\\S"
+                      },
+                      "evidence": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "provider",
+                          "transactionReference",
+                          "amountCents"
+                        ],
+                        "properties": {
+                          "provider": {
+                            "type": "string",
+                            "enum": [
+                              "square"
+                            ]
+                          },
+                          "transactionReference": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "pattern": "\\S"
+                          },
+                          "amountCents": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100000000
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "exceptionId",
+                    "kind",
+                    "state",
+                    "version"
+                  ],
+                  "properties": {
+                    "exceptionId": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "customer_not_present",
+                        "before_photo_upload_failed",
+                        "deposit_bookkeeping_pending"
+                      ]
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "work.request_exception",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "work.request_exception",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/start-work.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/visits/{visitId}/start-gate": {
+      "get": {
+        "operationId": "getStartGate",
+        "summary": "The Start Work gate of a visit, for the caller",
+        "description": "Staff with work.start (the Owner and workers assigned to this visit, through the gate, never bypassed). The server's own evaluation of every Start Work prerequisite (HH-WORK-01) for the caller, in order: assignment and arrival, site identity and access, the scope and packet viewed at its latest version and personally acknowledged, the SOP (and, for a Spanish-reading worker, its Spanish safety text released as AI-reviewed), job-level and review holds, critical safety holds and hazards reviewed, critical resources, the site condition, before photos and the deposit. Each missing item has its code, what it is about, its weight and its resolution owner, and the one administrative exception that may cover it, if any. Outcome: ready, needs_attention, requires_review or blocked. This answer authorizes nothing: Start Work checks everything again. Always carries the emergency call (tel:911). No query: no flag changes what is checked.",
+        "tags": [
+          "start"
+        ],
+        "parameters": [
+          {
+            "name": "visitId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "visitId",
+                    "visitNumber",
+                    "visitState",
+                    "jobId",
+                    "projectReference",
+                    "checkedAt",
+                    "outcome",
+                    "items",
+                    "packet",
+                    "workPackages",
+                    "siteCheck",
+                    "exceptions",
+                    "started",
+                    "emergency",
+                    "actions"
+                  ],
+                  "properties": {
+                    "visitId": {
+                      "type": "string"
+                    },
+                    "visitNumber": {
+                      "type": "integer"
+                    },
+                    "visitState": {
+                      "type": "string"
+                    },
+                    "jobId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "projectReference": {
+                      "type": "string"
+                    },
+                    "checkedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "ready",
+                        "needs_attention",
+                        "requires_review",
+                        "blocked"
+                      ]
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "item",
+                          "state",
+                          "missing"
+                        ],
+                        "properties": {
+                          "item": {
+                            "type": "string",
+                            "enum": [
+                              "assignment",
+                              "site_identity",
+                              "scope_acknowledged",
+                              "sop_language",
+                              "job_holds",
+                              "safety_holds",
+                              "critical_resources",
+                              "site_condition",
+                              "before_photos",
+                              "deposit"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "met",
+                              "missing",
+                              "excepted"
+                            ]
+                          },
+                          "missing": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "code",
+                                "ref",
+                                "severity",
+                                "resolutionOwner",
+                                "exceptable",
+                                "exceptionId"
+                              ],
+                              "properties": {
+                                "code": {
+                                  "type": "string",
+                                  "enum": [
+                                    "NOT_ASSIGNED",
+                                    "NOT_WORK_VISIT",
+                                    "VISIT_NOT_ACTIVE",
+                                    "ARRIVED_FIRST",
+                                    "ALREADY_STARTED",
+                                    "JOB_NOT_STARTABLE",
+                                    "SITE_CHECK_MISSING",
+                                    "PROPERTY_NOT_CONFIRMED",
+                                    "ACCESS_NOT_AVAILABLE",
+                                    "CUSTOMER_NOT_PRESENT",
+                                    "SCOPE_NOT_ACCEPTED",
+                                    "PACKET_NOT_VIEWED",
+                                    "PACKET_CHANGED_SINCE_VIEWED",
+                                    "PACKET_NOT_ACKNOWLEDGED",
+                                    "PACKET_ACKNOWLEDGMENT_ENDED",
+                                    "SOP_NOT_CONFIGURED",
+                                    "SOP_PENDING_COMPETENT_REVIEW",
+                                    "SPANISH_SAFETY_REVIEW_PENDING",
+                                    "JOB_ON_HOLD",
+                                    "REVIEW_HOLD_OPEN",
+                                    "CRITICAL_HOLD_OPEN",
+                                    "HAZARDS_NOT_REVIEWED",
+                                    "LOADOUT_BLOCKED",
+                                    "LOADOUT_NOT_CONFIRMED",
+                                    "LOADOUT_NOT_CONFIGURED",
+                                    "SITE_CONDITION_NOT_REVIEWED",
+                                    "SITE_CONDITION_DIFFERS",
+                                    "BEFORE_PHOTOS_MISSING",
+                                    "DEPOSIT_REQUIRED",
+                                    "DEPOSIT_REQUIREMENT_MISSING"
+                                  ]
+                                },
+                                "ref": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "severity": {
+                                  "type": "string",
+                                  "enum": [
+                                    "attention",
+                                    "review",
+                                    "blocked"
+                                  ]
+                                },
+                                "resolutionOwner": {
+                                  "type": "string",
+                                  "enum": [
+                                    "worker",
+                                    "owner",
+                                    "office"
+                                  ]
+                                },
+                                "exceptable": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "enum": [
+                                    "customer_not_present",
+                                    "before_photo_upload_failed",
+                                    "deposit_bookkeeping_pending",
+                                    null
+                                  ]
+                                },
+                                "exceptionId": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "packet": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "version",
+                        "contentSha256"
+                      ],
+                      "properties": {
+                        "version": {
+                          "type": "integer"
+                        },
+                        "contentSha256": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "workPackages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "workPackageId",
+                          "serviceCode",
+                          "beforePhotos"
+                        ],
+                        "properties": {
+                          "workPackageId": {
+                            "type": "string"
+                          },
+                          "serviceCode": {
+                            "type": "string"
+                          },
+                          "beforePhotos": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "siteCheck": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "propertyConfirmed",
+                        "accessAvailable",
+                        "customerPresent",
+                        "hazardsReviewed",
+                        "siteCondition",
+                        "holdId",
+                        "holdState",
+                        "packetVersion",
+                        "recordedAt"
+                      ],
+                      "properties": {
+                        "propertyConfirmed": {
+                          "type": "boolean"
+                        },
+                        "accessAvailable": {
+                          "type": "boolean"
+                        },
+                        "customerPresent": {
+                          "type": "boolean"
+                        },
+                        "hazardsReviewed": {
+                          "type": "boolean"
+                        },
+                        "siteCondition": {
+                          "type": "string",
+                          "enum": [
+                            "as_described",
+                            "differs"
+                          ]
+                        },
+                        "holdId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "holdState": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "packetVersion": {
+                          "type": "integer"
+                        },
+                        "recordedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "exceptions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "kind",
+                          "requirement",
+                          "state",
+                          "ending",
+                          "reason",
+                          "requestedBy",
+                          "requestedAt",
+                          "decidedAt",
+                          "followUpDue",
+                          "version"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "customer_not_present",
+                              "before_photo_upload_failed",
+                              "deposit_bookkeeping_pending"
+                            ]
+                          },
+                          "requirement": {
+                            "type": "string",
+                            "enum": [
+                              "assignment",
+                              "site_identity",
+                              "scope_acknowledged",
+                              "sop_language",
+                              "job_holds",
+                              "safety_holds",
+                              "critical_resources",
+                              "site_condition",
+                              "before_photos",
+                              "deposit"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "requested",
+                              "approved",
+                              "declined",
+                              "invalidated",
+                              "expired"
+                            ]
+                          },
+                          "ending": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "visit_ended",
+                              "scope_changed",
+                              "site_changed",
+                              "access_changed",
+                              "assignment_changed",
+                              null
+                            ]
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "requestedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "requestedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "decidedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "followUpDue": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "version": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "started": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "startId",
+                        "startedAt"
+                      ],
+                      "properties": {
+                        "startId": {
+                          "type": "string"
+                        },
+                        "startedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "emergency": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "call911"
+                      ],
+                      "properties": {
+                        "call911": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "start",
+                        "recordSiteCheck",
+                        "uploadBeforePhotos",
+                        "requestException"
+                      ],
+                      "properties": {
+                        "start": {
+                          "type": "boolean"
+                        },
+                        "recordSiteCheck": {
+                          "type": "boolean"
+                        },
+                        "uploadBeforePhotos": {
+                          "type": "boolean"
+                        },
+                        "requestException": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "customer_not_present",
+                              "before_photo_upload_failed",
+                              "deposit_bookkeeping_pending"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "work.start",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/start-work.test.ts"
         }
       }
     },

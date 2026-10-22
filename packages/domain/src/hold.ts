@@ -28,6 +28,28 @@ export const BLOCKING_HOLD_STATES = ['open', 'under_review'] as const satisfies 
  * holds and task blocks are added by the scheduling and field-work tasks to the same table.
  */
 export const HOLD_KINDS = ['review', 'job_requirement', 'critical_safety', 'task_block'] as const
+
+/**
+ * The kinds of hold that block Start Work of the whole job while they block (TSK-0073; HH-WORK-01 items 5 and 6): the
+ * same kinds that block confirmation. A task block blocks Start Work of its own work package (HH-PKT-06), read through
+ * the loadout. Migration 0076 checks the same kinds in the database.
+ */
+export const START_BLOCKING_HOLD_KINDS = [
+  'review',
+  'job_requirement',
+  'critical_safety',
+] as const satisfies readonly HoldKind[]
+
+/** TSK-0074: the categories of a job-level Hold / Ready note (an unresolved requirement, OWN-DEC-82; PROPOSED). */
+export const JOB_HOLD_CATEGORIES = [
+  'permit_licensing',
+  'licensed_trade',
+  'structural',
+  'hazardous_material',
+  'site_condition',
+  'other',
+] as const
+export type JobHoldCategory = (typeof JOB_HOLD_CATEGORIES)[number]
 export type HoldKind = (typeof HOLD_KINDS)[number]
 
 /**
@@ -67,6 +89,9 @@ export type HoldFacts = {
   readonly reviewer?: string
   /** Why the hold was entered in error. */
   readonly reason?: string
+  /** TSK-0074 (HH-WORK-02): a critical safety hold's resolution evidence and the reviewer's qualification. */
+  readonly evidence?: string
+  readonly reviewerQualification?: string
 }
 
 type G = Guard<HoldFacts>
@@ -86,6 +111,20 @@ const notOwnCritical: G = (f) => {
     : null
 }
 
+/**
+ * TSK-0074 (HH-WORK-02): a critical safety hold is released only with recorded resolution evidence and the reviewer who
+ * assessed it, with their qualification (a qualified person where the hazard needs one; the software records it, it
+ * does not judge competence, RULE-HUMAN-REVIEW).
+ */
+const criticalEvidence: G = (f) => {
+  if (f.kind !== 'critical_safety') return null
+  if (typeof f.evidence !== 'string' || f.evidence.trim() === '')
+    return { code: 'EVIDENCE_REQUIRED', message: 'Record the resolution evidence.' }
+  if (typeof f.reviewerQualification !== 'string' || f.reviewerQualification.trim() === '')
+    return { code: 'QUALIFICATION_REQUIRED', message: "State the reviewer's qualification." }
+  return null
+}
+
 export const HOLD_MACHINE = defineMachine({
   entity: 'hold',
   dimension: 'lifecycle',
@@ -100,7 +139,7 @@ export const HOLD_MACHINE = defineMachine({
       from: ['under_review'],
       to: 'resolved',
       actors: ['staff'],
-      guards: [resolution, reviewer, notOwnCritical],
+      guards: [resolution, reviewer, criticalEvidence, notOwnCritical],
       effects: ['queue.hold_item_sync'],
     },
     {

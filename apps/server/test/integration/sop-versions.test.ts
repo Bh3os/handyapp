@@ -397,11 +397,12 @@ describe('[HH-PKT-03][T43] the approval pins the current SOP version on each wor
     expect(body.sop).toBeNull()
     expect(body.readiness).toEqual({ ok: false, blockers: ['SOP_NOT_CONFIGURED'], pendingReviewBanner: false })
     expect(body.actions.signOff).toBe(false)
-    // The database refuses a ready, started or complete package without a pinned SOP version.
+    // The database refuses a ready, started or complete package without a pinned SOP version. TSK-0073 (migration
+    // 0076): a start is refused even earlier without its passing Start Work evaluation in the same transaction.
     for (const state of ['ready', 'in_progress', 'complete'])
       await expect(
         sql`UPDATE work.work_packages SET state = ${state} WHERE id = ${pt().id}`.execute(t.db),
-      ).rejects.toThrow(/work_packages_sop_before_ready/)
+      ).rejects.toThrow(state === 'in_progress' ? /only through the Start Work gate/ : /work_packages_sop_before_ready/)
   })
 
   it('[OWN-DEC-17] production needs the competent-review sign-off: pending review blocks there', async () => {
