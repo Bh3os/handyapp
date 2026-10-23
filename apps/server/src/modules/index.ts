@@ -26,6 +26,7 @@ import { accountsModule } from './accounts/index.js'
 import { auditModule } from './audit/index.js'
 import { capacityModule } from './capacity/index.js'
 import { casesModule } from './cases/index.js'
+import { qualityModule } from './quality/index.js'
 import { portalModule } from './portal/index.js'
 import { questionsModule } from './questions/index.js'
 import { SITE_MODULE } from './site/index.js'
@@ -161,6 +162,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     // TSK-0093: cases (complaints, incidents, damage, injury and disputes), their restricted section and the customer's
     // released updates.
     casesModule({ storage: deps.storage ?? null }),
+    // TSK-0084: the Owner's quality review of every job, punch items, corrections and re-checks.
+    qualityModule(),
     // TSK-0142: the launch phase and its switches (the Owner moves it, with a recorded approval; phase 1 by default).
     launchModule({ environment: deps.environment ?? 'local', gate: deps.launchGate ?? null }),
   ]

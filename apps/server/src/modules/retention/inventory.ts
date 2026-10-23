@@ -736,6 +736,26 @@ export const TABLES = {
     classes: ['logs_audit'],
     categories: [J, S],
   },
+  // TSK-0084 (0082): the Owner's quality review of each job and its punch items are job records.
+  'quality.reviews': {
+    holds:
+      "The Owner's quality review of each job: state, reviewer, self-review flag, the result for scope, checklist, " +
+      'before/after evidence and walkthrough, the reviewer note and the times',
+    classes: ['request_details'],
+    categories: [J],
+  },
+  'quality.punch_items': {
+    holds:
+      'Punch items found at review: work package or area, kind and severity, description, required correction ' +
+      'evidence, assignee, due date, linked safety hold, the correction note and the re-check, with who and when',
+    classes: ['request_details'],
+    categories: [J],
+  },
+  'quality.review_events': {
+    holds: 'The history of each quality review and punch item: every state change with who, when and the note given',
+    classes: ['logs_audit'],
+    categories: [J],
+  },
   'staging.environment_marks': {
     holds: 'Which environments identified themselves on this database (staging, local, ci or production) and when',
     classes: ['configuration'],

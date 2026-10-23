@@ -18,6 +18,7 @@ import { SOP_VERSION_MACHINE } from './sop.js'
 import { WINDOW_OFFER_MACHINE } from './window-offer.js'
 import { GATE_EXCEPTION_MACHINE } from './start-gate.js'
 import { COMPLAINT_CASE_MACHINE, INCIDENT_CASE_MACHINE } from './case.js'
+import { PUNCH_ITEM_MACHINE, QUALITY_REVIEW_MACHINE } from './quality-review.js'
 
 export const PACKAGE_NAME = '@handyhub/domain'
 
@@ -276,6 +277,9 @@ export const MACHINES = {
   // TSK-0093: the two case lifecycles of ENT-Case.
   'complaint_case.lifecycle': COMPLAINT_CASE_MACHINE,
   'incident_case.lifecycle': INCIDENT_CASE_MACHINE,
+  // TSK-0084: the Owner's quality review and its punch items.
+  'quality_review.lifecycle': QUALITY_REVIEW_MACHINE,
+  'punch_item.lifecycle': PUNCH_ITEM_MACHINE,
 } as const
 export type MachineKey = keyof typeof MACHINES
 type M<K extends MachineKey> = (typeof MACHINES)[K]
@@ -386,5 +390,7 @@ export type {
   ReferralProfessional,
   ReviewArea,
 } from './case.js'
+// TSK-0084 (HH-QA-02, HH-QA-04, ENT-QAInspection, ENT-PunchItem): the Owner's quality review and punch items.
+export * from './quality-review.js'
 // TSK-0142: the launch phases and their switches (OWN-DEC-191).
 export * from './launch.js'

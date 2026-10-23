@@ -92,7 +92,10 @@ export const LABEL_FAMILIES = {
     'job_hold',
     // TSK-0123: a property whose time zone is unknown.
     'property_time_zone',
+    // TSK-0084: a job's punch items not yet re-checked; a job awaiting the Owner's quality review.
+    'punch_items',
     'deposit_waiver',
+    'quality_review',
     'start_work_exception',
     // TSK-0086: a job's unallocated money (an overpayment) for the Owner's credit or refund decision.
     'unallocated_credit',
@@ -177,6 +180,11 @@ export const LABEL_FAMILIES = {
     // TSK-0077: a worker's issue report, resolved on site or waiting for the Owner.
     'issue_reported',
     'issue_resolved_on_site',
+    // TSK-0084: the quality review and its punch items.
+    'awaiting_quality_review',
+    'recheck_due',
+    'punch_items_open',
+    'punch_items_corrected',
   ],
   /** The one action button of a queue item (HH-OPS-02); it opens the record's screen. */
   queueAction: [
@@ -199,6 +207,8 @@ export const LABEL_FAMILIES = {
     'verify_time_zone',
     'review_job_hold',
     'review_issue',
+    'review_quality',
+    'review_punch_items',
   ],
   /**
    * System health (TSK-0101; HH-NFR-02): the checks, their states, metrics and notes, as the server's health report
@@ -837,6 +847,8 @@ export const LABEL_FAMILIES = {
     'project_access',
     'property',
     'publication_approval',
+    // TSK-0084: the Owner's quality review and punch items.
+    'quality',
     'question',
     'queue',
     'request',
@@ -1643,6 +1655,47 @@ export const LABEL_FAMILIES = {
     'REVIEWED_THROUGH_HOLD',
     'ALREADY_REVIEWED',
     'NOTICE_NOT_DRAFT',
+  ],
+  // TSK-0084 (HH-QA-02, HH-QA-04): the Owner's quality review and punch items.
+  qualityReviewState: ['pending', 'in_review', 'passed', 'punch_required', 'pending_recheck'],
+  qualityArea: ['scope', 'checklist', 'evidence', 'walkthrough'],
+  areaResult: ['ok', 'problem'],
+  punchKind: ['finish', 'cleanup', 'defect', 'incomplete_scope', 'failed_check', 'safety_concern'],
+  punchSeverity: ['minor', 'major'],
+  punchState: ['open', 'corrected', 'rechecked'],
+  qualityGate: ['quality_review_not_recorded', 'passed', 'owner_may_issue', 'blocked'],
+  qualityEvent: [
+    'start',
+    'pass',
+    'require_punch',
+    'corrections_done',
+    'punch_reopened',
+    'recheck_complete',
+    'punch_added',
+    'correct',
+    'recheck_pass',
+    'recheck_fail',
+  ],
+  qualityRefusal: [
+    'JOB_NOT_AWAITING_REVIEW',
+    'REVIEW_ALREADY_STARTED',
+    'REVIEW_NOT_IN_PROGRESS',
+    'PLACE_REQUIRED',
+    'NOT_A_WORK_PACKAGE_OF_THE_JOB',
+    'NOT_AN_ACTIVE_WORKER',
+    'SAFETY_HOLD_REQUIRED',
+    'HOLD_ONLY_FOR_SAFETY_CONCERN',
+    'NOT_AN_OPEN_SAFETY_HOLD_OF_THE_JOB',
+    'AREAS_NOT_REVIEWED',
+    'PROBLEM_NEEDS_PUNCH_ITEM',
+    'PUNCH_ITEMS_FOUND',
+    'NO_PUNCH_ITEMS',
+    'PUNCH_ITEMS_OPEN',
+    'RECHECK_PENDING',
+    'SAFETY_HOLD_UNRESOLVED',
+    'RECHECKER_CORRECTED',
+    'REASON_REQUIRED',
+    'INVALID_STATE',
   ],
 } as const satisfies Record<string, readonly string[]>
 

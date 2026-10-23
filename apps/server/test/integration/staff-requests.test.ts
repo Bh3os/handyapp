@@ -91,7 +91,13 @@ afterAll(async () => {
   await t?.drop()
 })
 
-const future = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10)
+// A Saturday at least 10 days ahead: the requests ask for Weekends, which a weekday date refuses (HH-INT-02), so the
+// date never depends on which weekday the test runs.
+const future = (() => {
+  const d = new Date(Date.now() + 10 * 86_400_000)
+  d.setUTCDate(d.getUTCDate() + ((6 - d.getUTCDay() + 7) % 7))
+  return d.toISOString().slice(0, 10)
+})()
 let seq = 0
 const key = (what: string) => `synthetic-${what}-${String(++seq).padStart(6, '0')}`
 

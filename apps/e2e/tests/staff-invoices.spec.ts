@@ -352,9 +352,9 @@ test.describe('Invoices drafted from the approved scope, issued after the qualit
       await expect(final.getByTestId('invoice-line')).toContainText('Synthetic: repaint the hallway')
       await expect(final.getByTestId('invoice-total')).toHaveText('$1,275.00')
       await expect(final.getByTestId('invoice-deposit-credit')).toHaveText('-$255.00')
-      // Issuing waits for the Owner's quality review (not built): it says so, and there is no Issue button.
+      // Issuing waits for the Owner's quality review (none is recorded): it says so, and there is no Issue button.
       await expect(final.getByTestId('invoice-blocking')).toContainText(
-        "The Owner's quality review of this job. Quality review is not built yet, so a final invoice cannot be issued.",
+        "The Owner's quality review of this job is not decided yet, so a final invoice cannot be issued.",
       )
       await expect(final.getByTestId('invoice-notes')).toContainText(
         'No mailing address is configured: the invoice has no address line.',
