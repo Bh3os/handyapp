@@ -501,7 +501,7 @@ type Item = {
   mine: { departedAt: string | null; arrivedAt: string | null; finishedAt: string | null }
   next: string
   onMyWayOpensAt: string | null
-  actions: { onMyWay: boolean; arrived: boolean; finished: boolean }
+  actions: { onMyWay: boolean; arrived: boolean; finished: boolean; recordOutcome?: boolean }
 }
 const myDay = async (who: Person) => {
   const res = await staffGet(who, '/api/v1/staff/my/day')
@@ -817,7 +817,7 @@ describe('[HH-WORK-06][T47] Arrived and Finished per worker; the Owner corrects,
     expect(arrived.json()).toMatchObject({ recorded: true, visit: { state: 'arrived', next: 'finished' } })
     // Alone on site, Ann is asked for nothing between Arrived and Finished (OWN-DEC-149).
     const alone = (await myDay('ann')).visits.find((v) => v.visitId === visitId) as Item
-    expect(alone.actions).toEqual({ onMyWay: false, arrived: false, finished: true })
+    expect(alone.actions).toEqual({ onMyWay: false, arrived: false, finished: true, recordOutcome: true })
     // Arrived starts nothing: the job's state is unchanged (the Start Work gate stays the start route's).
     expect(
       await t.db.selectFrom('work.jobs').select('operational_state').where('id', '=', jobId).executeTakeFirstOrThrow(),
