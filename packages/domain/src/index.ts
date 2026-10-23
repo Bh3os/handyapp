@@ -14,6 +14,7 @@ import { HOLD_MACHINE } from './hold.js'
 import { PROJECT_MACHINE } from './project.js'
 import { REQUEST_MACHINE } from './request.js'
 import { VISIT_MACHINE } from './visit.js'
+import { CHANGE_ORDER_MACHINE } from './change-order.js'
 import { SOP_VERSION_MACHINE } from './sop.js'
 import { WINDOW_OFFER_MACHINE } from './window-offer.js'
 import { GATE_EXCEPTION_MACHINE } from './start-gate.js'
@@ -283,6 +284,8 @@ export const MACHINES = {
   'punch_item.lifecycle': PUNCH_ITEM_MACHINE,
   // TSK-0075: a step of the job checklist.
   'checklist_step.lifecycle': CHECKLIST_STEP_MACHINE,
+  // TSK-0081: a change-order version.
+  'change_order.lifecycle': CHANGE_ORDER_MACHINE,
 } as const
 export type MachineKey = keyof typeof MACHINES
 type M<K extends MachineKey> = (typeof MACHINES)[K]
@@ -399,5 +402,6 @@ export * from './quality-review.js'
 export * from './checklist.js'
 // TSK-0083 (HH-QA-01, HH-QA-03, HH-WORK-12, ENT-Walkthrough): the walkthrough and Finished for quality review.
 export * from './completion.js'
+export * from './change-order.js'
 // TSK-0142: the launch phases and their switches (OWN-DEC-191).
 export * from './launch.js'

@@ -48,3 +48,10 @@ export type {
   InternalMargin,
   LineKind,
 } from './estimate.js'
+export { CHANGE_ORDER_LINE_KINDS, isChangeOrderLineKind, priceChangeOrder } from './change-order.js'
+export type {
+  ChangeOrderLineInput,
+  ChangeOrderLineKind,
+  ChangeOrderPricing,
+  ChangeOrderProblem,
+} from './change-order.js'

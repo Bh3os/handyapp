@@ -100,8 +100,11 @@ describe('the six tabs (TSK-0039, HH-PORT-09, T69)', () => {
     expect(panel().getAttribute('aria-labelledby')).toBe(selected().id)
     expect(selected().getAttribute('aria-controls')).toBe(panel().id)
     expect(within(panel()).getByRole('region', { name: 'Status' })).toBeTruthy()
-    // Only the Overview (with its released case updates, TSK-0093) is read until another tab is opened.
-    expect(urls).toEqual([`/api/v1/customer/projects/${REF}/overview`, `/api/v1/customer/projects/${REF}/cases`])
+    // Only the Overview (with its released case updates, TSK-0093) is read until another tab is opened. The case
+    // updates are read once the Overview has loaded, so wait for that second request rather than racing it.
+    await waitFor(() =>
+      expect(urls).toEqual([`/api/v1/customer/projects/${REF}/overview`, `/api/v1/customer/projects/${REF}/cases`]),
+    )
   })
 
   it('[T69][HH-PORT-09] keyboard: arrows, Home and End move and select; each tab opens its own page and read', async () => {

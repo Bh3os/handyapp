@@ -793,6 +793,23 @@ export const TABLES = {
     classes: ['request_details'],
     categories: [J],
   },
+  'work.change_orders': {
+    holds: "Change orders of a job: the project's change-order number, where the change came from, who opened it",
+    classes: ['request_details'],
+    categories: [J],
+  },
+  'work.change_order_versions': {
+    holds:
+      'Change-order versions: reason, proposed scope, schedule impact, hazards, resources, evidence, the checklist ' +
+      'steps that wait for it, totals against the approved scope, and who drafted, reviewed or withdrew it',
+    classes: ['request_details', 'estimate_approval'],
+    categories: [J],
+  },
+  'work.change_order_lines': {
+    holds: 'Change-order price lines: charges and credits in integer cents, quantities, units and descriptions',
+    classes: ['estimate_approval'],
+    categories: [J],
+  },
   'staging.environment_marks': {
     holds: 'Which environments identified themselves on this database (staging, local, ci or production) and when',
     classes: ['configuration'],

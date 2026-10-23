@@ -106,6 +106,7 @@ export const CHECKLIST_VIEW = obj({
               required: BOOL,
               evidence: arr(en(SOP_EVIDENCE_KINDS)),
               holdBefore: arr(STR),
+              waitsForChangeOrders: arr(INT),
               state: en(CHECKLIST_STEP_STATES),
               version: INT,
               measurement: STR_OR_NULL,

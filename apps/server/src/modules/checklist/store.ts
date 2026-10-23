@@ -25,9 +25,13 @@ import {
 import type { StaffActor } from '@handyhub/policy'
 import { sql } from 'kysely'
 import { ApiError, type FieldError } from '../../api/errors.js'
+import { changeOrderWaitingSteps } from '../change-orders/store.js'
 import { spanishItem, spanishReleases, type SpanishRelease } from '../sops/spanish.js'
 
 type Reader = Db | Tx
+
+/** A step an open change order names waits (HH-WORK-07): it cannot start, resume, complete or reopen until then. */
+const WAIT_BLOCKED: readonly ChecklistStepEvent[] = ['start', 'resume', 'complete', 'reopen']
 
 const field = (f: string, code: string): FieldError => ({ field: f, code, message: '' })
 const conflict = (f: string, code: string) => new ApiError('CONFLICT', { fieldErrors: [field(f, code)] })
@@ -165,10 +169,11 @@ export async function checklistView(db: Reader, actor: StaffActor, jobId: string
     .where('j.id', '=', jobId)
     .executeTakeFirst()
   if (!job) return null
-  const [packages, rows, blocked] = await Promise.all([
+  const [packages, rows, blocked, waiting] = await Promise.all([
     packagesOf(db, jobId),
     stepRows(db, jobId),
     blockers(db, actor, jobId),
+    changeOrderWaitingSteps(db, jobId),
   ])
   const photos = await db
     .selectFrom('work.field_photos')
@@ -252,10 +257,12 @@ export async function checklistView(db: Reader, actor: StaffActor, jobId: string
               .map((s) => {
                 const r = rows.find((x) => x.work_package_id === p.id && x.step_id === s.id) ?? null
                 const state: ChecklistStepState = r?.state ?? 'not_started'
+                const waitsFor = waiting.get(`${p.id}:${s.id}`) ?? []
                 const actions = packageActive
                   ? CHECKLIST_STEP_MACHINE.transitions
                       .filter((t) => (t.from as readonly string[]).includes(state))
                       .filter((t) => open || t.event === 'pause' || t.event === 'skip')
+                      .filter((t) => waitsFor.length === 0 || !WAIT_BLOCKED.includes(t.event))
                       .map((t) => t.event)
                   : []
                 return {
@@ -267,6 +274,8 @@ export async function checklistView(db: Reader, actor: StaffActor, jobId: string
                   required: s.required,
                   evidence: [...s.evidence],
                   holdBefore: [...s.holdBefore],
+                  // The open change orders this step waits for (their numbers, HH-WORK-07).
+                  waitsForChangeOrders: waitsFor,
                   state,
                   version: r?.version ?? 0,
                   measurement: r?.measurement ?? null,
@@ -334,6 +343,8 @@ export async function stepEvent(
   const steps = p.content ? sopSteps(p.content) : []
   const step = steps.find((s) => s.id === input.stepId)
   if (!step || !p.sopVersionId) throw new ApiError('NOT_FOUND')
+  if (WAIT_BLOCKED.includes(event) && (await changeOrderWaitingSteps(tx, jobId)).has(`${p.id}:${step.id}`))
+    throw conflict('body.stepId', 'WAITS_FOR_CHANGE_ORDER')
   const existing = (await tx
     .selectFrom('work.checklist_steps')
     .select(STEP_COLUMNS)

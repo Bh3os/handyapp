@@ -30,6 +30,8 @@ export type ChecklistStep = {
   required: boolean
   evidence: ('photo' | 'measurement' | 'note')[]
   holdBefore: string[]
+  /** The open change orders this step waits for (their numbers, TSK-0081). */
+  waitsForChangeOrders: number[]
   state: 'not_started' | 'in_progress' | 'paused' | 'completed' | 'skipped'
   version: number
   measurement: string | null
@@ -142,7 +144,10 @@ export function ChecklistPage({
       </h1>
       <p>
         <a href={href(`/packets/${data.jobId}`)}>{t('checklist.backToPacket')}</a>{' '}
-        <a href={href(`/job-photos/${data.jobId}`)}>{t('checklist.photos')}</a>
+        <a href={href(`/job-photos/${data.jobId}`)}>{t('checklist.photos')}</a> ·{' '}
+        <a href={href(`/change-orders/${data.jobId}`)} data-testid="checklist-change-orders-link">
+          {t('checklist.changeOrders')}
+        </a>
       </p>
       {data.blockers.length ? (
         <StateView kind="blocked" title={t('checklist.blocked')}>
@@ -306,6 +311,12 @@ function Step({
       </p>
       {step.holdBefore.length ? (
         <p className="staff-request__hint">{t('sop.holdBefore', { ids: step.holdBefore.join(', ') })}</p>
+      ) : null}
+      {step.waitsForChangeOrders.length ? (
+        <p className="staff-request__hint" role="note" data-testid="checklist-step-waits">
+          <StatusBadge tone="warning">{codeLabel(t, 'checklistRefusal', 'WAITS_FOR_CHANGE_ORDER')}</StatusBadge>{' '}
+          {t('checklist.waitsForChange', { numbers: step.waitsForChangeOrders.map((n) => `C${n}`).join(', ') })}
+        </p>
       ) : null}
       {step.evidence.length ? (
         <p className="staff-request__hint">

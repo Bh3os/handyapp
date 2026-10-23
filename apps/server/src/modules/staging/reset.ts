@@ -172,6 +172,10 @@ export const CLEARED_CATEGORIES = {
     // TSK-0083 (0084): walkthroughs and the worker's submissions for quality review.
     'work.walkthroughs',
     'work.job_completions',
+    // TSK-0081 (0086): change orders, their versions and lines.
+    'work.change_orders',
+    'work.change_order_versions',
+    'work.change_order_lines',
   ],
   attachments: [
     'intake.photos',

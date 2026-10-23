@@ -25,6 +25,7 @@ const step = (over: Partial<ChecklistStep>): ChecklistStep => ({
   required: true,
   evidence: [],
   holdBefore: [],
+  waitsForChangeOrders: [],
   state: 'not_started',
   version: 0,
   measurement: null,
