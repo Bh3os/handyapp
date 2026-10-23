@@ -10,8 +10,10 @@
 //   none. TSK-0100 (HH-PRIV-06): each version offers its download, a short-lived link the server issues only when
 //   asked. TSK-0085: the issued invoices, current or superseded, with their payment state, the balance still owed and
 //   any pending check, and the PDF by the same kind of short-lived link. Appointments (TSK-0063): the windows offered
-//   to choose from and the confirmed visits (Appointments.tsx); nothing yet while there is neither. Payments: nothing
-//   exists yet. Photos (TSK-0076, HH-PORT-11): the customer's own uploads (counts as on the receipt, and the photos)
+//   to choose from and the confirmed visits (Appointments.tsx); nothing yet while there is neither. Payments (TSK-0087,
+//   HH-PORT-12): the approved total, the deposit, each invoice's money with Pay by Card while a balance remains and
+//   staff pasted a Square link, the recorded payments and the payment instructions (placeholders labelled, never a
+//   destination); nothing marks a payment made from here. Photos (TSK-0076, HH-PORT-11): the customer's own uploads (counts as on the receipt, and the photos)
 //   and the before and after photos HandyHub shared, paired by service; links are short-lived and renew with each
 //   refresh.
 // - A tab once opened stays mounted while another is shown, so anything typed in it survives a tab switch.
@@ -31,6 +33,8 @@ import {
   type EstimateListItem,
   type Fetch,
   type InvoiceListItem,
+  type PaymentMethod,
+  type PaymentsData,
   type SharedPhoto,
   type TabData,
   type WorkspaceTab,
@@ -477,6 +481,167 @@ function Photos({ data }: { data: Extract<TabData, { tab: 'photos' }> }) {
   )
 }
 
+const PAYMENT_STATE: Record<PaymentsData['payments'][number]['state'], CustomerKey> = {
+  confirmed: 'portal.payments.state.confirmed',
+  pending: 'portal.payments.state.pending',
+  returned: 'portal.payments.state.returned',
+}
+const METHOD: Record<PaymentMethod, CustomerKey> = {
+  square_payment_link: 'portal.payments.method.square_payment_link',
+  square_tap_to_pay: 'portal.payments.method.square_tap_to_pay',
+  cash: 'portal.payments.method.cash',
+  check: 'portal.payments.method.check',
+  zelle: 'portal.payments.method.zelle',
+  cash_app: 'portal.payments.method.cash_app',
+  chime: 'portal.payments.method.chime',
+}
+
+/** A payment handle: a labelled placeholder until the Owner enters it, never a destination and never copied. */
+function Handle({ value, placeholder }: { value: string | null; placeholder: boolean }) {
+  if (value === null) return <span className="hh-muted">{t('portal.payments.handleMissing')}</span>
+  return placeholder ? (
+    <span data-testid="payments-placeholder">
+      <span className="hh-muted">{value}</span>{' '}
+      <StatusBadge tone="warning">{t('portal.payments.placeholder')}</StatusBadge>
+    </span>
+  ) : (
+    <span>{value}</span>
+  )
+}
+
+/** How to pay, for each active method (HH-FIN-10, HH-CUS-07): card wording names Square. */
+function Instructions({ i }: { i: NonNullable<PaymentsData['instructions']> }) {
+  const lines: { key: string; text: CustomerKey; handle?: string | null }[] = []
+  for (const m of i.methods) {
+    if (m === 'square_payment_link') lines.push({ key: m, text: 'portal.payments.how.card' })
+    else if (m === 'square_tap_to_pay') lines.push({ key: m, text: 'portal.payments.how.tapToPay' })
+    else if (m === 'cash') lines.push({ key: m, text: 'portal.payments.how.cash' })
+    else if (m === 'check') lines.push({ key: m, text: 'portal.payments.how.check', handle: i.checkPayee })
+    else if (m === 'zelle') lines.push({ key: m, text: 'portal.payments.how.zelle', handle: i.zelle })
+    else if (m === 'cash_app') lines.push({ key: m, text: 'portal.payments.how.cashApp', handle: i.cashApp })
+    else if (m === 'chime') lines.push({ key: m, text: 'portal.payments.how.chime', handle: i.chime })
+  }
+  return (
+    <section aria-labelledby="portal-payments-how" data-testid="payments-instructions">
+      <h3 id="portal-payments-how" className="hh-h3">
+        {t('portal.payments.how.title')}
+      </h3>
+      <ul>
+        {lines.map((l) => (
+          <li key={l.key}>
+            {t(l.text)}
+            {l.handle !== undefined ? (
+              <>
+                {' '}
+                <Handle value={l.handle} placeholder={i.placeholder} />
+              </>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+/** TSK-0087 (HH-PORT-12): the project's money from the shared records; nothing here marks anything paid. */
+function Payments({ data }: { data: PaymentsData }) {
+  const usd = (c: number) => formatUsd(cents(c))
+  const d = data.deposit
+  return (
+    <div data-testid="payments-tab">
+      <dl className="portal-facts" data-testid="payments-summary">
+        {data.approvedTotalCents !== null ? (
+          <>
+            <dt>{t('portal.payments.approvedTotal')}</dt>
+            <dd>{usd(data.approvedTotalCents)}</dd>
+          </>
+        ) : null}
+        <dt>{t('portal.payments.confirmed')}</dt>
+        <dd data-testid="payments-confirmed">{usd(data.confirmedCents)}</dd>
+        {data.pendingCents > 0 ? (
+          <>
+            <dt>{t('portal.payments.pending')}</dt>
+            <dd data-testid="payments-pending">{usd(data.pendingCents)}</dd>
+          </>
+        ) : null}
+        <dt>{t('portal.payments.balance')}</dt>
+        <dd data-testid="payments-balance">{usd(data.balanceCents)}</dd>
+      </dl>
+      {d.state === 'deposit_due' && d.amountCents !== null ? (
+        <section className="portal-deposit" data-testid="payments-deposit">
+          <p>{t('portal.payment.deposit.due', { amount: usd(d.amountCents) })}</p>
+          {d.verifiedCents ? (
+            <p>{t('portal.payment.deposit.receivedSoFar', { amount: usd(d.verifiedCents) })}</p>
+          ) : null}
+          {d.pendingCents ? <p>{t('portal.payment.deposit.pending', { amount: usd(d.pendingCents) })}</p> : null}
+          {d.payByCardUrl ? (
+            <a className="hh-button" href={d.payByCardUrl} target="_blank" rel="noopener noreferrer">
+              {t('portal.payment.deposit.payByCard')}
+            </a>
+          ) : null}
+        </section>
+      ) : d.state === 'deposit_received' && d.amountCents !== null ? (
+        <p data-testid="payments-deposit">{t('portal.payment.deposit.paid', { amount: usd(d.amountCents) })}</p>
+      ) : null}
+      {data.invoices.length > 0 ? (
+        <ul className="portal-payments" data-testid="payments-invoices">
+          {data.invoices.map((i) => (
+            <li key={i.number}>
+              <p>
+                <strong>
+                  {t(i.kind === 'deposit' ? 'portal.documents.invoice.depositName' : 'portal.documents.invoice.name', {
+                    number: i.number,
+                  })}
+                </strong>{' '}
+                <StatusBadge tone={i.state === 'paid' ? 'success' : 'info'}>{t(INVOICE_STATE[i.state])}</StatusBadge>
+              </p>
+              <p data-testid="payments-invoice-money">
+                {t('portal.payments.invoiceMoney', {
+                  total: usd(i.totalCents),
+                  credits: usd(i.creditsCents),
+                  paid: usd(i.confirmedCents),
+                  balance: usd(i.balanceCents),
+                })}
+                {i.pendingCents > 0 ? ` ${t('portal.documents.invoice.pending', { amount: usd(i.pendingCents) })}` : ''}
+              </p>
+              {i.payByCardUrl ? (
+                <a className="hh-button" href={i.payByCardUrl} target="_blank" rel="noopener noreferrer">
+                  {t('portal.payment.deposit.payByCard')}
+                </a>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <section aria-labelledby="portal-payments-recorded">
+        <h3 id="portal-payments-recorded" className="hh-h3">
+          {t('portal.payments.recordedTitle')}
+        </h3>
+        {data.payments.length ? (
+          <ul data-testid="payments-recorded">
+            {data.payments.map((p, n) => (
+              <li key={n}>
+                {t('portal.payments.line', {
+                  date: p.receivedOn,
+                  method: t(METHOD[p.method]),
+                  amount: usd(p.amountCents),
+                })}{' '}
+                <StatusBadge tone={p.state === 'confirmed' ? 'success' : p.state === 'pending' ? 'warning' : 'danger'}>
+                  {t(PAYMENT_STATE[p.state])}
+                </StatusBadge>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="hh-muted">{t('portal.payments.recorded')}</p>
+        )}
+      </section>
+      {data.instructions ? <Instructions i={data.instructions} /> : null}
+      <p className="hh-small hh-muted">{t('portal.payments.verifiedOnly')}</p>
+    </div>
+  )
+}
+
 function Content({
   data,
   fetchImpl,
@@ -526,7 +691,11 @@ function Content({
         <Empty title="portal.appointment.none.title" text="portal.appointment.none.text" />
       )
     case 'payments':
-      return <Empty title="portal.payment.none.title" text="portal.payment.none.text" more="portal.payments.recorded" />
+      return data.state === 'listed' ? (
+        <Payments data={data} />
+      ) : (
+        <Empty title="portal.payment.none.title" text="portal.payment.none.text" more="portal.payments.recorded" />
+      )
     case 'photos':
       return <Photos data={data} />
   }

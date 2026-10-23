@@ -7,7 +7,9 @@
 //   contact hours). Never an internal message, a staff name, an address or a delivery detail. TSK-0051: the customer
 //   writes in it from the portal too (channel 'portal').
 // - Documents: the estimate versions the customer received, each with its status (TSK-0056, HH-PORT-10), and the
-//   issued invoices with their balance (TSK-0085); "none" while there is none. Payments: no payment record exists yet, so none is shown. Appointments (TSK-0063): the offered
+//   issued invoices with their balance (TSK-0085); "none" while there is none. Payments (TSK-0087, HH-PORT-12): the
+//   approved total, the deposit, each invoice's money and its Pay by Card link, the recorded payments, the balance and
+//   the payment instructions (finance/customer-payments.ts); "none" while there is none of it. Appointments (TSK-0063): the offered
 //   windows the customer can choose from and the confirmed visits (visits/offers.ts appointmentsOf); "none" while
 //   there is neither.
 // - Photos: the counts of the customer's uploads by state (the same counts the receipt shows); TSK-0076 (HH-PORT-11):
@@ -18,6 +20,7 @@ import type { DataScope } from '@handyhub/policy'
 import { customerEstimateList, type CustomerEstimateListItem } from '../estimates/customer.js'
 import type { ObjectStorage } from '../../providers/index.js'
 import { customerPhotos, type CustomerUpload, type SharedGroup } from '../field-photos/photos.js'
+import { customerPayments, type CustomerPayments } from '../finance/customer-payments.js'
 import { customerInvoiceList, type CustomerInvoiceItem } from '../finance/invoices.js'
 import { PHOTO_URL_SECONDS } from '../photos/photos.js'
 import { findProject, type ConversationMessageRecord, type PhotoCounts } from '../records/index.js'
@@ -40,6 +43,7 @@ export type TabAnswer =
       invoices: CustomerInvoiceItem[]
     })
   | (Head & { tab: 'appointments' | 'payments'; state: 'none' })
+  | (Head & { tab: 'payments'; state: 'listed' } & CustomerPayments)
   | (Head & { tab: 'appointments'; state: 'listed'; offers: CustomerOffer[]; appointments: CustomerAppointment[] })
   | (Head & {
       tab: 'photos'
@@ -121,6 +125,10 @@ export async function projectTab(
       return a.offers.length || a.appointments.length
         ? { ...head, tab, state: 'listed', ...a }
         : { ...head, tab, state: 'none' }
+    }
+    case 'payments': {
+      const p = await customerPayments(db, project.id)
+      return p ? { ...head, tab, state: 'listed', ...p } : { ...head, tab, state: 'none' }
     }
     default:
       return { ...head, tab, state: 'none' }

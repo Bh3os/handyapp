@@ -368,3 +368,92 @@ describe('customer content is English only (TSK-0039, HH-PORT-08, HH-LANG-01, T0
     for (const [key, value] of portal) expect(value, key).not.toMatch(SPANISH_MARKS)
   })
 })
+
+describe('the Payments tab (TSK-0087, HH-PORT-12)', () => {
+  const listed = {
+    ...head(),
+    state: 'listed',
+    approvedTotalCents: 112_500,
+    deposit: {
+      state: 'deposit_received',
+      amountCents: 22_500,
+      verifiedCents: null,
+      pendingCents: null,
+      payByCardUrl: null,
+    },
+    invoices: [
+      {
+        number: `${REF}-I1`,
+        kind: 'final',
+        state: 'partially_paid',
+        totalCents: 112_500,
+        creditsCents: 22_500,
+        confirmedCents: 40_000,
+        pendingCents: 20_000,
+        balanceCents: 50_000,
+        payByCardUrl: 'https://square.link/u/SYNTH087',
+      },
+    ],
+    payments: [
+      { receivedOn: '2026-10-20', method: 'cash', amountCents: 22_500, state: 'confirmed' },
+      { receivedOn: '2026-10-21', method: 'square_payment_link', amountCents: 40_000, state: 'confirmed' },
+      { receivedOn: '2026-10-21', method: 'check', amountCents: 20_000, state: 'pending' },
+    ],
+    confirmedCents: 62_500,
+    pendingCents: 20_000,
+    balanceCents: 50_000,
+    instructions: {
+      methods: ['square_payment_link', 'square_tap_to_pay', 'cash', 'check', 'zelle', 'cash_app', 'chime'],
+      placeholder: true,
+      zelle: '[Payment email or phone]',
+      cashApp: '[$Cashtag]',
+      chime: '[Payment handle or details]',
+      checkPayee: '[Payee name]',
+    },
+  }
+
+  it('[HH-PORT-12][HH-FIN-08][HH-FIN-10] the money, Pay by Card for the balance and the placeholders labelled', async () => {
+    const { fetchImpl } = api({ payments: () => json(200, listed) })
+    open(fetchImpl, 'payments')
+    const tab = await screen.findByTestId('payments-tab')
+    expect(within(tab).getByTestId('payments-balance').textContent).toBe('$500.00')
+    expect(within(tab).getByTestId('payments-confirmed').textContent).toBe('$625.00')
+    expect(within(tab).getByTestId('payments-pending').textContent).toBe('$200.00')
+    expect(within(tab).getByTestId('payments-deposit').textContent).toBe('Deposit received: $225.00.')
+    expect(within(tab).getByTestId('payments-invoice-money').textContent).toContain(
+      'Total $1,125.00 · credits $225.00 · paid $400.00 · balance $500.00.',
+    )
+    const pay = within(tab).getByRole('link', { name: 'Pay by Card' })
+    expect(pay.getAttribute('href')).toBe('https://square.link/u/SYNTH087')
+    expect(pay.getAttribute('target')).toBe('_blank')
+    expect(within(tab).getByTestId('payments-recorded').textContent).toContain('Pending until cleared')
+    // The handles are placeholders: labelled, never a destination, no copy button; the card wording names Square.
+    const how = within(tab).getByTestId('payments-instructions')
+    expect(within(how).getAllByTestId('payments-placeholder')).toHaveLength(4)
+    expect(within(how).getAllByText('Placeholder — not a payment destination')).toHaveLength(4)
+    expect(within(how).queryByRole('button')).toBeNull()
+    expect(how.textContent).toContain('Credit or debit card (Square)')
+    expect(tab.textContent).not.toMatch(/surcharge|fee/i)
+    expect(tab.textContent).toContain('Returning from the card payment page does not mark anything paid.')
+  })
+
+  it('[HH-FIN-08][T60] no balance or no link: no Pay by Card, never a button that does nothing', async () => {
+    const paid = {
+      ...listed,
+      invoices: [{ ...listed.invoices[0], state: 'paid', balanceCents: 0, pendingCents: 0, payByCardUrl: null }],
+      balanceCents: 0,
+      pendingCents: 0,
+    }
+    const { fetchImpl } = api({ payments: () => json(200, paid) })
+    open(fetchImpl, 'payments')
+    const tab = await screen.findByTestId('payments-tab')
+    expect(within(tab).queryByRole('link', { name: 'Pay by Card' })).toBeNull()
+    expect(within(tab).getByTestId('payments-balance').textContent).toBe('$0.00')
+  })
+
+  it('[HH-FIN-08] a Pay by Card link that is not https is not what the view declares: never shown', () => {
+    const bad = { ...listed, invoices: [{ ...listed.invoices[0], payByCardUrl: 'http://square.link/u/x' }] }
+    expect(parseTab('payments', bad)).toBeNull()
+    expect(parseTab('payments', listed)).toMatchObject({ tab: 'payments', state: 'listed', balanceCents: 50_000 })
+  })
+})

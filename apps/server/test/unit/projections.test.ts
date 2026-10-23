@@ -312,10 +312,14 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
       },
     })
     expect(fieldNames(PROJECT_MESSAGES.schema).filter(forbiddenForCustomer)).toEqual([])
+    // TSK-0087 (HH-PORT-12): Payments also answers "listed" with the money; never who recorded or collected a payment,
+    // and no payer name.
     expect(PROJECT_PAYMENTS.schema).toMatchObject({
       additionalProperties: false,
-      properties: { state: { enum: ['none'] } },
+      properties: { state: { enum: ['none', 'listed'] } },
     })
+    expect(fieldNames(PROJECT_PAYMENTS.schema).filter(forbiddenForCustomer)).toEqual([])
+    expect(JSON.stringify(PROJECT_PAYMENTS.schema)).not.toMatch(/collector|recordedBy|payerName|clearedBy/)
     // TSK-0063 (HH-LEAD-07, HH-SCH-11): Appointments also answers "listed" with the offered windows and the confirmed
     // visits; "none" is still the state alone.
     expect(PROJECT_APPOINTMENTS.schema).toMatchObject({

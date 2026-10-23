@@ -33,6 +33,7 @@ import { outbox } from '../../platform/outbox.js'
 import { syncDepositItem } from './deposit-queue.js'
 import { invoiceMoney, invoicePayments, type InvoiceMoney, type InvoicePaymentView } from './ledger.js'
 import { announcePaidInvoices, unallocatedCents } from './money-events.js'
+import { currentInvoiceLink, type InvoicePaymentLink } from './payment-links.js'
 
 type Reader = Db | Tx
 
@@ -686,7 +687,9 @@ export type InvoiceView = {
   document: 'none' | 'preparing' | 'issued'
   testMark: boolean
   version: number
-  actions: { issue: boolean; recordPayment: boolean }
+  /** TSK-0087: the Square link the customer's "Pay by Card" opens (a final invoice only). */
+  paymentLink: InvoicePaymentLink | null
+  actions: { issue: boolean; recordPayment: boolean; setPaymentLink: boolean }
 }
 
 export type JobInvoicesView = {
@@ -771,8 +774,13 @@ async function invoiceView(db: Reader, actor: StaffActor, id: string): Promise<I
     document: draft ? 'none' : doc ? 'issued' : 'preparing',
     testMark: i.test_mark,
     version: i.version,
+    paymentLink: i.kind === 'final' && !draft ? await currentInvoiceLink(db, i.id) : null,
     actions: {
       issue: draft && !exceptions.some((e) => e.blocking) && allows(actor, 'invoice.issue', resource),
+      setPaymentLink:
+        i.kind === 'final' &&
+        (i.state === 'issued' || i.state === 'partially_paid') &&
+        allows(actor, 'invoice.enter_payment_link', resource),
       recordPayment:
         i.kind === 'final' &&
         (i.state === 'issued' || i.state === 'partially_paid') &&

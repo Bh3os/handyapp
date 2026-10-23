@@ -688,6 +688,14 @@ export interface FinanceInvoiceLinesTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface FinanceInvoicePaymentLinksTable {
+  id: Generated<string>
+  invoice_id: string
+  url: string
+  set_by: string
+  set_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface FinanceInvoicesTable {
   id: Generated<string>
   project_id: string
@@ -2648,6 +2656,7 @@ export interface Database {
   'finance.invoice_deposit_credits': FinanceInvoiceDepositCreditsTable
   'finance.invoice_documents': FinanceInvoiceDocumentsTable
   'finance.invoice_lines': FinanceInvoiceLinesTable
+  'finance.invoice_payment_links': FinanceInvoicePaymentLinksTable
   'finance.invoices': FinanceInvoicesTable
   'finance.payment_allocations': FinancePaymentAllocationsTable
   'finance.payments': FinancePaymentsTable
