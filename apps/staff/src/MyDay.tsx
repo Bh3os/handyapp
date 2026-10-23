@@ -4,8 +4,9 @@
 //   address with a plain directions link that opens a maps app (no maps service is called), the access notes (never a
 //   code), the preparation, the readiness blockers the records show and one clear next action, as a 48 px button.
 // - On my way, Arrived and Finished are the worker's own taps; the server decides each again (the same rule builds
-//   this screen), so a refused tap says why and changes nothing. A tap that could not reach the server is said to be
-//   not recorded: nothing is saved on the phone yet (offline drafts are TSK-0079) and nothing pretends to be synced.
+//   this screen), so a refused tap says why and changes nothing. A tap that could not reach the server is saved on
+//   this phone (TSK-0079) and uploaded by the sync queue (TSK-0080): each draft shows "Saved on this phone",
+//   "Pending upload", "Synced", "Upload failed" or "Needs review"; nothing pretends to be synced before it is.
 // - There is no ETA, no timer and no check-in between Arrived and Finished (OWN-DEC-149). Arrived never starts work:
 //   Start Work stays its own online check. Stop Work and Report Hazard stay available from the job packet.
 // - TSK-0073: an on-the-way or arrived visit links to its Start Work briefing and gate (never a direct start).
@@ -17,7 +18,24 @@ import { MyJobPackets } from './JobPacket'
 import { codeLabel } from './Requests'
 import { StopWorkPanel } from './StopWork'
 import { VisitOutcomeForm, type RecordedOutcome } from './VisitOutcomes'
-import { offlineStore, type StoredDraft } from './offline/store'
+import { draftId, offlineStore, type DraftState, type StoredDraft } from './offline/store'
+import { currentStaff, DRAFTS_CHANGED } from './offline/sync'
+
+// TSK-0080 (HH-OFF-07): what each draft shows as it moves through the sync queue.
+const DRAFT_STATE: Record<DraftState, StaffKey> = {
+  saved_on_phone: 'offline.savedOnPhone',
+  pending_upload: 'sync.pendingUpload',
+  synced: 'sync.synced',
+  failed: 'sync.failedLabel',
+  needs_review: 'sync.reviewLabel',
+}
+const DRAFT_TONE: Record<DraftState, 'warning' | 'success' | 'danger' | 'info'> = {
+  saved_on_phone: 'warning',
+  pending_upload: 'warning',
+  synced: 'success',
+  failed: 'danger',
+  needs_review: 'info',
+}
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
 
@@ -114,12 +132,21 @@ export function MyDay({
 }) {
   const ids = useId()
   const [day, setDay] = useState<MyDayBody | null | undefined>(undefined)
-  const load = useCallback(async () => {
-    const r = await call<MyDayBody>(fetchImpl, '/staff/my/day')
-    setDay(r.ok && Array.isArray(r.data?.visits) ? r.data : null)
-  }, [fetchImpl])
+  const load = useCallback(
+    async (keep = false) => {
+      const r = await call<MyDayBody>(fetchImpl, '/staff/my/day')
+      const next = r.ok && Array.isArray(r.data?.visits) ? r.data : null
+      // A refresh after a sync keeps the day shown when the server cannot be reached.
+      setDay((d) => (next === null && keep && d ? d : next))
+    },
+    [fetchImpl],
+  )
   useEffect(() => {
     void load()
+    // TSK-0080 (HH-OFF-06): after a sync, schedule changes and reassignments show at once.
+    const changed = () => void load(true)
+    window.addEventListener(DRAFTS_CHANGED, changed)
+    return () => window.removeEventListener(DRAFTS_CHANGED, changed)
   }, [load])
   const replace = (v: MyDayVisit) =>
     setDay((d) => (d ? { ...d, visits: d.visits.map((x) => (x.visitId === v.visitId ? v : x)) } : d))
@@ -205,6 +232,10 @@ function VisitCard({
   }, [v.visitId])
   useEffect(() => {
     void loadDrafts()
+    // TSK-0080: a sync changed what the phone holds (My Day itself reloads, HH-OFF-06).
+    const changed = () => void loadDrafts()
+    window.addEventListener(DRAFTS_CHANGED, changed)
+    return () => window.removeEventListener(DRAFTS_CHANGED, changed)
   }, [loadDrafts])
   async function tap(what: Tap) {
     setPending(what)
@@ -228,21 +259,26 @@ function VisitCard({
     if (r.status === 0) {
       // No connection: the tap is saved on this phone with the device's time and its request key, never shown as
       // recorded; the office is not told until it is synchronized (TSK-0080).
+      const staffUserId = currentStaff()
       const saved = await offlineStore()
         .putDraft({
-          id: key.current.key,
+          // TSK-0080: the event's own UUID (the server ingests it once) and who recorded it on this phone.
+          id: draftId(),
           kind: 'tap',
+          ...(staffUserId ? { staffUserId } : {}),
           jobId: v.jobId,
           visitId: v.visitId,
           deviceRecordedAt: new Date().toISOString(),
           payload: { tap: what },
           state: 'saved_on_phone',
+          attempts: 0,
         })
         .then(() => true)
         .catch(() => false)
       key.current = null
       if (!saved) return setProblem('myday.notRecordedOffline')
-      return void loadDrafts()
+      // Every screen that shows the drafts (this card, the sync bar) reads them again.
+      return void window.dispatchEvent(new Event(DRAFTS_CHANGED))
     }
     key.current = null
     const code = r.error.fieldErrors[0]?.code
@@ -436,11 +472,11 @@ function VisitCard({
                       tap: t(TAP_LABEL[d.payload['tap'] as Tap] ?? 'myday.tap.arrived'),
                       time: timeIn(d.deviceRecordedAt, zone, locale),
                     })}{' '}
-                    <StatusBadge tone="warning">{t('offline.savedOnPhone')}</StatusBadge>
+                    <StatusBadge tone={DRAFT_TONE[d.state]}>{t(DRAFT_STATE[d.state])}</StatusBadge>
                   </li>
                 ))}
               </ul>
-              <p role="status">{t('offline.notSynced')}</p>
+              {drafts.some((d) => d.state !== 'synced') ? <p role="status">{t('offline.notSynced')}</p> : null}
             </div>
           ) : null}
           {problem ? (

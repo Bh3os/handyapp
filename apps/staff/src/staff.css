@@ -1109,3 +1109,24 @@
   text-align: right;
   white-space: nowrap;
 }
+
+/* TSK-0080: the sync bar, the sign-out warning and the app update (offline/SyncStatus.tsx). */
+.hh-sync,
+.hh-warning {
+  display: grid;
+  gap: var(--hh-space-2);
+  margin-bottom: var(--hh-space-4);
+  padding: var(--hh-space-3);
+  border: var(--hh-hairline);
+  background: var(--hh-surface);
+}
+.hh-sync ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hh-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hh-space-2);
+}

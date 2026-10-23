@@ -112,6 +112,8 @@ export const CLEARED_CATEGORIES = {
     'work.job_packet_acknowledgments',
     'work.job_packet_acknowledgment_invalidations',
     'work.visit_departures',
+    // TSK-0080 (0090): the field events phones uploaded.
+    'work.field_events',
     'work.time_stamps',
     'work.time_stamp_corrections',
     // TSK-0073, TSK-0074 (0074): site checks, Start Work evaluations and starts, and the administrative exceptions.

@@ -90,6 +90,11 @@ async function sendStop(fetchImpl: Fetch, stop: PendingStop) {
   return r
 }
 
+/** How many stops wait on this phone for the server (sign-out and an app update warn about them, TSK-0080). */
+export function pendingStopCount(): number {
+  return readPending().length
+}
+
 /** Sends every stop saved on this phone (on load and whenever the phone is back online). */
 export async function flushPendingStops(fetchImpl: Fetch): Promise<number> {
   let sent = 0

@@ -89,6 +89,8 @@ export const LABEL_FAMILIES = {
     'visit_flagged',
     // TSK-0078: a recorded visit outcome waiting for staff follow-up.
     'visit_outcome',
+    // TSK-0080: a field event from a phone that was not applied, waiting for the Owner's review.
+    'field_event_review',
     'loadout_shortage',
     // TSK-0074: a job-level Hold / Ready note blocks confirming and starting the job.
     'job_hold',
@@ -195,6 +197,10 @@ export const LABEL_FAMILIES = {
     'weather',
     'missing_resources',
     'readiness_issue',
+    // TSK-0080: why a field event from a phone waits for the Owner's review.
+    'sync_conflict',
+    'sync_not_assigned',
+    'sync_recovered',
   ],
   /** The one action button of a queue item (HH-OPS-02); it opens the record's screen. */
   queueAction: [
@@ -220,6 +226,7 @@ export const LABEL_FAMILIES = {
     'review_quality',
     'review_punch_items',
     'follow_up_visit',
+    'review_field_event',
   ],
   // TSK-0078 (HH-SCH-09): the outcomes a worker records on a visit, and why one is refused.
   visitOutcomeKind: ['delay', 'no_access', 'customer_absent', 'weather', 'missing_resources', 'readiness_issue'],
@@ -881,6 +888,8 @@ export const LABEL_FAMILIES = {
     'staff_link',
     'staging',
     'visit',
+    // TSK-0080: the field events phones upload (the sync queue).
+    'field_event',
     // TSK-0073, TSK-0074: Start Work, site checks, before photos and the administrative exceptions.
     'work',
     // TSK-0076: field photo processing; sharing media with the customer and photo publication permissions.

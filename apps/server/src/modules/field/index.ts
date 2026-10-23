@@ -14,6 +14,11 @@
 //                                                      readiness issue, with a note (the assigned worker or the Owner)
 //   GET  /staff/visit-outcomes/:outcomeId              one outcome and its follow-up (visit.reschedule: Owner, Office)
 //   POST /staff/visit-outcomes/:outcomeId/follow-up    the staff follow-up, once (visit.reschedule)
+// TSK-0080 (HH-OFF-05, HH-OFF-06): the sync queue (sync.ts).
+//   POST /staff/field-events                           one event a phone saved, ingested once per client UUID and
+//                                                      decided again (schedule.view_my_day: anyone with a My Day)
+//   GET  /staff/field-events/:clientId                 one event as received (visit.correct_timestamps: the Owner)
+//   POST /staff/field-events/:clientId/review          the Owner's review of an event not applied, once
 // - A tap is decided by the policy (ROLE-MATRIX "Tap On my way, Arrived, Finished": Owner and Worker A, assigned to
 //   this visit until the end of its service day) and again inside its transaction from the visit's records (taps.ts).
 //   A worker assigned to someone else's visit, or reassigned away, is refused.
@@ -30,6 +35,11 @@ import {
   CORRECTION_BODY,
   EXPORT_BODY,
   EXPORT_FILE,
+  FIELD_EVENT_BODY,
+  FIELD_EVENT_PARAMS,
+  FIELD_EVENT_RESULT,
+  FIELD_EVENT_REVIEW_BODY,
+  FIELD_EVENT_VIEW,
   FOLLOW_UP_BODY,
   MY_DAY,
   OUTCOME_BODY,
@@ -42,6 +52,7 @@ import {
   VISIT_TIMES,
 } from './schemas.js'
 import { followUpVisitOutcome, recordVisitOutcome, visitOutcomeView } from './outcomes.js'
+import { fieldEventView, ingestFieldEvent, reviewFieldEvent, type FieldEventInput } from './sync.js'
 import { recordTap, visitAssignments } from './taps.js'
 import { correctTimestamp, timestampsCsv, visitTimes, type CorrectionInput } from './timestamps.js'
 
@@ -49,6 +60,7 @@ export { myDayItems, onMyWayRule } from './my-day.js'
 export { onTheWayAutomation, ON_THE_WAY_NOTICE } from './notice.js'
 export { ON_MY_WAY_EVENT, recordTap } from './taps.js'
 export { openVisitOutcome, VISIT_OUTCOME_QUEUE_TYPE } from './outcomes.js'
+export { FIELD_EVENT_QUEUE_TYPE, FIELD_EVENT_TYPES, ingestFieldEvent } from './sync.js'
 export { csvCell, timestampsCsv, visitTimes } from './timestamps.js'
 
 const TEST = 'test/integration/my-day.test.ts'
@@ -434,5 +446,148 @@ export function fieldModule(): ApiModule {
     },
   }
 
-  return { name: 'field', routes: [myDay, ...taps, times, correct, exportCsv, recordOutcome, outcome, followUp] }
+  // TSK-0080 (HH-OFF-05, HH-OFF-06, T27, T51): the sync queue.
+  const SYNC_TEST = 'test/integration/field-sync.test.ts'
+  const fieldEventFacts: NonNullable<RouteDef['resource']> = async ({ req, db }) => {
+    const { clientId } = req.params as { clientId: string }
+    if (!UUID_RE.test(clientId)) return null
+    const e = await db
+      .selectFrom('work.field_events')
+      .select('project_id')
+      .where('client_id', '=', clientId)
+      .executeTakeFirst()
+    return e ? { projectId: e.project_id } : null
+  }
+  const syncEvent: RouteDef = {
+    method: 'POST',
+    path: '/staff/field-events',
+    operationId: 'syncFieldEvent',
+    summary: 'Upload one field event a phone saved',
+    description:
+      'Staff with a My Day (schedule.view_my_day) upload one event their phone saved (today On my way, Arrived or ' +
+      "Finished), with the UUID the phone generated (clientId), the phone's own time and the attempt number (one " +
+      'Idempotency-Key per attempt). The UUID is the key: an event resent any number of times is ingested once and answers as it did the ' +
+      'first time (ingested: false); the same UUID for a different event is refused (CLIENT_ID_REUSED). Each event is ' +
+      'decided again: the worker must have been assigned to the visit when the phone recorded it and still be ' +
+      "assigned now, else it is kept for the Owner's review and never applied (not_assigned). It is then applied " +
+      "as an online tap would be (applied, or already_recorded), the phone's time kept beside the server's; one the " +
+      "visit's newer state refuses is kept for review, never applied over it (conflict, with the refusal code). The " +
+      "Owner may upload the events another account's phone holds (actorId): kept for review only (recovered). Each " +
+      "event in review opens the Owner's queue item field_event_review.",
+    actors: ['staff'],
+    permission: 'schedule.view_my_day',
+    kind: 'write',
+    idempotency: 'required',
+    expectedVersion: 'none',
+    rateLimit: 'none',
+    audit: 'field_event.sync',
+    pagination: false,
+    test: SYNC_TEST,
+    schema: { body: FIELD_EVENT_BODY, response: { 200: FIELD_EVENT_RESULT } },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const out = await ingestFieldEvent(tx, staff(ctx), ctx.req.body as FieldEventInput)
+      // A resent event is audited too (ingested: false); it recorded nothing.
+      await ctx.audit({
+        target: { type: 'visit', id: out.visitId, ...(out.visitVersion !== null ? { version: out.visitVersion } : {}) },
+        summary: {
+          projectId: out.projectId,
+          clientId: out.clientId,
+          type: (ctx.req.body as FieldEventInput).type,
+          state: out.state,
+          outcome: out.outcome,
+          detail: out.detail,
+          ingested: out.ingested,
+        },
+      })
+      return {
+        body: {
+          clientId: out.clientId,
+          state: out.state,
+          outcome: out.outcome,
+          detail: out.detail,
+          visitId: out.visitId,
+          receivedAt: out.receivedAt,
+          ingested: out.ingested,
+        },
+      }
+    },
+  }
+  const fieldEvent: RouteDef = {
+    method: 'GET',
+    path: '/staff/field-events/:clientId',
+    operationId: 'getFieldEvent',
+    summary: 'One field event as received',
+    description:
+      'Staff with visit.correct_timestamps (the Owner): one event a phone uploaded, who recorded and who uploaded ' +
+      "it, the phone's time and the server's, what the server did (applied, already recorded, a conflict and its " +
+      'code, not assigned, recovered) and the review once recorded. The queue item field_event_review links here.',
+    actors: ['staff'],
+    permission: 'visit.correct_timestamps',
+    kind: 'read',
+    idempotency: 'none',
+    expectedVersion: 'none',
+    rateLimit: 'none',
+    audit: 'none',
+    pagination: false,
+    test: SYNC_TEST,
+    resource: fieldEventFacts,
+    schema: { params: FIELD_EVENT_PARAMS, response: { 200: FIELD_EVENT_VIEW } },
+    handler: async (ctx) => {
+      const { clientId } = ctx.req.params as { clientId: string }
+      const v = await fieldEventView(ctx.db, clientId)
+      if (!v) throw new ApiError('NOT_FOUND')
+      return {
+        body: { ...v, actions: { review: v.state === 'needs_review' } },
+        headers: { 'cache-control': 'no-store' },
+      }
+    },
+  }
+  const review: RouteDef = {
+    method: 'POST',
+    path: '/staff/field-events/:clientId/review',
+    operationId: 'reviewFieldEvent',
+    summary: 'Record the review of a field event not applied',
+    description:
+      'Staff with visit.correct_timestamps (the Owner) record what was done about an event in review (a timestamp ' +
+      'corrected through the correction route, the worker asked, nothing to apply), once (ALREADY_REVIEWED; ' +
+      'NOT_IN_REVIEW for a synchronized event). The event itself stays as received and is never applied by this.',
+    actors: ['staff'],
+    permission: 'visit.correct_timestamps',
+    kind: 'write',
+    idempotency: 'required',
+    expectedVersion: 'none',
+    rateLimit: 'none',
+    audit: 'field_event.review',
+    pagination: false,
+    test: SYNC_TEST,
+    resource: fieldEventFacts,
+    schema: { params: FIELD_EVENT_PARAMS, body: FIELD_EVENT_REVIEW_BODY, response: { 200: FIELD_EVENT_VIEW } },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const { clientId } = ctx.req.params as { clientId: string }
+      const out = await reviewFieldEvent(tx, staff(ctx), clientId, ctx.req.body as { note: string })
+      await ctx.audit({ target: { type: 'field_event', id: clientId }, summary: { projectId: out.projectId } })
+      const v = await fieldEventView(tx, clientId)
+      if (!v) throw new ApiError('NOT_FOUND')
+      return { body: { ...v, actions: { review: false } } }
+    },
+  }
+
+  return {
+    name: 'field',
+    routes: [
+      myDay,
+      ...taps,
+      times,
+      correct,
+      exportCsv,
+      recordOutcome,
+      outcome,
+      followUp,
+      syncEvent,
+      fieldEvent,
+      review,
+    ],
+  }
 }

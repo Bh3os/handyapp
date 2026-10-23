@@ -206,3 +206,54 @@ export const FOLLOW_UP_BODY = {
   required: ['note'],
   properties: { note: NOTE },
 } as const
+
+// TSK-0080 (HH-OFF-05, HH-OFF-06): one field event a phone uploads, and what the server did with it.
+const FIELD_EVENT_TYPE = { type: 'string', enum: ['tap_on_my_way', 'tap_arrived', 'tap_finished'] } as const
+const FIELD_EVENT_STATE = { type: 'string', enum: ['synchronized', 'needs_review', 'reviewed'] } as const
+const FIELD_EVENT_OUTCOME = {
+  type: 'string',
+  enum: ['applied', 'already_recorded', 'conflict', 'not_assigned', 'recovered'],
+} as const
+export const FIELD_EVENT_PARAMS = obj({ clientId: UUID })
+export const FIELD_EVENT_BODY = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['clientId', 'type', 'visitId', 'deviceRecordedAt'],
+  properties: {
+    clientId: UUID,
+    type: FIELD_EVENT_TYPE,
+    visitId: UUID,
+    actorId: UUID,
+    baseVersion: { type: 'integer', minimum: 1 },
+    deviceRecordedAt: TIME,
+    attempt: { type: 'integer', minimum: 1, maximum: 10000 },
+  },
+} as const
+export const FIELD_EVENT_RESULT = obj({
+  clientId: STR,
+  state: FIELD_EVENT_STATE,
+  outcome: FIELD_EVENT_OUTCOME,
+  detail: STR_OR_NULL,
+  visitId: STR,
+  receivedAt: TIME,
+  ingested: BOOL,
+})
+export const FIELD_EVENT_VIEW = obj({
+  clientId: STR,
+  type: FIELD_EVENT_TYPE,
+  visitId: STR,
+  reference: STR,
+  localDate: STR,
+  visitState: STR,
+  recordedBy: STAFF_REF,
+  uploadedBy: STAFF_REF,
+  deviceRecordedAt: TIME,
+  receivedAt: TIME,
+  attempts: INT,
+  state: FIELD_EVENT_STATE,
+  outcome: FIELD_EVENT_OUTCOME,
+  detail: STR_OR_NULL,
+  review: { anyOf: [{ type: 'null' }, obj({ by: STAFF_REF, at: TIME, note: STR })] },
+  actions: obj({ review: BOOL }),
+})
+export const FIELD_EVENT_REVIEW_BODY = FOLLOW_UP_BODY

@@ -23,16 +23,29 @@ export type StoredPacket = {
 }
 
 export type DraftKind = 'tap' | 'stop' | 'note'
+/**
+ * Where a draft is (HH-OFF-07): saved on this phone, being uploaded, synced, failed (the server refused the upload
+ * itself) or kept by the server for the Owner's review (never applied).
+ */
+export type DraftState = 'saved_on_phone' | 'pending_upload' | 'synced' | 'failed' | 'needs_review'
 export type StoredDraft = {
+  /** The event's UUID, generated on the phone: the server ingests it once (HH-OFF-05). */
   id: string
   kind: DraftKind
+  /** Who recorded it on this phone (the signed-in staff member then). Absent on TSK-0079 drafts: the signed-in one. */
+  staffUserId?: string
   jobId: string | null
   visitId: string | null
   /** The device's own clock when the worker acted (kept beside the server's time once synchronized). */
   deviceRecordedAt: string
   payload: Record<string, unknown>
-  /** TSK-0079: drafts stay on the phone; TSK-0080 sends them and marks them pending upload, then synced. */
-  state: 'saved_on_phone'
+  state: DraftState
+  /** Upload attempts that reached no answer or a refusal so far. */
+  attempts?: number
+  /** The server's refusal or review code, when it gave one. */
+  problem?: string | null
+  /** When the server answered synchronized or needs review (settled drafts are cleared 12 hours later). */
+  settledAt?: string | null
 }
 
 export interface OfflineStore {
@@ -44,7 +57,7 @@ export interface OfflineStore {
   putDraft(d: StoredDraft): Promise<void>
   listDrafts(): Promise<StoredDraft[]>
   deleteDraft(id: string): Promise<void>
-  /** Everything this device holds for the app (sign-out). */
+  /** Everything this device holds for the app. */
   clear(): Promise<void>
 }
 
@@ -117,6 +130,16 @@ export function memoryStore(): OfflineStore {
       drafts.clear()
     },
   }
+}
+
+/** A random (version 4) UUID for a new draft. */
+export function draftId(): string {
+  const b = new Uint8Array(16)
+  globalThis.crypto.getRandomValues(b)
+  b[6] = ((b[6] ?? 0) & 0x0f) | 0x40
+  b[8] = ((b[8] ?? 0) & 0x3f) | 0x80
+  const h = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('')
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`
 }
 
 let shared: OfflineStore | null = null

@@ -67858,6 +67858,904 @@
         }
       }
     },
+    "/api/v1/staff/field-events": {
+      "post": {
+        "operationId": "syncFieldEvent",
+        "summary": "Upload one field event a phone saved",
+        "description": "Staff with a My Day (schedule.view_my_day) upload one event their phone saved (today On my way, Arrived or Finished), with the UUID the phone generated (clientId), the phone's own time and the attempt number (one Idempotency-Key per attempt). The UUID is the key: an event resent any number of times is ingested once and answers as it did the first time (ingested: false); the same UUID for a different event is refused (CLIENT_ID_REUSED). Each event is decided again: the worker must have been assigned to the visit when the phone recorded it and still be assigned now, else it is kept for the Owner's review and never applied (not_assigned). It is then applied as an online tap would be (applied, or already_recorded), the phone's time kept beside the server's; one the visit's newer state refuses is kept for review, never applied over it (conflict, with the refusal code). The Owner may upload the events another account's phone holds (actorId): kept for review only (recovered). Each event in review opens the Owner's queue item field_event_review.",
+        "tags": [
+          "field"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "clientId",
+                  "type",
+                  "visitId",
+                  "deviceRecordedAt"
+                ],
+                "properties": {
+                  "clientId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "tap_on_my_way",
+                      "tap_arrived",
+                      "tap_finished"
+                    ]
+                  },
+                  "visitId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                  },
+                  "actorId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                  },
+                  "baseVersion": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "deviceRecordedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "attempt": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "clientId",
+                    "state",
+                    "outcome",
+                    "detail",
+                    "visitId",
+                    "receivedAt",
+                    "ingested"
+                  ],
+                  "properties": {
+                    "clientId": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "synchronized",
+                        "needs_review",
+                        "reviewed"
+                      ]
+                    },
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "applied",
+                        "already_recorded",
+                        "conflict",
+                        "not_assigned",
+                        "recovered"
+                      ]
+                    },
+                    "detail": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "visitId": {
+                      "type": "string"
+                    },
+                    "receivedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "ingested": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "schedule.view_my_day",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "field_event.sync",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/field-sync.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/field-events/{clientId}": {
+      "get": {
+        "operationId": "getFieldEvent",
+        "summary": "One field event as received",
+        "description": "Staff with visit.correct_timestamps (the Owner): one event a phone uploaded, who recorded and who uploaded it, the phone's time and the server's, what the server did (applied, already recorded, a conflict and its code, not assigned, recovered) and the review once recorded. The queue item field_event_review links here.",
+        "tags": [
+          "field"
+        ],
+        "parameters": [
+          {
+            "name": "clientId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "clientId",
+                    "type",
+                    "visitId",
+                    "reference",
+                    "localDate",
+                    "visitState",
+                    "recordedBy",
+                    "uploadedBy",
+                    "deviceRecordedAt",
+                    "receivedAt",
+                    "attempts",
+                    "state",
+                    "outcome",
+                    "detail",
+                    "review",
+                    "actions"
+                  ],
+                  "properties": {
+                    "clientId": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "tap_on_my_way",
+                        "tap_arrived",
+                        "tap_finished"
+                      ]
+                    },
+                    "visitId": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "localDate": {
+                      "type": "string"
+                    },
+                    "visitState": {
+                      "type": "string"
+                    },
+                    "recordedBy": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "uploadedBy": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "deviceRecordedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "receivedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "attempts": {
+                      "type": "integer"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "synchronized",
+                        "needs_review",
+                        "reviewed"
+                      ]
+                    },
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "applied",
+                        "already_recorded",
+                        "conflict",
+                        "not_assigned",
+                        "recovered"
+                      ]
+                    },
+                    "detail": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "review": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "by",
+                            "at",
+                            "note"
+                          ],
+                          "properties": {
+                            "by": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            },
+                            "at": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "note": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "review"
+                      ],
+                      "properties": {
+                        "review": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "visit.correct_timestamps",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/field-sync.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/field-events/{clientId}/review": {
+      "post": {
+        "operationId": "reviewFieldEvent",
+        "summary": "Record the review of a field event not applied",
+        "description": "Staff with visit.correct_timestamps (the Owner) record what was done about an event in review (a timestamp corrected through the correction route, the worker asked, nothing to apply), once (ALREADY_REVIEWED; NOT_IN_REVIEW for a synchronized event). The event itself stays as received and is never applied by this.",
+        "tags": [
+          "field"
+        ],
+        "parameters": [
+          {
+            "name": "clientId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "note"
+                ],
+                "properties": {
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "clientId",
+                    "type",
+                    "visitId",
+                    "reference",
+                    "localDate",
+                    "visitState",
+                    "recordedBy",
+                    "uploadedBy",
+                    "deviceRecordedAt",
+                    "receivedAt",
+                    "attempts",
+                    "state",
+                    "outcome",
+                    "detail",
+                    "review",
+                    "actions"
+                  ],
+                  "properties": {
+                    "clientId": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "tap_on_my_way",
+                        "tap_arrived",
+                        "tap_finished"
+                      ]
+                    },
+                    "visitId": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "localDate": {
+                      "type": "string"
+                    },
+                    "visitState": {
+                      "type": "string"
+                    },
+                    "recordedBy": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "uploadedBy": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "deviceRecordedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "receivedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "attempts": {
+                      "type": "integer"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "synchronized",
+                        "needs_review",
+                        "reviewed"
+                      ]
+                    },
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "applied",
+                        "already_recorded",
+                        "conflict",
+                        "not_assigned",
+                        "recovered"
+                      ]
+                    },
+                    "detail": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "review": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "by",
+                            "at",
+                            "note"
+                          ],
+                          "properties": {
+                            "by": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            },
+                            "at": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "note": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "review"
+                      ],
+                      "properties": {
+                        "review": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "visit.correct_timestamps",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "field_event.review",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/field-sync.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/field-photos/{photoId}/actions/share": {
       "post": {
         "operationId": "shareFieldPhoto",
@@ -117312,6 +118210,7 @@
                 "deposit_due",
                 "visit_flagged",
                 "visit_outcome",
+                "field_event_review",
                 "loadout_shortage",
                 "job_hold",
                 "property_time_zone",
@@ -117450,6 +118349,7 @@
                               "deposit_due",
                               "visit_flagged",
                               "visit_outcome",
+                              "field_event_review",
                               "loadout_shortage",
                               "job_hold",
                               "property_time_zone",
@@ -117682,7 +118582,8 @@
                               "review_issue",
                               "review_quality",
                               "review_punch_items",
-                              "follow_up_visit"
+                              "follow_up_visit",
+                              "review_field_event"
                             ]
                           },
                           "link": {
@@ -117742,6 +118643,7 @@
                           "deposit_due",
                           "visit_flagged",
                           "visit_outcome",
+                          "field_event_review",
                           "loadout_shortage",
                           "job_hold",
                           "property_time_zone",
@@ -117900,6 +118802,7 @@
                 "deposit_due",
                 "visit_flagged",
                 "visit_outcome",
+                "field_event_review",
                 "loadout_shortage",
                 "job_hold",
                 "property_time_zone",
@@ -118038,6 +118941,7 @@
                               "deposit_due",
                               "visit_flagged",
                               "visit_outcome",
+                              "field_event_review",
                               "loadout_shortage",
                               "job_hold",
                               "property_time_zone",
@@ -118270,7 +119174,8 @@
                               "review_issue",
                               "review_quality",
                               "review_punch_items",
-                              "follow_up_visit"
+                              "follow_up_visit",
+                              "review_field_event"
                             ]
                           },
                           "link": {
@@ -118330,6 +119235,7 @@
                           "deposit_due",
                           "visit_flagged",
                           "visit_outcome",
+                          "field_event_review",
                           "loadout_shortage",
                           "job_hold",
                           "property_time_zone",
