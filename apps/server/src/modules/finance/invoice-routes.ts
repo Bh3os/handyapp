@@ -86,6 +86,7 @@ const MONEY = object({
   depositCreditCents: INT,
   appliedCreditsCents: INT,
   creditsCents: INT,
+  writtenOffCents: INT,
   confirmedCents: INT,
   pendingCents: INT,
   remainingCents: INT,

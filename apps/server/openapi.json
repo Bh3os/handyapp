@@ -31782,6 +31782,503 @@
         }
       }
     },
+    "/api/v1/staff/credits/{id}/decision": {
+      "post": {
+        "operationId": "decideCreditRequest",
+        "summary": "Approve or decline a requested credit (Owner only)",
+        "description": "The Owner only (payment.credit): a fresh sign-in and a written reason. approve: A credit lowers what the job's issued final invoice still asks for (never beyond it, EXCEEDS_BALANCE); it is issued and applied at once and counts toward Paid. decline: a refund is declined (its money is free again), a credit or write-off voided. A request already decided is a CONFLICT. The Owner Decisions item follows. Audited. Returns the job’s adjustments view.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "decision",
+                  "reason"
+                ],
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "approve",
+                      "decline"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2100
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "items",
+                    "refundable",
+                    "invoice",
+                    "voidable",
+                    "actions"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "type",
+                          "state",
+                          "amountCents",
+                          "reason",
+                          "decisionReason",
+                          "payment",
+                          "invoiceNumber",
+                          "requestedBy",
+                          "requestedAt",
+                          "decidedBy",
+                          "decidedAt",
+                          "confirmation",
+                          "canDecide",
+                          "outcomes"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "refund",
+                              "credit",
+                              "write_off"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "requested",
+                              "approved",
+                              "processing",
+                              "succeeded",
+                              "failed",
+                              "needs_review",
+                              "issued",
+                              "applied",
+                              "voided",
+                              "declined"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": "integer"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "decisionReason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "payment": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "method",
+                                  "receivedOn",
+                                  "amountCents"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "method": {
+                                    "type": "string"
+                                  },
+                                  "receivedOn": {
+                                    "type": "string"
+                                  },
+                                  "amountCents": {
+                                    "type": "integer"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "invoiceNumber": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "requestedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "requestedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "decidedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "decidedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "canDecide": {
+                            "type": "boolean"
+                          },
+                          "outcomes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "processing",
+                                "succeeded",
+                                "failed",
+                                "needs_review"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "refundable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "paymentId",
+                          "method",
+                          "receivedOn",
+                          "availableCents"
+                        ],
+                        "properties": {
+                          "paymentId": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string"
+                          },
+                          "receivedOn": {
+                            "type": "string"
+                          },
+                          "availableCents": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "invoice": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "number",
+                            "state",
+                            "remainingCents",
+                            "pendingCents"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "number": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string"
+                            },
+                            "remainingCents": {
+                              "type": "integer"
+                            },
+                            "pendingCents": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "voidable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "number",
+                          "kind"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "number": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "refund",
+                        "credit",
+                        "writeOff",
+                        "request",
+                        "voidInvoice"
+                      ],
+                      "properties": {
+                        "refund": {
+                          "type": "boolean"
+                        },
+                        "credit": {
+                          "type": "boolean"
+                        },
+                        "writeOff": {
+                          "type": "boolean"
+                        },
+                        "request": {
+                          "type": "boolean"
+                        },
+                        "voidInvoice": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "payment.credit",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": 5,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "payment.adjustment_decision",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/invoices.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/critical-holds/{holdId}/actions/cancel": {
       "post": {
         "operationId": "cancelCriticalHold",
@@ -73940,6 +74437,7 @@
                                     "depositCreditCents",
                                     "appliedCreditsCents",
                                     "creditsCents",
+                                    "writtenOffCents",
                                     "confirmedCents",
                                     "pendingCents",
                                     "remainingCents"
@@ -73955,6 +74453,9 @@
                                       "type": "integer"
                                     },
                                     "creditsCents": {
+                                      "type": "integer"
+                                    },
+                                    "writtenOffCents": {
                                       "type": "integer"
                                     },
                                     "confirmedCents": {
@@ -74622,6 +75123,7 @@
                                     "depositCreditCents",
                                     "appliedCreditsCents",
                                     "creditsCents",
+                                    "writtenOffCents",
                                     "confirmedCents",
                                     "pendingCents",
                                     "remainingCents"
@@ -74637,6 +75139,9 @@
                                       "type": "integer"
                                     },
                                     "creditsCents": {
+                                      "type": "integer"
+                                    },
+                                    "writtenOffCents": {
                                       "type": "integer"
                                     },
                                     "confirmedCents": {
@@ -75526,6 +76031,7 @@
                                     "depositCreditCents",
                                     "appliedCreditsCents",
                                     "creditsCents",
+                                    "writtenOffCents",
                                     "confirmedCents",
                                     "pendingCents",
                                     "remainingCents"
@@ -75541,6 +76047,9 @@
                                       "type": "integer"
                                     },
                                     "creditsCents": {
+                                      "type": "integer"
+                                    },
+                                    "writtenOffCents": {
                                       "type": "integer"
                                     },
                                     "confirmedCents": {
@@ -76208,6 +76717,7 @@
                                     "depositCreditCents",
                                     "appliedCreditsCents",
                                     "creditsCents",
+                                    "writtenOffCents",
                                     "confirmedCents",
                                     "pendingCents",
                                     "remainingCents"
@@ -76223,6 +76733,9 @@
                                       "type": "integer"
                                     },
                                     "creditsCents": {
+                                      "type": "integer"
+                                    },
+                                    "writtenOffCents": {
                                       "type": "integer"
                                     },
                                     "confirmedCents": {
@@ -77152,6 +77665,7 @@
                                     "depositCreditCents",
                                     "appliedCreditsCents",
                                     "creditsCents",
+                                    "writtenOffCents",
                                     "confirmedCents",
                                     "pendingCents",
                                     "remainingCents"
@@ -77167,6 +77681,9 @@
                                       "type": "integer"
                                     },
                                     "creditsCents": {
+                                      "type": "integer"
+                                    },
+                                    "writtenOffCents": {
                                       "type": "integer"
                                     },
                                     "confirmedCents": {
@@ -77834,6 +78351,7 @@
                                     "depositCreditCents",
                                     "appliedCreditsCents",
                                     "creditsCents",
+                                    "writtenOffCents",
                                     "confirmedCents",
                                     "pendingCents",
                                     "remainingCents"
@@ -77849,6 +78367,9 @@
                                       "type": "integer"
                                     },
                                     "creditsCents": {
+                                      "type": "integer"
+                                    },
+                                    "writtenOffCents": {
                                       "type": "integer"
                                     },
                                     "confirmedCents": {
@@ -78359,6 +78880,495 @@
           "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "payment.record",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/invoices.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/invoices/{invoiceId}/void": {
+      "post": {
+        "operationId": "voidInvoice",
+        "summary": "Void an issued invoice with nothing on it (Owner only)",
+        "description": "The Owner only (invoice.void): a fresh sign-in and a written reason. An issued invoice with no payment (confirmed or pending), credit or write-off on it is voided (INVOICE_HAS_MONEY otherwise), never deleted; the customer sees it superseded. The job may then have its reissue: a new draft, issued as any invoice (a voided final invoice gives back its deposit credit). Audited. Returns the job’s adjustments view.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "invoiceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2100
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "items",
+                    "refundable",
+                    "invoice",
+                    "voidable",
+                    "actions"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "type",
+                          "state",
+                          "amountCents",
+                          "reason",
+                          "decisionReason",
+                          "payment",
+                          "invoiceNumber",
+                          "requestedBy",
+                          "requestedAt",
+                          "decidedBy",
+                          "decidedAt",
+                          "confirmation",
+                          "canDecide",
+                          "outcomes"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "refund",
+                              "credit",
+                              "write_off"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "requested",
+                              "approved",
+                              "processing",
+                              "succeeded",
+                              "failed",
+                              "needs_review",
+                              "issued",
+                              "applied",
+                              "voided",
+                              "declined"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": "integer"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "decisionReason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "payment": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "method",
+                                  "receivedOn",
+                                  "amountCents"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "method": {
+                                    "type": "string"
+                                  },
+                                  "receivedOn": {
+                                    "type": "string"
+                                  },
+                                  "amountCents": {
+                                    "type": "integer"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "invoiceNumber": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "requestedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "requestedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "decidedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "decidedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "canDecide": {
+                            "type": "boolean"
+                          },
+                          "outcomes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "processing",
+                                "succeeded",
+                                "failed",
+                                "needs_review"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "refundable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "paymentId",
+                          "method",
+                          "receivedOn",
+                          "availableCents"
+                        ],
+                        "properties": {
+                          "paymentId": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string"
+                          },
+                          "receivedOn": {
+                            "type": "string"
+                          },
+                          "availableCents": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "invoice": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "number",
+                            "state",
+                            "remainingCents",
+                            "pendingCents"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "number": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string"
+                            },
+                            "remainingCents": {
+                              "type": "integer"
+                            },
+                            "pendingCents": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "voidable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "number",
+                          "kind"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "number": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "refund",
+                        "credit",
+                        "writeOff",
+                        "request",
+                        "voidInvoice"
+                      ],
+                      "properties": {
+                        "refund": {
+                          "type": "boolean"
+                        },
+                        "credit": {
+                          "type": "boolean"
+                        },
+                        "writeOff": {
+                          "type": "boolean"
+                        },
+                        "request": {
+                          "type": "boolean"
+                        },
+                        "voidInvoice": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "invoice.void",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": 5,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "invoice.void",
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/invoices.test.ts"
@@ -84387,6 +85397,500 @@
         }
       }
     },
+    "/api/v1/staff/jobs/{jobId}/credits": {
+      "post": {
+        "operationId": "recordCredit",
+        "summary": "Record a credit (Owner only)",
+        "description": "The Owner only (payment.credit; OWN-DEC-138): a fresh sign-in (password or authenticator code within 5 minutes, read again at the write) and a written reason. A credit lowers what the job's issued final invoice still asks for (never beyond it, EXCEEDS_BALANCE); it is issued and applied at once and counts toward Paid. Requested and approved in one step, never an edit; audited. Returns the job’s adjustments view.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "amountCents",
+                  "reason"
+                ],
+                "properties": {
+                  "amountCents": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2100
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "items",
+                    "refundable",
+                    "invoice",
+                    "voidable",
+                    "actions"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "type",
+                          "state",
+                          "amountCents",
+                          "reason",
+                          "decisionReason",
+                          "payment",
+                          "invoiceNumber",
+                          "requestedBy",
+                          "requestedAt",
+                          "decidedBy",
+                          "decidedAt",
+                          "confirmation",
+                          "canDecide",
+                          "outcomes"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "refund",
+                              "credit",
+                              "write_off"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "requested",
+                              "approved",
+                              "processing",
+                              "succeeded",
+                              "failed",
+                              "needs_review",
+                              "issued",
+                              "applied",
+                              "voided",
+                              "declined"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": "integer"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "decisionReason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "payment": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "method",
+                                  "receivedOn",
+                                  "amountCents"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "method": {
+                                    "type": "string"
+                                  },
+                                  "receivedOn": {
+                                    "type": "string"
+                                  },
+                                  "amountCents": {
+                                    "type": "integer"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "invoiceNumber": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "requestedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "requestedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "decidedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "decidedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "canDecide": {
+                            "type": "boolean"
+                          },
+                          "outcomes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "processing",
+                                "succeeded",
+                                "failed",
+                                "needs_review"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "refundable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "paymentId",
+                          "method",
+                          "receivedOn",
+                          "availableCents"
+                        ],
+                        "properties": {
+                          "paymentId": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string"
+                          },
+                          "receivedOn": {
+                            "type": "string"
+                          },
+                          "availableCents": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "invoice": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "number",
+                            "state",
+                            "remainingCents",
+                            "pendingCents"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "number": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string"
+                            },
+                            "remainingCents": {
+                              "type": "integer"
+                            },
+                            "pendingCents": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "voidable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "number",
+                          "kind"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "number": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "refund",
+                        "credit",
+                        "writeOff",
+                        "request",
+                        "voidInvoice"
+                      ],
+                      "properties": {
+                        "refund": {
+                          "type": "boolean"
+                        },
+                        "credit": {
+                          "type": "boolean"
+                        },
+                        "writeOff": {
+                          "type": "boolean"
+                        },
+                        "request": {
+                          "type": "boolean"
+                        },
+                        "voidInvoice": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "payment.credit",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": 5,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "payment.credit",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/invoices.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/jobs/{jobId}/deposit": {
       "get": {
         "operationId": "getJobDeposit",
@@ -87072,6 +88576,949 @@
         }
       }
     },
+    "/api/v1/staff/jobs/{jobId}/finance-adjustment-requests": {
+      "post": {
+        "operationId": "requestFinanceAdjustment",
+        "summary": "Request a refund, credit or write-off for the Owner’s decision",
+        "description": "Office (finance_adjustment.request, PROPOSED): a refund, credit or write-off is requested with a reason and checked against the current money as the Owner’s would be; it changes no balance (a requested refund holds its money) and waits in Owner Decisions (refund_request, one item per job) until the Owner approves or declines it. Returns the job’s adjustments view.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "type",
+                  "amountCents",
+                  "reason"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "refund",
+                      "credit",
+                      "write_off"
+                    ]
+                  },
+                  "paymentId": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                      }
+                    ]
+                  },
+                  "amountCents": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2100
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "items",
+                    "refundable",
+                    "invoice",
+                    "voidable",
+                    "actions"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "type",
+                          "state",
+                          "amountCents",
+                          "reason",
+                          "decisionReason",
+                          "payment",
+                          "invoiceNumber",
+                          "requestedBy",
+                          "requestedAt",
+                          "decidedBy",
+                          "decidedAt",
+                          "confirmation",
+                          "canDecide",
+                          "outcomes"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "refund",
+                              "credit",
+                              "write_off"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "requested",
+                              "approved",
+                              "processing",
+                              "succeeded",
+                              "failed",
+                              "needs_review",
+                              "issued",
+                              "applied",
+                              "voided",
+                              "declined"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": "integer"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "decisionReason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "payment": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "method",
+                                  "receivedOn",
+                                  "amountCents"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "method": {
+                                    "type": "string"
+                                  },
+                                  "receivedOn": {
+                                    "type": "string"
+                                  },
+                                  "amountCents": {
+                                    "type": "integer"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "invoiceNumber": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "requestedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "requestedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "decidedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "decidedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "canDecide": {
+                            "type": "boolean"
+                          },
+                          "outcomes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "processing",
+                                "succeeded",
+                                "failed",
+                                "needs_review"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "refundable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "paymentId",
+                          "method",
+                          "receivedOn",
+                          "availableCents"
+                        ],
+                        "properties": {
+                          "paymentId": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string"
+                          },
+                          "receivedOn": {
+                            "type": "string"
+                          },
+                          "availableCents": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "invoice": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "number",
+                            "state",
+                            "remainingCents",
+                            "pendingCents"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "number": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string"
+                            },
+                            "remainingCents": {
+                              "type": "integer"
+                            },
+                            "pendingCents": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "voidable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "number",
+                          "kind"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "number": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "refund",
+                        "credit",
+                        "writeOff",
+                        "request",
+                        "voidInvoice"
+                      ],
+                      "properties": {
+                        "refund": {
+                          "type": "boolean"
+                        },
+                        "credit": {
+                          "type": "boolean"
+                        },
+                        "writeOff": {
+                          "type": "boolean"
+                        },
+                        "request": {
+                          "type": "boolean"
+                        },
+                        "voidInvoice": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "finance_adjustment.request",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "payment.adjustment_request",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/invoices.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/jobs/{jobId}/finance-adjustments": {
+      "get": {
+        "operationId": "getJobFinanceAdjustments",
+        "summary": "A job's refunds, credits and write-offs",
+        "description": "The Owner and Office (payment.view): every refund, credit and write-off of the job with its original record (the payment or the invoice), reason, requester, decision and Square refund ID; the payments with money a refund may pay back; the current final invoice; the invoices the Owner may void; and what this caller may do now (the Owner acts, Office requests). Read only.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "items",
+                    "refundable",
+                    "invoice",
+                    "voidable",
+                    "actions"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "type",
+                          "state",
+                          "amountCents",
+                          "reason",
+                          "decisionReason",
+                          "payment",
+                          "invoiceNumber",
+                          "requestedBy",
+                          "requestedAt",
+                          "decidedBy",
+                          "decidedAt",
+                          "confirmation",
+                          "canDecide",
+                          "outcomes"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "refund",
+                              "credit",
+                              "write_off"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "requested",
+                              "approved",
+                              "processing",
+                              "succeeded",
+                              "failed",
+                              "needs_review",
+                              "issued",
+                              "applied",
+                              "voided",
+                              "declined"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": "integer"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "decisionReason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "payment": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "method",
+                                  "receivedOn",
+                                  "amountCents"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "method": {
+                                    "type": "string"
+                                  },
+                                  "receivedOn": {
+                                    "type": "string"
+                                  },
+                                  "amountCents": {
+                                    "type": "integer"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "invoiceNumber": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "requestedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "requestedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "decidedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "decidedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "canDecide": {
+                            "type": "boolean"
+                          },
+                          "outcomes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "processing",
+                                "succeeded",
+                                "failed",
+                                "needs_review"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "refundable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "paymentId",
+                          "method",
+                          "receivedOn",
+                          "availableCents"
+                        ],
+                        "properties": {
+                          "paymentId": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string"
+                          },
+                          "receivedOn": {
+                            "type": "string"
+                          },
+                          "availableCents": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "invoice": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "number",
+                            "state",
+                            "remainingCents",
+                            "pendingCents"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "number": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string"
+                            },
+                            "remainingCents": {
+                              "type": "integer"
+                            },
+                            "pendingCents": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "voidable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "number",
+                          "kind"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "number": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "refund",
+                        "credit",
+                        "writeOff",
+                        "request",
+                        "voidInvoice"
+                      ],
+                      "properties": {
+                        "refund": {
+                          "type": "boolean"
+                        },
+                        "credit": {
+                          "type": "boolean"
+                        },
+                        "writeOff": {
+                          "type": "boolean"
+                        },
+                        "request": {
+                          "type": "boolean"
+                        },
+                        "voidInvoice": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "payment.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/invoices.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/jobs/{jobId}/hazard-reports": {
       "post": {
         "operationId": "reportHazard",
@@ -88187,6 +90634,7 @@
                                     "depositCreditCents",
                                     "appliedCreditsCents",
                                     "creditsCents",
+                                    "writtenOffCents",
                                     "confirmedCents",
                                     "pendingCents",
                                     "remainingCents"
@@ -88202,6 +90650,9 @@
                                       "type": "integer"
                                     },
                                     "creditsCents": {
+                                      "type": "integer"
+                                    },
+                                    "writtenOffCents": {
                                       "type": "integer"
                                     },
                                     "confirmedCents": {
@@ -88869,6 +91320,7 @@
                                     "depositCreditCents",
                                     "appliedCreditsCents",
                                     "creditsCents",
+                                    "writtenOffCents",
                                     "confirmedCents",
                                     "pendingCents",
                                     "remainingCents"
@@ -88884,6 +91336,9 @@
                                       "type": "integer"
                                     },
                                     "creditsCents": {
+                                      "type": "integer"
+                                    },
+                                    "writtenOffCents": {
                                       "type": "integer"
                                     },
                                     "confirmedCents": {
@@ -89724,6 +92179,7 @@
                                     "depositCreditCents",
                                     "appliedCreditsCents",
                                     "creditsCents",
+                                    "writtenOffCents",
                                     "confirmedCents",
                                     "pendingCents",
                                     "remainingCents"
@@ -89739,6 +92195,9 @@
                                       "type": "integer"
                                     },
                                     "creditsCents": {
+                                      "type": "integer"
+                                    },
+                                    "writtenOffCents": {
                                       "type": "integer"
                                     },
                                     "confirmedCents": {
@@ -90406,6 +92865,7 @@
                                     "depositCreditCents",
                                     "appliedCreditsCents",
                                     "creditsCents",
+                                    "writtenOffCents",
                                     "confirmedCents",
                                     "pendingCents",
                                     "remainingCents"
@@ -90421,6 +92881,9 @@
                                       "type": "integer"
                                     },
                                     "creditsCents": {
+                                      "type": "integer"
+                                    },
+                                    "writtenOffCents": {
                                       "type": "integer"
                                     },
                                     "confirmedCents": {
@@ -91291,6 +93754,7 @@
                                     "depositCreditCents",
                                     "appliedCreditsCents",
                                     "creditsCents",
+                                    "writtenOffCents",
                                     "confirmedCents",
                                     "pendingCents",
                                     "remainingCents"
@@ -91306,6 +93770,9 @@
                                       "type": "integer"
                                     },
                                     "creditsCents": {
+                                      "type": "integer"
+                                    },
+                                    "writtenOffCents": {
                                       "type": "integer"
                                     },
                                     "confirmedCents": {
@@ -91973,6 +94440,7 @@
                                     "depositCreditCents",
                                     "appliedCreditsCents",
                                     "creditsCents",
+                                    "writtenOffCents",
                                     "confirmedCents",
                                     "pendingCents",
                                     "remainingCents"
@@ -91988,6 +94456,9 @@
                                       "type": "integer"
                                     },
                                     "creditsCents": {
+                                      "type": "integer"
+                                    },
+                                    "writtenOffCents": {
                                       "type": "integer"
                                     },
                                     "confirmedCents": {
@@ -99377,6 +101848,505 @@
         }
       }
     },
+    "/api/v1/staff/jobs/{jobId}/refunds": {
+      "post": {
+        "operationId": "recordRefund",
+        "summary": "Record a refund (Owner only)",
+        "description": "The Owner only (payment.refund; OWN-DEC-138): a fresh sign-in (password or authenticator code within 5 minutes, read again at the write) and a written reason. A refund pays back money of one confirmed payment of the job not applied to anything (paymentId; never more than it can still give, EXCEEDS_AVAILABLE). It is made in Square; the Owner then records its outcome. Requested and approved in one step, never an edit; audited. Returns the job’s adjustments view.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "paymentId",
+                  "amountCents",
+                  "reason"
+                ],
+                "properties": {
+                  "paymentId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                  },
+                  "amountCents": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2100
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "items",
+                    "refundable",
+                    "invoice",
+                    "voidable",
+                    "actions"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "type",
+                          "state",
+                          "amountCents",
+                          "reason",
+                          "decisionReason",
+                          "payment",
+                          "invoiceNumber",
+                          "requestedBy",
+                          "requestedAt",
+                          "decidedBy",
+                          "decidedAt",
+                          "confirmation",
+                          "canDecide",
+                          "outcomes"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "refund",
+                              "credit",
+                              "write_off"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "requested",
+                              "approved",
+                              "processing",
+                              "succeeded",
+                              "failed",
+                              "needs_review",
+                              "issued",
+                              "applied",
+                              "voided",
+                              "declined"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": "integer"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "decisionReason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "payment": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "method",
+                                  "receivedOn",
+                                  "amountCents"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "method": {
+                                    "type": "string"
+                                  },
+                                  "receivedOn": {
+                                    "type": "string"
+                                  },
+                                  "amountCents": {
+                                    "type": "integer"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "invoiceNumber": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "requestedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "requestedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "decidedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "decidedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "canDecide": {
+                            "type": "boolean"
+                          },
+                          "outcomes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "processing",
+                                "succeeded",
+                                "failed",
+                                "needs_review"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "refundable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "paymentId",
+                          "method",
+                          "receivedOn",
+                          "availableCents"
+                        ],
+                        "properties": {
+                          "paymentId": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string"
+                          },
+                          "receivedOn": {
+                            "type": "string"
+                          },
+                          "availableCents": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "invoice": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "number",
+                            "state",
+                            "remainingCents",
+                            "pendingCents"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "number": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string"
+                            },
+                            "remainingCents": {
+                              "type": "integer"
+                            },
+                            "pendingCents": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "voidable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "number",
+                          "kind"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "number": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "refund",
+                        "credit",
+                        "writeOff",
+                        "request",
+                        "voidInvoice"
+                      ],
+                      "properties": {
+                        "refund": {
+                          "type": "boolean"
+                        },
+                        "credit": {
+                          "type": "boolean"
+                        },
+                        "writeOff": {
+                          "type": "boolean"
+                        },
+                        "request": {
+                          "type": "boolean"
+                        },
+                        "voidInvoice": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "payment.refund",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": 5,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "payment.refund",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/invoices.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/jobs/{jobId}/start-review": {
       "get": {
         "operationId": "getStartReview",
@@ -99900,6 +102870,500 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/start-work.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/jobs/{jobId}/write-offs": {
+      "post": {
+        "operationId": "recordWriteOff",
+        "summary": "Record a write-off (Owner only)",
+        "description": "The Owner only (payment.write_off; OWN-DEC-138): a fresh sign-in (password or authenticator code within 5 minutes, read again at the write) and a written reason. A write-off stops collecting part or all of what the job's issued final invoice still asks for (never beyond it; never automatic; the accounting treatment is the accountant’s). A written-off invoice is never Paid. Requested and approved in one step, never an edit; audited. Returns the job’s adjustments view.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "amountCents",
+                  "reason"
+                ],
+                "properties": {
+                  "amountCents": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2100
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "items",
+                    "refundable",
+                    "invoice",
+                    "voidable",
+                    "actions"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "type",
+                          "state",
+                          "amountCents",
+                          "reason",
+                          "decisionReason",
+                          "payment",
+                          "invoiceNumber",
+                          "requestedBy",
+                          "requestedAt",
+                          "decidedBy",
+                          "decidedAt",
+                          "confirmation",
+                          "canDecide",
+                          "outcomes"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "refund",
+                              "credit",
+                              "write_off"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "requested",
+                              "approved",
+                              "processing",
+                              "succeeded",
+                              "failed",
+                              "needs_review",
+                              "issued",
+                              "applied",
+                              "voided",
+                              "declined"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": "integer"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "decisionReason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "payment": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "method",
+                                  "receivedOn",
+                                  "amountCents"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "method": {
+                                    "type": "string"
+                                  },
+                                  "receivedOn": {
+                                    "type": "string"
+                                  },
+                                  "amountCents": {
+                                    "type": "integer"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "invoiceNumber": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "requestedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "requestedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "decidedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "decidedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "canDecide": {
+                            "type": "boolean"
+                          },
+                          "outcomes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "processing",
+                                "succeeded",
+                                "failed",
+                                "needs_review"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "refundable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "paymentId",
+                          "method",
+                          "receivedOn",
+                          "availableCents"
+                        ],
+                        "properties": {
+                          "paymentId": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string"
+                          },
+                          "receivedOn": {
+                            "type": "string"
+                          },
+                          "availableCents": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "invoice": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "number",
+                            "state",
+                            "remainingCents",
+                            "pendingCents"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "number": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string"
+                            },
+                            "remainingCents": {
+                              "type": "integer"
+                            },
+                            "pendingCents": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "voidable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "number",
+                          "kind"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "number": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "refund",
+                        "credit",
+                        "writeOff",
+                        "request",
+                        "voidInvoice"
+                      ],
+                      "properties": {
+                        "refund": {
+                          "type": "boolean"
+                        },
+                        "credit": {
+                          "type": "boolean"
+                        },
+                        "writeOff": {
+                          "type": "boolean"
+                        },
+                        "request": {
+                          "type": "boolean"
+                        },
+                        "voidInvoice": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "payment.write_off",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": 5,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "payment.write_off",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/invoices.test.ts"
         }
       }
     },
@@ -127786,6 +131250,1009 @@
           "pagination": true,
           "cache": "private, no-store",
           "test": "test/integration/queue.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/refunds/{id}/decision": {
+      "post": {
+        "operationId": "decideRefundRequest",
+        "summary": "Approve or decline a requested refund (Owner only)",
+        "description": "The Owner only (payment.refund): a fresh sign-in and a written reason. approve: A refund pays back money of one confirmed payment of the job not applied to anything (paymentId; never more than it can still give, EXCEEDS_AVAILABLE). It is made in Square; the Owner then records its outcome. decline: a refund is declined (its money is free again), a credit or write-off voided. A request already decided is a CONFLICT. The Owner Decisions item follows. Audited. Returns the job’s adjustments view.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "decision",
+                  "reason"
+                ],
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "approve",
+                      "decline"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2100
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "items",
+                    "refundable",
+                    "invoice",
+                    "voidable",
+                    "actions"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "type",
+                          "state",
+                          "amountCents",
+                          "reason",
+                          "decisionReason",
+                          "payment",
+                          "invoiceNumber",
+                          "requestedBy",
+                          "requestedAt",
+                          "decidedBy",
+                          "decidedAt",
+                          "confirmation",
+                          "canDecide",
+                          "outcomes"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "refund",
+                              "credit",
+                              "write_off"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "requested",
+                              "approved",
+                              "processing",
+                              "succeeded",
+                              "failed",
+                              "needs_review",
+                              "issued",
+                              "applied",
+                              "voided",
+                              "declined"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": "integer"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "decisionReason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "payment": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "method",
+                                  "receivedOn",
+                                  "amountCents"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "method": {
+                                    "type": "string"
+                                  },
+                                  "receivedOn": {
+                                    "type": "string"
+                                  },
+                                  "amountCents": {
+                                    "type": "integer"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "invoiceNumber": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "requestedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "requestedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "decidedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "decidedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "canDecide": {
+                            "type": "boolean"
+                          },
+                          "outcomes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "processing",
+                                "succeeded",
+                                "failed",
+                                "needs_review"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "refundable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "paymentId",
+                          "method",
+                          "receivedOn",
+                          "availableCents"
+                        ],
+                        "properties": {
+                          "paymentId": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string"
+                          },
+                          "receivedOn": {
+                            "type": "string"
+                          },
+                          "availableCents": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "invoice": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "number",
+                            "state",
+                            "remainingCents",
+                            "pendingCents"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "number": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string"
+                            },
+                            "remainingCents": {
+                              "type": "integer"
+                            },
+                            "pendingCents": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "voidable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "number",
+                          "kind"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "number": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "refund",
+                        "credit",
+                        "writeOff",
+                        "request",
+                        "voidInvoice"
+                      ],
+                      "properties": {
+                        "refund": {
+                          "type": "boolean"
+                        },
+                        "credit": {
+                          "type": "boolean"
+                        },
+                        "writeOff": {
+                          "type": "boolean"
+                        },
+                        "request": {
+                          "type": "boolean"
+                        },
+                        "voidInvoice": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "payment.refund",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": 5,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "payment.adjustment_decision",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/invoices.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/refunds/{id}/outcome": {
+      "post": {
+        "operationId": "recordRefundOutcome",
+        "summary": "Record what happened to an approved refund in Square (Owner only)",
+        "description": "The Owner only (payment.refund): a fresh sign-in and a reason. approved -> processing (made in Square) -> succeeded (only with Square’s refund ID: a refund is complete only then), failed (its money is free again) or needs_review; needs_review -> succeeded or failed. Anything else is a CONFLICT. Audited. Returns the job’s adjustments view.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "outcome",
+                  "reason"
+                ],
+                "properties": {
+                  "outcome": {
+                    "type": "string",
+                    "enum": [
+                      "processing",
+                      "succeeded",
+                      "failed",
+                      "needs_review"
+                    ]
+                  },
+                  "confirmation": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 170
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2100
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "items",
+                    "refundable",
+                    "invoice",
+                    "voidable",
+                    "actions"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "type",
+                          "state",
+                          "amountCents",
+                          "reason",
+                          "decisionReason",
+                          "payment",
+                          "invoiceNumber",
+                          "requestedBy",
+                          "requestedAt",
+                          "decidedBy",
+                          "decidedAt",
+                          "confirmation",
+                          "canDecide",
+                          "outcomes"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "refund",
+                              "credit",
+                              "write_off"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "requested",
+                              "approved",
+                              "processing",
+                              "succeeded",
+                              "failed",
+                              "needs_review",
+                              "issued",
+                              "applied",
+                              "voided",
+                              "declined"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": "integer"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "decisionReason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "payment": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "method",
+                                  "receivedOn",
+                                  "amountCents"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "method": {
+                                    "type": "string"
+                                  },
+                                  "receivedOn": {
+                                    "type": "string"
+                                  },
+                                  "amountCents": {
+                                    "type": "integer"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "invoiceNumber": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "requestedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "requestedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "decidedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "decidedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "canDecide": {
+                            "type": "boolean"
+                          },
+                          "outcomes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "processing",
+                                "succeeded",
+                                "failed",
+                                "needs_review"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "refundable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "paymentId",
+                          "method",
+                          "receivedOn",
+                          "availableCents"
+                        ],
+                        "properties": {
+                          "paymentId": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string"
+                          },
+                          "receivedOn": {
+                            "type": "string"
+                          },
+                          "availableCents": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "invoice": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "number",
+                            "state",
+                            "remainingCents",
+                            "pendingCents"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "number": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string"
+                            },
+                            "remainingCents": {
+                              "type": "integer"
+                            },
+                            "pendingCents": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "voidable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "number",
+                          "kind"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "number": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "refund",
+                        "credit",
+                        "writeOff",
+                        "request",
+                        "voidInvoice"
+                      ],
+                      "properties": {
+                        "refund": {
+                          "type": "boolean"
+                        },
+                        "credit": {
+                          "type": "boolean"
+                        },
+                        "writeOff": {
+                          "type": "boolean"
+                        },
+                        "request": {
+                          "type": "boolean"
+                        },
+                        "voidInvoice": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "payment.refund",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": 5,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "payment.refund_outcome",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/invoices.test.ts"
         }
       }
     },
@@ -163009,6 +167476,503 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/capacity.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/write-offs/{id}/decision": {
+      "post": {
+        "operationId": "decideWriteOffRequest",
+        "summary": "Approve or decline a requested write-off (Owner only)",
+        "description": "The Owner only (payment.write_off): a fresh sign-in and a written reason. approve: A write-off stops collecting part or all of what the job's issued final invoice still asks for (never beyond it; never automatic; the accounting treatment is the accountant’s). A written-off invoice is never Paid. decline: a refund is declined (its money is free again), a credit or write-off voided. A request already decided is a CONFLICT. The Owner Decisions item follows. Audited. Returns the job’s adjustments view.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "decision",
+                  "reason"
+                ],
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "approve",
+                      "decline"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2100
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "items",
+                    "refundable",
+                    "invoice",
+                    "voidable",
+                    "actions"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "type",
+                          "state",
+                          "amountCents",
+                          "reason",
+                          "decisionReason",
+                          "payment",
+                          "invoiceNumber",
+                          "requestedBy",
+                          "requestedAt",
+                          "decidedBy",
+                          "decidedAt",
+                          "confirmation",
+                          "canDecide",
+                          "outcomes"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "refund",
+                              "credit",
+                              "write_off"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "requested",
+                              "approved",
+                              "processing",
+                              "succeeded",
+                              "failed",
+                              "needs_review",
+                              "issued",
+                              "applied",
+                              "voided",
+                              "declined"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": "integer"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "decisionReason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "payment": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "method",
+                                  "receivedOn",
+                                  "amountCents"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "method": {
+                                    "type": "string"
+                                  },
+                                  "receivedOn": {
+                                    "type": "string"
+                                  },
+                                  "amountCents": {
+                                    "type": "integer"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "invoiceNumber": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "requestedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "requestedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "decidedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "decidedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "canDecide": {
+                            "type": "boolean"
+                          },
+                          "outcomes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "processing",
+                                "succeeded",
+                                "failed",
+                                "needs_review"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "refundable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "paymentId",
+                          "method",
+                          "receivedOn",
+                          "availableCents"
+                        ],
+                        "properties": {
+                          "paymentId": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string"
+                          },
+                          "receivedOn": {
+                            "type": "string"
+                          },
+                          "availableCents": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "invoice": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "number",
+                            "state",
+                            "remainingCents",
+                            "pendingCents"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "number": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string"
+                            },
+                            "remainingCents": {
+                              "type": "integer"
+                            },
+                            "pendingCents": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "voidable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "number",
+                          "kind"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "number": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "refund",
+                        "credit",
+                        "writeOff",
+                        "request",
+                        "voidInvoice"
+                      ],
+                      "properties": {
+                        "refund": {
+                          "type": "boolean"
+                        },
+                        "credit": {
+                          "type": "boolean"
+                        },
+                        "writeOff": {
+                          "type": "boolean"
+                        },
+                        "request": {
+                          "type": "boolean"
+                        },
+                        "voidInvoice": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "payment.write_off",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": 5,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "payment.adjustment_decision",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/invoices.test.ts"
         }
       }
     }

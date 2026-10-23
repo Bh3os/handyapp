@@ -47,9 +47,11 @@ export type InvoiceMoney = {
   appliedCreditsCents: number
   /** depositCreditCents + appliedCreditsCents. */
   creditsCents: number
+  /** TSK-0089: approved write-offs (never automatic): what the business stopped collecting. */
+  writtenOffCents: number
   confirmedCents: number
   pendingCents: number
-  /** invoiced - credits - confirmed; a pending check does not reduce it. */
+  /** invoiced - credits - written off - confirmed; a pending check does not reduce it. */
   remainingCents: number
 }
 
@@ -59,10 +61,12 @@ export async function invoiceMoney(db: Reader, invoiceId: string): Promise<Invoi
     total: string
     deposit: string
     credits: string
+    written_off: string
     confirmed: string
     pending: string
   }>`SELECT i.total_cents::text AS total, i.deposit_credit_cents::text AS deposit,
             finance.invoice_credits_cents(i.id)::text AS credits,
+            finance.invoice_written_off_cents(i.id)::text AS written_off,
             finance.invoice_paid_cents(i.id, ${sql.val([...VERIFIED])}::text[])::text AS confirmed,
             finance.invoice_paid_cents(i.id, ${sql.val([...PENDING])}::text[])::text AS pending
        FROM finance.invoices i WHERE i.id = ${invoiceId}`.execute(db)
@@ -71,14 +75,16 @@ export async function invoiceMoney(db: Reader, invoiceId: string): Promise<Invoi
   const invoiced = Number(row.total)
   const credits = Number(row.credits)
   const confirmed = Number(row.confirmed)
+  const writtenOff = Number(row.written_off)
   return {
     invoicedCents: invoiced,
     depositCreditCents: Number(row.deposit),
     appliedCreditsCents: credits - Number(row.deposit),
     creditsCents: credits,
+    writtenOffCents: writtenOff,
     confirmedCents: confirmed,
     pendingCents: Number(row.pending),
-    remainingCents: Math.max(0, invoiced - credits - confirmed),
+    remainingCents: Math.max(0, invoiced - credits - writtenOff - confirmed),
   }
 }
 
@@ -234,7 +240,7 @@ export async function recordInvoicePayment(
   const checked = await checkPaymentInput(tx, actor, input)
   const money = await invoiceMoney(tx, i.id)
   // What the invoice still asks for, counting checks still pending (allocations never exceed the invoice).
-  const need = money.invoicedCents - money.creditsCents - money.confirmedCents - money.pendingCents
+  const need = money.remainingCents - money.pendingCents
   if (need <= 0) throw conflict('INVOICE_COVERED')
   const applied = Math.min(need, checked.amountCents)
   const payment = await tx

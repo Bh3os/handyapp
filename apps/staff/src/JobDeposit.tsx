@@ -16,6 +16,7 @@ import { call, idempotencyKey, setCsrfToken, type ApiErrorBody, type Fetch } fro
 import { JobInvoices } from './JobInvoices'
 import { codeLabel } from './Requests'
 import { useOnline } from './Shell'
+import { FinanceAdjustments } from './FinanceAdjustments'
 import { PaymentExceptions, type PaymentExceptionFields } from './PaymentExceptions'
 import { PaymentSteps, type PaymentStepFields } from './PaymentSteps'
 
@@ -108,6 +109,8 @@ export function JobDepositPage({ t, fetchImpl, jobId }: { t: T; fetchImpl: Fetch
       <JobDeposit t={t} fetchImpl={fetchImpl} jobId={jobId} page />
       {/* TSK-0085, TSK-0086: the job's invoices beside its deposit. */}
       <JobInvoices t={t} fetchImpl={fetchImpl} jobId={jobId} />
+      {/* TSK-0089: refunds, credits, write-offs and invoice voids. */}
+      <FinanceAdjustments t={t} fetchImpl={fetchImpl} jobId={jobId} />
     </section>
   )
 }

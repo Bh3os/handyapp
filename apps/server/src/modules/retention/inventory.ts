@@ -381,6 +381,13 @@ export const TABLES = {
     categories: [F],
     protectedEvidence: true,
   },
+  // TSK-0089 (0095): the Owner's void of an issued invoice, with the reason and the fresh sign-in.
+  'finance.invoice_voids': {
+    holds: "The Owner's void of an issued invoice: the reason, who voided it, the session's sign-in time and when",
+    classes: ['payment_reference'],
+    categories: [F],
+    protectedEvidence: true,
+  },
   // TSK-0089 (0094): what happened to a recorded payment afterwards (returned, failed, disputed, voided).
   'finance.payment_adjustments': {
     holds:

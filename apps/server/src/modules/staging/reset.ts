@@ -139,6 +139,8 @@ export const CLEARED_CATEGORIES = {
     'finance.payment_receipts',
     // TSK-0089 (0094): returned, failed, disputed and voided payment records.
     'finance.payment_adjustments',
+    // TSK-0089 (0095): invoice voids.
+    'finance.invoice_voids',
     'finance.invoice_lines',
     'finance.invoice_deposit_credits',
     'finance.invoice_documents',

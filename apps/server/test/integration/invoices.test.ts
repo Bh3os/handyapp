@@ -2014,3 +2014,238 @@ describe('[HH-FIN-13][HH-FIN-14][T63] returned checks, failed and disputed payme
     expect(codes(await correct('owner', id, { reason: 'Synthetic: again' }))).toContain('PAYMENT_VOIDED')
   })
 })
+
+describe('[HH-FIN-14][T63][T64] refunds, credits, write-offs and voids: the Owner only, fresh sign-in, reason (TSK-0089)', () => {
+  type Item = {
+    id: string
+    type: string
+    state: string
+    amountCents: number
+    reason: string
+    decisionReason: string | null
+    confirmation: string | null
+    canDecide: boolean
+    outcomes: string[]
+  }
+  type View = {
+    items: Item[]
+    refundable: { paymentId: string; availableCents: number }[]
+    invoice: { id: string; number: string; remainingCents: number } | null
+    voidable: { id: string; number: string }[]
+    actions: { refund: boolean; credit: boolean; writeOff: boolean; request: boolean; voidInvoice: boolean }
+  }
+  const ownerSignedInNow = () =>
+    sql`UPDATE identity.staff_sessions SET authenticated_at = now() WHERE staff_user_id = ${ids.owner}
+          AND revoked_at IS NULL`.execute(t.db)
+  const ownerSignedInLongAgo = () =>
+    sql`UPDATE identity.staff_sessions SET authenticated_at = now() - interval '30 minutes'
+         WHERE staff_user_id = ${ids.owner} AND revoked_at IS NULL`.execute(t.db)
+  const view = async (jobId: string, who: Person = 'owner') => {
+    const res = await staffGet(who, `/staff/jobs/${jobId}/finance-adjustments`)
+    expect(res.statusCode, res.body).toBe(200)
+    return res.json<View>()
+  }
+  const audit = (action: string, id: string) =>
+    t.db
+      .selectFrom('platform.audit_events')
+      .select(['actor_id', 'reason', 'step_up_used'])
+      .where('action', '=', action)
+      .where('target_id', '=', id)
+      .execute()
+  const item = (jobId: string) =>
+    t.db
+      .selectFrom('ops.queue_items')
+      .select(['reason', 'resolved_at', 'resolution'])
+      .where('type', '=', 'refund_request')
+      .where('subject_id', '=', jobId)
+      .orderBy(sql`resolved_at DESC NULLS FIRST`)
+      .executeTakeFirst()
+
+  it('[HH-FIN-14][T64] a non-Owner refund is refused; the Owner refunds an overpayment and records Square’s refund ID', async () => {
+    await ownerSignedInNow()
+    const job = await approvedJob([{ kind: 'base', cents: 60_000 }])
+    await drain()
+    await reviewOutcome(t.db, job.jobId, 'passed')
+    const f = (await issue('office', await finalOf(job.jobId))).json<JobInvoices>().final as Invoice
+    const over = await payInvoice('office', f.id, { method: 'cash', amountCents: 65_000 })
+    const payment = (over.json<JobInvoices>().final as Invoice).payments[0]?.id as string
+    let v = await view(job.jobId)
+    expect(v.refundable).toEqual([expect.objectContaining({ paymentId: payment, availableCents: 5_000 })])
+    expect(v.actions).toMatchObject({ refund: true, request: false })
+    expect((await view(job.jobId, 'office')).actions).toMatchObject({ refund: false, request: true })
+
+    const body = { paymentId: payment, amountCents: 5_000, reason: 'Synthetic: overpayment paid back' }
+    const invoiceBody = { amountCents: 1_000, reason: 'Synthetic: goodwill' }
+    const url = `/staff/jobs/${job.jobId}/refunds`
+    // Every non-Owner is refused, for every Owner-only action.
+    for (const who of ['office', 'estimator', 'worker'] as const) {
+      expect((await staffWrite(who, 'POST', url, body)).statusCode, who).toBe(403)
+      expect((await staffWrite(who, 'POST', `/staff/jobs/${job.jobId}/credits`, invoiceBody)).statusCode, who).toBe(403)
+      expect((await staffWrite(who, 'POST', `/staff/jobs/${job.jobId}/write-offs`, invoiceBody)).statusCode, who).toBe(
+        403,
+      )
+      expect((await staffWrite(who, 'POST', `/staff/invoices/${f.id}/void`, { reason: 'x' })).statusCode, who).toBe(403)
+    }
+    // The Owner without a fresh sign-in, then without a reason.
+    await ownerSignedInLongAgo()
+    const stale = await staffWrite('owner', 'POST', url, body)
+    expect(stale.statusCode).toBe(403)
+    expect(stale.json()).toMatchObject({ error: { code: 'FRESH_AUTH_REQUIRED' } })
+    await ownerSignedInNow()
+    expect((await staffWrite('owner', 'POST', url, { ...body, reason: ' ' })).statusCode).toBe(400)
+    expect(codes(await staffWrite('owner', 'POST', url, { ...body, amountCents: 5_001 }))).toContain(
+      'EXCEEDS_AVAILABLE',
+    )
+
+    const done = await staffWrite('owner', 'POST', url, body)
+    expect(done.statusCode, done.body).toBe(201)
+    v = done.json<View>()
+    const refund = v.items[0] as Item
+    expect(refund).toMatchObject({ type: 'refund', state: 'approved', amountCents: 5_000, outcomes: ['processing'] })
+    expect(v.refundable).toEqual([])
+    expect((await invoices(job.jobId)).unallocatedCents).toBe(0)
+    expect(await audit('payment.refund', refund.id)).toEqual([
+      { actor_id: ids.owner, reason: 'Synthetic: overpayment paid back', step_up_used: true },
+    ])
+
+    // Made in Square; complete only once the Owner records Square's refund ID.
+    const outcome = (b: Record<string, unknown>) =>
+      staffWrite('owner', 'POST', `/staff/refunds/${refund.id}/outcome`, { reason: 'Synthetic: Square', ...b })
+    expect(codes(await outcome({ outcome: 'succeeded', confirmation: 'SYNTH-RF-1' }))).toContain('REFUND_APPROVED')
+    expect((await outcome({ outcome: 'processing' })).statusCode).toBe(200)
+    expect((await outcome({ outcome: 'succeeded' })).statusCode).toBe(400)
+    const ok = await outcome({ outcome: 'succeeded', confirmation: 'SYNTH-RF-1' })
+    expect(ok.statusCode, ok.body).toBe(200)
+    expect(ok.json<View>().items[0]).toMatchObject({ state: 'succeeded', confirmation: 'SYNTH-RF-1', outcomes: [] })
+    expect(
+      (await staffWrite('office', 'POST', `/staff/refunds/${refund.id}/outcome`, { outcome: 'failed', reason: 'x' }))
+        .statusCode,
+    ).toBe(403)
+  })
+
+  it('[HH-FIN-14][T63] credit and write-off: Office requests, the Owner decides; never beyond the balance; never Paid', async () => {
+    await ownerSignedInNow()
+    const job = await approvedJob([{ kind: 'base', cents: 50_000 }])
+    await drain()
+    await reviewOutcome(t.db, job.jobId, 'passed')
+    const f = (await issue('office', await finalOf(job.jobId))).json<JobInvoices>().final as Invoice
+    expect((await payInvoice('office', f.id, { method: 'cash', amountCents: 20_000 })).statusCode).toBe(201)
+
+    // The Owner's credit lowers the balance at once.
+    const credit = await staffWrite('owner', 'POST', `/staff/jobs/${job.jobId}/credits`, {
+      amountCents: 10_000,
+      reason: 'Synthetic: goodwill for the delay',
+    })
+    expect(credit.statusCode, credit.body).toBe(201)
+    expect(credit.json<View>().items[0]).toMatchObject({ type: 'credit', state: 'applied' })
+    expect((await finalOf(job.jobId)).money).toMatchObject({ appliedCreditsCents: 10_000, remainingCents: 20_000 })
+
+    // Office requests; nothing changes until the Owner decides; the request waits in Owner Decisions.
+    const request = (b: Record<string, unknown>) =>
+      staffWrite('office', 'POST', `/staff/jobs/${job.jobId}/finance-adjustment-requests`, b)
+    expect(codes(await request({ type: 'credit', amountCents: 20_001, reason: 'Synthetic: too much' }))).toContain(
+      'EXCEEDS_BALANCE',
+    )
+    expect(
+      (
+        await staffWrite('estimator', 'POST', `/staff/jobs/${job.jobId}/finance-adjustment-requests`, {
+          type: 'credit',
+          amountCents: 1,
+          reason: 'x',
+        })
+      ).statusCode,
+    ).toBe(403)
+    const asked = await request({ type: 'write_off', amountCents: 20_000, reason: 'Synthetic: customer unreachable' })
+    expect(asked.statusCode, asked.body).toBe(201)
+    const writeOff = asked.json<View>().items.find((i) => i.type === 'write_off') as Item
+    expect(writeOff).toMatchObject({ state: 'requested', canDecide: false })
+    expect((await finalOf(job.jobId)).money?.remainingCents).toBe(20_000)
+    expect(await item(job.jobId)).toMatchObject({ reason: 'write_off_requested', resolved_at: null })
+    expect((await view(job.jobId)).items.find((i) => i.id === writeOff.id)?.canDecide).toBe(true)
+
+    // Declined with a reason: voided, the item resolves.
+    const decide = (id: string, decision: string, reason = 'Synthetic: owner decision') =>
+      staffWrite('owner', 'POST', `/staff/write-offs/${id}/decision`, { decision, reason })
+    expect(
+      (
+        await staffWrite('office', 'POST', `/staff/write-offs/${writeOff.id}/decision`, {
+          decision: 'approve',
+          reason: 'x',
+        })
+      ).statusCode,
+    ).toBe(403)
+    const declined = await decide(writeOff.id, 'decline', 'Synthetic: try collecting once more')
+    expect(declined.statusCode, declined.body).toBe(200)
+    expect(declined.json<View>().items.find((i) => i.id === writeOff.id)).toMatchObject({
+      state: 'voided',
+      decisionReason: 'Synthetic: try collecting once more',
+    })
+    expect(await item(job.jobId)).toMatchObject({ resolution: 'decided' })
+    expect(codes(await decide(writeOff.id, 'approve'))).toContain('ADJUSTMENT_VOIDED')
+
+    // Asked again and approved: the balance is written off, the invoice is never Paid and takes no more money.
+    const again = await request({ type: 'write_off', amountCents: 20_000, reason: 'Synthetic: uncollectible' })
+    const second = again.json<View>().items.find((i) => i.type === 'write_off' && i.state === 'requested') as Item
+    expect((await decide(second.id, 'approve')).statusCode).toBe(200)
+    const after = await finalOf(job.jobId)
+    expect(after).toMatchObject({ state: 'partially_paid', money: { writtenOffCents: 20_000, remainingCents: 0 } })
+    expect(codes(await payInvoice('office', f.id, { method: 'cash', amountCents: 100 }))).toContain('INVOICE_COVERED')
+    const tab = await paymentsTab(job.reference, job.customerCookie)
+    expect(tab.balanceCents).toBe(0)
+    expect(await audit('payment.adjustment_decision', second.id)).toEqual([
+      expect.objectContaining({ actor_id: ids.owner, step_up_used: true }),
+    ])
+    // The database: nothing deleted, nothing beyond the invoice even straight in the database.
+    await expect(sql`DELETE FROM finance.refunds WHERE id = ${second.id}`.execute(t.db)).rejects.toThrow(
+      /never deleted/,
+    )
+  })
+
+  it('[HH-FIN-14][HH-FIN-05] the Owner voids an issued invoice with nothing on it; the reissue credits the deposit again', async () => {
+    await ownerSignedInNow()
+    const job = await scopedJob()
+    await drain()
+    expect((await payDeposit('office', job.jobId, { method: 'cash', amountCents: 22_500 })).statusCode).toBe(201)
+    await reviewOutcome(t.db, job.jobId, 'passed')
+    const first = (await issue('office', await finalOf(job.jobId))).json<JobInvoices>().final as Invoice
+    expect(first).toMatchObject({ number: `${job.projectReference}-I1`, depositCreditCents: 22_500 })
+    expect((await view(job.jobId)).voidable).toEqual([{ id: first.id, number: first.number, kind: 'final' }])
+
+    const voided = await staffWrite('owner', 'POST', `/staff/invoices/${first.id}/void`, {
+      reason: 'Synthetic: wrong scope version issued',
+    })
+    expect(voided.statusCode, voided.body).toBe(200)
+    expect(await audit('invoice.void', first.id)).toEqual([
+      { actor_id: ids.owner, reason: 'Synthetic: wrong scope version issued', step_up_used: true },
+    ])
+    const row = await t.db
+      .selectFrom('finance.invoices')
+      .selectAll()
+      .where('id', '=', first.id)
+      .executeTakeFirstOrThrow()
+    expect(row.state).toBe('voided')
+    // The deposit's credit is given back: the reissue credits it again.
+    const deposit = await t.db
+      .selectFrom('finance.deposit_requirements')
+      .select('state')
+      .where('job_id', '=', job.jobId)
+      .executeTakeFirstOrThrow()
+    expect(deposit.state).toBe('satisfied')
+    const jobView = await invoices(job.jobId)
+    expect(jobView.final).toBeNull()
+    expect(jobView.actions.prepareFinal).toBe(true)
+    expect((await prepare('office', job.jobId)).statusCode).toBe(200)
+    const second = (await issue('office', await finalOf(job.jobId))).json<JobInvoices>().final as Invoice
+    expect(second).toMatchObject({ number: `${job.projectReference}-I2`, depositCreditCents: 22_500 })
+    expect(second.money).toMatchObject({ creditsCents: 22_500, remainingCents: 90_000 })
+
+    // An invoice with money on it is never voided; the database refuses a void without its record.
+    expect((await payInvoice('office', second.id, { method: 'cash', amountCents: 1_000 })).statusCode).toBe(201)
+    expect(
+      codes(await staffWrite('owner', 'POST', `/staff/invoices/${second.id}/void`, { reason: 'Synthetic: no' })),
+    ).toContain('INVOICE_HAS_MONEY')
+    await expect(
+      sql`UPDATE finance.invoices SET state = 'voided' WHERE id = ${second.id}`.execute(t.db),
+    ).rejects.toThrow(/only with its void record/)
+  })
+})

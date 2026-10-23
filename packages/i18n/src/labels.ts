@@ -140,8 +140,10 @@ export const LABEL_FAMILIES = {
     'start_work_exception_requested',
     'refund_requested',
     'overpayment',
-    // TSK-0089: a payment with an open dispute.
+    // TSK-0089: a payment with an open dispute; a credit or write-off Office requested.
     'payment_disputed',
+    'credit_requested',
+    'write_off_requested',
     'cancellation_outcome_requested',
     'deletion_requested',
     'overdue_owner_decision',
@@ -1223,6 +1225,22 @@ export const LABEL_FAMILIES = {
   paymentState: ['recorded', 'reconciled', 'received', 'deposited', 'cleared', 'returned', 'voided'],
   /** What happened to a recorded payment afterwards (TSK-0089, HH-FIN-13; apps/server finance/exceptions.ts). */
   paymentAdjustment: ['returned', 'failed', 'dispute_opened', 'dispute_won', 'dispute_lost', 'voided'],
+  /** Refunds, credits and write-offs (TSK-0089, ENT-Refund; apps/server finance/adjustments.ts). */
+  financeAdjustmentType: ['refund', 'credit', 'write_off'],
+  financeAdjustmentState: [
+    'requested',
+    'approved',
+    'processing',
+    'succeeded',
+    'failed',
+    'needs_review',
+    'issued',
+    'applied',
+    'voided',
+    'declined',
+  ],
+  /** What the Owner records of a Square refund (TSK-0089). */
+  refundOutcome: ['processing', 'succeeded', 'failed', 'needs_review'],
   /** Invoice states (TSK-0085, ENT-Invoice): draft -> issued -> partially_paid / paid; voided (TSK-0089). */
   invoiceState: ['draft', 'issued', 'partially_paid', 'paid', 'voided'],
   /** The stored PDF of an issued invoice (TSK-0085). */
@@ -1301,6 +1319,19 @@ export const LABEL_FAMILIES = {
     'DISPUTE_OPEN',
     'NO_OPEN_DISPUTE',
     'NOTHING_TO_APPLY',
+    // TSK-0089 part 2: refunds, credits, write-offs and voids.
+    'EXCEEDS_AVAILABLE',
+    'EXCEEDS_BALANCE',
+    'NO_INVOICE_BALANCE',
+    'INVOICE_HAS_MONEY',
+    'ADJUSTMENT_APPROVED',
+    'ADJUSTMENT_DECLINED',
+    'ADJUSTMENT_VOIDED',
+    'ADJUSTMENT_APPLIED',
+    'REFUND_APPROVED',
+    'REFUND_PROCESSING',
+    'REFUND_SUCCEEDED',
+    'REFUND_FAILED',
   ],
   /** The six ordered checklist stages of an SOP version (TSK-0068, HH-WORK-11, OWN-DEC-108). */
   sopStage: ['site_preparation', 'setup_checks', 'work_steps', 'quality_checks', 'cleanup_waste', 'final_checks'],

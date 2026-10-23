@@ -523,13 +523,15 @@ export const QUEUE_ITEM_TYPES = [
     action: 'decide',
     screen: 'payments',
   },
+  // TSK-0089 (HH-FIN-14): refunds, credits and write-offs Office requested, waiting for the Owner's decision. One item
+  // per job while any request is open; the reason is the oldest one's type. Band PROPOSED.
   {
     id: 'refund_request',
     section: 'owner_decisions',
-    subject: 'finance_request',
+    subject: 'job',
     band: 'other',
     view: 'payment.refund',
-    reasons: ['refund_requested'],
+    reasons: ['refund_requested', 'credit_requested', 'write_off_requested'],
     action: 'decide',
     screen: 'payments',
   },
