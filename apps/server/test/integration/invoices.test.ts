@@ -13,7 +13,7 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { loadServiceSeed, syncServices, withTx } from '@handyhub/db'
 import { createTestDatabase, type TestDatabase } from '@handyhub/db/testing'
-import { localDateOf } from '@handyhub/domain'
+import { localDateOf, resolveWindow } from '@handyhub/domain'
 import { ESTIMATE_TERMS } from '@handyhub/domain/legal'
 import type { FastifyInstance } from 'fastify'
 import { sql } from 'kysely'
@@ -1525,5 +1525,159 @@ describe('[HH-FIN-11][HH-FIN-12][T62] cash with its collector and receipt; check
     await expect(
       sql`UPDATE finance.payments SET state = 'received', version = version + 1 WHERE id = ${id}`.execute(t.db),
     ).rejects.toThrow(/not available/)
+  })
+})
+
+describe('[HH-FIN-11][T62][OWN-DEC-200] on-site collection by the collector, from the job packet (TSK-0088)', () => {
+  /** Today's confirmed work visit of the job with the worker reserved (the way the confirmation writes it). */
+  async function assign(jobId: string, projectId: string, who: string) {
+    const zone = 'America/Kentucky/Louisville'
+    const w = resolveWindow({ date: today(), start: '00:10', end: '00:40', zone })
+    if (!w.ok) throw new Error('fixture window')
+    const property = await t.db
+      .selectFrom('crm.projects')
+      .select('property_id')
+      .where('id', '=', projectId)
+      .executeTakeFirstOrThrow()
+    await withTx(t.db, async (tx) => {
+      const v = await tx
+        .insertInto('work.visits')
+        .values({
+          purpose: 'service',
+          project_id: projectId,
+          job_id: jobId,
+          property_id: property.property_id,
+          local_date: w.window.date,
+          window_start: w.window.start,
+          window_end: w.window.end,
+          time_zone: zone,
+          start_offset_minutes: w.window.startOffsetMinutes,
+          end_offset_minutes: w.window.endOffsetMinutes,
+          starts_at: w.window.startsAt,
+          ends_at: w.window.endsAt,
+          window_set_by: ids.office,
+          expected_duration_minutes: 30,
+          preparation_buffer_minutes: 0,
+          travel_buffer_minutes: 0,
+          required_workers: 1,
+          created_by: ids.office,
+        })
+        .returning(['id', 'version'])
+        .executeTakeFirstOrThrow()
+      await tx
+        .insertInto('work.reservations')
+        .values({
+          visit_id: v.id,
+          resource: 'worker',
+          staff_user_id: who,
+          role: 'lead',
+          kind: 'confirmed',
+          starts_at: w.window.startsAt,
+          ends_at: new Date(w.window.endsAt.getTime() + 30 * 60_000),
+          time_zone: zone,
+          assigned_by: ids.office,
+        })
+        .execute()
+      await tx
+        .updateTable('work.visits')
+        .set({ state: 'confirmed', version: v.version + 1 })
+        .where('id', '=', v.id)
+        .execute()
+    })
+  }
+  type Collection = {
+    deposit: { remainingCents: number; pendingCents: number } | null
+    invoice: { number: string; remainingCents: number; pendingCents: number } | null
+    methods: string[]
+    mine: { method: string; amountCents: number; state: string; receiptNumber: string | null }[]
+  }
+  const collect = (who: Person, jobId: string, body: Record<string, unknown>) =>
+    staffWrite(who, 'POST', `/staff/jobs/${jobId}/collection`, body)
+
+  it('[T62][OWN-DEC-200] a granted, assigned worker records cash as the collector; the receipt goes at once', async () => {
+    const job = await scopedJob()
+    await drain()
+    const url = `/staff/jobs/${job.jobId}/collection`
+    // Not assigned yet: refused, like the Estimator who never records payments.
+    for (const who of ['worker', 'estimator'] as const) expect((await staffGet(who, url)).statusCode, who).toBe(403)
+    await assign(job.jobId, job.projectId, ids.worker)
+    const view = await staffGet('worker', url)
+    expect(view.statusCode, view.body).toBe(200)
+    expect(view.json<Collection>()).toMatchObject({
+      deposit: { remainingCents: 22_500, pendingCents: 0 },
+      invoice: null,
+      methods: ['cash', 'check', 'square_tap_to_pay'],
+      mine: [],
+    })
+    // Only what the collector needs: no other payment, reference, collector or invoice line.
+    expect(view.body).not.toMatch(/collector|payerName|"lines"|recordedBy/)
+    const cash = await collect('worker', job.jobId, {
+      target: 'deposit',
+      method: 'cash',
+      amountCents: 22_500,
+      memo: 'Synthetic: collected at the door',
+    })
+    expect(cash.statusCode, cash.body).toBe(201)
+    expect(cash.json<Collection>()).toMatchObject({
+      deposit: null,
+      mine: [{ method: 'cash', amountCents: 22_500, state: 'recorded', receiptNumber: `${job.projectReference}-R1` }],
+    })
+    const row = await t.db
+      .selectFrom('finance.payments')
+      .select(['collector_staff_id', 'recorded_by', 'memo', 'received_on'])
+      .where('job_id', '=', job.jobId)
+      .executeTakeFirstOrThrow()
+    expect(row).toMatchObject({
+      collector_staff_id: ids.worker,
+      recorded_by: ids.worker,
+      memo: 'Synthetic: collected at the door',
+    })
+    // Never for someone else's collection, and only the methods taken in person.
+    const other = await staffWrite('worker', 'POST', `/staff/jobs/${job.jobId}/deposit/payments`, {
+      method: 'cash',
+      amountCents: 100,
+      receivedOn: today(),
+      collectorStaffId: ids.office,
+    })
+    expect(other.statusCode).toBe(403)
+    const zelle = await collect('worker', job.jobId, { target: 'invoice', method: 'zelle', amountCents: 100 })
+    expect(zelle.statusCode).toBe(400)
+    expect(
+      codes(await collect('worker', job.jobId, { target: 'invoice', method: 'cash', amountCents: 100 })),
+    ).toContain('NO_INVOICE_TO_PAY')
+    // A check is pending until the Owner clears it; no receipt yet.
+    await reviewOutcome(t.db, job.jobId, 'passed')
+    await issue('office', await finalOf(job.jobId))
+    const check = await collect('worker', job.jobId, {
+      target: 'invoice',
+      method: 'check',
+      amountCents: 10_000,
+      reference: ref('check'),
+      payerName: 'Synthetic Payer',
+    })
+    expect(check.statusCode, check.body).toBe(201)
+    const after = check.json<Collection>()
+    expect(after.invoice).toMatchObject({ remainingCents: 90_000, pendingCents: 10_000 })
+    expect(after.mine[0]).toMatchObject({ method: 'check', state: 'received', receiptNumber: null })
+
+    // Without the Owner's collect grant the Worker role alone is not enough (OWN-DEC-200).
+    await t.db
+      .updateTable('identity.role_grants')
+      .set({ ended_at: new Date(), ended_by: ids.owner })
+      .where('staff_user_id', '=', ids.worker)
+      .where('kind', '=', 'capability')
+      .where('ended_at', 'is', null)
+      .execute()
+    expect((await staffGet('worker', url)).statusCode).toBe(403)
+    await t.db
+      .insertInto('identity.role_grants')
+      .values({
+        staff_user_id: ids.worker,
+        kind: 'capability',
+        name: 'collect',
+        issued_by: ids.owner,
+        reason: 'Trained',
+      })
+      .execute()
   })
 })

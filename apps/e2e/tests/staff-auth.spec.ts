@@ -88,8 +88,10 @@ test.describe('staff sign-in, invites and password reset (TSK-0014, HH-STAFF-01,
     await expect(page.getByText('Signed in as E2E Owner', { exact: true })).toBeVisible()
     scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
     expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
-    // The next sign-in asks for the authenticator code.
+    // The next sign-in asks for the authenticator code. Sign-out first checks this phone for work not yet uploaded
+    // (TSK-0080), so wait until it has finished before signing in again.
     await page.getByRole('button', { name: 'Sign out', exact: true }).click()
+    await expect(page.getByRole('heading', { level: 1, name: 'Staff sign-in' })).toBeVisible()
     await signIn(page, OWNER, pw(1))
     await expect(page.getByRole('heading', { level: 1, name: 'Enter your authenticator code' })).toBeVisible()
     await passSecondFactor(page)

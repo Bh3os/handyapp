@@ -23,6 +23,7 @@ import { call, type Fetch } from './api'
 import { purgeOfflineCopies, readOfflineCopy, storeOfflineCopy, type OfflineState } from './offline/packet'
 import { offlineStore, type StoredPacket } from './offline/store'
 import { JobIncidents } from './Cases'
+import { CollectPayment } from './CollectPayment'
 import { RevealedValue, type Revealed } from './Property'
 import { codeLabel } from './Requests'
 import { holdNoteText } from './StopWork'
@@ -1031,6 +1032,17 @@ export function JobPacketPage({
         </p>
         <StateView kind="empty" title={t('packet.careNotesNone')} />
       </Section>
+      {/* TSK-0088 (HH-FIN-11): money collected on site by the collector, when the server allows it. */}
+      {copy ? null : (
+        <div className="staff-packet__screen-only">
+          <CollectPayment
+            // The staff translator formats dates too; this page's own type is the narrower one.
+            t={t as Parameters<typeof CollectPayment>[0]['t']}
+            fetchImpl={fetchImpl}
+            jobId={jobId}
+          />
+        </div>
+      )}
       {/* TSK-0093 (HH-INC-01): report an incident quickly from the job, and the caller's own reports on it. */}
       {copy ? null : (
         <div className="staff-packet__screen-only">

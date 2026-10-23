@@ -4583,5 +4583,19 @@
   "payment.reconciled": "Pago marcado como conciliado.",
   "enum.depositRefusal.CHECK_DEPOSITED": "Este cheque ya está marcado como depositado.",
   "enum.depositRefusal.CHECK_CLEARS_INSTEAD": "Un cheque no se concilia: se deposita y luego el Propietario lo compensa.",
-  "enum.depositRefusal.PAYMENT_RECONCILED": "Este pago ya está conciliado."
+  "enum.depositRefusal.PAYMENT_RECONCILED": "Este pago ya está conciliado.",
+  "collect.title": "Cobrar un pago en el lugar",
+  "collect.hint": "Registre de inmediato el dinero que usted recibió. Un cheque sigue pendiente hasta que el Propietario lo compense. No se registra nada sin conexión.",
+  "collect.depositDue": "Depósito pendiente: {amount}.",
+  "collect.invoiceDue": "Factura {number}: {amount} pendiente.",
+  "collect.pending": "Pendiente: {amount}.",
+  "collect.target": "Para",
+  "collect.targetDeposit": "El depósito",
+  "collect.targetInvoice": "Factura {number}",
+  "collect.checkNumber": "Número de cheque",
+  "collect.squareId": "ID del pago de Square",
+  "collect.record": "Registrar el pago",
+  "collect.done": "Registrado. El recibo del cliente se envía ahora.",
+  "collect.doneCheck": "Cheque registrado. Sigue pendiente hasta que el Propietario lo compense.",
+  "collect.mine": "Sus cobros en este trabajo"
 }
