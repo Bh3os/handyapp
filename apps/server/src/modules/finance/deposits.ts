@@ -31,6 +31,7 @@ import { loadConfig } from '../../platform/config/index.js'
 import { FRESH_AUTH_MINUTES } from '../identity/sessions.js'
 import { syncDepositItem } from './deposit-queue.js'
 import { announcePaidInvoices, syncUnallocatedItem } from './money-events.js'
+import { syncCheckItem } from './payment-states.js'
 import { issuePaymentReceipt } from './receipts.js'
 
 type Reader = Db | Tx
@@ -77,7 +78,7 @@ const PENDING: ReadonlySet<string> = new Set(['received', 'deposited'])
 const OPEN_STATES: ReadonlySet<string> = new Set(['required', 'partly_satisfied'])
 
 /** PROPOSED limits (no owner value): a written reason up to 2000 characters, a reference up to 120, a payer 200. */
-export const DEPOSIT_LIMITS = { reason: 2000, reference: 120, payerName: 200, paymentLink: 500 } as const
+export const DEPOSIT_LIMITS = { reason: 2000, reference: 120, payerName: 200, paymentLink: 500, memo: 500 } as const
 
 const field = (f: string, code: string): FieldError => ({ field: f, code, message: '' })
 const conflict = (code: string, f = 'deposit') => new ApiError('CONFLICT', { fieldErrors: [field(f, code)] })
@@ -193,6 +194,13 @@ export type DepositPaymentView = {
   clearedBy: StaffRef | null
   clearedAt: string | null
   canMarkCleared: boolean
+  /** TSK-0088 (HH-FIN-11, HH-FIN-12): the memo, the receipt, the deposit and reconciliation steps. */
+  memo: string | null
+  receiptNumber: string | null
+  depositedAt: string | null
+  reconciledAt: string | null
+  canMarkDeposited: boolean
+  canReconcile: boolean
 }
 
 export type DepositView = {
@@ -232,6 +240,7 @@ export async function depositView(db: Reader, actor: StaffActor, jobId: string):
     .leftJoin('finance.payment_allocations as a', (j) =>
       j.onRef('a.payment_id', '=', 'p.id').on('a.deposit_requirement_id', '=', r.id),
     )
+    .leftJoin('finance.payment_receipts as rc', 'rc.payment_id', 'p.id')
     .select([
       'p.id',
       'p.method',
@@ -245,6 +254,10 @@ export async function depositView(db: Reader, actor: StaffActor, jobId: string):
       'p.created_at',
       'p.cleared_by',
       'p.cleared_at',
+      'p.memo',
+      'p.deposited_at',
+      'p.reconciled_at',
+      'rc.number as receipt_number',
       'a.amount_cents as applied_cents',
     ])
     .where('p.job_id', '=', jobId)
@@ -305,6 +318,18 @@ export async function depositView(db: Reader, actor: StaffActor, jobId: string):
           p.method === 'check' &&
           PENDING.has(p.state) &&
           allows(actor, 'check.mark_cleared', { ...resource, collectedByStaffId: p.collector_staff_id }),
+        memo: p.memo,
+        receiptNumber: p.receipt_number,
+        depositedAt: p.deposited_at?.toISOString() ?? null,
+        reconciledAt: p.reconciled_at?.toISOString() ?? null,
+        canMarkDeposited:
+          p.method === 'check' &&
+          p.state === 'received' &&
+          allows(actor, 'payment.reconcile', { ...resource, collectedByStaffId: p.collector_staff_id }),
+        canReconcile:
+          p.method !== 'check' &&
+          p.state === 'recorded' &&
+          allows(actor, 'payment.reconcile', { ...resource, collectedByStaffId: p.collector_staff_id }),
       }
     }),
     version: r.version,
@@ -389,6 +414,8 @@ export type RecordPaymentInput = {
   reference?: string | null
   payerName?: string | null
   collectorStaffId?: string | null
+  /** TSK-0088 (HH-FIN-11): an optional memo (cash), kept as written. */
+  memo?: string | null
 }
 
 export type RecordedPayment = {
@@ -411,6 +438,7 @@ export type CheckedPayment = {
   receivedOn: string
   reference: string | null
   payerName: string | null
+  memo: string | null
   collector: string
   now: Date
 }
@@ -439,6 +467,8 @@ export async function checkPaymentInput(tx: Tx, actor: StaffActor, input: Record
   if (method === 'check' && payerName === null) problems.push(field('body.payerName', 'required'))
   if (payerName !== null && payerName.length > DEPOSIT_LIMITS.payerName)
     problems.push(field('body.payerName', 'TOO_LONG'))
+  const memo = trimmed(input.memo)
+  if (memo !== null && memo.length > DEPOSIT_LIMITS.memo) problems.push(field('body.memo', 'TOO_LONG'))
   const now = await dbNow(tx)
   const zone = config.get('business.timezone')
   // The business day; UTC only if the time zone were ever NOT CONFIGURED.
@@ -471,7 +501,16 @@ export async function checkPaymentInput(tx: Tx, actor: StaffActor, input: Record
       .executeTakeFirst()
     if (dup) throw conflict('DUPLICATE_PAYMENT', 'body.reference')
   }
-  return { method, amountCents: input.amountCents, receivedOn: input.receivedOn, reference, payerName, collector, now }
+  return {
+    method,
+    amountCents: input.amountCents,
+    receivedOn: input.receivedOn,
+    reference,
+    payerName,
+    memo,
+    collector,
+    now,
+  }
 }
 
 /** Records a verified deposit payment and applies it to what the deposit still needs (see the header). */
@@ -487,7 +526,7 @@ export async function recordDepositPayment(
   if (!r.required || r.amount_cents === null) throw conflict('DEPOSIT_NOT_REQUIRED')
   // TSK-0085: once credited to the final invoice the deposit takes no more money (the invoice does).
   if (r.state === 'applied') throw conflict('DEPOSIT_APPLIED')
-  const { method, reference, payerName, collector, now } = await checkPaymentInput(tx, actor, input)
+  const { method, reference, payerName, memo, collector, now } = await checkPaymentInput(tx, actor, input)
 
   // What the deposit still needs, counting checks still pending (allocations never exceed the deposit).
   const { verified, pending } = await amounts(tx, r.id)
@@ -507,6 +546,7 @@ export async function recordDepositPayment(
       recorded_by: actor.userId,
       reference,
       payer_name: payerName,
+      memo,
       state: method === 'check' ? 'received' : 'recorded',
       created_at: now,
     })
@@ -529,6 +569,8 @@ export async function recordDepositPayment(
   await announcePaidInvoices(tx, jobId)
   // TSK-0087: a confirmed payment's receipt, at once (a check's when it is cleared).
   await issuePaymentReceipt(tx, payment.id)
+  // TSK-0088: a check waits in the Owner's queue until it clears.
+  if (method === 'check') await syncCheckItem(tx, jobId)
   const after = await requirementOfJob(tx, jobId)
   return {
     paymentId: payment.id,
@@ -585,6 +627,8 @@ export async function markCheckCleared(
   await announcePaidInvoices(tx, p.job_id)
   // TSK-0087: the cleared check's receipt.
   await issuePaymentReceipt(tx, p.id)
+  // TSK-0088: the job's check_to_clear item follows its checks still pending.
+  await syncCheckItem(tx, p.job_id)
   const r = await requirementOfJob(tx, p.job_id)
   return {
     jobId: p.job_id,

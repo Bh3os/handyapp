@@ -102,6 +102,12 @@ const PAYMENT = object({
   collector: STAFF_REF,
   recordedAt: DATE_TIME,
   canMarkCleared: { type: 'boolean' },
+  memo: NULLABLE_STRING,
+  receiptNumber: NULLABLE_STRING,
+  depositedAt: { anyOf: [{ type: 'null' }, DATE_TIME] },
+  reconciledAt: { anyOf: [{ type: 'null' }, DATE_TIME] },
+  canMarkDeposited: { type: 'boolean' },
+  canReconcile: { type: 'boolean' },
 })
 const INVOICE = object({
   id: { type: 'string' },
@@ -387,6 +393,7 @@ export function invoiceRoutes(deps: InvoiceRouteDeps): RouteDef[] {
             receivedOn: DATE,
             reference: { type: ['string', 'null'], maxLength: DEPOSIT_LIMITS.reference + 20 },
             payerName: { type: ['string', 'null'], maxLength: DEPOSIT_LIMITS.payerName + 20 },
+            memo: { type: ['string', 'null'], maxLength: DEPOSIT_LIMITS.memo + 20 },
             collectorStaffId: { anyOf: [UUID, { type: 'null' }] },
           },
         },

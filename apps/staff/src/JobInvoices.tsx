@@ -18,6 +18,7 @@ import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
 import { depositRefusal, PAYMENT_METHODS } from './JobDeposit'
 import { codeLabel } from './Requests'
 import { useOnline } from './Shell'
+import { PaymentSteps, type PaymentStepFields } from './PaymentSteps'
 
 type T = (key: StaffKey, values?: Record<string, string | number | Date>) => string
 
@@ -55,7 +56,7 @@ export type Invoice = {
   issuedAt: string | null
   issuer: { name: string; mailingAddress: string[] | null; phone: string | null; email: string | null } | null
   money: Money | null
-  payments: {
+  payments: ({
     id: string
     method: string
     amountCents: number
@@ -66,7 +67,7 @@ export type Invoice = {
     verified: boolean
     collector: { id: string; name: string | null }
     canMarkCleared: boolean
-  }[]
+  } & PaymentStepFields)[]
   exceptions: { code: string; blocking: boolean }[]
   document: 'none' | 'preparing' | 'issued'
   version: number
@@ -229,6 +230,7 @@ function InvoicePanel({
   const [receivedOn, setReceivedOn] = useState(today())
   const [reference, setReference] = useState('')
   const [payerName, setPayerName] = useState('')
+  const [memo, setMemo] = useState('')
   const [link, setLink] = useState('')
   const draft = i.state === 'draft'
   const blocking = i.exceptions.filter((e) => e.blocking)
@@ -269,11 +271,13 @@ function InvoicePanel({
       receivedOn,
       reference: reference.trim() === '' ? null : reference.trim(),
       payerName: payerName.trim() === '' ? null : payerName.trim(),
+      memo: memo.trim() === '' ? null : memo.trim(),
     })
     if (ok) {
       setAmount('')
       setReference('')
       setPayerName('')
+      setMemo('')
       setDone(t('deposit.recorded'))
     }
   }
@@ -408,6 +412,12 @@ function InvoicePanel({
                 applied: usd(p.appliedCents),
               })}
               {p.reference ? ` · ${t('deposit.referenceShown', { reference: p.reference })}` : null}
+              <PaymentSteps
+                t={t}
+                p={p}
+                pending={pending}
+                run={(action, path, doneKey) => void send(action, path, {}).then((ok) => ok && setDone(t(doneKey)))}
+              />
               {p.canMarkCleared ? (
                 <div className="hh-button-row">
                   <Button
@@ -509,6 +519,14 @@ function InvoicePanel({
               required
             />
           ) : null}
+          <Field
+            label={t('payment.memo')}
+            hint={t('payment.memoHint')}
+            name="memo"
+            maxLength={500}
+            value={memo}
+            onChange={(e) => setMemo(e.target.value)}
+          />
           <Button
             type="submit"
             pending={pending === `pay-${i.id}`}

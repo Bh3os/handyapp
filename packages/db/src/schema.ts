@@ -777,6 +777,11 @@ export interface FinancePaymentsTable {
   cleared_at: Timestamp | null
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   version: Generated<number>
+  memo: string | null
+  deposited_by: string | null
+  deposited_at: Timestamp | null
+  reconciled_by: string | null
+  reconciled_at: Timestamp | null
 }
 
 export interface FinancePayoutsTable {

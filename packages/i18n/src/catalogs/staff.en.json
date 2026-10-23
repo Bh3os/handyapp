@@ -4566,5 +4566,22 @@
   "invoice.linkTitle": "Card payment link",
   "invoice.linkLabel": "Square payment link for this invoice",
   "invoice.linkHint": "Create the invoice link in the Square app, then paste it here. The customer opens it from Pay by Card while a balance remains. Nothing is marked paid until you record the verified payment.",
-  "invoice.linkSaved": "Payment link saved."
+  "invoice.linkSaved": "Payment link saved.",
+  "enum.queueItemType.check_to_clear": "Checks to clear",
+  "enum.queueReason.check_received": "Check received, not deposited yet",
+  "enum.queueReason.check_deposited": "Check deposited, waiting to clear",
+  "enum.queueAction.clear_check": "Open the payments",
+  "payment.memo": "Memo (optional)",
+  "payment.memoHint": "For example where the cash was collected. Kept as written; never shown to the customer.",
+  "payment.memoShown": "Memo: {memo}",
+  "payment.receiptShown": "Receipt {number}",
+  "payment.depositedShown": "Deposited at the bank {time, date, medium} {time, time, short}: still pending until the Owner clears it.",
+  "payment.reconciledShown": "Reconciled {time, date, medium} {time, time, short}",
+  "payment.markDeposited": "Mark deposited",
+  "payment.reconcile": "Mark reconciled",
+  "payment.deposited": "Check marked deposited. It stays pending until the Owner clears it.",
+  "payment.reconciled": "Payment marked reconciled.",
+  "enum.depositRefusal.CHECK_DEPOSITED": "This check is already marked deposited.",
+  "enum.depositRefusal.CHECK_CLEARS_INSTEAD": "A check is not reconciled: it is deposited, then the Owner clears it.",
+  "enum.depositRefusal.PAYMENT_RECONCILED": "This payment is already reconciled."
 }

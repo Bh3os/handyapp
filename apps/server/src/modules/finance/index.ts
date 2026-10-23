@@ -5,6 +5,8 @@
 //   PUT  /staff/jobs/:jobId/deposit/payment-link    the deposit request's Square link (invoice.enter_payment_link)
 //   POST /staff/jobs/:jobId/deposit/payments        record a verified deposit payment (payment.record)
 //   POST /staff/payments/:paymentId/clear           the Owner marks a check cleared (check.mark_cleared)
+//   POST /staff/payments/:paymentId/deposited       TSK-0088: a check deposited, still pending (payment.reconcile)
+//   POST /staff/payments/:paymentId/reconcile       TSK-0088: a recorded payment reconciled (payment.reconcile)
 //   POST /staff/jobs/:jobId/deposit/waiver          the Owner's waiver: fresh sign-in and a reason (deposit.waive)
 // Each write is decided by the policy (deny by default), runs in one transaction with its idempotency key and records
 // its audit event. The work-scheduling gate is deposit-gate.ts, called by the confirming transaction itself.
@@ -44,6 +46,7 @@ export {
   invoiceReadyAutomation,
   issueInvoiceDocument,
 } from './invoice-automations.js'
+import { markCheckDeposited, reconcilePayment } from './payment-states.js'
 export { customerInvoiceList, issueInvoice, jobInvoices, prepareDraft, qualityGate } from './invoices.js'
 export { INVOICE_PAID_EVENT } from './money-events.js'
 export { issuePaymentReceipt, paymentReceiptAutomation, RECEIPT_ISSUED_EVENT } from './receipts.js'
@@ -153,6 +156,12 @@ const DEPOSIT_VIEW = {
           'clearedBy',
           'clearedAt',
           'canMarkCleared',
+          'memo',
+          'receiptNumber',
+          'depositedAt',
+          'reconciledAt',
+          'canMarkDeposited',
+          'canReconcile',
         ],
         properties: {
           id: { type: 'string' },
@@ -171,6 +180,12 @@ const DEPOSIT_VIEW = {
           clearedBy: NULLABLE_STAFF_REF,
           clearedAt: { anyOf: [{ type: 'null' }, DATE_TIME] },
           canMarkCleared: { type: 'boolean' },
+          memo: NULLABLE_STRING,
+          receiptNumber: NULLABLE_STRING,
+          depositedAt: { anyOf: [{ type: 'null' }, DATE_TIME] },
+          reconciledAt: { anyOf: [{ type: 'null' }, DATE_TIME] },
+          canMarkDeposited: { type: 'boolean' },
+          canReconcile: { type: 'boolean' },
         },
       },
     },
@@ -329,6 +344,7 @@ const routes: RouteDef[] = [
           receivedOn: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
           reference: { type: ['string', 'null'], maxLength: DEPOSIT_LIMITS.reference + 20 },
           payerName: { type: ['string', 'null'], maxLength: DEPOSIT_LIMITS.payerName + 20 },
+          memo: { type: ['string', 'null'], maxLength: DEPOSIT_LIMITS.memo + 20 },
           collectorStaffId: { anyOf: [UUID, { type: 'null' }] },
         },
       },
@@ -388,6 +404,62 @@ const routes: RouteDef[] = [
       return { body: view, version: view.version }
     },
   },
+  // TSK-0088 (HH-FIN-11, HH-FIN-12): a check deposited at the bank (still pending), and a payment reconciled.
+  ...(
+    [
+      {
+        path: 'deposited',
+        operationId: 'markCheckDeposited',
+        summary: 'Mark a received check deposited',
+        description:
+          'The Owner or Office (payment.reconcile; never a check they collected). A received check becomes ' +
+          'deposited: still pending, it counts toward nothing until the Owner clears it. Anything else is a CONFLICT ' +
+          '(NOT_A_CHECK, CHECK_DEPOSITED, CHECK_CLEARED...). The job’s check_to_clear item follows. Returns the ' +
+          'deposit view of the payment’s job.',
+        audit: 'check.mark_deposited',
+        run: markCheckDeposited,
+      },
+      {
+        path: 'reconcile',
+        operationId: 'reconcilePayment',
+        summary: 'Reconcile a recorded payment',
+        description:
+          'The Owner or Office (payment.reconcile; never a payment they collected). A recorded payment that is not a ' +
+          'check (cash, card, Zelle, Cash App, Chime) is marked reconciled against the bank or Square: separate from ' +
+          'recording it, it changes no balance and sends nothing. A check clears instead (CHECK_CLEARS_INSTEAD). ' +
+          'Returns the deposit view of the payment’s job.',
+        audit: 'payment.reconcile',
+        run: reconcilePayment,
+      },
+    ] as const
+  ).map((d): RouteDef => ({
+    ...write,
+    method: 'POST',
+    path: `/staff/payments/:paymentId/${d.path}`,
+    operationId: d.operationId,
+    summary: d.summary,
+    description: d.description,
+    permission: 'payment.reconcile',
+    expectedVersion: 'none',
+    audit: d.audit,
+    resource: paymentOf,
+    schema: {
+      params: PAYMENT_PARAMS,
+      body: { type: 'object', additionalProperties: false, properties: {} },
+      response: { 200: DEPOSIT_VIEW },
+    },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const { paymentId } = ctx.req.params as { paymentId: string }
+      const out = await d.run(tx, staffActor(ctx), paymentId)
+      await ctx.audit({
+        target: { type: 'payment', id: paymentId, version: out.version },
+        summary: { jobId: out.jobId, state: out.state },
+      })
+      const view = await viewOrThrow(ctx, tx, out.jobId)
+      return { body: view, version: view.version }
+    },
+  })),
   {
     ...write,
     method: 'POST',
