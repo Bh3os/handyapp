@@ -5,10 +5,14 @@
 //   reviewed -> draft       reopen: back to a draft to change it
 //   draft    -> withdrawn   withdraw, with a reason
 //   reviewed -> withdrawn
+//   reviewed -> issued      issue: an Estimator or the Owner publishes it to the customer (TSK-0082), valid 7 days
+//   issued   -> superseded  supersede: a revised version replaces it (system, in the revising transaction)
+//   issued   -> expired     expire: its validity ended (system job), never extended (OWN-DEC-168)
+//   issued   -> withdrawn   withdraw, with a reason
 //
-// Publishing (issued), the customer's approval or rejection, expiry and superseding are TSK-0082. A draft or reviewed
-// version binds nothing: no scope, price, packet or total changes until the identified customer approves the exact
-// issued version. Prices are computed by @handyhub/money (priceChangeOrder).
+// The customer's approval and rejection are TSK-0082 part 2. A draft, reviewed or issued version binds nothing: no
+// scope, price, packet or total changes until the identified customer approves the exact issued version. Prices are
+// computed by @handyhub/money (priceChangeOrder).
 import { defineMachine, type Guard } from './engine.js'
 import { reasonGiven } from './guards.js'
 
@@ -47,6 +51,10 @@ export type ChangeOrderFacts = {
   /** Problems the server found pricing the version (empty when every line is priced and the totals hold). */
   readonly pricingProblems?: readonly string[]
   readonly reason?: string
+  /** Issue: the version is still priced against the job's current approved scope. */
+  readonly baseCurrent?: boolean
+  /** Expire: the version's valid-until time. */
+  readonly validUntil?: Date
 }
 
 type G = Guard<ChangeOrderFacts>
@@ -57,22 +65,45 @@ const priced: G = (f) => {
     : null
 }
 const reason: G = (f) => reasonGiven(f.reason)
+const baseCurrent: G = (f) => {
+  if (f.baseCurrent === undefined) return { code: 'FACTS_MISSING', message: 'The server must check: the base scope.' }
+  return f.baseCurrent
+    ? null
+    : { code: 'APPROVED_SCOPE_CHANGED', message: 'The approved scope changed since this version was priced.' }
+}
+const validityEnded: G = (f, now) => {
+  if (!f.validUntil) return { code: 'FACTS_MISSING', message: 'The server must check: the valid-until time.' }
+  return now.getTime() >= f.validUntil.getTime()
+    ? null
+    : { code: 'NOT_DUE', message: 'The change order is still valid.' }
+}
 
 export const CHANGE_ORDER_MACHINE = defineMachine({
   entity: 'change_order',
   dimension: 'lifecycle',
-  // The states this task writes; TSK-0082 adds issued, approved, rejected, expired and superseded with their events.
-  states: ['draft', 'reviewed', 'withdrawn'] as const,
+  // The states written so far; TSK-0082 part 2 adds approved and rejected with the customer's events.
+  states: ['draft', 'reviewed', 'issued', 'superseded', 'expired', 'withdrawn'] as const,
   initial: 'draft',
-  final: ['withdrawn'],
+  final: ['superseded', 'expired', 'withdrawn'],
   proposed: true,
   transitions: [
     { event: 'review', from: ['draft'], to: 'reviewed', actors: ['staff'], guards: [priced] },
     { event: 'reopen', from: ['reviewed'], to: 'draft', actors: ['staff'] },
-    { event: 'withdraw', from: ['draft', 'reviewed'], to: 'withdrawn', actors: ['staff'], guards: [reason] },
+    { event: 'issue', from: ['reviewed'], to: 'issued', actors: ['staff'], guards: [priced, baseCurrent] },
+    { event: 'supersede', from: ['issued'], to: 'superseded', actors: ['system'] },
+    { event: 'expire', from: ['issued'], to: 'expired', actors: ['system'], guards: [validityEnded] },
+    { event: 'withdraw', from: ['draft', 'reviewed', 'issued'], to: 'withdrawn', actors: ['staff'], guards: [reason] },
   ],
 })
 export type ChangeOrderEvent = (typeof CHANGE_ORDER_MACHINE.transitions)[number]['event']
+
+/** The state a reader sees: an issued version past its valid-until time is expired even before the job records it. */
+export function effectiveChangeOrderState(state: string, validUntil: Date | null, now: Date): string {
+  return state === 'issued' && validUntil !== null && now.getTime() >= validUntil.getTime() ? 'expired' : state
+}
+
+/** States a later version may start from: reissue after it ended, or revise an issued one (OWN-DEC-168 item 6). */
+export const REVISABLE_CHANGE_ORDER_STATES = ['issued', 'expired', 'withdrawn', 'rejected'] as const
 
 export type AffectedStep = { readonly workPackageId: string; readonly stepId: string }
 

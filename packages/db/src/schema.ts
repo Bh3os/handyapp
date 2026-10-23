@@ -1843,6 +1843,14 @@ export interface WorkChangeOrderVersionsTable {
   withdrawn_at: Timestamp | null
   withdraw_reason: string | null
   row_version: Generated<number>
+  issued_by: string | null
+  issued_at: Timestamp | null
+  content_sha256: string | null
+  valid_until: Timestamp | null
+  validity_days: number | null
+  validity_reason: string | null
+  superseded_at: Timestamp | null
+  expired_at: Timestamp | null
 }
 
 export interface WorkChangeOrdersTable {

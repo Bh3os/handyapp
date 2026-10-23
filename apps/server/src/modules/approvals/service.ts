@@ -39,6 +39,8 @@ type Reader = Db | Tx
 /** The Owner Decisions item of each subject type; TSK-0082 adds the change-order one with its registry type. */
 export const APPROVAL_QUEUE_ITEM: Partial<Record<PublicationSubject, string>> = {
   estimate_version: 'estimate_publication_approval',
+  // TSK-0082: a change-order version waiting for the Owner's approval before it is issued.
+  change_order_version: 'change_order_publication_approval',
 }
 
 /** PROPOSED limit of the Owner's comment (no owner value). */

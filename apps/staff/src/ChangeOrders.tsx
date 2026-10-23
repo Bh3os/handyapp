@@ -55,6 +55,12 @@ export type ChangeOrderVersion = {
   withdrawnBy: StaffRef | null
   withdrawnAt: string | null
   withdrawReason: string | null
+  issuedBy: StaffRef | null
+  issuedAt: string | null
+  validUntil: string | null
+  validityReason: string | null
+  supersededAt: string | null
+  expiredAt: string | null
   rowVersion: number
 }
 export type ChangeOrder = {
@@ -65,7 +71,23 @@ export type ChangeOrder = {
   createdAt: string
   current: ChangeOrderVersion
   history: { version: number; state: string; updatedAt: string | null }[]
-  actions: { edit: boolean; review: boolean; reopen: boolean; withdraw: boolean }
+  /** TSK-0082: whether publishing needs the Owner's approval, and the latest approval record. */
+  ownerApproval: {
+    required: boolean
+    reasons: string[]
+    flags: string[]
+    latest: { approvalId: string; state: string; rowVersion: number; comment: string | null } | null
+  } | null
+  actions: {
+    edit: boolean
+    review: boolean
+    reopen: boolean
+    withdraw: boolean
+    issue: boolean
+    requestOwnerApproval: boolean
+    revise: boolean
+    decideOwnerApproval: boolean
+  }
 }
 export type ChangeOrdersData = {
   jobId: string
@@ -485,15 +507,33 @@ function Order({
     const p = data.packages.find((x) => x.id === wp)
     return `${p?.code ?? ''} ${t('sop.itemId', { id })}`
   }
-  async function act(event: 'review' | 'reopen' | 'withdraw') {
+  const [comment, setComment] = useState('')
+  const [decision, setDecision] = useState<'approve' | 'reject'>('approve')
+  const [validityDays, setValidityDays] = useState('')
+  const [validityReason, setValidityReason] = useState('')
+  const base = `/staff/change-orders/${encodeURIComponent(order.changeOrderId)}`
+  async function act(event: 'review' | 'reopen' | 'withdraw' | 'issue' | 'revise' | 'owner-approval' | 'decide') {
     setPending(event)
-    const r = await send(
-      fetchImpl,
-      `/staff/change-orders/${encodeURIComponent(order.changeOrderId)}/actions/${event}`,
-      event === 'withdraw' ? { reason } : {},
-      'POST',
-      v.rowVersion,
-    )
+    const shorter = validityDays.trim()
+      ? { validityDays: Number(validityDays), validityReason: validityReason.trim() }
+      : {}
+    const latest = order.ownerApproval?.latest
+    const r =
+      event === 'decide' && latest
+        ? await send(
+            fetchImpl,
+            `/staff/publication-approvals/${encodeURIComponent(latest.approvalId)}/decision`,
+            { decision, comment },
+            'POST',
+            latest.rowVersion,
+          )
+        : await send(
+            fetchImpl,
+            event === 'owner-approval' ? `${base}/owner-approval` : `${base}/actions/${event}`,
+            event === 'withdraw' ? { reason } : event === 'issue' ? shorter : {},
+            'POST',
+            v.rowVersion,
+          )
     setPending(null)
     if (!r.ok) return setProblem(changeOrderError(t, r.error))
     setProblem(null)
@@ -514,13 +554,18 @@ function Order({
         onCancel={() => setEditing(false)}
       />
     )
-  const tone = v.state === 'withdrawn' ? 'neutral' : v.state === 'reviewed' ? 'info' : 'warning'
+  const tone =
+    v.state === 'withdrawn' || v.state === 'superseded' || v.state === 'expired'
+      ? 'neutral'
+      : v.state === 'reviewed' || v.state === 'issued'
+        ? 'info'
+        : 'warning'
   return (
     <section className="staff-request__section" data-testid="change-order" data-state={v.state}>
       <h2 className="staff-queue__heading">
         {order.reference} <StatusBadge tone={tone}>{codeLabel(t, 'changeOrderState', v.state)}</StatusBadge>
       </h2>
-      {v.state === 'draft' || v.state === 'reviewed' ? (
+      {v.state === 'draft' || v.state === 'reviewed' || v.state === 'issued' ? (
         <p className="staff-request__hint" data-testid="change-order-not-approved">
           {t('changeOrders.notApproved')}
         </p>
@@ -608,6 +653,79 @@ function Order({
         </tbody>
       </table>
       <Totals t={t} v={v} />
+      {v.issuedAt && v.validUntil ? (
+        <p className="staff-request__hint" data-testid="change-order-issued">
+          {t('changeOrders.issuedLine', {
+            by: v.issuedBy?.name ?? t('queue.unnamed'),
+            at: new Date(v.issuedAt).toLocaleString(),
+            until: new Date(v.validUntil).toLocaleString(),
+          })}
+          {v.validityReason ? ` ${t('changeOrders.shorterBecause', { reason: v.validityReason })}` : ''}
+        </p>
+      ) : null}
+      {order.ownerApproval?.required || order.ownerApproval?.latest ? (
+        <div className="staff-request__section" data-testid="change-order-owner-approval">
+          <p>
+            {order.ownerApproval.latest
+              ? t('changeOrders.ownerApprovalState', {
+                  state: codeLabel(t, 'publicationApprovalState', order.ownerApproval.latest.state),
+                })
+              : t('changeOrders.ownerApprovalNeeded')}
+          </p>
+          {order.ownerApproval.reasons.length ? (
+            <ul>
+              {order.ownerApproval.reasons.map((r) => (
+                <li key={r}>{codeLabel(t, 'publicationApprovalReason', r)}</li>
+              ))}
+            </ul>
+          ) : null}
+          {order.ownerApproval.latest?.comment ? <p>{order.ownerApproval.latest.comment}</p> : null}
+        </div>
+      ) : null}
+      {order.actions.decideOwnerApproval ? (
+        <fieldset className="staff-request__section" data-testid="change-order-owner-decision">
+          <legend>{t('changeOrders.ownerDecision')}</legend>
+          <label className="staff-loadout__choice">
+            <input type="radio" checked={decision === 'approve'} onChange={() => setDecision('approve')} />{' '}
+            {t('changeOrders.ownerApprove')}
+          </label>
+          <label className="staff-loadout__choice">
+            <input type="radio" checked={decision === 'reject'} onChange={() => setDecision('reject')} />{' '}
+            {t('changeOrders.ownerReject')}
+          </label>
+          <Field
+            label={t('changeOrders.ownerComment')}
+            name="ownerComment"
+            multiline
+            maxLength={2000}
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+          />
+          <Button pending={pending === 'decide'} onClick={() => void act('decide')}>
+            {t('changeOrders.ownerRecord')}
+          </Button>
+        </fieldset>
+      ) : null}
+      {order.actions.issue && data.actions.chooseOrigin ? (
+        <details>
+          <summary>{t('changeOrders.shorterValidity')}</summary>
+          <Field
+            label={t('changeOrders.validityDays')}
+            name="validityDays"
+            inputMode="numeric"
+            maxLength={1}
+            value={validityDays}
+            onChange={(e) => setValidityDays(e.target.value)}
+          />
+          <Field
+            label={t('changeOrders.validityReason')}
+            name="validityReason"
+            maxLength={1000}
+            value={validityReason}
+            onChange={(e) => setValidityReason(e.target.value)}
+          />
+        </details>
+      ) : null}
       {order.history.length ? (
         <p className="staff-request__hint">
           {t('changeOrders.history', {
@@ -645,6 +763,21 @@ function Order({
         {order.actions.reopen ? (
           <Button variant="secondary" pending={pending === 'reopen'} onClick={() => void act('reopen')}>
             {t('changeOrders.reopen')}
+          </Button>
+        ) : null}
+        {order.actions.issue ? (
+          <Button pending={pending === 'issue'} onClick={() => void act('issue')}>
+            {t('changeOrders.issue')}
+          </Button>
+        ) : null}
+        {order.actions.requestOwnerApproval ? (
+          <Button variant="secondary" pending={pending === 'owner-approval'} onClick={() => void act('owner-approval')}>
+            {t('changeOrders.askOwner')}
+          </Button>
+        ) : null}
+        {order.actions.revise ? (
+          <Button variant="secondary" pending={pending === 'revise'} onClick={() => void act('revise')}>
+            {v.state === 'issued' ? t('changeOrders.revise') : t('changeOrders.reissue')}
           </Button>
         ) : null}
         {order.actions.withdraw ? (
@@ -736,4 +869,27 @@ export function ChangeOrdersPage({
       ) : null}
     </section>
   )
+}
+
+/** An Owner Decisions link to a change-order version: finds its job and opens the job's change orders. */
+export function ChangeOrderVersionLink({
+  t,
+  fetchImpl,
+  versionId,
+  href,
+}: {
+  t: T
+  fetchImpl: Fetch
+  versionId: string
+  href: (to: string) => string
+}) {
+  const [jobId, setJobId] = useState<string | null | undefined>(undefined)
+  useEffect(() => {
+    void call<{ jobId: string }>(fetchImpl, `/staff/change-order-versions/${encodeURIComponent(versionId)}`).then((r) =>
+      setJobId(r.ok ? r.data.jobId : null),
+    )
+  }, [fetchImpl, versionId])
+  if (jobId === undefined) return <StateView kind="loading" title={t('changeOrders.loading')} />
+  if (jobId === null) return <StateView kind="error" title={t('changeOrders.loadFailed')} />
+  return <ChangeOrdersPage key={jobId} t={t} fetchImpl={fetchImpl} jobId={jobId} href={href} />
 }

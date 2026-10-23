@@ -15,8 +15,9 @@ import type { Db, Tx } from '@handyhub/db'
 import {
   CHANGE_ORDER_JOB_STATES,
   CHANGE_ORDER_MACHINE,
+  effectiveChangeOrderState,
+  REVISABLE_CHANGE_ORDER_STATES,
   type AffectedStep,
-  type ChangeOrderEvent,
   type ChangeOrderOrigin,
   OPEN_CHANGE_ORDER_STATES,
   sopSteps,
@@ -37,6 +38,8 @@ import {
 import { decide, type StaffActor } from '@handyhub/policy'
 import { sql } from 'kysely'
 import { ApiError, type FieldError } from '../../api/errors.js'
+import { loadConfig } from '../../platform/config/index.js'
+import { approvalsOf, mayApprove } from '../approvals/service.js'
 
 type Reader = Db | Tx
 
@@ -73,10 +76,10 @@ const allowed = (
   resource: Resource = {},
 ) => decide(actor, permission, resource, { now: new Date(), online: true }).effect === 'allow'
 /** An Estimator or the Owner: drafts any change order, reviews, reopens and withdraws (change_order.publish). */
-const isPublisher = (actor: StaffActor) => allowed(actor, 'change_order.publish')
+export const isPublisher = (actor: StaffActor) => allowed(actor, 'change_order.publish')
 
 /** The job's current approved scope: its latest scope snapshot. */
-async function baseSnapshot(db: Reader, jobId: string) {
+export async function baseSnapshot(db: Reader, jobId: string) {
   return db
     .selectFrom('work.job_scope_snapshots')
     .select(['id', 'version', 'total_cents', 'estimate_version_id', 'approval_id'])
@@ -117,7 +120,7 @@ async function packagesWithSteps(db: Reader, jobId: string): Promise<PackageStep
   }))
 }
 
-type VersionRow = {
+export type VersionRow = {
   id: string
   change_order_id: string
   version: number
@@ -144,6 +147,14 @@ type VersionRow = {
   withdrawn_by: string | null
   withdrawn_at: Date | null
   withdraw_reason: string | null
+  issued_by: string | null
+  issued_at: Date | null
+  content_sha256: string | null
+  valid_until: Date | null
+  validity_days: number | null
+  validity_reason: string | null
+  superseded_at: Date | null
+  expired_at: Date | null
   row_version: number
 }
 
@@ -215,7 +226,7 @@ async function checkDraft(db: Reader, jobId: string, input: DraftInput): Promise
 const text = (v: string | null | undefined) => (v?.trim() ? v.trim() : null)
 
 /** Writes a draft's content and lines with the totals computed from them (NULL while a line is not priced). */
-async function writeDraft(
+export async function writeDraft(
   tx: Tx,
   actor: StaffActor,
   versionId: string,
@@ -349,7 +360,7 @@ export async function createChangeOrder(
   }
 }
 
-async function lockVersion(tx: Tx, changeOrderId: string) {
+export async function lockVersion(tx: Tx, changeOrderId: string) {
   const head = await tx
     .selectFrom('work.change_orders')
     .select(['id', 'job_id'])
@@ -368,7 +379,7 @@ async function lockVersion(tx: Tx, changeOrderId: string) {
   return { job, v }
 }
 
-const stale = (v: VersionRow) =>
+export const stale = (v: VersionRow) =>
   new ApiError('STALE_VERSION', { current: { version: v.row_version, values: { state: v.state } } })
 
 /** Edits the open draft: its content and lines, priced again against the current approved total. */
@@ -389,11 +400,48 @@ export async function updateDraft(
 }
 
 /** review, reopen or withdraw the open version. */
+/**
+ * Prices a version's stored lines again now, against the job's current approved scope and the money paid: refused
+ * when the approved scope changed since it was saved, when a line or the totals no longer hold, or when nothing is
+ * priced. Used before review and before issuing.
+ */
+export async function repriceVersion(tx: Tx, jobId: string, v: VersionRow) {
+  const lines = await tx
+    .selectFrom('work.change_order_lines')
+    .select(['kind', 'quantity_milli', 'unit_price_cents'])
+    .where('version_id', '=', v.id)
+    .orderBy('position')
+    .execute()
+  const base = await baseSnapshot(tx, jobId)
+  if (!base) throw conflict('job', 'SCOPE_MISSING')
+  if (base.id !== v.base_snapshot_id) throw conflict('changeOrder', 'APPROVED_SCOPE_CHANGED')
+  const pricing = price(
+    lines.map((l) => ({
+      kind: l.kind as ChangeOrderLineKind,
+      description: '',
+      quantity: l.quantity_milli === null ? null : quantityToString(quantityFromMinor(Number(l.quantity_milli))),
+      unitPriceCents: num(l.unit_price_cents),
+    })),
+    Number(base.total_cents),
+    await paidCents(tx, jobId),
+  )
+  if (pricing.problems.length) throw new ApiError('CONFLICT', { fieldErrors: pricing.problems.map(pricingProblem) })
+  const totals = pricing.totals as NonNullable<typeof pricing.totals>
+  if (totals.charges === 0 && totals.credits === 0) throw conflict('body.lines', 'NO_LINES')
+  if (totals.charges !== num(v.charges_cents) || totals.credits !== num(v.credits_cents))
+    throw conflict('changeOrder', 'TOTALS_CHANGED')
+  return { base, totals }
+}
+
+/** The events staff send on the open version; issuing has its own route (publish.ts). */
+export const STAFF_EVENTS = ['review', 'reopen', 'withdraw'] as const
+export type StaffEvent = (typeof STAFF_EVENTS)[number]
+
 export async function changeOrderEvent(
   tx: Tx,
   actor: StaffActor,
   changeOrderId: string,
-  event: ChangeOrderEvent,
+  event: StaffEvent,
   input: { reason?: string },
   expectedVersion: number,
 ) {
@@ -403,35 +451,7 @@ export async function changeOrderEvent(
   const own = v.drafted_by === actor.userId && v.state === 'draft' && event === 'withdraw'
   if (!isPublisher(actor) && !own) throw new ApiError('FORBIDDEN')
   const pricingProblems: string[] = []
-  if (event === 'review') {
-    const lines = await tx
-      .selectFrom('work.change_order_lines')
-      .select(['kind', 'quantity_milli', 'unit_price_cents'])
-      .where('version_id', '=', v.id)
-      .orderBy('position')
-      .execute()
-    const base = await baseSnapshot(tx, job.id)
-    if (!base) throw conflict('job', 'SCOPE_MISSING')
-    // Priced again now: the approved total and the money paid may have changed since the draft was saved.
-    if (base.id !== v.base_snapshot_id) throw conflict('changeOrder', 'APPROVED_SCOPE_CHANGED')
-    const pricing = price(
-      lines.map((l) => ({
-        kind: l.kind as ChangeOrderLineKind,
-        description: '',
-        quantity: l.quantity_milli === null ? null : quantityToString(quantityFromMinor(Number(l.quantity_milli))),
-        unitPriceCents: num(l.unit_price_cents),
-      })),
-      Number(base.total_cents),
-      await paidCents(tx, job.id),
-    )
-    if (pricing.problems.length) throw new ApiError('CONFLICT', { fieldErrors: pricing.problems.map(pricingProblem) })
-    if (pricing.totals?.charges === 0 && pricing.totals.credits === 0) throw conflict('body.lines', 'NO_LINES')
-    if (
-      pricing.totals &&
-      (pricing.totals.charges !== num(v.charges_cents) || pricing.totals.credits !== num(v.credits_cents))
-    )
-      throw conflict('changeOrder', 'TOTALS_CHANGED')
-  }
+  if (event === 'review') await repriceVersion(tx, job.id, v)
   const t = transition(CHANGE_ORDER_MACHINE, { state: v.state as 'draft', version: v.row_version }, event, {
     actor: 'staff',
     expectedVersion: v.row_version,
@@ -520,6 +540,36 @@ export async function changeOrdersView(db: Reader, actor: StaffActor, jobId: str
     .where('state', '<>', 'rejected')
     .orderBy('uploaded_at')
     .execute()
+  // The Owner's approval of each current version (TSK-0082): whether publishing needs it and the latest record.
+  const now = new Date()
+  const issuedNow = (v: VersionRow) => effectiveChangeOrderState(v.state, v.valid_until, now) === 'issued'
+  const { publicationNeeds } = await import('./publish.js')
+  const config = await loadConfig(db)
+  const publication = new Map<
+    string,
+    {
+      required: boolean
+      reasons: string[]
+      flags: string[]
+      latest: { approvalId: string; state: string; rowVersion: number; comment: string | null } | null
+    }
+  >()
+  for (const o of orders) {
+    const vs = versions.filter((v) => v.change_order_id === o.id)
+    const current = vs[vs.length - 1] as VersionRow
+    if (current.state !== 'reviewed' && current.state !== 'issued') continue
+    const needs =
+      current.state === 'reviewed'
+        ? await publicationNeeds(db, config, current, job)
+        : { required: false, reasons: [], flags: [] }
+    const [latest] = await approvalsOf(db, actor, { type: 'change_order_version', id: current.id })
+    publication.set(current.id, {
+      ...needs,
+      latest: latest
+        ? { approvalId: latest.id, state: latest.state, rowVersion: latest.rowVersion, comment: latest.comment }
+        : null,
+    })
+  }
   return {
     jobId,
     reference: job.reference,
@@ -574,6 +624,12 @@ export async function changeOrdersView(db: Reader, actor: StaffActor, jobId: str
         withdrawnBy: ref(v.withdrawn_by),
         withdrawnAt: iso(v.withdrawn_at),
         withdrawReason: v.withdraw_reason,
+        issuedBy: ref(v.issued_by),
+        issuedAt: iso(v.issued_at),
+        validUntil: iso(v.valid_until),
+        validityReason: v.validity_reason,
+        supersededAt: iso(v.superseded_at),
+        expiredAt: iso(v.expired_at),
         rowVersion: v.row_version,
       })
       return {
@@ -582,13 +638,30 @@ export async function changeOrdersView(db: Reader, actor: StaffActor, jobId: str
         reference: `${job.reference}-C${o.number}`,
         origin: o.origin as ChangeOrderOrigin,
         createdAt: iso(o.created_at) as string,
-        current: view(current),
+        current: { ...view(current), state: effectiveChangeOrderState(current.state, current.valid_until, now) },
+        ownerApproval: publication.get(current.id) ?? null,
         history: vs.slice(0, -1).map((v) => ({ version: v.version, state: v.state, updatedAt: iso(v.updated_at) })),
         actions: {
           edit: open && draft && (publisher || mine),
           review: open && publisher && draft,
           reopen: open && publisher && current.state === 'reviewed',
-          withdraw: open && (draft || current.state === 'reviewed') && (publisher || (mine && draft)),
+          withdraw:
+            open && (draft || current.state === 'reviewed' || issuedNow(current)) && (publisher || (mine && draft)),
+          issue: open && publisher && current.state === 'reviewed',
+          requestOwnerApproval:
+            open &&
+            publisher &&
+            current.state === 'reviewed' &&
+            (publication.get(current.id)?.required ?? false) &&
+            publication.get(current.id)?.latest?.state !== 'pending',
+          revise:
+            open &&
+            publisher &&
+            (REVISABLE_CHANGE_ORDER_STATES as readonly string[]).includes(
+              effectiveChangeOrderState(current.state, current.valid_until, now),
+            ),
+          decideOwnerApproval:
+            mayApprove(actor, job.project_id) && publication.get(current.id)?.latest?.state === 'pending',
         },
       }
     }),

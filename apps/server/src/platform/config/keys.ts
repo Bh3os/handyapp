@@ -124,6 +124,8 @@ export const CONFIG_KEYS = {
   'discount.eligibility_verification': shape({ method: text }),
   'tax.mode': shape({ mode: oneOf(['no_tax_line']) }),
   'estimate.validity': shape({ days: int(1, 365), from: exactly('published') }),
+  // TSK-0082 (FACT-CHANGE-ORDER-VALIDITY, OWN-DEC-168): a published change order is valid this many calendar days.
+  'change_order.validity': shape({ days: int(1, 365), from: exactly('published') }),
   'estimate.publishing_roles': shape({ roles: listOf(oneOf(['owner', 'office', 'estimator', 'worker'])) }),
   // TSK-0130 (FACT-OWNER-APPROVAL-THRESHOLD, OWN-DEC-173): publishing an estimate or a change order above this needs the
   // Owner's approval first; "greater than", so exactly the threshold needs none. The Owner changes it (audited).

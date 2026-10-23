@@ -35,6 +35,8 @@ const STAFF_REF = obj({ id: STR, name: STR_OR_NULL })
 
 export const JOB_PARAMS = obj({ jobId: UUID })
 export const CHANGE_ORDER_PARAMS = obj({ changeOrderId: UUID })
+export const VERSION_PARAMS = obj({ versionId: UUID })
+export const VERSION_LOOKUP = obj({ jobId: STR, changeOrderId: STR, version: INT })
 export const NO_QUERY = { type: 'object', additionalProperties: false, properties: {} } as const
 
 const STEP_REF = obj({ workPackageId: UUID, stepId: { type: 'string', pattern: '^[0-9]+\\.[0-9]+$', maxLength: 10 } })
@@ -119,6 +121,12 @@ const VERSION = obj({
   withdrawnBy: nullable(STAFF_REF),
   withdrawnAt: TIME_OR_NULL,
   withdrawReason: STR_OR_NULL,
+  issuedBy: nullable(STAFF_REF),
+  issuedAt: TIME_OR_NULL,
+  validUntil: TIME_OR_NULL,
+  validityReason: STR_OR_NULL,
+  supersededAt: TIME_OR_NULL,
+  expiredAt: TIME_OR_NULL,
   rowVersion: INT,
 })
 
@@ -138,9 +146,56 @@ export const CHANGE_ORDERS_VIEW = obj({
       origin: en(CHANGE_ORDER_ORIGINS),
       createdAt: TIME,
       current: VERSION,
+      ownerApproval: nullable(
+        obj({
+          required: BOOL,
+          reasons: arr(STR),
+          flags: arr(STR),
+          latest: nullable(obj({ approvalId: STR, state: STR, rowVersion: INT, comment: STR_OR_NULL })),
+        }),
+      ),
       history: arr(obj({ version: INT, state: en(CHANGE_ORDER_STATES), updatedAt: TIME_OR_NULL })),
-      actions: obj({ edit: BOOL, review: BOOL, reopen: BOOL, withdraw: BOOL }),
+      actions: obj({
+        edit: BOOL,
+        review: BOOL,
+        reopen: BOOL,
+        withdraw: BOOL,
+        issue: BOOL,
+        requestOwnerApproval: BOOL,
+        revise: BOOL,
+        decideOwnerApproval: BOOL,
+      }),
     }),
   ),
   actions: obj({ create: BOOL, chooseOrigin: BOOL }),
+})
+
+// TSK-0082: publication.
+export const EMPTY_OBJECT = { type: 'object', additionalProperties: false, properties: {} } as const
+export const ISSUE_BODY = input(
+  { validityDays: { type: 'integer', minimum: 1, maximum: 7 }, validityReason: TEXT(1000) },
+  ['validityDays', 'validityReason'],
+)
+export const ISSUE_RESULT = obj({
+  changeOrderId: STR,
+  versionId: STR,
+  state: en(CHANGE_ORDER_STATES),
+  rowVersion: INT,
+  reference: STR,
+  validUntil: TIME,
+  ownerApproval: nullable(obj({ approvalId: STR, basis: en(['request', 'owner_publication']) })),
+})
+export const OWNER_APPROVAL_RESULT = obj({
+  changeOrderId: STR,
+  versionId: STR,
+  approvalId: STR,
+  created: BOOL,
+  reasons: arr(STR),
+})
+export const REVISE_RESULT = obj({
+  changeOrderId: STR,
+  versionId: STR,
+  state: en(CHANGE_ORDER_STATES),
+  rowVersion: INT,
+  version: INT,
 })

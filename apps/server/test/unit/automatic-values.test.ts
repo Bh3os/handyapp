@@ -134,6 +134,8 @@ describe('[HH-COM-06][FACT-AUTOMATIC-MESSAGES] which messages are wired', () => 
       // TSK-0085: the invoice-ready and deposit-invoice notices of an issued invoice.
       'invoice.deposit',
       'invoice.ready',
+      // TSK-0082: the proposed-change notice of an issued change order.
+      'change_order.proposed',
     ]
     for (const key of wired) {
       const type = MESSAGE_TYPES.get(key)
@@ -146,15 +148,9 @@ describe('[HH-COM-06][FACT-AUTOMATIC-MESSAGES] which messages are wired', () => 
         key,
       ).toEqual([])
     }
-    // No event exists yet for these (TSK-0082, TSK-0084, TSK-0087, TSK-0092; the estimate question answer has no
-    // record of its own).
-    for (const key of [
-      'estimate.question_answered',
-      'change_order.proposed',
-      'job.complete',
-      'payment.receipt',
-      'reminder.satisfaction_check',
-    ])
+    // No event exists yet for these (TSK-0084, TSK-0087, TSK-0092; the estimate question answer has no record of its
+    // own).
+    for (const key of ['estimate.question_answered', 'job.complete', 'payment.receipt', 'reminder.satisfaction_check'])
       expect(suppliedVariables(MESSAGE_TYPES.get(key) as never), key).toEqual([])
     // Work paused is released by the Owner only and never automatic.
     expect(MESSAGE_TYPES.get('job.paused')).toMatchObject({ ownerApproval: true, triggerEvents: [] })
