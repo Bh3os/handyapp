@@ -30,6 +30,7 @@ import { SignOutWarning, SyncStatus, UpdateBanner, draftCounts } from './offline
 import { isUnsynced, setSignedInStaff } from './offline/sync'
 import { ChecklistPage } from './Checklist'
 import { QueueHome } from './Queue'
+import { ReconciliationScreen } from './Reconciliation'
 import { MergeReview, RelinkRequest } from './RecordLinks'
 import { RequestRecord } from './Record'
 import { RequestsScreen } from './Requests'
@@ -314,7 +315,10 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
                   route.screen === 'safety-holds' ||
                   route.screen === 'quality-reviews'
                 ? 'schedule'
-                : route.screen
+                : // TSK-0090: one reconciliation item, from the staff queue, sits below Payments.
+                  route.screen === 'reconciliation'
+                  ? 'payments'
+                  : route.screen
           : route.page === 'home'
             ? (nav?.home ?? 'home')
             : route.page
@@ -557,6 +561,11 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
               go={go}
               href={href}
             />
+          ) : route.page === 'screen' && shown === 'payments' && allowed ? (
+            // TSK-0090: the Payments screen is the reconciliation queue.
+            <ReconciliationScreen t={t} fetchImpl={doFetch} href={href} />
+          ) : route.page === 'record' && route.screen === 'reconciliation' && allowed ? (
+            <ReconciliationScreen key={route.id} t={t} fetchImpl={doFetch} href={href} itemId={route.id} />
           ) : route.page === 'record' && route.screen === 'payments' && allowed ? (
             <JobDepositPage key={route.id} t={t} fetchImpl={doFetch} jobId={route.id} />
           ) : route.page === 'record' && route.screen === 'requests' && allowed ? (

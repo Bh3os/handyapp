@@ -381,6 +381,14 @@ export const TABLES = {
     categories: [F],
     protectedEvidence: true,
   },
+  // TSK-0090 (0096): unmatched or uncertain money, resolved by a person with evidence.
+  'finance.reconciliation_items': {
+    holds:
+      'Money staff could not match yet: what was seen (source, method, amount, reference), who reported it and how it was resolved, with the evidence',
+    classes: ['payment_reference'],
+    categories: [F],
+    protectedEvidence: true,
+  },
   // TSK-0089 (0095): the Owner's void of an issued invoice, with the reason and the fresh sign-in.
   'finance.invoice_voids': {
     holds: "The Owner's void of an issued invoice: the reason, who voided it, the session's sign-in time and when",

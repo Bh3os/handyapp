@@ -20,6 +20,7 @@ import { ApiError } from '../../api/errors.js'
 import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
 import { FRESH_AUTH_MINUTES } from '../identity/sessions.js'
 import { adjustmentRoutes } from './adjustment-routes.js'
+import { reconciliationRoutes } from './reconciliation-routes.js'
 import { invoiceRoutes, type InvoiceRouteDeps } from './invoice-routes.js'
 import {
   DEPOSIT_LIMITS,
@@ -849,8 +850,11 @@ const routes: RouteDef[] = [
 
 /**
  * The finance module: the deposit routes (TSK-0059), the invoice and ledger routes (TSK-0085, TSK-0086) and the
- * refund, credit, write-off and void routes (TSK-0089).
+ * refund, credit, write-off and void routes (TSK-0089) and the reconciliation queue (TSK-0090).
  */
 export function financeModule(deps: InvoiceRouteDeps): ApiModule {
-  return { name: 'finance', routes: [...routes, ...invoiceRoutes(deps), ...adjustmentRoutes()] }
+  return {
+    name: 'finance',
+    routes: [...routes, ...invoiceRoutes(deps), ...adjustmentRoutes(), ...reconciliationRoutes()],
+  }
 }

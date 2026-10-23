@@ -838,6 +838,29 @@ export interface FinanceProviderFeesTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface FinanceReconciliationItemsTable {
+  id: Generated<string>
+  kind: string
+  source: string
+  project_id: string | null
+  job_id: string | null
+  payment_id: string | null
+  method: string | null
+  amount_cents: Int8 | null
+  currency: Generated<string>
+  reference: string | null
+  description: string
+  reported_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  state: Generated<string>
+  resolution: string | null
+  evidence: string | null
+  resolved_payment_id: string | null
+  resolved_by: string | null
+  resolved_at: Timestamp | null
+  version: Generated<number>
+}
+
 export interface FinanceRefundsTable {
   id: Generated<string>
   project_id: string
@@ -2717,6 +2740,7 @@ export interface Database {
   'finance.payments': FinancePaymentsTable
   'finance.payouts': FinancePayoutsTable
   'finance.provider_fees': FinanceProviderFeesTable
+  'finance.reconciliation_items': FinanceReconciliationItemsTable
   'finance.refunds': FinanceRefundsTable
   'identity.auth_identities': IdentityAuthIdentitiesTable
   'identity.customer_account_changes': IdentityCustomerAccountChangesTable

@@ -88,6 +88,8 @@ export const LABEL_FAMILIES = {
     'deposit_due',
     // TSK-0088: a job's checks still pending until cleared.
     'check_to_clear',
+    // TSK-0090: unmatched or uncertain money waiting for a person.
+    'reconciliation_item',
     'visit_flagged',
     // TSK-0078: a recorded visit outcome waiting for staff follow-up.
     'visit_outcome',
@@ -144,6 +146,13 @@ export const LABEL_FAMILIES = {
     'payment_disputed',
     'credit_requested',
     'write_off_requested',
+    // TSK-0090: the kind of a reconciliation item.
+    'uncertain_outcome',
+    'unmatched_payment',
+    'amount_mismatch',
+    'currency_mismatch',
+    'duplicate_entry',
+    'reference_mismatch',
     'cancellation_outcome_requested',
     'deletion_requested',
     'overdue_owner_decision',
@@ -239,6 +248,7 @@ export const LABEL_FAMILIES = {
     'follow_up_visit',
     'review_field_event',
     'clear_check',
+    'reconcile',
   ],
   // TSK-0078 (HH-SCH-09): the outcomes a worker records on a visit, and why one is refused.
   visitOutcomeKind: ['delay', 'no_access', 'customer_absent', 'weather', 'missing_resources', 'readiness_issue'],
@@ -1239,6 +1249,18 @@ export const LABEL_FAMILIES = {
     'voided',
     'declined',
   ],
+  /** The reconciliation queue (TSK-0090): where an item was seen, how it was resolved, the records it lists. */
+  reconciliationSource: ['customer', 'square', 'bank', 'staff'],
+  reconciliationResolution: [
+    'matched',
+    'recorded',
+    'not_received',
+    'duplicate',
+    'corrected',
+    'refunded',
+    'no_action',
+  ],
+  reconciliationRecord: ['pending_check', 'returned_payment', 'open_dispute', 'refund_uncertain'],
   /** What the Owner records of a Square refund (TSK-0089). */
   refundOutcome: ['processing', 'succeeded', 'failed', 'needs_review'],
   /** Invoice states (TSK-0085, ENT-Invoice): draft -> issued -> partially_paid / paid; voided (TSK-0089). */
@@ -1332,6 +1354,9 @@ export const LABEL_FAMILIES = {
     'REFUND_PROCESSING',
     'REFUND_SUCCEEDED',
     'REFUND_FAILED',
+    // TSK-0090: the reconciliation queue.
+    'ITEM_RESOLVED',
+    'PAYMENT_ALREADY_MATCHED',
   ],
   /** The six ordered checklist stages of an SOP version (TSK-0068, HH-WORK-11, OWN-DEC-108). */
   sopStage: ['site_preparation', 'setup_checks', 'work_steps', 'quality_checks', 'cleanup_waste', 'final_checks'],

@@ -53,6 +53,8 @@ export const QUEUE_ACTIONS = [
   'review_field_event',
   // TSK-0088: deposit or clear a check still pending.
   'clear_check',
+  // TSK-0090: match or resolve unmatched or uncertain money.
+  'reconcile',
 ] as const
 export type QueueAction = (typeof QUEUE_ACTIONS)[number]
 
@@ -356,6 +358,27 @@ export const QUEUE_ITEM_TYPES = [
     reasons: ['check_received', 'check_deposited'],
     action: 'clear_check',
     screen: 'payments',
+  },
+  // TSK-0090 (HH-FIN-15, T61): money staff cannot match yet (an uncertain outcome, unmatched money, a mismatch, a
+  // duplicate entry, a reference that does not match), one item per reported item until a person resolves it with
+  // evidence. Seen by the Owner and Office (payment.reconcile); the link opens the item. Band PROPOSED.
+  {
+    id: 'reconciliation_item',
+    section: 'queue',
+    subject: 'reconciliation_item',
+    band: 'time_sensitive',
+    view: 'payment.reconcile',
+    reasons: [
+      'uncertain_outcome',
+      'unmatched_payment',
+      'amount_mismatch',
+      'currency_mismatch',
+      'duplicate_entry',
+      'reference_mismatch',
+    ],
+    action: 'reconcile',
+    screen: 'payments',
+    path: 'reconciliation',
   },
   // Appointments flagged by an availability change (HH-OPS-01 "upcoming assignments of a disabled account, to
   // reassign; appointments flagged by an availability change", HH-STAFF-02, HH-STAFF-07, TSK-0097): one item per visit,
