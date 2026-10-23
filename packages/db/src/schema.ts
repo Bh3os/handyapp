@@ -744,6 +744,22 @@ export interface FinancePaymentAllocationsTable {
   invoice_id: string | null
 }
 
+export interface FinancePaymentReceiptsTable {
+  id: Generated<string>
+  payment_id: string
+  project_id: string
+  job_id: string
+  invoice_id: string | null
+  sequence: number
+  number: string
+  payment_number: string
+  amount_cents: Int8
+  applied_cents: Int8
+  balance_after_cents: Int8
+  partial: boolean
+  issued_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface FinancePaymentsTable {
   id: Generated<string>
   project_id: string
@@ -2659,6 +2675,7 @@ export interface Database {
   'finance.invoice_payment_links': FinanceInvoicePaymentLinksTable
   'finance.invoices': FinanceInvoicesTable
   'finance.payment_allocations': FinancePaymentAllocationsTable
+  'finance.payment_receipts': FinancePaymentReceiptsTable
   'finance.payments': FinancePaymentsTable
   'finance.payouts': FinancePayoutsTable
   'finance.provider_fees': FinanceProviderFeesTable

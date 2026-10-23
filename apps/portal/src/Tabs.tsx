@@ -629,6 +629,16 @@ function Payments({ data }: { data: PaymentsData }) {
                 <StatusBadge tone={p.state === 'confirmed' ? 'success' : p.state === 'pending' ? 'warning' : 'danger'}>
                   {t(PAYMENT_STATE[p.state])}
                 </StatusBadge>
+                {p.receipt ? (
+                  <span className="hh-small" data-testid="payments-receipt">
+                    {' '}
+                    {t(p.receipt.partial ? 'portal.payments.receiptPartial' : 'portal.payments.receipt', {
+                      number: p.receipt.number,
+                      payment: p.receipt.paymentNumber,
+                      balance: usd(p.receipt.balanceAfterCents),
+                    })}
+                  </span>
+                ) : null}
               </li>
             ))}
           </ul>

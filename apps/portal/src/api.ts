@@ -428,6 +428,8 @@ export type PaymentsData = {
     method: PaymentMethod
     amountCents: number
     state: 'confirmed' | 'pending' | 'returned'
+    /** TSK-0087 part 2: a confirmed payment's receipt; partial when it left a balance. */
+    receipt: { number: string; paymentNumber: string; partial: boolean; balanceAfterCents: number } | null
   }[]
   confirmedCents: number
   pendingCents: number
@@ -592,16 +594,43 @@ function parsePayments(v: Record<string, unknown>): PaymentsData | null {
         }
       : null,
   )
-  const payments = v['payments'].map((p) =>
-    isObj(p) &&
-    isStr(p['receivedOn']) &&
-    oneOf(PAYMENT_METHODS)(p['method']) &&
-    isInt(p['amountCents']) &&
-    p['amountCents'] > 0 &&
-    oneOf(['confirmed', 'pending', 'returned'] as const)(p['state'])
-      ? { receivedOn: p['receivedOn'], method: p['method'], amountCents: p['amountCents'], state: p['state'] }
-      : null,
-  )
+  const payments = v['payments'].map((p) => {
+    if (
+      !isObj(p) ||
+      !isStr(p['receivedOn']) ||
+      !oneOf(PAYMENT_METHODS)(p['method']) ||
+      !isInt(p['amountCents']) ||
+      p['amountCents'] <= 0 ||
+      !oneOf(['confirmed', 'pending', 'returned'] as const)(p['state'])
+    )
+      return null
+    const r = p['receipt']
+    // An older server sends no receipt: none yet.
+    const receipt =
+      r === undefined || r === null
+        ? null
+        : isObj(r) &&
+            isStr(r['number']) &&
+            isStr(r['paymentNumber']) &&
+            typeof r['partial'] === 'boolean' &&
+            isInt(r['balanceAfterCents']) &&
+            r['balanceAfterCents'] >= 0
+          ? {
+              number: r['number'],
+              paymentNumber: r['paymentNumber'],
+              partial: r['partial'],
+              balanceAfterCents: r['balanceAfterCents'],
+            }
+          : undefined
+    if (receipt === undefined) return null
+    return {
+      receivedOn: p['receivedOn'],
+      method: p['method'],
+      amountCents: p['amountCents'],
+      state: p['state'],
+      receipt,
+    }
+  })
   if (invoices.some((i) => i === null) || payments.some((p) => p === null)) return null
   const ins = v['instructions']
   let instructions: PaymentsData['instructions'] = null

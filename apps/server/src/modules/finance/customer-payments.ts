@@ -3,7 +3,8 @@
 // inside the caller's verified project scope (portal/tabs.ts); every amount is integer cents from the shared records.
 // - The approved total (the job's current approved scope), the deposit (due, received or nothing to pay), each current
 //   invoice with what is confirmed, what is pending (a check until cleared) and what remains, the recorded payments
-//   (confirmed or pending; never who recorded them) and the balance still owed.
+//   (confirmed or pending; never who recorded them) with each confirmed payment's receipt (TSK-0087 part 2: a partial
+//   payment says so, with what remained), and the balance still owed.
 // - "Pay by Card" is given only with a balance and a staff-pasted Square link: the final invoice's newest link, or the
 //   deposit's own link while the deposit is due. Opening it, or returning from it, changes nothing here.
 // - The other methods show their instructions from configuration. Until the Owner enters real handles each one is a
@@ -38,6 +39,8 @@ export type CustomerRecordedPayment = {
   method: PaymentMethod
   amountCents: number
   state: 'confirmed' | 'pending' | 'returned'
+  /** TSK-0087 part 2: the receipt of a confirmed payment, and whether it left a balance (a partial payment). */
+  receipt: { number: string; paymentNumber: string; partial: boolean; balanceAfterCents: number } | null
 }
 
 export type CustomerPaymentInstructions = {
@@ -106,18 +109,38 @@ export async function customerPayments(db: Reader, projectId: string): Promise<C
     })
   }
   const paid = await db
-    .selectFrom('finance.payments')
-    .select(['received_on', 'method', 'amount_cents', 'state', 'created_at'])
-    .where('project_id', '=', projectId)
-    .where('state', '<>', 'voided')
-    .orderBy('received_on')
-    .orderBy('created_at')
+    .selectFrom('finance.payments as p')
+    .leftJoin('finance.payment_receipts as r', 'r.payment_id', 'p.id')
+    .select([
+      'p.received_on',
+      'p.method',
+      'p.amount_cents',
+      'p.state',
+      'p.created_at',
+      'r.number as receipt_number',
+      'r.payment_number',
+      'r.partial',
+      'r.balance_after_cents',
+    ])
+    .where('p.project_id', '=', projectId)
+    .where('p.state', '<>', 'voided')
+    .orderBy('p.received_on')
+    .orderBy('p.created_at')
     .execute()
   const payments: CustomerRecordedPayment[] = paid.map((p) => ({
     receivedOn: dateText(p.received_on),
     method: p.method as PaymentMethod,
     amountCents: Number(p.amount_cents),
     state: CONFIRMED.has(p.state) ? 'confirmed' : PENDING.has(p.state) ? 'pending' : 'returned',
+    receipt:
+      p.receipt_number && p.payment_number && p.partial !== null && p.balance_after_cents !== null
+        ? {
+            number: p.receipt_number,
+            paymentNumber: p.payment_number,
+            partial: p.partial,
+            balanceAfterCents: Number(p.balance_after_cents),
+          }
+        : null,
   }))
   if (approvedTotal === null && deposit.state === 'none' && invoices.length === 0 && payments.length === 0) return null
   const config = await loadConfig(db)

@@ -7973,7 +7973,8 @@
                           "receivedOn",
                           "method",
                           "amountCents",
-                          "state"
+                          "state",
+                          "receipt"
                         ],
                         "properties": {
                           "receivedOn": {
@@ -8000,6 +8001,37 @@
                               "confirmed",
                               "pending",
                               "returned"
+                            ]
+                          },
+                          "receipt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "number",
+                                  "paymentNumber",
+                                  "partial",
+                                  "balanceAfterCents"
+                                ],
+                                "properties": {
+                                  "number": {
+                                    "type": "string"
+                                  },
+                                  "paymentNumber": {
+                                    "type": "string"
+                                  },
+                                  "partial": {
+                                    "type": "boolean"
+                                  },
+                                  "balanceAfterCents": {
+                                    "type": "integer"
+                                  }
+                                }
+                              }
                             ]
                           }
                         }

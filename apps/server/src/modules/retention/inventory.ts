@@ -374,6 +374,13 @@ export const TABLES = {
     categories: [F],
     protectedEvidence: true,
   },
+  // TSK-0087 (0092): the receipt of each confirmed recorded payment.
+  'finance.payment_receipts': {
+    holds: 'Payment receipts: receipt and payment numbers, amount, applied amount and balance after, in cents',
+    classes: ['payment_reference'],
+    categories: [F],
+    protectedEvidence: true,
+  },
   // TSK-0087 (0091): the Square payment links staff pasted on issued final invoices.
   'finance.invoice_payment_links': {
     holds: 'The Square payment links staff pasted on an issued invoice, who pasted each and when (never a payment)',

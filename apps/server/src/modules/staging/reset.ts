@@ -134,8 +134,9 @@ export const CLEARED_CATEGORIES = {
     'estimating.approval_receipts',
     // TSK-0085, TSK-0086 (0077): invoices, their lines, deposit credits and PDFs; refunds, Square payouts and fees.
     'finance.invoices',
-    // TSK-0087 (0091): the Square links pasted on invoices.
+    // TSK-0087 (0091, 0092): the Square links pasted on invoices; payment receipts.
     'finance.invoice_payment_links',
+    'finance.payment_receipts',
     'finance.invoice_lines',
     'finance.invoice_deposit_credits',
     'finance.invoice_documents',

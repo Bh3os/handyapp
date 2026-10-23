@@ -22,6 +22,7 @@ import {
   invoiceDocumentAutomation,
   invoiceDraftAutomation,
   invoiceReadyAutomation,
+  paymentReceiptAutomation,
 } from './modules/finance/index.js'
 import { deliveryStatusAutomation, linkHostsOf, releaseAutomation } from './modules/notifications/index.js'
 import { photoProcessAutomation } from './modules/photos/index.js'
@@ -224,6 +225,8 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     invoiceDocumentAutomation(deps.providers.storage),
     invoiceReadyAutomation(visitNotices),
     depositInvoiceAutomation(visitNotices),
+    // TSK-0087: each confirmed recorded payment's automatic receipt (FACT-AUTOMATIC-MESSAGES #20), once, by email.
+    paymentReceiptAutomation(visitNotices),
     // TSK-0032: the automatic receipt email, once per saved request (HH-INT-20); email only.
     receiptEmailAutomation({
       providers: { email: deps.providers.email, sms: null, replyAddress: deps.replyAddress ?? null, linkHosts },

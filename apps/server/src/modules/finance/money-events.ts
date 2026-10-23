@@ -4,8 +4,8 @@
 //   Owner's credit or refund decision: one unallocated_credit item in Owner Decisions per job while any of the job's
 //   payments still has money not applied (never a negative invoice balance). Deciding it is TSK-0089.
 // - An invoice whose confirmed payments and credits reach its total is Paid: the committed invoice.paid event is
-//   written once per invoice (the outbox idempotency key), whichever write got it there. The payment receipt message
-//   it triggers (payment.receipt) is wired by TSK-0087.
+//   written once per invoice (the outbox idempotency key), whichever write got it there. TSK-0087: the payment receipt
+//   message is each confirmed payment's own (receipts.ts), not this event's.
 import type { Tx } from '@handyhub/db'
 import { sql } from 'kysely'
 import { outbox } from '../../platform/outbox.js'
