@@ -141,6 +141,8 @@ export const CLEARED_CATEGORIES = {
     'finance.payment_adjustments',
     // TSK-0089 (0095): invoice voids.
     'finance.invoice_voids',
+    // TSK-0090 (0096): reconciliation items.
+    'finance.reconciliation_items',
     'finance.invoice_lines',
     'finance.invoice_deposit_credits',
     'finance.invoice_documents',

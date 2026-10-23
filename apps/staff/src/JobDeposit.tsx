@@ -17,6 +17,7 @@ import { JobInvoices } from './JobInvoices'
 import { codeLabel } from './Requests'
 import { useOnline } from './Shell'
 import { FinanceAdjustments } from './FinanceAdjustments'
+import { ReportReconciliation } from './Reconciliation'
 import { PaymentExceptions, type PaymentExceptionFields } from './PaymentExceptions'
 import { PaymentSteps, type PaymentStepFields } from './PaymentSteps'
 
@@ -111,6 +112,8 @@ export function JobDepositPage({ t, fetchImpl, jobId }: { t: T; fetchImpl: Fetch
       <JobInvoices t={t} fetchImpl={fetchImpl} jobId={jobId} />
       {/* TSK-0089: refunds, credits, write-offs and invoice voids. */}
       <FinanceAdjustments t={t} fetchImpl={fetchImpl} jobId={jobId} />
+      {/* TSK-0090: money that cannot be matched yet (an uncertain outcome) goes to the reconciliation queue. */}
+      <ReportReconciliation t={t} fetchImpl={fetchImpl} jobId={jobId} />
     </section>
   )
 }

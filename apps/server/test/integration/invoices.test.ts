@@ -2249,3 +2249,130 @@ describe('[HH-FIN-14][T63][T64] refunds, credits, write-offs and voids: the Owne
     ).rejects.toThrow(/only with its void record/)
   })
 })
+
+describe('[HH-FIN-15][T61] the reconciliation queue: unmatched or uncertain money waits for a person (TSK-0090)', () => {
+  type Item = {
+    id: string
+    kind: string
+    state: string
+    resolution: string | null
+    evidence: string | null
+    resolvedPaymentId: string | null
+    candidates: { id: string }[]
+    resolutions: string[]
+  }
+  type Queue = {
+    open: Item[]
+    resolved: Item[]
+    records: { kind: string; jobId: string; amountCents: number }[]
+    actions: { report: boolean }
+  }
+  const report = (who: Person, body: Record<string, unknown>) => staffWrite(who, 'POST', '/staff/reconciliation', body)
+  const resolve = (who: Person, id: string, body: Record<string, unknown>) =>
+    staffWrite(who, 'POST', `/staff/reconciliation/${id}/resolve`, body)
+  const queueItem = (id: string) =>
+    t.db
+      .selectFrom('ops.queue_items')
+      .select(['reason', 'resolved_at', 'resolution'])
+      .where('type', '=', 'reconciliation_item')
+      .where('subject_id', '=', id)
+      .executeTakeFirst()
+
+  it('[T61][HH-FIN-09] an uncertain outcome records nothing and stays open until a person resolves it; one entry only', async () => {
+    const job = await approvedJob([{ kind: 'base', cents: 50_000 }])
+    await drain()
+    await reviewOutcome(t.db, job.jobId, 'passed')
+    const f = (await issue('office', await finalOf(job.jobId))).json<JobInvoices>().final as Invoice
+    const seen = {
+      kind: 'uncertain_outcome',
+      source: 'customer',
+      jobId: job.jobId,
+      method: 'square_payment_link',
+      amountCents: 50_000,
+      description: 'Synthetic: the customer says the Square payment failed midway; not in Square yet',
+    }
+    for (const who of ['estimator', 'worker'] as const) expect((await report(who, seen)).statusCode, who).toBe(403)
+    expect((await staffGet('office', '/staff/reconciliation')).json<Queue>().actions.report).toBe(true)
+    const reported = await report('office', seen)
+    expect(reported.statusCode, reported.body).toBe(201)
+    const item = reported.json<Queue>().open.find((i) => i.kind === 'uncertain_outcome' && i.state === 'open') as Item
+    expect(item).toMatchObject({ resolution: null, candidates: [], resolutions: [] })
+
+    // Nothing is recorded: the balance stays due; the item waits in the staff queue and never resolves itself.
+    expect((await finalOf(job.jobId)).money).toMatchObject({ confirmedCents: 0, remainingCents: 50_000 })
+    expect(await t.db.selectFrom('finance.payments').select('id').where('job_id', '=', job.jobId).execute()).toEqual([])
+    expect(await queueItem(item.id)).toMatchObject({ reason: 'uncertain_outcome', resolved_at: null })
+    await drain()
+    expect((await staffGet('owner', `/staff/reconciliation/${item.id}`)).json<Queue>().open).toHaveLength(1)
+    // Only the Owner decides it was never received.
+    expect(
+      (await resolve('office', item.id, { resolution: 'not_received', evidence: 'Synthetic: not in Square' }))
+        .statusCode,
+    ).toBe(403)
+
+    // The customer retries in Square; Office records the verified payment once. A second recording is refused.
+    const sq = ref('sq')
+    const check = await payInvoice('office', f.id, {
+      method: 'check',
+      amountCents: 1_000,
+      reference: ref('check'),
+      payerName: 'Synthetic Payer',
+    })
+    expect(check.statusCode, check.body).toBe(201)
+    const paid = await payInvoice('office', f.id, { method: 'square_payment_link', amountCents: 49_000, reference: sq })
+    expect(paid.statusCode, paid.body).toBe(201)
+    const payment = (paid.json<JobInvoices>().final as Invoice).payments.at(-1)?.id as string
+    expect(
+      codes(await payInvoice('office', f.id, { method: 'square_payment_link', amountCents: 49_000, reference: sq })),
+    ).toContain('DUPLICATE_PAYMENT')
+
+    // The queue lists the pending check from its own record.
+    const queue = (await staffGet('owner', '/staff/reconciliation')).json<Queue>()
+    expect(queue.records).toContainEqual(
+      expect.objectContaining({ kind: 'pending_check', jobId: job.jobId, amountCents: 1_000 }),
+    )
+    // Office never matches its own collection; the Owner resolves it, naming the payment, with evidence.
+    expect(
+      (await resolve('office', item.id, { resolution: 'recorded', paymentId: payment, evidence: 'x' })).statusCode,
+    ).toBe(403)
+    expect(
+      (await resolve('owner', item.id, { resolution: 'recorded', paymentId: payment, evidence: ' ' })).statusCode,
+    ).toBe(400)
+    const done = await resolve('owner', item.id, {
+      resolution: 'recorded',
+      paymentId: payment,
+      evidence: 'Synthetic: Square payment found after the retry',
+    })
+    expect(done.statusCode, done.body).toBe(200)
+    expect(done.json<Queue>().resolved.find((i) => i.id === item.id)).toMatchObject({
+      state: 'resolved',
+      resolution: 'recorded',
+      resolvedPaymentId: payment,
+      evidence: 'Synthetic: Square payment found after the retry',
+    })
+    expect(await queueItem(item.id)).toMatchObject({ resolution: 'recorded' })
+    expect(codes(await resolve('owner', item.id, { resolution: 'no_action', evidence: 'x' }))).toContain(
+      'ITEM_RESOLVED',
+    )
+
+    // The same payment never resolves a second item (one entry per payment); the Owner closes it as a duplicate.
+    const twice = (await report('office', { ...seen, description: 'Synthetic: reported again by the customer' }))
+      .json<Queue>()
+      .open.find((i) => i.state === 'open' && i.id !== item.id && i.kind === 'uncertain_outcome') as Item
+    expect(
+      codes(await resolve('owner', twice.id, { resolution: 'matched', paymentId: payment, evidence: 'x' })),
+    ).toContain('PAYMENT_ALREADY_MATCHED')
+    expect(
+      (await resolve('owner', twice.id, { resolution: 'duplicate', evidence: 'Synthetic: same as the first report' }))
+        .statusCode,
+    ).toBe(200)
+    expect((await finalOf(job.jobId)).money).toMatchObject({ confirmedCents: 49_000, pendingCents: 1_000 })
+    // The database keeps it: a resolved item never changes and is never deleted.
+    await expect(
+      sql`UPDATE finance.reconciliation_items SET evidence = 'changed' WHERE id = ${item.id}`.execute(t.db),
+    ).rejects.toThrow(/never changes/)
+    await expect(sql`DELETE FROM finance.reconciliation_items WHERE id = ${item.id}`.execute(t.db)).rejects.toThrow(
+      /never deleted/,
+    )
+  })
+})

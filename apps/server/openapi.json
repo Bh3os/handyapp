@@ -130090,6 +130090,7 @@
                 "question_reminder",
                 "deposit_due",
                 "check_to_clear",
+                "reconciliation_item",
                 "visit_flagged",
                 "visit_outcome",
                 "field_event_review",
@@ -130231,6 +130232,7 @@
                               "question_reminder",
                               "deposit_due",
                               "check_to_clear",
+                              "reconciliation_item",
                               "visit_flagged",
                               "visit_outcome",
                               "field_event_review",
@@ -130469,7 +130471,8 @@
                               "review_punch_items",
                               "follow_up_visit",
                               "review_field_event",
-                              "clear_check"
+                              "clear_check",
+                              "reconcile"
                             ]
                           },
                           "link": {
@@ -130528,6 +130531,7 @@
                           "question_reminder",
                           "deposit_due",
                           "check_to_clear",
+                          "reconciliation_item",
                           "visit_flagged",
                           "visit_outcome",
                           "field_event_review",
@@ -130689,6 +130693,7 @@
                 "question_reminder",
                 "deposit_due",
                 "check_to_clear",
+                "reconciliation_item",
                 "visit_flagged",
                 "visit_outcome",
                 "field_event_review",
@@ -130830,6 +130835,7 @@
                               "question_reminder",
                               "deposit_due",
                               "check_to_clear",
+                              "reconciliation_item",
                               "visit_flagged",
                               "visit_outcome",
                               "field_event_review",
@@ -131068,7 +131074,8 @@
                               "review_punch_items",
                               "follow_up_visit",
                               "review_field_event",
-                              "clear_check"
+                              "clear_check",
+                              "reconcile"
                             ]
                           },
                           "link": {
@@ -131127,6 +131134,7 @@
                           "question_reminder",
                           "deposit_due",
                           "check_to_clear",
+                          "reconciliation_item",
                           "visit_flagged",
                           "visit_outcome",
                           "field_event_review",
@@ -131250,6 +131258,2974 @@
           "pagination": true,
           "cache": "private, no-store",
           "test": "test/integration/queue.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/reconciliation": {
+      "get": {
+        "operationId": "getReconciliationQueue",
+        "summary": "The reconciliation queue for unmatched and uncertain money",
+        "description": "The Owner and Office (payment.view): the open items (oldest first) with the payments of their project they may be matched to and the resolutions this caller may record; the last 50 resolved items with their evidence; and the records the queue lists from their own source: checks still pending, payments returned in the last 30 days (PROPOSED), open disputes and refunds whose outcome is not certain yet. Read only.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "open",
+                    "resolved",
+                    "records",
+                    "actions"
+                  ],
+                  "properties": {
+                    "open": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "kind",
+                          "source",
+                          "project",
+                          "jobId",
+                          "paymentId",
+                          "method",
+                          "amountCents",
+                          "currency",
+                          "reference",
+                          "description",
+                          "reportedBy",
+                          "reportedAt",
+                          "state",
+                          "resolution",
+                          "evidence",
+                          "resolvedPaymentId",
+                          "resolvedBy",
+                          "resolvedAt",
+                          "candidates",
+                          "resolutions"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "uncertain_outcome",
+                              "unmatched_payment",
+                              "amount_mismatch",
+                              "currency_mismatch",
+                              "duplicate_entry",
+                              "reference_mismatch"
+                            ]
+                          },
+                          "source": {
+                            "type": "string"
+                          },
+                          "project": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "reference"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "reference": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "jobId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "paymentId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "method": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "reportedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "reportedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "open",
+                              "resolved"
+                            ]
+                          },
+                          "resolution": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "matched",
+                              "recorded",
+                              "not_received",
+                              "duplicate",
+                              "corrected",
+                              "refunded",
+                              "no_action",
+                              null
+                            ]
+                          },
+                          "evidence": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "resolvedPaymentId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "resolvedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "resolvedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "candidates": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "method",
+                                "amountCents",
+                                "receivedOn",
+                                "reference"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "method": {
+                                  "type": "string"
+                                },
+                                "amountCents": {
+                                  "type": "integer"
+                                },
+                                "receivedOn": {
+                                  "type": "string"
+                                },
+                                "reference": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "resolutions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "matched",
+                                "recorded",
+                                "not_received",
+                                "duplicate",
+                                "corrected",
+                                "refunded",
+                                "no_action"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "resolved": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "kind",
+                          "source",
+                          "project",
+                          "jobId",
+                          "paymentId",
+                          "method",
+                          "amountCents",
+                          "currency",
+                          "reference",
+                          "description",
+                          "reportedBy",
+                          "reportedAt",
+                          "state",
+                          "resolution",
+                          "evidence",
+                          "resolvedPaymentId",
+                          "resolvedBy",
+                          "resolvedAt",
+                          "candidates",
+                          "resolutions"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "uncertain_outcome",
+                              "unmatched_payment",
+                              "amount_mismatch",
+                              "currency_mismatch",
+                              "duplicate_entry",
+                              "reference_mismatch"
+                            ]
+                          },
+                          "source": {
+                            "type": "string"
+                          },
+                          "project": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "reference"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "reference": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "jobId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "paymentId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "method": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "reportedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "reportedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "open",
+                              "resolved"
+                            ]
+                          },
+                          "resolution": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "matched",
+                              "recorded",
+                              "not_received",
+                              "duplicate",
+                              "corrected",
+                              "refunded",
+                              "no_action",
+                              null
+                            ]
+                          },
+                          "evidence": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "resolvedPaymentId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "resolvedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "resolvedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "candidates": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "method",
+                                "amountCents",
+                                "receivedOn",
+                                "reference"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "method": {
+                                  "type": "string"
+                                },
+                                "amountCents": {
+                                  "type": "integer"
+                                },
+                                "receivedOn": {
+                                  "type": "string"
+                                },
+                                "reference": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "resolutions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "matched",
+                                "recorded",
+                                "not_received",
+                                "duplicate",
+                                "corrected",
+                                "refunded",
+                                "no_action"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "records": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "jobId",
+                          "projectReference",
+                          "method",
+                          "amountCents",
+                          "state",
+                          "since"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "pending_check",
+                              "returned_payment",
+                              "open_dispute",
+                              "refund_uncertain"
+                            ]
+                          },
+                          "jobId": {
+                            "type": "string"
+                          },
+                          "projectReference": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string"
+                          },
+                          "amountCents": {
+                            "type": "integer"
+                          },
+                          "state": {
+                            "type": "string"
+                          },
+                          "since": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "report"
+                      ],
+                      "properties": {
+                        "report": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "payment.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/invoices.test.ts"
+        }
+      },
+      "post": {
+        "operationId": "reportReconciliationItem",
+        "summary": "Report money that cannot be matched yet",
+        "description": "The Owner or Office (payment.reconcile): an uncertain outcome, money received that matches no payment, an amount or currency mismatch, a duplicate entry, or a Square payment whose reference does not match, with what was seen (source, method, amount, currency, reference, the job or payment it concerns, a description). It records no payment and changes no balance; it waits in the staff queue until a person resolves it. Returns the queue.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "source",
+                  "description"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "uncertain_outcome",
+                      "unmatched_payment",
+                      "amount_mismatch",
+                      "currency_mismatch",
+                      "duplicate_entry",
+                      "reference_mismatch"
+                    ]
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "customer",
+                      "square",
+                      "bank",
+                      "staff"
+                    ]
+                  },
+                  "jobId": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                      }
+                    ]
+                  },
+                  "paymentId": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                      }
+                    ]
+                  },
+                  "method": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "square_payment_link",
+                      "square_tap_to_pay",
+                      "cash",
+                      "check",
+                      "zelle",
+                      "cash_app",
+                      "chime",
+                      null
+                    ]
+                  },
+                  "amountCents": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1
+                  },
+                  "currency": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 3
+                  },
+                  "reference": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 170
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2100
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "open",
+                    "resolved",
+                    "records",
+                    "actions"
+                  ],
+                  "properties": {
+                    "open": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "kind",
+                          "source",
+                          "project",
+                          "jobId",
+                          "paymentId",
+                          "method",
+                          "amountCents",
+                          "currency",
+                          "reference",
+                          "description",
+                          "reportedBy",
+                          "reportedAt",
+                          "state",
+                          "resolution",
+                          "evidence",
+                          "resolvedPaymentId",
+                          "resolvedBy",
+                          "resolvedAt",
+                          "candidates",
+                          "resolutions"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "uncertain_outcome",
+                              "unmatched_payment",
+                              "amount_mismatch",
+                              "currency_mismatch",
+                              "duplicate_entry",
+                              "reference_mismatch"
+                            ]
+                          },
+                          "source": {
+                            "type": "string"
+                          },
+                          "project": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "reference"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "reference": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "jobId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "paymentId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "method": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "reportedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "reportedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "open",
+                              "resolved"
+                            ]
+                          },
+                          "resolution": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "matched",
+                              "recorded",
+                              "not_received",
+                              "duplicate",
+                              "corrected",
+                              "refunded",
+                              "no_action",
+                              null
+                            ]
+                          },
+                          "evidence": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "resolvedPaymentId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "resolvedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "resolvedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "candidates": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "method",
+                                "amountCents",
+                                "receivedOn",
+                                "reference"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "method": {
+                                  "type": "string"
+                                },
+                                "amountCents": {
+                                  "type": "integer"
+                                },
+                                "receivedOn": {
+                                  "type": "string"
+                                },
+                                "reference": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "resolutions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "matched",
+                                "recorded",
+                                "not_received",
+                                "duplicate",
+                                "corrected",
+                                "refunded",
+                                "no_action"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "resolved": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "kind",
+                          "source",
+                          "project",
+                          "jobId",
+                          "paymentId",
+                          "method",
+                          "amountCents",
+                          "currency",
+                          "reference",
+                          "description",
+                          "reportedBy",
+                          "reportedAt",
+                          "state",
+                          "resolution",
+                          "evidence",
+                          "resolvedPaymentId",
+                          "resolvedBy",
+                          "resolvedAt",
+                          "candidates",
+                          "resolutions"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "uncertain_outcome",
+                              "unmatched_payment",
+                              "amount_mismatch",
+                              "currency_mismatch",
+                              "duplicate_entry",
+                              "reference_mismatch"
+                            ]
+                          },
+                          "source": {
+                            "type": "string"
+                          },
+                          "project": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "reference"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "reference": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "jobId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "paymentId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "method": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "reportedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "reportedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "open",
+                              "resolved"
+                            ]
+                          },
+                          "resolution": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "matched",
+                              "recorded",
+                              "not_received",
+                              "duplicate",
+                              "corrected",
+                              "refunded",
+                              "no_action",
+                              null
+                            ]
+                          },
+                          "evidence": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "resolvedPaymentId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "resolvedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "resolvedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "candidates": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "method",
+                                "amountCents",
+                                "receivedOn",
+                                "reference"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "method": {
+                                  "type": "string"
+                                },
+                                "amountCents": {
+                                  "type": "integer"
+                                },
+                                "receivedOn": {
+                                  "type": "string"
+                                },
+                                "reference": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "resolutions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "matched",
+                                "recorded",
+                                "not_received",
+                                "duplicate",
+                                "corrected",
+                                "refunded",
+                                "no_action"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "records": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "jobId",
+                          "projectReference",
+                          "method",
+                          "amountCents",
+                          "state",
+                          "since"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "pending_check",
+                              "returned_payment",
+                              "open_dispute",
+                              "refund_uncertain"
+                            ]
+                          },
+                          "jobId": {
+                            "type": "string"
+                          },
+                          "projectReference": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string"
+                          },
+                          "amountCents": {
+                            "type": "integer"
+                          },
+                          "state": {
+                            "type": "string"
+                          },
+                          "since": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "report"
+                      ],
+                      "properties": {
+                        "report": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "payment.reconcile",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "payment.reconciliation_report",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/invoices.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/reconciliation/{id}": {
+      "get": {
+        "operationId": "getReconciliationItem",
+        "summary": "One reconciliation item",
+        "description": "The Owner and Office (payment.view): one item, as the queue shows it (the staff queue item opens it). NOT_FOUND when there is no such item.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "open",
+                    "resolved",
+                    "records",
+                    "actions"
+                  ],
+                  "properties": {
+                    "open": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "kind",
+                          "source",
+                          "project",
+                          "jobId",
+                          "paymentId",
+                          "method",
+                          "amountCents",
+                          "currency",
+                          "reference",
+                          "description",
+                          "reportedBy",
+                          "reportedAt",
+                          "state",
+                          "resolution",
+                          "evidence",
+                          "resolvedPaymentId",
+                          "resolvedBy",
+                          "resolvedAt",
+                          "candidates",
+                          "resolutions"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "uncertain_outcome",
+                              "unmatched_payment",
+                              "amount_mismatch",
+                              "currency_mismatch",
+                              "duplicate_entry",
+                              "reference_mismatch"
+                            ]
+                          },
+                          "source": {
+                            "type": "string"
+                          },
+                          "project": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "reference"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "reference": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "jobId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "paymentId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "method": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "reportedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "reportedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "open",
+                              "resolved"
+                            ]
+                          },
+                          "resolution": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "matched",
+                              "recorded",
+                              "not_received",
+                              "duplicate",
+                              "corrected",
+                              "refunded",
+                              "no_action",
+                              null
+                            ]
+                          },
+                          "evidence": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "resolvedPaymentId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "resolvedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "resolvedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "candidates": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "method",
+                                "amountCents",
+                                "receivedOn",
+                                "reference"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "method": {
+                                  "type": "string"
+                                },
+                                "amountCents": {
+                                  "type": "integer"
+                                },
+                                "receivedOn": {
+                                  "type": "string"
+                                },
+                                "reference": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "resolutions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "matched",
+                                "recorded",
+                                "not_received",
+                                "duplicate",
+                                "corrected",
+                                "refunded",
+                                "no_action"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "resolved": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "kind",
+                          "source",
+                          "project",
+                          "jobId",
+                          "paymentId",
+                          "method",
+                          "amountCents",
+                          "currency",
+                          "reference",
+                          "description",
+                          "reportedBy",
+                          "reportedAt",
+                          "state",
+                          "resolution",
+                          "evidence",
+                          "resolvedPaymentId",
+                          "resolvedBy",
+                          "resolvedAt",
+                          "candidates",
+                          "resolutions"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "uncertain_outcome",
+                              "unmatched_payment",
+                              "amount_mismatch",
+                              "currency_mismatch",
+                              "duplicate_entry",
+                              "reference_mismatch"
+                            ]
+                          },
+                          "source": {
+                            "type": "string"
+                          },
+                          "project": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "reference"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "reference": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "jobId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "paymentId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "method": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "reportedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "reportedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "open",
+                              "resolved"
+                            ]
+                          },
+                          "resolution": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "matched",
+                              "recorded",
+                              "not_received",
+                              "duplicate",
+                              "corrected",
+                              "refunded",
+                              "no_action",
+                              null
+                            ]
+                          },
+                          "evidence": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "resolvedPaymentId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "resolvedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "resolvedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "candidates": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "method",
+                                "amountCents",
+                                "receivedOn",
+                                "reference"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "method": {
+                                  "type": "string"
+                                },
+                                "amountCents": {
+                                  "type": "integer"
+                                },
+                                "receivedOn": {
+                                  "type": "string"
+                                },
+                                "reference": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "resolutions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "matched",
+                                "recorded",
+                                "not_received",
+                                "duplicate",
+                                "corrected",
+                                "refunded",
+                                "no_action"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "records": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "jobId",
+                          "projectReference",
+                          "method",
+                          "amountCents",
+                          "state",
+                          "since"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "pending_check",
+                              "returned_payment",
+                              "open_dispute",
+                              "refund_uncertain"
+                            ]
+                          },
+                          "jobId": {
+                            "type": "string"
+                          },
+                          "projectReference": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string"
+                          },
+                          "amountCents": {
+                            "type": "integer"
+                          },
+                          "state": {
+                            "type": "string"
+                          },
+                          "since": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "report"
+                      ],
+                      "properties": {
+                        "report": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "payment.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/invoices.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/reconciliation/{id}/resolve": {
+      "post": {
+        "operationId": "resolveReconciliationItem",
+        "summary": "Resolve a reconciliation item with evidence",
+        "description": "Once, with evidence (payment.reconcile, never for the resolver’s own collection). matched (a payment already recorded) and recorded (the verified payment staff recorded for it) name the payment: one item per payment, so a retry recorded once never makes a double entry; routine matching that Office may do (PROPOSED). not_received, duplicate, corrected, refunded and no_action are the Owner’s (FORBIDDEN otherwise). A resolved item is a CONFLICT (ITEM_RESOLVED). The staff queue item resolves. Audited. Returns the queue.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "resolution",
+                  "evidence"
+                ],
+                "properties": {
+                  "resolution": {
+                    "type": "string",
+                    "enum": [
+                      "matched",
+                      "recorded",
+                      "not_received",
+                      "duplicate",
+                      "corrected",
+                      "refunded",
+                      "no_action"
+                    ]
+                  },
+                  "evidence": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2100
+                  },
+                  "paymentId": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "open",
+                    "resolved",
+                    "records",
+                    "actions"
+                  ],
+                  "properties": {
+                    "open": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "kind",
+                          "source",
+                          "project",
+                          "jobId",
+                          "paymentId",
+                          "method",
+                          "amountCents",
+                          "currency",
+                          "reference",
+                          "description",
+                          "reportedBy",
+                          "reportedAt",
+                          "state",
+                          "resolution",
+                          "evidence",
+                          "resolvedPaymentId",
+                          "resolvedBy",
+                          "resolvedAt",
+                          "candidates",
+                          "resolutions"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "uncertain_outcome",
+                              "unmatched_payment",
+                              "amount_mismatch",
+                              "currency_mismatch",
+                              "duplicate_entry",
+                              "reference_mismatch"
+                            ]
+                          },
+                          "source": {
+                            "type": "string"
+                          },
+                          "project": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "reference"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "reference": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "jobId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "paymentId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "method": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "reportedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "reportedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "open",
+                              "resolved"
+                            ]
+                          },
+                          "resolution": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "matched",
+                              "recorded",
+                              "not_received",
+                              "duplicate",
+                              "corrected",
+                              "refunded",
+                              "no_action",
+                              null
+                            ]
+                          },
+                          "evidence": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "resolvedPaymentId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "resolvedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "resolvedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "candidates": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "method",
+                                "amountCents",
+                                "receivedOn",
+                                "reference"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "method": {
+                                  "type": "string"
+                                },
+                                "amountCents": {
+                                  "type": "integer"
+                                },
+                                "receivedOn": {
+                                  "type": "string"
+                                },
+                                "reference": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "resolutions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "matched",
+                                "recorded",
+                                "not_received",
+                                "duplicate",
+                                "corrected",
+                                "refunded",
+                                "no_action"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "resolved": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "kind",
+                          "source",
+                          "project",
+                          "jobId",
+                          "paymentId",
+                          "method",
+                          "amountCents",
+                          "currency",
+                          "reference",
+                          "description",
+                          "reportedBy",
+                          "reportedAt",
+                          "state",
+                          "resolution",
+                          "evidence",
+                          "resolvedPaymentId",
+                          "resolvedBy",
+                          "resolvedAt",
+                          "candidates",
+                          "resolutions"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "uncertain_outcome",
+                              "unmatched_payment",
+                              "amount_mismatch",
+                              "currency_mismatch",
+                              "duplicate_entry",
+                              "reference_mismatch"
+                            ]
+                          },
+                          "source": {
+                            "type": "string"
+                          },
+                          "project": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "reference"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "reference": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "jobId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "paymentId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "method": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "reportedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "reportedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "open",
+                              "resolved"
+                            ]
+                          },
+                          "resolution": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "matched",
+                              "recorded",
+                              "not_received",
+                              "duplicate",
+                              "corrected",
+                              "refunded",
+                              "no_action",
+                              null
+                            ]
+                          },
+                          "evidence": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "resolvedPaymentId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "resolvedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "resolvedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "candidates": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "method",
+                                "amountCents",
+                                "receivedOn",
+                                "reference"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "method": {
+                                  "type": "string"
+                                },
+                                "amountCents": {
+                                  "type": "integer"
+                                },
+                                "receivedOn": {
+                                  "type": "string"
+                                },
+                                "reference": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "resolutions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "matched",
+                                "recorded",
+                                "not_received",
+                                "duplicate",
+                                "corrected",
+                                "refunded",
+                                "no_action"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "records": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "jobId",
+                          "projectReference",
+                          "method",
+                          "amountCents",
+                          "state",
+                          "since"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "pending_check",
+                              "returned_payment",
+                              "open_dispute",
+                              "refund_uncertain"
+                            ]
+                          },
+                          "jobId": {
+                            "type": "string"
+                          },
+                          "projectReference": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string"
+                          },
+                          "amountCents": {
+                            "type": "integer"
+                          },
+                          "state": {
+                            "type": "string"
+                          },
+                          "since": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "report"
+                      ],
+                      "properties": {
+                        "report": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "payment.reconcile",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "payment.reconciliation_resolve",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/invoices.test.ts"
         }
       }
     },
