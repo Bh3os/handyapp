@@ -381,6 +381,13 @@ export const TABLES = {
     categories: [F],
     protectedEvidence: true,
   },
+  // TSK-0089 (0094): what happened to a recorded payment afterwards (returned, failed, disputed, voided).
+  'finance.payment_adjustments': {
+    holds: "A payment's returned, failed, disputed or voided record: the reason, the evidence, who recorded it and when",
+    classes: ['payment_reference'],
+    categories: [F],
+    protectedEvidence: true,
+  },
   // TSK-0087 (0091): the Square payment links staff pasted on issued final invoices.
   'finance.invoice_payment_links': {
     holds: 'The Square payment links staff pasted on an issued invoice, who pasted each and when (never a payment)',

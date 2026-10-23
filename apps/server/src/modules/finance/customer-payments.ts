@@ -4,7 +4,8 @@
 // - The approved total (the job's current approved scope), the deposit (due, received or nothing to pay), each current
 //   invoice with what is confirmed, what is pending (a check until cleared) and what remains, the recorded payments
 //   (confirmed or pending; never who recorded them) with each confirmed payment's receipt (TSK-0087 part 2: a partial
-//   payment says so, with what remained), and the balance still owed.
+//   payment says so, with what remained), and the balance still owed. TSK-0089: a returned, voided or disputed payment
+//   says so, and its receipt shows voided once the payment no longer counts.
 // - "Pay by Card" is given only with a balance and a staff-pasted Square link: the final invoice's newest link, or the
 //   deposit's own link while the deposit is due. Opening it, or returning from it, changes nothing here.
 // - The other methods show their instructions from configuration. Until the Owner enters real handles each one is a
@@ -38,9 +39,22 @@ export type CustomerRecordedPayment = {
   receivedOn: string
   method: PaymentMethod
   amountCents: number
-  state: 'confirmed' | 'pending' | 'returned'
-  /** TSK-0087 part 2: the receipt of a confirmed payment, and whether it left a balance (a partial payment). */
-  receipt: { number: string; paymentNumber: string; partial: boolean; balanceAfterCents: number } | null
+  /**
+   * TSK-0089 (HH-FIN-13): returned (a check returned, a payment failed or a dispute lost), voided (recorded wrongly;
+   * its correction is listed beside it) or disputed (counted until the dispute's outcome, PROPOSED).
+   */
+  state: 'confirmed' | 'pending' | 'returned' | 'voided' | 'disputed'
+  /**
+   * TSK-0087 part 2: the receipt of a confirmed payment, and whether it left a balance (a partial payment); TSK-0089:
+   * voided once the payment is returned or voided (the receipt itself is kept as issued).
+   */
+  receipt: {
+    number: string
+    paymentNumber: string
+    partial: boolean
+    balanceAfterCents: number
+    voided: boolean
+  } | null
 }
 
 export type CustomerPaymentInstructions = {
@@ -121,9 +135,9 @@ export async function customerPayments(db: Reader, projectId: string): Promise<C
       'r.payment_number',
       'r.partial',
       'r.balance_after_cents',
+      sql<boolean>`finance.payment_dispute_open(p.id)`.as('disputed'),
     ])
     .where('p.project_id', '=', projectId)
-    .where('p.state', '<>', 'voided')
     .orderBy('p.received_on')
     .orderBy('p.created_at')
     .execute()
@@ -131,7 +145,15 @@ export async function customerPayments(db: Reader, projectId: string): Promise<C
     receivedOn: dateText(p.received_on),
     method: p.method as PaymentMethod,
     amountCents: Number(p.amount_cents),
-    state: CONFIRMED.has(p.state) ? 'confirmed' : PENDING.has(p.state) ? 'pending' : 'returned',
+    state: p.disputed
+      ? 'disputed'
+      : CONFIRMED.has(p.state)
+        ? 'confirmed'
+        : PENDING.has(p.state)
+          ? 'pending'
+          : p.state === 'voided'
+            ? 'voided'
+            : 'returned',
     receipt:
       p.receipt_number && p.payment_number && p.partial !== null && p.balance_after_cents !== null
         ? {
@@ -139,6 +161,7 @@ export async function customerPayments(db: Reader, projectId: string): Promise<C
             paymentNumber: p.payment_number,
             partial: p.partial,
             balanceAfterCents: Number(p.balance_after_cents),
+            voided: p.state === 'returned' || p.state === 'voided',
           }
         : null,
   }))
@@ -151,7 +174,10 @@ export async function customerPayments(db: Reader, projectId: string): Promise<C
     deposit,
     invoices,
     payments,
-    confirmedCents: payments.filter((p) => p.state === 'confirmed').reduce((a, p) => a + p.amountCents, 0),
+    // A disputed payment still counts until its outcome (PROPOSED, OQ-PAYMENT-EXCEPTION-DETAILS).
+    confirmedCents: payments
+      .filter((p) => p.state === 'confirmed' || p.state === 'disputed')
+      .reduce((a, p) => a + p.amountCents, 0),
     pendingCents: payments.filter((p) => p.state === 'pending').reduce((a, p) => a + p.amountCents, 0),
     balanceCents: invoices.reduce((a, i) => a + i.balanceCents, 0),
     instructions:

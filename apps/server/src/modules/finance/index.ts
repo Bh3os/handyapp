@@ -9,6 +9,9 @@
 //   POST /staff/jobs/:jobId/collection              TSK-0088: the collector's own on-site collection
 //   POST /staff/payments/:paymentId/deposited       TSK-0088: a check deposited, still pending (payment.reconcile)
 //   POST /staff/payments/:paymentId/reconcile       TSK-0088: a recorded payment reconciled (payment.reconcile)
+//   POST /staff/payments/:paymentId/returned        TSK-0089: a check returned (check.mark_returned)
+//   POST /staff/payments/:paymentId/adjustments     TSK-0089: failed, dispute opened/won/lost (payment.correct, fresh)
+//   POST /staff/payments/:paymentId/correction      TSK-0089: void and record the right payment (payment.correct)
 //   POST /staff/jobs/:jobId/deposit/waiver          the Owner's waiver: fresh sign-in and a reason (deposit.waive)
 // Each write is decided by the policy (deny by default), runs in one transaction with its idempotency key and records
 // its audit event. The work-scheduling gate is deposit-gate.ts, called by the confirming transaction itself.
@@ -49,11 +52,22 @@ export {
   issueInvoiceDocument,
 } from './invoice-automations.js'
 import { markCheckDeposited, reconcilePayment } from './payment-states.js'
+import {
+  ADJUSTMENT_LIMITS,
+  adjustPayment,
+  correctPayment,
+  PAYMENT_EXCEPTION_FIELDS,
+  PAYMENT_EXCEPTION_PROPERTIES,
+  type AdjustedPayment,
+  type AdjustmentKind,
+  type Replacement,
+} from './exceptions.js'
 import { collectionView, collectOnSite, ON_SITE_METHODS, type CollectInput } from './collection.js'
 import { jobAssignments } from '../packets/assignments.js'
 export { customerInvoiceList, issueInvoice, jobInvoices, prepareDraft, qualityGate } from './invoices.js'
 export { INVOICE_PAID_EVENT } from './money-events.js'
 export { issuePaymentReceipt, paymentReceiptAutomation, RECEIPT_ISSUED_EVENT } from './receipts.js'
+export { jobDisputeOpen } from './exceptions.js'
 
 const TEST = 'test/integration/deposits.test.ts'
 
@@ -166,6 +180,7 @@ const DEPOSIT_VIEW = {
           'reconciledAt',
           'canMarkDeposited',
           'canReconcile',
+          ...PAYMENT_EXCEPTION_FIELDS,
         ],
         properties: {
           id: { type: 'string' },
@@ -190,6 +205,7 @@ const DEPOSIT_VIEW = {
           reconciledAt: { anyOf: [{ type: 'null' }, DATE_TIME] },
           canMarkDeposited: { type: 'boolean' },
           canReconcile: { type: 'boolean' },
+          ...PAYMENT_EXCEPTION_PROPERTIES,
         },
       },
     },
@@ -304,6 +320,25 @@ const write = {
   kind: 'write',
   idempotency: 'required',
 } as const
+
+const ADJUSTMENT_BODY = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['reason'],
+  properties: {
+    reason: { type: 'string', minLength: 1, maxLength: ADJUSTMENT_LIMITS.reason + 100 },
+    evidence: { type: ['string', 'null'], maxLength: ADJUSTMENT_LIMITS.evidence + 100 },
+  },
+} as const
+
+const adjustmentSummary = (a: AdjustedPayment) => ({
+  jobId: a.jobId,
+  adjustmentId: a.adjustmentId,
+  kind: a.kind,
+  from: a.from,
+  to: a.state,
+  reversedCents: a.reversedCents,
+})
 
 async function viewOrThrow(ctx: ApiContext, tx: Tx | undefined, jobId: string) {
   const view = await depositView(tx ?? ctx.db, staffActor(ctx), jobId)
@@ -598,6 +633,172 @@ const routes: RouteDef[] = [
       return { body: view, version: view.version }
     },
   })),
+  // TSK-0089 part 1 (HH-FIN-13, HH-FIN-14, T63): a check returned, a payment failed or disputed, a payment corrected.
+  {
+    ...write,
+    method: 'POST',
+    path: '/staff/payments/:paymentId/returned',
+    operationId: 'markCheckReturned',
+    summary: 'Record a check returned by the bank',
+    description:
+      'The Owner or Office (check.mark_returned), with a reason and optional evidence (the bank notice). A received, ' +
+      'deposited or cleared check becomes returned; nothing is edited or deleted: the adjustment and a reversing ' +
+      'allocation for each of its allocations are appended, the balance reopens, a deposit it satisfied reverts to ' +
+      'required (a deposit already credited reopens the final invoice), its receipt shows voided. Anything else is a ' +
+      'CONFLICT (NOT_A_CHECK, PAYMENT_RETURNED, PAYMENT_VOIDED). Returns the deposit view of the payment’s job.',
+    permission: 'check.mark_returned',
+    expectedVersion: 'none',
+    audit: 'check.mark_returned',
+    resource: paymentOf,
+    schema: {
+      params: PAYMENT_PARAMS,
+      body: ADJUSTMENT_BODY,
+      response: { 200: DEPOSIT_VIEW },
+    },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const { paymentId } = ctx.req.params as { paymentId: string }
+      const body = ctx.req.body as { reason: string; evidence?: string | null }
+      const out = await adjustPayment(tx, staffActor(ctx), paymentId, {
+        kind: 'returned',
+        reason: body.reason,
+        evidence: body.evidence ?? null,
+      })
+      await ctx.audit({
+        target: { type: 'payment', id: paymentId, version: out.version },
+        summary: adjustmentSummary(out),
+        reason: body.reason.trim(),
+      })
+      const view = await viewOrThrow(ctx, tx, out.jobId)
+      return { body: view, version: view.version }
+    },
+  },
+  {
+    ...write,
+    method: 'POST',
+    path: '/staff/payments/:paymentId/adjustments',
+    operationId: 'adjustPayment',
+    summary: 'Record a failed payment or a dispute and its outcome (Owner only)',
+    description:
+      'The Owner only (payment.correct): a fresh sign-in (password or authenticator code within ' +
+      `${FRESH_AUTH_MINUTES} minutes, read again at the write), a reason and optional evidence (the Square dispute ` +
+      'ID). failed: a card or digital payment that did not go through returns it (the balance reopens, its receipt ' +
+      'shows voided). dispute_opened: the money still counts until the outcome (PROPOSED); the payment waits ' +
+      '(no reconcile, void or failure) and the Owner Decisions item payment_dispute stays open; dispute_won closes ' +
+      'it with no money change; dispute_lost returns the payment. Appended, never an edit. Returns the deposit view.',
+    permission: 'payment.correct',
+    expectedVersion: 'none',
+    freshAuthMinutes: FRESH_AUTH_MINUTES,
+    audit: 'payment.adjust',
+    resource: paymentOf,
+    schema: {
+      params: PAYMENT_PARAMS,
+      body: {
+        ...ADJUSTMENT_BODY,
+        required: ['kind', 'reason'],
+        properties: {
+          ...ADJUSTMENT_BODY.properties,
+          kind: { type: 'string', enum: ['failed', 'dispute_opened', 'dispute_won', 'dispute_lost'] },
+        },
+      },
+      response: { 200: DEPOSIT_VIEW },
+    },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const session = ctx.req.staffSession
+      if (!session) throw new ApiError('UNAUTHENTICATED')
+      const { paymentId } = ctx.req.params as { paymentId: string }
+      const body = ctx.req.body as { kind: AdjustmentKind; reason: string; evidence?: string | null }
+      const out = await adjustPayment(tx, staffActor(ctx), paymentId, {
+        kind: body.kind,
+        reason: body.reason,
+        evidence: body.evidence ?? null,
+        sessionId: session.sessionId,
+      })
+      await ctx.audit({
+        target: { type: 'payment', id: paymentId, version: out.version },
+        summary: adjustmentSummary(out),
+        reason: body.reason.trim(),
+        stepUpUsed: true,
+      })
+      const view = await viewOrThrow(ctx, tx, out.jobId)
+      return { body: view, version: view.version }
+    },
+  },
+  {
+    ...write,
+    method: 'POST',
+    path: '/staff/payments/:paymentId/correction',
+    operationId: 'correctPayment',
+    summary: 'Void a payment recorded wrongly and record the right one (Owner only)',
+    description:
+      'The Owner only (payment.correct): a fresh sign-in, a reason and optional evidence. The wrong payment is ' +
+      'voided (never edited or deleted: its allocations are reversed, its receipt shows voided) and, when a ' +
+      'replacement is given, the right payment is recorded in the same transaction naming the one it corrects, toward ' +
+      'the deposit while it is still due or else the issued final invoice; what the replacement leaves out is the ' +
+      'voided payment’s own (method, date, reference, payer, memo, collector). The replacement is validated like any ' +
+      'recorded payment and gets its own receipt. A payment with an open dispute waits for its outcome ' +
+      '(DISPUTE_OPEN). Returns the deposit view.',
+    permission: 'payment.correct',
+    expectedVersion: 'none',
+    freshAuthMinutes: FRESH_AUTH_MINUTES,
+    audit: 'payment.correct',
+    resource: paymentOf,
+    schema: {
+      params: PAYMENT_PARAMS,
+      body: {
+        ...ADJUSTMENT_BODY,
+        properties: {
+          ...ADJUSTMENT_BODY.properties,
+          replacement: {
+            anyOf: [
+              { type: 'null' },
+              {
+                type: 'object',
+                additionalProperties: false,
+                required: ['amountCents'],
+                properties: {
+                  method: { type: 'string', enum: [...PAYMENT_METHODS] },
+                  amountCents: { type: 'integer', minimum: 1 },
+                  receivedOn: { type: 'string', maxLength: 10 },
+                  reference: { type: ['string', 'null'], maxLength: DEPOSIT_LIMITS.reference + 50 },
+                  payerName: { type: ['string', 'null'], maxLength: DEPOSIT_LIMITS.payerName + 50 },
+                  memo: { type: ['string', 'null'], maxLength: DEPOSIT_LIMITS.memo + 50 },
+                },
+              },
+            ],
+          },
+        },
+      },
+      response: { 200: DEPOSIT_VIEW },
+    },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const session = ctx.req.staffSession
+      if (!session) throw new ApiError('UNAUTHENTICATED')
+      const { paymentId } = ctx.req.params as { paymentId: string }
+      const body = ctx.req.body as { reason: string; evidence?: string | null; replacement?: Replacement | null }
+      const out = await correctPayment(tx, staffActor(ctx), paymentId, {
+        reason: body.reason,
+        evidence: body.evidence ?? null,
+        sessionId: session.sessionId,
+        replacement: body.replacement ?? null,
+      })
+      await ctx.audit({
+        target: { type: 'payment', id: paymentId, version: out.voided.version },
+        summary: {
+          ...adjustmentSummary(out.voided),
+          replacementId: out.replacementId,
+          replacementState: out.replacementState,
+          replacementCents: body.replacement?.amountCents ?? null,
+        },
+        reason: body.reason.trim(),
+        stepUpUsed: true,
+      })
+      const view = await viewOrThrow(ctx, tx, out.voided.jobId)
+      return { body: view, version: view.version }
+    },
+  },
   {
     ...write,
     method: 'POST',

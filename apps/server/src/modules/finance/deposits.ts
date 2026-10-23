@@ -31,6 +31,13 @@ import { loadConfig } from '../../platform/config/index.js'
 import { FRESH_AUTH_MINUTES } from '../identity/sessions.js'
 import { syncDepositItem } from './deposit-queue.js'
 import { announcePaidInvoices, syncUnallocatedItem } from './money-events.js'
+import {
+  adjustmentsOf,
+  availableAdjustments,
+  disputeOpen,
+  type AdjustmentKind,
+  type AdjustmentView,
+} from './exceptions.js'
 import { syncCheckItem } from './payment-states.js'
 import { issuePaymentReceipt } from './receipts.js'
 
@@ -148,6 +155,7 @@ async function amounts(db: Reader, requirementId: string) {
     .innerJoin('finance.payments as p', 'p.id', 'a.payment_id')
     .select(['a.amount_cents', 'p.state'])
     .where('a.deposit_requirement_id', '=', requirementId)
+    .where('a.reverses_allocation_id', 'is', null)
     .execute()
   let verified = 0
   let pending = 0
@@ -201,6 +209,11 @@ export type DepositPaymentView = {
   reconciledAt: string | null
   canMarkDeposited: boolean
   canReconcile: boolean
+  /** TSK-0089 (HH-FIN-13): what happened to it afterwards, an open dispute, and what this caller may record now. */
+  adjustments: AdjustmentView[]
+  disputeOpen: boolean
+  adjustable: AdjustmentKind[]
+  correctsPaymentId: string | null
 }
 
 export type DepositView = {
@@ -238,7 +251,10 @@ export async function depositView(db: Reader, actor: StaffActor, jobId: string):
   const payments = await db
     .selectFrom('finance.payments as p')
     .leftJoin('finance.payment_allocations as a', (j) =>
-      j.onRef('a.payment_id', '=', 'p.id').on('a.deposit_requirement_id', '=', r.id),
+      j
+        .onRef('a.payment_id', '=', 'p.id')
+        .on('a.deposit_requirement_id', '=', r.id)
+        .on('a.reverses_allocation_id', 'is', null),
     )
     .leftJoin('finance.payment_receipts as rc', 'rc.payment_id', 'p.id')
     .select([
@@ -259,11 +275,16 @@ export async function depositView(db: Reader, actor: StaffActor, jobId: string):
       'p.reconciled_at',
       'rc.number as receipt_number',
       'a.amount_cents as applied_cents',
+      'p.corrects_payment_id',
     ])
     .where('p.job_id', '=', jobId)
     .orderBy('p.created_at')
     .orderBy('p.id')
     .execute()
+  const adjustments = await adjustmentsOf(
+    db,
+    payments.map((p) => p.id),
+  )
   const names = await staffNames(db, [
     r.payment_link_set_by,
     waiver?.waived_by ?? null,
@@ -329,7 +350,12 @@ export async function depositView(db: Reader, actor: StaffActor, jobId: string):
         canReconcile:
           p.method !== 'check' &&
           p.state === 'recorded' &&
+          !disputeOpen(adjustments.get(p.id)) &&
           allows(actor, 'payment.reconcile', { ...resource, collectedByStaffId: p.collector_staff_id }),
+        adjustments: adjustments.get(p.id) ?? [],
+        disputeOpen: disputeOpen(adjustments.get(p.id)),
+        adjustable: availableAdjustments(actor, resource, p, disputeOpen(adjustments.get(p.id))),
+        correctsPaymentId: p.corrects_payment_id,
       }
     }),
     version: r.version,
@@ -416,6 +442,8 @@ export type RecordPaymentInput = {
   collectorStaffId?: string | null
   /** TSK-0088 (HH-FIN-11): an optional memo (cash), kept as written. */
   memo?: string | null
+  /** TSK-0089: the voided payment this one corrects (set by the correction only, never by a request body). */
+  correctsPaymentId?: string | null
 }
 
 export type RecordedPayment = {
@@ -441,6 +469,7 @@ export type CheckedPayment = {
   memo: string | null
   collector: string
   now: Date
+  correctsPaymentId: string | null
 }
 
 /**
@@ -498,6 +527,8 @@ export async function checkPaymentInput(tx: Tx, actor: StaffActor, input: Record
       .select('id')
       .where('method', '=', method)
       .where('reference', '=', reference)
+      // TSK-0089: a voided payment no longer holds its reference (its correction may record it again).
+      .where('state', '<>', 'voided')
       .executeTakeFirst()
     if (dup) throw conflict('DUPLICATE_PAYMENT', 'body.reference')
   }
@@ -510,6 +541,7 @@ export async function checkPaymentInput(tx: Tx, actor: StaffActor, input: Record
     memo,
     collector,
     now,
+    correctsPaymentId: input.correctsPaymentId ?? null,
   }
 }
 
@@ -526,7 +558,11 @@ export async function recordDepositPayment(
   if (!r.required || r.amount_cents === null) throw conflict('DEPOSIT_NOT_REQUIRED')
   // TSK-0085: once credited to the final invoice the deposit takes no more money (the invoice does).
   if (r.state === 'applied') throw conflict('DEPOSIT_APPLIED')
-  const { method, reference, payerName, memo, collector, now } = await checkPaymentInput(tx, actor, input)
+  const { method, reference, payerName, memo, collector, now, correctsPaymentId } = await checkPaymentInput(
+    tx,
+    actor,
+    input,
+  )
 
   // What the deposit still needs, counting checks still pending (allocations never exceed the deposit).
   const { verified, pending } = await amounts(tx, r.id)
@@ -549,6 +585,7 @@ export async function recordDepositPayment(
       memo,
       state: method === 'check' ? 'received' : 'recorded',
       created_at: now,
+      corrects_payment_id: correctsPaymentId,
     })
     .returning(['id', 'state'])
     .executeTakeFirstOrThrow()

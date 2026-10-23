@@ -137,6 +137,8 @@ export const CLEARED_CATEGORIES = {
     // TSK-0087 (0091, 0092): the Square links pasted on invoices; payment receipts.
     'finance.invoice_payment_links',
     'finance.payment_receipts',
+    // TSK-0089 (0094): returned, failed, disputed and voided payment records.
+    'finance.payment_adjustments',
     'finance.invoice_lines',
     'finance.invoice_deposit_credits',
     'finance.invoice_documents',

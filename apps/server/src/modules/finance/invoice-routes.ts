@@ -39,6 +39,7 @@ import {
   recordProviderFee,
 } from './ledger.js'
 import { setInvoicePaymentLink } from './payment-links.js'
+import { PAYMENT_EXCEPTION_PROPERTIES } from './exceptions.js'
 
 const TEST = 'test/integration/invoices.test.ts'
 
@@ -108,6 +109,7 @@ const PAYMENT = object({
   reconciledAt: { anyOf: [{ type: 'null' }, DATE_TIME] },
   canMarkDeposited: { type: 'boolean' },
   canReconcile: { type: 'boolean' },
+  ...PAYMENT_EXCEPTION_PROPERTIES,
 })
 const INVOICE = object({
   id: { type: 'string' },

@@ -511,6 +511,18 @@ export const QUEUE_ITEM_TYPES = [
     action: 'decide',
     screen: 'payments',
   },
+  // TSK-0089 (HH-FIN-13): a job whose payment has a dispute opened and not yet won or lost routes to the Owner, who
+  // alone records the outcome (payment.correct). One item per job while any dispute is open. Band PROPOSED.
+  {
+    id: 'payment_dispute',
+    section: 'owner_decisions',
+    subject: 'job',
+    band: 'time_sensitive',
+    view: 'payment.correct',
+    reasons: ['payment_disputed'],
+    action: 'decide',
+    screen: 'payments',
+  },
   {
     id: 'refund_request',
     section: 'owner_decisions',

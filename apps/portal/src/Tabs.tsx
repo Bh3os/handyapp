@@ -485,6 +485,8 @@ const PAYMENT_STATE: Record<PaymentsData['payments'][number]['state'], CustomerK
   confirmed: 'portal.payments.state.confirmed',
   pending: 'portal.payments.state.pending',
   returned: 'portal.payments.state.returned',
+  voided: 'portal.payments.state.voided',
+  disputed: 'portal.payments.state.disputed',
 }
 const METHOD: Record<PaymentMethod, CustomerKey> = {
   square_payment_link: 'portal.payments.method.square_payment_link',
@@ -626,17 +628,30 @@ function Payments({ data }: { data: PaymentsData }) {
                   method: t(METHOD[p.method]),
                   amount: usd(p.amountCents),
                 })}{' '}
-                <StatusBadge tone={p.state === 'confirmed' ? 'success' : p.state === 'pending' ? 'warning' : 'danger'}>
+                <StatusBadge
+                  tone={
+                    p.state === 'confirmed'
+                      ? 'success'
+                      : p.state === 'pending' || p.state === 'disputed'
+                        ? 'warning'
+                        : 'danger'
+                  }
+                >
                   {t(PAYMENT_STATE[p.state])}
                 </StatusBadge>
                 {p.receipt ? (
                   <span className="hh-small" data-testid="payments-receipt">
                     {' '}
-                    {t(p.receipt.partial ? 'portal.payments.receiptPartial' : 'portal.payments.receipt', {
-                      number: p.receipt.number,
-                      payment: p.receipt.paymentNumber,
-                      balance: usd(p.receipt.balanceAfterCents),
-                    })}
+                    {p.receipt.voided
+                      ? t('portal.payments.receiptVoided', {
+                          number: p.receipt.number,
+                          payment: p.receipt.paymentNumber,
+                        })
+                      : t(p.receipt.partial ? 'portal.payments.receiptPartial' : 'portal.payments.receipt', {
+                          number: p.receipt.number,
+                          payment: p.receipt.paymentNumber,
+                          balance: usd(p.receipt.balanceAfterCents),
+                        })}
                   </span>
                 ) : null}
               </li>
