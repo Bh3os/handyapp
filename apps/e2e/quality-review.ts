@@ -36,3 +36,17 @@ export async function restoreQualityGate(databaseUrl: string): Promise<void> {
        SELECT quality.review_gate(p_job) $$`,
   )
 }
+
+/**
+ * The job awaits quality review, as the worker's Finished leaves it (TSK-0083). Finished needs a started job with its
+ * whole checklist and photos, which the quality-review spec does not walk: the state alone is set here, with the
+ * database's triggers off for this one statement, in the spec run's own fresh e2e database. A test fixture.
+ */
+export async function awaitQualityReview(databaseUrl: string, jobId: string): Promise<void> {
+  if (!UUID.test(jobId)) throw new Error('a job id')
+  await run(
+    databaseUrl,
+    `BEGIN; SET LOCAL session_replication_role = replica;
+     UPDATE work.jobs SET operational_state = 'ready_for_qa', version = version + 1 WHERE id = '${jobId}'; COMMIT;`,
+  )
+}

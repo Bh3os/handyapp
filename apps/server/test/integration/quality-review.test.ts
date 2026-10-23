@@ -3,8 +3,9 @@
 // customers, amounts and references are synthetic (RULE-SYNTHETIC-DATA); nothing reaches a provider.
 // Two fixtures of this file's own throwaway database, never statements about the business: approvals need an estimate
 // terms version in effect (OQ-TERMS-OWNER-APPROVAL), so a synthetic "approved and attorney-reviewed" one is recorded;
-// and a job reaches "Awaiting quality review" only through the worker's Finished (TSK-0083, not built), so the test
-// moves its job there directly and opens the review the way Finished will (openQualityReview). A worker corrects a
+// and a job reaches "Awaiting quality review" only through the worker's Finished (TSK-0083), which needs a started job
+// with its whole checklist and photos (completion.test.ts walks it), so this test moves its job there directly and
+// opens the review the way Finished does (openQualityReview). A worker corrects a
 // punch item through the route only while assigned to a live visit of the job (the return visit of TSK-0094, not
 // built): the route's refusal is checked, then the correction is recorded through the same store function.
 import { randomUUID } from 'node:crypto'
@@ -304,9 +305,14 @@ async function approvedJob(lines: Line[], options: number[] = [], discountCatego
 
 /** The worker's Finished (TSK-0083, not built): the job awaits quality review and its review opens. */
 async function awaitingReview(jobId: string) {
-  await sql`UPDATE work.jobs SET operational_state = 'ready_for_qa', version = version + 1 WHERE id = ${jobId}`.execute(
-    t.db,
-  )
+  // The worker's Finished needs a started job with its whole checklist and photos (completion.test.ts walks it); here
+  // the state alone is set, with the database's triggers off for this one statement, in this throwaway database only.
+  await withTx(t.db, async (tx) => {
+    await sql`SET LOCAL session_replication_role = replica`.execute(tx)
+    await sql`UPDATE work.jobs SET operational_state = 'ready_for_qa', version = version + 1 WHERE id = ${jobId}`.execute(
+      tx,
+    )
+  })
   await withTx(t.db, (tx) => openQualityReview(tx, jobId))
 }
 /** $800.00: no deposit (OWN-DEC-104), so the final invoice waits only on the review. */

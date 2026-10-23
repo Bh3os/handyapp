@@ -17,6 +17,7 @@ import { variableStates } from './modules/system/index.js'
 import { createWorker } from './platform/jobs.js'
 import type { Logger } from './platform/logger.js'
 import { runWithContext } from './platform/request-context.js'
+import { DiskObjectStorage, LOCAL_FILES_PATH } from './providers/disk/index.js'
 import { createProviders } from './providers/index.js'
 import { readProviderSettings } from './providers/settings.js'
 import { registerWebhookRoutes } from './providers/webhooks.js'
@@ -57,6 +58,21 @@ export async function boot(env: Readonly<Record<string, string | undefined>>, op
     // The receipt's code routes and the code delivery job share one code key (TSK-0016, TSK-0033).
     api: { ...(db ? { db } : {}), storage, codeKey, system: { providers, variables: variableStates(env) } },
   })
+  // Local disk storage (docs/local-mac.md): its signed read URLs are served here, after the signature and expiry check.
+  if (storage instanceof DiskObjectStorage)
+    app.get(`${LOCAL_FILES_PATH}*`, async (req, reply) => {
+      const grant = storage.resolveSignedUrl(req.url)
+      if (!grant.ok) return reply.status(403).type('text/plain; charset=utf-8').send('Forbidden')
+      try {
+        const o = await storage.get(grant.key)
+        return reply
+          .header('cache-control', 'private, no-store')
+          .type(o.contentType ?? 'application/octet-stream')
+          .send(Buffer.from(o.bytes))
+      } catch {
+        return reply.status(404).type('text/plain; charset=utf-8').send('Not Found')
+      }
+    })
   const sent = createProviders(providers, { logger: app.log as unknown as Logger })
   const registry = createAutomationRegistry([
     ...buildAutomations({

@@ -7,6 +7,7 @@ import { BirdSmsSender, FakeSmsSender } from './bird/index.js'
 import { destinationPolicy, guardEmail, guardSms, type DestinationPolicy } from './destinations.js'
 import { LogEmailSender } from './log-email.js'
 import { FakeInboundReader, ResendInboundReader, type InboundEmailReader } from './inbound.js'
+import { DiskObjectStorage } from './disk/index.js'
 import { FakeObjectStorage, R2ObjectStorage, type ObjectStorage } from './r2/index.js'
 import { FakeEmailSender, ResendEmailSender } from './resend/index.js'
 import type { ProviderSettings } from './settings.js'
@@ -49,7 +50,12 @@ export function createProviders(
         ? new LogEmailSender(settings.testDestinations.emails, log)
         : fakeEmail
   const sms = settings.sms.adapter === 'bird' ? new BirdSmsSender(settings.sms, options.fetchImpl) : fakeSms
-  const storage = settings.storage.adapter === 'r2' ? new R2ObjectStorage(settings.storage) : fakeStorage
+  const storage =
+    settings.storage.adapter === 'r2'
+      ? new R2ObjectStorage(settings.storage)
+      : settings.storage.adapter === 'disk'
+        ? new DiskObjectStorage(settings.storage.dir)
+        : fakeStorage
   const fakeInbound = settings.email.adapter === 'fake' ? new FakeInboundReader() : null
   const inboundEmail =
     settings.email.adapter === 'resend'

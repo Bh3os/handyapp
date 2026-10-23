@@ -756,6 +756,37 @@ export const TABLES = {
     classes: ['logs_audit'],
     categories: [J],
   },
+  // TSK-0075 (0083): the job checklist is part of the job record.
+  'work.checklist_steps': {
+    holds:
+      'The job checklist: the state of each step of the pinned SOP version per work package, with its photos, ' +
+      'measurement, note, skip reason, worker and completion time',
+    classes: ['request_details', 'photos'],
+    categories: [J],
+  },
+  'work.checklist_step_events': {
+    holds: 'The history of each checklist step: every change with its worker, evidence, reason and time',
+    classes: ['logs_audit'],
+    categories: [J],
+  },
+  'work.checklist_handoffs': {
+    holds: "Workers' handoff notes on a job: who, to whom, which work package and the note",
+    classes: ['request_details'],
+    categories: [J],
+  },
+  // TSK-0083 (0084): the walkthrough and the submission for quality review are job records.
+  'work.walkthroughs': {
+    holds:
+      "End-of-job walkthroughs: the outcome, the participant's name and standing (none when the customer was " +
+      'unavailable), comments, the dispute case a concern opened, the worker and the time',
+    classes: ['contact', 'request_details'],
+    categories: [J],
+  },
+  'work.job_completions': {
+    holds: "The worker's Finished for a job: which walkthrough, who submitted it for quality review and when",
+    classes: ['request_details'],
+    categories: [J],
+  },
   'staging.environment_marks': {
     holds: 'Which environments identified themselves on this database (staging, local, ci or production) and when',
     classes: ['configuration'],

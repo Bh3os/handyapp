@@ -22,6 +22,7 @@ import { JobPacketPage } from './JobPacket'
 import { LoadoutPage } from './Loadout'
 import { MyDay } from './MyDay'
 import { QualityReviewPage } from './QualityReview'
+import { ChecklistPage } from './Checklist'
 import { QueueHome } from './Queue'
 import { MergeReview, RelinkRequest } from './RecordLinks'
 import { RequestRecord } from './Record'
@@ -233,6 +234,8 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
                 route.screen === 'job-photos' ||
                 // TSK-0084: a worker opens their own punch items from the job; the Owner reviews from Owner Decisions.
                 (route.screen === 'quality-reviews' && !nav?.items.includes('queue')) ||
+                // TSK-0075: the job checklist, from the job packet.
+                route.screen === 'checklist' ||
                 (route.screen === 'cases' && !nav?.items.includes('cases'))
               ? nav?.items.includes('my-day')
                 ? 'my-day'
@@ -367,6 +370,12 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
             <JobPhotosPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} />
           ) : route.page === 'record' && route.screen === 'start-review' ? (
             <StartReviewPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} href={href} />
+          ) : route.page === 'record' && route.screen === 'checklist' ? (
+            // TSK-0075: the job checklist in six ordered stages; the server decides who may read and act.
+            <>
+              <JobSafety key={`safety-${route.id}`} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} />
+              <ChecklistPage key={route.id} t={t} fetchImpl={doFetch} jobId={route.id} href={href} />
+            </>
           ) : route.page === 'record' && route.screen === 'quality-reviews' ? (
             // TSK-0084: a job's quality review and punch items (the Owner), or a worker's own punch items on it.
             <QualityReviewPage key={route.id} t={t} fetchImpl={doFetch} jobId={route.id} href={href} />

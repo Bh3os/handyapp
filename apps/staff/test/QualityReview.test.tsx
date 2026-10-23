@@ -71,6 +71,8 @@ function data(over: Partial<QualityReviewData> = {}): QualityReviewData {
     workPackages: [{ id: 'wp-1', code: 'DW-01', position: 1, state: 'planned' }],
     evidence: { beforePhotos: 2, afterPhotos: 1 },
     checklistRecorded: false,
+    checklist: [],
+    walkthrough: null,
     walkthroughRecorded: false,
     safetyHolds: [],
     workers: [{ id: 'w-1', name: 'Synthetic Worker' }],

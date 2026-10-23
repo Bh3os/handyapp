@@ -165,6 +165,13 @@ export const CLEARED_CATEGORIES = {
     'quality.reviews',
     'quality.punch_items',
     'quality.review_events',
+    // TSK-0075 (0083): the job checklist, its history and handoff notes.
+    'work.checklist_steps',
+    'work.checklist_step_events',
+    'work.checklist_handoffs',
+    // TSK-0083 (0084): walkthroughs and the worker's submissions for quality review.
+    'work.walkthroughs',
+    'work.job_completions',
   ],
   attachments: [
     'intake.photos',

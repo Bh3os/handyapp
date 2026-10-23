@@ -623,6 +623,25 @@ test.describe('Start Work: the server-side gate and the job-level Hold (TSK-0073
       // On a phone nothing scrolls sideways, and Call 911 stays first.
       await w.setViewportSize({ width: 375, height: 740 })
       expect(await w.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+
+      // TSK-0075: once started, the job checklist opens for the worker: the six stages of the pinned SOP version in
+      // order, nothing blocking; the first step of stage 1 starts (the integration test covers every event).
+      await w.goto(`/staff/checklist/${jobId}`)
+      const checklist = w.getByTestId('checklist')
+      await expect(checklist.getByRole('heading', { level: 1, name: /^Job checklist · / })).toBeVisible()
+      await expect(checklist.getByTestId('checklist-blockers')).toHaveCount(0)
+      await expect(checklist.getByTestId('checklist-stage')).toHaveCount(6)
+      await expect(checklist.getByTestId('checklist-summary')).toHaveText(
+        /^0 of \d+ steps done; required steps skipped: 0$/,
+      )
+      const firstStep = checklist.getByTestId('checklist-step').first()
+      await firstStep.getByRole('button', { name: 'Start', exact: true }).click()
+      await expect(firstStep.getByText('In progress', { exact: true })).toBeVisible()
+      // TSK-0083: Finished names what it still needs (the checklist, the after photo); no submission is offered yet.
+      const finish = w.getByTestId('completion')
+      await expect(finish.getByTestId('completion-problems')).toContainText('An after photo is missing.')
+      await expect(finish.getByRole('button', { name: 'Finished: submit for quality review' })).toHaveCount(0)
+      await axe(w)
     } finally {
       await estimator.close()
       await office.close()

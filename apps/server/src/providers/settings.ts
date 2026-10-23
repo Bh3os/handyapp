@@ -31,7 +31,10 @@ export const PROVIDER_ENV_VARS = {
   INBOUND_EMAIL_ADDRESS:
     'The Resend receiving address customers reply to; each project email replies to its plus-addressed reply token. ' +
     'Unset: reply tokens not configured (replies match by thread headers and verified email only).',
-  STORAGE_PROVIDER: 'fake (local and ci only) or r2. Default: fake in local and ci, not configured elsewhere.',
+  STORAGE_PROVIDER:
+    'fake (local and ci only), disk (local only: files in LOCAL_STORAGE_DIR, for running everything on one computer) ' +
+    'or r2. Default: fake in local and ci, not configured elsewhere.',
+  LOCAL_STORAGE_DIR: 'With STORAGE_PROVIDER=disk: the folder photos and documents are kept in.',
   R2_ACCOUNT_ID: 'Cloudflare account ID of the R2 bucket.',
   R2_BUCKET: 'Private R2 bucket name.',
   R2_ACCESS_KEY_ID: 'R2 access key scoped to the bucket. Secret.',
@@ -52,6 +55,8 @@ export type SmsSettings =
   { adapter: 'fake' } | { adapter: 'bird'; apiKey: Secret; from: string; apiBaseUrl: string } | NotConfigured
 export type StorageSettings =
   | { adapter: 'fake' }
+  /** Local only: a folder on this computer (docs/local-mac.md). */
+  | { adapter: 'disk'; dir: string }
   | { adapter: 'r2'; accountId: string; bucket: string; accessKeyId: Secret; secretAccessKey: Secret }
   | NotConfigured
 
@@ -182,7 +187,13 @@ export function readProviderSettings(env: NodeJS.ProcessEnv = process.env): Prov
   }
 
   let storage: StorageSettings = { adapter: 'not_configured', missing: ['STORAGE_PROVIDER'] }
-  const storageChoice = choose(env, 'STORAGE_PROVIDER', environment, 'r2')
+  const disk = env['STORAGE_PROVIDER']?.trim() === 'disk'
+  if (disk && environment !== 'local') throw new ConfigError('STORAGE_PROVIDER=disk is allowed only in local')
+  const storageChoice = disk ? 'none' : choose(env, 'STORAGE_PROVIDER', environment, 'r2')
+  if (disk) {
+    const dir = env['LOCAL_STORAGE_DIR']?.trim()
+    storage = dir ? { adapter: 'disk', dir } : { adapter: 'not_configured', missing: ['LOCAL_STORAGE_DIR'] }
+  }
   if (storageChoice === 'fake') storage = { adapter: 'fake' }
   if (storageChoice === 'real') {
     const r = required(env, ['R2_ACCOUNT_ID', 'R2_BUCKET', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY'])
