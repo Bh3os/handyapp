@@ -1,0 +1,360 @@
+{
+  "sopId": "SOP-PT-01",
+  "englishContentSha256": "7e77925901f931ee25812956910e03abd712feaac376bcd00a3f08e97b16a6de",
+  "title": "SOP PT-01: Pintura interior residencial profesional",
+  "headings": [
+    "1. Preparación del sitio y protección de la propiedad",
+    "2. Preparación y mediciones/comprobaciones requeridas",
+    "3. Pasos de trabajo específicos del servicio",
+    "4. Comprobaciones de calidad",
+    "5. Limpieza y manejo de residuos",
+    "6. Comprobaciones finales, fotos de finalización y recorrido"
+  ],
+  "items": {
+    "1.1": ["PROPUESTO para la aprobación del dueño; la redacción para el cliente pasa por 30 y 32."],
+    "1.2": [
+      "- El cliente mueve los equipos pesados de cine en casa, los pianos y las colecciones de arte antes de que llegue el equipo de trabajo (fuente: cláusula de \"Exclusiones\" del acuerdo, que a su vez está en revisión del abogado)."
+    ],
+    "1.3": [
+      "- El color, el brillo y el producto se eligen y se aprueban por firma antes de programar (fuente: \"Renuncia de confirmación de color\" del acuerdo; 04 PT-01 \"requisitos de preparación del cliente\")."
+    ],
+    "1.4": [
+      "- Los objetos colgados en la pared, los objetos de valor y los artículos pequeños se retiran del área de trabajo (fuente: 04 PT-01 \"requisitos de preparación del cliente\")."
+    ],
+    "1.5": [
+      "- Los niños y las mascotas se mantienen lejos del área de trabajo durante el trabajo y hasta que la etiqueta del producto permita volver a ocuparla (fuente: 04 PT-01 \"requisitos de preparación del cliente\"; spec CX-005; 29 sección 8.2 control 9; X-11)."
+    ],
+    "1.6": [
+      "- Se confirman el acceso, el estacionamiento y la disponibilidad de agua (fuente: 04 PT-01 \"requisitos de preparación del cliente\"; spec BRF-002)."
+    ],
+    "1.7": [
+      "- La pintura que aporta el cliente está en el sitio con su etiqueta (fuente: spec PT-01.INT; spec START-009)."
+    ],
+    "1.8": [
+      "- Cada trabajo vuelve a confirmar que el acceso, los ocupantes, las mascotas, el estacionamiento, los peligros y las condiciones del área de trabajo siguen vigentes (fuente: spec CX-005)."
+    ],
+    "1.9": [
+      "- El aviso para cancelar o reprogramar y la entrada a la casa siguen la cláusula \"Aviso de 24 horas\" del borrador del acuerdo, que está en revisión del dueño y del abogado; este SOP no indica ninguna tarifa (fuente: cláusula \"Aviso de 24 horas\" del acuerdo)."
+    ],
+    "1.10": [
+      "- [ ] **Consolidación de muebles:** Saque por completo de la habitación todos los muebles livianos. Mueva los muebles pesados (sofás, mesas grandes) al centro exacto de la habitación."
+    ],
+    "1.11": [
+      "> FLAG: el paso anterior mueve y desplaza muebles sin límite de peso, sin regla de dos personas y sin una lista de artículos que no se deben mover; el borrador del acuerdo deja al cliente los equipos pesados de cine en casa, los pianos y las colecciones de arte (entrada 13 de No realizar). Límites pendientes de la revisión del dueño y de seguridad calificada. (fuente: 04 PT-01 \"peligros\" y \"exclusiones\"; cláusula de \"Exclusiones\" del acuerdo)"
+    ],
+    "1.12": [
+      "- [ ] **Encapsulado con plástico:** Envuelva bien el grupo de muebles del centro con película plástica de enmascarar de 1 mil para protegerlo de la neblina de pintura que flota en el aire o del polvo."
+    ],
+    "1.13": [
+      "- [ ] **Defensa del piso:** Extienda lonas protectoras limpias de tela gruesa (canvas) sobre el 100% del piso expuesto. Asegure los bordes con cinta para superficies delicadas para evitar que se deslicen."
+    ],
+    "1.14": [
+      "- [ ] **Retiro de herrajes:** Desatornille y retire todas las placas de interruptores eléctricos, las tapas de tomacorrientes y las carátulas de los termostatos de pared. Ponga los tornillos en una bolsa con cierre etiquetada."
+    ],
+    "1.15": [
+      "> HOLD (C-PT01-V01): el paso anterior se limita a retirar tapas: nunca toque el cableado, los dispositivos ni los controles del termostato (entrada 10 de No realizar). Si los trabajadores pueden siquiera retirar las carátulas de los termostatos de pared está pendiente del dueño y de un electricista con licencia o un profesional de HVAC. Si una carátula no se puede retirar sin tocar el cableado o los controles, o si una placa, un dispositivo o un termostato está dañado o hay cableado expuesto, deténgase, tome fotos y escale (spec JOB-004). Todo lo que se retire aquí se vuelve a colocar antes de la finalización (HOLD después de \"Instalación de herrajes\"). Pendiente de revisión calificada. (fuente: 31 sección 10; 02 C-PT01-V01; 04 PT-01 \"indicadores de permiso/licencia\")"
+    ],
+    "1.16": [
+      "- [ ] **Enmascarado de molduras:** Aplique cinta de pintor de primera calidad a lo largo del borde superior de todos los zócalos, marcos de ventanas y marcos de puertas. Presione firmemente con una espátula de plástico para sellar el borde contra el sangrado de la pintura."
+    ],
+    "2.1": [
+      "- Este SOP no está activo: ningún trabajo lo usa hasta una revisión competente y la activación por el dueño (fuente: datos del dueño 2026-10-02; 31 sección 2.1)."
+    ],
+    "2.2": [
+      "- Existe una versión aprobada del presupuesto para el trabajo. Las líneas que no cubre ningún paso aprobado (techos, molduras, puertas, clósets, una capa completa de imprimador) no se realizan bajo este SOP (fuente: spec CX-003, EST-005; sección 2; C-PT01-06, C-PT01-04)."
+    ],
+    "2.3": [
+      "- Solicitud registrada: habitaciones y áreas, colores y acabado, marca o producto de pintura si se especifica, estado de las paredes, muebles y ocupación, alcance de las reparaciones (fuente: spec PT-01.INT).",
+      "  - Evidence: note"
+    ],
+    "2.4": [
+      "- PROPUESTO: la aprobación firmada del cliente del color, el brillo y el producto se registra antes de la visita. La \"Renuncia de confirmación de color\" del acuerdo depende de esta aprobación, y hoy ningún paso la registra (fuente: \"Renuncia de confirmación de color\" del acuerdo; 30 sección 5 fila 27; spec PT-01.QAC \"brillo/color acordados\").",
+      "  - Evidence: note"
+    ],
+    "2.5": [
+      "- Edad de la propiedad: se registra el año de construcción, o \"desconocido\". Antes de 1978 o desconocido: la retención HOLD antes de \"Lijado con pértiga\" se aplica hasta que una persona calificada registre la decisión sobre el plomo (fuente: spec PT-01.SAF, PT-01.HAZ; spec BRF-003 \"edad aproximada si se conoce\"; 31 sección 10; manual de clasificación de riesgos \"Una superficie pintada antes de 1978 no queda liberada porque el cliente diga que parece segura.\"; C-PT01-01; X-13). Si el programa EPA RRP se aplica a un trabajo y si HandyHub tiene o va a obtener la certificación es una PREGUNTA ABIERTA (Q-31-07; REVISIÓN HUMANA: renovador certificado EPA RRP, abogado).",
+      "  - Evidence: note"
+    ],
+    "2.6": [
+      "- Ventilación y ocupantes: el área de trabajo se puede ventilar como lo exigen las instrucciones del producto, y los ocupantes, los niños y las mascotas (incluidos los usuarios de un cuarto de bebé o de una habitación para personas con alergias) se pueden mantener fuera hasta que la etiqueta permita volver a ocuparla; método TBD - revisor de seguridad calificado (fuente: spec PT-01.SAF \"ventile\", \"siga las instrucciones del producto\"; línea \"Pinturas Zero-VOC sin olor\" del inventario; X-11)."
+    ],
+    "2.7": [
+      "- Hay una SDS revisada en el archivo para cada pintura, imprimador, masilla, sellador y limpiador que se lleva al trabajo (fuente: 29 sección 8.3 regla provisional, PROPUESTO; 02 G-008)."
+    ],
+    "2.8": [
+      "- El trabajo con escalera u otro acceso solo bajo una política de altura y acceso aprobada, que todavía no existe; la altura máxima de techo que se atiende es una PREGUNTA ABIERTA (Q-31-09) (fuente: spec PT-01.SAF \"controles de escaleras\"; 02 G-005; C-PT01-02; X-12)."
+    ],
+    "2.9": [
+      "- Pintura que aporta el cliente: su estado visible, el producto y la cantidad se registran antes de usarla y se comparan con el color y el brillo aprobados; un producto que falta o que es incorrecto bloquea la tarea afectada (fuente: spec START-009, JOB-004; 29 sección 9.1, PROPUESTO).",
+      "  - Evidence: note"
+    ],
+    "2.10": [
+      "- Antes de salir: confirme el trabajo, el cliente, la dirección y la hora correctos; lea los últimos cambios; verifique el acceso y el estacionamiento; revise el alcance y las exclusiones; revise los peligros y la seguridad; cargue las herramientas, el equipo y los materiales críticos; revise los artículos que aporta el cliente; confirme los documentos y las aprobaciones requeridos (fuente: spec APXA-001)."
+    ],
+    "2.11": [
+      "- Antes de empezar: complete las comprobaciones requeridas de seguridad, de EPP y del sitio; confirme los materiales, los modelos y los colores; confirme que leyó el SOP y los peligros; empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada (fuente: spec APXA-003, START-004).",
+      "  - Evidence: note"
+    ],
+    "2.12": [
+      "- Al llegar: confirme la dirección, el área de trabajo y el contacto; estacione y acceda de forma adecuada; identifique mascotas y ocupantes; inspeccione el sitio real frente a las instrucciones; tome las fotos requeridas del estado existente; proteja el área de trabajo; identifique los servicios públicos y las restricciones de emergencia relevantes para la tarea (fuente: spec APXA-002).",
+      "  - Evidence: photo"
+    ],
+    "2.13": [
+      "- Confirme que el sitio coincide con las instrucciones, o registre las diferencias; las diferencias importantes activan la Clasificación de riesgos o la revisión del supervisor (fuente: spec START-007).",
+      "  - Evidence: note"
+    ],
+    "2.14": [
+      "- Fotos del estado existente de las paredes, los pisos, las molduras, los muebles y los accesorios, y de las placas, las tapas y cualquier termostato antes de retirarlos (fuente: spec START-008; sección 16).",
+      "  - Evidence: photo"
+    ],
+    "2.15": [
+      "- Ventilación instalada como lo exige la etiqueta del producto, con los ocupantes, los niños y las mascotas fuera: método TBD - revisor de seguridad calificado (fuente: spec PT-01.SAF \"ventile\"; X-11)."
+    ],
+    "2.16": [
+      "- La instalación de la protección es la Fase 1 de la sección 12: muebles, película, lonas protectoras, placas de cubierta y enmascarado de molduras (fuente: Fase 1 original)."
+    ],
+    "2.17": [
+      "- Instalación de escaleras o de equipo de acceso solo bajo una política de altura y acceso aprobada: TBD (fuente: 02 G-005; X-12; C-PT01-02)."
+    ],
+    "2.18": [
+      "- Comprobaciones de seguridad, de EPP y del sitio completas; materiales, colores y brillo confirmados frente a la aprobación firmada; peligros del SOP reconocidos antes de empezar (fuente: spec APXA-003, START-004).",
+      "  - Evidence: note"
+    ],
+    "3.1": [
+      "*Procedimiento original, sin cambios y en su orden original. Las líneas HOLD y FLAG son borradores añadidos pendientes de revisión calificada (31 sección 10). Una retención colocada antes de un paso se debe cumplir antes de que empiece ese paso; una retención o una marca colocada después de un paso limita o marca \"el paso anterior\" (36 D-36-17).*"
+    ],
+    "3.2": [
+      "> HOLD (PT-01.SAF; X-11): antes de \"Reparación de defectos\" de abajo, y antes de cada paso posterior que aplique masilla, imprimador o pintura, la SDS revisada y la etiqueta del producto están a mano; ventile el área de trabajo como lo exigen las instrucciones del producto; mantenga a los ocupantes, los niños y las mascotas fuera del área de trabajo, incluido un cuarto de bebé o una habitación para personas con alergias, hasta que la etiqueta permita volver a ocuparla. Si no hay SDS, o no es posible ventilar como lo exige la etiqueta: deténgase y escale. Método de ventilación TBD - revisor de seguridad calificado. Pendiente de revisión calificada. (fuente: spec PT-01.SAF \"ventile\", \"siga las instrucciones del producto\"; spec PT-01.HAZ \"exposición a VOC/químicos\"; 31 sección 10; 29 sección 8.3 regla provisional, PROPUESTO)"
+    ],
+    "3.3": [
+      "- [ ] **Reparación de defectos:** Inspeccione las paredes bajo una luz de alta intensidad. Rellene los agujeros de clavos, las abolladuras y las grietas con masilla liviana profesional."
+    ],
+    "3.4": [
+      "> HOLD (C-PT01-01): antes de \"Lijado con pértiga\" de abajo, revise el año de construcción registrado. Si la casa se construyó antes de 1978, o se desconoce el año de construcción, no lije ni raspe los recubrimientos existentes (incluido el lijado de toda la pared de ese paso) hasta que una persona calificada registre la decisión sobre el plomo; que un cliente diga que la pintura parece segura no libera esta retención. Si se sospecha que una textura vieja o un compuesto para juntas contiene asbesto, déjelo sin alterar, deténgase y escale. Aquí no se da ningún método de remediación ni de trabajo seguro con plomo. Pendiente de revisión por un renovador certificado EPA RRP y un abogado con licencia en KY/IN. (fuente: spec PT-01.SAF \"evalúe los recubrimientos antiguos antes de una alteración agresiva\"; spec PT-01.HAZ \"polvo/plomo en recubrimientos antiguos\"; 31 sección 10; manual de clasificación de riesgos \"Una superficie pintada antes de 1978 no queda liberada porque el cliente diga que parece segura.\"; X-13)"
+    ],
+    "3.5": [
+      "- [ ] **Lijado con pértiga:** Lije las áreas reparadas y todo el plano de la pared con una lijadora de pértiga de grano 120 para quitar texturas y grumos de pintura vieja. Limpie las paredes con un paño atrapapolvo de microfibra seco para recoger el polvo."
+    ],
+    "3.6": [
+      "- [ ] **Imprimación puntual:** Aplique un imprimador de látex de alto poder cubriente sobre los parches de masilla sin tratar para sellarlos y evitar el \"manchado\" (manchas planas y opacas en la capa final)."
+    ],
+    "3.7": [
+      "> FLAG (C-PT01-04): el paso anterior aplica imprimador solo en los parches de masilla sin tratar. El plan principal promete una capa completa de \"imprimador de base\" y la cláusula de \"Inclusiones\" del acuerdo menciona la \"imprimación\": una capa completa de imprimador, solo imprimación puntual o una opción aparte es una decisión del dueño (spec EST-005). Una capa completa de imprimador no está cubierta por este SOP (sección 2). Pendiente de revisión del dueño."
+    ],
+    "3.8": [
+      "- [ ] **Carga de la brocha:** Sumerja una brocha angular limpia de 2.5 pulgadas o de 3 pulgadas exactamente 1 pulgada en el balde de pintura. Golpee suavemente el lado interior del balde para quitar el exceso (nunca la escurra)."
+    ],
+    "3.9": [
+      "> HOLD (C-PT01-02): antes de \"Corte en techo y molduras\" de abajo, y antes de cualquier otro trabajo por encima del alcance desde el piso, use una escalera u otro equipo de acceso solo bajo una política de altura y acceso aprobada, que todavía no existe (02 G-005). El tipo de escalera, su instalación, su inspección y la altura máxima de techo que se atiende son TBD - profesional de seguridad calificado y dueño (Q-31-09). Sin equipo de acceso aprobado en el sitio, la tarea afectada queda bloqueada: registre No iniciar o Bloqueado y escale (spec SCH-008). Pendiente de revisión calificada. (fuente: spec PT-01.SAF \"controles de escaleras\"; spec PT-01.HAZ \"escaleras\"; 31 sección 10; manual del planificador de trabajos \"Una escalera que falta o un permiso no verificado mantiene bloqueadas las tareas afectadas.\")"
+    ],
+    "3.10": [
+      "- [ ] **Corte en techo y molduras:** Trace a mano alzada una línea de corte perfectamente recta a lo largo del límite del techo y de las líneas de molduras con cinta. Mantenga un borde húmedo continuo, trabajando en secciones de 3 a 4 pies."
+    ],
+    "3.11": [
+      "> FLAG (C-PT01-06): el paso anterior recorta a lo largo del límite del techo y de las molduras con cinta; pintar el techo, las molduras, los zócalos, las puertas o el interior de los clósets no está cubierto por este SOP, aunque los precios lo venden (sección 2). Pendiente de revisión del dueño y del pintor principal."
+    ],
+    "3.12": [
+      "- [ ] **Difuminado del corte:** Extienda suavemente con la brocha el borde exterior grueso de su línea de corte para evitar que más tarde se vea un relieve de pintura."
+    ],
+    "3.13": [
+      "- [ ] **Carga del rodillo:** Sature de manera uniforme un rodillo de microfibra sin pelusa con pelo de 3/8 pulgada o de 1/2 pulgada en la rejilla de la bandeja de pintura."
+    ],
+    "3.14": [
+      "- [ ] **El patrón en \"W\":** Aplique la pintura en la pared con un patrón amplio y extendido en \"W\" o en \"N\" (aprox. 3x3 pies) para distribuir la mayor parte de la carga."
+    ],
+    "3.15": [
+      "- [ ] **Relleno y repaso con rodillo:** Vuelva a pasar el rodillo sobre la \"W\" con pasadas verticales superpuestas del techo al piso para suavizar las sombras. *Crucial:* Mantenga siempre un borde húmedo y termine de pasar el rodillo por todo un paño de pared antes de detenerse para evitar líneas de unión visibles."
+    ],
+    "3.16": [
+      "> FLAG (C-PT01-04): ningún paso indica el número de capas ni el intervalo entre capas. Las capas siguen el presupuesto aprobado (la cláusula de \"Inclusiones\" del acuerdo menciona un número mínimo de capas); los tiempos entre capas y de secado siguen la etiqueta del producto aprobado; aquí no se fija ningún intervalo (sección 8). Pendiente de revisión del dueño."
+    ],
+    "3.17": [
+      "- [ ] **Retiro de la cinta:** Retire toda la cinta de pintor lentamente en un ángulo marcado de 45 grados mientras la segunda capa de pintura todavía está un poco húmeda, para evitar romper los bordes de pintura seca."
+    ],
+    "3.18": [
+      "- [ ] **Instalación de herrajes:** Vuelva a atornillar en las paredes todas las placas eléctricas y tapas de tomacorrientes limpias una vez secas."
+    ],
+    "3.19": [
+      "> HOLD (C-PT01-V01): el paso anterior vuelve a colocar solo las placas eléctricas y las tapas de tomacorrientes. Antes de la finalización, cada elemento retirado en \"Retiro de herrajes\", incluida cualquier carátula de termostato, se vuelve a colocar como se encontró y el resultado se registra (sección 13). Si un elemento no se puede volver a colocar sin tocar el cableado o los controles, deténgase y escale; aquí no se da ningún procedimiento eléctrico ni de HVAC. Pendiente de revisión por un profesional de seguridad calificado y un electricista con licencia o un profesional de HVAC. (fuente: spec APXA-005 \"restablezca los servicios/componentes modificados dentro del alcance\"; 31 sección 10; 02 C-PT01-V01)"
+    ],
+    "3.20": [
+      "- [ ] **La revisión con linterna:** Pase un haz de inspección LED rasante sobre el perfil de la pared para volver a comprobar si hay partes sin rodillo, zonas sin cubrir o chorreaduras. Retoque de inmediato."
+    ],
+    "3.21": [
+      "- [ ] **Restauración del sitio:** Recoja las lonas, aspire los residuos menores y vuelva a poner los muebles en su distribución original."
+    ],
+    "4.1": [
+      "| Comprobación | Fuente | Evidencia | Inspector |",
+      "|---|---|---|---|",
+      "| Cobertura uniforme: sin partes sin rodillo, zonas sin cubrir ni chorreaduras | spec PT-01.QAC \"cobertura uniforme\"; \"La revisión con linterna\" original | Fotos de después por pared o habitación (spec QA-003) | TBD - autocomprobación o supervisor (Q-31-15) |",
+      "| Líneas de corte limpias en el límite del techo y a lo largo de las molduras | spec PT-01.QAC \"líneas de corte limpias\"; \"Corte en techo y molduras\" y \"Retiro de la cinta\" originales | Fotos de las líneas de corte | TBD (Q-31-15) |",
+      "| Brillo y color acordados, que coinciden con la selección aprobada | spec PT-01.QAC \"brillo/color acordados\"; \"Renuncia de confirmación de color\" del acuerdo | Etiqueta del producto, color y brillo registrados frente a la aprobación firmada | TBD (Q-31-15) |",
+      "| Áreas de preparación reparadas revisadas después de la capa final | spec PT-01.QAC \"áreas de preparación reparadas\"; \"Imprimación puntual\" original (\"manchado\") | Foto de cada área reparada | TBD (Q-31-15) |",
+      "| Sin rocío de pintura ni chorreaduras en las superficies protegidas: pisos, molduras, accesorios, muebles | spec PT-01.QAC \"sin rocío/chorreaduras en las superficies protegidas\" | Resultado de la comprobación registrado; fotos donde se encuentren | TBD (Q-31-15) |",
+      "| Capas aplicadas como indica el presupuesto aprobado | cláusula de \"Inclusiones\" del acuerdo; spec EST-002; C-PT01-04 | Número de capas y producto registrados | TBD (Q-31-15) |",
+      "| Cada placa, tapa y cualquier carátula de termostato retirada en la Fase 1 vuelta a colocar como se encontró | 02 C-PT01-V01 (\"cada dispositivo/tapa retirado se vuelve a instalar como se encontró\"); spec APXA-005 | Resultado de la comprobación registrado; foto | TBD (Q-31-15) |",
+      "| Limpieza hecha y muebles de vuelta en su distribución original | spec PT-01.QAC \"limpieza\"; spec QA-002; \"Restauración del sitio\" original | Fotos de limpieza donde se requieran (spec QA-002) | TBD (Q-31-15) |"
+    ],
+    "4.2": [
+      "- El trabajo no se puede marcar como completo hasta que cada comprobación requerida esté respondida o se registre una excepción (fuente: spec QA-001; AT-039).",
+      "  - Evidence: note"
+    ],
+    "4.3": [
+      "- Una comprobación fallida se convierte en un elemento pendiente o en un escalamiento; los elementos pendientes abiertos quedan vinculados al trabajo (fuente: spec QA-005). La autocomprobación de un trabajador no reemplaza una inspección requerida del supervisor (fuente: manual del asistente de calidad de HandyHub, handyhub-quality-assistant)."
+    ],
+    "5.1": [
+      "- Retire la protección (cinta, película, lonas protectoras), limpie el área, dé cuenta de las herramientas y los materiales, y restablezca los componentes modificados dentro del alcance, incluida cada placa, tapa y cualquier carátula de termostato retirada (fuente: spec APXA-005, QA-002; Fase 5 original; sección 12 HOLD después de \"Instalación de herrajes\")."
+    ],
+    "5.2": [
+      "- Polvo del lijado: aspiradora HEPA como lo indica la tarjeta de la spec; la clase del polvo y el método de limpieza donde puedan estar involucrados recubrimientos antiguos son TBD - profesional de seguridad calificado y renovador certificado EPA RRP (fuente: spec PT-01.TLS \"lijado/aspiradora HEPA\"; \"Restauración del sitio\" original; C-PT01-01)."
+    ],
+    "5.3": [
+      "- Las brochas, los rodillos y las bandejas se limpian como lo indica la etiqueta del producto; el destino del agua de enjuague está en la sección 15 (fuente: spec PT-01.SAF \"siga las instrucciones del producto\")."
+    ],
+    "5.4": [
+      "- Fotos de limpieza donde se requieran para trabajos con polvo (fuente: spec QA-002).",
+      "  - Evidence: photo"
+    ],
+    "5.5": [
+      "TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo."
+    ],
+    "5.6": [
+      "- Flujos de residuos que se deben clasificar: pintura e imprimador sobrantes, agua de enjuague de la limpieza de herramientas, forros de bandeja usados, cinta, película plástica, polvo de lijado y abrasivos gastados, y envases vacíos de masilla, sellador y pintura; el destino y quién paga son decisiones del dueño (fuente: archivo de inventario; pasos originales; 02 G-061; 31 sección 3.1)."
+    ],
+    "5.7": [
+      "- Pintura sobrante: si se queda con el cliente para retoques o se la lleva el equipo de trabajo es una decisión del dueño; la nota para el cliente sale de datos de productos aprobados (fuente: 04 PT-01 \"evidencia de finalización\"; spec QA-008)."
+    ],
+    "5.8": [
+      "- Los destinos de desecho siguen las reglas del municipio real: TBD - autoridad local y revisor de seguridad (fuente: 29 Q-29-10; datos del dueño 2026-10-02 \"Verifique el municipio real de Kentucky/Indiana\")."
+    ],
+    "5.9": [
+      "- El polvo y los escombros de cualquier recubrimiento antiguo no se manejan sin una política aprobada (fuente: 31 sección 3.1; C-PT01-01)."
+    ],
+    "6.1": [
+      "- Antes: el estado existente de las paredes, los pisos, las molduras, los muebles y los accesorios en cada área de trabajo; las placas, las tapas y cualquier termostato antes de retirarlos (respalda la comprobación de recolocación, C-PT01-V01); la instalación de la protección (fuente: spec START-008, BRF-012 \"instalación de protección de pisos/paredes\"; 04 PT-01 \"evidencia de finalización\", PROPUESTO)."
+    ],
+    "6.2": [
+      "- Durante: áreas reparadas y con imprimación puntual antes de pintar; cualquier condición oculta, humedad o material sospechoso que se encuentre (fuente: spec JOB-004; 04 PT-01 \"evidencia de finalización\"). El segundo hito de pago del acuerdo menciona esta etapa; las condiciones de pago están en revisión del abogado."
+    ],
+    "6.3": [
+      "- Después: cada pared o habitación pintada, las líneas de corte y las placas y tapas vueltas a colocar, con cada foto asociada a su área de trabajo (fuente: spec QA-003).",
+      "  - Evidence: photo"
+    ],
+    "6.4": [
+      "- Las fotos son solo internas por defecto y evitan personas, documentos y objetos de valor que no se necesiten para el trabajo (fuente: spec REC-002; 31 sección 3.5 regla 7)."
+    ],
+    "6.5": [
+      "- El conjunto de fotos requerido, y si Iniciar trabajo (Start Job) queda bloqueado sin él: TBD - dueño (fuente: spec START-008)."
+    ],
+    "6.6": [
+      "- Los avisos de llegada y de finalización usan solo plantillas aprobadas; hasta que se aprueben son borradores (fuente: 31 sección 3.1)."
+    ],
+    "6.7": [
+      "- Antes de empezar, confirme con el cliente el color, el brillo y el producto frente a la selección aprobada (fuente: spec APXA-003; \"Renuncia de confirmación de color\" del acuerdo)."
+    ],
+    "6.8": [
+      "- Un cambio de color después de aplicar la pintura se registra como una solicitud de cambio y pasa por el proceso de orden de cambio; no acuerde un precio en el sitio (fuente: spec JOB-005, FIN-008; \"Renuncia de confirmación de color\" del acuerdo, en revisión del abogado).",
+      "  - Evidence: note"
+    ],
+    "6.9": [
+      "- La información de ventilación, secado y reocupación sale solo de la etiqueta o de la SDS del producto aprobado; las notas de cuidado usan plantillas aprobadas (fuente: spec QA-008; 31 sección 3.1)."
+    ],
+    "6.10": [
+      "- Recorrido: registre aceptado, aceptado con elementos pendientes, no disponible o en disputa (fuente: spec QA-004, APXA-006).",
+      "  - Evidence: note"
+    ],
+    "6.11": [
+      "- Trabajo bloqueado, incluida una retención por recubrimientos antiguos: use solo el mensaje aprobado de \"trabajo bloqueado\"; no haga ninguna afirmación sobre el contenido de plomo, los efectos en la salud ni los requisitos legales, y remita las preguntas al dueño (fuente: spec NTF-007, COM-002; Q-31-07)."
+    ],
+    "6.12": [
+      "- No repita la afirmación inicial de la sección 1 (\"garantiza un trabajo impecable ... protección absoluta de la propiedad\"), el \"absolutamente cero desorden\" del plan principal, ni ninguna promesa de Zero-VOC, de salud, de seguridad o de garantía (fuente: C-PT01-07; entrada 8 de No realizar)."
+    ],
+    "6.13": ["- Explique la factura y el siguiente paso del pago sin promesas no autorizadas (fuente: spec APXA-006)."],
+    "6.14": [
+      "- Cada comprobación de la sección 13 está respondida con evidencia, o se registra una excepción (fuente: spec QA-001, AT-039).",
+      "  - Evidence: note"
+    ],
+    "6.15": [
+      "- Las fotos de después están tomadas y asociadas al trabajo (fuente: spec QA-003).",
+      "  - Evidence: photo"
+    ],
+    "6.16": [
+      "- La limpieza está hecha, la protección retirada, los muebles en su lugar, y las herramientas y los materiales contabilizados (fuente: spec QA-002, APXA-005; \"Restauración del sitio\" original)."
+    ],
+    "6.17": [
+      "- Cada placa, tapa y cualquier carátula de termostato retirada se vuelve a colocar como se encontró (fuente: spec APXA-005; C-PT01-V01)."
+    ],
+    "6.18": [
+      "- La nota de cuidado y de pintura sobrante sale de datos de productos aprobados (fuente: spec QA-008; 04 PT-01 \"evidencia de finalización\")."
+    ],
+    "6.19": [
+      "- El resultado del recorrido está registrado, y los elementos pendientes abiertos quedan vinculados al trabajo (fuente: spec QA-004, QA-005, APXA-006).",
+      "  - Evidence: note"
+    ],
+    "6.20": ["- La propiedad queda asegurada (fuente: 31 sección 3.1)."],
+    "6.21": [
+      "- No hay ninguna retención abierta de las secciones 10 y 12, y los problemas sin resolver, los incidentes y las solicitudes de cambio se envían antes de cerrar el trabajo (fuente: spec APXA-007, JOB-012)."
+    ],
+    "stop.1": [
+      "La regla general para detener el trabajo es [[FACT-SVC-STOP-WORK-RULE]]. Activadores específicos del servicio:"
+    ],
+    "stop.2": [
+      "Activadores para detener el trabajo de PT-01 (primero la spec PT-01.SAF, luego las retenciones del registro; todos pendientes de revisión calificada):"
+    ],
+    "stop.3": [
+      "- El trabajo lijaría o rasparía recubrimientos existentes y el año de construcción es anterior a 1978 o desconocido: deténgase antes de \"Lijado con pértiga\" hasta que una persona calificada registre la decisión sobre el plomo (fuente: spec PT-01.SAF \"evalúe los recubrimientos antiguos antes de una alteración agresiva\"; C-PT01-01).",
+      "  - Evidence: note"
+    ],
+    "stop.4": [
+      "- Se sospecha que una textura vieja o un compuesto para juntas contiene asbesto (fuente: spec START-011; X-13)."
+    ],
+    "stop.5": [
+      "- El área de trabajo no se puede ventilar como lo exigen las instrucciones del producto, o un producto no tiene una SDS revisada (fuente: spec PT-01.SAF \"ventile\", \"siga las instrucciones del producto\"; 29 sección 8.3)."
+    ],
+    "stop.6": ["- No se puede proteger el contenido (fuente: spec PT-01.SAF \"proteja el contenido\")."],
+    "stop.7": [
+      "- El trabajo necesita una escalera u otro equipo de acceso y no existe una política de altura y acceso aprobada ni equipo adecuado (fuente: spec PT-01.SAF \"controles de escaleras\"; C-PT01-02; manual del planificador de trabajos \"Una escalera que falta o un permiso no verificado mantiene bloqueadas las tareas afectadas.\")."
+    ],
+    "stop.8": [
+      "- Una placa, un dispositivo o un termostato está dañado, hay cableado expuesto, o la tarea va más allá de retirar y volver a colocar tapas (fuente: 31 sección 10; C-PT01-V01)."
+    ],
+    "stop.9": [
+      "- Humedad, daños ocultos o sospecha de moho detrás de un área de reparación (fuente: spec JOB-004, START-011)."
+    ],
+    "stop.10": [
+      "- La pintura que aporta el cliente falta o no coincide con el color y el brillo aprobados (fuente: spec START-009; spec JOB-004 \"falta un artículo que aporta el cliente\"; spec PT-01.QAC \"brillo/color acordados\")."
+    ],
+    "stop.11": [
+      "- No se puede mantener a los ocupantes, los niños o las mascotas fuera del área de trabajo (fuente: X-11)."
+    ],
+    "stop.12": [
+      "- El cliente pide techos, molduras, puertas, clósets o una capa completa de imprimador que el presupuesto aprobado o este SOP no cubre: registre la solicitud; orden de cambio (fuente: spec JOB-005, JOB-010; C-PT01-06, C-PT01-04)."
+    ],
+    "stop.13": [
+      "- Cada retención indica el rol y la evidencia que la liberan: TBD - requiere la revisión del revisor de seguridad calificado. Las retenciones críticas se liberan solo con una evaluación calificada registrada (fuente: 31 sección 8.3).",
+      "  - Evidence: note"
+    ],
+    "stop.14": ["Ruta general: [[FACT-SVC-ESCALATION-PATH]]."],
+    "stop.15": ["Rutas de PT-01 (los contactos son decisiones del dueño, Q-31-05):"],
+    "stop.16": [
+      "- Año de construcción anterior a 1978 o desconocido y el trabajo necesita lijar o raspar recubrimientos existentes: deténgase; el dueño obtiene la decisión sobre el plomo de la persona calificada antes de que se reanude el trabajo (C-PT01-01; Q-31-07)."
+    ],
+    "stop.17": [
+      "- Sospecha de textura vieja o de compuesto para juntas: deténgase; inspector de asbesto acreditado a través del dueño (X-13)."
+    ],
+    "stop.18": [
+      "- Dispositivo dañado, cableado expuesto o una pregunta sobre el termostato: detenga esa tarea; la oficina la remite a un electricista con licencia o a un profesional de HVAC (C-PT01-V01)."
+    ],
+    "stop.19": [
+      "- Trabajo por encima del alcance desde el piso sin equipo de acceso aprobado: detenga esa tarea; dueño y profesional de seguridad calificado (C-PT01-02)."
+    ],
+    "stop.20": [
+      "- Una solicitud del cliente de techos, molduras, puertas, clósets o una capa completa de imprimador que no está en el presupuesto aprobado: regístrela; orden de cambio (C-PT01-06, C-PT01-04)."
+    ],
+    "stop.21": ["Ruta general: [[FACT-SVC-INCIDENT-REPORTING]]."],
+    "stop.22": [
+      "- Ejemplos de PT-01: una caída de una escalera o un escalón, un derrame de pintura o de químicos en la propiedad del cliente, daños a muebles, pisos o accesorios, sospecha de exposición a polvo de plomo o a químicos, y contacto con cableado eléctrico (fuente: spec JOB-008; spec PT-01.HAZ)."
+    ]
+  },
+  "ambiguous": []
+}

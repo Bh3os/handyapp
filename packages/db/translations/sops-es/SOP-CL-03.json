@@ -1,0 +1,352 @@
+{
+  "sopId": "SOP-CL-03",
+  "englishContentSha256": "7a52d2f078c5b8b1a21d19b82e9c4bed73df78eeac52bce498dd1d7f2b683f4d",
+  "title": "SOP CL-03: Limpieza de mudanza (entrada y salida)",
+  "headings": [
+    "1. Preparación del sitio y protección de la propiedad",
+    "2. Preparación y mediciones/comprobaciones requeridas",
+    "3. Pasos de trabajo específicos del servicio",
+    "4. Comprobaciones de calidad",
+    "5. Limpieza y manejo de residuos",
+    "6. Comprobaciones finales, fotos de finalización y recorrido"
+  ],
+  "items": {
+    "1.1": [
+      "- La cláusula \"Estado de la propiedad\" del acuerdo exige que el cliente deje la propiedad vacía de muebles, artículos personales y bolsas de basura pesadas antes de que llegue el equipo. Esa cláusula es una garantía del cliente marcada para revisión del abogado (30 sección 5 fila 17); las comprobaciones de llegada propias de HandyHub nunca se trasladan al cliente (fuente: acuerdo; 30 sección 4.1 cláusula 5)."
+    ],
+    "1.2": [
+      "- PROPUESTO para la lista de verificación de preparación (todavía no está en el acuerdo): electricidad y agua conectadas; método de acceso y contacto en el sitio; quién autoriza la entrada, el pago y cualquier desecho; el estado final deseado del refrigerador y del congelador; la lista de verificación del arrendador o del contrato de arrendamiento, si existe; mudanceros y contratistas que ya terminaron o cuyo horario se coordina con la visita (fuente: 04 CL-03 \"requisitos de preparación del cliente\"; spec CL-03.INT; cláusula \"Retrasos de acceso\" del acuerdo)."
+    ],
+    "1.3": [
+      "- Cada trabajo vuelve a confirmar que el acceso, los ocupantes, las mascotas, el estacionamiento, los peligros y las condiciones del área de trabajo siguen vigentes (fuente: spec CX-005)."
+    ],
+    "2.1": [
+      "*Controles de despacho y de Iniciar trabajo (Start Job) para este servicio (fuente: spec APXA-001, APXA-003; 31 sección 3.1 fila 3). Cada elemento añadido está pendiente de revisión.*"
+    ],
+    "2.2": ["Nota original, conservada textualmente:"],
+    "2.3": ["*(La propiedad debe estar completamente desocupada)*"],
+    "2.4": [
+      "- La desocupación se confirma durante el recorrido inicial (sección 11). Si quedan muebles, basura, cajas o artículos personales, no los deseche, no los acarree ni los retire, y no mueva artículos pesados: regístrelos con fotos y escale (sección 10). Retirarlos es un alcance adicional que necesita una orden de cambio que el cliente apruebe antes del trabajo adicional y una autorización registrada para desecharlos (fuente: nota original; spec CL-03.SAF; FIN-008; JOB-005; No realice la entrada 9).",
+      "  - Evidence: note"
+    ],
+    "2.5": [
+      "- Propiedad ocupada (personas que viven ahí o pertenencias en uso): las salidas de mudanza con la propiedad ocupada no están cubiertas; registre No iniciar / Bloqueado y escale (fuente: Q-04-05; spec SCH-008).",
+      "  - Evidence: note"
+    ],
+    "2.6": [
+      "- Este SOP no está activo: ningún trabajo lo usa hasta que haya una revisión competente y la activación del dueño (fuente: datos del dueño 2026-10-02; 31 sección 2.1)."
+    ],
+    "2.7": [
+      "- Solicitud completa: los datos de la spec CL-03.INT enumerados en la sección 2 (fuente: spec CL-03.INT)."
+    ],
+    "2.8": [
+      "- Una versión aprobada del presupuesto cubre las tareas de la sección 2; empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada (fuente: spec CX-003; APXA-003).",
+      "  - Evidence: note"
+    ],
+    "2.9": [
+      "- Servicios públicos: la disponibilidad de electricidad y de agua se confirma antes de la visita, y el despacho la marca si falta (fuente: spec CL-03.INT \"disponibilidad de servicios públicos/agua\"; SCH-001). Si al llegar los servicios públicos están desconectados o son inseguros, registre No iniciar / Bloqueado y escale (fuente: SCH-008; 04 CL-03 \"condiciones para detener el trabajo\"). Si algún trabajo continúa sin electricidad o sin agua es una decisión del dueño; la línea \"Multa por servicios desconectados\" del archivo de precios y la cláusula \"Multa por servicios públicos\" del acuerdo nombran activadores diferentes para un cargo por servicios públicos (Q-28-07).",
+      "  - Evidence: note"
+    ],
+    "2.10": [
+      "- Acceso: se registran el método de acceso, el contacto en el sitio y la persona que puede autorizar la entrada, el pago y cualquier desecho (inquilino, arrendador o administrador de la propiedad); los códigos de la caja de seguridad (lockbox) y de las puertas se quedan en los campos protegidos de la aplicación y nunca se escriben en notas ni se envían por mensaje de texto o correo electrónico (fuente: 04 CL-03 \"requisitos previos\", GAP; spec COM-002; 27 AUTH-009; Q-30-20).",
+      "  - Evidence: note"
+    ],
+    "2.11": [
+      "- Productos químicos: solo productos aprobados con una SDS revisada; un producto químico sin una SDS revisada no se lleva a un trabajo (fuente: 29 sección 8.3 regla provisional, PROPUESTO; 02 G-008). Todavía no hay ningún producto aprobado: TBD - requiere la revisión de un revisor de seguridad calificado."
+    ],
+    "2.12": [
+      "- EPP: disponible según lo seleccione el profesional de seguridad calificado para las tareas con productos químicos y con escombros. Todavía no se ha seleccionado ni hay en existencia ninguno (C-CL03-02, crítico), así que esas tareas siguen bloqueadas hasta que lo haya (fuente: spec CL-03.TLS \"EPP\"; spec START-004)."
+    ],
+    "2.13": [
+      "- Equipo de acceso: cualquier parte de los marcos de los tragaluces, las esquinas altas, los ventiladores de techo, las lámparas colgantes o la iluminación de riel que las herramientas extensibles desde el nivel del piso no puedan alcanzar necesita la política aprobada de altura y acceso y el equipo correspondiente. No existe ninguno de los dos, así que las tareas que los necesitan siguen bloqueadas (fuente: X-12; 02 G-005; manual del planificador de trabajos \"Una escalera que falta o un permiso sin verificar mantiene bloqueadas las tareas afectadas.\")."
+    ],
+    "2.14": [
+      "- Edad de la propiedad y evaluación: se registra el año de construcción donde se conozca, y las texturas de techo y las superficies pintadas antiguas se evalúan con las preguntas de evaluación para propiedades antiguas; hasta que exista ese módulo, se aplican las retenciones de la sección 12 (fuente: 31 sección 3.1 fila 3; 04 sección 6.2 fila CL-03; Q-04-18).",
+      "  - Evidence: note"
+    ],
+    "2.15": [
+      "- Antes de que este SOP pueda activarse, los revisores nombrados aprueban las retenciones de la sección 12: recorrido inicial y fotos del estado existente; control de objetos punzocortantes y de productos químicos; texturas de techo; altura y acceso; corte de la electricidad de los accesorios; pintura antigua; estado final del refrigerador y del congelador; aislamiento del triturador de basura; cierre, destino de los residuos y cierre con llave a la salida (fuente: 31 sección 10 CL-03; datos del dueño L20).",
+      "  - Evidence: photo"
+    ],
+    "2.16": [
+      "- Al llegar: confirme la dirección, el área de trabajo y el contacto; identifique mascotas y ocupantes; inspeccione el sitio real frente a las instrucciones; tome las fotos requeridas del estado existente; proteja el área de trabajo; identifique los servicios públicos y las restricciones de emergencia relevantes para la tarea (fuente: spec APXA-002).",
+      "  - Evidence: photo"
+    ],
+    "2.17": [
+      "- Recorrido inicial de cada habitación antes de cualquier limpieza: desocupación y artículos dejados, escombros desconocidos y objetos punzocortantes, productos químicos dejados en el sitio, plagas, moho o humedad, accesorios dañados, texturas de techo y pintura en deterioro, servicios públicos, y daños preexistentes en paredes, pisos, gabinetes, electrodomésticos, accesorios, ventanas y puertas (fuente: spec CL-03.SAF \"recorrido inicial para detectar daños/peligros\"; C-CL03-07). Los hallazgos siguen la sección 10."
+    ],
+    "2.18": [
+      "- Iluminación: linternas frontales o luces de trabajo para clósets, despensas y gabinetes oscuros, o donde la electricidad esté cortada (fuente: inventario \"Linternas frontales LED de alta potencia / Luces de trabajo\")."
+    ],
+    "2.19": ["- Ventilación adecuada para los productos aprobados (fuente: SDS del producto; 29 sección 8.2)."],
+    "2.20": [
+      "- Colocación de los letreros de piso mojado y organización de los productos y las herramientas: TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo (fuente: spec CL-03.HAZ \"resbalones\"; 29 sección 7.2 punto 9)."
+    ],
+    "2.21": [
+      "- Antes de empezar: complete las comprobaciones requeridas de seguridad, de EPP y del sitio; confirme que leyó el SOP y los peligros; empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada (fuente: spec APXA-003; START-004).",
+      "  - Evidence: note"
+    ],
+    "3.1": [
+      "*Las líneas originales del procedimiento que siguen no han cambiado y están en su orden original; los encabezados de fase originales bajan un nivel, con el texto sin cambios. Las líneas que empiezan con \"HOLD\" o \"FLAG\" se añadieron el 2026-10-03; están pendientes de revisión y nunca reemplazan el texto del paso.*"
+    ],
+    "3.2": [
+      "> HOLD (condición previa; C-CL03-07; spec CL-03.SAF \"recorrido inicial para detectar daños/peligros\"): antes de \"Techos y esquinas\", el primer paso de limpieza, complete el recorrido inicial de cada habitación (sección 11) y confirme que la propiedad está desocupada (sección 3). Artículos dejados, escombros desconocidos u objetos punzocortantes, riesgo biológico, excrementos o infestación, sospecha de moho, accesorios dañados o una propiedad ocupada: detenga el trabajo en el área afectada y siga la sección 10. Pendiente de revisión."
+    ],
+    "3.3": [
+      "> HOLD (condición previa; C-CL03-07; spec CL-03.SAF \"fotografíe los problemas preexistentes si se requiere\"; pendiente de la configuración de START-008): antes de \"Techos y esquinas\", registre fotos del estado existente y notas de los daños preexistentes habitación por habitación - paredes, pisos, gabinetes, electrodomésticos, accesorios, ventanas y puertas - para que los daños preexistentes queden separados del resultado de la limpieza (spec CL-03.QAC; sección 16). Pendiente de revisión."
+    ],
+    "3.4": [
+      "> HOLD (condición previa; C-CL03-07, C-CL03-02; spec CL-03.SAF \"controle los objetos punzocortantes/productos químicos\"): antes de \"Techos y esquinas\", en el sitio solo hay productos aprobados con una SDS revisada (29 sección 8.3), y el EPP seleccionado por el profesional de seguridad calificado está disponible; todavía no se ha seleccionado ninguno, así que las tareas con productos químicos y con escombros siguen bloqueadas. Los objetos punzocortantes no se recogen ni se embolsan hasta que existan la regla del revisor sobre objetos punzocortantes y su recipiente: deténgase y escale. Pendiente de revisión."
+    ],
+    "3.5": [
+      "> HOLD (condición previa; 31 sección 7.2 rango 1, texturas de techo de composición desconocida, RIESGO; spec START-011): antes de \"Techos y esquinas\", mire los techos. No cepille, limpie, raspe ni aspire un techo texturizado, dañado o en deterioro de composición desconocida; déjelo sin alterar y escale (sección 10). Solo se libera con la evaluación de un inspector de asbesto acreditado o de un profesional de remediación aceptada por el dueño. Pendiente de revisión."
+    ],
+    "3.6": [
+      "> HOLD (condición previa; X-12; spec CL-03.HAZ \"escalera\"): antes de \"Techos y esquinas\" y \"Accesorios\", alcance los marcos de los tragaluces, las esquinas altas, los ventiladores de techo, las lámparas colgantes y la iluminación de riel solo con herramientas extensibles desde el nivel del piso. Una escalera u otro equipo de acceso se usa solo bajo la política aprobada de altura y acceso, que todavía no existe (02 G-005), así que las tareas que lo necesitan siguen bloqueadas (manual del planificador de trabajos). Pendiente de revisión."
+    ],
+    "3.7": [
+      "- [ ] **Techos y esquinas:** Quite todas las telarañas, los capullos y los rastros de polvo de los techos, los marcos de los tragaluces y las esquinas altas."
+    ],
+    "3.8": [
+      "> HOLD (31 sección 10 CL-03, RIESGO): el paso anterior no cubre excrementos, nidos ni infestaciones activas. Si se encuentra alguno aquí o en un paso posterior (por ejemplo, en gabinetes, cajones o rieles de ventanas), detenga el trabajo en esa área y escale (sección 10). Pendiente de revisión."
+    ],
+    "3.9": [
+      "> HOLD (condición previa; 31 sección 10 CL-03 \"primero cortar la electricidad\", RIESGO; X-07): antes de \"Accesorios\", la electricidad de cada ventilador de techo, lámpara colgante y sistema de iluminación de riel está cortada antes de desempolvarlo o limpiarlo con un paño húmedo. Cómo se aísla y se verifica la electricidad, y quién lo hace, es TBD - requiere la revisión de un revisor de seguridad calificado; la electricidad se restablece como se encontró al cierre (sección 14). Accesorios dañados, cables expuestos o un estado de la electricidad que no se puede confirmar: no limpie; escale (No realice la entrada 1). Pendiente de revisión."
+    ],
+    "3.10": [
+      "- [ ] **Accesorios:** Desempolve y limpie con un paño húmedo cada ventilador de techo, lámpara colgante y sistema de iluminación de riel."
+    ],
+    "3.11": [
+      "- [ ] **Rejillas:** Aspire todas las rejillas de retorno de calefacción/aire acondicionado y limpie las rejillas exteriores."
+    ],
+    "3.12": [
+      "- [ ] **Clósets y repisas:** Limpie las repisas superiores, los tubos para colgar ropa, los cajones y las esquinas de cada uno de los clósets y despensas vacíos."
+    ],
+    "3.13": [
+      "> HOLD (condición previa; 04 CL-03 \"peligros\", alféizares, puertas y techos pintados de composición desconocida en casas antiguas; 04 sección 6.2 evaluación de propiedades antiguas; Q-31-07): antes de \"Ventanas\" y \"Puertas y marcos\", busque pintura que se pela, se descascara o está en deterioro en alféizares, rieles, marcos y puertas. No la raspe ni la lije; déjela sin alterar y escale (sección 10). Si alguna práctica de limpieza segura con plomo se aplica a estos pasos es una pregunta abierta para un renovador certificado en RRP de la EPA. Solo vidrio interior: el vidrio exterior no está cubierto (No realice la entrada 12; C-CL03-05). Pendiente de revisión."
+    ],
+    "3.14": [
+      "- [ ] **Ventanas:** Restriegue minuciosamente el vidrio interior de las ventanas, saque los insectos muertos de los rieles de las ventanas y limpie los alféizares."
+    ],
+    "3.15": [
+      "- [ ] **Puertas y marcos:** Lave a mano todas las puertas interiores, prestando atención al área alrededor de las manijas donde se acumula la mugre de las manos."
+    ],
+    "3.16": [
+      "- [ ] **Gabinetes y cajones:** Aspire las migas sueltas dentro de todos los gabinetes y cajones; limpie todas las repisas interiores, los rieles de los cajones y los frentes exteriores de los gabinetes."
+    ],
+    "3.17": [
+      "- [ ] **Horno y estufa:** Saque el cajón de almacenamiento que está debajo del horno y límpielo; limpie a fondo el interior principal del horno, la superficie de la estufa y los filtros de grasa."
+    ],
+    "3.18": [
+      "> FLAG (C-CL03-06): no hay en existencia ningún limpiador de hornos ni desengrasante para el paso anterior; use solo un producto aprobado según su etiqueta y su SDS (29 sección 8.2 punto 8). Olor a gas en cualquier momento: emergencia (sección 19, paso 2). Pendiente de revisión."
+    ],
+    "3.19": [
+      "- [ ] **Refrigerador y congelador:** Apague el congelador para limpiarlo por completo; limpie todos los compartimentos interiores del refrigerador, los recipientes de plástico y la superficie superior externa."
+    ],
+    "3.20": [
+      "> HOLD (31 sección 10 CL-03; X-07; spec APXA-005 \"restablezca los servicios/componentes modificados dentro del alcance\"): el paso anterior apaga el congelador, y ningún paso lo restablece. Antes de irse, deje el refrigerador y el congelador en el estado final que registró el cliente (encendidos o apagados; puertas según las instrucciones) y regístrelo (sección 18); si no hay ninguna instrucción registrada, escale antes de irse. El agua del deshielo se contiene para que los pisos no se vuelvan resbalosos (método TBD - requiere la revisión de un revisor de seguridad calificado). Pendiente de revisión."
+    ],
+    "3.21": [
+      "> HOLD (condición previa; 04 CL-03 \"peligros\", protector contra salpicaduras del triturador de basura; RIESGO, la misma regla que 31 sección 10 propone para CL-01): antes de \"Encimeras y fregaderos\", el triturador de basura está apagado y no se puede poner en marcha mientras se restriega el protector contra salpicaduras; las manos nunca entran en el triturador. El método de aislamiento es TBD - requiere la revisión de un revisor de seguridad calificado. Pendiente de revisión."
+    ],
+    "3.22": [
+      "- [ ] **Encimeras y fregaderos:** Higienice las encimeras, limpie la tina del fregadero y restriegue alrededor del protector de goma contra salpicaduras del triturador de basura."
+    ],
+    "3.23": [
+      "- [ ] **Inodoro:** Restriegue minuciosamente la taza, limpie debajo del borde, desinfecte las bisagras del asiento y lave la base exterior de porcelana."
+    ],
+    "3.24": [
+      "- [ ] **Ducha y tina:** Quite las capas de residuos de jabón de los azulejos/el vidrio y restriegue los bordes de la tina, las jaboneras y los desagües hasta dejarlos completamente limpios."
+    ],
+    "3.25": [
+      "> FLAG (31 sección 10 CL-03 \"No cubierto\"): en el paso anterior, \"los desagües completamente limpios\" significa limpiar solo las superficies de los desagües. Los desagües tapados no se destapan, ni mecánicamente ni con el gel destapacaños que aparece en el inventario; registre la condición y remítala (No realice la entrada 10). Pendiente de revisión."
+    ],
+    "3.26": [
+      "- [ ] **Espejos y tocadores:** Limpie todas las repisas de los botiquines, pula los espejos y limpie las encimeras de los tocadores."
+    ],
+    "3.27": [
+      "> FLAG (31 sección 3.5 regla 5; C-CL03-03): \"Absoluta\" en el encabezado anterior es una redacción de resultado, conservada textualmente; no es un estándar y no se repite al cliente (sección 17). Revisión del dueño y del abogado (Q-31-16)."
+    ],
+    "3.28": [
+      "- [ ] **Aspirado de bordes:** Aspire todas las alfombras y los bordes de los pisos duros con una boquilla para rincones para sacar el polvo de las ranuras de los zócalos."
+    ],
+    "3.29": [
+      "> FLAG (C-CL03-04): el paso anterior solo aspira las ranuras de los zócalos. El lavado de los zócalos, que prometen el \"Estándar de entrega\" del acuerdo y el plan principal, no tiene ningún paso; no está cubierto hasta la decisión de alcance del dueño (sección 2). Pendiente de revisión."
+    ],
+    "3.30": [
+      "> HOLD (condición previa; C-CL03-07; spec CL-03.QAC \"residuos retirados al lugar acordado\"; spec APXA-005): antes de \"Trapeado profundo\", que termina en la puerta principal, termine los elementos de cierre que necesitan acceso a las habitaciones: los residuos van solo al lugar acordado con el cliente y registrado, y todavía no hay ningún destino de desecho aprobado (sección 15); los artículos dejados se quedan a menos que se registren una autorización y una orden de cambio (No realice la entrada 9); el refrigerador y el congelador están en el estado final registrado; la electricidad cortada para \"Accesorios\" y el triturador de basura se restablecen como se encontraron (sección 14); los productos, las bolsas y las herramientas de HandyHub se retiran, excepto el equipo de trapeado. Pendiente de revisión."
+    ],
+    "3.31": [
+      "- [ ] **Trapeado profundo:** Trapee dos veces todos los pisos duros con un limpiador industrial, avanzando hacia atrás hasta salir por la puerta principal para que no quede ninguna huella."
+    ],
+    "3.32": [
+      "> FLAG (C-CL03-06; C-CL03-02): \"un limpiador industrial\" en el paso anterior no es un producto aprobado. Use solo un limpiador de pisos aprobado según su etiqueta y su SDS, con el EPP que seleccione el profesional de seguridad calificado (todavía no se ha seleccionado ninguno); el \"Removedor de acabado de pisos concentrado / Limpiador de azulejos\" del inventario no se usa para trapear a menos que el revisor lo apruebe para ese fin. Pisos mojados: letrero de piso mojado (propuesto en el inventario). Pendiente de revisión."
+    ],
+    "3.33": [
+      "> HOLD (C-CL03-07; spec CL-03.SAF \"asegure la propiedad a la salida\"; 31 sección 8.4 regla 3, crítica): a la salida, asegure la propiedad - puertas y ventanas cerradas con llave como se encontraron o según las instrucciones, llave o caja de seguridad manejada según el registro de acceso protegido - y registre el cierre (sección 18). Si la propiedad no se puede asegurar, no la deje sin asegurar: escale de inmediato y siga la instrucción registrada del dueño. Pendiente de revisión."
+    ],
+    "4.1": [
+      "*De la spec CL-03.QAC: \"lista de verificación completada, gabinetes/accesorios/pisos según el alcance, residuos retirados al lugar acordado, daños preexistentes separados del resultado de la limpieza\". El trabajador no puede marcar el trabajo como completo sin responder las comprobaciones requeridas o registrar una excepción (fuente: spec QA-001). Qué comprobaciones necesitan una segunda persona en lugar de una autocomprobación es una pregunta abierta (Q-31-15).*"
+    ],
+    "4.2": [
+      "| Comprobación | Fuente | Inspector | Evidencia |",
+      "|---|---|---|---|",
+      "| Lista de verificación completada: cada paso de la sección 12 respondido, con los pasos retenidos registrados como \"retenido - no hecho\" | spec CL-03.QAC; QA-001 | Trabajador | Respuestas de la lista de verificación; registros de retenciones |",
+      "| Gabinetes, accesorios y pisos limpiados según el alcance | spec CL-03.QAC | Trabajador; supervisor donde la política lo requiera (Q-31-15) | Fotos de después asociadas a habitaciones y áreas (QA-003) |",
+      "| Residuos retirados al lugar acordado | spec CL-03.QAC; QA-002 | Trabajador | Destino registrado; todavía no hay ningún destino aprobado (Q-29-10); los artículos dejados se retiran solo con una autorización registrada |",
+      "| Daños preexistentes separados del resultado de la limpieza | spec CL-03.QAC; START-008 | Trabajador; supervisor | Fotos del estado existente (sección 16) comparadas con las fotos de después |",
+      "| Refrigerador y congelador en el estado final registrado | spec APXA-005; 31 sección 10 CL-03 | Trabajador | Estado final registrado |",
+      "| Servicios públicos y componentes modificados dentro del alcance restablecidos (electricidad de los accesorios, triturador de basura) | spec APXA-005 | Trabajador | Respuesta de la lista de verificación |",
+      "| Propiedad asegurada a la salida | spec CL-03.SAF; 31 sección 8.4 regla 3 | Trabajador; revisión del supervisor del registro de cierre (Q-31-15) | Registro de cierre: hora, puertas y ventanas comprobadas, llave o caja de seguridad manejada según el registro de acceso protegido |",
+      "| Zócalos como los describe el acuerdo | \"Estándar de entrega\" del acuerdo; C-CL03-04 | - | No cubierto por este SOP: registre \"fuera del alcance del SOP\" hasta que el dueño decida |"
+    ],
+    "4.3": [
+      "- Una firma o un reconocimiento del cliente no libera una retención de seguridad sin resolver (fuente: manual del asistente de calidad \"Un formulario firmado por el cliente no libera una retención de seguridad sin resolver.\").",
+      "  - Evidence: note"
+    ],
+    "4.4": [
+      "- La evidencia que falta se registra como desconocida, no como aprobada (fuente: manual del asistente de calidad \"Las fotos que faltan son evidencia desconocida, no prueba de un trabajo defectuoso.\").",
+      "  - Evidence: note"
+    ],
+    "5.1": [
+      "- Limpie el área, retire los residuos y la protección, y cuente las herramientas y los materiales (fuente: spec APXA-005; QA-002)."
+    ],
+    "5.2": [
+      "- Restablezca los servicios públicos y los componentes modificados dentro del alcance: la electricidad cortada para \"Accesorios\" y el triturador de basura se restablecen como se encontraron, con el método que apruebe el revisor (X-07); el refrigerador y el congelador se dejan en el estado final registrado (fuente: spec APXA-005; retenciones de la sección 12).",
+      "  - Evidence: note"
+    ],
+    "5.3": [
+      "- Retire de la propiedad todos los productos, las bolsas y el equipo de HandyHub; devuelva los materiales no usados (fuente: spec APXA-005, APXA-007)."
+    ],
+    "5.4": [
+      "- El paso original \"Trapeado profundo\" termina avanzando hacia atrás hasta salir por la puerta principal; se aplican la retención de cierre anterior y la retención de salida posterior (fuente: sección 12)."
+    ],
+    "5.5": [
+      "- Tipos de residuos: escombros y polvo de la limpieza; paños y almohadillas usados; envases vacíos de productos y residuos de productos; objetos punzocortantes encontrados en el sitio; artículos dejados por los ocupantes anteriores (fuente: spec CL-03.QAC \"residuos retirados al lugar acordado\"; 29 sección 8.2 punto 10; inventario \"Bolsas de basura gruesas para contratistas\")."
+    ],
+    "5.6": [
+      "- No hay ningún destino ni método de desecho aprobado: los residuos van solo al lugar acordado con el cliente y registrado, con un método que el revisor apruebe para el municipio (fuente: spec CL-03.QAC; 31 sección 3.1 fila 15; Q-29-10; 02 G-157; REVISIÓN HUMANA: autoridad local de residuos; profesional de seguridad calificado).",
+      "  - Evidence: note"
+    ],
+    "5.7": [
+      "- Los muebles, la basura, las cajas y los artículos personales dejados no se desechan ni se acarrean sin una orden de cambio que el cliente apruebe antes del trabajo adicional y una autorización registrada para desecharlos; los artículos de desecho siguen inactivos hasta que exista una política de residuos y desecho (fuente: No realice la entrada 9; 28 sección 3.5; Q-30-17).",
+      "  - Evidence: note"
+    ],
+    "5.8": [
+      "- Objetos punzocortantes: no se manejan hasta que existan la regla del revisor sobre objetos punzocortantes, el recipiente y la ruta de desecho (fuente: spec CL-03.SAF \"controle los objetos punzocortantes/productos químicos\"; 29 sección 5.2)."
+    ],
+    "5.9": [
+      "- Residuos químicos y agua de enjuague: según la SDS del producto y las reglas del municipio (fuente: 29 sección 8.2 punto 10)."
+    ],
+    "6.1": [
+      "- Antes: fotos del estado existente de cada habitación - paredes, pisos, gabinetes, electrodomésticos, accesorios, ventanas y puertas - antes de limpiar, además de cualquier artículo dejado. PROPUESTO como obligatorio para CL-03, porque la separación de los daños y las disputas por el depósito dependen de ellas; si son obligatorias es la decisión de configuración de START-008 (fuente: spec CL-03.SAF \"fotografíe los problemas preexistentes si se requiere\"; CL-03.QAC; START-008; AT-022; 04 CL-03 \"evidencia de finalización\"; C-CL03-07).",
+      "  - Evidence: photo"
+    ],
+    "6.2": [
+      "- Durante: condiciones ocultas o inesperadas (objetos punzocortantes, plagas, moho o humedad, accesorios dañados, texturas de techo o pintura sospechosas) con fotos y su gravedad (fuente: spec JOB-004; UXE-006)."
+    ],
+    "6.3": [
+      "- Después: fotos asociadas a habitaciones y áreas (fuente: spec QA-003); el estado final del refrigerador y del congelador y el registro de cierre donde la política lo requiera (fuente: retenciones de la sección 12).",
+      "  - Evidence: photo, note"
+    ],
+    "6.4": [
+      "- Cada foto es solo interna por defecto; compartirlas con un inquilino, un arrendador o un administrador de la propiedad es una decisión del dueño, y el uso en mercadeo necesita un consentimiento aparte (fuente: spec REC-002, REC-003; 04 CL-03 \"evidencia de finalización\"). Evite personas, documentos y objetos de valor que no se necesiten para el trabajo; no fotografíe el contenido del correo ni de los papeles dejados (fuente: 31 sección 3.5 regla 7)."
+    ],
+    "6.5": [
+      "- Los avisos de llegada y de finalización son borradores; el trabajador o el administrador controla el envío (fuente: spec UXE-008)."
+    ],
+    "6.6": [
+      "- Registre el resultado del recorrido: aceptado, aceptado con elementos pendientes, no disponible o en disputa; si no hay ningún cliente ni representante presente, regístrelo como no disponible (fuente: spec QA-004).",
+      "  - Evidence: note"
+    ],
+    "6.7": [
+      "- Elementos retenidos y no cubiertos, comunicados con la redacción aprobada: artículos dejados (no se retiran sin una orden de cambio); el estado final del refrigerador y del congelador; tareas retenidas (texturas de techo, accesorios cuya electricidad no se pudo confirmar como cortada, tareas que necesitan una escalera); lavado de zócalos y vidrio exterior no cubiertos (fuente: retenciones de la sección 12; sección 2). Redacción TBD - dueño."
+    ],
+    "6.8": [
+      "- Trabajo bloqueado: solo el mensaje aprobado de \"trabajo bloqueado\"; nada de detalles de incidentes ni códigos de acceso por mensaje de texto o correo electrónico (fuente: spec NTF-007, COM-002)."
+    ],
+    "6.9": [
+      "- Las disputas de un inquilino, un arrendador o un administrador de la propiedad sobre la limpieza o un depósito van al dueño (fuente: 04 CL-03 \"habilidad responsable / rol del negocio\", handyhub-customer-service para disputas de inquilinos y arrendadores)."
+    ],
+    "6.10": [
+      "- Qué no decir: ninguna promesa sobre el depósito de garantía (\"garantizamos la devolución de su depósito de garantía\", \"ayudamos a los inquilinos a recuperar sus depósitos de garantía\"), \"esterilización\", \"absoluto\", \"impecable\", \"cada pulgada cuadrada\", \"sin ningún defecto\" (fuente: C-CL03-03; cláusula \"Aprobación del depósito\" del acuerdo; plan principal sección 3; 32 registro A fila 22 y registro B filas 1 y 2).",
+      "  - Evidence: note"
+    ],
+    "6.11": [
+      "- Notas de cuidado solo a partir de datos aprobados del producto; todavía no hay ninguna aprobada (fuente: spec QA-008)."
+    ],
+    "6.12": [
+      "- Comprobaciones de calidad requeridas respondidas o una excepción registrada (fuente: spec QA-001; sección 13).",
+      "  - Evidence: note"
+    ],
+    "6.13": [
+      "- Fotos del estado existente archivadas donde se requieran, y fotos de después asociadas a habitaciones y áreas (fuente: spec START-008, QA-003).",
+      "  - Evidence: photo"
+    ],
+    "6.14": [
+      "- Limpieza final y manejo de residuos hechos según lo aprobado; residuos en el lugar acordado (fuente: spec QA-002, CL-03.QAC; secciones 14 y 15)."
+    ],
+    "6.15": [
+      "- Refrigerador y congelador en el estado final registrado; servicios públicos y componentes modificados dentro del alcance restablecidos (fuente: spec APXA-005).",
+      "  - Evidence: note"
+    ],
+    "6.16": ["- Herramientas y materiales contados (fuente: spec APXA-005)."],
+    "6.17": [
+      "- Propiedad asegurada y cierre registrado (fuente: spec CL-03.SAF; 31 sección 8.4 regla 3).",
+      "  - Evidence: note"
+    ],
+    "6.18": [
+      "- Retenciones abiertas, artículos dejados y elementos pendientes registrados; resultado del recorrido registrado (fuente: spec QA-004; APXA-006).",
+      "  - Evidence: note"
+    ],
+    "6.19": [
+      "- El trabajo se cierra solo cuando los pasos operativos y financieros requeridos están completos (fuente: spec APXA-007)."
+    ],
+    "stop.1": [
+      "La regla general para detener el trabajo es [[FACT-SVC-STOP-WORK-RULE]]. Activadores específicos del servicio:"
+    ],
+    "stop.2": [
+      "*Bloque estándar copiado textualmente de 31 SOP estándar sección 8.5 (redacción PROPUESTA; REVISIÓN HUMANA: profesional de seguridad calificado; abogado con licencia en KY y/o IN para la oración del \"derecho a detener el trabajo\"; revisor bilingüe para el español).*"
+    ],
+    "stop.3": [
+      "**Activadores para detener el trabajo y retenciones del servicio (CL-03).** Indicación de la tarjeta para detener el trabajo (spec CL-03.SAF): \"recorrido inicial para detectar daños/peligros; fotografíe los problemas preexistentes si se requiere; controle los objetos punzocortantes/productos químicos; asegure la propiedad a la salida\"."
+    ],
+    "stop.4": [
+      "| Activador o retención | Acción | Lo libera (evidencia) | Fuente |",
+      "|---|---|---|---|",
+      "| Propiedad no desocupada al llegar: quedan muebles, basura, cajas o artículos personales | No los deseche, no los acarree ni los retire, y no mueva artículos pesados; regístrelos con fotos; escale | Dueño: orden de cambio aprobada y autorización registrada para desechar | Nota original (sección 3); No realice la entrada 9; Q-30-17 |",
+      "| Propiedad ocupada | No iniciar / Bloqueado; escale | Dueño (las salidas de mudanza con la propiedad ocupada no están cubiertas) | Q-04-05; spec SCH-008 |",
+      "| Recorrido inicial o fotos requeridas del estado existente no hechos | No empiece la limpieza | Registro del recorrido y de las fotos (configuración de START-008) | spec CL-03.SAF; C-CL03-07 |",
+      "| Objetos punzocortantes, riesgo biológico, excrementos o infestación | Detenga el trabajo en el área afectada; escale | Revisor de seguridad calificado; dueño | spec CL-03.SAF; 31 sección 10 CL-03 |",
+      "| Techo texturizado, dañado o en deterioro, o pintura en deterioro, de composición desconocida | No lo altere; escale | Evaluación de un inspector de asbesto acreditado o de un renovador certificado en RRP de la EPA aceptada por el dueño | 31 sección 7.2 rango 1; spec START-011; Q-31-07 |",
+      "| Sospecha de moho, humedad o una fuga activa | No lo altere; escale | Evaluador de moho calificado (definición de moho de la empresa pendiente, Q-31-10) | Bloque para detener el trabajo de arriba; 31 sección 5.8 |",
+      "| No se puede confirmar que la electricidad de un ventilador o un accesorio está cortada; accesorio dañado o cables expuestos | No lo desempolve ni lo limpie con un paño húmedo; escale | Revisor de seguridad calificado (método de aislamiento); electricista con licencia para cualquier defecto eléctrico | 31 sección 10 CL-03 (RIESGO); No realice la entrada 1 |",
+      "| Servicios públicos desconectados o inseguros al llegar | No iniciar / Bloqueado; escale | Dueño (política de servicios públicos) | spec CL-03.INT; SCH-008 |",
+      "| Olor a gas | Emergencia (sección 19, paso 2) | Servicios de emergencia; reporte de incidente (sección 20) | spec START-011, BRF-013 |",
+      "| Producto químico sin una SDS revisada, una mezcla que la SDS no permite, o ventilación imposible | No use el producto; escale | SDS revisada y producto aprobado | 29 sección 8.3; No realice la entrada 6 |",
+      "| EPP seleccionado por el revisor no disponible | La tarea con productos químicos o con escombros sigue bloqueada | EPP disponible según lo seleccionado | C-CL03-02; spec START-004 |",
+      "| La tarea necesita una escalera u otro equipo de acceso | La tarea sigue bloqueada | Política aprobada de altura y acceso y equipo | X-12; 02 G-005; manual del planificador de trabajos |",
+      "| El cliente o el contacto en el sitio pide vidrio exterior, remoción del acabado de pisos, destapar desagües, retirar artículos dejados u otro trabajo fuera del alcance | No lo realice; registre la solicitud | Dueño (orden de cambio o remisión) | Sección 2; spec JOB-005, FIN-008 |",
+      "| Estado final del refrigerador y del congelador no registrado | Escale antes de irse; registre el estado en que se dejó | Instrucción registrada del estado final | 31 sección 10 CL-03; spec APXA-005 |",
+      "| La propiedad no se puede asegurar a la salida | Retención crítica: escale antes de irse y siga la instrucción registrada del dueño | Dueño | spec CL-03.SAF; 31 sección 8.4 regla 3 |"
+    ],
+    "stop.5": [
+      "Ningún rol puede anular las retenciones críticas; se liberan solo con una evaluación calificada registrada. El material que se sospecha peligroso es una clase crítica, y dejar una propiedad sin asegurar se trata como crítico (fuente: 31 sección 8.3 regla 2; 31 sección 8.4 regla 3)."
+    ],
+    "stop.6": ["Ruta general: [[FACT-SVC-ESCALATION-PATH]]."],
+    "stop.7": [
+      "*Bloque estándar copiado textualmente de 31 sección 8.5 (redacción PROPUESTA; REVISIÓN HUMANA: profesional de seguridad calificado).*"
+    ],
+    "stop.8": [
+      "**Rutas de escalamiento de CL-03 (decisiones del dueño pendientes, Q-31-05):** los artículos dejados, una propiedad ocupada o una solicitud para desechar bienes van al dueño, con la pregunta para el abogado sobre bienes de terceros abierta (Q-30-17); los objetos punzocortantes, el riesgo biológico, los excrementos o la infestación van al dueño y luego al profesional de seguridad calificado; las texturas de techo sospechosas o la pintura en deterioro van al dueño y luego a un inspector de asbesto acreditado o a un renovador certificado en RRP de la EPA (Q-31-07); la sospecha de moho va al dueño y luego a un evaluador de moho calificado (Q-31-10); los servicios públicos desconectados o inseguros van al dueño; un olor a gas es una emergencia (paso 2 de arriba); una propiedad que no se puede asegurar va al dueño de inmediato (retención crítica). Contactos: `<decisión del dueño: contacto de emergencia>` y `<decisión del dueño: orden de escalamiento>` (Q-31-05)."
+    ],
+    "stop.9": ["Ruta general: [[FACT-SVC-INCIDENT-REPORTING]]."],
+    "stop.10": [
+      "*Bloque estándar copiado textualmente de 31 sección 8.5 (redacción PROPUESTA). REVISIÓN HUMANA: abogado con licencia en KY y/o IN para la oración de culpa y responsabilidad; corredor de seguros para cualquier paso de notificación a la aseguradora que se añada más adelante.*"
+    ],
+    "stop.11": [
+      "- Ejemplos de CL-03 que se deben reportar: cortes o pinchazos con escombros u objetos punzocortantes, exposición química, resbalones y caídas, contacto eléctrico, daños a la propiedad, artículos desechados o movidos sin autorización, una propiedad que se dejó sin asegurar (fuente: spec CL-03.HAZ; JOB-008)."
+    ]
+  },
+  "ambiguous": []
+}

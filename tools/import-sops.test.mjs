@@ -27,13 +27,12 @@ test('[HH-PKT-03] packages/db/seed/sops.json is up to date with the SOP-* nodes'
   assert.equal(committed, render(sops))
 })
 
-test('[HH-PKT-03] 26 SOP versions, one per service, all pending competent review with Spanish pending', () => {
+test('[HH-PKT-03] 26 SOP versions, one per service, all pending competent review', () => {
   assert.equal(sops.length, 26)
   assert.equal(new Set(sops.map((s) => s.serviceId)).size, 26)
   for (const s of sops) {
     assert.equal(s.id.slice(4), s.serviceId.slice(4))
     assert.equal(s.reviewState, 'pending_competent_review')
-    assert.equal(s.spanishStatus, 'pending')
     assert.deepEqual(
       s.content.stages.map((x) => x.key),
       STAGES.map((x) => x.key),

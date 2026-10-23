@@ -1,0 +1,335 @@
+{
+  "sopId": "SOP-DW-03",
+  "englishContentSha256": "f115b098e3c9f84348d2ee0cd8f478fc90c3dff947fc1e5c3502b545d898aad3",
+  "title": "SOP DW-03: Remodelaciones residenciales y ampliaciones de viviendas",
+  "headings": [
+    "1. Preparación del sitio y protección de la propiedad",
+    "2. Preparación y mediciones/comprobaciones requeridas",
+    "3. Pasos de trabajo específicos del servicio",
+    "4. Comprobaciones de calidad",
+    "5. Limpieza y manejo de residuos",
+    "6. Comprobaciones finales, fotos de finalización y recorrido"
+  ],
+  "items": {
+    "1.1": [
+      "- Obligaciones del acuerdo, citadas solo como referencia y en revisión del abogado: mantener los servicios conectados (\"electricidad sin interrupción\" y \"agua corriente limpia\") y \"sellar los espacios personales adyacentes\" (fuente: cláusulas \"Servicios activos obligatorios\" y \"Contención del polvo\" del acuerdo; 30 sección 5 filas 31 y 59)."
+    ],
+    "1.2": [
+      "- Lista de verificación del cliente PROPUESTA, enviada con la confirmación y el recordatorio de la cita una vez que el dueño y el abogado aprueben la redacción: despejar el área de trabajo y el camino de acceso; planificar para los ocupantes, los niños y las mascotas; informar las fugas conocidas, la humedad, los servicios dentro de las paredes, el año de construcción y cualquier prueba anterior (fuente: 04 DW-03 requisitos de preparación del cliente; spec NTF-004, NTF-005; CX-005)."
+    ],
+    "1.3": [
+      "- Al llegar, identifique mascotas y ocupantes y manténgalos lejos del trabajo activo, los elevadores, los zancos, el corte y el lijado; el módulo de ocupantes y mascotas está pendiente de revisión de seguridad calificada (fuente: spec APXA-002; X-11; 31 sección 5.8)."
+    ],
+    "1.4": [
+      "- La preparación o una declaración del cliente nunca reemplaza las comprobaciones previas al inicio propias de HandyHub, incluidas la evaluación de propiedades antiguas y la retención de inspección antes de cubrir (fuente: 30 sección 4.1 cláusula 5; manual de clasificación de riesgos \"Una superficie pintada antes de 1978 no queda liberada porque el cliente diga que parece segura.\")."
+    ],
+    "2.1": [
+      "Todo pendiente de revisión calificada. Una condición previa que no se cumple mantiene bloqueadas las tareas afectadas (fuente: manual del planificador de trabajos \"Una escalera faltante o un permiso no verificado mantiene bloqueadas las tareas afectadas.\")."
+    ],
+    "2.2": [
+      "- Evaluación en el sitio y cuantificación de materiales antes de un presupuesto en firme; las fotos por sí solas no pueden establecer las condiciones ocultas ni la suficiencia de carga (fuente: manual del asistente de presupuestos \"Las fotos por sí solas no pueden establecer una condición oculta ni la suficiencia de carga.\"; 04 DW-03 método de presupuesto, PROPUESTO)."
+    ],
+    "2.3": [
+      "- Bloque de condiciones previas C-DW03-01 (HOLD antes de la Fase 1 en la sección 12): planos y alcance aprobados en el expediente; determinación de permisos registrada por un revisor, no supuesta; dinteles, estructura de carga y estructura de ampliaciones en HOLD para un ingeniero estructural o un funcionario de construcción; reubicaciones de plomería, electricidad y HVAC solo por oficios con licencia (fuente: 31 sección 10 DW-03; spec DW-03.INT, DW-03.SAF).",
+      "  - Evidence: note"
+    ],
+    "2.4": [
+      "- Indicadores de permiso, licencia o calificación: donde la política administrativa marque el trabajo, Iniciar trabajo (Start Job) queda bloqueado hasta que se apruebe el requisito previo (fuente: spec START-010; AT-024). Si se necesita un permiso para estructura, acabado de sótanos, ampliaciones o dinteles, y quién lo obtiene, es una PREGUNTA ABIERTA para cada municipio de Kentucky e Indiana; una aplicabilidad desconocida no debe equivaler por defecto a \"no se necesita permiso\" (fuente: 04 DW-03 indicadores de permiso/licencia; manual de clasificación de riesgos)."
+    ],
+    "2.5": [
+      "- Evaluación de propiedades antiguas C-DW03-02 (HOLD antes de la Fase 1 y antes de \"La unión de lo viejo con lo nuevo\"): el año de construcción aproximado se registra en la solicitud, con \"desconocido\" como valor; en una casa anterior a 1978 o de edad desconocida, las superficies pintadas, el yeso antiguo y otros materiales sospechosos no se alteran hasta que una persona calificada registre una disposición, y la disposición sobre el yeso se registra antes de cualquier unión (fuente: 31 secciones 7.2 y 10; spec BRF-003 \"edad aproximada si se conoce\"; 04 DW-03 requisitos previos, PROPUESTO; X-13). El activador por edad es una retención conservadora hasta que el renovador certificado en RRP por la EPA y el inspector de asbesto acreditado confirmen la regla (Q-31-07).",
+      "  - Evidence: note"
+    ],
+    "2.6": [
+      "- Acceso y levantamiento (HOLD antes de la Fase 1 para escaleras, y antes de \"Secuencia de colocación\" para zancos, el elevador de paneles y el levantamiento en equipo): controles aprobados por un profesional de seguridad calificado; hasta que existan, los pasos afectados siguen retenidos (fuente: 31 sección 10 DW-03; spec DW-03.SAF \"controles de levantamiento/en equipo\"; 31 sección 8.4 regla 4; X-12; C-DW03-08)."
+    ],
+    "2.7": [
+      "- Servicios y electricidad: el acuerdo supone \"electricidad sin interrupción\" y \"agua corriente limpia\". Si los servicios están desconectados, no se usa ningún generador hasta que el dueño decida la política de servicios y un profesional de seguridad calificado apruebe el uso y la ubicación del generador (monóxido de carbono) (fuente: cláusula \"Servicios activos obligatorios\" del acuerdo; C-DW03-V01; 30 sección 5 fila 59)."
+    ],
+    "2.8": [
+      "- Antes de salir: confirme el trabajo, el cliente, la dirección y la hora; lea los últimos cambios; revise el alcance, las exclusiones, los peligros y la seguridad; cargue las herramientas, el equipo y los materiales críticos; revise los artículos que aporta el cliente y los alquileres; confirme los documentos y las aprobaciones requeridos (fuente: spec APXA-001). Las instrucciones muestran el presupuesto aprobado, el estado de dependencia de permisos/licencias/inspecciones, las órdenes de cambio y los planos (fuente: spec BRF-011)."
+    ],
+    "2.9": [
+      "- Antes de empezar: confirme el alcance con el cliente solo lo necesario; no acepte trabajo adicional importante fuera del proceso de cambios; complete las comprobaciones requeridas de seguridad, de EPP y del sitio; confirme los materiales; confirme que leyó el SOP y los peligros; empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada (fuente: spec APXA-003). Los indicadores de alto riesgo pueden requerir casillas aparte o la confirmación del supervisor (fuente: spec START-004).",
+      "  - Evidence: note"
+    ],
+    "2.10": [
+      "- Disponibilidad de materiales: un material faltante puede bloquear el inicio (fuente: spec START-006); varios artículos que usan los pasos todavía no están en el inventario (C-DW03-10; vea las adiciones propuestas del inventario)."
+    ],
+    "2.11": [
+      "- Al llegar: confirme la dirección, el área de trabajo y el contacto; identifique mascotas y ocupantes; inspeccione el sitio real frente a las instrucciones; tome las fotos requeridas del estado existente; proteja el área de trabajo; identifique los servicios públicos y las restricciones de emergencia relevantes para la tarea (fuente: spec APXA-002).",
+      "  - Evidence: photo"
+    ],
+    "2.12": [
+      "- Comprobación del sitio antes del inicio: registre cualquier diferencia con las instrucciones; las diferencias importantes activan la Clasificación de riesgos (Risk Triage) o la revisión del supervisor (fuente: spec START-007).",
+      "  - Evidence: note"
+    ],
+    "2.13": [
+      "- Protección y contención: proteja los pisos y las áreas adyacentes y mantenga la protección y la contención en su lugar durante el trabajo (fuente: spec APXA-002 \"proteja el área de trabajo\", APXA-004 \"mantenga la protección/contención\"); el estándar de contención, incluidas las cortinas que promete el acuerdo, es una decisión del dueño y del revisor de seguridad (C-DW03-03)."
+    ],
+    "2.14": [
+      "- Servicios: confirme que la electricidad y el agua están disponibles como supone el acuerdo; ningún generador sin aprobación (sección 3; C-DW03-V01). El aislamiento de cualquier servicio en el área de trabajo sigue el módulo de la empresa de aislar-verificar-restablecer una vez que se apruebe (X-07; 31 sección 5.8); bajo este SOP no se hace ningún trabajo en los servicios."
+    ],
+    "2.15": [
+      "- Organización del equipo: el elevador de paneles y los zancos se instalan e inspeccionan solo según sus fabricantes y solo después de que se liberen las retenciones de acceso y levantamiento (C-DW03-08)."
+    ],
+    "2.16": [
+      "- Evidencia previa al inicio: fotos del estado existente, incluida cada pared o techo con el que se une el trabajo nuevo (fuente: spec START-008, BRF-012; 04 DW-03 evidencia de finalización, PROPUESTO).",
+      "  - Evidence: photo"
+    ],
+    "3.1": [
+      "*Procedimiento original, sin cambios y en su orden original; los cinco encabezados de fase originales bajan un nivel. Las líneas HOLD y FLAG son adiciones pendientes de revisión calificada: una retención de condición previa va justo antes del paso que bloquea, y una retención o marca que suspende, limita o marca un paso va justo después de él (36 D-36-17). Nunca reemplazan ni reformulan un paso.*"
+    ],
+    "3.2": [
+      "> HOLD (C-DW03-01) - condiciones previas, antes del primer paso que sigue (\"Trazado con plomada\") y antes de cualquier trabajo de estructura: planos y alcance aprobados en el expediente; determinación de permisos registrada por un revisor, no supuesta; dinteles, estructura de carga y estructura de ampliaciones = HOLD para un ingeniero estructural o un funcionario de construcción; reubicaciones de plomería, electricidad y HVAC solo por oficios con licencia. No empiece la estructura hasta que esto esté registrado para este trabajo (spec START-010). Solo lo libera el revisor nombrado, con evidencia (31 sección 8.3). Pendiente de revisión calificada. (fuente: 31 sección 10 DW-03; spec DW-03.INT, DW-03.SAF)"
+    ],
+    "3.3": [
+      "> HOLD (C-DW03-02) - antes del primer paso que sigue y antes de cualquier paso que corte, perfore, lije o retire acabados existentes: en una casa anterior a 1978 o de edad desconocida, las superficies pintadas, el yeso antiguo y otros materiales sospechosos no se alteran; deténgase y escale. HandyHub no toma muestras; se libera solo con una disposición registrada por un renovador certificado en RRP por la EPA o un inspector de asbesto acreditado aceptados por el dueño. Pendiente de revisión calificada. (fuente: 31 secciones 7.2 y 10; spec START-011; datos del dueño 2026-10-02, fuentes de RRP de la EPA y de asbesto; X-13)"
+    ],
+    "3.4": [
+      "> HOLD (X-12) - antes del primer paso que sigue: marcar líneas en el techo y fijar las soleras superiores es trabajo en altura. Las escaleras y otros equipos de acceso se usan solo bajo la política aprobada de altura y acceso, que todavía no existe (02 G-005); hasta que exista, este trabajo sigue retenido (31 sección 8.4 regla 4). Pendiente de revisión calificada. (fuente: spec DW-03.HAZ \"caídas\", DW-03.TLS \"equipo de acceso\"; sección 2, No realice punto 5)"
+    ],
+    "3.5": [
+      "- [ ] **Trazado con plomada:** Marque líneas de tiza azul en el piso y el techo para trazar las nuevas divisiones. Use un nivel láser para verificar que los nuevos rieles verticales de los montantes estén perfectamente a plomo."
+    ],
+    "3.6": [
+      "- [ ] **Fijación de rieles:** Fije las soleras superiores e inferiores con tornillos estructurales para madera (para vigas de madera) o anclajes para concreto (para losas de piso de sótano). Separe los montantes con precisión a 16 pulgadas de centro a centro."
+    ],
+    "3.7": [
+      "> FLAG (C-DW03-01): SIN FUENTE - verificar con las instrucciones del fabricante. \"Separe los montantes con precisión a 16 pulgadas de centro a centro\" en el paso anterior no tiene fuente; la separación de los montantes, las fijaciones de las soleras y los anclajes salen solo de los planos aprobados, de cualquier ensamblaje certificado, de los fabricantes de los paneles y de las fijaciones y de cualquier requisito de código aplicable confirmado por el funcionario de construcción (31 sección 10 DW-03: \"mandan el fabricante, el ensamblaje certificado y el código\"). Los \"tornillos estructurales para madera\" y los \"anclajes para concreto\" siguen bajo la HOLD estructural anterior; el tipo, el tamaño y la profundidad de empotramiento de los anclajes nunca se estiman (manual de clasificación de riesgos \"no invente ... las capacidades de carga de los anclajes\"). El texto del paso anterior no ha cambiado. REVISIÓN HUMANA: ingeniero estructural o funcionario de construcción."
+    ],
+    "3.8": [
+      "- [ ] **Bloqueo cortafuego y bloques de refuerzo:** Instale secciones de bloques de madera maciza detrás de las zonas donde se montarán objetos pesados más adelante (p. ej., soportes de pared para TV, gabinetes de cocina, tocadores de baño)."
+    ],
+    "3.9": [
+      "> FLAG (G-059): el paso anterior se titula \"Bloqueo cortafuego y bloques de refuerzo\" pero describe solo el respaldo para objetos que se montarán más adelante; el bloqueo cortafuego no se trata y no se realiza bajo este paso hasta que se registren para el trabajo los requisitos del funcionario de construcción. El paso no indica ninguna capacidad de carga para los objetos que se montarán más adelante. El texto del paso anterior no ha cambiado. REVISIÓN HUMANA: funcionario de construcción."
+    ],
+    "3.10": [
+      "> FLAG (C-DW03-04): no existe ningún paso de aislamiento térmico entre la Fase 1 y la Fase 2, aunque precios vende el complemento \"Instalación de aislamiento\" y el acuerdo ofrece \"aislamiento [ ]\". El aislamiento no se instala bajo este SOP (sección 2, Fuera del alcance); si el dueño lo añade, primero van un paso revisado, los materiales, el EPP y cualquier inspección requerida antes de cubrir. Pendiente de decisión del dueño."
+    ],
+    "3.11": [
+      "- [ ] **Mapa de asignación de paneles:**",
+      "\t- **Zonas estándar:** Hojas de panel de yeso (drywall) ligero de 1/2 pulgada.",
+      "\t- **Baños / cocinas húmedas:** Greenboard o Purpleboard resistente a la humedad.",
+      "\t- **Techos de garaje / cuartos de calderas:** Hojas Tipo X resistentes al fuego de 5/8 pulgada."
+    ],
+    "3.12": [
+      "> FLAG (spec DW-03.SAF \"use el panel/sistema correcto\"): los tipos de panel del paso anterior son un mapa predeterminado, no una especificación. El panel y el sistema de cada área salen de los planos aprobados, del fabricante del panel y de cualquier ensamblaje certificado resistente al fuego; la separación contra fuego en los techos de garaje y los cuartos de calderas, y la idoneidad del panel resistente a la humedad en áreas húmedas, incluso detrás de azulejo (la afirmación del plan principal, 02 C-DW03-09), son preguntas para el funcionario de construcción y el fabricante del panel (04 DW-03 indicadores de permiso/licencia). Si el panel en el sitio no coincide con los planos aprobados, deténgase (spec START-011 \"cualquier diferencia de material\"). El texto del paso anterior no ha cambiado. REVISIÓN HUMANA: funcionario de construcción."
+    ],
+    "3.13": [
+      "> HOLD (C-DW03-01) - inspección antes de cubrir, antes del paso que sigue (\"Secuencia de colocación\") y antes de que cualquier panel cubra la estructura, la plomería, la electricidad, el HVAC u otro trabajo: inspecciones requeridas aprobadas con fotos antes de cubrir; no cubra trabajo de servicios no aprobado (spec DW-03.SAF). Una inspección reprobada o incompleta es una retención crítica que ningún rol puede anular (31 sección 8.3 regla 2). Qué inspecciones se aplican, y quién las organiza, lo registra un revisor para el trabajo (04 DW-03 indicadores de permiso/licencia, PREGUNTA ABIERTA). Pendiente de revisión calificada. (fuente: 31 sección 10 DW-03; spec DW-03.SAF, DW-03.QAC \"penetraciones/interfaces documentadas, requisitos previos de inspección cumplidos\")"
+    ],
+    "3.14": [
+      "> HOLD (C-DW03-08) - antes del paso que sigue y de cada paso posterior que use zancos, el elevador de paneles, escaleras o levantamiento en equipo: los controles para los zancos, el elevador de paneles y el levantamiento en equipo deben estar aprobados por un profesional de seguridad calificado y en su lugar. Todavía no hay ninguno definido, y aquí no se fija ninguna altura, carga ni tamaño de equipo; hasta que existan, esos pasos siguen retenidos (31 sección 8.4 regla 4). Pendiente de revisión calificada. (fuente: 31 sección 10 DW-03; spec DW-03.HAZ \"paneles pesados, elevadores\", \"caídas\"; DW-03.SAF \"controles de levantamiento/en equipo\"; X-12)"
+    ],
+    "3.15": [
+      "- [ ] **Secuencia de colocación:** Siempre coloque primero los paneles del techo, y luego empuje los paneles de la pared bien ajustados contra la línea del techo. Alterne todas las juntas verticales de la pared—nunca permita que cuatro esquinas se junten en un solo punto (evita grietas por asentamiento y tensión)."
+    ],
+    "3.16": [
+      "> FLAG (31 sección 3.5 regla 5): \"(evita grietas por asentamiento y tensión)\" en el paso anterior es una justificación de trabajo, no una promesa al cliente; no se ofrece ningún resultado sin grietas (sección 2, No realice punto 8). El texto del paso anterior no ha cambiado."
+    ],
+    "3.17": [
+      "- [ ] **Patrón de fijación:** Coloque los tornillos a 8 pulgadas de distancia entre sí a lo largo de todos los bordes del perímetro y a 12 pulgadas de distancia a lo largo de los montantes interiores centrales. Mantenga los tornillos al menos a 3/8 pulgada del borde del panel. Asegúrese de que las cabezas queden hundidas sin perforar el papel de la superficie."
+    ],
+    "3.18": [
+      "> FLAG (C-DW03-01): SIN FUENTE - verificar con las instrucciones del fabricante. \"a 8 pulgadas de distancia\", \"a 12 pulgadas de distancia\" y \"al menos a 3/8 pulgada del borde\" en el paso anterior no tienen fuente; el tipo, la longitud y la separación de las fijaciones salen solo del fabricante del panel y, para un ensamblaje resistente al fuego, del ensamblaje certificado (31 sección 10 DW-03; spec DW-03.SAF \"use el panel/sistema correcto\"). El texto del paso anterior no ha cambiado. REVISIÓN HUMANA: revisor calificado; funcionario de construcción para ensamblajes resistentes al fuego."
+    ],
+    "3.19": [
+      "- [ ] **Primera etapa (asentado de cinta):** Llene todas las juntas biseladas de fábrica con compuesto para juntas multiuso. Incruste cinta de papel para juntas de primera calidad directamente en el compuesto húmedo con una espátula de 6 pulgadas, sacando el aire atrapado y el exceso de compuesto."
+    ],
+    "3.20": [
+      "- [ ] **Aplicación de esquineros:** Instale esquineros metálicos o de plástico compuesto grueso en todas las esquinas exteriores expuestas de las paredes. Fíjelos con una herramienta engrapadora (crimper) o con tornillos, y luego aplique una capa gruesa de compuesto para integrar el borde del esquinero con el perfil de la pared."
+    ],
+    "3.21": [
+      "> FLAG (C-DW03-V02): el material del esquinero difiere entre los archivos: el paso anterior permite esquineros \"metálicos o de plástico compuesto grueso\", mientras que el acuerdo especifica solo \"esquineros metálicos\". Use el material del presupuesto aprobado; una sustitución que afecte la especificación o la expectativa del cliente necesita aprobación (spec JOB-007). El texto del paso anterior no ha cambiado. Pendiente de decisión del dueño."
+    ],
+    "3.22": [
+      "- [ ] **Relleno de fijaciones:** Aplique una sola pasada limpia de compuesto sobre todas las depresiones de los tornillos hundidos en todos los paneles."
+    ],
+    "3.23": [
+      "> HOLD (C-DW03-02) - antes del paso que sigue (\"La unión de lo viejo con lo nuevo\"): la unión con yeso con crin de caballo u otro acabado antiguo queda retenida hasta que el año de construcción y la disposición sobre el yeso y la pintura estén registrados para el trabajo; en una casa anterior a 1978 o de edad desconocida, deténgase y escale. Se libera solo con una disposición registrada por un renovador certificado en RRP por la EPA o un inspector de asbesto acreditado aceptados por el dueño. Pendiente de revisión calificada. (fuente: 31 sección 10 DW-03; 04 DW-03 requisitos previos \"disposición sobre el yeso registrada antes de la demolición o de las uniones\", PROPUESTO)"
+    ],
+    "3.24": [
+      "- [ ] **La unión de lo viejo con lo nuevo:** Donde el panel de yeso (drywall) nuevo se une con yeso grueso antiguo con crin de caballo, use una espátula ancha de 12 pulgadas o de 14 pulgadas para difuminar la capa de compuesto al menos 18 pulgadas hacia el área de la pared vieja y crear una pendiente gradual e invisible."
+    ],
+    "3.25": [
+      "> FLAG (C-DW03-11): el paso anterior difumina \"al menos 18 pulgadas\", mientras que el acuerdo se compromete a \"hasta 18 pulgadas\"; el dueño decide un solo compromiso para el acuerdo, este SOP y la comprobación de calidad. \"invisible\" es una palabra de resultado, no una promesa al cliente (31 sección 3.5 regla 5). El texto del paso anterior no ha cambiado. REVISIÓN HUMANA: dueño; abogado (redacción del acuerdo)."
+    ],
+    "3.26": [
+      "- [ ] **Segunda capa de relleno:** Aplique una capa más ancha de compuesto de acabado sobre todas las juntas, ampliando el parche a 8–10 pulgadas."
+    ],
+    "3.27": [
+      "- [ ] **Tercera capa de acabado:** Aplique una capa ultradelgada y ajustada de compuesto ligero para rellenar los microporos y las marcas de lijado."
+    ],
+    "3.28": [
+      "- [ ] **Lijado de bordes:** Lije todas las juntas con una esponja fina de grano 180, con extremo cuidado de no raspar ni deshilachar el papel crudo de la superficie de las hojas de panel de yeso."
+    ],
+    "3.29": [
+      "> FLAG (C-DW03-15): el pago parcial final del acuerdo vence con el \"lijado mecánico final\", mientras que el paso anterior lija a mano con una esponja; aquí no se cambia el método de lijado, y el activador del pago le corresponde al dueño y al abogado. Los controles del polvo para el lijado están pendientes de revisión de seguridad calificada (secciones 6, 9 y 11). El texto del paso anterior no ha cambiado."
+    ],
+    "3.30": [
+      "- [ ] **La prueba de luz:** Coloque una lámpara de trabajo halógena comercial cerca del ángulo de la pared. Inspeccione meticulosamente cada unión en busca de marcas de llana, cráteres o crestas desiguales. Aplique compuesto en los puntos que necesiten corrección."
+    ],
+    "3.31": [
+      "- [ ] **Limpieza del sitio:** Aspire todos los residuos finos del lijado, limpie con un paño húmedo los marcos de las ventanas, y barra hasta dejar limpio antes de entregar al pintor."
+    ],
+    "4.1": [
+      "Un trabajador no puede marcar el trabajo como completo sin responder estas comprobaciones o registrar una excepción (fuente: spec QA-001). Las fotos no pueden probar condiciones ocultas: no deduzca a partir de una imagen los sujetadores ocultos, la suficiencia estructural ni la liberación de materiales peligrosos (fuente: manual del asistente de calidad)."
+    ],
+    "4.2": [
+      "| Comprobación (spec DW-03.QAC) | Cómo se verifica (pendiente de revisión) | Evidencia | Inspector |",
+      "|---|---|---|---|",
+      "| Paredes/techos rectos dentro de la tolerancia del proyecto | Frente a la tolerancia registrada en los planos o el presupuesto aprobados; ningún archivo de DW-03 indica un valor de tolerancia (04 DW-03 lista de verificación de calidad, BRECHA). Los pasos \"Trazado con plomada\" y \"La prueba de luz\" apoyan la comprobación | Fotos del trazado y de la prueba de luz por área (04 DW-03 evidencia de finalización, PROPUESTO) | Autocomprobación del trabajador; si un supervisor debe inspeccionar es Q-31-15 |",
+      "| Materiales correctos | El tipo de panel por área, las fijaciones, la cinta, el compuesto y el material del esquinero coinciden con el presupuesto y los planos aprobados; sustituciones solo con aprobación (spec JOB-007; C-DW03-V02) | Registro de materiales frente al presupuesto (spec BRF-010 \"estado cargado/verificado\") | Trabajador |",
+      "| Calidad de fijaciones/cinta/acabado | Paso \"La prueba de luz\": marcas de llana, cráteres o crestas corregidos; nivel de acabado según el presupuesto aprobado, con los criterios de nivel de acabado pendientes (X-26) | Fotos de después por área (spec QA-003) | Trabajador; un supervisor donde se requiera (Q-31-15) |",
+      "| Penetraciones/interfaces documentadas | Cada penetración e interfaz de servicios fotografiada antes de cubrir | Fotos previas a cubrir asociadas a las áreas (04 DW-03 evidencia de finalización, PROPUESTO) | Trabajador |",
+      "| Requisitos previos de inspección cumplidos | Aprobación de la inspección registrada antes del paso \"Secuencia de colocación\" (HOLD C-DW03-01) | Registro de inspección con fotos | El revisor nombrado en la retención; el recorrido con el cliente no es una inspección (spec QA-004) |",
+      "| Difuminado en las uniones (acuerdo y SOP) | Difuminado en las uniones según el único compromiso que decida el dueño (C-DW03-11) | Fotos de las uniones antes y después (spec BRF-012, QA-003) | Trabajador |"
+    ],
+    "5.1": [
+      "- Retire la protección y la contención; limpie el área; retire los residuos; cuente las herramientas y los materiales; restablezca los servicios o los componentes modificados dentro del alcance (fuente: spec APXA-005; QA-002)."
+    ],
+    "5.2": [
+      "- El paso original \"Limpieza del sitio\" (sección 12) aspira los residuos del lijado, limpia con un paño húmedo los marcos de las ventanas y barre; la clase de polvo de la aspiradora y el método de limpieza están pendientes de revisión de seguridad calificada (fuente: paso original; 29 sección 5.2 kit `dust-control`)."
+    ],
+    "5.3": [
+      "- Pueden requerirse fotos de la limpieza para trabajos con polvo (fuente: spec QA-002); vea la sección 16.",
+      "  - Evidence: photo"
+    ],
+    "5.4": [
+      "- La limpieza del oficio se queda dentro del trabajo de DW-03; la limpieza posterior a la construcción (CL-04) cubre la limpieza de detalle y final de las áreas que todos los oficios hayan liberado (fuente: 02 sección 5.2, límite PROPUESTO)."
+    ],
+    "5.5": [
+      "TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo."
+    ],
+    "5.6": [
+      "- Residuos de los pasos: recortes de panel, envases vacíos de compuesto, cinta usada, polvo y residuos del lijado, protección usada (fuente: pasos originales; spec QA-002 \"manejo de escombros/residuos\")."
+    ],
+    "5.7": [
+      "- Escombros de demolición: bajo este SOP no hay demolición; el \"sacar los escombros a remolques de basura\" del archivo de precios no tiene un método de desecho revisado (C-DW03-02)."
+    ],
+    "5.8": [
+      "- Contenedores, destino y quién paga: una decisión del dueño con las reglas locales del municipio real (fuente: 31 sección 3.1, fila de residuos; 29 sección 8.2 control 10; Q-29-10)."
+    ],
+    "5.9": [
+      "- El material sospechoso peligroso no se embolsa, mueve ni retira (fuente: sección 2, No realice; spec START-011)."
+    ],
+    "6.1": [
+      "- Antes: fotos de llegada y del estado existente, incluida cada pared o techo con el que se une el trabajo nuevo; el inicio queda bloqueado hasta que se tomen o se registre un motivo autorizado (fuente: spec START-008, BRF-012).",
+      "  - Evidence: photo, note"
+    ],
+    "6.2": [
+      "- Durante: antes de cubrir, fotos de la estructura, los bloques, las penetraciones y las interfaces de servicios y del registro de inspección (fuente: spec DW-03.QAC \"penetraciones/interfaces documentadas, requisitos previos de inspección cumplidos\"; 04 DW-03 evidencia de finalización, PROPUESTO); condiciones ocultas con fotos y su gravedad (fuente: spec APXA-004; JOB-004).",
+      "  - Evidence: photo, note"
+    ],
+    "6.3": [
+      "- Después: fotos asociadas a las áreas de trabajo o las tareas (fuente: spec QA-003): paredes y techos terminados, uniones, esquineros y limpieza (fuente: 04 DW-03 evidencia de finalización, PROPUESTO; spec QA-002).",
+      "  - Evidence: photo"
+    ],
+    "6.4": [
+      "- Privacidad: solo interna por defecto; evite personas, documentos y objetos de valor que no se necesiten para el trabajo (fuente: spec REC-002; 31 sección 3.5 regla 7)."
+    ],
+    "6.5": [
+      "- Los avisos de llegada y de finalización usan plantillas aprobadas; un trabajo bloqueado usa solo el mensaje aprobado de \"trabajo bloqueado\", sin detalles de incidentes ni códigos de acceso por SMS o correo electrónico (fuente: spec NTF-007, COM-002)."
+    ],
+    "6.6": [
+      "- La espera de planos, de una determinación de permisos, de una inspección o de una disposición sobre materiales peligrosos se explica solo con la redacción aprobada; el trabajador no decide ni le dice al cliente si se aplica un permiso (sección 3; 04 DW-03 indicadores de permiso/licencia)."
+    ],
+    "6.7": [
+      "- Daños ocultos, humedad, materiales sospechosos o conflictos con servicios encontrados al abrir las paredes: primero deténgase y escale (sección 19); luego se le informa al cliente con la redacción aprobada, y cualquier trabajo adicional necesita una orden de cambio (fuente: spec JOB-004, JOB-005, FIN-008)."
+    ],
+    "6.8": [
+      "- Recorrido: registre el resultado como aceptado, aceptado con elementos pendientes, no disponible o en disputa (fuente: spec QA-004).",
+      "  - Evidence: note"
+    ],
+    "6.9": [
+      "- Las notas de cuidado salen solo de datos aprobados del producto (fuente: spec QA-008; manual del asistente de calidad \"Prepare las instrucciones de entrega a partir de datos aprobados del producto\")."
+    ],
+    "6.10": [
+      "- No prometa planitud, juntas sin grietas, prevención de moho, cumplimiento del código ni una garantía (fuente: sección 2, No realice punto 8; C-DW03-09)."
+    ],
+    "6.11": [
+      "- Explique el siguiente paso de la factura y el pago sin promesas no autorizadas; el calendario de pagos parciales del acuerdo está en revisión del dueño y del abogado (fuente: spec APXA-006; C-DW03-06)."
+    ],
+    "6.12": [
+      "Terminado significa todo lo siguiente, registrado en el trabajo (fuente: spec QA-001 a QA-004; DW-03.QAC; APXA-005 a APXA-007):"
+    ],
+    "6.13": [
+      "- Cada comprobación de la sección 13 respondida, o una excepción registrada (QA-001).",
+      "  - Evidence: note"
+    ],
+    "6.14": [
+      "- Requisitos previos de inspección cumplidos y fotos previas a cubrir registradas (DW-03.QAC).",
+      "  - Evidence: note"
+    ],
+    "6.15": ["- Fotos de después asociadas a las áreas o las tareas (QA-003).", "  - Evidence: photo"],
+    "6.16": ["- Protección y contención retiradas y limpieza hecha (QA-002; APXA-005)."],
+    "6.17": ["- Herramientas y materiales contados; alquileres devueltos (APXA-005, APXA-007)."],
+    "6.18": ["- Resultado del recorrido registrado, con los elementos pendientes (QA-004).", "  - Evidence: note"],
+    "6.19": [
+      "- Problemas sin resolver, incidentes y solicitudes de cambio enviados antes de que se cierre el trabajo (APXA-007)."
+    ],
+    "6.20": [
+      "- Cada factura de avance está vinculada a un hito verificado; los activadores de pagos parciales del acuerdo están en revisión (fuente: 04 DW-03 evidencia de finalización, PROPUESTO; spec FIN-003, QA-006; C-DW03-15)."
+    ],
+    "6.21": [
+      "- La finalización definitiva es una aprobación humana; la revisión de calidad solo recomienda que está listo (fuente: manual del asistente de calidad \"Recomiende que está listo para la aprobación humana; no fije la finalización definitiva\").",
+      "  - Evidence: note"
+    ],
+    "stop.1": [
+      "La regla general para detener el trabajo es [[FACT-SVC-STOP-WORK-RULE]]. Activadores específicos del servicio:"
+    ],
+    "stop.2": [
+      "Activadores para detener el trabajo y retenciones específicos del servicio (todos pendientes de revisión calificada; roles que los liberan según 31 sección 8.3):"
+    ],
+    "stop.3": [
+      "- Indicación de la tarjeta, sin cambios: \"verifique los planos aprobados/las dependencias de permisos; no cubra trabajo de servicios no aprobado; use el panel/sistema correcto; controles de levantamiento/en equipo; inspecciones antes de cubrir donde se requieran\" (fuente: spec DW-03.SAF)."
+    ],
+    "stop.4": [
+      "- HOLD C-DW03-01, condiciones previas antes de la Fase 1: planos y alcance aprobados en el expediente; determinación de permisos registrada por un revisor, no supuesta; dinteles, estructura de carga y estructura de ampliaciones retenidos para un ingeniero estructural o un funcionario de construcción; reubicaciones de plomería, electricidad y HVAC solo por oficios con licencia. Un problema estructural y un alcance no aprobado de electricidad, plomería, gas o HVAC son retenciones críticas que ningún rol puede anular (31 sección 8.3).",
+      "  - Evidence: note"
+    ],
+    "stop.5": [
+      "- HOLD C-DW03-01, inspección antes de cubrir, antes de \"Secuencia de colocación\": inspecciones requeridas aprobadas con fotos antes de que cualquier panel cubra la estructura, los servicios u otro trabajo; una inspección reprobada o incompleta es una retención crítica (31 sección 8.3 regla 2)."
+    ],
+    "stop.6": [
+      "- HOLD C-DW03-02, evaluación de propiedades antiguas, antes de la Fase 1 y antes de \"La unión de lo viejo con lo nuevo\": las superficies pintadas anteriores a 1978 o de edad desconocida, los materiales sospechosos, el yeso con crin de caballo y la demolición no se alteran; se libera solo con una disposición registrada por una persona calificada aceptada por el dueño (31 secciones 8.3 y 10).",
+      "  - Evidence: note"
+    ],
+    "stop.7": [
+      "- HOLD X-12, acceso antes de la Fase 1, y HOLD C-DW03-08, zancos, elevador de paneles y levantamiento en equipo antes de \"Secuencia de colocación\": siguen retenidos hasta que un profesional de seguridad calificado apruebe los controles; una retención causada por la falta de una política no se puede liberar por anulación (31 sección 8.4 regla 4)."
+    ],
+    "stop.8": [
+      "- Sospecha de crecimiento de moho o una fuga activa: deténgase; se trata como crítica hasta que exista la definición de moho de la empresa (31 sección 8.4 regla 2; Q-31-10; X-06)."
+    ],
+    "stop.9": [
+      "- Un panel o sistema en el sitio que no coincide con los planos aprobados, incluidos los ensamblajes resistentes al fuego o a la humedad: deténgase y escale (spec DW-03.SAF \"use el panel/sistema correcto\"; START-011 \"cualquier diferencia de material\")."
+    ],
+    "stop.10": ["Ruta general: [[FACT-SVC-ESCALATION-PATH]]."],
+    "stop.11": [
+      "Roles del servicio para DW-03 (los contactos y el orden de escalamiento son decisiones del dueño, Q-31-05):"
+    ],
+    "stop.12": [
+      "- Dinteles, paredes de carga, ampliaciones o cualquier duda estructural: ingeniero estructural o funcionario de construcción (C-DW03-01)."
+    ],
+    "stop.13": [
+      "- Determinaciones de permisos e inspecciones antes de cubrir: el revisor nombrado para el trabajo, con el departamento de construcción local (C-DW03-01)."
+    ],
+    "stop.14": [
+      "- Servicios en el área de trabajo o que necesitan reubicación: electricista, plomero o profesional de HVAC con licencia (C-DW03-01; X-07)."
+    ],
+    "stop.15": [
+      "- Superficies pintadas antiguas, yeso con crin de caballo, materiales sospechosos o demolición: renovador certificado en RRP por la EPA; inspector de asbesto acreditado (C-DW03-02)."
+    ],
+    "stop.16": ["- Moho o humedad: evaluador de moho calificado o higienista industrial (X-06; Q-31-10)."],
+    "stop.17": [
+      "- Zancos, elevador de paneles, escaleras, levantamiento en equipo, polvo y uso de generadores: profesional de seguridad calificado (C-DW03-08; C-DW03-V01)."
+    ],
+    "stop.18": ["- Preguntas sobre alcance, precio y pagos parciales: dueño (C-DW03-05, C-DW03-06)."],
+    "stop.19": ["Ruta general: [[FACT-SVC-INCIDENT-REPORTING]]."],
+    "stop.20": [
+      "- Para este servicio, reporte como mínimo una caída desde zancos o una escalera, un panel que se cae o una falla del elevador, un corte o una lesión con herramienta eléctrica, exposición al polvo o sospecha de exposición a materiales peligrosos, y daños a un servicio oculto (fuente: spec JOB-008; DW-03.HAZ \"paneles pesados, elevadores, polvo, caídas\", \"interfaces eléctricas/de plomería/de HVAC\")."
+    ]
+  },
+  "ambiguous": []
+}

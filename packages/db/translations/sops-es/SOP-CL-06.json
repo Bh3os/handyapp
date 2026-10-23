@@ -1,0 +1,381 @@
+{
+  "sopId": "SOP-CL-06",
+  "englishContentSha256": "a2679eb5aaf0fe517f24101e26b3da38335999f020010cccbf52d57c46650286",
+  "title": "SOP CL-06: Limpieza doméstica de lujo estilo hotel",
+  "headings": [
+    "1. Preparación del sitio y protección de la propiedad",
+    "2. Preparación y mediciones/comprobaciones requeridas",
+    "3. Pasos de trabajo específicos del servicio",
+    "4. Comprobaciones de calidad",
+    "5. Limpieza y manejo de residuos",
+    "6. Comprobaciones finales, fotos de finalización y recorrido"
+  ],
+  "items": {
+    "1.1": ["De la solicitud de la tarjeta de la spec, pendiente de revisión:"],
+    "1.2": [
+      "- Límites de privacidad: habitaciones y objetos prohibidos, y qué se puede tocar, mover o fotografiar (fuente: spec CL-06.INT \"límites de privacidad\"; CL-06.SAF)."
+    ],
+    "1.3": [
+      "- Preferencias de lavandería, guardarropa y cuidado de prendas, y las prendas que el cliente quiere planchar (fuente: spec CL-06.INT \"preferencias de lavandería/guardarropa\")."
+    ],
+    "1.4": [
+      "- Objetos delicados y de alto valor, y cuáles de ellos pueden cuidar los trabajadores (fuente: spec CL-06.INT \"objetos delicados\"; CL-06.QAC \"objetos de alto valor sin tocar excepto el cuidado autorizado\")."
+    ],
+    "1.5": [
+      "- Instrucciones de acceso, llaves y alarma, ingresadas en los campos protegidos de la aplicación (fuente: spec CL-06.INT \"acceso\"; 27 AUTH-009)."
+    ],
+    "1.6": [
+      "- Productos preferidos, preferencia de fragancia, y alergias o sensibilidades de los ocupantes y las mascotas (fuente: spec CL-06.INT \"productos preferidos\"; 02 C-CL06-02)."
+    ],
+    "1.7": [
+      "- Cada visita vuelve a confirmar el acceso, los ocupantes, las mascotas, los peligros y las condiciones del área de trabajo (fuente: spec CX-005)."
+    ],
+    "1.8": [
+      "BRECHA - todavía no está en el acuerdo ni en ningún recordatorio (decisión del dueño; redacción a través de 30 y 32): el acuerdo no tiene una cláusula de preparación del cliente (30 sección 4.2, columna CL-06, cláusula 5); no está decidido quién aporta los ganchos, las toallas, la ropa de cama, los difusores, las flores y los artículos de organización (C-CL06-12); no se tratan las mascotas ni los ocupantes durante el trabajo (X-11)."
+    ],
+    "2.1": ["Condiciones de despacho y de Iniciar trabajo (Start Job), pendientes de revisión:"],
+    "2.2": [
+      "- Versión aceptada del plan: el nivel, los días de visita y las tareas de cada visita salen del presupuesto o de la versión del plan aceptados, no de los pasos sin nivel de este archivo (fuente: spec CL-06.INT \"plan de servicio recurrente\"; spec CX-004, EST-007; C-CL06-V01; APXA-001 \"revisar alcance/exclusiones\")."
+    ],
+    "2.3": [
+      "- Solicitud registrada y vigente: límites de privacidad y habitaciones prohibidas; preferencias de lavandería y guardarropa; objetos delicados y de alto valor y quién puede tocarlos; acceso; productos preferidos (fuente: spec CL-06.INT).",
+      "  - Evidence: note"
+    ],
+    "2.4": [
+      "- Hay registro de una preferencia de fragancia y de una comprobación de alergias o sensibilidades que cubra a los ocupantes y las mascotas antes de usar cualquier producto con aroma (fuente: 02 C-CL06-02; spec CL-06.INT \"productos preferidos\"; 04 CL-06 \"requisitos de preparación del cliente\").",
+      "  - Evidence: note"
+    ],
+    "2.5": [
+      "- Cada visita vuelve a confirmar el acceso, los ocupantes, las mascotas, los peligros y las condiciones del área de trabajo (fuente: spec CX-005)."
+    ],
+    "2.6": [
+      "- Las instrucciones de llaves, caja de seguridad para llaves y alarma se guardan solo en los campos protegidos de la aplicación; las llaves físicas son artículos en custodia con un registro de entrega y devolución por persona; ningún código aparece en este SOP, en notas, fotos ni mensajes (fuente: 27 AUTH-009 y sección 4.6, PROPUESTO; spec COM-002).",
+      "  - Evidence: note"
+    ],
+    "2.7": [
+      "- Cada producto químico (aerosoles de aroma, abrillantadores, acondicionador de cuero, limpiadores, recargas de difusor) está aprobado con una SDS revisada; un producto sin ella no se lleva al trabajo (fuente: 29 sección 8.3 regla provisional, PROPUESTO)."
+    ],
+    "2.8": [
+      "- Trabajo en solitario: una persona de limpieza trabaja sola en una residencia privada (el nivel Elite menciona una \"Ama de llaves personal dedicada en la propiedad\"); todavía no existe un protocolo de comprobación y escalamiento: TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo. (fuente: línea \"Inclusiones\" de Elite en precios; 04 CL-06 \"condiciones para detener el trabajo\")",
+      "  > Ahora se rige por [[OWN-DEC-149]]: no hay comprobaciones periódicas para el trabajo en solitario; el trabajador registra solo Llegó (Arrived) y Terminó (Finished)."
+    ],
+    "2.9": [
+      "- EPP seleccionado y disponible; herramientas y productos cargados y revisados (fuente: spec START-004, START-005; APXA-001)."
+    ],
+    "2.10": [
+      "- Indicadores de permiso, licencia y calificación: CL-06 no toca ninguno de los ocho límites con licencia; los términos de suscripción del consumidor, el seguro de la propiedad bajo el cuidado de HandyHub, las verificaciones de antecedentes, el manejo del correo y los paquetes y la tributación son preguntas abiertas para el abogado, el corredor de seguros, el responsable de privacidad y el contador (CPA). Esto no es una conclusión de que nada se aplica; una determinación desconocida bloquea la línea afectada (fuente: 04 sección 6.3 fila CL-06; spec HND-005, START-010)."
+    ],
+    "2.11": [
+      "- Empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada; las retenciones críticas no se pueden anular (fuente: APXA-003; 31 sección 8.3).",
+      "  - Evidence: note"
+    ],
+    "2.12": [
+      "Pendiente de revisión; los métodos salen de los módulos aprobados, ninguno de los cuales existe todavía:"
+    ],
+    "2.13": [
+      "- Confirme la dirección, el área de trabajo y el contacto; identifique mascotas y ocupantes (fuente: APXA-002)."
+    ],
+    "2.14": [
+      "- Inspeccione el sitio real frente a las instrucciones y registre las diferencias (fuente: spec START-007).",
+      "  - Evidence: note"
+    ],
+    "2.15": [
+      "- Revise los límites de privacidad del cliente, las habitaciones prohibidas, los objetos autorizados y las preferencias para esta visita (fuente: spec CL-06.INT)."
+    ],
+    "2.16": [
+      "- Tome fotos del estado existente solo donde el servicio las requiera, encuadradas para dejar fuera personas, documentos, correo y objetos de valor que no se necesiten para la evidencia (fuente: spec START-008; APXA-002; 13 sección 5.2 punto 5; 31 sección 3.5 regla 7).",
+      "  - Evidence: photo"
+    ],
+    "2.17": [
+      "- Confirme la preferencia de fragancia y el registro de alergias antes de preparar cualquier producto con aroma (fuente: 02 C-CL06-02).",
+      "  - Evidence: note"
+    ],
+    "2.18": [
+      "- Inspeccione el vaporizador, la plancha, la aspiradora y los cables antes de usarlos según las instrucciones del fabricante (fuente: 31 sección 3.1 fila 7)."
+    ],
+    "2.19": [
+      "- Tenga lista la señalización de piso mojado antes de trapear (fuente: 02 C-CL06-02; 29 sección 5.2 `cleaning-core`)."
+    ],
+    "2.20": [
+      "- Complete las comprobaciones de seguridad, de EPP y del sitio y confirme que leyó el SOP y los peligros antes de empezar (fuente: APXA-003; spec START-004).",
+      "  - Evidence: note"
+    ],
+    "3.1": [
+      "*El procedimiento original sigue sin cambios y en su orden original; sus encabezados de fase bajan un nivel. Las líneas HOLD y FLAG citadas se añadieron el 2026-10-03 y están pendientes de revisión calificada. Una HOLD colocada antes de un paso debe liberarse antes de que ese paso empiece; una HOLD o FLAG colocada después de un paso lo suspende, lo limita o lo marca (36 D-36-17). Ninguna retención reformula, reordena ni elimina un paso.*"
+    ],
+    "3.2": [
+      "> HOLD (C-CL06-01): antes del paso de clasificación de prendas que sigue - los límites de privacidad del cliente, las habitaciones prohibidas y los objetos que los trabajadores pueden manejar están registrados para esta visita (sección 3). Recoja ropa solo donde el cliente lo permita. El dinero en efectivo, las joyas, las llaves, el correo, los documentos u otros registros personales que se encuentren entre la ropa no se abren, leen, fotografían ni guardan; se manejan solo como el cliente lo haya autorizado por escrito, y se reportan los objetos de valor fuera de lugar, los objetos faltantes y cualquier daño (sección 19). Pendiente de revisión calificada y de revisión del responsable de privacidad. (fuente: spec CL-06.INT \"límites de privacidad\", \"objetos delicados\"; CL-06.SAF \"privacidad estricta; no fotografíe ni acceda a registros personales sin necesidad\", \"escalamiento por objetos de valor/daños\"; 31 sección 10 CL-06)"
+    ],
+    "3.3": [
+      "- [ ] **Clasificación de prendas:** Recoja las prendas de ropa que quedaron tiradas por la habitación; separe la ropa sucia de la ropa que requiere limpieza en seco o planchado."
+    ],
+    "3.4": [
+      "> FLAG (C-CL06-04): el paso anterior separa la ropa sucia de la ropa \"que requiere limpieza en seco o planchado\", pero ningún paso lava, seca ni dobla la ropa, lava a mano las prendas delicadas ni lleva prendas a una tintorería. Esas tareas se venden en precios y en el plan principal y no están cubiertas (sección 2); bajo este SOP, las prendas se quedan en la residencia donde el cliente las guarda. La custodia fuera del sitio necesita la revisión del corredor de seguros y del abogado. (fuente: 02 C-CL06-04; 31 sección 10 CL-06; 31 SOP-029, PROPUESTO)"
+    ],
+    "3.5": [
+      "> HOLD (C-CL06-01, C-CL06-02): antes del paso de planchado y vaporizado que sigue - (1) lea la etiqueta de cuidado de cada prenda; una prenda sin una etiqueta de cuidado clara, o cuya etiqueta no permite el planchado o vaporizado previsto, no se plancha y se aparta y se reporta (sección 17); (2) inspeccione el vaporizador o la plancha y su cable antes de usarlos y úselos solo como lo permitan las instrucciones del fabricante. Los controles contra quemaduras y la carga eléctrica de los equipos de alto vataje en los circuitos de la casa están pendientes de revisión de seguridad; un cable o enchufe dañado o un circuito disparado detiene el paso, sin trabajo en componentes eléctricos (No realice la entrada 1). Pendiente de revisión calificada. (fuente: spec CL-06.SAF \"siga las etiquetas de cuidado de prendas/superficies\"; línea \"Vaporizador de alto vataje\" del inventario; 02 C-CL06-02; 31 sección 10 CL-06)"
+    ],
+    "3.6": [
+      "- [ ] **Planchado y vaporizado:** Planche o vaporice las camisas, los trajes o los vestidos delicados solicitados para quitar todas las arrugas."
+    ],
+    "3.7": [
+      "> FLAG: redacción de resultado - \"para quitar todas las arrugas\" en el paso anterior se mantiene sin cambios, pero no es una promesa. Lo que se puede hacer a una prenda está limitado por su etiqueta de cuidado; una prenda que no se puede planchar más dentro de lo que permite su etiqueta se reporta, no se fuerza. Revisión de la redacción por el dueño (Q-31-16). (fuente: 31 sección 3.5 regla 5; spec CL-06.SAF)"
+    ],
+    "3.8": [
+      "- [ ] **Colgado uniforme:** Cuelgue las prendas de ropa de manera uniforme dentro del armario (todos los ganchos mirando en la misma dirección, prendas espaciadas de manera pareja)."
+    ],
+    "3.9": [
+      "- [ ] **Presentación de zapatos:** Alinee los zapatos de forma ordenada en el piso del clóset o en los zapateros, agrupados por estilo y color, mirando hacia adelante."
+    ],
+    "3.10": [
+      "> FLAG (C-CL06-V01): alcance por nivel no definido - precios reserva la organización del clóset y el vaporizado de prendas para el nivel Gold y superiores, mientras que los pasos de esta fase no hacen distinción de nivel y el acuerdo da el mismo alcance a todos los niveles. Las tareas de cada visita salen de la versión del plan aceptada (sección 3); la lista de tareas por nivel es una decisión del dueño (Q-28-21), y la redacción del acuerdo cambia solo después de la revisión del abogado. (fuente: 02 C-CL06-V01)"
+    ],
+    "3.11": [
+      "> HOLD (C-CL06-02): antes del paso de esquinas de hospital que sigue - método para levantar y remeter pendiente de revisión de seguridad. Las paletas para remeter del inventario, \"usadas para deslizarse bajo colchones pesados y remeter las sábanas sin levantarlos\", son el control PROPUESTO; cualquier límite de levantamiento o regla de dos personas viene solo del profesional de seguridad calificado (TBD). Pendiente de revisión calificada. (fuente: spec CL-06.HAZ \"esfuerzo ergonómico\"; línea \"Correas para sábanas de lino premium y paletas para remeter\" del inventario; 02 C-CL06-02)"
+    ],
+    "3.12": [
+      "- [ ] **Esquinas de hospital:** Tienda la cama con sábanas de calidad hotelera, remetiendo los bordes inferiores en esquinas de hospital ajustadas de 45 grados."
+    ],
+    "3.13": [
+      "- [ ] **Comprobación de simetría:** Estire el edredón/cobertor completamente derecho y simétrico en ambos lados; esponje las almohadas para dormir y los cojines decorativos para que queden de pie verticalmente."
+    ],
+    "3.14": [
+      "- [ ] **Enrollado de toallas:** Reemplace la ropa de baño usada con toallas limpias secadas en caliente, dobladas en cuadrados precisos de hotel o enrolladas con cuidado en exhibiciones sobre el tocador."
+    ],
+    "3.15": [
+      "> FLAG (C-CL06-04, C-CL06-12): \"secadas en caliente\" en el paso anterior implica secar ropa, lo que ningún paso cubre (sección 2). De dónde salen las toallas y la ropa de cama limpias, del surtido del cliente o de HandyHub, no está decidido (responsabilidad de suministro, C-CL06-12). (fuente: 02 C-CL06-04; 29 sección 5.4 fila CL-06)"
+    ],
+    "3.16": [
+      "> HOLD (C-CL06-01): antes del paso de desorden que sigue - organice solo objetos en las áreas y de los tipos que el cliente haya autorizado. No abra, lea, ordene ni fotografíe correo, documentos u otros registros personales; apilar revistas no se extiende al correo ni a los papeles. El dinero en efectivo, las joyas y otros objetos de valor no se mueven más allá de la autorización por escrito (No realice las entradas 9 y 10). Pendiente de revisión del responsable de privacidad. (fuente: spec CL-06.SAF; CL-06.QAC \"objetos de alto valor sin tocar excepto el cuidado autorizado\"; 31 sección 10 CL-06)"
+    ],
+    "3.17": [
+      "- [ ] **Manejo del desorden:** Organice el desorden diario: agrupe con cuidado los cables de carga con amarres, apile las revistas en orden cronológico, y retire las tazas/platos vacíos."
+    ],
+    "3.18": [
+      "> HOLD (C-CL06-01, C-CL06-02): antes del paso de pulido del tocador que sigue - sacuda y limpie los objetos delicados y de alto valor (bandejas de vidrio, frascos de perfume, acabados de muebles) solo donde el cliente haya autorizado su cuidado, con un producto y un método adecuados para la superficie según sus instrucciones de cuidado; un acabado desconocido se deja sin tratar y se reporta, y cualquier daño se reporta de inmediato (sección 19). Pendiente de revisión calificada. (fuente: spec CL-06.SAF \"siga las etiquetas de cuidado de prendas/superficies\", \"escalamiento por objetos de valor/daños\"; CL-06.HAZ \"daños químicos/a superficies\"; CL-06.QAC)"
+    ],
+    "3.19": [
+      "- [ ] **Pulido del tocador:** Sacuda y limpie meticulosamente las bandejas de maquillaje de vidrio delicadas, los frascos de perfume, las mesitas de noche y los tocadores."
+    ],
+    "3.20": [
+      "> HOLD (C-CL06-02): antes del paso de aroma y decoración que sigue - rocíe la ropa de cama, use un aroma ambiental o renueve un difusor solo cuando haya registro de la preferencia de fragancia del cliente y de una comprobación de alergias o sensibilidades que cubra a los ocupantes y las mascotas, y solo con un producto aprobado con una SDS revisada (29 sección 8.3 regla provisional, PROPUESTO). Si el cliente rechazó el aromatizado o falta la comprobación, omita las partes de aromatizado del paso y registre por qué. Pendiente de revisión calificada. (fuente: 02 C-CL06-02; spec CL-06.INT \"productos preferidos\"; 04 CL-06 \"requisitos de preparación del cliente\"; 31 sección 10 CL-06)"
+    ],
+    "3.21": [
+      "- [ ] **Aroma y decoración:** Renueve los difusores de varillas de la habitación, rocíe una bruma ligera para telas sobre la ropa de cama, y recorte/riegue las flores recién cortadas en los floreros."
+    ],
+    "3.22": [
+      "> FLAG (C-CL06-V01, C-CL06-12): alcance por nivel no definido - precios reserva el \"refresco de aroma ambiental\" para el nivel Gold y superiores, mientras que el paso anterior se hace en cada visita; la lista de tareas por nivel es una decisión del dueño (Q-28-21). No está decidido quién aporta y paga las recargas de difusor y las flores frescas (C-CL06-12). (fuente: 02 C-CL06-V01, C-CL06-12)"
+    ],
+    "3.23": [
+      "- [ ] **Retiro inmediato de basura:** Vacíe todos los botes de basura aunque tengan pocos residuos; limpie el interior del bote y use bolsas premium bien ajustadas."
+    ],
+    "3.24": [
+      "> FLAG: objetos punzocortantes - el vidrio roto, los platos u otros objetos cortantes en los botes son un peligro que el registro anota como un SUPUESTO pendiente de revisión de seguridad; el método de manejo y cualquier contenedor son TBD por el profesional de seguridad calificado. Hasta entonces, un objeto cortante o con riesgo biológico encontrado al vaciar o limpiar un bote detiene el paso anterior y se reporta (sección 10). (fuente: 04 CL-06 \"peligros\"; 29 sección 5.2 `cleaning-core`)"
+    ],
+    "3.25": [
+      "> HOLD (C-CL06-02, X-11): antes del paso de cuidado de pisos que sigue - (1) use un producto y un método de limpieza adecuados para el acabado del piso según sus instrucciones de cuidado; un piso de piedra o de madera cuyas instrucciones de cuidado se desconocen no se trapea en mojado hasta que el cliente las confirme; (2) mantenga a los ocupantes y las mascotas fuera de los pisos húmedos y marque el área mojada hasta que esté seca (el inventario propone un letrero de piso mojado). Pendiente de revisión calificada. (fuente: spec CL-06.SAF \"siga las etiquetas de cuidado de prendas/superficies\"; CL-06.HAZ \"daños químicos/a superficies\"; 02 C-CL06-02; 29 sección 5.2 `cleaning-core`)"
+    ],
+    "3.26": [
+      "- [ ] **Cuidado silencioso de pisos:** Use una aspiradora de bajo ruido en alfombras y tapetes; trapee en húmedo los pisos duros de piedra o de madera con una almohadilla de microfibra de alto brillo para un brillo sin vetas."
+    ],
+    "3.27": [
+      "> HOLD (C-CL06-01): cierre seguro - después del paso de cuidado de pisos anterior y antes de salir de la residencia: devuelva los objetos movidos a sus lugares acordados; deje las puertas, las ventanas, las cerraduras y la alarma como el cliente indicó, usando los datos de acceso solo de los campos protegidos de la aplicación (nunca anotados, fotografiados ni enviados por mensaje de texto); devuelva o registre las llaves como artículos en custodia; confirme que los objetos de alto valor quedaron sin tocar excepto el cuidado autorizado; registre la comprobación de cierre. Si la residencia no se puede asegurar como se indicó, escale antes de salir (sección 19), a menos que su propia seguridad requiera que usted salga. Pendiente de revisión calificada y de revisión del responsable de privacidad. (fuente: spec CL-06.QAC \"objetos de alto valor sin tocar excepto el cuidado autorizado, cierre seguro\"; 31 sección 10 CL-06; 31 sección 8.4 regla 3; 27 AUTH-009; spec COM-002)"
+    ],
+    "4.1": [
+      "Comprobaciones observables de la tarjeta del servicio (fuente: spec CL-06.QAC; QA-001), con la evidencia entre corchetes. El trabajador se autocomprueba; qué comprobaciones necesitan un supervisor es una decisión del dueño (Q-31-15)."
+    ],
+    "4.2": [
+      "- Estándar de habitación uniforme según las preferencias registradas del cliente [registro de la lista de verificación; evidencia de finalización según la sección 16; spec CL-06.QAC \"estándar de habitación uniforme\"].",
+      "  - Evidence: note"
+    ],
+    "4.3": [
+      "- Tareas de lavandería y guardarropa hechas según las instrucciones del cliente y la etiqueta de cuidado de cada prenda, con una lista de los artículos apartados [registro de la lista de verificación; spec CL-06.QAC \"tareas de lavandería/guardarropa según las instrucciones\"; CL-06.SAF].",
+      "  - Evidence: note"
+    ],
+    "4.4": [
+      "- Objetos de alto valor sin tocar excepto el cuidado autorizado [confirmación en la lista de verificación; spec CL-06.QAC]."
+    ],
+    "4.5": [
+      "- Camas tendidas y presentadas como describe el paso original \"Comprobación de simetría\" [autocomprobación; fase original 2]."
+    ],
+    "4.6": [
+      "- Pisos secos, o el área mojada controlada, y productos adecuados para el acabado [autocomprobación; 02 C-CL06-02]."
+    ],
+    "4.7": [
+      "- Cierre seguro hecho y registrado [registro de cierre; spec CL-06.QAC \"cierre seguro\"].",
+      "  - Evidence: note"
+    ],
+    "5.1": [
+      "La limpieza de este servicio significa la secuencia de salida y el equipo propio del equipo de trabajo (fuente: 31 sección 6.1); pendiente de revisión:"
+    ],
+    "5.2": [
+      "- Devuelva los objetos movidos durante la visita a los lugares que acordó el cliente (fuente: APXA-005; spec CL-06.QAC)."
+    ],
+    "5.3": [
+      "- Desenchufe el vaporizador y la plancha, y manéjelos y guárdelos como lo requieren las instrucciones de su fabricante (fuente: 02 C-CL06-02; 31 sección 3.1 fila 7)."
+    ],
+    "5.4": [
+      "- Deje la señalización de piso mojado en su lugar hasta que el piso esté seco, o avise a los ocupantes (fuente: 02 C-CL06-02)."
+    ],
+    "5.5": [
+      "- Cuente las herramientas, el equipo y los productos restantes; asegure los envases de productos químicos para el transporte según el programa de productos químicos, que todavía no existe (fuente: APXA-005; 29 sección 8.2 filas 5 y 6)."
+    ],
+    "5.6": ["- Restablezca todo lo que se haya modificado dentro del alcance (fuente: APXA-005)."],
+    "5.7": [
+      "TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo."
+    ],
+    "5.8": [
+      "- Tipos de residuos: basura doméstica vaciada de los botes y bolsas usadas; flores marchitas y tallos cortados; trapos usados, incluidos los trapos usados con el abrillantador a base de aceite si se conserva ese producto; envases vacíos de productos; cualquier objeto punzocortante o vidrio roto (fuente: fases originales 3 y 4; archivo de inventario; 29 sección 8.1)."
+    ],
+    "5.9": [
+      "- Ningún archivo de CL-06 dice adónde va la basura doméstica (los botes de la propia residencia u otro lugar), aunque la línea Elite de precios incluye \"desecho diario de basura\" (decisión del dueño; fuente: línea \"Inclusiones\" de Elite en precios)."
+    ],
+    "5.10": [
+      "- Destino y método para los residuos de productos y los objetos punzocortantes según el municipio: REVISIÓN HUMANA: autoridad local y profesional de seguridad calificado (Q-29-10). Aquí no se saca ninguna conclusión."
+    ],
+    "5.11": ["- Los residuos peligrosos no se manejan sin una política aprobada (fuente: 31 sección 3.1 fila 15)."],
+    "6.1": [
+      "Las fotos se toman solo en la aplicación y son solo internas por defecto (fuente: spec REC-002; 27 AUTH-034). Encuadre el área de trabajo: deje fuera el correo, los documentos, las fotos familiares, los medicamentos, otros objetos privados y las personas; nunca fotografíe niños a propósito, y nunca fotografíe códigos, teclados, paneles de alarma ni pantallas de cuentas; los objetos de valor aparecen solo como evidencia del estado previo (fuente: spec CL-06.SAF; 13 secciones 5.2 y 5.5; 31 sección 3.5 regla 7)."
+    ],
+    "6.2": [
+      "- Antes: fotos del estado existente solo donde el servicio las requiera, por ejemplo daños existentes en una prenda, un acabado o un objeto de alto valor antes del trabajo (fuente: spec START-008; 13 sección 5.5).",
+      "  - Evidence: photo"
+    ],
+    "6.3": [
+      "- Durante: ninguna por defecto; fotos de daños, de una condición inesperada o de un incidente cuando ocurra (fuente: spec JOB-004, JOB-008).",
+      "  - Evidence: photo"
+    ],
+    "6.4": [
+      "- Después: evidencia de finalización asociada a las habitaciones o las tareas (fuente: spec QA-003). Si esa evidencia es una foto encuadrada para dejar fuera los objetos personales o un registro de la lista de verificación sin fotos es una PREGUNTA ABIERTA para el responsable de privacidad (fuente: 04 CL-06 \"evidencia de finalización\").",
+      "  - Evidence: note"
+    ],
+    "6.5": [
+      "- Los avisos de llegada y de finalización son borradores; el trabajador o un administrador controla el envío real según la política (fuente: spec UXE-008)."
+    ],
+    "6.6": [
+      "- Registre el resultado del recorrido cuando el cliente esté presente: aceptado, aceptado con elementos pendientes, no disponible o en disputa (fuente: spec QA-004).",
+      "  - Evidence: note"
+    ],
+    "6.7": [
+      "- Reporte los artículos apartados (sin etiqueta de cuidado clara, cuidado no autorizado), los daños y las preocupaciones sobre objetos de valor por la ruta de escalamiento y con la redacción aprobada, sin improvisar términos (fuente: spec CL-06.SAF; sección 19).",
+      "  - Evidence: note"
+    ],
+    "6.8": [
+      "- Las solicitudes fuera de las tareas del plan se registran como solicitudes y pasan por una orden de cambio; el trabajador no las acepta (fuente: spec JOB-005, FIN-008).",
+      "  - Evidence: note"
+    ],
+    "6.9": [
+      "- Las preguntas sobre visitas omitidas, visitas de reposición, facturación y reembolsos van al dueño; esos términos están en revisión del abogado (fuente: APXA-006 \"explique el siguiente paso de la factura/el pago sin hacer promesas no autorizadas\")."
+    ],
+    "6.10": [
+      "- Trabajo bloqueado: use solo el mensaje aprobado de \"trabajo bloqueado\"; nunca envíe códigos de acceso ni detalles de incidentes por SMS o correo electrónico (fuente: spec NTF-007, COM-002)."
+    ],
+    "6.11": [
+      "- No prometa resultados ni describa el servicio con la redacción absoluta de los pasos y encabezados originales (\"quitar todas las arrugas\", \"brillo sin vetas\", \"Invisible\") ni con las afirmaciones del plan principal sobre el cuidado diario, los estándares de resort o la capacitación; no haga afirmaciones de salud ni de alergias sobre los productos con aroma (No realice la entrada 8; 31 sección 3.5 regla 5)."
+    ],
+    "6.12": ["Definición de terminado (fuente: spec QA-001 a QA-006; CL-06.QAC; APXA-005, APXA-006):"],
+    "6.13": [
+      "- Cada comprobación de la sección 13 está respondida, o hay una excepción registrada (QA-001).",
+      "  - Evidence: note"
+    ],
+    "6.14": [
+      "- Los artículos apartados, los daños y los escalamientos por objetos de valor están registrados (CL-06.SAF; spec JOB-004, JOB-008).",
+      "  - Evidence: note"
+    ],
+    "6.15": [
+      "- La evidencia de finalización está registrada dentro de los límites de privacidad de la sección 16 (QA-003).",
+      "  - Evidence: note"
+    ],
+    "6.16": ["- La limpieza está hecha y los objetos movidos están devueltos (QA-002; APXA-005)."],
+    "6.17": [
+      "- El cierre seguro está registrado; las llaves están devueltas o registradas (CL-06.QAC; 27 AUTH-009).",
+      "  - Evidence: note"
+    ],
+    "6.18": [
+      "- Los elementos pendientes están registrados con un responsable y una fecha límite (QA-005).",
+      "  - Evidence: note"
+    ],
+    "6.19": [
+      "- El resultado del recorrido está registrado cuando el cliente está presente (QA-004).",
+      "  - Evidence: note"
+    ],
+    "6.20": [
+      "- Ninguna retención queda abierta; cualquier incidente está reportado (sección 20; APXA-007).",
+      "  - Evidence: note"
+    ],
+    "stop.1": [
+      "La regla general para detener el trabajo es [[FACT-SVC-STOP-WORK-RULE]]. Activadores específicos del servicio:"
+    ],
+    "stop.2": [
+      "Activadores para detener el trabajo específicos del servicio (fuente: spec CL-06.SAF salvo que se indique otra cosa; redacción PROPUESTA pendiente de revisión calificada):"
+    ],
+    "stop.3": [
+      "- Una tarea requeriría abrir, leer o fotografiar correo, documentos u otros registros personales: no lo haga; escale (CL-06.SAF \"privacidad estricta; no fotografíe ni acceda a registros personales sin necesidad\").",
+      "  - Evidence: measurement, note"
+    ],
+    "stop.4": [
+      "- Una prenda no tiene una etiqueta de cuidado clara, o su etiqueta no permite el planchado previsto; el acabado o las instrucciones de cuidado de una superficie se desconocen: no trate ese objeto; apártelo y repórtelo (CL-06.SAF \"siga las etiquetas de cuidado de prendas/superficies\").",
+      "  - Evidence: note"
+    ],
+    "stop.5": [
+      "- Se encuentran objetos de valor fuera de lugar o faltantes, o se encuentra o se causa un daño: detenga el manejo del objeto y escale (CL-06.SAF \"escalamiento por objetos de valor/daños\"; spec JOB-008 para daños)."
+    ],
+    "stop.6": [
+      "- Se reporta una alergia o sensibilidad a fragancias, o la comprobación de fragancia no está registrada: ningún producto con aroma (02 C-CL06-02).",
+      "  - Evidence: note"
+    ],
+    "stop.7": ["- No hay una SDS revisada para un producto: no lo use (29 sección 8.3)."],
+    "stop.8": [
+      "- Una falla eléctrica, como un circuito disparado o un cable, enchufe o tomacorriente dañado: detenga el uso del aparato; no trabaje en componentes eléctricos (No realice la entrada 1; 02 C-CL06-02)."
+    ],
+    "stop.9": [
+      "- No se puede mantener a los ocupantes o las mascotas fuera de un piso mojado: no trapee esa área hasta que se pueda (02 C-CL06-02)."
+    ],
+    "stop.10": [
+      "- Un objeto cortante o con riesgo biológico en un bote, en la ropa de cama o en el desorden: deténgase y repórtelo (04 CL-06 \"peligros\", SUPUESTO).",
+      "  - Evidence: note"
+    ],
+    "stop.11": [
+      "- La residencia no se puede asegurar como el cliente indicó al cierre: escale antes de salir, a menos que su propia seguridad requiera que usted salga (CL-06.QAC \"cierre seguro\"; 31 sección 8.4 regla 3)."
+    ],
+    "stop.12": [
+      "Retenciones del servicio (insertadas en la sección 12). Las retenciones críticas no se pueden anular (31 sección 8.3); la retención de cierre seguro se trata como crítica (31 sección 8.4 regla 3, PROPUESTO), y una retención que existe porque falta un módulo o una política requeridos (productos químicos y SDS; credenciales y códigos de acceso; propiedad del huésped y cierre con llave) se comporta como una retención crítica hasta que ese módulo se apruebe (31 sección 8.4 regla 4, PROPUESTO):"
+    ],
+    "stop.13": [
+      "| Retención | Dónde en la sección 12 | Rol que la libera y evidencia |",
+      "|---|---|---|",
+      "| C-CL06-01: límites de privacidad, objetos autorizados, registros personales y objetos de valor | Antes de \"Clasificación de prendas\" y antes de \"Manejo del desorden\" | Responsable de privacidad (reglas aprobadas); la autorización del cliente registrada en la solicitud |",
+      "| C-CL06-01, C-CL06-02: etiquetas de cuidado de prendas; quemaduras y carga eléctrica del vaporizador y la plancha | Antes de \"Planchado y vaporizado\" | Dueño (regla de etiquetas de cuidado); profesional de seguridad calificado (controles del equipo, de quemaduras y eléctricos) |",
+      "| C-CL06-02: método para levantar y remeter | Antes de \"Esquinas de hospital\" | Profesional de seguridad calificado |",
+      "| C-CL06-01, C-CL06-02: objetos delicados y de alto valor; cuidado de superficies | Antes de \"Pulido del tocador\" | Dueño; la autorización del cliente registrada |",
+      "| C-CL06-02: preferencia de fragancia y comprobación de alergias; SDS del producto | Antes de \"Aroma y decoración\" | Profesional de seguridad calificado (SDS); el registro de preferencias del cliente |",
+      "| C-CL06-02, X-11: acabado del piso; pisos mojados con ocupantes y mascotas | Antes de \"Cuidado silencioso de pisos\" | Profesional de seguridad calificado; las instrucciones de cuidado del cliente para el piso |",
+      "| C-CL06-01: cierre seguro | Después de \"Cuidado silencioso de pisos\", antes de salir | Dueño y responsable de privacidad (regla de cierre aprobada); un registro de cierre para cada visita |"
+    ],
+    "stop.14": ["Ruta general: [[FACT-SVC-ESCALATION-PATH]]."],
+    "stop.15": ["Roles del servicio (los contactos son decisiones del dueño, Q-31-05):"],
+    "stop.16": ["- Registros personales, correo, fotos, llaves y códigos de acceso: responsable de privacidad."],
+    "stop.17": [
+      "- Objetos de valor, y daños a prendas, acabados u objetos de alto valor: dueño; corredor de seguros para preguntas sobre reclamaciones."
+    ],
+    "stop.18": [
+      "- Preguntas sobre el cuidado de prendas o el acabado de superficies: dueño, a partir de las etiquetas de cuidado y las instrucciones de cuidado del fabricante."
+    ],
+    "stop.19": [
+      "- Reacciones a productos químicos o fragancias: primero los servicios de emergencia cuando se necesiten, luego el profesional de seguridad calificado."
+    ],
+    "stop.20": ["- Fallas eléctricas: detenga el uso del aparato; un electricista con licencia a través del dueño."],
+    "stop.21": ["- Preocupaciones sobre el trabajo en solitario: dueño (protocolo de comprobación TBD)."],
+    "stop.22": [
+      "- Solicitudes más allá de las tareas del plan (lavado, mandados, refrigerador, correo y paquetes): dueño, mediante una orden de cambio cuando exista un paso revisado."
+    ],
+    "stop.23": ["Ruta general: [[FACT-SVC-INCIDENT-REPORTING]]."],
+    "stop.24": [
+      "**REVISIÓN HUMANA:** abogado con licencia en KY y/o IN para la frase sobre culpa y responsabilidad; corredor de seguros para cualquier paso de notificación a la aseguradora que se añada más adelante."
+    ],
+    "stop.25": [
+      "Ejemplos para este servicio, todos reportados bajo JOB-008 (fuente: spec CL-06.HAZ; 02 C-CL06-02): una quemadura con el vaporizador o la plancha; un resbalón en un piso húmedo; una reacción en la piel, los ojos o la respiración a un producto o una fragancia; daños a una prenda, un acabado o un objeto de alto valor; un objeto faltante o una preocupación sobre objetos de valor; una llave perdida o un código de acceso expuesto fuera de la aplicación (responsable de privacidad); una falla del equipo. Las medidas de primera respuesta dependen del kit de seguridad del vehículo, que todavía no está definido (X-10)."
+    ]
+  },
+  "ambiguous": []
+}

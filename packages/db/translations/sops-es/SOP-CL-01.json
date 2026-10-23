@@ -1,0 +1,316 @@
+{
+  "sopId": "SOP-CL-01",
+  "englishContentSha256": "85e0103b9b95c65204b3021cf4fadcc684844065e7e0c6d6e2b919282029634f",
+  "title": "SOP CL-01: Limpieza de rutina de la casa",
+  "headings": [
+    "1. Preparación del sitio y protección de la propiedad",
+    "2. Preparación y mediciones/comprobaciones requeridas",
+    "3. Pasos de trabajo específicos del servicio",
+    "4. Comprobaciones de calidad",
+    "5. Limpieza y manejo de residuos",
+    "6. Comprobaciones finales, fotos de finalización y recorrido"
+  ],
+  "items": {
+    "1.1": [
+      "- El cliente proporciona la entrada con llave, con el código de la caja de seguridad (lockbox) o en persona, según lo registra el acuerdo (fuente: cláusula \"Acceso\" del acuerdo).",
+      "  - Evidence: note"
+    ],
+    "1.2": [
+      "- Cada visita vuelve a confirmar que el acceso, los ocupantes, las mascotas, el estacionamiento, los peligros y las condiciones del área de trabajo siguen vigentes (fuente: spec CX-005)."
+    ],
+    "1.3": [
+      "- PROPUESTO para la lista de verificación de preparación (todavía no está en el acuerdo): mascotas aseguradas o mantenidas lejos de las habitaciones que se limpian; habitaciones o artículos excluidos nombrados; artículos frágiles o de alto valor nombrados o guardados; preferencias de productos y alergias, con consentimiento antes de usar cualquier producto con fragancia; áreas prioritarias; superficies que se van a limpiar despejadas de desorden, ya que el cargo por desorden del archivo de precios no tiene un umbral definido (fuente: 04 CL-01 \"requisitos de preparación del cliente\"; spec CL-01.INT; X-11; C-CL01-05)."
+    ],
+    "1.4": [
+      "- Las comprobaciones previas al inicio propias de HandyHub nunca se trasladan al cliente (fuente: 30 sección 4.1 cláusula 5)."
+    ],
+    "2.1": [
+      "*Controles de despacho y de Iniciar trabajo (Start Job) para este servicio (fuente: spec APXA-001, APXA-003; 31 sección 3.1 fila 3). Cada elemento está pendiente de revisión.*"
+    ],
+    "2.2": [
+      "- Solicitud completa: habitaciones, ocupación y mascotas, superficies y materiales, áreas prioritarias, habitaciones o artículos excluidos, y preferencias de productos o alergias si el cliente las menciona (fuente: spec CL-01.INT)."
+    ],
+    "2.3": [
+      "- Una versión aprobada del presupuesto cubre las habitaciones y las tareas de la visita; empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada (fuente: spec CX-003; APXA-003).",
+      "  - Evidence: note"
+    ],
+    "2.4": [
+      "- Cada visita vuelve a confirmar que el acceso, los ocupantes, las mascotas, el estacionamiento, los peligros y las condiciones del área de trabajo siguen vigentes, también para un cliente recurrente (fuente: spec CX-005)."
+    ],
+    "2.5": [
+      "- Acceso con llave, con el código de la caja de seguridad o con entrada en persona, según lo registrado para la propiedad. Los códigos se muestran solo en los campos protegidos de la aplicación, y las llaves son artículos bajo custodia con un registro de entrega y devolución; el procedimiento de custodia, devolución y rotación de llaves y códigos todavía no está escrito (fuente: cláusula \"Acceso\" del acuerdo; 27 AUTH-009; spec COM-002; 02 G-065, G-115).",
+      "  - Evidence: note"
+    ],
+    "2.6": [
+      "- Cada producto de limpieza está en una lista de productos aprobados con una SDS revisada; un producto químico sin una SDS revisada no se lleva al trabajo. Todavía no hay ningún producto aprobado: TBD - requiere la revisión de un revisor de seguridad calificado (fuente: 29 sección 8.3 regla provisional, PROPUESTO; spec CL-01.SAF)."
+    ],
+    "2.7": [
+      "- Se carga un medio para señalizar o controlar los pisos mojados (fuente: spec CL-01.SAF \"señalizar/controlar los pisos mojados\"); todavía no hay ningún letrero de piso mojado en existencia (archivo de inventario, adiciones propuestas)."
+    ],
+    "2.8": [
+      "- Productos que aporta el cliente, cuando una preferencia o una alergia los requiere: el producto y su estado se registran antes de usarlos (fuente: spec START-009; 29 sección 9.1).",
+      "  - Evidence: note"
+    ],
+    "2.9": [
+      "- Antes de que este SOP pueda activarse, los revisores nombrados aprueban: los controles de productos químicos, SDS y pisos mojados (C-CL01-06); el límite entre objetos punzocortantes, riesgos biológicos y moho (X-06); las retenciones del ventilador y del triturador de basura (sección 12); el arreglo para un limpiador que trabaja solo (02 G-065) (fuente: 31 sección 10 CL-01; datos del dueño L20)."
+    ],
+    "2.10": [
+      "- Antes de salir: confirme el trabajo, el cliente, la dirección y la hora; lea los últimos cambios; verifique el acceso; revise el alcance y las exclusiones; revise los peligros y la seguridad; cargue las herramientas y los materiales críticos, incluido el medio para señalizar los pisos mojados; revise los artículos que aporta el cliente; confirme los documentos y las aprobaciones requeridos (fuente: spec APXA-001)."
+    ],
+    "2.11": [
+      "- Al llegar: confirme la dirección, el área de trabajo y el contacto; identifique mascotas y ocupantes; inspeccione el sitio real frente a las instrucciones; tome las fotos requeridas del estado existente; proteja el área de trabajo; identifique los servicios públicos y las restricciones de emergencia relevantes para la tarea (fuente: spec APXA-002).",
+      "  - Evidence: photo"
+    ],
+    "2.12": [
+      "- Entrada: use la llave, el código de la caja de seguridad o la entrada en persona registrados para la propiedad; muestre los códigos solo en la aplicación; nunca escriba, fotografíe ni envíe por mensaje un código (fuente: cláusula \"Acceso\" del acuerdo; 27 AUTH-009; spec COM-002; No realice la entrada 7).",
+      "  - Evidence: note"
+    ],
+    "2.13": [
+      "- Ventilación adecuada para los productos aprobados, según lo requieran sus SDS: TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo."
+    ],
+    "2.14": [
+      "- Antes de empezar: complete las comprobaciones requeridas de seguridad, de EPP y del sitio; confirme que leyó el SOP y los peligros; empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada (fuente: spec APXA-003; START-004).",
+      "  - Evidence: note"
+    ],
+    "2.15": [
+      "- El encabezado original \"Fase 1: Desempolvado de zonas altas y preparación\" nombra la preparación pero solo contiene tareas de desempolvado; la preparación es esta sección (fuente: 31 sección 6.2 matriz, Preparación parcial)."
+    ],
+    "3.1": [
+      "*Las líneas originales del procedimiento que siguen no han cambiado y están en su orden original; los cinco encabezados de fase originales bajan un nivel, con el texto sin cambios. Las líneas que empiezan con \"HOLD\" o \"FLAG\" se añadieron el 2026-10-03; están pendientes de revisión y nunca reemplazan el texto del paso.*"
+    ],
+    "3.2": [
+      "> HOLD (condición previa; X-11; spec CL-01.SAF): antes de \"Telarañas\" y de cada paso siguiente - los ocupantes, los niños y las mascotas se mantienen lejos de las habitaciones donde se trabaja, según lo confirmado al llegar (spec CX-005). Un animal peligroso o un ocupante o una situación agresivos significan detenerse, salir del área y escalar (sección 19). Pendiente de revisión."
+    ],
+    "3.3": [
+      "- [ ] **Telarañas:** Recorra con un plumero extensible todas las esquinas del techo, las molduras de corona y la parte superior de los marcos de las puertas."
+    ],
+    "3.4": [
+      "> HOLD (condición previa; RIESGO; 31 sección 10 CL-01): antes de \"Ventiladores de techo\" - el ventilador se detiene y se apaga antes de desempolvar sus aspas. Si no se puede apagar, o si sus aspas no se alcanzan desde el piso, no lo desempolve; regístrelo y repórtelo (sección 17). No use escalera ni banco de escalón a menos que la política aprobada de altura y acceso lo permita (sección 2, No realice la entrada 10). Pendiente de revisión."
+    ],
+    "3.5": [
+      "- [ ] **Ventiladores de techo:** Desempolve la parte de arriba y la de abajo de las aspas del ventilador con una funda deslizable de microfibra (sin que caiga polvo al piso)."
+    ],
+    "3.6": [
+      "- [ ] **Lámparas:** Desempolve el exterior de las lámparas colgantes y de los apliques de pared; limpie la parte de arriba de los focos si están fríos."
+    ],
+    "3.7": [
+      "- [ ] **Rejillas de ventilación:** Desempolve las lamas exteriores de las rejillas de suministro y de retorno de aire."
+    ],
+    "3.8": [
+      "- [ ] **Superficies horizontales:** Desempolve mesitas de noche, cómodas, mesas de centro y escritorios; levante los objetos pequeños (controles remotos, libros) para desempolvar debajo—no desempolve alrededor de ellos."
+    ],
+    "3.9": [
+      "- [ ] **Electrónicos:** Limpie en seco las pantallas de TV con un paño de microfibra antiestático limpio; desempolve la parte de arriba de las barras de sonido y de las consolas de videojuegos."
+    ],
+    "3.10": [
+      "- [ ] **Decoración:** Desempolve marcos de fotos, espejos, pantallas de lámparas (con un rodillo quitapelusas si son de tela) y artículos decorativos."
+    ],
+    "3.11": [
+      "- [ ] **Camas:** Quite las cobijas, estire bien las sábanas, meta las esquinas, esponje las almohadas y extienda el edredón/funda nórdica perfectamente plano, sin arrugas."
+    ],
+    "3.12": [
+      "> HOLD (condición previa; C-CL01-06; spec CL-01.SAF): antes de \"Limpieza de superficies de mucho contacto\" y de cada paso posterior que usa un producto de limpieza (\"Electrodomésticos grandes\", \"Encimeras y salpicadero\", \"Área del fregadero\", los pasos de la Fase 4 y \"Trapeado\") - use solo productos de la lista de productos aprobados con una SDS revisada, exactamente como lo indican sus etiquetas, y nunca mezcle productos químicos incompatibles ni mezcle o aplique productos en una secuencia que el paso aprobado y las SDS no permitan (\"nunca mezcle productos químicos incompatibles\"; 31 sección 3.3 entrada 6). Todavía no hay ningún producto aprobado ni ninguna SDS revisada, así que un producto químico no se lleva al trabajo hasta que el profesional de seguridad calificado lo apruebe (29 sección 8.3 regla provisional, PROPUESTO). Ventilación según lo requiera cada SDS. Pendiente de revisión."
+    ],
+    "3.13": [
+      "- [ ] **Limpieza de superficies de mucho contacto:** Limpie todos los interruptores de luz de las habitaciones y las manijas de las puertas principales con una toallita desinfectante."
+    ],
+    "3.14": [
+      "- [ ] **Microondas:** Limpie el plato giratorio de vidrio, el aro de rodillos, las paredes interiores, el techo y el panel de control exterior."
+    ],
+    "3.15": [
+      "- [ ] **Electrodomésticos grandes:** Limpie los frentes, las manijas y las pantallas táctiles del refrigerador, el horno y el lavaplatos con un limpiador específico para el material (por ejemplo, abrillantador de acero inoxidable)."
+    ],
+    "3.16": [
+      "- [ ] **Estufa:** Limpie la superficie de la estufa y quite los derrames pequeños alrededor de las tapas de los quemadores."
+    ],
+    "3.17": [
+      "- [ ] **Encimeras y salpicadero:** Despeje las encimeras, rocíelas con higienizante multisuperficie, límpielas por completo y limpie los azulejos del salpicadero."
+    ],
+    "3.18": [
+      "> HOLD (condición previa; RIESGO; 31 sección 10 CL-01): antes de \"Área del fregadero\" - las manos nunca entran en el triturador de basura, y el triturador no se pone en marcha mientras se limpia el borde, la canastilla del desagüe o el fregadero (PROPUESTO). Pendiente de revisión."
+    ],
+    "3.19": [
+      "- [ ] **Área del fregadero:** Restriegue la tina del fregadero, vacíe la canastilla del desagüe, higienice el borde del triturador de basura y pula la llave del grifo hasta que quede sin rayas."
+    ],
+    "3.20": [
+      "> HOLD (condición previa; C-CL01-06, X-06; spec CL-01.SAF): antes de \"Inodoro\" y de los otros pasos de la Fase 4 - si se encuentra un riesgo biológico (la cláusula \"Exclusiones\" del acuerdo nombra las heces), objetos punzocortantes o sospecha de crecimiento de moho, no lo limpie, no lo altere ni lo manipule; deténgase y escale (\"deténgase y escale ante objetos punzocortantes/riesgos biológicos\"). Dónde termina la limpieza de rutina del baño y dónde empiezan los riesgos biológicos y el moho excluidos no está definido hasta que exista la regla de la empresa sobre moho y riesgos biológicos (X-06; Q-31-10); ante la duda, deténgase y escale (datos del dueño 2026-10-02 \"Lo desconocido no es seguro\"). Pendiente de revisión."
+    ],
+    "3.21": [
+      "- [ ] **Inodoro:** Restriegue el interior de la taza con un cepillo; limpie la manija de descarga, la tapa del inodoro, el asiento (ambos lados), la base de porcelana y la parte de atrás del tanque del inodoro."
+    ],
+    "3.22": [
+      "- [ ] **Ducha y tina:** Limpie las paredes de la ducha, los paneles de vidrio y el borde de la tina para quitar las manchas de agua diarias."
+    ],
+    "3.23": [
+      "- [ ] **Tocador:** Restriegue el lavabo, limpie la encimera y pula el espejo con limpiavidrios y un paño de tejido tipo waffle."
+    ],
+    "3.24": [
+      "- [ ] **Accesorios:** Limpie y pula todos los grifos metálicos, las regaderas y los toalleros para quitar las marcas de agua."
+    ],
+    "3.25": [
+      "> FLAG (C-CL01-V01): CONFLICTO DE ALCANCE - se promete la desinfección de duchas/tinas/espejos, pero no está convertida en procedimiento. El plan principal promete \"Limpieza y desinfección de accesorios esenciales como inodoros, lavabos, duchas, tinas y espejos.\", pero los pasos de la Fase 4 anteriores limpian, restriegan o pulen y no nombran ningún desinfectante, y el desinfectante de baño en existencia está designado solo para lavabos, encimeras y asientos de inodoro (archivo de inventario). Añadir un paso de desinfección revisado con un producto aprobado y las instrucciones de su etiqueta, o limitar el texto, es una decisión del dueño. Hasta entonces, no le diga al cliente que los accesorios se desinfectaron o se higienizaron (sección 17). Pendiente de revisión."
+    ],
+    "3.26": [
+      "> HOLD (condición previa; C-CL01-06; spec CL-01.HAZ, CL-01.SAF): antes de \"Botes de basura\" y \"Tapicería\" - puede haber objetos punzocortantes o riesgos biológicos ocultos en los botes, las bolsas y debajo de los cojines (\"sorpresas de objetos punzocortantes/riesgos biológicos\"). No meta la mano en los botes ni aplaste la basura con la mano, y mire antes de meter la mano debajo de los cojines (PROPUESTO; RIESGO). Si se ven o se sospechan objetos punzocortantes o un riesgo biológico, no los manipule; deténgase y escale. Si los trabajadores alguna vez contienen los objetos punzocortantes encontrados, y con qué recipiente y qué EPP, lo decide el profesional de seguridad calificado (archivo de inventario, adiciones propuestas). Pendiente de revisión."
+    ],
+    "3.27": [
+      "- [ ] **Botes de basura:** Junte la basura de todas las habitaciones, amarre las bolsas, limpie el exterior de las tapas de los botes si están pegajosas y ponga bolsas nuevas."
+    ],
+    "3.28": [
+      "- [ ] **Tapicería:** Aspire las superficies de los sofás y sillones de tela, y quite los cojines para aspirar debajo si es accesible."
+    ],
+    "3.29": [
+      "- [ ] **Aspirado:** Aspire todas las alfombras y tapetes en líneas rectas superpuestas; aspire los pisos duros para quitar las migas sueltas y el pelo antes de trapear."
+    ],
+    "3.30": [
+      "> HOLD (condición previa; C-CL01-06; spec CL-01.SAF): antes de \"Trapeado\" - coloque letreros de piso mojado o mantenga de otra forma a las personas y las mascotas fuera del piso mojado hasta que esté seco (\"señalizar/controlar los pisos mojados\"); se mantiene la propia indicación del paso \"trabajando hacia atrás para salir de cada habitación\". Todavía no hay ningún letrero de piso mojado en existencia (archivo de inventario, adiciones propuestas). Si un piso mojado no se puede señalizar ni controlar, por ejemplo porque no se puede mantener lejos a los ocupantes o las mascotas, no trapee esa área; escale. El limpiador de pisos de baño se usa solo como un producto aprobado con una SDS revisada (retención de productos químicos antes de \"Limpieza de superficies de mucho contacto\"). Pendiente de revisión."
+    ],
+    "3.31": [
+      "- [ ] **Trapeado:** Trapee todos los pisos duros con un trapeador húmedo de microfibra, trabajando hacia atrás para salir de cada habitación (use limpiador de pisos desinfectante en los baños)."
+    ],
+    "3.32": [
+      "- [ ] **Revisión final:** Colóquese en la entrada de cada habitación para verificar la simetría visual, las líneas rectas y cero puntos sin limpiar."
+    ],
+    "3.33": [
+      "> FLAG: afirmación de resultado - revisión del dueño y del abogado (31 sección 10 CL-01). \"cero puntos sin limpiar\" en el paso anterior es el objetivo de inspección del trabajador, no una promesa al cliente, y no se repite en la comunicación con el cliente (sección 17; 31 sección 3.5 regla 5)."
+    ],
+    "3.34": [
+      "> HOLD (C-CL01-06; spec CL-01.QAC): la revisión visual del paso anterior no cubre las comprobaciones \"sin daños\" y \"habitaciones aseguradas como se encontraron\" de la tarjeta; responda ambas en la sección 13 antes de marcar el trabajo como completo. Los daños encontrados o causados se reportan como un incidente (sección 20). Pendiente de revisión."
+    ],
+    "4.1": [
+      "*De la spec CL-01.QAC. El trabajador no puede marcar el trabajo como completo sin responder las comprobaciones requeridas o registrar una excepción (fuente: spec QA-001). Qué comprobaciones necesitan una segunda persona en lugar de una autocomprobación es una pregunta abierta (Q-31-15).*"
+    ],
+    "4.2": [
+      "| Comprobación | Fuente | Inspector | Evidencia |",
+      "|---|---|---|---|",
+      "| Superficies especificadas limpias: las habitaciones y superficies del alcance aprobado de la visita, con las habitaciones y los artículos excluidos sin tocar | spec CL-01.QAC; CL-01.INT | Trabajador; supervisor donde la política lo requiera (Q-31-15) | Fotos de después asociadas a habitaciones o áreas (QA-003) |",
+      "| Pisos completos | spec CL-01.QAC; pasos \"Aspirado\" y \"Trapeado\" | Trabajador | Fotos de después |",
+      "| Estándar de baños y cocina cumplido: los pasos de la Fase 3 y de la Fase 4 hechos; no se afirma ningún resultado de desinfección (C-CL01-V01) | spec CL-01.QAC | Trabajador | Fotos de después |",
+      "| Basura manejada | spec CL-01.QAC; paso \"Botes de basura\" | Trabajador | Respuesta de la lista de verificación |",
+      "| Sin daños | spec CL-01.QAC | Trabajador; los daños encontrados o causados se reportan como un incidente (sección 20) | Respuesta de la lista de verificación; fotos internas de cualquier daño |",
+      "| Habitaciones aseguradas como se encontraron, incluida la entrada usada (cerradura, llave o caja de seguridad devuelta a su estado registrado) | spec CL-01.QAC; cláusula \"Acceso\" del acuerdo | Trabajador | Respuesta de la lista de verificación; devolución de la llave registrada (27 AUTH-009) |",
+      "| Revisión visual desde la entrada de cada habitación | paso \"Revisión final\" | Trabajador | Solo objetivo de inspección; \"cero puntos sin limpiar\" no es una promesa al cliente (FLAG en la sección 12) |"
+    ],
+    "4.3": [
+      "- Una firma o un reconocimiento del cliente no libera una retención de seguridad sin resolver, y la evidencia que falta se registra como desconocida, no como aprobada (fuente: manual del asistente de calidad \"Un formulario firmado por el cliente no libera una retención de seguridad sin resolver.\" y \"Las fotos que faltan son evidencia desconocida, no prueba de un trabajo defectuoso.\").",
+      "  - Evidence: note"
+    ],
+    "5.1": [
+      "*Para un servicio de limpieza, la limpieza final significa la secuencia de salida y el equipo propio de la cuadrilla (fuente: 31 sección 6.1).*"
+    ],
+    "5.2": [
+      "- Retire el letrero de piso mojado una vez que el piso esté seco; cuente las herramientas y los materiales; vuelva a poner en su lugar todo lo que se haya movido dentro del alcance (fuente: spec APXA-005; QA-002)."
+    ],
+    "5.3": [
+      "- Paños y almohadillas de trapeador usados: método de embolsado y lavado TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo. Mantener separados los paños del inodoro es parte de la pregunta abierta sobre el sistema de colores (sección 7)."
+    ],
+    "5.4": ["- Devuelva los materiales no usados (fuente: spec APXA-007)."],
+    "5.5": ["- Asegure la propiedad como se encontró antes de irse (sección 13)."],
+    "5.6": [
+      "- Basura doméstica (\"Botes de basura\"): el paso amarra las bolsas, pero no se indica a dónde van (el bote exterior del cliente o el retiro por la cuadrilla); TBD - decisión del dueño (fuente: sección 12; 31 sección 3.1 fila 15)."
+    ],
+    "5.7": [
+      "- Agua sucia del trapeador, residuos químicos, toallitas usadas y envases vacíos de productos: desecho según la SDS de cada producto y las reglas del municipio; todavía no hay ningún método aprobado (fuente: 29 sección 8.2 punto 10; Q-29-10)."
+    ],
+    "5.8": [
+      "- El trabajador no maneja objetos punzocortantes ni riesgos biológicos bajo este SOP: deténgase y escale (sección 10); su método de desecho lo deciden el revisor y la autoridad local (fuente: spec CL-01.SAF; Q-29-10)."
+    ],
+    "6.1": [
+      "- Antes: fotos del estado existente donde las instrucciones las requieran, incluidos los daños encontrados al llegar, que importan para la cláusula \"Roturas\" del acuerdo (fuente: spec APXA-002; START-008).",
+      "  - Evidence: photo"
+    ],
+    "6.2": [
+      "- Durante: condiciones inesperadas como objetos punzocortantes, un riesgo biológico, sospecha de moho o daños, registradas con fotos y su gravedad sin tocar el objeto (fuente: spec JOB-004; UXE-006).",
+      "  - Evidence: note"
+    ],
+    "6.3": [
+      "- Después: fotos asociadas a habitaciones o áreas (fuente: spec QA-003; 04 CL-01 \"evidencia de finalización\").",
+      "  - Evidence: photo"
+    ],
+    "6.4": [
+      "- Privacidad en una casa ocupada: cada foto es solo interna por defecto; evite personas, documentos, objetos de valor y artículos personales que no se necesiten para el trabajo; nunca fotografíe llaves ni códigos de acceso; el uso en mercadeo necesita un consentimiento aparte (fuente: spec REC-002, REC-003; 31 sección 3.5 regla 7; No realice la entrada 7)."
+    ],
+    "6.5": [
+      "- Los avisos de llegada y de finalización son borradores; el trabajador o el administrador controla el envío (fuente: spec UXE-008)."
+    ],
+    "6.6": [
+      "- Registre el resultado del recorrido: aceptado, aceptado con elementos pendientes, no disponible o en disputa; en las visitas recurrentes sin nadie presente, \"no disponible\" es el resultado esperado (fuente: spec QA-004; 04 CL-01 \"evidencia de finalización\").",
+      "  - Evidence: note"
+    ],
+    "6.7": [
+      "- Reporte lo que quedó sin hacer y por qué, con la redacción aprobada: áreas que no se alcanzan desde el piso, ventiladores que no se pudieron apagar, objetos pesados que no se movieron, riesgos biológicos excluidos o sospecha de moho, daños encontrados (fuente: secciones 10 y 12). Redacción TBD - dueño.",
+      "  - Evidence: note"
+    ],
+    "6.8": [
+      "- Las solicitudes de trabajo adicional, como organizar el desorden, el interior de los electrodomésticos o la grasa acumulada, se registran como solicitudes de cambio; no se acuerda ningún precio en el sitio (fuente: spec JOB-005, FIN-008; C-CL01-05).",
+      "  - Evidence: note"
+    ],
+    "6.9": [
+      "- Trabajo bloqueado: solo el mensaje aprobado de \"trabajo bloqueado\"; nada de detalles de incidentes ni códigos de acceso por mensaje de texto o correo electrónico (fuente: spec NTF-007, COM-002)."
+    ],
+    "6.10": [
+      "- Qué no decir: que los accesorios se desinfectaron o se higienizaron (C-CL01-V01); \"cero puntos sin limpiar\" ni ninguna otra promesa de resultado (31 sección 10 CL-01); \"Ecológico\" ni otras afirmaciones sobre productos (29 sección 8.2 punto 12); que la empresa está asegurada (C-CL01-02; 32 sección 4.1 regla 5)."
+    ],
+    "6.11": [
+      "- Comprobaciones de calidad requeridas respondidas o una excepción registrada (fuente: spec QA-001; sección 13).",
+      "  - Evidence: note"
+    ],
+    "6.12": ["- Fotos de después asociadas a habitaciones o áreas (fuente: spec QA-003).", "  - Evidence: photo"],
+    "6.13": [
+      "- Limpieza final y manejo de residuos hechos según lo aprobado (fuente: spec QA-002; secciones 14 y 15)."
+    ],
+    "6.14": ["- Herramientas y materiales contados (fuente: spec APXA-005)."],
+    "6.15": [
+      "- Propiedad asegurada como se encontró, y la llave o el código de la caja de seguridad devueltos a su estado registrado (fuente: spec CL-01.QAC; 27 AUTH-009).",
+      "  - Evidence: note"
+    ],
+    "6.16": [
+      "- Retenciones abiertas, elementos que quedaron sin hacer, daños y elementos pendientes registrados; resultado del recorrido registrado (fuente: spec QA-004; APXA-006).",
+      "  - Evidence: note"
+    ],
+    "6.17": [
+      "- El trabajo se cierra solo cuando los pasos operativos y financieros requeridos están completos (fuente: spec APXA-007)."
+    ],
+    "stop.1": [
+      "La regla general para detener el trabajo es [[FACT-SVC-STOP-WORK-RULE]]. Activadores específicos del servicio:"
+    ],
+    "stop.2": [
+      "*Bloque estándar copiado textualmente de 31 SOP estándar sección 8.5 (redacción PROPUESTA; REVISIÓN HUMANA: profesional de seguridad calificado; abogado con licencia en KY y/o IN para la oración del \"derecho a detener el trabajo\"; revisor bilingüe para el español).*"
+    ],
+    "stop.3": [
+      "**Activadores para detener el trabajo y retenciones del servicio (CL-01).** Indicación de la tarjeta para detener el trabajo (spec CL-01.SAF): \"nunca mezcle productos químicos incompatibles; señalice/controle los pisos mojados; deténgase y escale ante objetos punzocortantes/riesgos biológicos/animales peligrosos/situaciones agresivas\"."
+    ],
+    "stop.4": [
+      "| Activador o retención | Acción | Lo libera (evidencia) | Fuente |",
+      "|---|---|---|---|",
+      "| Producto sin una SDS revisada, o una mezcla o secuencia que las SDS no permiten | No lo use; escale | SDS revisada y producto aprobado | spec CL-01.SAF; 29 sección 8.3; C-CL01-06 |",
+      "| Un piso mojado no se puede señalizar ni controlar, por ejemplo porque no se puede mantener lejos a los ocupantes o las mascotas | No trapee esa área; escale | Letreros o control de acceso colocados | spec CL-01.SAF; C-CL01-06 |",
+      "| Se ven o se sospechan objetos punzocortantes o un riesgo biológico, incluso en la basura, debajo de los cojines o alrededor del inodoro | Deténgase; no los manipule; escale | Dueño, con el método aprobado por el revisor de seguridad calificado | spec CL-01.SAF; X-06 |",
+      "| Sospecha de crecimiento de moho | Deténgase; no lo limpie ni lo altere; escale | Regla de la empresa sobre moho (Q-31-10); evaluador de moho calificado | cláusula \"Exclusiones\" del acuerdo; X-06; 31 sección 8.4 regla 2 |",
+      "| Animal peligroso | Deténgase; salga del área; escale | Dueño; el cliente asegura al animal | spec CL-01.SAF |",
+      "| Ocupante o situación agresivos | Deténgase; salga; escale; servicios de emergencia si alguien está en peligro | Dueño | spec CL-01.SAF; START-011 |",
+      "| El ventilador de techo no se puede detener ni apagar | No desempolve el ventilador; repórtelo | Ventilador apagado | 31 sección 10 CL-01 (RIESGO) |",
+      "| Área que no se alcanza desde el piso | No use escalera, banco de escalón ni muebles; déjela y repórtela | Política aprobada de altura y acceso (Q-31-09) | 31 sección 10 CL-01; 02 G-005 |",
+      "| Objeto pesado en el camino | No lo levante; déjelo y repórtelo | Regla de manejo manual de cargas | cláusula \"Exclusiones\" del acuerdo |",
+      "| Olor a gas | Emergencia (sección 19, paso 2) | Servicios de emergencia | spec START-011; 31 sección 8.5 |"
+    ],
+    "stop.5": [
+      "Ningún rol puede anular las retenciones críticas; se liberan solo con una evaluación calificada registrada (fuente: 31 sección 8.3 regla 2). Según la regla de clasificación PROPUESTA de 31 sección 8.4, la retención de compatibilidad química y de SDS se comporta como una retención crítica hasta que se apruebe el módulo de productos químicos (regla 4), y la sospecha de crecimiento de moho se trata como crítica hasta que exista la definición de moho de la empresa (regla 2)."
+    ],
+    "stop.6": ["Ruta general: [[FACT-SVC-ESCALATION-PATH]]."],
+    "stop.7": [
+      "*Bloque estándar copiado textualmente de 31 sección 8.5 (redacción PROPUESTA; REVISIÓN HUMANA: profesional de seguridad calificado).*"
+    ],
+    "stop.8": [
+      "**Rutas de escalamiento de CL-01 (decisiones del dueño pendientes, Q-31-05):** los objetos punzocortantes, un riesgo biológico o la sospecha de moho van al dueño, que decide con el revisor de seguridad calificado o con un evaluador de moho (fuente: spec CL-01.SAF; X-06). Exposición o salpicadura química: primero la respuesta de emergencia, luego el formulario de incidente (sección 20); referencias de primeros auxilios solo de la SDS revisada (fuente: 29 sección 8.2 punto 7). Un animal peligroso o un ocupante agresivo: salga del área y escale, y llame a los servicios de emergencia si alguien está en peligro (fuente: spec CL-01.SAF; BRF-013). Un limpiador que trabaja solo: arreglo de reporte de presencia y de escalamiento TBD (fuente: 02 G-065). Contactos: `<decisión del dueño: contacto de emergencia>` y `<decisión del dueño: orden de escalamiento>` (Q-31-05)."
+    ],
+    "stop.9": ["Ruta general: [[FACT-SVC-INCIDENT-REPORTING]]."],
+    "stop.10": [
+      "*Bloque estándar copiado textualmente de 31 sección 8.5 (redacción PROPUESTA). REVISIÓN HUMANA: abogado con licencia en KY y/o IN para la oración de culpa y responsabilidad; corredor de seguros para cualquier paso de notificación a la aseguradora que se añada más adelante.*"
+    ],
+    "stop.11": [
+      "- Ejemplos de CL-01 que se deben reportar: un resbalón o una caída; una salpicadura o exposición química; un corte o un pinchazo de aguja con objetos punzocortantes ocultos; una mordida de animal; la rotura de bienes del cliente; un ocupante agresivo (fuente: spec CL-01.HAZ, CL-01.SAF; JOB-008)."
+    ]
+  },
+  "ambiguous": []
+}

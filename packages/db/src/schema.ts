@@ -58,6 +58,25 @@ export interface CatalogServicesTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface CatalogSopSpanishVersionsTable {
+  id: Generated<string>
+  sop_version_id: string
+  sop_id: string
+  english_content_sha256: string
+  title: string
+  content: Json
+  content_sha256: string
+  translation_sha256: string
+  translation_method: Generated<string>
+  comparison_tool: string
+  checked_on: string
+  results: Json
+  problems: ColumnType<JsonValue, string | undefined, string>
+  ambiguous: ColumnType<JsonValue, string | undefined, string>
+  release_status: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface CatalogSopVersionsTable {
   id: Generated<string>
   sop_id: string
@@ -71,7 +90,6 @@ export interface CatalogSopVersionsTable {
   hazard_sha256: string
   quality_sha256: string
   review_state: Generated<string>
-  spanish_status: Generated<string>
   reviewer_name: string | null
   reviewer_qualification: string | null
   review_note: string | null
@@ -2452,6 +2470,7 @@ export interface Database {
   'catalog.loadout_versions': CatalogLoadoutVersionsTable
   'catalog.service_versions': CatalogServiceVersionsTable
   'catalog.services': CatalogServicesTable
+  'catalog.sop_spanish_versions': CatalogSopSpanishVersionsTable
   'catalog.sop_versions': CatalogSopVersionsTable
   'comms.conversations': CommsConversationsTable
   'comms.message_links': CommsMessageLinksTable

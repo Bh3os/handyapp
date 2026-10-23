@@ -390,6 +390,84 @@ describe('[HH-PKT-03][T43] the approval pins the current SOP version on each wor
     expect(body.actions.signOff).toBe(true)
   })
 
+  it('[HH-PKT-04][HH-LANG-04] the Spanish release: pending until a passing comparison; its text only once released', async () => {
+    type SpanishView = {
+      status: string
+      check: { results: Record<string, string>; problems: number; ambiguous: unknown[] } | null
+      stages: { items: { id: string; text: string }[] }[] | null
+      hazards: { stopWork: { id: string }[] } | null
+    }
+    const spanishOf = async () => {
+      const { body } = await sopView('owner', dw().id)
+      const sop = body.sop as unknown as { spanishStatus: string; spanish: SpanishView }
+      return sop
+    }
+    expect(await spanishOf()).toMatchObject({
+      spanishStatus: 'pending',
+      spanish: { status: 'pending', check: null, stages: null, hazards: null },
+    })
+    const v = await t.db
+      .selectFrom('work.work_packages as w')
+      .innerJoin('catalog.sop_versions as v', 'v.id', 'w.sop_version_id')
+      .select(['v.id', 'v.sop_id', 'v.content', 'v.content_sha256'])
+      .where('w.id', '=', dw().id)
+      .executeTakeFirstOrThrow()
+    const content = v.content as { stages: { items: { id: string; lines: string[] }[] }[]; stopWork: unknown[] }
+    // Synthetic Spanish lines on the English structure.
+    const spanish = {
+      stages: content.stages.map((s) => ({
+        ...s,
+        items: s.items.map((i) => ({ ...i, lines: i.lines.map((l) => `${l} (sintético)`) })),
+      })),
+      stopWork: content.stopWork,
+    }
+    const results = {
+      warnings: 'pass',
+      ppe: 'pass',
+      prohibited_actions: 'pass',
+      measurements_units: 'pass',
+      step_order: 'pass',
+      stop_work: 'pass',
+    }
+    const record = (over: Record<string, unknown>) =>
+      t.db
+        .insertInto('catalog.sop_spanish_versions')
+        .values({
+          sop_version_id: v.id,
+          sop_id: v.sop_id,
+          english_content_sha256: v.content_sha256,
+          title: 'SOP DW-01 (sintético)',
+          content: JSON.stringify(spanish),
+          content_sha256: 'e'.repeat(64),
+          translation_sha256: randomUUID().replace(/-/g, '').padEnd(64, '0'),
+          comparison_tool: 'compare-safety-es@1',
+          checked_on: '2026-10-23',
+          results: JSON.stringify(results),
+          release_status: 'ai_reviewed',
+          ...over,
+        })
+        .execute()
+    await record({})
+    const released = await spanishOf()
+    expect(released.spanishStatus).toBe('ai_reviewed')
+    expect(released.spanish.check?.results).toEqual(results)
+    expect(released.spanish.stages?.[0]?.items[0]?.text).toMatch(/\(sintético\)$/)
+    expect(released.spanish.stages?.map((s) => s.items.map((i) => i.id))).toEqual(
+      content.stages.map((s) => s.items.map((i) => i.id)),
+    )
+    expect(released.spanish.hazards?.stopWork.length).toBe(content.stopWork.length)
+    // A later failed comparison of the same English version decides: pending again, and no Spanish text is returned.
+    await new Promise((r) => setTimeout(r, 5))
+    await record({
+      results: JSON.stringify({ ...results, ppe: 'fail' }),
+      problems: JSON.stringify([{ category: 'ppe', item: '3.2', detail: 'synthetic' }]),
+      release_status: 'pending',
+    })
+    const failed = await spanishOf()
+    expect(failed).toMatchObject({ spanishStatus: 'pending', spanish: { status: 'pending', stages: null } })
+    expect(failed.spanish.check).toMatchObject({ problems: 1, results: { ppe: 'fail' } })
+  })
+
   it('[HH-PKT-03] NOT CONFIGURED has no checklist and cannot become ready', async () => {
     const { status, body } = await sopView('owner', pt().id)
     expect(status).toBe(200)

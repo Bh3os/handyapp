@@ -1,0 +1,358 @@
+{
+  "sopId": "SOP-DW-02",
+  "englishContentSha256": "259ba2efb6f1405be352e70af0513074746ac18ee0c8faa9c366d308d1dc1822",
+  "title": "SOP DW-02: Igualación de textura y retiro de techo de palomitas (popcorn)",
+  "headings": [
+    "1. Preparación del sitio y protección de la propiedad",
+    "2. Preparación y mediciones/comprobaciones requeridas",
+    "3. Pasos de trabajo específicos del servicio",
+    "4. Comprobaciones de calidad",
+    "5. Limpieza y manejo de residuos",
+    "6. Comprobaciones finales, fotos de finalización y recorrido"
+  ],
+  "items": {
+    "1.1": [
+      "- El acuerdo obliga al cliente a \"retirar por completo todos los aparatos electrónicos, objetos personales, ropa y muebles de las habitaciones donde se trabajará antes de que llegue el equipo de trabajo\", mientras que el paso \"Enmascarado total\" pide al equipo de trabajo \"Retire todos los muebles de la zona.\" Verifique al llegar que la habitación está vacía y registre cualquier excepción; quién mueve los muebles, y a qué precio, es una decisión del dueño (fuente: acuerdo \"Evacuación total de la habitación\"; C-DW02-14; spec START-007).",
+      "  - Evidence: note"
+    ],
+    "1.2": [
+      "- Lista de verificación del cliente PROPUESTA, enviada con el recordatorio de la cita una vez que el dueño y el abogado aprueben la redacción: habitaciones vaciadas; plan para los ocupantes y las mascotas; consentimiento para apagar el HVAC y su alcance; acceso para un trabajo de varias visitas; informar el año de construcción, cualquier prueba anterior y si el techo fue pintado (fuente: 04 DW-02 requisitos de preparación del cliente, BRECHA; spec NTF-004, NTF-005; DW-02.INT)."
+    ],
+    "1.3": [
+      "- Casa ocupada: los ocupantes, los niños y las mascotas se mantienen fuera del área contenida; el módulo de ocupantes y mascotas está pendiente de revisión de seguridad calificada (fuente: spec DW-02.INT \"estado de ocupación\"; APXA-002; X-11; 31 sección 5.8)."
+    ],
+    "1.4": [
+      "- HVAC apagado en una casa ocupada: aquí no se fija ningún límite de temperatura ni de duración; el plan está pendiente de revisión del dueño, del abogado (redacción del consentimiento) y de seguridad calificada (fuente: C-DW02-V01)."
+    ],
+    "1.5": [
+      "- Una declaración o una firma del cliente nunca libera una retención, y un registro de pruebas aportado por el cliente cuenta solo una vez que el dueño y un inspector de asbesto acreditado definan qué registro libera el trabajo (fuente: manual de clasificación de riesgos \"El material desconocido de un techo de palomitas no queda liberado por rasparlo en mojado.\"; datos del dueño 2026-10-02 \"un reconocimiento no puede saltarse las retenciones críticas\"; Q-30-18).",
+      "  - Evidence: note"
+    ],
+    "1.6": [
+      "> HOLD (C-DW02-03, X-13) - antes del primer paso que sigue (\"Verificación de asbesto\") y antes de cualquier paso que moje, raspe, lije o cubra con cinta la textura del techo, incluido el sellado de las rejillas del techo en \"Aislamiento del HVAC\": año de construcción desconocido = HOLD; textura sin analizar = HOLD a cualquier edad de la propiedad hasta que un revisor calificado fije la regla de evaluación (04 DW-02 requisitos previos, PROPUESTO); textura pintada en una casa anterior a 1978 o de edad desconocida = HOLD para la revisión RRP de la EPA. No toque el techo; deténgase y escale. Los métodos en mojado no liberan el material sospechoso (\"El material desconocido de un techo de palomitas no queda liberado por rasparlo en mojado\"). Solo lo libera el revisor calificado nombrado en la sección 10. Pendiente de revisión calificada. (fuente: spec DW-02.SAF, DW-02.HAZ, DW-02.INT; 31 sección 10; manual de clasificación de riesgos; datos del dueño 2026-10-02 \"Lo desconocido no es seguro\")"
+    ],
+    "1.7": [
+      "> HOLD (C-DW02-02) - antes del primer paso que sigue: ningún trabajador de HandyHub toma, corta ni envía muestras de la textura; el rol de las pruebas no está definido. El registro que libera el trabajo (quién tomó la muestra, qué laboratorio, qué resultado) todavía no lo ha definido el dueño con un inspector de asbesto acreditado, así que un registro de pruebas por sí solo no libera el techo (04 DW-02 estado; Q-30-18). Resultado positivo o no concluyente = BLOQUEADO: se libera solo con una autorización documentada de un profesional de asbesto calificado aceptado por el dueño; nunca con base en el encapsulado en el lugar (relacionado C-DW02-01: la cláusula de reanudación del acuerdo está en revisión del abogado). Pendiente de revisión calificada. (fuente: 31 sección 10; spec DW-02.SAF, START-010)"
+    ],
+    "1.8": [
+      "- [ ] **Verificación de asbesto:** Confirme si la casa se construyó antes de 1980. Si es así, detenga el trabajo y verifique los registros de pruebas de asbesto antes de alterar la matriz del techo.",
+      "  - Evidence: note"
+    ],
+    "1.9": [
+      "> FLAG (C-DW02-03): umbral SIN FUENTE - el revisor debe confirmarlo (no es un valor del fabricante). El año de construcción \"1980\" del paso anterior no tiene una fuente citada. La detención existente sigue vigente hasta que un revisor calificado la reemplace; las retenciones anteriores añaden los casos de año desconocido, textura sin analizar y textura pintada, y no la relajan. El texto del paso no ha cambiado. REVISIÓN HUMANA: inspector de asbesto acreditado; renovador certificado en RRP por la EPA (Q-31-07). (fuente: 31 sección 10; 36 sección 3.4 regla 8)"
+    ],
+    "1.10": [
+      "> HOLD (X-12, C-DW02-12) - antes de \"Aislamiento del HVAC\" más abajo y de cada paso posterior que necesite una escalera, una plataforma o un andamio en lugar de una herramienta con pértiga desde el piso, por ejemplo sellar las rejillas del techo, colgar las cortinas de las paredes, el trabajo manual de la Fase 3, imprimar y rociar la textura, y cualquier techo por encima de la altura a la que el archivo de precios aplica un recargo: acceso solo con equipo y métodos aprobados bajo una política de altura y acceso, que todavía no existe (02 G-005); el inventario no incluye ningún equipo de acceso aparte de las pértigas de raspado. Hasta que exista la política, esos pasos siguen retenidos (31 sección 8.4). Pendiente de revisión calificada. (fuente: spec DW-02.TLS \"equipo de acceso\", DW-02.HAZ \"caídas\", DW-02.SAF \"controles de altura\")"
+    ],
+    "1.11": [
+      "- [ ] **Aislamiento del HVAC:** Apague por completo el sistema de calefacción/aire acondicionado de la casa y selle bien todas las rejillas de entrada/salida de aire con película plástica y cinta de pintor."
+    ],
+    "1.12": [
+      "> HOLD (C-DW02-V01, X-07): el paso anterior está limitado por el consentimiento firmado. El \"Consentimiento para apagar el HVAC\" del acuerdo cubre \"las fases de raspado y lijado\", mientras que el paso apaga el sistema \"por completo\" y ningún paso lo restablece, ni siquiera durante las esperas de secado de la Fase 4. Confirme el estado del HVAC frente al consentimiento firmado en cada cambio de fase y registre cualquier excepción (spec START-007, JOB-009). Cuánto tiempo puede estar apagado el HVAC, quién lo restablece y cuándo, y un plan de temperatura para los ocupantes y los trabajadores están pendientes de revisión del dueño, del abogado (redacción del consentimiento) y de seguridad calificada; aquí no se fija ningún límite (relacionado X-27). Todavía no existe un módulo de la empresa para aislar-verificar-restablecer (X-07; 31 sección 5.8). Quitar el sellado de las rejillas y restablecer el HVAC corresponden al cierre (sección 14). Pendiente de revisión calificada. (fuente: acuerdo \"Consentimiento para apagar el HVAC\"; 02 C-DW02-V01; 31 sección 10)"
+    ],
+    "1.13": [
+      "- [ ] **Enmascarado total:** Retire todos los muebles de la zona. Cubra todo el piso con lámina de plástico grueso y pesado (espesor de 6 mil, milésimas de pulgada). Coloque una cortina de plástico continua de 3 mil a lo largo de todas las paredes, traslapando las láminas del piso por 12 pulgadas para formar una envoltura estática completa contra el polvo."
+    ],
+    "1.14": [
+      "> FLAG (C-DW02-14): VERIFIQUE LA PREPARACIÓN DEL CLIENTE / registre la excepción. El acuerdo obliga al cliente a retirar \"todos los aparatos electrónicos, objetos personales, ropa y muebles\" antes de que llegue el equipo de trabajo, mientras que el paso anterior pide al equipo de trabajo \"Retire todos los muebles de la zona.\" Hasta que el dueño decida quién mueve los muebles y a qué precio, verifique al llegar que las habitaciones están vacías como exige el acuerdo y registre cualquier excepción (spec START-007). El texto del paso no ha cambiado. (fuente: acuerdo \"Evacuación total de la habitación\"; 02 C-DW02-14)"
+    ],
+    "2.1": [
+      "Todo pendiente de revisión calificada. Una condición previa que no se cumple mantiene bloqueadas las tareas afectadas (fuente: manual del planificador de trabajos \"Una escalera faltante o un permiso no verificado mantiene bloqueadas las tareas afectadas.\")."
+    ],
+    "2.2": [
+      "- Evaluación en el sitio antes de un presupuesto en firme; ningún presupuesto en firme hasta que se registre la disposición sobre materiales peligrosos (resultado de asbesto y la decisión sobre plomo o textura pintada) (fuente: 04 DW-02 método de presupuesto, PROPUESTO; manual del asistente de presupuestos \"Las decisiones faltantes sobre condiciones peligrosas bloquean un presupuesto en firme.\").",
+      "  - Evidence: note"
+    ],
+    "2.3": [
+      "- Evaluación registrada antes del despacho: año de construcción aproximado o \"desconocido\" (spec BRF-003 \"edad aproximada si se conoce\"), pruebas anteriores y quién las hizo, tipo de textura y si la textura está pintada (spec DW-02.INT). Lo desconocido no es seguro: un año de construcción desconocido es una retención (fuente: datos del dueño 2026-10-02; 31 SOP-022, PROPUESTO).",
+      "  - Evidence: note"
+    ],
+    "2.4": [
+      "- El registro que libera el trabajo (quién tomó la muestra, qué laboratorio, qué resultado) todavía no lo ha definido el dueño con un inspector de asbesto acreditado, y HandyHub no toma ninguna muestra (fuente: 04 DW-02 estado; Q-30-18; C-DW02-02). El resultado se guarda como un requisito previo START-010 y un indicador de preparación SCH-001 (fuente: 04 DW-02 requisitos previos, PROPUESTO).",
+      "  - Evidence: note"
+    ],
+    "2.5": [
+      "- Indicadores de permiso, licencia o calificación: donde la política administrativa marque el trabajo, Iniciar trabajo (Start Job) queda bloqueado hasta que se apruebe el requisito previo (fuente: spec START-010). Los requisitos de reducción (abatement), notificación y desecho después de un resultado positivo, y si el RRP de la EPA se aplica a la textura pintada, son PREGUNTAS ABIERTAS para cada municipio de Kentucky e Indiana; una aplicabilidad desconocida no debe equivaler por defecto a \"no se necesita permiso\" (fuente: 04 DW-02 indicadores de permiso/licencia; manual de clasificación de riesgos)."
+    ],
+    "2.6": [
+      "- Consentimiento firmado para apagar el HVAC en el expediente; su alcance es \"durante las fases de raspado y lijado\" (fuente: acuerdo \"Consentimiento para apagar el HVAC\"; C-DW02-V01)."
+    ],
+    "2.7": [
+      "- Preparación del cliente según lo acordado: habitaciones vaciadas antes de que llegue el equipo de trabajo, verificado al llegar (fuente: acuerdo \"Evacuación total de la habitación\"; C-DW02-14)."
+    ],
+    "2.8": [
+      "- Método de aislamiento de las lámparas, decisión sobre protección respiratoria y control del polvo, y política de altura y acceso aprobados por los revisores calificados; hasta que existan, los pasos que bloquean siguen retenidos (fuente: retenciones de la sección 12; 31 sección 8.4)."
+    ],
+    "2.9": [
+      "- Antes de salir: confirme el trabajo, el cliente, la dirección y la hora; lea los últimos cambios; revise el alcance, las exclusiones, los peligros y la seguridad; cargue las herramientas, el equipo y los materiales críticos; confirme los documentos y las aprobaciones requeridos (fuente: spec APXA-001)."
+    ],
+    "2.10": [
+      "- Antes de empezar: complete las comprobaciones requeridas de seguridad, de EPP y del sitio; confirme los materiales; confirme que leyó el SOP y los peligros; empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada (fuente: spec APXA-003). Los indicadores de alto riesgo pueden requerir casillas aparte o la confirmación del supervisor (fuente: spec START-004).",
+      "  - Evidence: note"
+    ],
+    "2.11": [
+      "- Disponibilidad de materiales: un material faltante puede bloquear el inicio, por ejemplo el imprimador, las bolsas de desecho, el compuesto de fraguado o la cinta de malla, que no están en el inventario (fuente: spec START-006; C-DW02-12)."
+    ],
+    "2.12": [
+      "- Planificación de varias visitas: la espera de secado entre las pasadas de alisado (\"Deje secar 12–24 horas\") significa visitas de regreso; el planificador de trabajos las planifica y mantiene el estado del HVAC dentro del consentimiento firmado entre visitas (fuente: paso original \"Secado y raspado de crestas\"; 04 DW-02 supuestos de mano de obra; manual del planificador de trabajos \"esperas de secado/curado\"; C-DW02-V01)."
+    ],
+    "2.13": [
+      "- Al llegar: confirme la dirección, el área de trabajo y el contacto; identifique mascotas y ocupantes; inspeccione el sitio real frente a las instrucciones; tome las fotos requeridas del estado existente; proteja el área de trabajo; identifique los servicios públicos y las restricciones de emergencia relevantes para la tarea (fuente: spec APXA-002).",
+      "  - Evidence: photo"
+    ],
+    "2.14": [
+      "- Comprobación del sitio antes del inicio: registre cualquier diferencia con las instrucciones, incluidas las habitaciones no vaciadas como se acordó; las diferencias importantes activan la Clasificación de riesgos (Risk Triage) o la revisión del supervisor (fuente: spec START-007; C-DW02-14).",
+      "  - Evidence: note"
+    ],
+    "2.15": [
+      "- Confirme que la disposición sobre materiales peligrosos y las demás condiciones previas de la sección 3 están registradas antes de que cualquier paso de preparación toque el techo (fuente: sección 3; spec START-010).",
+      "  - Evidence: note"
+    ],
+    "2.16": [
+      "- Fotos del estado existente antes de cualquier trabajo: todo el techo, las grietas existentes, las lámparas y las rejillas (fuente: spec START-008, BRF-012; X-02; sección 16).",
+      "  - Evidence: photo"
+    ],
+    "2.17": [
+      "- Contención: los pasos \"Aislamiento del HVAC\" y \"Enmascarado total\" de la sección 12; mantenga la protección y la contención en su lugar durante el trabajo (fuente: spec APXA-004 \"mantenga la protección/contención\"; DW-02.SAF \"aísle el área; controle el polvo\")."
+    ],
+    "2.18": [
+      "- PROPUESTO, pendiente de revisión: registre el estado del HVAC antes de apagarlo, para que se pueda restablecer en el cierre (fuente: spec APXA-005 \"restablezca los servicios/componentes modificados dentro del alcance\"; 31 sección 5.8 módulo de aislar-verificar-restablecer; C-DW02-09).",
+      "  - Evidence: note"
+    ],
+    "2.19": [
+      "- Aislamiento y protección de las lámparas solo con el método aprobado (retención de la sección 12; C-DW02-04)."
+    ],
+    "3.1": [
+      "*Procedimiento original, sin cambios y en su orden original; los encabezados de fase originales bajan un nivel con su texto sin cambios. Las líneas HOLD y FLAG son adiciones pendientes de revisión calificada: una retención de condición previa va justo antes del paso que bloquea, y una retención o marca que suspende, limita o marca un paso va justo después de él (36 D-36-17). Nunca reemplazan ni reformulan un paso.*"
+    ],
+    "3.2": [
+      "> HOLD (C-DW02-04) - antes de \"Protocolo de rociado\" más abajo y de cualquier humedecimiento del techo: las lámparas del techo y los circuitos de la zona de trabajo están aislados eléctricamente y protegidos con un método aprobado en una revisión de seguridad calificada; ningún trabajo eléctrico más allá del alcance aprobado, y ningún retiro de lámparas sin un electricista con licencia. Si no se puede confirmar el aislamiento, o el agua llega a una lámpara o a una caja eléctrica, deténgase y escale. Pendiente de revisión calificada. (fuente: spec DW-02.SAF \"desenergice/proteja las lámparas según sea necesario\", DW-02.HAZ \"lámparas eléctricas, exposición al agua\"; 31 sección 10)"
+    ],
+    "3.3": [
+      "> HOLD (C-DW02-05) - antes de \"Protocolo de rociado\" más abajo y de cada paso posterior que raspe, mezcle, lije o rocíe: la protección respiratoria, el resto del EPP y el plan de control del polvo los debe decidir un profesional de seguridad calificado; aquí no se selecciona ninguno y ninguno está en el inventario. Hasta que exista esa decisión, estos pasos siguen retenidos (31 sección 8.4). La envoltura de contención y la lijadora conectada a HEPA son controles de ingeniería; no reemplazan la decisión del revisor y no liberan el material sospechoso. Pendiente de revisión calificada. (fuente: spec DW-02.TLS \"EPP/equipo respiratorio según el plan\"; introducción original \"protocolo para polvo peligroso\"; manual de clasificación de riesgos \"no invente la selección del respirador, la autorización de la prueba de ajuste\"; 31 sección 10)"
+    ],
+    "3.4": [
+      "- [ ] **Protocolo de rociado:** Llene un rociador de jardín de bomba limpio con agua tibia mezclada con 2 cucharadas de jabón líquido para platos (ayuda a romper la tensión superficial). Rocíe ligeramente una sección de prueba de 5x5 pies. *No sature en exceso; el exceso de agua deteriora el papel del núcleo del panel de yeso (drywall) de abajo.*"
+    ],
+    "3.5": [
+      "> FLAG: SIN FUENTE - verificar con las instrucciones del fabricante. \"2 cucharadas de jabón líquido para platos\" en el paso anterior no tiene como fuente la etiqueta de un producto; cualquier agente humectante y su mezcla salen solo de la etiqueta y la SDS del producto aprobado (29 sección 8.2 control 8). El texto del paso no ha cambiado. (fuente: 31 sección 10)"
+    ],
+    "3.6": ["- [ ] **Tiempo de remojo:** Deje que el agua se absorba en la textura acústica durante 15 minutos."],
+    "3.7": [
+      "> FLAG: SIN FUENTE - verificar con las instrucciones del fabricante. El tiempo de remojo de \"15 minutos\" del paso anterior no tiene fuente. El texto del paso no ha cambiado. (fuente: 31 sección 10)"
+    ],
+    "3.8": [
+      "- [ ] **Raspado en cortes:** Use un raspador de piso de 10 pulgadas o de 12 pulgadas o una cuchilla especial para techos montada en una pértiga de extensión. Sostenga la cuchilla a un ángulo bajo de 15 grados. Corte con fluidez la pasta mojada de palomitas, dejándola caer sobre el plástico. Mantenga la cuchilla plana para no hacer surcos en el papel de la superficie."
+    ],
+    "3.9": [
+      "> FLAG (C-DW02-07): el encabezado anterior dice \"Re-encintado estructural y reparaciones estructurales\", pero la reparación estructural está fuera de este SOP (sección 2, No realice). Bajo este borrador, los pasos que siguen se limitan a defectos de la cinta del panel de yeso (drywall) y de los sujetadores, pendiente de revisión; el acuerdo excluye las \"grietas estructurales de las vigas del techo\", y ninguna línea de precios ni orden de cambio cubre las reparaciones. El encabezado se mantiene sin cambios. (fuente: 31 sección 10; 02 C-DW02-07)"
+    ],
+    "3.10": [
+      "- [ ] **Exposición de defectos:** Inspeccione meticulosamente el panel de yeso (drywall) del techo recién descubierto. Localice cintas de juntas partidas, clavos oxidados flojos o hundimiento de la estructura."
+    ],
+    "3.11": [
+      "> HOLD (C-DW02-07) - antes de \"Ajuste de sujetadores\" más abajo: si la inspección anterior encuentra hundimiento de la estructura o movimiento de la estructura, DETÉNGASE - no fije, encinte ni alise sobre eso; fotografíelo, regístrelo (spec JOB-004) y escale para la revisión del supervisor o de un ingeniero estructural. Un área floja o \"que rebota\" que puede ser movimiento de la estructura se trata de la misma manera hasta que se revise. Las reparaciones más allá del alcance aprobado necesitan una orden de cambio aprobada antes de que el trabajo continúe (spec FIN-008). Pendiente de revisión calificada. (fuente: 02 C-DW02-07; 31 sección 10; spec START-011)"
+    ],
+    "3.12": [
+      "- [ ] **Ajuste de sujetadores:** Atornille tornillos nuevos para panel de yeso de 1-1/4 pulgadas en cualquier sector flojo o que rebote de las vigas del techo. Hunda con un punzón cualquier clavo viejo que sobresalga."
+    ],
+    "3.13": [
+      "- [ ] **Re-encintado de juntas:** Quite cualquier cinta de papel vieja que se esté despegando. Aplique cinta de malla de fibra de vidrio nueva sobre las juntas agrietadas y aplique una capa estructural de compuesto de fraguado."
+    ],
+    "3.14": [
+      "> FLAG (C-DW02-13, X-26): PASOS TIER-DEPENDENT (que dependen del nivel) - el dueño debe confirmarlo. El Nivel 1 de precios incluye un \"alisado de una sola capa\" y el Nivel 2 \"de dos a tres\" pasadas, mientras que los pasos que siguen aplican dos pasadas a todos los techos. \"Nivel 5\" no tiene una definición compartida; el objetivo de acabado sale del presupuesto aprobado (spec DW-02.INT \"objetivo de acabado\"; DW-02.QAC \"el acabado liso/con textura cumple el objetivo\"). \"Esto elimina cualquier ondulación estructural menor de las vigas del techo.\" es una afirmación de resultado, no una evaluación estructural. Pasos sin cambios. (fuente: 31 sección 10; 02 C-DW02-13, X-26)"
+    ],
+    "3.15": [
+      "- [ ] **Primera pasada de alisado:** Mezcle compuesto para juntas ligero un poco diluido (consistencia de masa para panqueques). Use una cuchilla de alisado de 18 pulgadas o de 24 pulgadas o una llana grande para extender una capa uniforme sobre todo el plano del techo."
+    ],
+    "3.16": [
+      "- [ ] **Secado y raspado de crestas:** Deje secar 12–24 horas. Use una espátula ancha para encintar sostenida a un ángulo de 45 grados para raspar todas las marcas de la herramienta y las crestas."
+    ],
+    "3.17": [
+      "- [ ] **Segunda pasada de alisado:** Aplique una segunda capa ultradelgada de compuesto en dirección perpendicular (90 grados opuesta) a la dirección de la primera pasada. Esto elimina cualquier ondulación estructural menor de las vigas del techo."
+    ],
+    "3.18": [
+      "- [ ] **Lijado sin polvo:** Conecte una lijadora de pértiga especial para panel de yeso (drywall) a una aspiradora de extracción de polvo HEPA. Lije todo el plano del techo con malla abrasiva de grano 150 o de grano 220 hasta que quede completamente plano."
+    ],
+    "3.19": [
+      "- [ ] **La opción de Nivel 5:** Si el cliente pidió un acabado liso moderno, revise con luz, limpie el polvo y aplique imprimador."
+    ],
+    "3.20": [
+      "- [ ] **Aplicación de textura con rociador:** Si se iguala un perfil de pared (p. ej., cáscara de naranja (Orange Peel)/Knockdown), llene una pistola de tolva con compresor mecánico con compuesto de textura. Ajuste la presión del aire para igualar exactamente el tamaño de las gotas. Rocíe en barridos circulares uniformes que se traslapen."
+    ],
+    "3.21": [
+      "> FLAG (C-DW02-15): el paso anterior rocía una textura de cáscara de naranja (Orange Peel) o Knockdown en el techo, elegida para igualar \"un perfil de pared\"; texturizar las paredes mismas y Skip-Trowel no tienen ningún paso (sección 2, Fuera del alcance). \"igualar exactamente el tamaño de las gotas\" no es un criterio de aceptación: la comprobación es \"el acabado liso/con textura cumple el objetivo\" frente al objetivo de acabado del presupuesto aprobado (spec DW-02.QAC). El compresor y la pistola de tolva se preparan solo según las instrucciones de sus fabricantes; aquí no se fija ninguna presión. El texto del paso no ha cambiado. (fuente: 02 C-DW02-15; spec DW-02.QAC)"
+    ],
+    "3.22": [
+      "- [ ] **Ejecución del Knockdown:** Para las texturas knockdown, espere 10–15 minutos a que las gotas rociadas se endurezcan parcialmente, y luego deslice con suavidad una cuchilla ancha de goma plana sobre los picos para aplanarlos de manera uniforme."
+    ],
+    "3.23": [
+      "> FLAG: SIN FUENTE - verificar con las instrucciones del fabricante. La espera de \"10–15 minutos\" del paso anterior no tiene fuente; mandan las instrucciones propias del producto de textura. El texto del paso no ha cambiado. (fuente: 31 sección 10)"
+    ],
+    "3.24": [
+      "> HOLD (C-DW02-09): el procedimiento anterior termina en la textura; ningún paso retira la contención, limpia, maneja los residuos, quita el sellado de las rejillas ni restablece el HVAC. El trabajo no está completo hasta que los puntos de cierre de las secciones 14 a 16 y 18 estén hechos o haya una excepción registrada (spec QA-002, APXA-005). Los puntos de cierre son PROPUESTOS, pendientes de revisión. (fuente: 02 C-DW02-09; 31 sección 10)"
+    ],
+    "4.1": [
+      "Un trabajador no puede marcar el trabajo como completo sin responder estas comprobaciones o registrar una excepción (fuente: spec QA-001). Las fotos no pueden probar condiciones ocultas: no deduzca a partir de una imagen la liberación de materiales peligrosos, la suficiencia estructural ni la seguridad eléctrica (fuente: manual del asistente de calidad)."
+    ],
+    "4.2": [
+      "| Comprobación (spec DW-02.QAC) | Cómo se verifica (pendiente de revisión) | Evidencia | Inspector |",
+      "|---|---|---|---|",
+      "| Textura aprobada retirada/igualada | Textura retirada de toda el área aprobada; donde se rocía textura, comparada con el objetivo de acabado del presupuesto aprobado. \"exactamente\" y \"perfectamente\" no son criterios de aceptación (C-DW02-15) | Fotos de después por habitación o área (spec QA-003) | Autocomprobación del trabajador; si un supervisor inspecciona es Q-31-15 |",
+      "| Sustrato no dañado más allá del alcance de reparación | Las marcas, los daños al papel de la superficie y los defectos ocultos encontrados después del raspado se registran; reparaciones más allá del alcance aprobado solo con una orden de cambio (spec FIN-008; C-DW02-07) | Fotos de cada área reparada (04 DW-02 evidencia de finalización, PROPUESTO) | Trabajador; supervisor para cualquier cosa estructural |",
+      "| El acabado liso/con textura cumple el objetivo | Acabado liso: la \"revisión con luz\" original antes de imprimar; acabado con textura: comparado con el objetivo. El nivel de acabado es el del presupuesto aprobado; \"Nivel 5\" todavía no tiene una definición compartida (X-26), y el número de pasadas de alisado depende del nivel (C-DW02-13) | Fotos del acabado tomadas en la revisión con luz (04 DW-02, PROPUESTO) | Trabajador; si un supervisor inspecciona es Q-31-15 |",
+      "| Limpieza de la contención documentada | Contención retirada y área limpia; rejillas sin sellado y el HVAC restablecido según lo modificado dentro del alcance (spec QA-002, APXA-005; C-DW02-09) | Fotos de la limpieza (spec QA-002 \"Pueden requerirse fotos de la limpieza en servicios con polvo/suciedad\") | Trabajador |"
+    ],
+    "5.1": [
+      "- Secuencia de retiro de la contención y método de limpieza con HEPA: TBD - pendiente de revisión de seguridad calificada (fuente: 02 C-DW02-09; spec QA-002)."
+    ],
+    "5.2": [
+      "- Limpie el área; retire los residuos y la protección; cuente las herramientas y los materiales; restablezca los servicios o los componentes modificados dentro del alcance: quite el sellado de las rejillas y restablezca el HVAC modificado en \"Aislamiento del HVAC\" (fuente: spec APXA-005; C-DW02-09). Quién restablece el HVAC y cuándo, entre fases o al final, está pendiente de revisión del dueño, del abogado y de seguridad (C-DW02-V01)."
+    ],
+    "5.3": [
+      "- Pueden requerirse fotos de la limpieza para trabajos con polvo (fuente: spec QA-002); vea la sección 16.",
+      "  - Evidence: photo"
+    ],
+    "5.4": [
+      "- La cláusula \"Recorrido final\" del acuerdo hace exigible el pago final antes de retirar la contención; la finalización incluye el retiro de la contención (spec QA-002 \"La finalización incluye la limpieza, el manejo de escombros/residuos y el retiro de la protección/contención según corresponda.\"), y la cláusula está en revisión del abogado (vea las notas de revisión del acuerdo)."
+    ],
+    "5.5": [
+      "TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo."
+    ],
+    "5.6": [
+      "- Residuos de los pasos: pasta de textura raspada, lámina de plástico y cinta usadas, polvo del lijado recogido, restos de compuesto y de textura y envases vacíos (fuente: pasos originales de la sección 12; spec QA-002 \"manejo de escombros/residuos\"; DW-02.MAT \"bolsas de desecho\")."
+    ],
+    "5.7": [
+      "- Contenedores, destino y quién paga: decisión del dueño con las reglas locales del municipio real (fuente: 31 sección 3.1, fila de residuos; 29 Q-29-10). El archivo de precios llama al trabajo \"de desecho intensivo\" pero no pone precio a ningún desecho (28 sección 8)."
+    ],
+    "5.8": [
+      "- HandyHub no embolsa, mueve ni retira material sospechoso o positivo; el desecho después de un resultado positivo es parte de la pregunta abierta sobre reducción (abatement) y permisos (fuente: sección 2, No realice; spec START-011; 04 DW-02 indicadores de permiso/licencia)."
+    ],
+    "6.1": [
+      "- Antes: fotos de llegada y del estado existente; el inicio queda bloqueado hasta que se tomen o se registre un motivo autorizado (fuente: spec START-008). Incluya la textura del techo antes de mojarla, las grietas existentes (la cláusula \"Grietas preexistentes\" del acuerdo depende de esta evidencia), las lámparas, las rejillas y el estado del HVAC (fuente: 04 DW-02 evidencia de finalización, PROPUESTO; X-02; spec BRF-012).",
+      "  - Evidence: photo, note"
+    ],
+    "6.2": [
+      "- Durante: la contención en su lugar; las condiciones ocultas encontradas después del raspado, registradas con fotos y su gravedad (fuente: spec APXA-004; JOB-004); las áreas reparadas (fuente: 04 DW-02 evidencia de finalización, PROPUESTO).",
+      "  - Evidence: note"
+    ],
+    "6.3": [
+      "- Después: fotos asociadas a las habitaciones o las áreas (fuente: spec QA-003): el techo terminado, la contención retirada y el área limpia (fuente: spec QA-002), las rejillas sin sellado.",
+      "  - Evidence: photo"
+    ],
+    "6.4": [
+      "- El resultado sobre materiales peligrosos es un registro documental, no una foto; una foto de la textura nunca establece la liberación (fuente: manual del asistente de calidad \"No deduzca a partir de una imagen los sujetadores ocultos, la suficiencia estructural, la liberación de materiales peligrosos ni la seguridad eléctrica.\").",
+      "  - Evidence: photo, note"
+    ],
+    "6.5": [
+      "- Privacidad: solo interna por defecto; evite personas, documentos y objetos de valor que no se necesiten para el trabajo (fuente: spec REC-002; 31 sección 3.5 regla 7)."
+    ],
+    "6.6": [
+      "- Los avisos de llegada y de finalización usan plantillas aprobadas; un trabajo bloqueado, incluida una retención por materiales peligrosos, usa solo el mensaje aprobado de \"trabajo bloqueado\", sin detalles de incidentes ni códigos de acceso por SMS o correo electrónico (fuente: spec NTF-007, COM-002)."
+    ],
+    "6.7": [
+      "- No le diga al cliente si el techo contiene asbesto o plomo, y no haga ninguna afirmación de salud, de calidad del aire ni de seguridad; remita las preguntas al dueño (fuente: C-DW02-10; 31 sección 3.5 regla 5; sección 2, No realice punto 8)."
+    ],
+    "6.8": [
+      "- HVAC: avise al cliente cuándo se apaga el HVAC y cuándo se restablece, dentro del consentimiento firmado y con la redacción aprobada (fuente: acuerdo \"Consentimiento para apagar el HVAC\"; C-DW02-V01)."
+    ],
+    "6.9": [
+      "- Recorrido: registre el resultado como aceptado, aceptado con elementos pendientes, no disponible o en disputa (fuente: spec QA-004).",
+      "  - Evidence: note"
+    ],
+    "6.10": [
+      "- Las notas de cuidado y de entrega salen solo de datos aprobados del producto (fuente: spec QA-008; manual del asistente de calidad \"Prepare las instrucciones de entrega a partir de datos aprobados del producto\")."
+    ],
+    "6.11": [
+      "- No prometa un acabado \"impecable\", una igualación de textura perfecta, resultados sin grietas ni una garantía (fuente: sección 2, No realice punto 8; C-DW02-15)."
+    ],
+    "6.12": [
+      "- Explique el siguiente paso de la factura y el pago sin promesas no autorizadas (fuente: spec APXA-006); el momento de pago del acuerdo está en revisión del abogado (vea las notas de revisión del acuerdo)."
+    ],
+    "6.13": [
+      "Terminado significa todo lo siguiente, registrado en el trabajo (fuente: spec QA-001 a QA-004; DW-02.QAC; APXA-005 a APXA-007):"
+    ],
+    "6.14": [
+      "- Cada comprobación de la sección 13 respondida, o una excepción registrada (QA-001).",
+      "  - Evidence: note"
+    ],
+    "6.15": ["- Fotos de después asociadas a las habitaciones o las áreas (QA-003).", "  - Evidence: photo"],
+    "6.16": [
+      "- Contención retirada y limpieza hecha, con la limpieza de la contención documentada (QA-002; DW-02.QAC \"limpieza de la contención documentada\").",
+      "  - Evidence: note"
+    ],
+    "6.17": ["- Residuos manejados con el método aprobado (sección 15)."],
+    "6.18": [
+      "- Rejillas sin sellado y el HVAC restablecido según lo modificado dentro del alcance (APXA-005; C-DW02-09)."
+    ],
+    "6.19": ["- Herramientas y materiales contados (APXA-005, APXA-007)."],
+    "6.20": ["- Resultado del recorrido registrado, con los elementos pendientes (QA-004).", "  - Evidence: note"],
+    "6.21": [
+      "- Problemas sin resolver, incidentes y solicitudes de cambio enviados antes de que se cierre el trabajo (APXA-007)."
+    ],
+    "6.22": [
+      "- La finalización definitiva es una aprobación humana; la revisión de calidad solo recomienda que está listo (fuente: manual del asistente de calidad \"Recomiende que está listo para la aprobación humana; no fije la finalización definitiva\").",
+      "  - Evidence: note"
+    ],
+    "stop.1": [
+      "La regla general para detener el trabajo es [[FACT-SVC-STOP-WORK-RULE]]. Activadores específicos del servicio:"
+    ],
+    "stop.2": [
+      "Activadores para detener el trabajo y retenciones específicos del servicio (todos pendientes de revisión calificada; roles que los liberan según 31 sección 8.3):"
+    ],
+    "stop.3": [
+      "- Indicación de la tarjeta, sin cambios: \"no altere material sospechoso peligroso sin la evaluación/prueba/autorización requerida; aísle el área; controle el polvo; desenergice/proteja las lámparas según sea necesario; controles de altura\" (fuente: spec DW-02.SAF)."
+    ],
+    "stop.4": [
+      "- HOLD C-DW02-03, evaluación antes del primer paso: año de construcción desconocido = HOLD; textura sin analizar = HOLD a cualquier edad de la propiedad hasta que un revisor calificado fije la regla de evaluación (04 DW-02 requisitos previos, PROPUESTO); textura pintada en una casa anterior a 1978 o de edad desconocida = HOLD para la revisión RRP de la EPA. La detención original por \"1980\" sigue vigente hasta que un revisor calificado la reemplace. Liberación: un inspector de asbesto acreditado o un renovador certificado en RRP por la EPA, según lo requiera el caso, junto con el dueño."
+    ],
+    "stop.5": [
+      "- HOLD C-DW02-02, resultado positivo o no concluyente = BLOQUEADO: se libera solo con una autorización documentada de un profesional de asbesto calificado aceptado por el dueño; HandyHub no toma muestras; nunca se reanuda porque el material se encapsuló en el lugar (relacionado C-DW02-01; la cláusula de reanudación del acuerdo está en revisión del abogado).",
+      "  - Evidence: note"
+    ],
+    "stop.6": [
+      "- HOLD C-DW02-04, lámparas: no se moja nada hasta que las lámparas del techo y los circuitos de la zona de trabajo estén aislados y protegidos con un método aprobado; si no se puede confirmar el aislamiento, o el agua llega a una lámpara o a una caja eléctrica, deténgase. Liberación: profesional de seguridad calificado; electricista con licencia para cualquier retiro de lámparas."
+    ],
+    "stop.7": [
+      "- HOLD C-DW02-05, polvo y protección respiratoria: los pasos de raspado, mezcla, lijado y rociado siguen retenidos hasta que exista la decisión del profesional de seguridad calificado sobre protección respiratoria y control del polvo; una retención causada por la falta de una política no se puede liberar por anulación (31 sección 8.4)."
+    ],
+    "stop.8": [
+      "- HOLD X-12, acceso: los pasos que necesitan escaleras, plataformas o andamios siguen retenidos hasta que exista la política de altura y acceso (31 sección 8.4)."
+    ],
+    "stop.9": [
+      "- DETENER C-DW02-07, estructura: hundimiento de la estructura o movimiento de la estructura encontrado después del raspado = DETÉNGASE, fotografíe, registre (spec JOB-004), revisión del supervisor o de un ingeniero; no fije, encinte ni alise sobre eso.",
+      "  - Evidence: note"
+    ],
+    "stop.10": [
+      "- HOLD C-DW02-V01, HVAC: el estado del HVAC debe coincidir con el consentimiento firmado en cada cambio de fase, y cualquier excepción se registra; el calor o el frío para los ocupantes y los trabajadores mientras el HVAC está apagado es un activador para detener el trabajo según la línea \"calor o frío inseguros\" del bloque anterior.",
+      "  - Evidence: note"
+    ],
+    "stop.11": [
+      "- El material sospechoso peligroso, un problema estructural y un alcance eléctrico no aprobado son retenciones críticas que ningún rol puede anular; se liberan solo con una evaluación calificada registrada (31 sección 8.3).",
+      "  - Evidence: note"
+    ],
+    "stop.12": ["Ruta general: [[FACT-SVC-ESCALATION-PATH]]."],
+    "stop.13": [
+      "Roles del servicio para DW-02 (los contactos y el orden de escalamiento son decisiones del dueño, Q-31-05):"
+    ],
+    "stop.14": [
+      "- Sospecha de asbesto, resultados de pruebas y preguntas sobre muestras: inspector de asbesto acreditado (C-DW02-02, C-DW02-03)."
+    ],
+    "stop.15": [
+      "- Textura pintada en una casa antigua o de edad desconocida: renovador certificado en RRP por la EPA (C-DW02-03)."
+    ],
+    "stop.16": ["- Lámparas y circuitos del techo: electricista con licencia (C-DW02-04)."],
+    "stop.17": ["- Hundimiento o movimiento de la estructura: supervisor, luego ingeniero estructural (C-DW02-07)."],
+    "stop.18": [
+      "- Polvo, protección respiratoria, equipo de acceso, y calor o frío mientras el HVAC está apagado: profesional de seguridad calificado (C-DW02-05, X-12, C-DW02-V01)."
+    ],
+    "stop.19": [
+      "- Alcance del consentimiento del HVAC, términos de pruebas y de reanudación: dueño, con el abogado (C-DW02-V01; notas de revisión del acuerdo)."
+    ],
+    "stop.20": ["Ruta general: [[FACT-SVC-INCIDENT-REPORTING]]."],
+    "stop.21": [
+      "- Para este servicio, reporte como mínimo: sospecha de exposición al polvo o a los residuos de la textura antes de que se registrara una disposición sobre materiales peligrosos, agua que llega a una lámpara o una descarga eléctrica, una caída desde el equipo de acceso, un resbalón en una lámina mojada, una falla de la contención, y una falla del compresor o de la pistola de tolva (fuente: spec JOB-008 \"sospecha de exposición a materiales peligrosos\", \"falla de herramientas/equipos\"; DW-02.HAZ)."
+    ]
+  },
+  "ambiguous": []
+}

@@ -1,0 +1,283 @@
+{
+  "sopId": "SOP-HI-01",
+  "englishContentSha256": "906d10dc6dcf70f97046db78b7feff77ef2712102edd40095e67c64db9da98c2",
+  "title": "SOP HI-01: Colgado de cuadros de precisión e instalación de arte",
+  "headings": [
+    "1. Preparación del sitio y protección de la propiedad",
+    "2. Preparación y mediciones/comprobaciones requeridas",
+    "3. Pasos de trabajo específicos del servicio",
+    "4. Comprobaciones de calidad",
+    "5. Limpieza y manejo de residuos",
+    "6. Comprobaciones finales, fotos de finalización y recorrido"
+  ],
+  "items": {
+    "1.1": [
+      "- El cliente informa a HandyHub sobre los servicios ocultos conocidos en la pared y los sustratos de pared especiales, como yeso histórico o ladrillo blando (fuente: cláusula \"Descargo sobre el sustrato\" del acuerdo). Esta información no reemplaza la propia comprobación de servicios ocultos de HandyHub de la sección 12 (fuente: 30 sección 4.1 fila 5)."
+    ],
+    "1.2": [
+      "- Los objetos y cualquier herraje que aporta el cliente están en el sitio; la ubicación exacta está decidida, o el cliente está disponible para aprobar la distribución antes de perforar (fuente: spec HI-01.INT; cláusula \"Aprobación de la ubicación final\" del acuerdo)."
+    ],
+    "1.3": [
+      "- Área de trabajo despejada; ocupantes, niños y mascotas lejos del área de trabajo (fuente: spec CX-005, BRF-005; X-11)."
+    ],
+    "1.4": [
+      "- Se señalan los objetos que hay que proteger y los daños existentes antes del trabajo (fuente: spec BRF-005 \"objetos que hay que proteger\"; START-008)."
+    ],
+    "1.5": [
+      "- Redacción para el cliente de esta lista de verificación: TBD - dueño, con revisión del abogado donde se convierta en texto del acuerdo (fuente: 30 sección 4.1 fila 5)."
+    ],
+    "2.1": [
+      "- Versión de presupuesto y alcance aprobados, con las exclusiones revisadas antes de salir (fuente: spec APXA-001, START-003, CX-003)."
+    ],
+    "2.2": [
+      "- Solicitud completa para cada objeto (los campos de la spec HI-01.INT de la sección 2). Si falta un dato de peso, sustrato, ubicación o acceso, se bloquea el paquete listo para empezar (fuente: spec HI-01.INT; manual del planificador de trabajos \"Detenga la planificación de un paquete listo para empezar si faltan decisiones requeridas de alcance o de peligros\")."
+    ],
+    "2.3": [
+      "- El sustrato es uno que cubre este SOP; de lo contrario, el trabajo queda bloqueado para una evaluación en el sitio (fuente: spec HI-01.SAF \"verifique el sustrato\"; C-HI01-05)."
+    ],
+    "2.4": [
+      "- Edad de la propiedad registrada si se conoce. La solicitud de HI-01 no pregunta la edad de la propiedad, y la regla de evaluación para acabados pintados antiguos y yeso es una pregunta abierta (fuente: spec BRF-003 \"edad aproximada si se conoce\"; X-13; Q-31-07).",
+      "  - Evidence: note"
+    ],
+    "2.5": [
+      "- Peligros, controles, EPP y condiciones para detener el trabajo reconocidos antes de empezar (fuente: spec START-004, APXA-003).",
+      "  - Evidence: note"
+    ],
+    "2.6": [
+      "- Herramientas y materiales críticos cargados, incluida la herramienta de detección de servicios ocultos y herrajes adecuados al sustrato; si falta un artículo crítico, se bloquean las tareas afectadas (fuente: spec APXA-001, START-005, START-006; manual del planificador de trabajos \"Una escalera que falta o un permiso no verificado mantiene bloqueadas las tareas afectadas\")."
+    ],
+    "2.7": [
+      "- Obras de arte y herrajes que aporta el cliente en el sitio, con su estado, modelo y cantidad registrados antes de la instalación (fuente: spec START-009, HI-01.INT).",
+      "  - Evidence: note"
+    ],
+    "2.8": [
+      "- Se programa una segunda persona cuando un objeto necesita un levantamiento entre dos personas (fuente: spec HI-01.SAF; manual del planificador de trabajos \"No trate al equipo de dos personas como dos cuadrillas independientes cuando el trabajo necesita a ambas\")."
+    ],
+    "2.9": [
+      "- Trabajo en escalera solo bajo una política aprobada de altura/acceso, que todavía no existe; hasta que exista, las tareas que necesitan una escalera siguen bloqueadas (fuente: 02 G-005; X-12; 31 sección 8.4 regla 4; Q-31-09)."
+    ],
+    "2.10": [
+      "- Indicadores de permiso, licencia o calificación: la aplicabilidad para HI-01 es desconocida y no se trata como \"no se necesita permiso\" (fuente: spec START-010; manual de clasificación de riesgos \"una aplicabilidad desconocida no debe equivaler por defecto a que no se necesita permiso\")."
+    ],
+    "2.11": [
+      "- Empiece solo cuando el trabajo esté Listo o haya una excepción autorizada documentada; las retenciones críticas nunca se liberan mediante anulación (fuente: spec APXA-003; 31 sección 8.3).",
+      "  - Evidence: note"
+    ],
+    "2.12": [
+      "- Al llegar: confirme la dirección, el área de trabajo y el contacto; identifique mascotas y ocupantes; inspeccione el sitio real frente a las instrucciones y registre las diferencias (fuente: spec APXA-002, START-007).",
+      "  - Evidence: note"
+    ],
+    "2.13": [
+      "- Tome las fotos requeridas del estado existente de cada área de pared y de cada objeto (fuente: spec APXA-002, START-008; sección 16).",
+      "  - Evidence: photo"
+    ],
+    "2.14": [
+      "- Proteja el piso y la pared en cada área de trabajo (fuente: spec HI-01.SAF \"proteja el piso/la pared\"; APXA-002 \"proteja el área de trabajo\")."
+    ],
+    "2.15": [
+      "- Identifique los servicios públicos y las restricciones de emergencia relevantes para la tarea (fuente: spec APXA-002)."
+    ],
+    "2.16": [
+      "- Antes de empezar: complete las comprobaciones requeridas de seguridad, de EPP y del sitio; confirme los materiales y los modelos; confirme que leyó el SOP y los peligros; empiece solo cuando esté Listo o haya una excepción autorizada documentada (fuente: spec APXA-003).",
+      "  - Evidence: note"
+    ],
+    "2.17": [
+      "- Presente la distribución para la aprobación del cliente antes de perforar cualquier agujero (GATE en la sección 12) (fuente: cláusula \"Aprobación de la ubicación final\" del acuerdo; spec HI-01.QAC \"ubicación aprobada por el cliente\"; C-HI01-04)."
+    ],
+    "3.1": [
+      "*Procedimiento original, sin cambios y en su orden original; los dos encabezados originales de \"Opción de problema\" bajan un nivel. Las líneas que empiezan con HOLD, GATE o FLAG se añadieron el 2026-10-03 como líneas separadas junto a los pasos afectados (una retención que debe cumplirse primero va antes del paso que controla). Están pendientes de revisión calificada y no cambian ningún paso original.*"
+    ],
+    "3.2": [
+      "> HOLD (C-HI01-01): antes de que cualquier agujero o fijación entre en la pared en esta opción (la ruta del gancho tipo monkey hook de \"Auditoría de peso\" y el agujero piloto de \"Colocación del anclaje\"), compruebe cada posición marcada en busca de servicios eléctricos, de plomería u otros servicios ocultos con el escáner del inventario, usado según las instrucciones de su fabricante. No se indica si el escáner del inventario detecta cables o tuberías (sección 7); donde las instrucciones de su fabricante no los cubren, un escaneo que no encuentra nada no elimina el riesgo, que cuenta como incierto. Si el riesgo de servicios ocultos o el estado de la pared es incierto, DETÉNGASE y escale (secciones 10 y 19). Lo libera: TBD - profesional de seguridad calificado. Pendiente de revisión calificada. (fuente: spec HI-01.SAF \"deténgase si el riesgo de servicios ocultos o el estado de la pared es incierto\"; 31 sección 10; datos del dueño 2026-10-02 \"Lo desconocido no es seguro\")"
+    ],
+    "3.3": [
+      "> GATE (C-HI01-04): antes de que cualquier agujero o fijación entre en la pared en esta opción, registre la aprobación del cliente de la distribución fijada en \"Configuración del nivel láser\" (foto de la línea láser o de las posiciones marcadas más el reconocimiento del cliente). Sin ella, no perfore ni fije. Pendiente de revisión. (fuente: 02 C-HI01-04; spec HI-01.QAC \"ubicación aprobada por el cliente\"; cláusula \"Aprobación de la ubicación final\" del acuerdo)"
+    ],
+    "3.4": [
+      "- [ ] **Auditoría de peso:** Pese la obra de arte. Si pesa menos de 10 libras, use ganchos tipo monkey hook de alta resistencia. Si pesa 10–50 libras, use anclajes de mariposa (toggle) de zinc autoperforantes profesionales.",
+      "  - Evidence: measurement"
+    ],
+    "3.5": [
+      "> HOLD (C-HI01-02): el paso anterior cubre solo sus propios rangos de peso. Un objeto más pesado que estos rangos no se cuelga: DETÉNGASE y escale. La capacidad del herraje para el peso del objeto y este sustrato viene de la clasificación del fabricante del herraje registrada para el trabajo; aquí no se añade ninguna clasificación, y el peso máximo aceptado es una pregunta abierta para el dueño. Lo libera: TBD - profesional de seguridad calificado. Pendiente de revisión calificada. (fuente: spec HI-01.SAF \"confirme la capacidad de la fijación\"; 31 sección 10)"
+    ],
+    "3.6": [
+      "> HOLD (HI-01.SAF): si la auditoría de peso anterior muestra que el objeto necesita un levantamiento entre dos personas, no lo levante ni lo cuelgue solo; detenga esa tarea hasta que esté presente la segunda persona. Todavía no se ha fijado un umbral de peso para el levantamiento entre dos personas (pregunta abierta para el dueño). Lo libera: TBD - profesional de seguridad calificado. Pendiente de revisión calificada. (fuente: spec HI-01.SAF \"levantamiento entre dos personas cuando se requiera\")"
+    ],
+    "3.7": [
+      "- [ ] **Configuración del nivel láser:** Proyecte una línea láser verde horizontal autonivelante a la altura de la vista que prefiera el cliente (el centro estándar está a 57 a 60 pulgadas del piso)."
+    ],
+    "3.8": [
+      "> FLAG: SIN FUENTE - verifique con las instrucciones del fabricante. La cifra \"el centro estándar está a 57 a 60 pulgadas del piso\" del paso anterior es una convención sin fuente; manda la altura que prefiera el cliente indicada en el mismo paso. Pendiente de revisión. (fuente: 31 sección 10)"
+    ],
+    "3.9": [
+      "- [ ] **Colocación del anclaje:** Perfore un agujero piloto limpio. Pase el perno de mariposa (toggle) por el soporte, empújelo dentro de la cavidad del panel de yeso (drywall) hasta que las alas se abran detrás del panel, y atornille el tornillo al ras."
+    ],
+    "3.10": [
+      "> FLAG (C-HI01-11): verifique el paso anterior con las instrucciones de instalación del fabricante del herraje. El anclaje del inventario es un anclaje de mariposa autoperforante, mientras que este paso describe un perno de mariposa colocado a través de un agujero piloto; la correspondencia no está verificada. Pendiente de revisión calificada. (fuente: 02 C-HI01-11; archivo de inventario)"
+    ],
+    "3.11": [
+      "- [ ] **Colocación de topes:** Pegue topes adhesivos de goma suave en las esquinas inferiores traseras del marco del cuadro para evitar rayones o sombras de polvo flotante en la pared."
+    ],
+    "3.12": [
+      "> HOLD (31 sección 10, repisa de chimenea): antes de \"Perforación del sustrato\" de abajo, cada instalación en una repisa de chimenea necesita una evaluación en el sitio del calor y de la cercanía de aparatos de gas; sin ella, no empiece esta opción. Si se ofrece en absoluto el montaje sobre chimeneas es una pregunta abierta para el dueño (Q-31-08). Lo libera: TBD - profesional de seguridad calificado. Pendiente de revisión calificada."
+    ],
+    "3.13": [
+      "> HOLD (C-HI01-02): esta opción no da ningún rango de peso. Antes de \"Perforación del sustrato\" de abajo, registre el peso del objeto y la clasificación del fabricante del anclaje para ese peso en esta mampostería; sin ambos, DETÉNGASE y escale. Si el objeto necesita un levantamiento entre dos personas, no lo levante ni lo cuelgue solo (spec HI-01.SAF). Aquí no se añade ninguna clasificación. Lo libera: TBD - profesional de seguridad calificado. Pendiente de revisión calificada. (fuente: 31 sección 10; spec HI-01.SAF)"
+    ],
+    "3.14": [
+      "> GATE (C-HI01-04): antes de \"Perforación del sustrato\" de abajo, registre la aprobación del cliente de las posiciones marcadas (foto más el reconocimiento del cliente). Sin ella, no perfore. Pendiente de revisión. (fuente: 02 C-HI01-04; spec HI-01.QAC \"ubicación aprobada por el cliente\")"
+    ],
+    "3.15": [
+      "> HOLD (C-HI01-01): antes de \"Perforación del sustrato\" de abajo, compruebe cada posición marcada en busca de servicios eléctricos, de plomería u otros servicios ocultos con el escáner del inventario, usado según las instrucciones de su fabricante. No se indica si el escáner del inventario detecta cables o tuberías (sección 7); donde las instrucciones de su fabricante no los cubren, un escaneo que no encuentra nada no elimina el riesgo, que cuenta como incierto. Si el riesgo de servicios ocultos o el estado de la pared es incierto, DETÉNGASE y escale (secciones 10 y 19). Lo libera: TBD - profesional de seguridad calificado. Pendiente de revisión calificada. (fuente: spec HI-01.SAF; 31 sección 10; datos del dueño 2026-10-02 \"Lo desconocido no es seguro\")"
+    ],
+    "3.16": [
+      "- [ ] **Perforación del sustrato:** Use un taladro percutor con una broca para mampostería con punta de carburo. Perfore un agujero limpio directamente en el centro de la cara del ladrillo macizo. *Advertencia: Evite perforar en las juntas de mortero blando, ya que se desmoronan con el tiempo.*"
+    ],
+    "3.17": [
+      "- [ ] **Colocación del casquillo:** Introduzca con un mazo de goma un casquillo de anclaje de expansión para mampostería de plástico o de plomo en el agujero hasta que quede perfectamente al ras con la cara del ladrillo."
+    ],
+    "3.18": [
+      "> FLAG (material peligroso): el paso anterior menciona un \"casquillo de anclaje de expansión para mampostería de plomo\". Un herraje que contiene plomo es un elemento de manejo de material peligroso (necesidad de SDS e higiene según el revisor de seguridad calificado), no un elemento de pintura con plomo. Pendiente de revisión calificada. (fuente: 31 sección 10)"
+    ],
+    "3.19": [
+      "> FLAG (C-HI01-11): verifique el paso anterior con las instrucciones de instalación del fabricante del anclaje. No se indica que los casquillos de plástico del listado tengan clasificación para mampostería, y los casquillos de plomo no están en el inventario. Pendiente de revisión calificada. (fuente: 02 C-HI01-11; archivo de inventario)"
+    ],
+    "3.20": [
+      "- [ ] **Fijación del soporte:** Pase un tornillo estructural galvanizado de alta resistencia por el gancho colgador y atorníllelo firmemente en el casquillo hasta que quede completamente anclado."
+    ],
+    "3.21": [
+      "> FLAG (C-HI01-11): verifique el paso anterior con las instrucciones de instalación del fabricante del herraje. La fijación para mampostería del inventario es un tornillo tipo Tapcon, no la combinación de tornillo dentro de casquillo que describe este paso; la correspondencia no está verificada. Pendiente de revisión calificada. (fuente: 02 C-HI01-11; archivo de inventario)"
+    ],
+    "4.1": [
+      "| Comprobación (spec HI-01.QAC) | Evidencia (borrador) | Inspector |",
+      "|---|---|---|",
+      "| Montaje seguro | Cada objeto comprobado como seguro en su herraje según las instrucciones del fabricante del herraje antes de que el trabajador lo deje; si falta la comprobación del montaje, significa inspección, no aprobación (manual de calidad) | Autocomprobación del trabajador o supervisor: TBD (Q-31-15) |",
+      "| Nivel y alineación | Comprobación después del montaje con los niveles del inventario (\"Para verificación física cruzada\") o frente a la línea láser (C-HI01-06) | TBD (Q-31-15) |",
+      "| Sin daños a la pared ni al objeto | Comparado con las fotos del estado existente (spec START-008); cualquier daño registrado (spec JOB-004, JOB-008) | TBD (Q-31-15) |",
+      "| Ubicación aprobada por el cliente | Aprobación de la distribución registrada antes del primer agujero (GATE en la sección 12) y confirmada en el recorrido (spec QA-004) | TBD (Q-31-15) |",
+      "| Limpieza | Sección 14 completa (spec QA-002) | TBD (Q-31-15) |"
+    ],
+    "4.2": [
+      "- El trabajador no puede marcar el trabajo como completo sin responder cada comprobación requerida o registrar una excepción (fuente: spec QA-001).",
+      "  - Evidence: note"
+    ],
+    "4.3": [
+      "- Las fotos por sí solas no prueban las fijaciones ocultas ni la capacidad del anclaje (fuente: manual de calidad \"No deduzca a partir de una imagen fijaciones ocultas, la suficiencia estructural, la liberación de materiales peligrosos ni la seguridad eléctrica\")."
+    ],
+    "4.4": [
+      "- Un reconocimiento del cliente no libera una retención de seguridad (fuente: manual de calidad \"Un formulario firmado por el cliente no libera una retención de seguridad sin resolver\").",
+      "  - Evidence: note"
+    ],
+    "5.1": [
+      "- Limpie el área de trabajo, incluidos el polvo y los residuos de la perforación (fuente: spec QA-002; HI-01.HAZ \"polvo de perforación\")."
+    ],
+    "5.2": ["- Retire la protección del piso y de la pared (fuente: spec QA-002, APXA-005)."],
+    "5.3": [
+      "- Cuente las herramientas y los materiales; devuelva los materiales no usados (fuente: spec APXA-005, APXA-007)."
+    ],
+    "5.4": ["- Fotos de limpieza donde se requieran (fuente: spec QA-002).", "  - Evidence: photo"],
+    "5.5": [
+      "- TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo."
+    ],
+    "5.6": [
+      "- Tipos de residuos conocidos para esa revisión: polvo y residuos de perforación (spec HI-01.HAZ); empaque, piezas sobrantes y los herrajes viejos del cliente, cuyo destino se registra (29 sección 9.1 paso 5); cualquier residuo de herrajes que contengan plomo si se usan casquillos de plomo (31 sección 10). No se ha definido ningún destino para los residuos (fuente: 31 sección 3.1 fila 15; 02 G-078).",
+      "  - Evidence: note"
+    ],
+    "6.1": [
+      "- Antes: fotos de llegada y del estado existente de cada área de pared y de cada objeto, incluidos los daños visibles, donde el servicio esté configurado para requerirlas; el inicio queda bloqueado hasta que se tomen o se registre un motivo autorizado (fuente: spec START-008, APXA-002).",
+      "  - Evidence: photo, note"
+    ],
+    "6.2": [
+      "- Durante: la distribución aprobada antes del primer agujero (GATE en la sección 12); cualquier condición oculta, con su gravedad (fuente: 02 C-HI01-04; spec JOB-004)."
+    ],
+    "6.3": [
+      "- Después: una foto por objeto o pared, asociada a su área de trabajo (fuente: spec QA-003); fotos de limpieza donde se requieran (fuente: spec QA-002).",
+      "  - Evidence: photo"
+    ],
+    "6.4": [
+      "- Las fotos son internas por defecto; evite personas, documentos y objetos de valor que no se necesiten para el trabajo (fuente: spec REC-002; 31 sección 3.5 regla 7)."
+    ],
+    "6.5": [
+      "- Confirme la ubicación con el cliente antes de perforar y registre la aprobación (fuente: spec HI-01.QAC; cláusula \"Aprobación de la ubicación final\" del acuerdo).",
+      "  - Evidence: note"
+    ],
+    "6.6": [
+      "- En el recorrido, registre el resultado: aceptado, aceptado con elementos pendientes, no disponible o en disputa (fuente: spec QA-004, APXA-006).",
+      "  - Evidence: note"
+    ],
+    "6.7": [
+      "- Explique la factura y el siguiente paso de pago sin hacer promesas no autorizadas (fuente: spec APXA-006)."
+    ],
+    "6.8": [
+      "- Si el trabajo está bloqueado, use solo el mensaje aprobado de \"trabajo bloqueado\" (fuente: spec NTF-007; 31 sección 8.5)."
+    ],
+    "6.9": [
+      "- No prometa capacidad de carga, una alineación perfecta ni que un objeto nunca se moverá, y no hable de culpas con el cliente; remita esas preguntas al dueño (fuente: 31 sección 3.3 entrada 8 y sección 8.5; C-HI01-02, C-HI01-V01)."
+    ],
+    "6.10": [
+      "- Notas de cuidado solo a partir de datos de producto aprobados (fuente: spec QA-008; manual de calidad)."
+    ],
+    "6.11": [
+      "- Cada comprobación requerida de la sección 13 respondida o una excepción registrada (fuente: spec QA-001).",
+      "  - Evidence: note"
+    ],
+    "6.12": [
+      "- Fotos de después tomadas y asociadas a las áreas de trabajo (fuente: spec QA-003).",
+      "  - Evidence: photo"
+    ],
+    "6.13": [
+      "- Limpieza hecha, protección retirada, herramientas y materiales contados (fuente: spec QA-002, APXA-005)."
+    ],
+    "6.14": [
+      "- Elementos pendientes y resultado del recorrido registrados (fuente: spec QA-004, APXA-006).",
+      "  - Evidence: note"
+    ],
+    "6.15": [
+      "- Ningún HOLD de la sección 12 queda abierto; los problemas sin resolver, los incidentes y los seguimientos de cambios están enviados (fuente: 31 sección 8.3; spec APXA-007)."
+    ],
+    "6.16": [
+      "- Cierre solo cuando los pasos operativos y financieros requeridos estén completos (fuente: spec APXA-007)."
+    ],
+    "stop.1": [
+      "La regla general para detener el trabajo es [[FACT-SVC-STOP-WORK-RULE]]. Activadores específicos del servicio:"
+    ],
+    "stop.2": [
+      "Activadores para detener el trabajo específicos del servicio (fuente: spec HI-01.SAF \"verifique el sustrato; confirme la capacidad de la fijación; levantamiento entre dos personas cuando se requiera; proteja el piso/la pared; deténgase si el riesgo de servicios ocultos o el estado de la pared es incierto\"):"
+    ],
+    "stop.3": [
+      "- El riesgo de servicios ocultos o el estado de la pared es incierto: deténgase (fuente: spec HI-01.SAF; C-HI01-01)."
+    ],
+    "stop.4": [
+      "- El sustrato no se puede verificar o no es uno que cubre este SOP: deténgase y solicite una evaluación en el sitio (fuente: spec HI-01.SAF \"verifique el sustrato\"; C-HI01-05)."
+    ],
+    "stop.5": [
+      "- La capacidad de la fijación no se puede confirmar con la clasificación del fabricante del herraje para el peso del objeto y el sustrato, o el objeto es más pesado que los rangos propios del SOP: deténgase y escale (fuente: spec HI-01.SAF \"confirme la capacidad de la fijación\"; C-HI01-02)."
+    ],
+    "stop.6": [
+      "- Se requiere un levantamiento entre dos personas y la segunda persona no está disponible: detenga el levantamiento (fuente: spec HI-01.SAF)."
+    ],
+    "stop.7": [
+      "- El piso y la pared no se pueden proteger: no empiece la tarea afectada (fuente: spec HI-01.SAF \"proteja el piso/la pared\")."
+    ],
+    "stop.8": [
+      "- Instalación en una repisa de chimenea sin la evaluación en el sitio del calor y de la cercanía de aparatos de gas: no empiece (fuente: 31 sección 10)."
+    ],
+    "stop.9": [
+      "- Se necesita una escalera y no existe una política aprobada de altura/acceso: la tarea sigue bloqueada (fuente: 31 sección 3.3 entrada 5; 02 G-005)."
+    ],
+    "stop.10": [
+      "- Cada HOLD de la sección 12 indica quién lo libera; las retenciones críticas se liberan solo con una evaluación calificada registrada, nunca mediante anulación ni a solicitud del cliente (fuente: 31 sección 8.3).",
+      "  - Evidence: note"
+    ],
+    "stop.11": ["Ruta general: [[FACT-SVC-ESCALATION-PATH]]."],
+    "stop.12": [
+      "- Para este servicio, la ruta anterior se aplica antes de cualquier otro trabajo en el objeto afectado cuando: el riesgo de servicios ocultos es incierto; un objeto supera los rangos del SOP o no tiene una clasificación registrada; el sustrato no está cubierto; una repisa de chimenea no se ha evaluado; o los acabados antiguos pueden contener pintura con plomo o asbesto (fuente: secciones 10 y 12)."
+    ],
+    "stop.13": ["- Contactos y orden de escalamiento: `<decisión del dueño: orden de escalamiento>` (Q-31-05)."],
+    "stop.14": ["Ruta general: [[FACT-SVC-INCIDENT-REPORTING]]."],
+    "stop.15": [
+      "- Para este servicio, reporte entre otros: un objeto que se suelta o que cae, una perforación que golpea un servicio oculto, y daños a las obras de arte, los vidrios o las paredes del cliente (fuente: spec JOB-008; HI-01.HAZ)."
+    ]
+  },
+  "ambiguous": []
+}

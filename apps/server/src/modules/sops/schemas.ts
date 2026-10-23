@@ -1,6 +1,7 @@
 // JSON schemas of the work package SOP view and the competent-review sign-off (TSK-0068; HH-PKT-03, HH-WORK-11,
 // HH-API-01, HH-ARC-04). Input objects refuse unknown fields; response objects list every field.
 import { SOP_EVIDENCE_KINDS, SOP_REVIEW_STATES, SOP_STAGES } from '@handyhub/domain'
+import { SPANISH_CATEGORIES, type SpanishCategory } from './spanish.js'
 
 const UUID = { type: 'string', format: 'uuid' } as const
 const NULLABLE_STRING = { type: ['string', 'null'] } as const
@@ -86,6 +87,77 @@ const SIGN_OFF = {
   ],
 } as const
 
+const STAGES = {
+  type: 'array',
+  items: {
+    type: 'object',
+    additionalProperties: false,
+    required: ['stage', 'key', 'heading', 'steps', 'items'],
+    properties: {
+      stage: { type: 'integer' },
+      key: { type: 'string', enum: [...SOP_STAGES] },
+      heading: { type: 'string' },
+      steps: { type: 'integer' },
+      items: ITEMS,
+    },
+  },
+} as const
+const HAZARDS = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['controls', 'stopWork'],
+  properties: { controls: ITEMS, stopWork: ITEMS },
+} as const
+const SPANISH_STATUS = { type: 'string', enum: ['ai_reviewed', 'pending'] } as const
+const PASS_FAIL = { type: 'string', enum: ['pass', 'fail'] } as const
+
+/** The Spanish release of the version (TSK-0103): never "human-reviewed"; the text only when released. */
+const SPANISH = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['status', 'check', 'title', 'stages', 'hazards'],
+  properties: {
+    status: SPANISH_STATUS,
+    check: {
+      anyOf: [
+        { type: 'null' },
+        {
+          type: 'object',
+          additionalProperties: false,
+          required: ['checkedOn', 'tool', 'englishContentSha256', 'results', 'problems', 'ambiguous'],
+          properties: {
+            checkedOn: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
+            tool: { type: 'string' },
+            englishContentSha256: { type: 'string' },
+            results: {
+              type: 'object',
+              additionalProperties: false,
+              required: [...SPANISH_CATEGORIES],
+              properties: Object.fromEntries(SPANISH_CATEGORIES.map((c) => [c, PASS_FAIL])) as Record<
+                SpanishCategory,
+                typeof PASS_FAIL
+              >,
+            },
+            problems: { type: 'integer' },
+            ambiguous: {
+              type: 'array',
+              items: {
+                type: 'object',
+                additionalProperties: false,
+                required: ['item', 'note'],
+                properties: { item: { type: 'string' }, note: { type: 'string' } },
+              },
+            },
+          },
+        },
+      ],
+    },
+    title: NULLABLE_STRING,
+    stages: { anyOf: [{ type: 'null' }, STAGES] },
+    hazards: { anyOf: [{ type: 'null' }, HAZARDS] },
+  },
+} as const
+
 const SOP = {
   anyOf: [
     { type: 'null' },
@@ -100,6 +172,7 @@ const SOP = {
         'reviewState',
         'current',
         'spanishStatus',
+        'spanish',
         'sourceFile',
         'contentSha256',
         'hazardSha256',
@@ -117,34 +190,16 @@ const SOP = {
         title: { type: 'string' },
         reviewState: { type: 'string', enum: [...SOP_REVIEW_STATES] },
         current: { type: 'boolean' },
-        spanishStatus: { type: 'string', enum: ['pending'] },
+        spanishStatus: SPANISH_STATUS,
+        spanish: SPANISH,
         sourceFile: { type: 'string' },
         contentSha256: { type: 'string' },
         hazardSha256: { type: 'string' },
         qualitySha256: { type: 'string' },
         rowVersion: { type: 'integer' },
         signOff: SIGN_OFF,
-        stages: {
-          type: 'array',
-          items: {
-            type: 'object',
-            additionalProperties: false,
-            required: ['stage', 'key', 'heading', 'steps', 'items'],
-            properties: {
-              stage: { type: 'integer' },
-              key: { type: 'string', enum: [...SOP_STAGES] },
-              heading: { type: 'string' },
-              steps: { type: 'integer' },
-              items: ITEMS,
-            },
-          },
-        },
-        hazards: {
-          type: 'object',
-          additionalProperties: false,
-          required: ['controls', 'stopWork'],
-          properties: { controls: ITEMS, stopWork: ITEMS },
-        },
+        stages: STAGES,
+        hazards: HAZARDS,
         openQuestions: ITEMS,
       },
     },

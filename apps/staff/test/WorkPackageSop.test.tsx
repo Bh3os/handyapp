@@ -26,6 +26,7 @@ function pinned(over: Partial<WorkPackageSopView> = {}): WorkPackageSopView {
       reviewState: 'pending_competent_review',
       current: true,
       spanishStatus: 'pending',
+      spanish: { status: 'pending', check: null, title: null, stages: null, hazards: null },
       sourceFile: 'Standard Of Operations/synthetic.md',
       contentSha256: 'a'.repeat(64),
       hazardSha256: 'b'.repeat(64),
@@ -199,12 +200,109 @@ describe('the work package SOP checklist (TSK-0068, HH-PKT-03)', () => {
     expect(
       within(panel).getByText('Revisión de seguridad en español pendiente: el texto del SOP se muestra en inglés.'),
     ).toBeTruthy()
+    expect(
+      within(panel).getByText('Revisión de seguridad en español pendiente', { selector: '.hh-state__title' }),
+    ).toBeTruthy()
     expect(within(panel).getByText('Pendiente de revisión competente', { selector: '.hh-state__title' })).toBeTruthy()
     const quality = panel.querySelector('[data-stage="quality_checks"]') as HTMLElement
     expect(
       within(quality).getByText('No hay un paso del SOP registrado para esta etapa: consulte a la oficina'),
     ).toBeTruthy()
     expect(within(panel).getByText('Synthetic step 1.').closest('[lang]')?.getAttribute('lang')).toBe('en')
+  })
+
+  it('[T45][HH-LANG-04] a failed comparison stays pending and says which categories failed; the SOP stays English', async () => {
+    const view = pinned()
+    const sop = view.sop as NonNullable<WorkPackageSopView['sop']>
+    sop.spanish = {
+      status: 'pending',
+      check: {
+        checkedOn: '2026-10-23',
+        tool: 'compare-safety-es@1',
+        englishContentSha256: 'a'.repeat(64),
+        results: {
+          warnings: 'fail',
+          ppe: 'pass',
+          prohibited_actions: 'pass',
+          measurements_units: 'fail',
+          step_order: 'pass',
+          stop_work: 'pass',
+        },
+        problems: 2,
+        ambiguous: [{ item: '3.2', note: 'Synthetic ambiguity.' }],
+      },
+      title: null,
+      stages: null,
+      hazards: null,
+    }
+    const fetchImpl = vi.fn(async () => json(200, view))
+    renderSop(fetchImpl, 'es')
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar la lista de verificación del SOP' }))
+    const panel = await screen.findByTestId('work-package-sop')
+    expect(panel.getAttribute('data-language')).toBe('en')
+    expect(screen.getByTestId('sop-spanish-status').textContent).toBe(
+      'Revisión de seguridad en español pendiente Comparado el 2026-10-23: no publicado (advertencias, medidas y unidades; 1 instrucción de origen ambigua).',
+    )
+  })
+
+  it('[T70][HH-PKT-04] a released version shows Spanish-reading staff the Spanish text, labelled AI-reviewed only', async () => {
+    const view = pinned()
+    const sop = view.sop as NonNullable<WorkPackageSopView['sop']>
+    const es = (text: string) => text.replace('Synthetic step', 'Paso sintético')
+    sop.spanishStatus = 'ai_reviewed'
+    sop.spanish = {
+      status: 'ai_reviewed',
+      check: {
+        checkedOn: '2026-10-23',
+        tool: 'compare-safety-es@1',
+        englishContentSha256: 'a'.repeat(64),
+        results: {
+          warnings: 'pass',
+          ppe: 'pass',
+          prohibited_actions: 'pass',
+          measurements_units: 'pass',
+          step_order: 'pass',
+          stop_work: 'pass',
+        },
+        problems: 0,
+        ambiguous: [],
+      },
+      title: 'SOP HI-01: Título sintético',
+      stages: sop.stages.map((s) => ({ ...s, items: s.items.map((i) => ({ ...i, text: es(i.text) })) })),
+      hazards: {
+        controls: sop.hazards.controls,
+        stopWork: [
+          { id: 'stop.1', kind: 'step', section: null, line: 90, text: 'Activador sintético para detenerse.' },
+        ],
+      },
+    }
+    // English-reading staff keep the English text and see the release status.
+    const english = vi.fn(async () => json(200, view))
+    renderSop(english, 'en')
+    fireEvent.click(screen.getByRole('button', { name: 'Show the SOP checklist' }))
+    const panelEn = await screen.findByTestId('work-package-sop')
+    expect(panelEn.getAttribute('data-language')).toBe('en')
+    expect(within(panelEn).getByText('Synthetic step 1.')).toBeTruthy()
+    expect(screen.getByTestId('sop-spanish-status').textContent).toContain('AI-reviewed')
+    cleanup()
+    const spanish = vi.fn(async () => json(200, view))
+    renderSop(spanish, 'es')
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar la lista de verificación del SOP' }))
+    const panel = await screen.findByTestId('work-package-sop')
+    expect(panel.getAttribute('data-language')).toBe('es')
+    expect(within(panel).getByText('Paso sintético 1.').closest('[lang]')?.getAttribute('lang')).toBe('es')
+    expect(within(panel).getByText('Activador sintético para detenerse.')).toBeTruthy()
+    expect(within(panel).queryByText('Synthetic step 1.')).toBeNull()
+    expect(
+      within(panel).queryByText('Revisión de seguridad en español pendiente', { selector: '.hh-state__title' }),
+    ).toBeNull()
+    expect(screen.getByTestId('sop-spanish-status').textContent).toBe(
+      'Revisado por IA Texto en español comparado con esta versión en inglés el 2026-10-23 y publicado como revisado por IA (no revisado por una persona).',
+    )
+    // Never labelled human-reviewed or safety-certified.
+    expect(panel.textContent).not.toMatch(/revisado por (?:un )?humano|certificad/i)
+    // The open questions stay in English.
+    expect(within(panel).getByText('Synthetic open question.').closest('[lang]')?.getAttribute('lang')).toBe('en')
   })
 
   it('shows a load failure and lets staff try again', async () => {

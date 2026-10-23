@@ -1,0 +1,272 @@
+{
+  "sopId": "SOP-HI-09",
+  "englishContentSha256": "c92dc9cba7e8ddad2c3df8dcef563b3187ca7b8a9a126592ac970ae7970da758",
+  "title": "SOP HI-09: Instalación de molduras decorativas y arquitectónicas a medida",
+  "headings": [
+    "1. Preparación del sitio y protección de la propiedad",
+    "2. Preparación y mediciones/comprobaciones requeridas",
+    "3. Pasos de trabajo específicos del servicio",
+    "4. Comprobaciones de calidad",
+    "5. Limpieza y manejo de residuos",
+    "6. Comprobaciones finales, fotos de finalización y recorrido"
+  ],
+  "items": {
+    "1.1": [
+      "- Lista de comprobación PROPUESTA para revisión, enviada con la confirmación y el recordatorio de la cita: aleje los muebles y la decoración de las paredes de trabajo; planifique el acceso y las mascotas; nombre los objetos que hay que proteger; indique cualquier sensibilidad al ruido o al polvo (fuente: 04 HI-09 \"requisitos de preparación del cliente\", PROPUESTO; spec BRF-005, NTF-004, NTF-005). Quién mueve los muebles es una decisión del dueño; el acuerdo no tiene ninguna cláusula de preparación (30 sección 4.2, cláusula 5)."
+    ],
+    "1.2": [
+      "- La responsabilidad de la pintura o del tinte se acuerda antes de la visita; las capas finales de pintura no son parte de este servicio a menos que un acuerdo de pintura aparte las cubra (fuente: spec HI-09.INT \"responsabilidad de la pintura/del tinte\"; cláusula \"Preparación frente a pintura\" del acuerdo)."
+    ],
+    "1.3": [
+      "- Cada trabajo vuelve a confirmar el acceso, los ocupantes, las mascotas, el estacionamiento, los peligros y las condiciones del área de trabajo (fuente: spec CX-005)."
+    ],
+    "2.1": [
+      "- La versión aprobada del presupuesto indica el tipo y el perfil de la moldura, el material y quién lo aporta, el estado del acabado, las dimensiones de la habitación, el estado de la pared y del techo, la geometría de las esquinas y quién pinta o tiñe (fuente: spec HI-09.INT \"dimensiones de la habitación, perfil/material, estado del acabado, estado de la pared/del techo, geometría de las esquinas, responsabilidad de la pintura/del tinte\"; CX-003)."
+    ],
+    "2.2": [
+      "- Las molduras y los materiales críticos están en el sitio y coinciden con el perfil y la cantidad aprobados, o se registra una excepción (fuente: spec START-006; HI-09.MAT \"molduras, sujetadores, adhesivo/sellador según lo especificado, relleno, cuñas\"). Si el cliente aporta las molduras, se registran su estado visible, perfil y cantidad antes de la instalación (fuente: spec START-009; 29 sección 9.1).",
+      "  - Evidence: note"
+    ],
+    "2.3": [
+      "- Las herramientas críticas están cargadas o se registra una excepción, incluidos el sistema de fijación aprobado y un escáner capaz de localizar la estructura y el cableado y las tuberías ocultos (fuente: spec START-005; HI-09.TLS; HI-09.SAF \"escanear las rutas de fijación\"; archivo de inventario, adiciones propuestas).",
+      "  - Evidence: note"
+    ],
+    "2.4": [
+      "- La selección de guardas, de EPP y de recolección de polvo para cortar y clavar la registra el profesional de seguridad calificado; hasta entonces cortar y clavar siguen en retención (fuente: spec HI-09.SAF \"uso de herramientas con guarda; protección ocular/auditiva; recolección de polvo\"; C-HI09-01).",
+      "  - Evidence: note"
+    ],
+    "2.5": [
+      "- Se registra el año aproximado de construcción (\"desconocido\" es un valor válido). Si el trabajo fuera a quitar, cortar o lijar molduras pintadas existentes u otras superficies pintadas en una casa construida antes de 1978 o de año de construcción desconocido, ese trabajo queda retenido hasta que una persona calificada registre una disposición (fuente: spec BRF-003 \"antigüedad aproximada si se conoce\"; 31 sección 10 HI-09; X-13; Q-31-07).",
+      "  - Evidence: note"
+    ],
+    "2.6": [
+      "- Los tomacorrientes, interruptores u otros dispositivos eléctricos dentro de la distribución planificada de molduras o de friso (wainscot) se identifican en la solicitud; HandyHub no extiende cajas ni mueve dispositivos (fuente: 04 HI-09 \"condiciones para detener el trabajo\", PROPUESTO; No realice 9)."
+    ],
+    "2.7": [
+      "- Los ocupantes, los niños y las mascotas se identifican y se mantienen fuera del área de trabajo (fuente: spec APXA-002 \"identificar mascotas/ocupantes\", CX-005; X-11)."
+    ],
+    "2.8": [
+      "- El trabajo a la altura del techo u otro trabajo en escalera se hace solo bajo una política aprobada de altura y acceso, que todavía no existe (fuente: 02 G-005; X-12)."
+    ],
+    "2.9": [
+      "- Empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada (fuente: spec APXA-003).",
+      "  - Evidence: note"
+    ],
+    "2.10": [
+      "- Al llegar: confirme la dirección, el área de trabajo y el contacto; identifique mascotas y ocupantes; inspeccione el sitio frente a las instrucciones; tome las fotos requeridas del estado existente; proteja el área de trabajo; identifique los servicios públicos y las restricciones de emergencia relevantes para la tarea (fuente: spec APXA-002).",
+      "  - Evidence: photo"
+    ],
+    "2.11": [
+      "- Antes de empezar: complete las comprobaciones requeridas de seguridad, de EPP y del sitio; confirme los materiales y los modelos frente al alcance aprobado; confirme que leyó el SOP y los peligros; empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada (fuente: spec APXA-003).",
+      "  - Evidence: note"
+    ],
+    "2.12": [
+      "- Proteja los pisos, los muebles y las superficies terminadas en el área de trabajo y junto a ella antes de cortar o fijar (fuente: spec HI-09.HAZ \"daños al acabado\"; APXA-002 \"proteger el área de trabajo\")."
+    ],
+    "2.13": [
+      "- Instale la sierra ingletadora en su soporte con la guarda y la recolección de polvo seleccionadas según la sección 6, siguiendo las instrucciones del fabricante de la sierra (fuente: archivo de inventario \"Montada sobre una plataforma de soporte con ruedas\"; spec HI-09.SAF \"uso de herramientas con guarda ... recolección de polvo\")."
+    ],
+    "2.14": [
+      "- Confirme el perfil de la moldura, las dimensiones de la habitación, la geometría de las esquinas y la distribución frente al alcance aprobado antes de cualquier corte; un alcance cambiado necesita una orden de cambio (fuente: spec HI-09.INT; JOB-005; FIN-008)."
+    ],
+    "2.15": [
+      "- Registre las condiciones de la pared y del techo, como hundimientos, ondulaciones y esquinas fuera de escuadra, en las fotos del estado existente antes del trabajo (fuente: spec HI-09.INT \"estado de la pared/del techo\"; START-008; sección \"Estándares de mano de obra y anomalías de la habitación\" del acuerdo).",
+      "  - Evidence: photo, note"
+    ],
+    "3.1": [
+      "El texto original del procedimiento se mantiene textual y en su orden original. Las líneas que empiezan con HOLD o FLAG son controles en borrador añadidos, pendientes de revisión calificada (fuente: 31 sección 10 HI-09). Un HOLD colocado antes de un paso debe liberarse antes de que ese paso empiece; un HOLD o FLAG colocado después de un paso limita o señala el paso de arriba."
+    ],
+    "3.2": [
+      "> HOLD (X-13): ningún paso de abajo quita, corta ni lija molduras pintadas existentes u otras superficies pintadas existentes; quitar molduras existentes no está cubierto (sección 2). Si un trabajo lo requiriera en una casa construida antes de 1978 o de año de construcción desconocido, DETÉNGASE antes de ese trabajo: queda en retención hasta que una persona calificada registre una disposición, y una declaración del cliente no lo libera. Aquí no se concluye si se aplica la regla RRP de la EPA (Q-31-07). Liberación: sección 10. Pendiente de revisión por un renovador certificado por la EPA en RRP. (fuente: 31 sección 10 HI-09; manual de clasificación de riesgos \"Una superficie pintada antes de 1978 no queda liberada porque el cliente diga que parece segura\")"
+    ],
+    "3.3": [
+      "> HOLD (C-HI09-01): antes de \"Cálculo del corte compuesto\" de abajo, y antes de cualquier otro corte con sierra, la sierra ingletadora se usa solo con uso de herramientas con guarda, protección ocular y protección auditiva y recolección de polvo, como lo requiere la tarjeta de la spec, y según las instrucciones del fabricante de la sierra. La selección de guardas, de EPP y de recolección de polvo está pendiente del profesional de seguridad calificado; hasta que se registre, cortar sigue en retención. Liberación: sección 10. (fuente: spec HI-09.SAF \"uso de herramientas con guarda; protección ocular/auditiva; recolección de polvo\"; HI-09.HAZ \"lesiones por sierra/clavadora, polvo\")"
+    ],
+    "3.4": [
+      "- [ ] **Cálculo del corte compuesto:** Ajuste el ángulo de la mesa y la inclinación del bisel de su sierra ingletadora compuesta doble exactamente a la especificación del perfil de la madera (lo estándar es un inglete de 31.6 grados y un bisel de 33.9 grados). Corte las esquinas interiores/exteriores boca abajo y al revés."
+    ],
+    "3.5": [
+      "> FLAG: SIN FUENTE - verifique con las instrucciones del fabricante. Los ajustes \"lo estándar es un inglete de 31.6 grados y un bisel de 33.9 grados\" del paso anterior se mantienen textuales y no están verificados para ningún perfil de moldura ni esquina. HIPÓTESIS para revisión: los ajustes compuestos fijos sirven solo para un ángulo de resorte de la moldura y un ángulo de esquina, y cortar las esquinas \"boca abajo y al revés\" suele ser una alternativa a los ajustes compuestos, no un añadido a ellos. Un carpintero de acabados con experiencia confirma el método y los ajustes a partir del perfil de la moldura, la geometría medida de las esquinas y las instrucciones del fabricante de la sierra. (fuente: 31 sección 10 HI-09; 04 HI-09 \"referencia del SOP\"; spec HI-09.INT \"geometría de las esquinas\")"
+    ],
+    "3.6": [
+      "> HOLD (C-HI09-01; X-12): antes de \"El arreglo con cuñas\" de abajo y de los otros pasos de la Opción A a la altura del techo, una escalera u otro equipo de acceso se usa solo bajo la política aprobada de altura y acceso, que todavía no existe (02 G-005); hasta que exista, el trabajo a la altura del techo queda retenido. Aquí no se fija ningún tipo de escalera ni regla de instalación. Liberación: sección 10. Pendiente de revisión calificada. (fuente: spec HI-09.HAZ \"escalera\"; HI-09.SAF \"controles de escalera\"; 31 sección 8.4 regla 4, PROPUESTO)"
+    ],
+    "3.7": [
+      "- [ ] **El arreglo con cuñas:** Si el techo residencial tiene hundimientos u ondulaciones, no fuerce la moldura de corona para que quede plana—eso deformará la línea de la unión. Deslice cuñas delgadas de madera detrás del borde trasero de la moldura para cubrir los huecos."
+    ],
+    "3.8": [
+      "> HOLD (C-HI09-01): antes de \"Clavado neumático de clavos sin cabeza\" de abajo, escanee cada ruta de clavado en la estructura del techo y de la pared en busca de cableado, tuberías y otros servicios ocultos con un escáner capaz de localizarlos, usado según las instrucciones de su fabricante, y registre el resultado. Si se detecta un servicio o el resultado no es concluyente, DETÉNGASE y escale (sección 19). Liberación: sección 10. Pendiente de revisión calificada. (fuente: spec HI-09.SAF \"escanear las rutas de fijación\"; HI-09.HAZ \"cableado/tuberías ocultos\")"
+    ],
+    "3.9": [
+      "> HOLD (C-HI09-01): antes de \"Clavado neumático de clavos sin cabeza\" de abajo, la clavadora se usa solo según las instrucciones de su fabricante, con uso de herramientas con guarda y la protección ocular y la protección auditiva que seleccione el profesional de seguridad calificado; hasta que esa selección se registre, clavar sigue en retención. Liberación: sección 10. (fuente: spec HI-09.SAF \"uso de herramientas con guarda; protección ocular/auditiva\"; HI-09.HAZ \"lesiones por sierra/clavadora\")"
+    ],
+    "3.10": [
+      "- [ ] **Clavado neumático de clavos sin cabeza:** Dispare clavos sin cabeza de 2 pulgadas a través de la moldura directamente en las soleras de madera sólida del techo y en los montantes de la pared."
+    ],
+    "3.11": [
+      "> FLAG (C-HI09-05): el paso anterior nombra una clavadora neumática de clavos sin cabeza, mientras que el inventario incluye una clavadora inalámbrica de clavos sin cabeza y ningún compresor ni clavos sin cabeza. Qué sistema de fijación es el estándar es una decisión del dueño; use solo el sistema aprobado y la especificación de sujetadores de su fabricante. (fuente: archivo de inventario; spec HI-09.TLS \"clavadora/compresor o sistema de fijación aprobado\")"
+    ],
+    "3.12": [
+      "- [ ] **Toque final:** Recorte las cuñas que sobresalen con una navaja multiuso afilada, aplique sellador de látex pintable de primera calidad a lo largo de la línea del borde del techo para ocultar los huecos, y rellene los agujeros de los clavos con masilla para madera."
+    ],
+    "3.13": [
+      "- [ ] **Trazado de la cuadrícula:** Marque líneas de tiza verticales y horizontales en la pared para trazar patrones de cajas de friso (wainscoting) perfectamente simétricos según las dimensiones de la habitación."
+    ],
+    "3.14": [
+      "> FLAG: si la cuadrícula del paso anterior llega a un tomacorriente, un interruptor u otro dispositivo eléctrico, no extienda la caja ni mueva el dispositivo: DETÉNGASE y escale (No realice 9; sección 10). Pendiente de revisión calificada. (fuente: 31 sección 10 HI-09; 04 HI-09 \"condiciones para detener el trabajo\", PROPUESTO; 02 G-054)"
+    ],
+    "3.15": [
+      "> HOLD (C-HI09-01): antes de \"Aplicación del adhesivo\" de abajo, escanee las rutas de clavado con clavos finos a lo largo de la cuadrícula de líneas de tiza en busca de cableado, tuberías y otros servicios ocultos con un escáner capaz de localizarlos, usado según las instrucciones de su fabricante, y registre el resultado; las piezas del panel se clavan en \"Colocación de los sujetadores\" justo después de aplicar el adhesivo. Si se detecta un servicio o el resultado no es concluyente, DETÉNGASE y escale (sección 19). Liberación: sección 10. Pendiente de revisión calificada. (fuente: spec HI-09.SAF \"escanear las rutas de fijación\"; HI-09.HAZ \"cableado/tuberías ocultos\")"
+    ],
+    "3.16": [
+      "> HOLD (C-HI09-01): las \"piezas de moldura precortadas a inglete\" nombradas en \"Aplicación del adhesivo\" de abajo se cortan solo bajo los mismos controles de sierra que \"Cálculo del corte compuesto\" en la Opción A (uso de herramientas con guarda, protección ocular y protección auditiva, recolección de polvo), pendiente de la selección del profesional de seguridad calificado. Liberación: sección 10. (fuente: spec HI-09.SAF \"uso de herramientas con guarda; protección ocular/auditiva; recolección de polvo\")"
+    ],
+    "3.17": [
+      "- [ ] **Aplicación del adhesivo:** Aplique cordones gruesos de adhesivo de construcción liquid-nails en la cara trasera de las piezas de moldura precortadas a inglete."
+    ],
+    "3.18": [
+      "> HOLD (C-HI09-01): antes de \"Colocación de los sujetadores\" de abajo, la clavadora de clavos finos se usa solo según las instrucciones de su fabricante, con uso de herramientas con guarda y la protección ocular y la protección auditiva que seleccione el profesional de seguridad calificado; hasta que esa selección se registre, clavar sigue en retención. Liberación: sección 10. (fuente: spec HI-09.SAF \"uso de herramientas con guarda; protección ocular/auditiva\"; HI-09.HAZ \"lesiones por sierra/clavadora\")"
+    ],
+    "3.19": [
+      "- [ ] **Colocación de los sujetadores:** Coloque la pieza de moldura del panel plana contra su cuadrícula de líneas de tiza y fíjela al instante usando una clavadora neumática de clavos finos. Selle todas las cajas de uniones interiores."
+    ],
+    "3.20": [
+      "> FLAG (C-HI09-05; C-HI09-V01): el paso anterior nombra una clavadora neumática de clavos finos, mientras que el inventario incluye una clavadora inalámbrica de clavos finos y ningún clavo fino; use solo el sistema de fijación aprobado (C-HI09-05). Si la fijación del friso (wainscot) necesita una regla de sujetadores o de estructura además del adhesivo de construcción es una pregunta abierta para un carpintero de acabados con experiencia; \"fijación segura\" es una comprobación de calidad de la sección 13 (C-HI09-V01; spec HI-09.QAC). (fuente: archivo de inventario; 02 C-HI09-V01)"
+    ],
+    "4.1": [
+      "| Punto de control | Fuente | Evidencia | Inspector |",
+      "|---|---|---|---|",
+      "| Uniones ajustadas según el nivel de acabado indicado en el presupuesto aprobado; no se aplica ningún estándar \"impecable\" ni sin huecos (las definiciones del nivel de acabado son una pregunta abierta, C-HI09-04) | spec HI-09.QAC \"uniones ajustadas según el nivel de acabado\"; 02 C-HI09-04 | Fotos de cerca de las uniones y las esquinas (sección 16) | TBD - autocomprobación o supervisor (Q-31-15) |",
+      "| Fijación segura de cada pieza con el método de fijación aprobado; para los paneles de friso, está abierto si se aplica una regla de sujetadores o de estructura más allá del adhesivo (C-HI09-V01) | spec HI-09.QAC \"fijación segura\"; sección 12 | Método de fijación registrado por tramo; fotos antes de rellenar y sellar | TBD - autocomprobación o supervisor (Q-31-15) |",
+      "| Separaciones y alineación uniformes a lo largo de cada tramo y alrededor de cada caja de friso | spec HI-09.QAC \"separaciones/alineación uniformes\" | Foto por pared o tramo | TBD - autocomprobación o supervisor (Q-31-15) |",
+      "| Rellenado y sellado según el alcance: agujeros de los clavos rellenados y el borde del techo sellado (Opción A); uniones interiores selladas (Opción B, que no tiene un paso de relleno para los agujeros de los clavos finos) | spec HI-09.QAC \"rellenado/sellado según el alcance\"; sección 12; cláusula \"Preparación frente a pintura\" del acuerdo | Foto de sellado y relleno completos por habitación | TBD - autocomprobación o supervisor (Q-31-15) |",
+      "| Superficie lista para el acabado acordado, con la entrega para pintura registrada donde sigue la pintura | spec HI-09.QAC \"superficie lista para el acabado acordado\"; HI-09.INT \"responsabilidad de la pintura/del tinte\" | Foto de superficie lista para el acabado; nota de entrega | TBD - autocomprobación o supervisor (Q-31-15) |",
+      "| Rutas de fijación escaneadas y resultados registrados antes de clavar | spec HI-09.SAF \"escanear las rutas de fijación\"; C-HI09-01 | Resultado del escaneo registrado por pared o tramo | TBD - autocomprobación o supervisor (Q-31-15) |",
+      "| Área limpia: recortes, restos de cuñas, polvo y empaque retirados | spec QA-002 | Foto de después o de la limpieza | TBD - autocomprobación o supervisor (Q-31-15) |"
+    ],
+    "4.2": [
+      "- El trabajador no puede marcar el trabajo como completo sin responder estas comprobaciones o registrar una excepción (fuente: spec QA-001).",
+      "  - Evidence: note"
+    ],
+    "4.3": [
+      "- Las fotos no pueden probar que los sujetadores ocultos sostienen ni que un escaneo salió despejado; la evidencia que falta necesita una inspección, no una aprobación (fuente: manual del asistente de calidad \"No deduzca de una imagen los sujetadores ocultos, la capacidad estructural, la liberación de materiales peligrosos ni la seguridad eléctrica\")."
+    ],
+    "5.1": [
+      "- Recoja los recortes de moldura y los restos de cuñas, y aspire el aserrín del área de trabajo (fuente: spec QA-002; HI-09.SAF \"recolección de polvo\")."
+    ],
+    "5.2": [
+      "- Retire la protección, cuente las herramientas y los materiales, y restablezca los componentes modificados dentro del alcance (fuente: spec APXA-005)."
+    ],
+    "5.3": [
+      "- Devuelva los materiales no usados y registre el material sobrante (fuente: spec APXA-007).",
+      "  - Evidence: note"
+    ],
+    "5.4": [
+      "- Residuos esperados de los pasos actuales: recortes de moldura, restos de cuñas, aserrín, tubos vacíos de sellador y de adhesivo, y empaque (fuente: sección 12; archivo de inventario)."
+    ],
+    "5.5": [
+      "- Destino, quién retira los residuos y cualquier cargo: TBD — decisión del dueño; no existe ninguna política de residuos (fuente: 31 sección 3.1; 02 G-078)."
+    ],
+    "5.6": [
+      "- Los envases de productos químicos vacíos o parcialmente usados se manejan según la hoja de datos de seguridad (SDS) del producto una vez que el revisor la haya resumido (fuente: 29 sección 8.2, control 10)."
+    ],
+    "5.7": ["- El retiro o el desecho de las molduras existentes no está cubierto (sección 2)."],
+    "6.1": [
+      "- Antes: fotos de llegada y del estado existente de las paredes, los techos y las esquinas donde va la moldura, incluidos los hundimientos y las condiciones fuera de escuadra, y de los acabados cercanos (fuente: spec START-008, APXA-002; 04 HI-09 \"evidencia de finalización\", PROPUESTO).",
+      "  - Evidence: photo"
+    ],
+    "6.2": [
+      "- Durante: las uniones y las esquinas antes de que el sellado y el relleno las cubran (fuente: 04 HI-09 \"evidencia de finalización\", PROPUESTO; manual del asistente de calidad)."
+    ],
+    "6.3": [
+      "- Después: fotos de cerca de las uniones y las esquinas, sellado y relleno completos por habitación, una foto de superficie lista para el acabado para la entrega para pintura y el área limpia, cada una asociada a su área de trabajo o tarea (fuente: spec QA-003; 04 HI-09 \"evidencia de finalización\", PROPUESTO)."
+    ],
+    "6.4": [
+      "- Las fotos son solo internas por defecto y evitan personas, documentos y objetos de valor que no se necesiten para el trabajo (fuente: spec REC-002; 31 sección 3.5 regla 7)."
+    ],
+    "6.5": [
+      "- Los avisos de llegada y de finalización son borradores; el trabajador o el administrador controla el envío (fuente: spec UXE-008)."
+    ],
+    "6.6": [
+      "- Registre el resultado del recorrido: aceptado, aceptado con elementos pendientes, no disponible o en disputa (fuente: spec QA-004).",
+      "  - Evidence: note"
+    ],
+    "6.7": [
+      "- Entrega para pintura: diga al cliente que la moldura está rellenada y sellada según el alcance aprobado y lista para pintar, y que las capas finales de pintura no son parte de este servicio a menos que un acuerdo de pintura aparte las cubra (fuente: cláusula \"Preparación frente a pintura\" del acuerdo; 04 HI-09 exclusiones)."
+    ],
+    "6.8": [
+      "- Las notas de cuidado salen solo de datos de productos aprobados, por ejemplo la etiqueta del sellador o del adhesivo; aquí no se escribe ninguna (fuente: spec QA-008)."
+    ],
+    "6.9": [
+      "- Describa el método que realmente se usó: en la Opción A la corona se acuña, se clava con clavos sin cabeza en la estructura, se sella y se rellena; en la Opción B la moldura del panel se fija con adhesivo de construcción y se clava con clavos finos a lo largo de una cuadrícula de líneas de tiza. El texto del sitio web que dice que las piezas de moldura se clavan con clavos sin cabeza \"en las líneas de la estructura\" está señalado en el registro (fuente: sección 12; C-HI09-V01)."
+    ],
+    "6.10": [
+      "- Nunca prometa uniones \"impecables\", \"sin costuras\" o sin huecos, y nunca repita esa redacción del plan principal ni del acuerdo; el estándar de acabado es \"uniones ajustadas según el nivel de acabado\" (fuente: No realice 8; C-HI09-04; spec HI-09.QAC)."
+    ],
+    "6.11": [
+      "- Trabajo bloqueado: diga al cliente solo lo que dice el mensaje aprobado de \"trabajo bloqueado\" (fuente: spec NTF-007, COM-002)."
+    ],
+    "6.12": [
+      "- Los cambios de precio o de alcance, incluidos zócalos, marcos de puertas o ventanas, lijado o retiro de molduras, no se acuerdan en el sitio sin una orden de cambio registrada (fuente: spec JOB-005, FIN-008)."
+    ],
+    "6.13": [
+      "- Todas las comprobaciones de la sección 13 respondidas o una excepción registrada (fuente: spec QA-001).",
+      "  - Evidence: note"
+    ],
+    "6.14": ["- Fotos de después tomadas y asociadas a las tareas (fuente: spec QA-003).", "  - Evidence: photo"],
+    "6.15": [
+      "- Limpieza hecha, protección retirada, herramientas y materiales contados (fuente: spec QA-002, APXA-005)."
+    ],
+    "6.16": [
+      "- Resultados del escaneo registrados para cada ruta de fijación (fuente: spec HI-09.SAF; C-HI09-01).",
+      "  - Evidence: note"
+    ],
+    "6.17": [
+      "- Nota de entrega para pintura registrada donde sigue la pintura, que indica que la moldura está rellenada y sellada según el alcance y que las capas de pintura no son parte de este servicio (fuente: 04 HI-09 \"evidencia de finalización\", PROPUESTO; cláusula \"Preparación frente a pintura\" del acuerdo).",
+      "  - Evidence: note"
+    ],
+    "6.18": ["- Resultado del recorrido registrado (fuente: spec QA-004).", "  - Evidence: note"],
+    "6.19": [
+      "- Problemas sin resolver, incidentes y seguimientos de cambios enviados antes de cerrar el trabajo (fuente: spec APXA-007)."
+    ],
+    "6.20": [
+      "- El trabajador recomienda la finalización para la aprobación humana; la firma de un cliente no libera una retención de seguridad no resuelta (fuente: manual del asistente de calidad).",
+      "  - Evidence: note"
+    ],
+    "stop.1": [
+      "La regla general para detener el trabajo es [[FACT-SVC-STOP-WORK-RULE]]. Activadores específicos del servicio:"
+    ],
+    "stop.2": [
+      "**Activadores para detener el trabajo de HI-09 (borrador, pendiente de revisión calificada).** Además, detenga el trabajo afectado y escale (sección 19) cuando:"
+    ],
+    "stop.3": [
+      "- se detecta cableado, tuberías u otro servicio oculto en una ruta de fijación, o el escaneo no es concluyente (fuente: spec HI-09.HAZ \"cableado/tuberías ocultos\"; HI-09.SAF \"escanear las rutas de fijación\"; C-HI09-01);"
+    ],
+    "stop.4": [
+      "- falta o está dañada la guarda de una sierra o de una clavadora, una herramienta funciona mal, o el EPP y la recolección de polvo seleccionados por el revisor no están disponibles (fuente: spec HI-09.SAF \"uso de herramientas con guarda; protección ocular/auditiva; recolección de polvo\"; JOB-008);"
+    ],
+    "stop.5": [
+      "- el trabajo necesita una escalera u otro equipo de acceso y no existe una política aprobada de altura y acceso (fuente: spec HI-09.HAZ \"escalera\"; HI-09.SAF \"controles de escalera\"; 02 G-005; X-12);"
+    ],
+    "stop.6": [
+      "- el trabajo fuera a quitar, cortar o lijar molduras pintadas existentes u otras superficies pintadas y el año de construcción es anterior a 1978 o desconocido, o se encuentra material sospechoso (fuente: 31 sección 10 HI-09; X-13; spec START-011);"
+    ],
+    "stop.7": [
+      "- habría que extender la caja de un tomacorriente o de un interruptor, o mover un dispositivo eléctrico, para que encaje la distribución de molduras o de friso (fuente: 04 HI-09 \"condiciones para detener el trabajo\", PROPUESTO; No realice 9);"
+    ],
+    "stop.8": [
+      "- el trabajo requiere zócalos, marcos de puertas o ventanas, lijado o retiro de molduras existentes que el alcance aprobado no incluye (fuente: sección 2; spec JOB-010);"
+    ],
+    "stop.9": [
+      "- las molduras en el sitio no coinciden con el perfil, el material o la cantidad aprobados (fuente: spec START-006, JOB-004);"
+    ],
+    "stop.10": ["- no se puede mantener a los ocupantes o las mascotas fuera del área de trabajo (fuente: X-11)."],
+    "stop.11": [
+      "Rol que libera y evidencia de liberación para cada activador: `<decisión del revisor: rol y evidencia de liberación>` (31 sección 8.3). Cuáles de estos activadores son retenciones críticas que ningún rol puede anular está pendiente (Q-31-18)."
+    ],
+    "stop.12": ["Ruta general: [[FACT-SVC-ESCALATION-PATH]]."],
+    "stop.13": ["- Roles y contactos de HI-09: `<decisión del dueño: orden de escalamiento y contactos>` (Q-31-05)."],
+    "stop.14": ["Ruta general: [[FACT-SVC-INCIDENT-REPORTING]]."]
+  },
+  "ambiguous": []
+}

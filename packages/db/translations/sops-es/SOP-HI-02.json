@@ -1,0 +1,254 @@
+{
+  "sopId": "SOP-HI-02",
+  "englishContentSha256": "88150713d094170abd691d4e86ae34e539f130b80ce18f4ee2046a97d0deb68e",
+  "title": "SOP HI-02: Limpieza profunda y mantenimiento de parrillas y asadores",
+  "headings": [
+    "1. Preparación del sitio y protección de la propiedad",
+    "2. Preparación y mediciones/comprobaciones requeridas",
+    "3. Pasos de trabajo específicos del servicio",
+    "4. Comprobaciones de calidad",
+    "5. Limpieza y manejo de residuos",
+    "6. Comprobaciones finales, fotos de finalización y recorrido"
+  ],
+  "items": {
+    "1.1": [
+      "- El cliente da acceso a la válvula de cierre de seguridad de la línea principal de gas o al regulador del tanque de propano antes de que empiece el trabajo (fuente: cláusula \"Aislamiento del gas\" del acuerdo)."
+    ],
+    "1.2": [
+      "- PROPUESTO para la lista de verificación de preparación (todavía no está en el acuerdo): parrilla apagada y fría antes de la llegada (el período de enfriamiento lo fija la revisión de seguridad, no este documento); área de trabajo despejada; acceso a agua y electricidad; mascotas y niños lejos del área de trabajo; información de marca y modelo lista (fuente: 04 HI-02 \"requisitos de preparación del cliente\"; spec HI-02.INT; X-11)."
+    ],
+    "1.3": [
+      "- Cada trabajo vuelve a confirmar que el acceso, los ocupantes, las mascotas, el estacionamiento, los peligros y las condiciones del área de trabajo siguen vigentes (fuente: spec CX-005)."
+    ],
+    "1.4": [
+      "- Las comprobaciones propias de HandyHub previas al inicio nunca se trasladan al cliente (fuente: 30 sección 4.1 cláusula 5)."
+    ],
+    "2.1": [
+      "*Controles de despacho y de Iniciar trabajo (Start Job) para este servicio (fuente: spec APXA-001, APXA-003; 31 sección 3.1 fila 3). Cada punto está pendiente de revisión.*"
+    ],
+    "2.2": [
+      "- Solicitud completa: tipo de combustible de la parrilla, marca/modelo, estado, ubicación, acceso a agua/electricidad, expectativas del cliente, corrosión/daños (fuente: spec HI-02.INT)."
+    ],
+    "2.3": [
+      "- Una versión de presupuesto aprobada cubre las tareas de la sección 2; empiece solo cuando esté Listo o haya una excepción autorizada documentada (fuente: spec CX-003; APXA-003).",
+      "  - Evidence: note"
+    ],
+    "2.4": [
+      "- Están disponibles las instrucciones del fabricante de la parrilla para la unidad específica (fuente: spec sección 17 nota de la tarjeta \"instrucciones del fabricante\"; 04 HI-02 \"requisitos previos\")."
+    ],
+    "2.5": [
+      "- Cada producto de limpieza está en una lista de productos aprobados con una SDS revisada; un producto químico sin una SDS revisada no se lleva al trabajo (fuente: 29 sección 8.3 regla provisional, PROPUESTO; X-09). Todavía no hay ningún producto aprobado: TBD - requiere la revisión del revisor de seguridad calificado."
+    ],
+    "2.6": [
+      "- El cliente ha dado acceso a la válvula principal de cierre del gas o al regulador del tanque de propano (fuente: cláusula \"Aislamiento del gas\" del acuerdo)."
+    ],
+    "2.7": [
+      "- La unidad está fría y apagada antes de que empiece cualquier trabajo (fuente: spec HI-02.SAF \"confirme que la unidad está fría/apagada\"; retención de la sección 12)."
+    ],
+    "2.8": [
+      "- Indicadores de tareas con licencia y de permisos: donde la política marque que una tarea necesita un oficio con licencia o un permiso, Iniciar trabajo (Start Job) sigue bloqueado hasta que se apruebe ese requisito previo (fuente: spec START-010; 04 HI-02 \"indicadores de permiso/licencia\")."
+    ],
+    "2.9": [
+      "- Antes de que este SOP se pueda activar, los revisores nombrados aprueban: la decisión y el método de restablecimiento del combustible y de verificación de fugas (C-HI02-03); el método para despejar los puertos (C-HI02-04); el método de enjuague, secado y comprobación de residuos (C-HI02-02); los controles contra escaldaduras (sección 12) (fuente: 31 sección 10 HI-02; datos del dueño L20)."
+    ],
+    "2.10": [
+      "- Al llegar: confirme la dirección, el área de trabajo y el contacto; identifique mascotas y ocupantes; inspeccione el sitio real frente a las instrucciones; tome las fotos requeridas del estado existente; proteja el área de trabajo; identifique los servicios públicos y las restricciones de emergencia relevantes para la tarea (fuente: spec APXA-002).",
+      "  - Evidence: photo"
+    ],
+    "2.11": [
+      "- Proteja las superficies cercanas con cubiertas protectoras y absorbentes; tipos TBD (fuente: spec HI-02.MAT)."
+    ],
+    "2.12": [
+      "- Aislar-verificar-restablecer: \"Desmontaje del sistema\" cierra las válvulas del tanque de propano o de la línea de gas, pero la verificación y el restablecimiento no están definidos, y el módulo común de aislar-verificar-restablecer todavía no existe (fuente: X-07; C-HI02-03; 31 sección 5.8)."
+    ],
+    "2.13": ["- Ventilación adecuada para los productos aprobados (fuente: spec HI-02.SAF \"ventile\")."],
+    "2.14": [
+      "- Organización del recipiente de remojo, la fuente de calor y los productos: TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo."
+    ],
+    "2.15": [
+      "- Antes de empezar: complete las comprobaciones requeridas de seguridad, de EPP y del sitio; confirme que leyó el SOP y los peligros; empiece solo cuando esté Listo o haya una excepción autorizada documentada (fuente: spec APXA-003; START-004).",
+      "  - Evidence: note"
+    ],
+    "3.1": [
+      "*Las líneas originales del procedimiento que siguen no han cambiado y están en su orden original. Las líneas que empiezan con \"HOLD\" o \"FLAG\" se añadieron el 2026-10-03; están pendientes de revisión y nunca reemplazan el texto del paso. Ninguna quema de residuos, encendido ni prueba de llama forma parte de este procedimiento (fuente: 31 sección 10 HI-02; X-10).*"
+    ],
+    "3.2": [
+      "> HOLD (condición previa; spec HI-02.SAF; 02 G-047): antes de \"Desmontaje del sistema\", confirme que la unidad está fría y apagada (\"confirme que la unidad está fría/apagada\"). Aquí no se fija ningún período de enfriamiento (TBD - requiere la revisión del revisor de seguridad calificado). Si la unidad está caliente o encendida, o no se puede confirmar su estado, no empiece; escale (sección 19)."
+    ],
+    "3.3": [
+      "> HOLD (condición previa; C-HI02-08, X-02; pendiente de la configuración de START-008): antes de \"Desmontaje del sistema\", registre el estado existente de la unidad con fotos y notas: cámara de cocción, rejillas, barras saborizadoras, protectores de calor, quemadores y cualquier pieza que se vea perforada por el óxido, agrietada o deteriorada. Si se encuentra un quemador, una válvula, una manguera o un regulador dañado, un olor a gas o una sospecha de fuga, no empiece; siga la sección 10."
+    ],
+    "3.4": [
+      "> HOLD (condición previa; X-07; spec HI-02.SAF): antes de \"Desmontaje del sistema\", tenga las instrucciones del fabricante de la parrilla para esta unidad; el combustible y la electricidad se aíslan solo como ellas lo describen (\"aísle el combustible/la electricidad según el fabricante\"). Nunca desconecte, afloje ni modifique una línea de gas, una manguera, un regulador, una válvula o un accesorio (sección 2, No realice 9-11). Si cerrar una válvula fija de suministro de gas natural es un trabajo que requiere licencia en el municipio es una pregunta abierta de licencias (04 HI-02 \"indicadores de permiso/licencia\"; REVISIÓN HUMANA: autoridad municipal de licencias, instalador de gas o plomero con licencia). Pendiente de revisión."
+    ],
+    "3.5": [
+      "- [ ] **Desmontaje del sistema:** Cierre las válvulas del tanque de propano o de la línea de gas. Desmonte todas las rejillas internas, las barras saborizadoras, los protectores de calor y las bandejas de grasa."
+    ],
+    "3.6": [
+      "> HOLD (C-HI02-05): el desmontaje se limita a las piezas nombradas en el paso anterior hasta que se decida el límite del desmontaje; el \"Desmontaje completo del sistema\" del acuerdo no lo amplía. El contenido de la bandeja de grasa no se limpia ni se desecha bajo este SOP (sección 2, Fuera del alcance; sección 15). Pendiente de revisión."
+    ],
+    "3.7": [
+      "> HOLD (control de escaldaduras; condición previa; spec HI-02.HAZ \"superficies calientes\"; 31 sección 10 HI-02): antes de \"El baño químico\", un revisor de seguridad calificado aprueba la fuente de calor, el manejo y el drenaje del agua caliente y el EPP para la \"solución de agua hirviendo\", y el desengrasante es un producto aprobado que se usa solo como lo permiten su etiqueta y su SDS (sección 8). Hasta entonces no se realiza el paso de abajo. Pendiente de revisión."
+    ],
+    "3.8": [
+      "- [ ] **El baño químico:** Sumerja todas las rejillas y los protectores retirados en un recipiente de plástico resistente lleno de una solución de agua hirviendo mezclada con un desengrasante ecológico no tóxico que elimina el carbón. Déjelos en remojo durante 30 minutos."
+    ],
+    "3.9": [
+      "> FLAG: SIN FUENTE - verifique con las instrucciones del fabricante: el tiempo de remojo (\"30 minutos\") y la \"solución de agua hirviendo\" del paso anterior no vienen de ninguna etiqueta de producto ni SDS (31 sección 3.5 regla 3). La expresión \"no tóxico\" no está verificada y no se repite al cliente (C-HI02-01)."
+    ],
+    "3.10": [
+      "- [ ] **Raspado de la cámara de cocción:** Use una espátula de plástico resistente y un cepillo de alambre en bloque para raspar a mano la costra de carbón incrustada de las paredes interiores de la cámara de cocción hasta llegar al aluminio/metal desnudo."
+    ],
+    "3.11": [
+      "> FLAG (C-HI02-07): el paso anterior menciona una espátula de plástico, mientras que el inventario tiene raspadores de acero al carbono; la spec HI-02.TLS pide \"herramientas de detallado que no dañen\". Use el raspador que nombra el paso. Si raspar \"hasta llegar al aluminio/metal desnudo\" es adecuado para el acabado de esta cámara de cocción depende de las instrucciones de cuidado del fabricante de la parrilla (RIESGO, no verificado). Pendiente de revisión."
+    ],
+    "3.12": [
+      "- [ ] **Purga de los tubos de los quemadores:** Cepille con cepillo de alambre el exterior de los tubos de acero inoxidable de los quemadores. Use una broca pequeña o un clip para despejar los puertos individuales de salida de gas que estén tapados, para asegurar un patrón de llama uniforme."
+    ],
+    "3.13": [
+      "> HOLD (C-HI02-04): en el paso anterior, despejar los puertos de salida de gas con \"una broca pequeña o un clip\" queda retenido pendiente de la revisión de las instrucciones del fabricante de la parrilla; una broca puede agrandar o alterar los puertos (RIESGO, no verificado). Hasta que un revisor registre el método del fabricante, los puertos no se despejan; anote los puertos tapados para el supervisor y el cliente (sección 17). \"Para asegurar un patrón de llama uniforme\" no es una promesa al cliente. Si se ofrece en absoluto despejar los puertos de los quemadores es una pregunta abierta (Q-31-08). Pendiente de revisión."
+    ],
+    "3.14": [
+      "> HOLD (condición previa; C-HI02-02; spec HI-02.QAC \"superficies limpias/secas\"): antes de \"Pulido exterior\" (\"Vuelva a armar todos los componentes\"), enjuague, seque y compruebe que no queden residuos en cada pieza remojada o limpiada con químicos, como lo indica la etiqueta del producto aprobado. El método de la etiqueta todavía no está disponible porque no hay ningún producto aprobado: TBD - requiere la revisión del revisor de seguridad calificado. No vuelva a armar una pieza que no haya pasado esta comprobación. Pendiente de revisión."
+    ],
+    "3.15": [
+      "- [ ] **Pulido exterior:** Vuelva a armar todos los componentes. Rocíe la tapa exterior y los estantes con un pulidor especial para acero inoxidable, puliendo en la dirección de la veta con un paño de microfibra limpio."
+    ],
+    "3.16": [
+      "> HOLD (C-HI02-03; X-07): el paso anterior vuelve a armar la parrilla, pero ningún paso restablece el suministro de combustible ni comprueba si hay fugas. No vuelva a abrir las válvulas cerradas en \"Desmontaje del sistema\" y no encienda la parrilla hasta que un revisor escriba el método de restablecimiento y de verificación de fugas (REVISIÓN HUMANA: técnico calificado de aparatos de gas o profesional de gas con licencia; instrucciones del fabricante de la parrilla). Una fuga o una pieza de gas dañada significa: cierre el suministro, etiquete la unidad como fuera de servicio, avise al cliente y escale. Un supervisor, no el trabajador solo, verifica el resultado (manual del asistente de calidad). Hasta entonces el suministro de combustible sigue cerrado y se le informa al cliente con una redacción aprobada (sección 17). Si HandyHub restablece el combustible en absoluto es una pregunta abierta (C-HI02-03). Pendiente de revisión."
+    ],
+    "4.1": [
+      "*De la spec HI-02.QAC. El trabajador no puede marcar el trabajo como completo sin responder las comprobaciones requeridas o registrar una excepción (fuente: spec QA-001). Qué comprobaciones necesitan una segunda persona en lugar de una autocomprobación es una pregunta abierta (Q-31-15).*"
+    ],
+    "4.2": [
+      "| Comprobación | Fuente | Inspector | Evidencia |",
+      "|---|---|---|---|",
+      "| Componentes vueltos a armar correctamente | spec HI-02.QAC | Trabajador; supervisor donde la política lo requiera (Q-31-15) | Fotos de después asociadas a los componentes (QA-003) |",
+      "| Puertos de los quemadores sin obstrucciones donde estén dentro del alcance | spec HI-02.QAC | Trabajador | Despejar los puertos está retenido (C-HI02-04): registre \"retenido - no despejado\" y anote los puertos tapados |",
+      "| Sin fugas ni piezas flojas introducidas | spec HI-02.QAC | Supervisor, no el trabajador solo (manual del asistente de calidad) | Resultado de la verificación aprobada por el revisor (C-HI02-03); hasta que exista: \"no inspeccionado - retenido\", combustible cerrado, cliente informado |",
+      "| Superficies limpias y secas; sin residuos químicos en las piezas que tocan alimentos | spec HI-02.QAC; acuerdo \"superficie segura para alimentos después del enjuague\" | Trabajador; método del revisor | Respuesta de la lista de verificación según el método aprobado de la etiqueta (C-HI02-02) |",
+      "| No quedan cerdas de alambre sueltas en las rejillas de cocción (PROPUESTO, RIESGO) | 02 G-047 | Trabajador | Respuesta de la lista de verificación; método TBD - requiere revisión de calidad y de seguridad |",
+      "| Área restablecida | spec HI-02.QAC; QA-002 | Trabajador | Foto de limpieza donde se requiera (QA-002) |"
+    ],
+    "4.3": [
+      "- Una firma o un reconocimiento del cliente no libera una retención de seguridad sin resolver (fuente: manual del asistente de calidad \"Un formulario firmado por el cliente no libera una retención de seguridad sin resolver.\").",
+      "  - Evidence: note"
+    ],
+    "4.4": [
+      "- La evidencia que falta se registra como desconocida, no como aprobada (fuente: manual del asistente de calidad).",
+      "  - Evidence: note"
+    ],
+    "5.1": [
+      "- Limpie el área, retire los residuos y la protección, y cuente las herramientas y los materiales (fuente: spec APXA-005; QA-002; HI-02.QAC \"área restablecida\")."
+    ],
+    "5.2": [
+      "- Restablezca los servicios y los componentes modificados dentro del alcance (fuente: spec APXA-005), excepto el suministro de combustible, que sigue cerrado bajo la retención C-HI02-03 hasta que exista el método aprobado; se le informa al cliente (sección 17)."
+    ],
+    "5.3": ["- Devuelva los materiales no usados (fuente: spec APXA-007)."],
+    "5.4": [
+      "- Tipos de residuos: agua residual con desengrasante del recipiente de remojo; grasa y raspaduras de carbón; paños, almohadillas y absorbentes usados; envases vacíos de productos (fuente: spec HI-02.SAF \"controle los químicos/residuos\"; 04 HI-02 \"indicadores de permiso/licencia\"; 29 sección 8.2 elemento 10)."
+    ],
+    "5.5": [
+      "- No hay ningún método ni destino de eliminación aprobado: contenga los químicos, el agua residual y la grasa, y elimínelos solo por el método que el revisor apruebe para el municipio (fuente: 31 sección 3.1 fila 15; Q-29-10; REVISIÓN HUMANA: servicio local de alcantarillado o de aguas pluviales; profesional de seguridad calificado)."
+    ],
+    "5.6": [
+      "- Paños usados con el aceite protector para acero inoxidable: regla de eliminación pendiente de la clasificación de la SDS por el revisor (fuente: 29 secciones 8.1 y 8.2 elemento 10)."
+    ],
+    "5.7": ["- Contenido de la bandeja de grasa: no está cubierto (sección 2)."],
+    "6.1": [
+      "- Antes: fotos del estado existente de la cámara de cocción, las rejillas, las barras saborizadoras, los protectores de calor y los quemadores antes del desmontaje. PROPUESTO para HI-02 porque la cláusula \"Defectos preexistentes\" del acuerdo se basa en ellas; si son obligatorias es la decisión de configuración de START-008 (fuente: C-HI02-08; X-02; spec START-008; 04 HI-02 \"evidencia de finalización\").",
+      "  - Evidence: photo"
+    ],
+    "6.2": [
+      "- Durante: condiciones ocultas o inesperadas, por ejemplo un tubo de quemador perforado por el óxido o una pieza agrietada, con fotos y gravedad (fuente: spec JOB-004; UXE-006; ejemplos de \"Defectos preexistentes\" del acuerdo)."
+    ],
+    "6.3": [
+      "- Después: fotos asociadas a los componentes - cámara de cocción, rejillas, quemadores, exterior (fuente: spec QA-003; 04 HI-02 \"evidencia de finalización\").",
+      "  - Evidence: photo"
+    ],
+    "6.4": [
+      "- Cada foto es solo interna por defecto; el uso en marketing necesita un consentimiento aparte (fuente: spec REC-002, REC-003). Evite personas, documentos y objetos de valor que no se necesiten para el trabajo (fuente: 31 sección 3.5 regla 7)."
+    ],
+    "6.5": [
+      "- Los avisos de llegada y de finalización son borradores; el trabajador o el administrador controla el envío (fuente: spec UXE-008)."
+    ],
+    "6.6": [
+      "- Registre el resultado del recorrido: aceptado, aceptado con elementos pendientes, no disponible o en disputa (fuente: spec QA-004).",
+      "  - Evidence: note"
+    ],
+    "6.7": [
+      "- Notas de cuidado solo a partir de datos aprobados del producto o del fabricante; todavía no hay ninguna aprobada (fuente: spec QA-008)."
+    ],
+    "6.8": [
+      "- Elementos retenidos, comunicados con una redacción aprobada: puertos no despejados (C-HI02-04); suministro de combustible cerrado y por qué (C-HI02-03); los defectos encontrados, como tubos de quemador perforados por el óxido, barras saborizadoras agrietadas o protectores de calor deteriorados, se registran y se reportan, y no se ofrece la reparación (No realice 10; sección 2, Fuera del alcance) (fuente: retenciones de la sección 12; ejemplos de \"Defectos preexistentes\" del acuerdo). El trabajador no da instrucciones para restablecer el gas ni para volver a encender (fuente: 31 sección 3.5 regla 4). Redacción TBD - dueño y revisor de seguridad calificado.",
+      "  - Evidence: note"
+    ],
+    "6.9": [
+      "- Trabajo bloqueado: solo el mensaje aprobado de \"trabajo bloqueado\"; ningún detalle de incidentes ni códigos de acceso por mensaje de texto o correo electrónico (fuente: spec NTF-007, COM-002)."
+    ],
+    "6.10": [
+      "- Qué no decir: \"no tóxico\", \"ecológicamente seguro\", \"desinfecta\", \"flujo de gas seguro y constante\", \"estado de exhibición\", \"Brillo de fábrica\", ni ningún resultado de vida útil, de salud o de seguridad (fuente: C-HI02-01; C-HI02-V02; C-HI02-04; plan principal sección 2; 32 registro A fila 2 y registro B filas 27, 28, 43, 44)."
+    ],
+    "6.11": [
+      "- Comprobaciones de QA requeridas respondidas o una excepción registrada (fuente: spec QA-001; sección 13).",
+      "  - Evidence: note"
+    ],
+    "6.12": ["- Fotos de después asociadas a los componentes (fuente: spec QA-003).", "  - Evidence: photo"],
+    "6.13": ["- Limpieza y manejo de residuos hechos según lo aprobado (fuente: spec QA-002; secciones 14 y 15)."],
+    "6.14": ["- Herramientas y materiales contados (fuente: spec APXA-005)."],
+    "6.15": [
+      "- Estado del combustible registrado: o el resultado del restablecimiento y de la verificación de fugas aprobados por el revisor, con verificación del supervisor, o \"combustible cerrado - cliente informado\" bajo la retención C-HI02-03 (fuente: C-HI02-03; APXA-005).",
+      "  - Evidence: note"
+    ],
+    "6.16": [
+      "- Retenciones abiertas, defectos y elementos pendientes registrados; resultado del recorrido registrado (fuente: spec QA-004; APXA-006).",
+      "  - Evidence: note"
+    ],
+    "6.17": [
+      "- El trabajo se cierra solo cuando los pasos operativos y financieros requeridos están completos (fuente: spec APXA-007)."
+    ],
+    "stop.1": [
+      "La regla general para detener el trabajo es [[FACT-SVC-STOP-WORK-RULE]]. Activadores específicos del servicio:"
+    ],
+    "stop.2": [
+      "*Bloque estándar copiado textualmente de 31 SOP estándar sección 8.5 (redacción PROPUESTA; REVISIÓN HUMANA: profesional de seguridad calificado; abogado con licencia en KY y/o IN para la oración del \"derecho a detener el trabajo\"; revisor bilingüe para el español).*"
+    ],
+    "stop.3": [
+      "**Activadores para detener el trabajo y retenciones del servicio (HI-02).** Indicaciones de la tarjeta para detener el trabajo (spec HI-02.SAF): \"confirme que la unidad está fría/apagada; aísle el combustible/la electricidad según el fabricante; evite modificar componentes de gas más allá del alcance; ventile; controle los químicos/residuos\"."
+    ],
+    "stop.4": [
+      "| Activador o retención | Acción | Lo libera (evidencia) | Fuente |",
+      "|---|---|---|---|",
+      "| Unidad caliente o encendida, o no se puede confirmar su estado | No empiece; escale | Unidad confirmada fría y apagada | spec HI-02.SAF |",
+      "| No están disponibles las instrucciones del fabricante de la parrilla para esta unidad | No empiece \"Desmontaje del sistema\"; escale | Instrucciones de la unidad obtenidas y registradas | spec HI-02.SAF \"aísle el combustible/la electricidad según el fabricante\"; X-07 |",
+      "| Olor a gas, sospecha de fuga, o un quemador, una válvula, una manguera o un regulador dañado | Olor a gas: emergencia (sección 19, paso 2). Fuga o pieza de gas dañada: cierre el suministro, etiquete la unidad como fuera de servicio, avise al cliente, escale | Técnico calificado de aparatos de gas o profesional de gas con licencia; verificación del supervisor | C-HI02-03; 31 sección 10 HI-02; 04 HI-02 \"condiciones para detener el trabajo\" |",
+      "| El cliente pide reparar o desconectar componentes de gas | No lo realice; registre la solicitud; remita | Dueño (remisión) | No realice 9-11 |",
+      "| Control de escaldaduras para \"El baño químico\" (\"solución de agua hirviendo\") | Retenido: el paso no se realiza | Un revisor de seguridad calificado aprueba la fuente de calor, el manejo y el drenaje del agua caliente y el EPP; desengrasante aprobado con una SDS revisada | 31 sección 10 HI-02; spec HI-02.HAZ \"superficies calientes\" |",
+      "| Despejar los puertos en \"Purga de los tubos de los quemadores\" | Retenido: los puertos no se despejan | Método del fabricante registrado por un revisor | C-HI02-04 |",
+      "| Enjuague, secado y comprobación de residuos antes de volver a armar | Retenido: las piezas no se vuelven a armar hasta que se comprueben | Método aprobado de la etiqueta del producto | C-HI02-02 |",
+      "| Restablecimiento del combustible y verificación de fugas después de volver a armar | Retenido: el suministro de combustible sigue cerrado y se le informa al cliente | Método escrito por el revisor; verificación del supervisor | C-HI02-03 |",
+      "| Producto químico sin una SDS revisada, o una mezcla que la SDS no permite | No lo use | SDS revisada y producto aprobado | 29 sección 8.3; X-09 |",
+      "| El área de trabajo no se puede ventilar como lo requiere la SDS del producto | Detenga el paso químico; escale | Revisor de seguridad calificado | spec HI-02.SAF \"ventile\" |",
+      "| No se pueden contener los químicos, el agua residual o la grasa | Deténgase; escale | Método de eliminación aprobado | spec HI-02.SAF \"controle los químicos/residuos\"; Q-29-10 |",
+      "| Fuego, humo o llamarada | Emergencia (sección 19, paso 2) | Servicios de emergencia; reporte de incidente (sección 20) | spec HI-02.HAZ; X-10 |"
+    ],
+    "stop.5": [
+      "Las retenciones críticas no las puede anular ningún rol; se liberan solo con una evaluación calificada registrada. El alcance de gas no aprobado es una clase crítica (fuente: 31 sección 8.3 regla 2)."
+    ],
+    "stop.6": ["Ruta general: [[FACT-SVC-ESCALATION-PATH]]."],
+    "stop.7": [
+      "*Bloque estándar copiado textualmente de 31 sección 8.5 (redacción PROPUESTA; REVISIÓN HUMANA: profesional de seguridad calificado).*"
+    ],
+    "stop.8": [
+      "**Rutas de escalamiento de HI-02 (decisiones del dueño pendientes, Q-31-05):** una fuga de gas, una pieza de gas dañada o una solicitud sobre componentes de gas va al dueño y luego a un técnico calificado de aparatos de gas o a un profesional de gas con licencia (fuente: C-HI02-03; 04 HI-02 \"habilidad responsable / rol en el negocio\"). Exposición a químicos: primero la respuesta de emergencia, luego el formulario de incidente (sección 20); referencias de primeros auxilios solo de la SDS revisada (fuente: 29 sección 8.2 elemento 7). Contactos: `<decisión del dueño: contacto de emergencia>` y `<decisión del dueño: orden de escalamiento>` (Q-31-05)."
+    ],
+    "stop.9": ["Ruta general: [[FACT-SVC-INCIDENT-REPORTING]]."],
+    "stop.10": [
+      "*Bloque estándar copiado textualmente de 31 sección 8.5 (redacción PROPUESTA). REVISIÓN HUMANA: abogado con licencia en KY y/o IN para la oración sobre culpa y responsabilidad; corredor de seguros para cualquier paso de notificación a la aseguradora que se añada después.*"
+    ],
+    "stop.11": [
+      "- Ejemplos de HI-02 que hay que reportar: quemaduras o escaldaduras, cortes, exposición a químicos, un fuego o una llamarada, una fuga de gas, daños a la parrilla o a la propiedad del cliente (fuente: spec HI-02.HAZ; JOB-008)."
+    ]
+  },
+  "ambiguous": []
+}

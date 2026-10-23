@@ -1,0 +1,354 @@
+{
+  "sopId": "SOP-CL-04",
+  "englishContentSha256": "747875b068b0269d2beae69a48ddfc5be9cf9d8ebc15be232d345d8b208ec24e",
+  "title": "SOP CL-04: Limpieza después de construcción y de renovación",
+  "headings": [
+    "1. Preparación del sitio y protección de la propiedad",
+    "2. Preparación y mediciones/comprobaciones requeridas",
+    "3. Pasos de trabajo específicos del servicio",
+    "4. Comprobaciones de calidad",
+    "5. Limpieza y manejo de residuos",
+    "6. Comprobaciones finales, fotos de finalización y recorrido"
+  ],
+  "items": {
+    "1.1": [
+      "- El acuerdo exige que \"Todos los oficios principales (pintores, instaladores de pisos, plomeros) deben haber terminado por completo su trabajo en las zonas objetivo antes de que la Empresa comience el pulido detallado\" y que el cliente mantenga el sitio seguro, con electricidad activa y agua corriente; verifique ambas cosas al llegar y registre cualquier diferencia (fuente: acuerdo \"Construcción terminada\" y \"Seguridad en el sitio\"; spec START-007). La cláusula de seguridad del sitio está en revisión por el abogado (vea las notas de revisión del acuerdo).",
+      "  - Evidence: note"
+    ],
+    "1.2": [
+      "- Elementos de preparación que faltan (GAP): liberación de cada área, acceso y llaves, estado del HVAC, fechas de curado de la pintura, etiquetas que deben quedarse, ubicación de los escombros o del contenedor de basura, estacionamiento, fecha del recorrido del contratista general, edad de la propiedad (fuente: 04 CL-04 requisitos de preparación del cliente). Una lista de verificación PROPUESTA para el cliente se envía con el recordatorio de la cita una vez que el dueño y el abogado aprueben la redacción (fuente: spec NTF-004, NTF-005)."
+    ],
+    "1.3": [
+      "- Propiedad ocupada o parcialmente ocupada: los ocupantes, los niños y las mascotas se mantienen fuera del área de trabajo activa; el módulo de ocupantes y mascotas está pendiente de revisión de seguridad calificada (fuente: spec CL-04.INT \"preparación de la ocupación\"; APXA-002; X-11; 31 sección 5.8)."
+    ],
+    "1.4": [
+      "- Una declaración o una firma del cliente o del contratista nunca libera una retención (fuente: datos del dueño 2026-10-02 \"un reconocimiento no puede saltarse las retenciones críticas\"; manual de triaje de riesgos L27)."
+    ],
+    "2.1": [
+      "Todo está pendiente de revisión calificada. Una condición previa que no se cumple mantiene bloqueadas las tareas afectadas (fuente: manual del planificador de trabajos \"Una escalera que falta o un permiso sin verificar mantiene bloqueadas las tareas afectadas.\")."
+    ],
+    "2.2": [
+      "- Liberación del área: todos los oficios liberan cada área para la limpieza antes de cada visita de fase, y en ella no hay ninguna construcción activa insegura en curso; se PROPONE una liberación por escrito para cada área (fuente: spec CL-04.SAF; acuerdo \"Construcción terminada\"; 04 CL-04 requisitos previos, PROPUESTO). La obligación de seguridad del sitio del cliente en el acuerdo (\"Seguridad en el sitio\") no reemplaza la comprobación propia del sitio de HandyHub antes del inicio (fuente: spec START-007; manual de triaje de riesgos \"Marcar una casilla no puede saltarse un peligro estructural sin resolver.\"; C-CL04-04)."
+    ],
+    "2.3": [
+      "- Electricidad y agua: verificadas como seguras antes de usar equipos con cable o de cualquier paso húmedo (fuente: spec CL-04.SAF \"verifique la seguridad de la electricidad/el agua\")."
+    ],
+    "2.4": [
+      "- Edad de la propiedad e historial de renovación: el año de construcción aproximado o \"desconocido\", y lo que la renovación alteró, se registran antes del despacho (fuente: spec BRF-003 \"edad aproximada si se conoce\"; spec CL-04.INT \"tipo de polvo/escombros\"). El polvo o los escombros de renovación de pintura alterada en una casa anterior a 1978 o de edad desconocida, o los escombros que se sospecha que contienen asbesto, son una retención (sección 12) (fuente: spec START-011; manual de triaje de riesgos \"Una superficie pintada antes de 1978 no queda liberada porque el cliente diga que parece segura.\"; X-13). Qué evidencia se necesita del renovador, y si se aplica alguna obligación a la limpieza de ese polvo, son preguntas abiertas para cada municipio de Kentucky e Indiana (04 CL-04 indicadores de permiso/licencia; Q-31-07).",
+      "  - Evidence: note"
+    ],
+    "2.5": [
+      "- Control del polvo y protección respiratoria: los decide el profesional de seguridad calificado antes de cualquier paso que genere polvo (retención de la sección 12; C-CL04-03)."
+    ],
+    "2.6": [
+      "- Altura: los pasos que necesitan escaleras o equipo de acceso siguen retenidos hasta que exista la política de altura y acceso (02 G-005; C-CL04-01; 31 sección 8.4)."
+    ],
+    "2.7": [
+      "- Productos químicos: solo se llevan al trabajo productos con una SDS revisada (29 sección 8.3, PROPUESTO); ningún paso con ácido (C-CL04-02)."
+    ],
+    "2.8": [
+      "- Vidrio: se registra una inspección del vidrio con fotos antes del trabajo y antes de cualquier raspado con cuchilla (retención de la sección 12; C-CL04-05).",
+      "  - Evidence: note"
+    ],
+    "2.9": [
+      "- Antes de salir: confirme el trabajo, el cliente, la dirección y la hora; lea los últimos cambios; verifique el acceso y el estacionamiento; revise el alcance, las exclusiones, los peligros y la seguridad; cargue las herramientas, el equipo y los materiales críticos; confirme los documentos y las aprobaciones requeridos (fuente: spec APXA-001)."
+    ],
+    "2.10": [
+      "- Antes de empezar: complete las comprobaciones requeridas de seguridad, de EPP y del sitio; confirme que leyó el SOP y los peligros; empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada (fuente: spec APXA-003). Los indicadores de alto riesgo pueden requerir casillas aparte o la confirmación del supervisor (fuente: spec START-004); los indicadores de permiso, licencia o calificación bloquean el inicio hasta que se aprueben (fuente: spec START-010).",
+      "  - Evidence: note"
+    ],
+    "2.11": [
+      "- Disponibilidad de materiales: el material que falta puede bloquear el inicio, por ejemplo el trapeador plano, el trapeador de piso y la cubeta, las bolsas, los filtros, los limpiadores y el pulidor de metales, que no están en existencia (fuente: spec START-006; C-CL04-12)."
+    ],
+    "2.12": [
+      "- Visitas de fase: una visita por fase, que depende de un recorrido del contratista general o de la liberación del área (fuente: 04 CL-04 flujo de trabajo del software aplicable; spec SCH-002)."
+    ],
+    "2.13": [
+      "- Al llegar: confirme la dirección, el área de trabajo y el contacto; identifique mascotas y ocupantes; inspeccione el sitio real frente a las instrucciones; tome las fotos requeridas del estado existente; proteja el área de trabajo; identifique los servicios públicos y las restricciones de emergencia relevantes para la tarea (fuente: spec APXA-002).",
+      "  - Evidence: photo"
+    ],
+    "2.14": [
+      "- Comprobación del sitio antes del inicio: registre cualquier diferencia con las instrucciones, incluidas las áreas no liberadas, los oficios que siguen trabajando y la electricidad o el agua que faltan o son inseguras; las diferencias importantes activan el triaje de riesgos (Risk Triage) o la revisión del supervisor (fuente: spec START-007; CL-04.SAF).",
+      "  - Evidence: note"
+    ],
+    "2.15": [
+      "- Confirme la liberación del área y las demás condiciones previas de la sección 3 antes del primer paso en cada área y en cada visita de fase (fuente: sección 3; spec CL-04.SAF)."
+    ],
+    "2.16": [
+      "- Fotos del estado existente antes del trabajo, incluida cada ventana o espejo que se va a raspar con cuchilla (sección 16) (fuente: spec START-008, BRF-012; X-02; C-CL04-05).",
+      "  - Evidence: photo"
+    ],
+    "2.17": [
+      "- Proteja las superficies terminadas y los accesorios del área de trabajo; métodos de protección pendientes de revisión (fuente: spec APXA-002 \"proteja el área de trabajo\"; CL-04.QAC \"residuos tratados sin daños\")."
+    ],
+    "2.18": [
+      "- Prepare las bolsas y el recipiente para objetos punzocortantes propuesto en el inventario antes de juntar los escombros; pendiente de revisión (fuente: spec CL-04.SAF \"manejo de objetos punzocortantes\"; CL-04.MAT \"bolsas\")."
+    ],
+    "3.1": [
+      "*Procedimiento original, textual y en su orden original; los encabezados de fase originales bajan un nivel con su texto sin cambios. Las líneas HOLD y FLAG son adiciones pendientes de revisión calificada: una retención de condición previa va justo antes del paso que controla, y una retención o una marca que suspende, limita o marca un paso va justo después de él (36 D-36-17). Nunca reemplazan ni reformulan un paso.*"
+    ],
+    "3.2": [
+      "> HOLD (C-CL04-04) - antes de \"Aspirado HEPA\" más abajo y de cada paso posterior en un área: todos los oficios liberaron el área para la limpieza, y en ella no hay ninguna construcción activa insegura en curso; la electricidad y el agua se verifican como seguras antes de cualquier herramienta con cable o paso húmedo; los objetos punzocortantes se manejan con el método del revisor antes de juntar los escombros o usar cuchillas. Si un área no está liberada, la construcción sigue activa, o la electricidad o el agua son inseguras, no empiece: registre No iniciar / Bloqueado con evidencia y escale (spec SCH-008). La cláusula \"Seguridad en el sitio\" del acuerdo no reemplaza esta comprobación (spec START-007). Pendiente de revisión calificada. (fuente: spec CL-04.SAF \"confirme que el área está liberada para la limpieza; no trabaje en medio de una construcción activa insegura; control respiratorio/del polvo; manejo de objetos punzocortantes; verifique la seguridad de la electricidad/el agua\"; CL-04.HAZ; START-011; 31 sección 10)"
+    ],
+    "3.3": [
+      "> HOLD (X-13) - antes de \"Aspirado HEPA\" más abajo y de cada paso posterior que aspire, barra, limpie o embolse polvo o escombros de renovación: en una casa anterior a 1978 o de edad desconocida donde la renovación alteró superficies pintadas o materiales antiguos, o dondequiera que se sospeche que los escombros contienen asbesto, no altere el polvo ni los escombros; deténgase y escale. La captura con HEPA no libera el material sospechoso. Solo lo libera el revisor calificado nombrado en la sección 10. Pendiente de revisión por un renovador certificado en RRP de la EPA y por un inspector de asbesto acreditado. (fuente: spec START-011 \"materiales peligrosos sospechosos\"; 04 CL-04 peligros; manual de triaje de riesgos \"Una superficie pintada antes de 1978 no queda liberada porque el cliente diga que parece segura.\"; datos del dueño 2026-10-02 \"Lo desconocido no es seguro\"; 29 sección 8.1)"
+    ],
+    "3.4": [
+      "> HOLD (C-CL04-03) - MÉTODO DE CONTROL DEL POLVO (DUST-CONTROL) PENDIENTE DE REVISIÓN DE SEGURIDAD, antes de \"Aspirado HEPA\" más abajo y de cada paso de esta fase de \"Extracción de polvo en seco\" que aspire, barra o junte polvo: el método de control del polvo (captura con HEPA, métodos húmedos o barrido en seco) y la protección respiratoria los debe decidir un profesional de seguridad calificado; aquí no se selecciona ninguno. La declaración \"Obligatorio\" del inventario sobre el respirador se mantiene y no se debilita. El aspirado HEPA y el enjuague que fija el polvo son controles de ingeniería que ya están en los pasos; no reemplazan la decisión del revisor y no liberan el plomo ni el asbesto sospechosos. Hasta que exista la decisión, estos pasos siguen retenidos (31 sección 8.4). Pendiente de revisión calificada. (fuente: spec CL-04.SAF \"control respiratorio/del polvo\"; CL-04.TLS \"EPP/protección respiratoria según lo requiera el plan\"; inventario \"Obligatorio para proteger los pulmones de los trabajadores de las partículas de polvo de sílice en el aire.\"; 31 sección 10)"
+    ],
+    "3.5": [
+      "> HOLD (C-CL04-01, X-12) - TRABAJO EN ALTURA - PENDIENTE DE REVISIÓN DE SEGURIDAD, antes de \"Aspirado HEPA\" más abajo (techos), antes de \"Accesorios y herrajes\" en la Fase 2 (focos), y antes de cualquier trabajo \"a más de 12 pies\" que el archivo de precios cotice: acceso solo con equipo y métodos aprobados bajo una política de altura y acceso, que todavía no existe (02 G-005); el inventario no incluye ninguna escalera ni andamio. Hasta que exista la política, los pasos o las partes de pasos que necesitan una escalera, una plataforma o un andamio siguen retenidos (31 sección 8.4). Pendiente de revisión calificada. (fuente: spec CL-04.HAZ \"escaleras\"; precios \"Trabajo con andamio en techos altos (a más de 12 pies)\"; 31 sección 10)"
+    ],
+    "3.6": [
+      "- [ ] **Aspirado HEPA:** Aspire los techos, las paredes, las molduras y los muebles empotrados de arriba abajo con una aspiradora HEPA de alta eficiencia para atrapar el polvo fino de panel de yeso (drywall)."
+    ],
+    "3.7": [
+      "- [ ] **Escombros grandes:** Barra y junte los escombros de construcción que queden, los pedazos de panel de yeso (drywall), las virutas de madera y el aserrín."
+    ],
+    "3.8": [
+      "> FLAG (C-CL04-03): MÉTODO DE CONTROL DEL POLVO (DUST-CONTROL) PENDIENTE DE REVISIÓN DE SEGURIDAD. El paso anterior barre en seco, sin el \"Compuesto para barrer polvo fino\" que el inventario tiene en existencia para \"espolvorearlo en los pisos antes de barrer y fijar el polvo fino\". Si el barrido en seco es aceptable o se requieren métodos HEPA o húmedos lo decide el profesional de seguridad calificado (02 C-CL04-03). Los escombros juntados pueden incluir pedazos filosos (retención de objetos punzocortantes de arriba), y su destino no está definido (sección 15). El texto del paso no cambia. (fuente: spec CL-04.HAZ \"polvo fino, polvo de sílice/madera, escombros filosos\"; archivo de inventario; 31 sección 10)"
+    ],
+    "3.9": [
+      "- [ ] **Rieles de ventanas:** Aspire el polvo pesado de construcción y los escombros de yeso asentados dentro de los rieles de las ventanas antes de aplicar agua."
+    ],
+    "3.10": [
+      "> HOLD (C-CL04-02): no existe ningún paso con ácido en esta fase ni en ninguna parte de este SOP. El tratamiento con ácido fosfórico u otro ácido, incluida la remoción de la neblina de lechada en los azulejos, no se realiza hasta que exista un paso revisado basado en la SDS; la autorización de \"Uso de productos químicos\" del acuerdo y la línea de ácido del inventario no liberan esta retención. Pendiente de revisión calificada. (fuente: 31 sección 10; 02 C-CL04-02; acuerdo \"Uso de productos químicos\"; inventario \"Limpiadores de ácido fosfórico (sin ácido muriático)\")"
+    ],
+    "3.11": [
+      "> HOLD (C-CL04-05) - antes de \"Remoción de pintura y yeso\" más abajo: inspeccione y fotografíe cada ventana y espejo que se va a raspar (rayones existentes, defectos de fabricación, residuos debajo de las películas protectoras) antes de que cualquier cuchilla lo toque, y revise las instrucciones de los fabricantes del vidrio y de la ventana donde estén disponibles. Si no se puede registrar la condición, o si las instrucciones del fabricante restringen el uso de cuchillas, no raspe; deténgase y escale. La exención por rayones en el vidrio del acuerdo depende de esta evidencia y está en revisión por el abogado. Pendiente de revisión calificada. (fuente: 31 sección 10 \"inspección del vidrio y fotos antes de cualquier raspado con cuchilla\"; spec START-008, BRF-012; acuerdo \"Raspado de vidrio\"; 02 C-CL04-05)"
+    ],
+    "3.12": [
+      "- [ ] **Remoción de pintura y yeso:** Use un raspador de vidrio (en un ángulo de 45 grados) para quitar de forma segura las salpicaduras de pintura y las gotas de yeso de las ventanas y los espejos."
+    ],
+    "3.13": [
+      "> FLAG (C-CL04-05, X-17): \"de forma segura\" en el paso anterior es una afirmación de seguridad sin respaldo, no una propiedad verificada del método. FLAG: SIN FUENTE - verifique contra las instrucciones del fabricante: el \"ángulo de 45 grados\" no es un valor del fabricante (31 sección 3.5 regla 3). El raspado de vidrio tiene una lógica de exención opuesta en los acuerdos de DW-04 y CL-04, y qué servicio es responsable del raspado de vidrio de construcción es una decisión abierta (Q-04-07). El texto del paso no cambia. (fuente: 02 C-CL04-05, X-17; spec sección 17 \"Los valores predeterminados de la tarjeta del servicio nunca anulan un peligro específico del sitio ni una instrucción del fabricante\")"
+    ],
+    "3.14": [
+      "- [ ] **Retiro de calcomanías:** Quite todas las películas plásticas protectoras, los restos de cinta azul, los códigos de barras y las calcomanías de fábrica de las ventanas, los inodoros, los lavabos y los electrodomésticos recién instalados."
+    ],
+    "3.15": [
+      "> FLAG: PREGUNTA ABIERTA - no está definido qué etiquetas del fabricante, de clasificación o de inspección deben quedarse en su lugar después de la limpieza; \"etiquetas que deben quedarse\" es un elemento de preparación del cliente que falta (04 requisitos de preparación del cliente, GAP). El texto del paso no cambia."
+    ],
+    "3.16": [
+      "- [ ] **Remoción de adhesivo:** Use un removedor de adhesivo (como Goo Gone) para disolver los residuos de pegamento que dejan las películas protectoras en las ventanas y los acabados metálicos."
+    ],
+    "3.17": [
+      "> FLAG: el producto nombrado en el paso anterior es una cita del original, no un producto aprobado. Un removedor de adhesivo se usa solo si está en la lista aprobada con su SDS (29 sección 8.3, PROPUESTO), y solo en los acabados que su etiqueta y el fabricante del acabado permitan (spec CL-04.MAT \"removedores de residuos seguros para la superficie\"; CL-04.QAC \"residuos tratados sin daños\"). El texto del paso no cambia. (fuente: 31 sección 3.5 regla 8)"
+    ],
+    "3.18": [
+      "- [ ] **Interior de gabinetes:** Limpie minuciosamente las esquinas interiores de todos los cajones y repisas nuevos donde se asienta el aserrín fino durante la instalación."
+    ],
+    "3.19": [
+      "> FLAG (C-CL04-10): el paso anterior cubre el interior de cajones y repisas; el exterior de los gabinetes, que el archivo de precios vende (\"lavado de gabinetes nuevos por dentro/por fuera\"), no tiene ningún paso y no está cubierto, pendiente de revisión (sección 2, Fuera del alcance). El texto del paso no cambia."
+    ],
+    "3.20": [
+      "> HOLD (C-CL04-04) - ELÉCTRICO - REVISIÓN, antes de \"Accesorios y herrajes\" más abajo: el método de limpieza de focos, interruptores y tomacorrientes con electricidad nueva o temporal lo fija el revisor calificado; hasta entonces esa parte del paso sigue retenida. Ningún contacto con cables expuestos o sin terminar, cajas eléctricas abiertas o accesorios sin terminar: deténgase y escale. Ningún trabajo eléctrico. Los focos y los accesorios fuera del alcance desde el piso quedan bajo la retención de altura de arriba. Pendiente de revisión calificada. (fuente: spec CL-04.HAZ \"instalaciones eléctricas/accesorios sin terminar\"; CL-04.SAF \"verifique la seguridad de la electricidad/el agua\"; START-011; 31 sección 10 \"marque el paso de interruptores y tomacorrientes\")"
+    ],
+    "3.21": [
+      "- [ ] **Accesorios y herrajes:** Limpie el polvo de construcción de los focos, los interruptores, los tomacorrientes, las bisagras de las puertas y las manijas de los gabinetes."
+    ],
+    "3.22": [
+      "> FLAG (C-CL04-10): el encabezado anterior dice \"Abrillantado final, pulido y entrega\", pero ningún paso siguiente abrillanta los pisos; el abrillantado de pisos, que promete el plan principal, no está cubierto, pendiente de revisión (sección 2, Fuera del alcance). El encabezado se conserva textualmente."
+    ],
+    "3.23": [
+      "- [ ] **Limpieza húmeda de paredes:** Pase un trapeador plano de microfibra ligeramente húmedo por todas las paredes pintadas para atrapar la capa de polvo que queda sin dañar la pintura."
+    ],
+    "3.24": [
+      "> FLAG (C-CL04-12): el trapeador plano de microfibra del paso anterior no está en existencia (vea las adiciones propuestas del inventario). El estado de curado de la pintura no se comprueba antes de la limpieza húmeda: las fechas de curado de la pintura son un elemento de preparación del cliente que falta (04 CL-04 requisitos de preparación del cliente, GAP), y cualquier tiempo de espera sale solo de las instrucciones del fabricante de la pintura (31 sección 3.5 regla 3). El texto del paso no cambia."
+    ],
+    "3.25": [
+      "- [ ] **Pulido de metales:** Pula todos los electrodomésticos de acero inoxidable, los grifos cromados y los herrajes de latón recién instalados para quitar manchas y huellas de dedos."
+    ],
+    "3.26": [
+      "> FLAG (C-CL04-12): el pulidor de metales no está en existencia. Un producto específico para la superficie se usa solo si está en la lista aprobada con su SDS y las instrucciones de cuidado del fabricante del accesorio lo permiten en ese acabado (29 sección 8.3, PROPUESTO; spec CL-04.QAC \"residuos tratados sin daños\"). El texto del paso no cambia."
+    ],
+    "3.27": [
+      "- [ ] **Limpieza doble de pisos:** Aspire los pisos una última vez y luego trapee con un enjuague especializado para pisos que fija el polvo para eliminar las huellas opacas."
+    ],
+    "3.28": [
+      "> FLAG (C-CL04-12): el trapeador de piso y la cubeta no están en existencia. El \"enjuague especializado para pisos que fija el polvo\" es la \"Solución para trapeador que fija el polvo\" del inventario, mezclada solo como lo indica su etiqueta (29 sección 8.2 control 8) y usada solo en los acabados de piso que el fabricante del piso permita. Los pisos mojados son un peligro de resbalones cuyos controles están pendientes de revisión (sección 9). El texto del paso no cambia."
+    ],
+    "3.29": [
+      "- [ ] **Revisión del aire:** Verifique que no vuelva ninguna capa de polvo a las superficies horizontales después de que el sistema HVAC complete un ciclo."
+    ],
+    "3.30": [
+      "> FLAG: \"Verifique que no vuelva ninguna capa de polvo a las superficies horizontales después de que el sistema HVAC complete un ciclo.\" es un resultado absoluto que no se puede medir tal como está escrito (sin tiempo de espera ni método de inspección) y no es el criterio de aceptación; las comprobaciones son las de la sección 13 (spec CL-04.QAC). Quién hace funcionar el sistema HVAC para la comprobación no está definido (04 CL-04 lista de verificación de calidad, GAP); no se realiza ningún trabajo de HVAC bajo este SOP (sección 2, No realice el punto 1), y el interior de los ductos corresponde a CL-07 (04 sección 5.1). Nunca le prometa al cliente \"cero polvo\" (No realice el punto 8). El texto del paso no cambia."
+    ],
+    "3.31": [
+      "> FLAG: el procedimiento anterior no tiene cierre: destino de los residuos, cuchillas, filtros y bolsas usados, fotos de después asociadas a áreas y el resultado del recorrido. El trabajo no está completo hasta que los elementos de las secciones 14 a 16 y 18 estén hechos o se registre una excepción; esos elementos son PROPUESTOS, pendientes de revisión. (fuente: spec QA-002 a QA-004; APXA-005; 04 CL-04 evidencia de finalización, GAP)"
+    ],
+    "4.1": [
+      "Un trabajador no puede marcar el trabajo como completo sin responder estas comprobaciones o registrar una excepción (fuente: spec QA-001). Las fotos no pueden probar condiciones ocultas: no deduzca de una imagen la liberación de materiales peligrosos ni la seguridad eléctrica (fuente: manual del asistente de calidad \"No deduzca de una imagen sujetadores ocultos, idoneidad estructural, liberación de materiales peligrosos ni seguridad eléctrica.\")."
+    ],
+    "4.2": [
+      "| Comprobación (spec CL-04.QAC) | Cómo se verifica (pendiente de revisión) | Evidencia | Inspector |",
+      "|---|---|---|---|",
+      "| Polvo fino retirado por pasadas | La pasada de cada fase se completa en cada área liberada con el método de control del polvo revisado; \"ninguna capa de polvo\" en el paso \"Revisión del aire\" no es el criterio de aceptación | Fotos de después asociadas a áreas (spec QA-003) | Autocomprobación del trabajador; si un supervisor inspecciona es Q-31-15 |",
+      "| Residuos tratados sin daños | Residuos de pintura, yeso y adhesivo retirados solo con productos y métodos aprobados; el vidrio raspado se compara con sus fotos de antes del trabajo; cualquier daño se registra y se reporta como un incidente (spec JOB-008 \"daños a la propiedad\") | Fotos de antes y de después del vidrio raspado y de las superficies tratadas | Trabajador; supervisor para cualquier daño |",
+      "| Rejillas/accesorios/superficies detallados según el alcance | Accesorios y herrajes, interiores de gabinetes, paredes, metales y pisos tal como los enumera el alcance aprobado; rejillas solo si están en el alcance, y todavía no existe ningún paso para rejillas (sección 2); los elementos no cubiertos se registran, no se improvisan | Fotos de después asociadas a áreas o tareas (spec QA-003) | Trabajador |",
+      "| Sitio listo para la entrega | Todas las áreas del alcance completas; residuos retirados según la sección 15; herramientas y materiales contados; resultado del recorrido registrado (spec QA-004). Es un estándar de limpieza, no una certificación de seguridad ni de ocupación (habilidad de triaje de riesgos \"nunca certifique la seguridad del sitio\") | Registro del recorrido; fotos de la limpieza (spec QA-002) | Trabajador; el cliente o el representante del contratista general en el recorrido |"
+    ],
+    "5.1": [
+      "- Limpie el área de trabajo; retire los residuos y cualquier protección colocada durante la preparación; cuente las herramientas y los materiales; restablezca los servicios o los componentes modificados dentro del alcance (fuente: spec APXA-005; QA-002)."
+    ],
+    "5.2": [
+      "- Vaciar la aspiradora HEPA y cambiar sus filtros y bolsas: método según el fabricante de la aspiradora y el revisor de seguridad calificado; el polvo recogido es un tipo de residuo (sección 15). TBD - pendiente de revisión de seguridad calificada (fuente: spec CL-04.MAT \"filtros\"; 29 sección 8.2 control 10)."
+    ],
+    "5.3": [
+      "- Pueden requerirse fotos de la limpieza para trabajos con polvo (fuente: spec QA-002); vea la sección 16.",
+      "  - Evidence: photo"
+    ],
+    "5.4": [
+      "- La limpieza es el servicio mismo; esta sección cubre el equipo, los materiales, la protección y los residuos propios de HandyHub."
+    ],
+    "5.5": [
+      "TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo."
+    ],
+    "5.6": [
+      "- Tipos de residuos de los pasos: escombros de construcción juntados en \"Escombros grandes\" (pedazos de panel de yeso, virutas de madera, aserrín); películas despegadas, restos de cinta y calcomanías; paños y fundas de plumero usados; cuchillas usadas (objetos punzocortantes); filtros y bolsas HEPA con el polvo recogido; residuos químicos y envases vacíos (fuente: pasos originales de la sección 12; spec CL-04.MAT \"bolsas, filtros\"; 29 sección 8.2 control 10)."
+    ],
+    "5.7": [
+      "- Contenedores, destino, acarreo y quién paga: decisión del dueño con las reglas del municipio real. El archivo de precios incluye \"sacar la basura de construcción\" en la Fase 1 pero no cotiza ningún desecho, y los artículos de desecho siguen inactivos hasta que exista una política de residuos (fuente: 28 secciones 3.5 y 7.4; 02 G-157; Q-29-10; Q-28-15). La ubicación de los escombros o del contenedor de basura es un elemento de preparación del cliente que falta (04 CL-04)."
+    ],
+    "5.8": [
+      "- Las cuchillas usadas son objetos punzocortantes, manejados con el método del revisor para objetos punzocortantes; en el inventario se propone un recipiente para objetos punzocortantes (fuente: spec CL-04.SAF \"manejo de objetos punzocortantes\")."
+    ],
+    "5.9": [
+      "- HandyHub no embolsa, mueve ni retira escombros peligrosos sospechosos (posible plomo o asbesto); son una condición para detener el trabajo y remitir, no una línea de desecho (fuente: sección 2, No realice; spec START-011; 28 sección 3.5)."
+    ],
+    "6.1": [
+      "- Antes: fotos de llegada y del estado existente; el inicio está bloqueado hasta que se tomen o se registre un motivo autorizado (fuente: spec START-008). Incluya cada ventana o espejo que se va a raspar con cuchilla, mostrando los rayones, los defectos y los residuos existentes debajo de las películas protectoras, de los que depende la cláusula del vidrio del acuerdo, y los acabados, accesorios y electrodomésticos nuevos de las áreas de trabajo (fuente: 04 CL-04 evidencia de finalización \"Se necesita evidencia del estado del vidrio antes del trabajo si alguna exención por rayones sobrevive a la revisión del abogado\"; X-02; spec BRF-012).",
+      "  - Evidence: photo, note"
+    ],
+    "6.2": [
+      "- Durante: condiciones inesperadas con fotos y su gravedad, por ejemplo escombros sospechosos, cables expuestos o daños encontrados (fuente: spec JOB-004; APXA-004); el estado de liberación del área en cada visita de fase (fuente: 04 CL-04 requisitos previos, PROPUESTO)."
+    ],
+    "6.3": [
+      "- Después: fotos asociadas a áreas o tareas (fuente: spec QA-003), además de fotos de la limpieza para este servicio con polvo (fuente: spec QA-002 \"Pueden requerirse fotos de la limpieza para servicios con polvo/suciedad\").",
+      "  - Evidence: photo"
+    ],
+    "6.4": [
+      "- Una foto nunca establece la liberación de materiales peligrosos ni la seguridad eléctrica (fuente: manual del asistente de calidad)."
+    ],
+    "6.5": [
+      "- Privacidad: solo interna por defecto; evite personas, documentos y objetos de valor que no se necesiten para el trabajo (fuente: spec REC-002; 31 sección 3.5 regla 7)."
+    ],
+    "6.6": [
+      "- Los avisos de llegada y de finalización usan plantillas aprobadas; un trabajo bloqueado, incluida un área que no está liberada o una retención por materiales peligrosos, usa solo el mensaje aprobado de \"trabajo bloqueado\", sin detalles de incidentes ni códigos de acceso por mensaje de texto o correo electrónico (fuente: spec NTF-007, COM-002)."
+    ],
+    "6.7": [
+      "- Antes de cada visita de fase, confirme con el cliente o con el contratista general qué áreas están liberadas (fuente: 04 CL-04 requisitos previos, PROPUESTO; spec SCH-002)."
+    ],
+    "6.8": [
+      "- No prometa \"cero polvo\", un sitio seguro, que esté listo para ocuparse, calidad del aire ni vidrio sin rayones (fuente: sección 2, No realice el punto 8; 31 sección 3.5 regla 5; spec CL-04.QAC \"sitio listo para la entrega\")."
+    ],
+    "6.9": [
+      "- Las preguntas sobre la cláusula del vidrio o sobre daños van al dueño; no hable de culpa ni de responsabilidad con el cliente (fuente: bloque de la sección 20; notas de revisión del acuerdo)."
+    ],
+    "6.10": [
+      "- Recorrido: registre el resultado como aceptado, aceptado con elementos pendientes, no disponible o en disputa (fuente: spec QA-004).",
+      "  - Evidence: note"
+    ],
+    "6.11": ["- Las notas de cuidado salen solo de datos aprobados del producto (fuente: spec QA-008)."],
+    "6.12": [
+      "- Explique la factura y el siguiente paso del pago sin promesas no autorizadas (fuente: spec APXA-006); la facturación por fase y los plazos de pago neto están en revisión por el abogado (vea las notas de revisión del acuerdo)."
+    ],
+    "6.13": [
+      "Terminado significa todo lo siguiente, registrado en el trabajo (fuente: spec QA-001 a QA-004; CL-04.QAC; APXA-005 a APXA-007):"
+    ],
+    "6.14": [
+      "- Cada comprobación de la sección 13 respondida, o una excepción registrada (QA-001).",
+      "  - Evidence: note"
+    ],
+    "6.15": [
+      "- Fotos de después asociadas a áreas o tareas (QA-003), con fotos de la limpieza (QA-002).",
+      "  - Evidence: photo"
+    ],
+    "6.16": ["- Residuos manejados con el método aprobado (sección 15); cuchillas, filtros y bolsas usados contados."],
+    "6.17": ["- Herramientas y materiales contados (APXA-005, APXA-007)."],
+    "6.18": [
+      "- Resultado del recorrido registrado con los elementos pendientes (QA-004); los elementos pendientes abiertos siguen vinculados al trabajo (QA-005).",
+      "  - Evidence: note"
+    ],
+    "6.19": [
+      "- Cada fase registrada como completa por área liberada; la siguiente visita de fase necesita que el área se libere otra vez (fuente: 04 CL-04 requisitos previos, PROPUESTO).",
+      "  - Evidence: note"
+    ],
+    "6.20": [
+      "- Problemas sin resolver, incidentes y solicitudes de cambio enviados antes de cerrar el trabajo (APXA-007)."
+    ],
+    "6.21": [
+      "- La finalización definitiva es una aprobación humana; la revisión de calidad solo recomienda que está listo (fuente: manual del asistente de calidad \"Recomiende que está listo para la aprobación humana; no fije la finalización definitiva\").",
+      "  - Evidence: note"
+    ],
+    "stop.1": [
+      "La regla general para detener el trabajo es [[FACT-SVC-STOP-WORK-RULE]]. Activadores específicos del servicio:"
+    ],
+    "stop.2": [
+      "Activadores para detener el trabajo y retenciones específicos del servicio (todos pendientes de revisión calificada; roles que los liberan según 31 sección 8.3):"
+    ],
+    "stop.3": [
+      "- Indicación de la tarjeta, textual: \"confirme que el área está liberada para la limpieza; no trabaje en medio de una construcción activa insegura; control respiratorio/del polvo; manejo de objetos punzocortantes; verifique la seguridad de la electricidad/el agua\" (fuente: spec CL-04.SAF)."
+    ],
+    "stop.4": [
+      "- Peligros de la tarjeta, textual: \"polvo fino, polvo de sílice/madera, escombros filosos, instalaciones eléctricas/accesorios sin terminar, escaleras, productos químicos\" (fuente: spec CL-04.HAZ)."
+    ],
+    "stop.5": [
+      "- HOLD C-CL04-04, liberación del área y construcción activa: ninguna visita de fase ni ningún paso empieza en un área que no esté liberada para la limpieza o donde haya una construcción activa insegura en curso; registre No iniciar / Bloqueado con evidencia (spec SCH-008, AT-030). Liberación: supervisor, con la liberación del área registrada (se PROPONE una liberación por escrito para cada área, 04 CL-04 requisitos previos).",
+      "  - Evidence: note"
+    ],
+    "stop.6": [
+      "- HOLD C-CL04-04, electricidad, agua e instalaciones eléctricas: electricidad y agua verificadas como seguras antes de usar equipos con cable o de cualquier paso húmedo; ELÉCTRICO - REVISIÓN en el paso \"Accesorios y herrajes\"; cables expuestos o sin terminar, cajas abiertas o accesorios dañados = DETÉNGASE. Liberación: profesional de seguridad calificado; un electricista con licencia para cualquier cosa eléctrica."
+    ],
+    "stop.7": [
+      "- HOLD C-CL04-04, objetos punzocortantes: manejo de objetos punzocortantes con el método del revisor antes de juntar los escombros o usar cuchillas."
+    ],
+    "stop.8": [
+      "- HOLD C-CL04-03, polvo: MÉTODO DE CONTROL DEL POLVO (DUST-CONTROL) PENDIENTE DE REVISIÓN DE SEGURIDAD en la extracción de polvo en seco y en el paso de barrido; la declaración \"Obligatorio\" del inventario sobre el respirador se mantiene. Una retención causada por una política que falta no se puede liberar mediante una anulación (31 sección 8.4)."
+    ],
+    "stop.9": [
+      "- HOLD C-CL04-01, altura: los pasos o las partes de pasos que necesitan escaleras o equipo de acceso, y cualquier trabajo \"a más de 12 pies\", siguen retenidos hasta que exista la política de altura y acceso (31 sección 8.4)."
+    ],
+    "stop.10": [
+      "- HOLD C-CL04-02, ácido: ningún paso con ácido fosfórico u otro ácido hasta que exista un paso revisado basado en la SDS; la autorización de \"Uso de productos químicos\" del acuerdo no libera esta retención."
+    ],
+    "stop.11": [
+      "- HOLD C-CL04-05, vidrio: ningún raspado con cuchilla hasta que se registre una inspección del vidrio con fotos antes del trabajo; deténgase si no se puede registrar el estado del vidrio o si las instrucciones del fabricante restringen el uso de cuchillas.",
+      "  - Evidence: note"
+    ],
+    "stop.12": [
+      "- HOLD X-13, sospecha de plomo o asbesto en el polvo o los escombros de renovación: deténgase y escale; no lo aspire, barra, limpie ni embolse hasta que un revisor calificado decida. Liberación: un renovador certificado en RRP de la EPA o un inspector de asbesto acreditado, según lo requiera el caso, con el dueño."
+    ],
+    "stop.13": [
+      "- El material peligroso sospechoso y el alcance eléctrico no aprobado son retenciones críticas que ningún rol puede anular; se liberan solo con una evaluación calificada registrada (31 sección 8.3). Las retenciones que existen porque falta una política o un módulo de la empresa (altura y acceso; productos químicos y SDS; el módulo de polvo y protección respiratoria de 04 sección 5.2 regla (c)) se comportan como retenciones críticas hasta que se apruebe (31 sección 8.4 regla 4).",
+      "  - Evidence: note"
+    ],
+    "stop.14": ["Ruta general: [[FACT-SVC-ESCALATION-PATH]]."],
+    "stop.15": [
+      "Roles del servicio para CL-04 (los contactos y el orden de escalamiento son decisiones del dueño, Q-31-05):"
+    ],
+    "stop.16": [
+      "- Área no liberada, construcción activa insegura u otros oficios que siguen trabajando: supervisor, con el contratista general o el representante del cliente (C-CL04-04)."
+    ],
+    "stop.17": [
+      "- Cables expuestos o sin terminar, electricidad temporal insegura, agua cerca de equipos energizados: profesional de seguridad calificado; electricista con licencia (C-CL04-04)."
+    ],
+    "stop.18": [
+      "- Sospecha de plomo o asbesto en el polvo o los escombros de renovación: renovador certificado en RRP de la EPA; inspector de asbesto acreditado (X-13)."
+    ],
+    "stop.19": [
+      "- Polvo y protección respiratoria, equipo de acceso y altura, productos químicos: profesional de seguridad calificado (C-CL04-03, C-CL04-01, C-CL04-02)."
+    ],
+    "stop.20": [
+      "- Estado del vidrio, daños en el vidrio o una pregunta sobre la exención: dueño, con el abogado (C-CL04-05)."
+    ],
+    "stop.21": [
+      "- Preguntas de alcance (raspado de pisos, rejillas, abrillantado de pisos, exterior de los gabinetes, tratamiento con ácido, trabajo \"a más de 12 pies\"): dueño; orden de cambio antes del trabajo añadido (C-CL04-10; spec FIN-008)."
+    ],
+    "stop.22": ["Ruta general: [[FACT-SVC-INCIDENT-REPORTING]]."],
+    "stop.23": [
+      "- Para este servicio, reporte como mínimo: vidrio rayado o roto durante el raspado; cortes con cuchillas o con escombros filosos; contacto eléctrico o descarga; sospecha de exposición a polvo o escombros que puedan contener plomo o asbesto; una salpicadura o exposición química; una caída desde el equipo de acceso; un resbalón en un piso mojado; falla de la aspiradora o de una herramienta (fuente: spec JOB-008 \"Lesión, daños a la propiedad, casi accidente, conflicto con el cliente, falla de herramientas/equipos y sospecha de exposición a materiales peligrosos\"; CL-04.HAZ)."
+    ]
+  },
+  "ambiguous": []
+}

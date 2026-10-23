@@ -374,7 +374,7 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
             // TSK-0075: the job checklist in six ordered stages; the server decides who may read and act.
             <>
               <JobSafety key={`safety-${route.id}`} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} />
-              <ChecklistPage key={route.id} t={t} fetchImpl={doFetch} jobId={route.id} href={href} />
+              <ChecklistPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} href={href} />
             </>
           ) : route.page === 'record' && route.screen === 'quality-reviews' ? (
             // TSK-0084: a job's quality review and punch items (the Owner), or a worker's own punch items on it.

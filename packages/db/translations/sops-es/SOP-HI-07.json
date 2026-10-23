@@ -1,0 +1,246 @@
+{
+  "sopId": "SOP-HI-07",
+  "englishContentSha256": "73e8f321ec89fc8c821db237de9fff14592e5063764f4a61b51f4b55dbe7c2e7",
+  "title": "SOP HI-07: Mejoras del aislamiento del ático",
+  "headings": [
+    "1. Preparación del sitio y protección de la propiedad",
+    "2. Preparación y mediciones/comprobaciones requeridas",
+    "3. Pasos de trabajo específicos del servicio",
+    "4. Comprobaciones de calidad",
+    "5. Limpieza y manejo de residuos",
+    "6. Comprobaciones finales, fotos de finalización y recorrido"
+  ],
+  "items": {
+    "1.1": [
+      "- Lista de comprobación PROPUESTA para el cliente, enviada con el recordatorio de la cita una vez que el dueño y el abogado aprueben la redacción: camino despejado y espacio libre debajo de la escotilla; plan para mascotas y ocupantes; informar filtraciones, plagas, cableado y aislamiento existente conocidos (fuente: 04 HI-07 requisitos de preparación del cliente; spec NTF-005 \"lista de comprobación de preparación del cliente\"; CX-005)."
+    ],
+    "1.2": [
+      "- El equipo de trabajo, no el cliente, protege el piso debajo de la escotilla (paso original \"Enmascarado del sitio\"); si la habitación de la escotilla se envuelve como dice el acuerdo es una decisión del dueño (C-HI07-08)."
+    ],
+    "1.3": [
+      "- Al llegar, identifique mascotas y ocupantes y manténgalos lejos del área de trabajo activa; el módulo de ocupantes y mascotas está pendiente de revisión de seguridad calificada (fuente: spec APXA-002; X-11; 31 sección 5.8)."
+    ],
+    "1.4": [
+      "- La preparación o la declaración de un cliente nunca reemplaza la inspección previa al trabajo de HandyHub (fuente: 30 sección 4.1 cláusula 5 \"nunca traslada al cliente las comprobaciones previas al inicio de HandyHub\"; manual de clasificación de riesgos \"Marcar una casilla no puede pasar por alto un peligro estructural no resuelto.\")."
+    ],
+    "2.1": [
+      "Todo pendiente de revisión calificada. Una condición previa que no se cumple mantiene bloqueadas las tareas afectadas (fuente: manual del planificador de trabajos \"Una escalera que falta o un permiso no verificado mantiene bloqueadas las tareas afectadas.\")."
+    ],
+    "2.2": [
+      "- Evaluación en el sitio antes de un presupuesto firme: las decisiones que faltan sobre condiciones peligrosas bloquean un presupuesto firme, y las fotos por sí solas no pueden establecer condiciones ocultas (fuente: manual del asistente de presupuestos; 04 HI-07 método de presupuesto, PROPUESTO)."
+    ],
+    "2.3": [
+      "- El presupuesto aprobado registra el producto, la cobertura y la profundidad objetivo, y la cantidad de espacios del alero y de luces empotradas; la profundidad fija de la sección 12 no es el objetivo (fuente: spec HI-07.QAC \"cobertura/profundidad objetivo según el plan aprobado\"; 04 HI-07 requisitos previos; C-HI07-06).",
+      "  - Evidence: note"
+    ],
+    "2.4": [
+      "- Control de inspección previa al trabajo (C-HI07-01): inspeccione antes las inquietudes de humedad/electricidad/combustión; deténgase ante moho, una filtración activa o cableado inseguro; el aislamiento existente desconocido o sospechoso, por ejemplo vermiculita, no se altera (fuente: spec HI-07.SAF; 31 sección 10). Solo se libera con una evaluación calificada registrada (31 sección 8.3).",
+      "  - Evidence: note"
+    ],
+    "2.5": [
+      "- Controles del ático (C-HI07-02): controles para el desplazamiento en el ático, la caída a través del techo, el estrés por calor, el espacio reducido y la protección respiratoria aprobados por un profesional de seguridad calificado; hasta que existan, los pasos del ático siguen en retención (fuente: spec HI-07.HAZ, HI-07.SAF; 31 secciones 8.4 y 10)."
+    ],
+    "2.6": [
+      "- Inquietudes de combustión encontradas en la inspección (conductos de humos, ventilaciones, aparatos de gas): deténgase y remita a un profesional de HVAC o de gas; las distancias de separación vienen solo de los datos del fabricante o de ese profesional y nunca se estiman (fuente: spec HI-07.SAF; 31 sección 10; manual de clasificación de riesgos \"Use las indicaciones del fabricante/de la SDS\")."
+    ],
+    "2.7": [
+      "- Indicadores de permiso, licencia o calificación: donde la política administrativa marque el trabajo, Iniciar trabajo (Start Job) queda bloqueado hasta que se apruebe el requisito previo (fuente: spec START-010). Si el aislamiento de remodelación necesita un permiso o una inspección es una PREGUNTA ABIERTA para cada municipio de Kentucky e Indiana, y una aplicabilidad desconocida no debe equivaler por defecto a \"no se necesita permiso\" (fuente: 04 HI-07 indicadores de permiso/licencia; manual de clasificación de riesgos)."
+    ],
+    "2.8": [
+      "- Antes de salir: confirme el trabajo, el cliente, la dirección y la hora; lea los últimos cambios; revise el alcance, las exclusiones, los peligros y la seguridad; cargue las herramientas, el equipo y los materiales críticos; revise los alquileres (la sopladora puede ser alquilada); confirme los documentos y las aprobaciones requeridos (fuente: spec APXA-001)."
+    ],
+    "2.9": [
+      "- Antes de empezar: complete las comprobaciones requeridas de seguridad, de EPP y del sitio; confirme los materiales; confirme que leyó el SOP y los peligros; empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada (fuente: spec APXA-003). Los indicadores de alto riesgo pueden requerir casillas aparte o la confirmación del supervisor (fuente: spec START-004).",
+      "  - Evidence: note"
+    ],
+    "2.10": [
+      "- Disponibilidad de materiales: un material que falta puede bloquear el inicio, por ejemplo un material aprobado de protección de luminarias, que no está en inventario (fuente: spec START-006; C-HI07-V01)."
+    ],
+    "2.11": [
+      "- Al llegar: confirme la dirección, el área de trabajo y el contacto; identifique mascotas y ocupantes; inspeccione el sitio real frente a las instrucciones; tome las fotos requeridas del estado existente; proteja el área de trabajo; identifique los servicios públicos y las restricciones de emergencia relevantes para la tarea (fuente: spec APXA-002).",
+      "  - Evidence: photo"
+    ],
+    "2.12": [
+      "- Comprobación del sitio antes del inicio: registre cualquier diferencia con las instrucciones; las diferencias importantes activan la Clasificación de riesgos o la revisión del supervisor (fuente: spec START-007).",
+      "  - Evidence: note"
+    ],
+    "2.13": [
+      "- Protección: el paso original \"Enmascarado del sitio\" (sección 12) cubre el piso debajo de la escotilla; mantenga la protección y la contención en su lugar durante el trabajo (fuente: spec APXA-004 \"mantener la protección/contención\"; estándar de contención C-HI07-08)."
+    ],
+    "2.14": [
+      "- Ubicación de la sopladora: afuera, según el paso original (\"en la tolva de la máquina sopladora comercial afuera\"); instalación y comprobación previa al uso según el fabricante de la sopladora (fuente: paso original; 31 sección 3.1, fila de herramientas \"inspección previa al uso según el fabricante\")."
+    ],
+    "2.15": [
+      "- Evidencia previa al inicio: fotos del estado existente antes del inicio (fuente: spec START-008; sección 16).",
+      "  - Evidence: photo"
+    ],
+    "3.1": [
+      "*Procedimiento original, textual y en su orden original. Las líneas HOLD y FLAG son añadidos pendientes de revisión calificada: una retención de condición previa va justo antes del paso que controla, y una retención o marca que suspende, limita o señala un paso va justo después de él (36 D-36-17). Nunca reemplazan ni reformulan un paso.*"
+    ],
+    "3.2": [
+      "> HOLD (C-HI07-01) - control de inspección previa al trabajo, antes del primer paso de abajo (\"Enmascarado del sitio\") y antes de cualquier trabajo en el ático: inspeccione antes las inquietudes de humedad/electricidad/combustión y registre lo que encuentre con fotos (spec HI-07.SAF; JOB-004). Deténgase ante moho, una filtración activa o cableado inseguro (spec HI-07.SAF). Solo se libera con una evaluación calificada registrada (31 sección 8.3). Pendiente de revisión calificada. (fuente: spec HI-07.SAF; 31 sección 10)"
+    ],
+    "3.3": [
+      "> HOLD (C-HI07-01) - antes del primer paso de abajo: aislamiento existente desconocido o sospechoso, por ejemplo vermiculita: no lo altere; deténgase; escale. HandyHub no toma muestras; solo se libera con una autorización documentada de un profesional calificado en asbesto aceptado por el dueño (31 sección 7.2). Pendiente de revisión calificada. (fuente: 31 sección 10; spec START-011; datos del dueño 2026-10-02, fuente de la EPA sobre asbesto)"
+    ],
+    "3.4": [
+      "- [ ] **Enmascarado del sitio:** Cubra todo el piso del pasillo justo debajo de la entrada de la escotilla del ático con lonas de plástico para atrapar las fibras sopladas sueltas."
+    ],
+    "3.5": [
+      "> HOLD (C-HI07-02) - antes del paso de abajo (\"Colocación de deflectores de ventilación del sofito\") y de cada paso posterior en el ático (\"Aislamiento de luminarias\", \"Aplicación neumática por soplado\"): los controles para el desplazamiento en el ático y la caída a través del techo, el estrés por calor, el espacio reducido y la protección respiratoria y de la piel deben estar aprobados por un profesional de seguridad calificado y en su lugar. Todavía no se ha definido ninguno, y aquí no se fija ningún límite de temperatura ni tipo de respirador; hasta que existan, los pasos del ático siguen en retención (31 sección 8.4). Pendiente de revisión calificada. (fuente: spec HI-07.HAZ, HI-07.SAF, HI-07.TLS; 31 sección 10; X-12, X-27)"
+    ],
+    "3.6": [
+      "- [ ] **Colocación de deflectores de ventilación del sofito:** Gatee hasta los bordes bajos del perímetro del ático. Instale deflectores de aislamiento de plástico o de espuma de poliestireno (ventilaciones de vigas) directamente en cada espacio entre viguetas cerca de las ventilaciones del sofito. *Crucial: Esto asegura que el flujo de aire fresco no quede bloqueado por el aislamiento suelto, lo que causa represas de hielo en el techo.*"
+    ],
+    "3.7": [
+      "- [ ] **Aislamiento de luminarias:** Construya cajas protectoras de panel de yeso (drywall) resistente al fuego alrededor de la parte superior de las luces empotradas calientes para aislarlas de los elementos de aislamiento suelto."
+    ],
+    "3.8": [
+      "> HOLD (C-HI07-03): el paso anterior está retenido. No construya ni instale la protección de luminarias hasta que un electricista con licencia apruebe el método, los materiales y las distancias de separación según las instrucciones del fabricante de la luminaria y los requisitos aplicables. Esta retención también limita el paso de soplado de abajo: si el tipo o la clasificación de una luminaria es desconocido, o está dañada o no está aprobada, deténgase, mantenga el aislamiento fuera de la zona de separación y escale; no cubra luminarias/ventilaciones inseguras (spec HI-07.SAF). Pendiente de revisión calificada. (fuente: spec HI-07.SAF, HI-07.MAT \"materiales aprobados de protección de luces/penetraciones\"; spec sección 17 introducción; 31 sección 10)"
+    ],
+    "3.9": [
+      "- [ ] **Aplicación neumática por soplado:** Cargue bolsas de aislamiento de fibra de vidrio o celulosa de primera calidad en la tolva de la máquina sopladora comercial afuera. El técnico del ático dirigirá la manguera de forma uniforme, llenando las viguetas del piso hasta una profundidad de 16–20 pulgadas para alcanzar el objetivo del código regional (valor R-49 a R-60)."
+    ],
+    "3.10": [
+      "> FLAG (C-HI07-06, C-HI07-05): SIN FUENTE - verifique con las instrucciones del fabricante. \"hasta una profundidad de 16–20 pulgadas para alcanzar el objetivo del código regional (valor R-49 a R-60)\": la profundidad viene del presupuesto aprobado y de la tabla de cobertura del producto seleccionado (spec HI-07.QAC \"cobertura/profundidad objetivo según el plan aprobado\"), y la redacción sobre el objetivo del código es una afirmación normativa no verificada hasta que se verifiquen los requisitos locales para cada municipio de Kentucky e Indiana. El texto del paso de arriba no ha cambiado. REVISIÓN HUMANA: dueño; funcionario de construcción local; abogado."
+    ],
+    "4.1": [
+      "Un trabajador no puede marcar el trabajo como completo sin responder estas comprobaciones o registrar una excepción (fuente: spec QA-001). Las fotos no pueden probar condiciones ocultas: no deduzca de una imagen la liberación de materiales peligrosos ni la seguridad eléctrica (fuente: manual del asistente de calidad)."
+    ],
+    "4.2": [
+      "| Comprobación (spec HI-07.QAC) | Cómo se verifica (pendiente de revisión) | Evidencia | Inspector |",
+      "|---|---|---|---|",
+      "| Cobertura/profundidad objetivo según el plan aprobado | Medida en los marcadores de profundidad frente a la profundidad y el producto del presupuesto aprobado, no el rango fijo de la sección 12 (C-HI07-06) | Fotos de los marcadores de profundidad por área; registro del producto y de la cantidad de bolsas (04 HI-07 evidencia de finalización, PROPUESTO) | Autocomprobación del trabajador; si un supervisor debe inspeccionar es Q-31-15 |",
+      "| Ventilaciones despejadas | Deflectores en su lugar en los aleros; ventilación del sofito mantenida (spec HI-07.SAF) | Fotos de los deflectores por tramo de alero (04 HI-07, PROPUESTO) | Trabajador |",
+      "| Luminarias protegidas según se requiera | Solo con un método que aprobó un electricista con licencia; luminarias desconocidas mantenidas despejadas (retención C-HI07-03) | Fotos de la protección de luminarias (04 HI-07, PROPUESTO) | Trabajador; electricista con licencia donde el método aprobado lo requiera |",
+      "| Acceso/burletes restablecidos | Escotilla cerrada y restablecida; el restablecimiento de los burletes todavía no tiene un paso (sección 2, Fuera del alcance) | Foto de la escotilla (04 HI-07, PROPUESTO) | Trabajador |",
+      "| Ninguna contaminación por aislamiento en el espacio habitable | Espacio habitable revisado después de retirar la protección (spec QA-002) | Fotos del espacio habitable (04 HI-07, PROPUESTO) | Trabajador; el recorrido con el cliente (spec QA-004) no es una inspección de seguridad |"
+    ],
+    "5.1": [
+      "- Retire la protección instalada en el paso \"Enmascarado del sitio\" y revise el espacio habitable para detectar contaminación por aislamiento (fuente: spec QA-002; HI-07.QAC \"ninguna contaminación por aislamiento en el espacio habitable\")."
+    ],
+    "5.2": [
+      "- Limpie el área; retire los residuos y la protección; cuente las herramientas y los materiales; restablezca los servicios o componentes modificados dentro del alcance (fuente: spec APXA-005)."
+    ],
+    "5.3": [
+      "- Pueden requerirse fotos de la limpieza en trabajos con polvo (fuente: spec QA-002); vea la sección 16.",
+      "  - Evidence: photo"
+    ],
+    "5.4": [
+      "- Método de limpieza y clase de polvo de la aspiradora: TBD - pendiente de revisión de seguridad calificada (fuente: spec HI-07.TLS \"aspiradora\")."
+    ],
+    "5.5": [
+      "TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo."
+    ],
+    "5.6": [
+      "- Residuos de los pasos: bolsas de aislamiento vacías y láminas de plástico usadas (fuente: pasos originales \"Enmascarado del sitio\" y \"Aplicación neumática por soplado\"; spec QA-002 \"manejo de residuos/desechos\")."
+    ],
+    "5.7": [
+      "- Contenedores, destino y quién paga: decisión del dueño con las reglas locales del municipio real (fuente: 31 sección 3.1, fila de residuos; 29 sección 8.2 control 10)."
+    ],
+    "5.8": [
+      "- El material que se sospecha peligroso no se embolsa, no se mueve ni se retira (fuente: sección 2, No realice; spec START-011)."
+    ],
+    "6.1": [
+      "- Antes: fotos de llegada y del estado existente; el inicio está bloqueado hasta que se tomen o se registre un motivo autorizado (fuente: spec START-008). Incluya lo que encuentre la inspección previa al trabajo: humedad, inquietudes de cableado o de luminarias, inquietudes de combustión y aislamiento existente (fuente: spec HI-07.SAF; JOB-004).",
+      "  - Evidence: photo, note"
+    ],
+    "6.2": [
+      "- Durante: condiciones ocultas registradas con fotos y gravedad (fuente: spec APXA-004; JOB-004); colocación de los deflectores y de los marcadores de profundidad (fuente: 04 HI-07 evidencia de finalización, PROPUESTO).",
+      "  - Evidence: note"
+    ],
+    "6.3": [
+      "- Después: fotos asociadas a las áreas de trabajo o a las tareas (fuente: spec QA-003): marcadores de profundidad por área, deflectores por tramo de alero, protección de luminarias, escotilla y burletes restablecidos, espacio habitable limpio (fuente: 04 HI-07 evidencia de finalización, PROPUESTO); fotos de la limpieza donde se requieran (fuente: spec QA-002).",
+      "  - Evidence: photo"
+    ],
+    "6.4": [
+      "- Privacidad: solo internas por defecto; evite personas, documentos y objetos de valor que no se necesiten para el trabajo (fuente: spec REC-002; 31 sección 3.5 regla 7)."
+    ],
+    "6.5": [
+      "- Los avisos de llegada y de finalización usan plantillas aprobadas; un trabajo bloqueado usa solo el mensaje aprobado de \"trabajo bloqueado\", sin detalles de incidentes ni códigos de acceso por mensaje de texto o correo electrónico (fuente: spec NTF-007, COM-002)."
+    ],
+    "6.6": [
+      "- Podredumbre, manchas de agua, filtraciones activas, moho, inquietudes de cableado o de combustión: primero deténgase y escale (sección 19); luego se informa al cliente con la redacción aprobada. La cláusula del acuerdo de solo notificar está en revisión del abogado (fuente: spec HI-07.SAF; C-HI07-01)."
+    ],
+    "6.7": [
+      "- Recorrido: registre el resultado como aceptado, aceptado con elementos pendientes, no disponible o en disputa (fuente: spec QA-004).",
+      "  - Evidence: note"
+    ],
+    "6.8": [
+      "- Las notas de cuidado y de entrega salen solo de datos de productos aprobados (fuente: spec QA-008; manual del asistente de calidad \"Prepare las instrucciones de entrega a partir de datos de productos aprobados\")."
+    ],
+    "6.9": [
+      "- No afirme que el trabajo cumple un código, alcanza un estándar de valor R o bajará las facturas de energía, y no haga ninguna declaración de garantía (fuente: sección 2, No realice el elemento 8; C-HI07-05)."
+    ],
+    "6.10": ["- Explique la factura y el siguiente paso del pago sin promesas no autorizadas (fuente: spec APXA-006)."],
+    "6.11": [
+      "Terminado significa todo lo siguiente, registrado en el trabajo (fuente: spec QA-001 a QA-004; HI-07.QAC; APXA-005 a APXA-007):"
+    ],
+    "6.12": [
+      "- Cada comprobación de la sección 13 está respondida, o tiene una excepción registrada (QA-001).",
+      "  - Evidence: note"
+    ],
+    "6.13": ["- Fotos de después asociadas a las áreas o a las tareas (QA-003).", "  - Evidence: photo"],
+    "6.14": [
+      "- Protección retirada y limpieza hecha, sin contaminación por aislamiento en el espacio habitable (QA-002; HI-07.QAC)."
+    ],
+    "6.15": ["- Escotilla y acceso restablecidos (HI-07.QAC)."],
+    "6.16": ["- Herramientas y materiales contados; alquileres devueltos (APXA-005, APXA-007)."],
+    "6.17": ["- Resultado del recorrido registrado, con los elementos pendientes (QA-004).", "  - Evidence: note"],
+    "6.18": [
+      "- Problemas sin resolver, incidentes y solicitudes de cambio enviados antes de cerrar el trabajo (APXA-007)."
+    ],
+    "6.19": [
+      "- La finalización definitiva es una aprobación humana; la revisión de calidad solo recomienda que está listo (fuente: manual del asistente de calidad \"Recomiende que está listo para la aprobación humana; no fije la finalización definitiva\").",
+      "  - Evidence: note"
+    ],
+    "stop.1": [
+      "La regla general para detener el trabajo es [[FACT-SVC-STOP-WORK-RULE]]. Activadores específicos del servicio:"
+    ],
+    "stop.2": [
+      "Activadores para detener el trabajo y retenciones específicos del servicio (todos pendientes de revisión calificada; roles que liberan según 31 sección 8.3):"
+    ],
+    "stop.3": [
+      "- Indicaciones de la tarjeta, textual: \"inspeccione antes las inquietudes de humedad/electricidad/combustión; no cubra luminarias/ventilaciones inseguras; mantenga la ventilación del sofito; use protección respiratoria/de la piel; deténgase ante moho, una filtración activa o cableado inseguro\" (fuente: spec HI-07.SAF)."
+    ],
+    "stop.4": [
+      "- HOLD C-HI07-01, control de inspección previa al trabajo antes del primer paso: solo se libera con una evaluación calificada registrada. El material que se sospecha peligroso y el trabajo eléctrico, de gas o de HVAC no aprobado son retenciones críticas que ningún rol puede anular (31 sección 8.3); la sospecha de moho se trata como crítica hasta que exista la definición de moho de la compañía (31 sección 8.4; Q-31-10).",
+      "  - Evidence: note"
+    ],
+    "stop.5": [
+      "- HOLD C-HI07-01, aislamiento existente desconocido o sospechoso (por ejemplo vermiculita): no lo altere; solo se libera con una autorización documentada de un profesional calificado en asbesto aceptado por el dueño (31 sección 7.2).",
+      "  - Evidence: note"
+    ],
+    "stop.6": [
+      "- HOLD C-HI07-02, controles para el desplazamiento en el ático, el calor, la caída a través del techo, el espacio reducido y la protección respiratoria: los pasos del ático siguen en retención hasta que un profesional de seguridad calificado apruebe los controles; una retención causada por una política que falta no se puede liberar con una anulación (31 sección 8.4)."
+    ],
+    "stop.7": [
+      "- HOLD C-HI07-03, protección de luminarias: el paso \"Aislamiento de luminarias\" está retenido hasta que un electricista con licencia apruebe el método; si el tipo o la clasificación de una luminaria es desconocido, deténgase y mantenga el aislamiento fuera de la zona de separación."
+    ],
+    "stop.8": [
+      "- Inquietud de combustión (conducto de humos, ventilación o aparato de gas): deténgase y remita a un profesional de HVAC o de gas (spec HI-07.HAZ \"problemas de combustión/ventilación\")."
+    ],
+    "stop.9": ["Ruta general: [[FACT-SVC-ESCALATION-PATH]]."],
+    "stop.10": [
+      "Roles del servicio para HI-07 (los contactos y el orden de escalamiento son decisiones del dueño, Q-31-05):"
+    ],
+    "stop.11": ["- Cableado, cajas de conexiones o luminarias empotradas: electricista con licencia (C-HI07-03)."],
+    "stop.12": [
+      "- Conductos de humos, ventilaciones o aparatos de gas: profesional de HVAC o de gas (spec HI-07.HAZ)."
+    ],
+    "stop.13": ["- Aislamiento existente desconocido o sospechoso: inspector de asbesto acreditado (C-HI07-01)."],
+    "stop.14": ["- Moho: evaluador de moho calificado o higienista industrial (X-06; Q-31-10)."],
+    "stop.15": [
+      "- Calor, caídas, espacio reducido y protección respiratoria: profesional de seguridad calificado (C-HI07-02)."
+    ],
+    "stop.16": ["- Filtraciones del techo o podredumbre de las vigas: dueño, para la decisión de remisión (Q-30-15)."],
+    "stop.17": [
+      "- Preguntas de código, permiso o valor R: dueño, con el funcionario de construcción local (C-HI07-05)."
+    ],
+    "stop.18": ["Ruta general: [[FACT-SVC-INCIDENT-REPORTING]]."],
+    "stop.19": [
+      "- Para este servicio, reporte por lo menos una caída o un pie que atraviese el techo, una enfermedad por calor, una exposición al aislamiento o al polvo, y una falla de la sopladora o de la manguera (fuente: spec JOB-008; HI-07.HAZ \"estrés por calor\", \"caídas a través del techo\", \"polvo/fibras\")."
+    ]
+  },
+  "ambiguous": []
+}

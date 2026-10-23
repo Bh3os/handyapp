@@ -1264,6 +1264,8 @@ export const LABEL_FAMILIES = {
   sopControl: ['HOLD', 'GATE', 'FLAG'],
   /** What pinned an SOP version on a work package (TSK-0068). */
   sopPinSource: ['approval', 'import'],
+  /** The categories of the separate comparison of a Spanish SOP version with its English version (TSK-0103). */
+  spanishCheck: ['warnings', 'ppe', 'prohibited_actions', 'measurements_units', 'step_order', 'stop_work'],
   /** ENT-Hold kinds (TSK-0069 packet; the domain's HOLD_KINDS). */
   holdKind: ['review', 'job_requirement', 'critical_safety', 'task_block'],
   /** Where a job scope snapshot version comes from (ENT-JobScopeSnapshot). */
@@ -1362,6 +1364,7 @@ export const LABEL_FAMILIES = {
     'services',
     'service_versions',
     'sop_versions',
+    'sop_spanish_versions',
     'loadout_versions',
     'configuration_versions',
     'message_templates',

@@ -1,0 +1,307 @@
+{
+  "sopId": "SOP-HI-04",
+  "englishContentSha256": "63a77f1c8d9f5bf6890ce74f4dc436a0a8980418149cb6a06b495199752f6533",
+  "title": "SOP HI-04: Montaje profesional de televisores en la pared y ocultamiento de cables",
+  "headings": [
+    "1. Preparación del sitio y protección de la propiedad",
+    "2. Preparación y mediciones/comprobaciones requeridas",
+    "3. Pasos de trabajo específicos del servicio",
+    "4. Comprobaciones de calidad",
+    "5. Limpieza y manejo de residuos",
+    "6. Comprobaciones finales, fotos de finalización y recorrido"
+  ],
+  "items": {
+    "1.1": ["PROPUESTO para la aprobación del dueño; la redacción para el cliente pasa por 30 y 32."],
+    "1.2": [
+      "- El televisor, el soporte (cuando lo aporta el cliente) y los documentos de su modelo y peso están en el sitio (fuente: 04 HI-04 \"requisitos de preparación del cliente\"; spec HI-04.INT)."
+    ],
+    "1.3": [
+      "- La altura y la ubicación del montaje están decididas y se conoce la ubicación del tomacorriente (fuente: 04 HI-04; spec HI-04.INT \"altura deseada\", \"situación del tomacorriente/bajo voltaje\")."
+    ],
+    "1.4": [
+      "- Los muebles se retiran del área de trabajo; los niños y las mascotas se mantienen lejos del área de trabajo y del levantamiento (fuente: 04 HI-04; spec CX-005; X-11)."
+    ],
+    "1.5": [
+      "- Opción B: el cliente aporta cables HDMI que funcionen y que tengan la longitud suficiente (fuente: cláusula \"Suficiencia de herrajes\" del acuerdo, que también está bajo revisión del abogado)."
+    ],
+    "1.6": [
+      "- Cada trabajo vuelve a confirmar que el acceso, los ocupantes, las mascotas, el estacionamiento, los peligros y las condiciones del área de trabajo siguen vigentes (fuente: spec CX-005)."
+    ],
+    "2.1": [
+      "- Este SOP no está activo: ningún trabajo lo usa hasta una revisión competente y la activación por el dueño (fuente: datos del dueño 2026-10-02; 31 sección 2.1)."
+    ],
+    "2.2": [
+      "- Existe una versión de presupuesto aprobada para el trabajo; la Opción B se realiza solo cuando es una línea detallada de esa versión (fuente: spec CX-003, EST-005; acuerdo \"Cláusula de componentes\")."
+    ],
+    "2.3": [
+      "- Solicitud registrada: tamaño, peso y modelo del televisor; modelo del soporte; pared y sustrato; distribución de los montantes; altura deseada; plan de cables; situación del tomacorriente y del bajo voltaje (fuente: spec HI-04.INT).",
+      "  - Evidence: note"
+    ],
+    "2.4": [
+      "- Televisor y soporte que aporta el cliente: estado visible, modelo y cantidad registrados antes de la instalación; un artículo que falta o que se rechaza bloquea la tarea afectada (fuente: spec START-009, JOB-004; 29 sección 9.1, PROPUESTO).",
+      "  - Evidence: note"
+    ],
+    "2.5": [
+      "- Clasificaciones del televisor y del soporte comprobadas con la documentación del fabricante antes de cualquier perforación (fuente: spec HI-04.SAF \"verifique las clasificaciones del soporte/televisor\"; retención de la sección 12, C-HI04-01)."
+    ],
+    "2.6": [
+      "- La pared es de panel de yeso (drywall) sobre montantes de madera; cualquier otro sustrato detiene el trabajo para una evaluación en el sitio (fuente: encabezado original de la Opción A; 02 C-HI04-07)."
+    ],
+    "2.7": [
+      "- Se programa una segunda persona cuando el levantamiento la necesita; el umbral es TBD por el dueño y el revisor de seguridad calificado (fuente: spec HI-04.SAF \"levantamiento entre dos personas cuando se necesite\", spec HI-04.TLS \"ayuda para levantar\"; 02 C-HI04-01)."
+    ],
+    "2.8": [
+      "- Opción B: el estado del permiso para bajo voltaje en el municipio se registra antes de empezar; desconocido no significa que no se necesite permiso (fuente: spec HI-04.MAT \"si está permitido\", START-010; 04 HI-04 indicadores de permiso y licencia; manual handyhub de clasificación de riesgos \"una aplicabilidad desconocida no debe equivaler por defecto a que no se necesita permiso\").",
+      "  - Evidence: note"
+    ],
+    "2.9": [
+      "- La evaluación de la edad de la propiedad antes de cortar acabados de pared antiguos no forma parte de la solicitud de HI-04 (02 G-049); hasta que exista, una sospecha de material peligroso significa detenerse (fuente: spec START-011; Q-31-07)."
+    ],
+    "2.10": [
+      "- Trabajo en escalera solo bajo una política aprobada de altura y acceso, que todavía no existe (fuente: 02 G-005; X-12)."
+    ],
+    "2.11": [
+      "- Antes de salir: confirme el trabajo, el cliente, la dirección y la hora correctos; lea los últimos cambios; revise el alcance y las exclusiones; revise los peligros y la seguridad; cargue las herramientas, el equipo y los materiales críticos; revise los artículos que aporta el cliente; confirme los documentos y las aprobaciones requeridos (fuente: spec APXA-001)."
+    ],
+    "2.12": [
+      "- Antes de empezar: complete las comprobaciones requeridas de seguridad, de EPP y del sitio; confirme los materiales y los modelos; confirme que leyó el SOP y los peligros; empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada (fuente: spec APXA-003, START-004).",
+      "  - Evidence: note"
+    ],
+    "2.13": [
+      "- Al llegar: confirme la dirección, el área de trabajo y el contacto; identifique mascotas y ocupantes; inspeccione el sitio real frente a las instrucciones; tome las fotos requeridas del estado existente; proteja el área de trabajo; identifique los servicios públicos y las restricciones de emergencia relevantes para la tarea (fuente: spec APXA-002).",
+      "  - Evidence: photo"
+    ],
+    "2.14": [
+      "- Confirme que el sitio coincide con las instrucciones, o registre las diferencias; las diferencias materiales activan la Clasificación de riesgos (Risk Triage) o la revisión del supervisor (fuente: spec START-007).",
+      "  - Evidence: note"
+    ],
+    "2.15": [
+      "- Fotos del estado existente del área de pared y del televisor y el soporte del cliente, con el registro START-009 (fuente: spec START-008, START-009).",
+      "  - Evidence: photo, note"
+    ],
+    "2.16": [
+      "- Proteja el piso y los muebles debajo del área de trabajo, por ejemplo con una lona protectora (fuente: spec HI-04.HAZ \"daños a la pared\"; spec APXA-002 \"proteja el área de trabajo\"; 29 sección 7.3)."
+    ],
+    "2.17": [
+      "- Mantenga a los niños y las mascotas fuera del área de trabajo y de la ruta del levantamiento (fuente: X-11; spec CX-005)."
+    ],
+    "2.18": [
+      "- Colocación de la escalera solo bajo una política aprobada de altura y acceso: TBD (fuente: 02 G-005; X-12)."
+    ],
+    "2.19": [
+      "- Comprobaciones de seguridad, de EPP y del sitio completas y los peligros del SOP reconocidos antes de empezar (fuente: spec APXA-003, START-004).",
+      "  - Evidence: note"
+    ],
+    "3.1": [
+      "*Procedimiento original, sin cambios y en su orden original. Las líneas HOLD y FLAG son borradores añadidos pendientes de revisión calificada (31 sección 10). Una retención colocada antes de un paso debe cumplirse antes de que empiece ese paso; una retención o una marca colocada después de un paso limita o señala \"el paso anterior\" (36 D-36-17).*"
+    ],
+    "3.2": [
+      "- [ ] **Ubicación del centro:** Use un detector de montantes de escaneo profundo para ubicar ambos bordes del montante de madera. Marque con un lápiz la línea exacta del centro."
+    ],
+    "3.3": [
+      "> HOLD (C-HI04-01): antes de \"Perforación de agujeros piloto\" de abajo, registre el modelo, el tamaño, el peso y la capacidad clasificada del televisor y del soporte a partir de la documentación del fabricante y compárelos; DETÉNGASE y escale si el televisor supera la clasificación del soporte o si la pared, el sustrato o las fijaciones no son los que requieren las instrucciones del soporte. Liberación: sección 10. Pendiente de revisión calificada. (fuente: spec HI-04.SAF \"verifique las clasificaciones del soporte/televisor; use una fijación estructural según las instrucciones\"; spec START-009)"
+    ],
+    "3.4": [
+      "> HOLD (C-HI04-V01): antes de perforar cualquier agujero en \"Perforación de agujeros piloto\" de abajo, el cliente confirma la altura y la posición marcadas del montaje; registre una foto y el reconocimiento. Liberación: sección 10. Pendiente de revisión del dueño. (fuente: spec HI-04.INT \"altura deseada\"; 02 C-HI04-V01)"
+    ],
+    "3.5": [
+      "> HOLD (C-HI04-09): antes de perforar cualquier agujero en \"Perforación de agujeros piloto\" de abajo, compruebe las ubicaciones de perforación marcadas en busca de servicios eléctricos, de plomería y de gas ocultos con el escáner del inventario usado según las instrucciones de su fabricante, y registre el resultado. No se indica si el escáner del inventario detecta cables o tuberías (sección 7); donde las instrucciones de su fabricante no los cubren, un escaneo que no encuentra nada no elimina el riesgo y cuenta como incierto. Si algo es incierto, DETÉNGASE y escale. Liberación: sección 10. Pendiente de revisión calificada. (fuente: spec HI-04.HAZ \"perforar en servicios ocultos\"; spec HI-04.SAF \"deténgase ante un sustrato/servicios inciertos\"; spec START-011; archivo de inventario; 02 C-HI04-02; datos del dueño 2026-10-02 \"Lo desconocido no es seguro\")"
+    ],
+    "3.6": [
+      "- [ ] **Perforación de agujeros piloto:** Use un nivel de burbuja para alinear la plantilla metálica del soporte de pared del televisor plana contra la pared. Perfore agujeros piloto de 2.5 pulgadas de profundidad directamente en el centro de los montantes con una broca para madera."
+    ],
+    "3.7": [
+      "> FLAG: SIN FUENTE - verifique con las instrucciones del fabricante. \"Perfore agujeros piloto de 2.5 pulgadas de profundidad\" en el paso anterior no está tomado de ninguna instrucción del soporte o de las fijaciones; esas instrucciones mandan sobre la profundidad del agujero y el tamaño de la broca. El paso se mantiene sin cambios hasta que un revisor calificado lo reemplace. (fuente: 31 sección 10; spec sección 17 \"Los valores predeterminados de la tarjeta del servicio nunca anulan ... las instrucciones del fabricante\")"
+    ],
+    "3.8": [
+      "- [ ] **Colocación de pernos tirafondo:** Asegure firmemente el marco del soporte con pernos tirafondo de alta resistencia colocados con una llave de impacto. Verifique que esté absolutamente a plomo."
+    ],
+    "3.9": [
+      "> FLAG (C-HI04-09): \"Verifique que esté absolutamente a plomo\" en el paso anterior no es la comprobación de \"nivel\" de la tarjeta (spec HI-04.QAC); la fijación y el apriete siguen las instrucciones del fabricante del soporte (spec HI-04.SAF \"use una fijación estructural según las instrucciones\"). Las comprobaciones posteriores al montaje están en la sección 13. Pendiente de revisión del dueño y de calidad."
+    ],
+    "3.10": [
+      "> HOLD (C-HI04-01): el procedimiento anterior termina en el soporte de pared; ningún paso cubre fijar el televisor, levantarlo ni colgarlo. No levante ni cuelgue el televisor bajo este SOP hasta que el dueño confirme que colgarlo está dentro del alcance y un revisor escriba ese paso a partir de las instrucciones del fabricante del soporte; aquí no se inventa ningún paso. Cualquier paso para colgarlo debe incluir el \"levantamiento entre dos personas cuando se necesite\" de la tarjeta. Liberación: sección 10. Pendiente de revisión calificada. (fuente: spec HI-04.SAF; acuerdo \"Cláusula de componentes\"; 31 sección 10)"
+    ],
+    "3.11": [
+      "- [ ] **Trazado de los recortes:** Trace el contorno de una caja de entrada de plástico para bajo voltaje directamente debajo del soporte del televisor y otra caja a 12 pulgadas por encima del nivel del piso."
+    ],
+    "3.12": [
+      "> HOLD (C-HI04-02): antes de \"Recorte del panel de yeso\" de abajo, haga una comprobación de servicios ocultos de ambas aberturas trazadas con el escáner del inventario según las instrucciones de su fabricante, y registre el resultado; cualquier incertidumbre = DETÉNGASE y escale. Donde esas instrucciones no cubren cables o tuberías, un escaneo que no encuentra nada no elimina el riesgo y cuenta como incierto (sección 7). Liberación: sección 10. Pendiente de revisión calificada. (fuente: 02 C-HI04-02; spec HI-04.SAF \"deténgase ante un sustrato/servicios inciertos\"; spec START-011; datos del dueño 2026-10-02 \"Lo desconocido no es seguro\")"
+    ],
+    "3.13": [
+      "- [ ] **Recorte del panel de yeso:** Use un serrucho de mano para panel de yeso (drywall) para recortar con cuidado ambos rectángulos, asegurándose de no interferir con ningún montante."
+    ],
+    "3.14": [
+      "- [ ] **Paso de la cinta guía por el conducto:** Baje una cinta guía flexible de fibra de vidrio a través del recorte superior de la cavidad de la pared hasta que salga por la abertura inferior. Sujete los cables HDMI y de medios a la cinta y jálelos limpiamente hacia arriba por detrás del panel de yeso."
+    ],
+    "3.15": [
+      "> HOLD (C-HI04-08): durante el paso anterior, si la cinta guía encuentra bloqueos (blocking), aislamiento o cualquier tubería o ventilación, DETÉNGASE - no perfore ni corte; registre la condición (JOB-004) y escale. Liberación: sección 10. Pendiente de revisión calificada y del funcionario de construcción. (fuente: 02 C-HI04-08; 31 sección 10)"
+    ],
+    "3.16": [
+      "> HOLD (C-HI04-06): el paso anterior pasa solo cables HDMI y de medios de bajo voltaje; nunca pase un cable de alimentación ni cableado de voltaje de línea por dentro de la pared - remítalo a un electricista con licencia. Liberación: sección 10. Pendiente de revisión de un electricista con licencia. (fuente: spec HI-04.SAF \"no realice trabajo de voltaje de línea sin licencia\"; spec HI-04.MAT)"
+    ],
+    "3.17": [
+      "- [ ] **Instalación de las placas:** Fije placas de pared tipo cepillo sobre ambas aberturas para un acabado limpio."
+    ],
+    "4.1": [
+      "| Comprobación | Fuente | Evidencia | Inspector |",
+      "|---|---|---|---|",
+      "| Montaje seguro, según las instrucciones del fabricante del soporte | spec HI-04.QAC \"montaje seguro\"; C-HI04-01 | Foto de las fijaciones del soporte antes de que algo las oculte; una foto es evidencia, no prueba de una fijación oculta (manual handyhub del asistente de calidad) | TBD - autocomprobación o supervisor (Q-31-15) |",
+      "| Herrajes correctos: fijaciones y soporte como lo especifican las instrucciones | spec HI-04.QAC \"herrajes correctos\" | Modelo del soporte y fijaciones usadas, registrados | TBD (Q-31-15) |",
+      "| Nivel (el original \"Verifique que esté absolutamente a plomo\" se queda en la sección 12 y está señalado) | spec HI-04.QAC \"nivel\" | Resultado de la comprobación registrado | TBD (Q-31-15) |",
+      "| Espacio libre de articulación para soportes articulados | spec HI-04.QAC \"espacio libre de articulación\"; C-HI04-09 | Resultado de la comprobación registrado; todavía no existe ningún paso para soportes articulados | TBD (Q-31-15) |",
+      "| Cables organizados dentro del alcance aprobado; solo cables de bajo voltaje | spec HI-04.QAC \"cables organizados dentro del alcance aprobado\"; spec HI-04.SAF | Foto de ambas placas (Opción B) | TBD (Q-31-15) |",
+      "| El televisor enciende y funciona, solo si el cliente autoriza una prueba | spec HI-04.QAC \"el televisor enciende/funciona si el cliente autoriza la prueba\" | Resultado de la prueba, o \"no autorizado\", registrado | TBD (Q-31-15) |"
+    ],
+    "4.2": [
+      "- El trabajo no se puede marcar como completo hasta que cada comprobación requerida esté respondida o se registre una excepción (fuente: spec QA-001; AT-039).",
+      "  - Evidence: note"
+    ],
+    "4.3": [
+      "- Una comprobación fallida se convierte en un elemento pendiente o en un escalamiento; la autocomprobación de un trabajador no reemplaza una inspección requerida del supervisor (fuente: manual handyhub del asistente de calidad)."
+    ],
+    "5.1": [
+      "- Limpie el área, retire la protección, cuente las herramientas y los materiales, y restablezca los componentes modificados dentro del alcance (fuente: spec APXA-005, QA-002)."
+    ],
+    "5.2": [
+      "- Retire el polvo de la perforación y de los recortes; tome fotos de limpieza donde se requieran para trabajos con polvo (fuente: spec QA-002).",
+      "  - Evidence: photo"
+    ],
+    "5.3": [
+      "- Registre qué pasa con las piezas sobrantes, el empaque y los herrajes viejos de los productos que aporta el cliente (fuente: 29 sección 9.1).",
+      "  - Evidence: note"
+    ],
+    "5.4": [
+      "TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo."
+    ],
+    "5.5": [
+      "- Tipos de residuos que hay que clasificar: pedazos y polvo de panel de yeso de los recortes de la Opción B, empaque y herrajes no usados; el destino y quién paga son decisiones del dueño (fuente: paso original \"Recorte del panel de yeso\"; 31 sección 3.1; 02 G-078)."
+    ],
+    "5.6": [
+      "- Los residuos de una sospecha de material peligroso no se manejan sin una política aprobada (fuente: 31 sección 3.1; spec START-011)."
+    ],
+    "6.1": [
+      "- Antes: estado existente del área de pared; el televisor y el soporte del cliente con la información del modelo (fuente: spec START-008, START-009, APXA-002)."
+    ],
+    "6.2": [
+      "- Durante: la altura y la posición marcadas del montaje confirmadas por el cliente (retención de la sección 12, C-HI04-V01); las fijaciones del soporte antes de que algo las oculte (fuente: 04 HI-04 \"evidencia de finalización\", PROPUESTO); cualquier condición oculta u obstrucción encontrada (fuente: spec JOB-004)."
+    ],
+    "6.3": [
+      "- Después: el montaje terminado y, para la Opción B, ambas placas, con cada foto asociada a su área de trabajo o tarea (fuente: spec QA-003).",
+      "  - Evidence: photo"
+    ],
+    "6.4": [
+      "- Las fotos son solo internas por defecto y evitan personas, documentos y objetos de valor que no se necesiten para el trabajo (fuente: spec REC-002; 31 sección 3.5 regla 7)."
+    ],
+    "6.5": [
+      "- El conjunto de fotos requerido, y si Iniciar trabajo (Start Job) queda bloqueado sin él: TBD - dueño (fuente: spec START-008)."
+    ],
+    "6.6": [
+      "- Los avisos de llegada y de finalización usan solo plantillas aprobadas; hasta que se aprueben son borradores (fuente: 31 sección 3.1)."
+    ],
+    "6.7": [
+      "- Antes de perforar, confirme con el cliente la altura y la posición marcadas (retención de la sección 12, C-HI04-V01)."
+    ],
+    "6.8": [
+      "- Haga una prueba de funcionamiento del televisor solo con la autorización del cliente, y registre el resultado (fuente: spec HI-04.QAC).",
+      "  - Evidence: note"
+    ],
+    "6.9": [
+      "- Recorrido: registre aceptado, aceptado con elementos pendientes, no disponible o en disputa (fuente: spec QA-004, APXA-006).",
+      "  - Evidence: note"
+    ],
+    "6.10": [
+      "- Trabajo bloqueado: use solo el mensaje aprobado de \"trabajo bloqueado\"; nunca envíe detalles de incidentes ni códigos de acceso por mensaje de texto o correo electrónico (fuente: spec NTF-007, COM-002)."
+    ],
+    "6.11": [
+      "- Una solicitud de trabajo de voltaje de línea, por ejemplo un tomacorriente o electricidad llevada por dentro de la pared, no se realiza; se remite a un electricista con licencia. Redacción para el cliente: TBD - electricista con licencia y abogado (fuente: 02 C-HI04-06)."
+    ],
+    "6.12": [
+      "- No repita la \"Garantía estructural\" del acuerdo, la \"seguridad estructural absoluta\" ni la \"apariencia completamente inalámbrica\" del plan principal, ni ninguna promesa de carga, de seguridad o de cumplimiento del código (fuente: C-HI04-01, C-HI04-06; No realice la entrada 8)."
+    ],
+    "6.13": ["- Explique la factura y el siguiente paso de pago sin promesas no autorizadas (fuente: spec APXA-006)."],
+    "6.14": [
+      "- Cada comprobación de la sección 13 está respondida con evidencia, o se registra una excepción (fuente: spec QA-001, AT-039).",
+      "  - Evidence: note"
+    ],
+    "6.15": [
+      "- Las fotos de después están tomadas y asociadas al trabajo (fuente: spec QA-003).",
+      "  - Evidence: photo"
+    ],
+    "6.16": [
+      "- La limpieza está hecha, la protección retirada, y las herramientas y los materiales contados (fuente: spec QA-002, APXA-005)."
+    ],
+    "6.17": ["- La propiedad queda asegurada (fuente: 31 sección 3.1)."],
+    "6.18": ["- El resultado del recorrido está registrado (fuente: spec QA-004, APXA-006).", "  - Evidence: note"],
+    "6.19": [
+      "- Ninguna retención de las secciones 10 y 12 está abierta, y los problemas sin resolver, los incidentes y las solicitudes de cambio se envían antes de que se cierre el trabajo (fuente: spec APXA-007, JOB-012)."
+    ],
+    "stop.1": [
+      "La regla general para detener el trabajo es [[FACT-SVC-STOP-WORK-RULE]]. Activadores específicos del servicio:"
+    ],
+    "stop.2": [
+      "Activadores para detener el trabajo de HI-04 (primero la spec HI-04.SAF, luego las retenciones del registro; todos pendientes de revisión calificada):"
+    ],
+    "stop.3": [
+      "- Las clasificaciones del soporte o del televisor no están verificadas, o el televisor supera la clasificación del soporte (fuente: spec HI-04.SAF \"verifique las clasificaciones del soporte/televisor\"; C-HI04-01)."
+    ],
+    "stop.4": [
+      "- La fijación no puede seguir las instrucciones del soporte (fuente: spec HI-04.SAF \"use una fijación estructural según las instrucciones\")."
+    ],
+    "stop.5": [
+      "- El trabajo necesitaría trabajo eléctrico de voltaje de línea (fuente: spec HI-04.SAF \"no realice trabajo de voltaje de línea sin licencia\"; C-HI04-06)."
+    ],
+    "stop.6": [
+      "- El levantamiento necesita dos personas y solo hay una disponible (fuente: spec HI-04.SAF \"levantamiento entre dos personas cuando se necesite\")."
+    ],
+    "stop.7": [
+      "- El sustrato o los servicios ocultos son inciertos (fuente: spec HI-04.SAF \"deténgase ante un sustrato/servicios inciertos\"; C-HI04-02)."
+    ],
+    "stop.8": [
+      "- La cinta guía encuentra bloqueos, aislamiento o cualquier tubería o ventilación: no perfore ni corte (fuente: 31 sección 10; C-HI04-08)."
+    ],
+    "stop.9": [
+      "- La pared es de mampostería, de yeso o listón, o de montantes metálicos, o el montaje es sobre una chimenea: no está cubierto; deténgase y solicite una evaluación en el sitio (fuente: 02 C-HI04-07)."
+    ],
+    "stop.10": [
+      "- El televisor, el soporte o los cables que aporta el cliente faltan, están dañados o no tienen información del modelo (fuente: spec START-009; spec JOB-004 \"falta un artículo que aporta el cliente\")."
+    ],
+    "stop.11": [
+      "- Opción B: el estado del permiso para bajo voltaje no está registrado (fuente: spec START-010; spec HI-04.MAT \"si está permitido\")."
+    ],
+    "stop.12": [
+      "- Cada retención la libera solo un rol nombrado con evidencia registrada (fuente: 31 sección 8.3 regla 1; manual de clasificación de riesgos L17). Las retenciones críticas se liberan solo con una evaluación calificada registrada y nunca se anulan (fuente: 31 sección 8.3 regla 2); cuáles de las retenciones de abajo son críticas está pendiente (Q-27-15).",
+      "  - Evidence: note"
+    ],
+    "stop.13": [
+      "Retenciones del servicio (insertadas en la sección 12). Los roles que las liberan son PROPUESTOS a partir de los revisores nombrados en las filas del registro 02; todos son TBD - requiere la revisión del revisor de seguridad calificado:"
+    ],
+    "stop.14": [
+      "| Retención | Dónde en la sección 12 | Rol que la libera y evidencia (PROPUESTO) |",
+      "|---|---|---|",
+      "| C-HI04-01: clasificaciones del televisor y del soporte | Antes de \"Perforación de agujeros piloto\" | Profesional de seguridad calificado; modelo, peso y capacidad clasificada del televisor y del soporte registrados a partir de la documentación del fabricante |",
+      "| C-HI04-V01: el cliente confirma la altura y la posición marcadas | Antes de \"Perforación de agujeros piloto\" | Reconocimiento y foto del cliente registrados; rol que la libera TBD - dueño |",
+      "| C-HI04-09: servicios ocultos antes de perforar | Antes de \"Perforación de agujeros piloto\" | Profesional de seguridad calificado; resultado del escaneo registrado, y una evaluación registrada dondequiera que el resultado sea incierto |",
+      "| C-HI04-01: ningún levantamiento ni colgado del televisor bajo este SOP | Después de \"Colocación de pernos tirafondo\" | Decisión de alcance del dueño, y luego un paso para colgar escrito por un revisor calificado a partir de las instrucciones del fabricante del soporte |",
+      "| C-HI04-02: servicios ocultos antes de los recortes | Antes de \"Recorte del panel de yeso\" | Profesional de seguridad calificado; resultado del escaneo registrado, y una evaluación registrada dondequiera que el resultado sea incierto |",
+      "| C-HI04-08: obstrucción en la ruta de los cables | Después de \"Paso de la cinta guía por el conducto\" | Profesional de seguridad calificado, con el funcionario de construcción local antes de considerar cualquier perforación o corte a través de los bloqueos |",
+      "| C-HI04-06: solo cables de bajo voltaje | Después de \"Paso de la cinta guía por el conducto\" | No se libera bajo este SOP; el trabajo de voltaje de línea se remite a un electricista con licencia |"
+    ],
+    "stop.15": ["Ruta general: [[FACT-SVC-ESCALATION-PATH]]."],
+    "stop.16": ["Rutas de HI-04 (los contactos son decisiones del dueño, Q-31-05):"],
+    "stop.17": [
+      "- Solicitud de voltaje de línea o cableado expuesto: detenga esa tarea; la oficina la remite a un electricista con licencia (C-HI04-06)."
+    ],
+    "stop.18": [
+      "- Bloqueos, bloqueos contra fuego, una tubería o una ventilación en la ruta de los cables: deténgase; el dueño obtiene la revisión del funcionario de construcción local antes de considerar cualquier perforación o corte (C-HI04-08)."
+    ],
+    "stop.19": [
+      "- Chimenea, mampostería u otro sustrato no cubierto: deténgase; evaluación en el sitio; profesional de gas con licencia donde haya un aparato de gas (C-HI04-07)."
+    ],
+    "stop.20": ["Ruta general: [[FACT-SVC-INCIDENT-REPORTING]]."],
+    "stop.21": [
+      "- Ejemplos de HI-04: un televisor o un soporte que se suelta o que cae, daños a la pared o a la propiedad del cliente, contacto con cableado o tuberías ocultos, y un incidente con la escalera (fuente: spec JOB-008; spec HI-04.HAZ)."
+    ]
+  },
+  "ambiguous": []
+}

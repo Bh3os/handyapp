@@ -1,0 +1,344 @@
+{
+  "sopId": "SOP-PT-04",
+  "englishContentSha256": "0cf5e49f04ec907d5084950b00afd1d88ab58cb377876efa4ecc91d97edb8e45",
+  "title": "SOP PT-04: Retiro de papel tapiz y restauración de superficies",
+  "headings": [
+    "1. Preparación del sitio y protección de la propiedad",
+    "2. Preparación y mediciones/comprobaciones requeridas",
+    "3. Pasos de trabajo específicos del servicio",
+    "4. Comprobaciones de calidad",
+    "5. Limpieza y manejo de residuos",
+    "6. Comprobaciones finales, fotos de finalización y recorrido"
+  ],
+  "items": {
+    "1.1": ["PROPUESTO para la aprobación del dueño; la redacción para el cliente pasa por 30 y 32."],
+    "1.2": [
+      "- Los muebles, los objetos colgados en la pared y las cortinas o persianas se alejan de las paredes que se van a desprender (fuente: 04 PT-04 \"requisitos de preparación del cliente\", FALTA)."
+    ],
+    "1.3": [
+      "- Los niños y las mascotas se mantienen lejos del vapor, de los químicos y de las cajas eléctricas durante el trabajo (fuente: 04 PT-04; spec CX-005; X-11)."
+    ],
+    "1.4": [
+      "- Es posible ventilar donde se vaya a usar imprimador a base de aceite (fuente: 04 PT-04; inventario \"Imprimador bloqueador de manchas a base de aceite\"; ventilación según la SDS)."
+    ],
+    "1.5": ["- Hay agua corriente accesible en el sitio (fuente: cláusula \"Agua caliente corriente\" del acuerdo)."],
+    "1.6": [
+      "- Hay acceso disponible para más de una visita por la espera del secado (fuente: 04 PT-04 \"requisitos de preparación del cliente\")."
+    ],
+    "1.7": [
+      "- El cliente indica el año de construcción, si lo conoce, y cualquier fuga conocida, moho anterior u otros peligros (fuente: spec PT-04.INT \"edad\"; 30 sección 4.1 cláusula 5 \"información que se le pide al cliente que declare\")."
+    ],
+    "1.8": [
+      "- La cláusula del acuerdo sobre el permiso para usar los interruptores (breakers) y sobre la electricidad está en revisión del abogado y de un electricista con licencia; no se depende de ella para liberar ninguna retención eléctrica (fuente: 30 sección 5 fila 84; 30 sección 3.2 regla 6)."
+    ],
+    "1.9": [
+      "- Cada trabajo vuelve a confirmar que el acceso, los ocupantes, las mascotas, el estacionamiento, los peligros y las condiciones del área de trabajo siguen vigentes (fuente: spec CX-005)."
+    ],
+    "1.10": [
+      "- [ ] **Corte eléctrico:** Apague los interruptores (breakers) de los tomacorrientes de pared de la habitación en la que se trabaja para evitar cortocircuitos por líquidos."
+    ],
+    "1.11": [
+      "> HOLD (C-PT04-03): el paso anterior está retenido. Quién puede accionar los interruptores (breakers), y el método de aislamiento, están pendientes de revisión de un electricista con licencia; apagar solo los interruptores no es un aislamiento verificado. Antes de cualquier trabajo húmedo o con vapor cerca de un tomacorriente o de una caja de interruptor, el estado desenergizado se verifica con un probador aprobado, por el método que apruebe el electricista con licencia; si no se puede verificar, DETÉNGASE y escale. Pendiente de revisión de un electricista con licencia y de seguridad calificada. (fuente: spec PT-04.SAF \"proteja/desenergice cerca de los tomacorrientes según corresponda\"; 02 C-PT04-03; X-07; cláusula \"Aislamiento eléctrico activo\" del acuerdo, en revisión del abogado)"
+    ],
+    "1.12": [
+      "- [ ] **Taponado de tomacorrientes:** Rellene las cajas eléctricas de pared con bolsas plásticas y espátulas y ciérrelas bien con cinta."
+    ],
+    "1.13": [
+      "> HOLD (C-PT04-03): el paso anterior está retenido. No se coloca nada dentro de una caja eléctrica hasta que un electricista con licencia apruebe un método de protección de cajas; aquí no se escribe ningún procedimiento eléctrico. Pendiente de revisión de un electricista con licencia. (fuente: 02 C-PT04-03; 31 sección 10 PT-04)"
+    ],
+    "1.14": [
+      "- [ ] **Protección del piso:** Extienda plástico grueso a lo largo de los bordes del piso, pegándolo bien con cinta sobre los zócalos para atrapar las gotas de pegamento y el líquido que escurre."
+    ],
+    "2.1": [
+      "- Este SOP no está activo: ningún trabajo lo usa hasta una revisión competente y la activación por el dueño (fuente: datos del dueño 2026-10-02; 31 sección 2.1)."
+    ],
+    "2.2": [
+      "- Existe una versión aprobada del presupuesto para el trabajo, que indica las paredes, el nivel de acabado y si se incluye alguna capa de imprimador (fuente: spec CX-003, EST-005; spec PT-04.QAC \"retirado hasta el nivel acordado\", \"con imprimador si está incluido\"; C-PT04-06)."
+    ],
+    "2.3": [
+      "- Solicitud registrada: tipo y capas de papel tapiz, sustrato de la pared, edad, pared pintada o sin pintar, área de la habitación y acabado deseado (fuente: spec PT-04.INT).",
+      "  - Evidence: note"
+    ],
+    "2.4": [
+      "- Edad de la propiedad y recubrimientos antiguos: en un edificio construido antes de 1978 o de edad desconocida, o donde se sospeche de un compuesto para juntas o un recubrimiento antiguo, no se empieza a rayar, raspar, restregar ni lijar hasta que una persona calificada registre una decisión. \"Una superficie pintada antes de 1978 no queda liberada porque el cliente diga que parece segura.\" (fuente: spec PT-04.SAF; 02 C-PT04-04; X-13; manual de clasificación de riesgos; Q-31-07).",
+      "  - Evidence: note"
+    ],
+    "2.5": [
+      "- Aislamiento eléctrico: ningún trabajo húmedo o con vapor cerca de un tomacorriente o de una caja de interruptor hasta que se aplique el método de aislamiento aprobado por un electricista con licencia y se verifique el estado desenergizado con un probador aprobado (fuente: spec PT-04.SAF \"proteja/desenergice cerca de los tomacorrientes según corresponda\"; 02 C-PT04-03; X-07). La cláusula del acuerdo sobre el permiso para usar los interruptores está en revisión del abogado y de un electricista y no reemplaza esta comprobación."
+    ],
+    "2.6": [
+      "- Alimentación eléctrica de la vaporizadora: cómo se alimenta la vaporizadora está pendiente de revisión de un electricista con licencia; la redacción \"caja de conexiones accesible\" del acuerdo no es un método (fuente: cláusula \"Aislamiento eléctrico activo\" del acuerdo; 02 C-PT04-03)."
+    ],
+    "2.7": ["- Hay agua corriente disponible en el sitio (fuente: cláusula \"Agua caliente corriente\" del acuerdo)."],
+    "2.8": [
+      "- Acceso durante más de una visita: las paredes se secan por completo después de \"Enjuague con agua limpia\" antes de aplicar la capa fina de compuesto (fuente: paso original \"Enjuague con agua limpia\"; 04 PT-04 \"supuestos de mano de obra\")."
+    ],
+    "2.9": [
+      "- Las etiquetas de los productos y las SDS del removedor, del quitapegamento, del imprimador y del compuesto están disponibles y revisadas; un producto químico sin una SDS revisada no se lleva al trabajo (fuente: 29 sección 8.3, PROPUESTO; X-09)."
+    ],
+    "2.10": [
+      "- El trabajo con escalera solo bajo una política de altura y acceso aprobada, que todavía no existe (fuente: spec PT-04.HAZ \"escalera\"; 02 G-005; X-12)."
+    ],
+    "2.11": [
+      "- Antes de salir: confirme el trabajo, el cliente, la dirección y la hora correctos; lea los últimos cambios; revise el alcance y las exclusiones; revise los peligros y la seguridad; cargue las herramientas, el equipo y los materiales críticos; revise los artículos que aporta el cliente; confirme los documentos y las aprobaciones requeridos (fuente: spec APXA-001)."
+    ],
+    "2.12": [
+      "- Antes de empezar: complete las comprobaciones requeridas de seguridad, de EPP y del sitio; confirme los materiales; confirme que leyó el SOP y los peligros; empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada (fuente: spec APXA-003, START-004).",
+      "  - Evidence: note"
+    ],
+    "2.13": [
+      "- Al llegar: confirme la dirección, el área de trabajo y el contacto; identifique mascotas y ocupantes; inspeccione el sitio real frente a las instrucciones; tome las fotos requeridas del estado existente; proteja el área de trabajo; identifique los servicios públicos y las restricciones de emergencia relevantes para la tarea (fuente: spec APXA-002).",
+      "  - Evidence: photo"
+    ],
+    "2.14": [
+      "- Confirme que el sitio coincide con las instrucciones, o registre las diferencias; las diferencias importantes activan la Clasificación de riesgos o la revisión del supervisor (fuente: spec START-007).",
+      "  - Evidence: note"
+    ],
+    "2.15": [
+      "- Fotos del estado existente de cada pared que se va a desprender, incluidos los daños ya presentes, antes de que empiecen la protección o el trabajo; la \"Exención de responsabilidad por daños\" del acuerdo depende de esta evidencia (fuente: spec START-008; X-02).",
+      "  - Evidence: photo"
+    ],
+    "2.16": ["- Mantenga a los niños y las mascotas fuera del área de trabajo (fuente: X-11; spec CX-005)."],
+    "2.17": [
+      "- El aislamiento eléctrico y la protección de las cajas siguen las retenciones de la sección 12, Fase 1; ningún trabajo húmedo o con vapor empieza hasta que se verifique el estado desenergizado (fuente: 02 C-PT04-03; X-07)."
+    ],
+    "2.18": ["- Protección del piso: el paso original \"Protección del piso\" de la sección 12, Fase 1."],
+    "2.19": [
+      "- La prueba del método de retiro va antes de cualquier rayado o saturación: retención de la sección 12 antes de \"Rayado de la pared\" (fuente: spec PT-04.SAF \"pruebe el método de retiro\"; 02 C-PT04-07)."
+    ],
+    "2.20": [
+      "- Instalación de la ventilación antes de cualquier uso de imprimador a base de aceite, según la SDS: TBD - revisor de seguridad calificado (fuente: inventario \"Imprimador bloqueador de manchas a base de aceite\"; 29 sección 8.1)."
+    ],
+    "2.21": [
+      "- Instalación de escaleras solo bajo una política de altura y acceso aprobada: TBD (fuente: 02 G-005; X-12)."
+    ],
+    "2.22": [
+      "- Las comprobaciones de seguridad, de EPP y del sitio están completas y los peligros del SOP reconocidos antes de empezar (fuente: spec APXA-003, START-004).",
+      "  - Evidence: note"
+    ],
+    "3.1": [
+      "*Procedimiento original, sin cambios y en su orden original. Las líneas HOLD y FLAG son borradores añadidos pendientes de revisión calificada (31 sección 10). Una retención colocada antes de un paso se debe cumplir antes de que empiece ese paso; una retención o una marca colocada después de un paso limita o marca \"el paso anterior\" (36 D-36-17).*"
+    ],
+    "3.2": [
+      "> HOLD (C-PT04-04): antes de \"Rayado de la pared\" de abajo, y antes de cualquier raspado, restregado o lijado en los pasos que siguen, confirme el año de construcción y el estado de la pared. Las paredes de un edificio construido antes de 1978 o de edad desconocida, o un compuesto para juntas antiguo sospechoso, significan ninguna alteración hasta que una persona calificada registre una decisión; DETÉNGASE y escale. Pendiente de revisión por un renovador certificado EPA RRP y un inspector de asbesto acreditado. (fuente: spec PT-04.SAF \"deténgase ante un recubrimiento/material sospechoso de ser peligroso\"; spec PT-04.INT \"edad, pared pintada/sin pintar\"; 02 C-PT04-04; X-13; manual de clasificación de riesgos \"Una superficie pintada antes de 1978 no queda liberada porque el cliente diga que parece segura.\")"
+    ],
+    "3.3": [
+      "> HOLD (C-PT04-07): antes de \"Rayado de la pared\" de abajo, haga una prueba en un área pequeña del método de retiro y registre la decisión sobre el método (si rayar, cómo aplicar la solución, si se necesita vapor), con una foto. Pendiente de revisión del dueño y del técnico principal con las instrucciones del producto. (fuente: spec PT-04.SAF \"pruebe el método de retiro\"; spec PT-04.TLS \"rayador solo cuando corresponda\"; 02 C-PT04-07 \"prueba en área pequeña + decisión sobre el método registrada\")"
+    ],
+    "3.4": [
+      "- [ ] **Rayado de la pared:** Use una herramienta ergonómica para rayar papel tapiz (como un Paper Tiger) y pásela sobre el papel tapiz con presión ligera. Haga patrones circulares para perforar la capa exterior de vinilo *sin perforar el papel del panel de yeso (drywall) de abajo*."
+    ],
+    "3.5": [
+      "> FLAG (C-PT04-07): el paso anterior es condicional: raye solo cuando corresponda, según lo decida la prueba del método de retiro; la tarjeta no hace del rayado una opción por defecto. Pendiente de revisión del dueño y del técnico principal. (fuente: spec PT-04.TLS \"rayador solo cuando corresponda\"; 02 C-PT04-07)"
+    ],
+    "3.6": [
+      "- [ ] **Mezcla enzimática:** Mezcle una tanda con agua tibia de removedor profesional de papel tapiz a base de enzimas (p. ej., marca DIF) dentro de un rociador de bomba de jardín limpio."
+    ],
+    "3.7": [
+      "- [ ] **Pasada de saturación:** Rocíe la solución química abundantemente sobre una sección de pared de 4x6 pies. Deje que la fórmula se absorba durante 15 minutos para licuar la vieja pasta de almidón de trigo que hay debajo."
+    ],
+    "3.8": [
+      "> FLAG (C-PT04-07): \"abundantemente\" en el paso anterior está en tensión con el \"evite la saturación excesiva\" de la tarjeta. Aplique la solución según la etiqueta del producto, como lo decida la prueba del método de retiro; que el agua o la solución lleguen a una caja eléctrica es una condición para detenerse (sección 10). El tiempo de reposo del paso anterior queda sin cambios hasta una revisión de la etiqueta. Lo mismo se aplica al segundo rociado de \"Retiro del pegamento\". Pendiente de revisión del dueño y del técnico principal. (fuente: spec PT-04.SAF \"evite la saturación excesiva\"; 02 C-PT04-07 \"según la etiqueta del producto; evite la saturación excesiva (spec)\", \"Tiempos de reposo sin cambios hasta revisar la etiqueta\")"
+    ],
+    "3.9": [
+      "- [ ] **Aplicación de la placa de vapor:** Si el pegamento es difícil, sostenga una placa de vapor comercial para papel tapiz plana contra el papel mojado durante 15-20 segundos para hacer que la humedad penetre hasta el respaldo adhesivo."
+    ],
+    "3.10": [
+      "- [ ] **El deslizamiento suave:** Use una espátula ancha y flexible de borde redondeado. Deslice la hoja por debajo de las uniones del papel ablandado en un ángulo bajo de 15 grados. Levante las hojas con fluidez en paneles grandes. *Nunca fuerce ni raye el panel de yeso (drywall).*"
+    ],
+    "3.11": [
+      "> HOLD (C-PT04-02): si se encuentra sospecha de moho o humedad detrás del papel levantado en el paso anterior, DETENGA el trabajo en esa pared, mantenga alejadas a las personas y las mascotas, tome fotos y escale (JOB-004). No limpie, raspe, retire ni reconstruya el material afectado; la \"orden de cambio pagada\" del acuerdo para la reconstrucción no reemplaza esta detención. Pendiente de revisión por un evaluador de moho y el profesional de seguridad calificado. (fuente: spec START-011 \"materiales sospechosos de ser peligrosos\"; spec JOB-004; 02 C-PT04-02; X-06; 31 sección 8.5 paso de escalamiento 1; Q-31-10)"
+    ],
+    "3.12": [
+      "- [ ] **Retiro del pegamento:** Rocíe las paredes desnudas por segunda vez con solución enzimática tibia."
+    ],
+    "3.13": [
+      "- [ ] **Restregado de la suciedad:** Use una esponja abrasiva gruesa de alta resistencia para restregar las paredes, quitando las tiras de pasta pegajosa."
+    ],
+    "3.14": [
+      "- [ ] **Enjuague con agua limpia:** Limpie las paredes desnudas con esponjas limpias y un balde de agua tibia pura para quitar todos los residuos químicos. Deje que las paredes se sequen por completo durante 24 horas."
+    ],
+    "3.15": [
+      "- [ ] **Sellado del papel rasgado:** Si se rasgó algo del papel café del panel de yeso (drywall) durante el retiro, séllelo de inmediato con un imprimador a base de aceite para evitar que el compuesto forme burbujas más tarde."
+    ],
+    "3.16": [
+      "- [ ] **Acabado con capa fina:** Aplique una capa delgada de compuesto para juntas liviano (معجون) sobre los puntos ásperos, las hendiduras y las uniones con una espátula para juntas de 10 pulgadas o de 12 pulgadas."
+    ],
+    "3.17": [
+      "> FLAG (C-PT04-11): el paso anterior contiene una palabra en árabe, mantenida sin cambios como un resto heredado; no es una traducción. El texto para los trabajadores está en inglés, y en español solo a través del flujo de traducción revisado. Pendiente de la decisión de limpieza del dueño con el revisor bilingüe. (fuente: spec BIZ-002; datos del dueño 2026-10-02; 36 sección 5.4 punto 21)"
+    ],
+    "3.18": [
+      "- [ ] **Pulido sin polvo:** Lije el compuesto seco con esponjas de grano 220 o con una lijadora HEPA sin polvo para dejar un acabado liso de Nivel 4 listo para el imprimador interior."
+    ],
+    "3.19": [
+      "> FLAG (C-PT04-04): \"o con una lijadora HEPA sin polvo\" en el paso anterior deja como opcional la captura del polvo; el método de control del polvo está pendiente de revisión de seguridad calificada, y la revisión solo puede reforzarlo. La retención por recubrimientos antiguos antes de \"Rayado de la pared\" también se aplica al lijado. (fuente: spec PT-04.SAF \"controle el polvo\"; spec PT-04.TLS \"lijado/aspiradora HEPA\"; 02 C-PT04-04)"
+    ],
+    "3.20": [
+      "> FLAG (X-26; C-PT04-06): \"acabado de Nivel 4 liso\" en el paso anterior todavía no tiene una definición compartida ni criterios de aceptación, y el \"acabado de Nivel 4 impecable y listo para pintar\" del plan principal no está cubierto (sección 2). Pendiente de la decisión del dueño con un acabador de panel de yeso con experiencia. (fuente: 02 X-26, C-PT04-06)"
+    ],
+    "3.21": [
+      "> HOLD (C-PT04-03): el procedimiento anterior termina sin restablecer lo que se modificó en la Fase 1. Antes de la finalización, todo lo que se colocó dentro o encima de las cajas eléctricas se retira y cualquier circuito apagado se restablece, por el método que apruebe el electricista con licencia; aquí no se escribe ningún procedimiento de restablecimiento. Pendiente de revisión de un electricista con licencia. (fuente: spec APXA-005 \"restablezca los servicios/componentes modificados dentro del alcance\"; 02 C-PT04-03; X-07)"
+    ],
+    "4.1": [
+      "| Comprobación | Fuente | Evidencia | Inspector |",
+      "|---|---|---|---|",
+      "| Papel tapiz y adhesivo retirados hasta el nivel acordado | spec PT-04.QAC \"papel tapiz/adhesivo retirados hasta el nivel acordado\" | Fotos de después por pared; el nivel acordado tal como está registrado en el presupuesto aprobado (definición pendiente, X-26; C-PT04-06) | TBD - autocomprobación o supervisor (Q-31-15) |",
+      "| Reparaciones del sustrato lisas | spec PT-04.QAC \"reparaciones del sustrato lisas\"; \"Pulido sin polvo\" original | Foto de las áreas reparadas; criterios del nivel de acabado pendientes (X-26) | TBD (Q-31-15) |",
+      "| Superficie limpia y seca, residuos químicos retirados | spec PT-04.QAC \"superficie limpia/seca\"; \"Enjuague con agua limpia\" original (\"quitar todos los residuos químicos\") | Resultado de la comprobación registrado | TBD (Q-31-15) |",
+      "| Con imprimador si está incluido | spec PT-04.QAC \"con imprimador si está incluido\"; \"Sellado del papel rasgado\" original | Si se incluye una capa de imprimador se lee en el presupuesto aprobado; sellados puntuales del papel rasgado registrados | TBD (Q-31-15) |",
+      "| Ningún daño sin manejar: cada rasgadura o raspón registrado con fotos y reparado dentro del alcance o planteado para una orden de cambio | spec PT-04.QAC \"ningún daño sin manejar\"; \"El deslizamiento suave\" original (\"Nunca fuerce ni raye el panel de yeso (drywall).\"); spec FIN-008 | Registro de rasgaduras y daños con fotos (04 PT-04 \"evidencia de finalización\", PROPUESTO) | TBD (Q-31-15) |",
+      "| Prueba del método de retiro registrada antes del rayado | spec PT-04.SAF \"pruebe el método de retiro\"; 02 C-PT04-07 | Foto del área de prueba y decisión sobre el método | TBD (Q-31-15) |",
+      "| Cajas eléctricas despejadas y circuitos restablecidos | spec APXA-005; 02 C-PT04-03 | Confirmación del restablecimiento por el método aprobado | TBD - método del electricista con licencia |"
+    ],
+    "4.2": [
+      "- El trabajo no se puede marcar como completo hasta que cada comprobación requerida esté respondida o se registre una excepción (fuente: spec QA-001; AT-039).",
+      "  - Evidence: note"
+    ],
+    "4.3": [
+      "- Una comprobación fallida se convierte en un elemento pendiente o en un escalamiento; la autocomprobación de un trabajador no reemplaza una inspección requerida del supervisor (fuente: manual del asistente de calidad de HandyHub, handyhub-quality-assistant)."
+    ],
+    "5.1": [
+      "- Limpie el área, retire la protección, dé cuenta de las herramientas y los materiales, y restablezca los servicios y los componentes modificados dentro del alcance (fuente: spec APXA-005, QA-002)."
+    ],
+    "5.2": [
+      "- Retire todo lo que se colocó dentro o encima de las cajas eléctricas y restablezca cualquier circuito apagado, por el método que apruebe el electricista con licencia; registre el restablecimiento (fuente: spec APXA-005; 02 C-PT04-03; X-07).",
+      "  - Evidence: note"
+    ],
+    "5.3": [
+      "- Levante el plástico del piso y la cinta junto con el papel mojado, los residuos de adhesivo y el polvo de lijado que contienen; el método de captura del polvo está pendiente de revisión de seguridad (fuente: \"Protección del piso\" original; spec QA-002; spec PT-04.SAF \"controle el polvo\")."
+    ],
+    "5.4": [
+      "- Tome fotos de limpieza donde se requieran para trabajos con polvo o desorden (fuente: spec QA-002).",
+      "  - Evidence: photo"
+    ],
+    "5.5": [
+      "TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo."
+    ],
+    "5.6": [
+      "- Flujos de residuos que se deben clasificar: papel tapiz mojado; residuos de adhesivo y agua de lavado; restos de compuesto para juntas y polvo de lijado; trapos y aplicadores mojados con imprimador a base de aceite; plástico y cinta usados. El destino y quién paga son decisiones del dueño (fuente: pasos originales de la sección 12; 31 sección 3.1; 02 G-078; Q-29-10)."
+    ],
+    "5.7": [
+      "- Los trapos y los aplicadores mojados con imprimador a base de aceite se manejan según la SDS del imprimador; aquí no se fija ningún método (fuente: 29 sección 8.1; X-09)."
+    ],
+    "5.8": [
+      "- Los residuos de recubrimientos o compuestos sospechosos de ser peligrosos no se manejan sin una política aprobada (fuente: 31 sección 3.1; spec START-011)."
+    ],
+    "6.1": [
+      "- Antes: cada pared que se va a desprender, incluidos los daños ya presentes, y las cajas eléctricas tal como se encontraron (fuente: spec START-008, APXA-002, APXA-005; X-02)."
+    ],
+    "6.2": [
+      "- Durante: la prueba del método de retiro y su resultado (retención de la sección 12, C-PT04-07); cada rasgadura o raspón del papel del panel de yeso, para el registro de daños (fuente: spec PT-04.QAC \"ningún daño sin manejar\"); cualquier sospecha de moho, humedad u otra condición oculta (fuente: spec JOB-004; 02 C-PT04-02).",
+      "  - Evidence: note"
+    ],
+    "6.3": [
+      "- Después: cada pared después del paso final, asociada a su área de trabajo (fuente: spec QA-003); las cajas eléctricas restablecidas (fuente: spec APXA-005); la limpieza donde se requiera (fuente: spec QA-002)."
+    ],
+    "6.4": [
+      "- Las fotos son solo internas por defecto y evitan personas, documentos y objetos de valor que no se necesiten para el trabajo (fuente: spec REC-002; 31 sección 3.5 regla 7)."
+    ],
+    "6.5": [
+      "- El conjunto de fotos requerido, y si Iniciar trabajo (Start Job) queda bloqueado sin él: TBD - dueño (fuente: spec START-008)."
+    ],
+    "6.6": [
+      "- Los avisos de llegada y de finalización usan solo plantillas aprobadas; hasta que se aprueben son borradores (fuente: 31 sección 3.1)."
+    ],
+    "6.7": [
+      "- Antes de que empiece el trabajo, confirme con el cliente las paredes y el nivel de acabado acordados, solo según sea necesario, y registre el resultado de la prueba del método de retiro (fuente: spec APXA-003; spec PT-04.QAC \"retirado hasta el nivel acordado\"; 02 C-PT04-07).",
+      "  - Evidence: note"
+    ],
+    "6.8": [
+      "- Si el pegamento necesita otro método, o las rasgaduras van más allá de rasgaduras menores, dígaselo al cliente antes de cualquier trabajo adicional; ningún precio cambia sin una orden de cambio que el cliente apruebe (fuente: spec FIN-008, JOB-005; líneas \"Tarifa por hora de respaldo seguro\" y \"Multa por panel de yeso sin imprimar\" de los precios, en revisión)."
+    ],
+    "6.9": [
+      "- Sospecha de moho, un recubrimiento antiguo sospechoso o un problema eléctrico: use solo el mensaje aprobado de \"trabajo bloqueado\"; nunca envíe detalles de incidentes ni códigos de acceso por mensaje de texto o correo electrónico (fuente: spec NTF-007, COM-002)."
+    ],
+    "6.10": [
+      "- No repita \"sin daños\", \"impecable\", \"elimina por completo ... evitando futuros defectos de burbujas o descascarado de la pintura\" ni ninguna promesa de acabado, de seguridad o de salud (fuente: plan principal sección 4; 02 C-PT04-05, C-PT04-06; entrada 8 de No realizar)."
+    ],
+    "6.11": [
+      "- El imprimador y la pintura se aplican bajo acuerdos separados; no prometa cómo quedará la pintura posterior (fuente: cláusula \"Pago adeudado\" del acuerdo)."
+    ],
+    "6.12": [
+      "- Recorrido: registre aceptado, aceptado con elementos pendientes, no disponible o en disputa (fuente: spec QA-004, APXA-006).",
+      "  - Evidence: note"
+    ],
+    "6.13": ["- Explique la factura y el siguiente paso del pago sin promesas no autorizadas (fuente: spec APXA-006)."],
+    "6.14": [
+      "- Cada comprobación de la sección 13 está respondida con evidencia, o se registra una excepción (fuente: spec QA-001, AT-039).",
+      "  - Evidence: note"
+    ],
+    "6.15": [
+      "- Las fotos de después están tomadas y asociadas al trabajo (fuente: spec QA-003).",
+      "  - Evidence: photo"
+    ],
+    "6.16": [
+      "- La limpieza está hecha, la protección retirada, y las herramientas y los materiales contabilizados (fuente: spec QA-002, APXA-005)."
+    ],
+    "6.17": [
+      "- Todo lo que se colocó dentro o encima de las cajas eléctricas está retirado y cualquier circuito apagado está restablecido por el método aprobado (fuente: spec APXA-005; 02 C-PT04-03)."
+    ],
+    "6.18": [
+      "- El registro de rasgaduras y daños está completo, y cada rasgadura está reparada dentro del alcance o planteada para una orden de cambio (fuente: spec PT-04.QAC \"ningún daño sin manejar\"; spec FIN-008).",
+      "  - Evidence: note"
+    ],
+    "6.19": ["- La propiedad queda asegurada (fuente: 31 sección 3.1)."],
+    "6.20": ["- El resultado del recorrido está registrado (fuente: spec QA-004, APXA-006).", "  - Evidence: note"],
+    "6.21": [
+      "- No hay ninguna retención abierta de las secciones 10 y 12, y los problemas sin resolver, los incidentes y las solicitudes de cambio se envían antes de cerrar el trabajo (fuente: spec APXA-007, JOB-012)."
+    ],
+    "stop.1": [
+      "La regla general para detener el trabajo es [[FACT-SVC-STOP-WORK-RULE]]. Activadores específicos del servicio:"
+    ],
+    "stop.2": [
+      "Activadores para detener el trabajo de PT-04 (primero la spec PT-04.SAF, luego las retenciones del registro; todos pendientes de revisión calificada):"
+    ],
+    "stop.3": [
+      "- Recubrimiento o material sospechoso de ser peligroso: paredes de un edificio construido antes de 1978 o de edad desconocida sin una decisión registrada, o un compuesto para juntas antiguo sospechoso (fuente: spec PT-04.SAF \"deténgase ante un recubrimiento/material sospechoso de ser peligroso\"; 02 C-PT04-04; X-13)."
+    ],
+    "stop.4": [
+      "- Sospecha de moho o humedad detrás del papel retirado: deténgase, tome fotos, escale (fuente: spec JOB-004; 02 C-PT04-02; X-06)."
+    ],
+    "stop.5": [
+      "- Aislamiento eléctrico no aprobado o no verificado con un probador aprobado, agua o solución que llega a una caja eléctrica, o cableado expuesto o dañado (fuente: spec PT-04.SAF \"proteja/desenergice cerca de los tomacorrientes según corresponda\"; 02 C-PT04-03; X-07)."
+    ],
+    "stop.6": ["- No hay una fuente de alimentación aprobada para la vaporizadora (fuente: 02 C-PT04-03)."],
+    "stop.7": [
+      "- El método de retiro no se ha probado, o la prueba muestra que daña el sustrato (fuente: spec PT-04.SAF \"pruebe el método de retiro\"; 02 C-PT04-07)."
+    ],
+    "stop.8": [
+      "- Saturación más allá de lo que permiten la etiqueta del producto y la prueba del método (fuente: spec PT-04.SAF \"evite la saturación excesiva\"; 02 C-PT04-07)."
+    ],
+    "stop.9": ["- Polvo que no se puede controlar (fuente: spec PT-04.SAF \"controle el polvo\")."],
+    "stop.10": [
+      "- Rasgaduras de la cara de papel del panel de yeso más allá de rasgaduras menores: deténgase, tome fotos y registre; cualquier reparación o precio adicional pasa por una orden de cambio que el cliente aprueba antes del trabajo; el umbral es una decisión del dueño (fuente: spec JOB-004, FIN-008, JOB-005; línea \"Multa por panel de yeso sin imprimar\" de los precios, en revisión).",
+      "  - Evidence: note"
+    ],
+    "stop.11": [
+      "- Se necesita trabajo con escalera sin una política de altura y acceso aprobada (fuente: 02 G-005; X-12)."
+    ],
+    "stop.12": ["- Un producto químico sin una SDS o una etiqueta revisadas (fuente: 29 sección 8.3; X-09)."],
+    "stop.13": [
+      "- Cada retención indica el rol y la evidencia que la liberan: TBD - requiere la revisión del revisor de seguridad calificado. Las retenciones críticas se liberan solo con una evaluación calificada registrada (fuente: 31 sección 8.3).",
+      "  - Evidence: note"
+    ],
+    "stop.14": ["Ruta general: [[FACT-SVC-ESCALATION-PATH]]."],
+    "stop.15": ["Rutas de PT-04 (los contactos son decisiones del dueño, Q-31-05):"],
+    "stop.16": [
+      "- Eléctrico: no se puede verificar el aislamiento, el agua llega a una caja, o hay cableado expuesto o dañado: deténgase; la oficina lo remite a un electricista con licencia (02 C-PT04-03)."
+    ],
+    "stop.17": [
+      "- Sospecha de recubrimiento o compuesto antiguo: deténgase; el dueño organiza una evaluación por un renovador certificado EPA RRP o un inspector de asbesto acreditado, según la política del dueño (02 C-PT04-04; Q-31-07; Q-30-18)."
+    ],
+    "stop.18": [
+      "- Sospecha de moho o humedad: deténgase; evaluación por un evaluador de moho; la ruta de derivación es una decisión del dueño (02 C-PT04-02; Q-31-10)."
+    ],
+    "stop.19": [
+      "- Rasgaduras más allá de rasgaduras menores, o se necesita otro método de retiro: detenga esa tarea; el dueño o el estimador prepara una orden de cambio antes de cualquier trabajo adicional (spec FIN-008, JOB-005)."
+    ],
+    "stop.20": ["Ruta general: [[FACT-SVC-INCIDENT-REPORTING]]."],
+    "stop.21": [
+      "- Ejemplos de PT-04: una quemadura por vapor o por agua caliente, una descarga eléctrica o un cortocircuito, una salpicadura o exposición a químicos, un resbalón en el plástico mojado, daños por agua en los pisos u otra propiedad, y un incidente con una escalera (fuente: spec JOB-008; spec PT-04.HAZ)."
+    ]
+  },
+  "ambiguous": []
+}

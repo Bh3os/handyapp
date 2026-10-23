@@ -1,0 +1,289 @@
+{
+  "sopId": "SOP-HI-11",
+  "englishContentSha256": "906172fd0ec3c5beaf8c799dd1b09efe1cb7dcd9cac6d03180d9709191b19038",
+  "title": "SOP HI-11: Mantenimiento estructural de terrazas (decks) y reparación de tablas de terraza",
+  "headings": [
+    "1. Preparación del sitio y protección de la propiedad",
+    "2. Preparación y mediciones/comprobaciones requeridas",
+    "3. Pasos de trabajo específicos del servicio",
+    "4. Comprobaciones de calidad",
+    "5. Limpieza y manejo de residuos",
+    "6. Comprobaciones finales, fotos de finalización y recorrido"
+  ],
+  "items": {
+    "1.1": [
+      "- En cada trabajo, confirme que el acceso, los ocupantes, las mascotas, el estacionamiento, los peligros y las condiciones del área de trabajo siguen vigentes (fuente: spec CX-005)."
+    ],
+    "1.2": [
+      "- PROPUESTO, pendiente de revisión del dueño, enviado con el recordatorio de la cita: retire los muebles, las parrillas y las macetas del área de trabajo; mantenga a los ocupantes y las mascotas fuera de la terraza; dé acceso debajo de la terraza; informe si hay cableado de iluminación de la terraza (fuente: 04 HI-11 preparación del cliente, PROPUESTO; spec NTF-005)."
+    ],
+    "1.3": [
+      "- La información que da un cliente, por ejemplo sobre el cableado de iluminación de la terraza, nunca reemplaza las propias comprobaciones previas al inicio de HandyHub de las secciones 3 y 11 (fuente: 30 sección 4.1 fila 5 \"nunca traslada al cliente las propias comprobaciones previas al inicio de HandyHub\")."
+    ],
+    "1.4": [
+      "- Los ocupantes, los niños y las mascotas se mantienen fuera del área de la terraza en la que se trabaja y lejos de los huecos abiertos de tablas y de las herramientas hasta que se libere el área de trabajo (fuente: spec CX-005; X-11)."
+    ],
+    "2.1": [
+      "- HOLD (C-HI11-03): antes de quitar o cargar cualquier tabla, se restringe el acceso al área de trabajo, se inspecciona el soporte y los medios para cubrir o poner barricadas en las aberturas están en el sitio (sección 12) (fuente: spec HI-11.SAF \"restrinja el acceso; inspeccione el soporte antes de cargar/quitar tablas\"; 31 sección 10)."
+    ],
+    "2.2": [
+      "- HOLD (X-12): el control de caídas en una baranda de protección floja y en los bordes y aberturas elevados de la terraza está pendiente de revisión. El módulo de altura y acceso todavía no existe; hasta que se apruebe, el trabajo elevado queda retenido y esta retención no se puede liberar con una anulación, y las alturas a las que se aplican los controles de caídas las fija el profesional de seguridad calificado; aquí no se fija ninguna (fuente: 31 secciones 5.8, 7.2 rango 3, 8.4 regla 4 y 10; 02 G-005; Q-31-09; manual del planificador de trabajos \"Una escalera que falta o un permiso no verificado mantiene bloqueadas las tareas afectadas.\")."
+    ],
+    "2.3": [
+      "- Alcance estructural decidido: ningún trabajo de reparación estructural (refuerzo de viguetas con piezas gemelas (sistering), viga adosada (ledger), soportes metálicos (hanger), zapatas o largueros de escalera) está dentro del alcance a menos que el dueño lo apruebe con una revisión estructural calificada; la ruta de derivación es una pregunta abierta (fuente: 04 HI-11 requisitos previos, PREGUNTA ABIERTA; Q-31-08; Q-30-15)."
+    ],
+    "2.4": [
+      "- Solicitud completa: tamaño/altura de la terraza, tablas/barandas/escaleras dañadas, estado de la estructura, observaciones de la viga adosada (ledger)/viguetas, coincidencia del material, acceso (fuente: spec HI-11.INT)."
+    ],
+    "2.5": [
+      "- Versión del presupuesto y alcance aprobados; una evaluación en el sitio del estado de la estructura antes de un presupuesto firme, porque \"Las fotos por sí solas no pueden establecer una condición oculta ni la capacidad de carga.\" (fuente: spec CX-003; 04 HI-11 método de estimación; manual del asistente de presupuestos; 28 sección 5.3)."
+    ],
+    "2.6": [
+      "- El estado del permiso o de la inspección queda registrado donde la política del dueño marque que el trabajo lo necesita; una aplicabilidad desconocida no equivale por defecto a \"no se necesita permiso\" (fuente: spec START-010, HND-005; 04 HI-11 indicadores de permiso/licencia; manual de clasificación de riesgos \"una aplicabilidad desconocida no debe equivaler por defecto a que no se necesita permiso\"; REVISIÓN HUMANA: funcionario local de construcción).",
+      "  - Evidence: note"
+    ],
+    "2.7": [
+      "- Indicador de servicio de alto riesgo: confirmación del supervisor en Iniciar trabajo (Start Job), PROPUESTO (fuente: spec START-004 \"Los indicadores de servicio/sitio de alto riesgo pueden requerir casillas separadas o la confirmación del supervisor.\"; 04 HI-11 flujo de trabajo de software aplicable, PROPUESTO)."
+    ],
+    "2.8": [
+      "- Elementos críticos cargados: el atornillador de impacto, la sierra recíproca, el taladro con una broca larga, el martillo, el punzón para detectar podredumbre y la linterna, y los elementos para restringir el acceso, que todavía no están en el inventario y allí se proponen (fuente: spec START-005, START-006; C-HI11-08)."
+    ],
+    "2.9": [
+      "- Clima adecuado al inicio; los umbrales los fija el profesional de seguridad calificado, aquí no se fija ninguno; si no es adecuado, registre No iniciar / Bloqueado (fuente: spec START-011 \"clima severo\", SCH-008; X-27).",
+      "  - Evidence: note"
+    ],
+    "2.10": [
+      "- Comprobaciones del Apéndice A antes de salir y antes de empezar: trabajo y dirección correctos, últimos cambios, alcance y exclusiones, peligros, herramientas y materiales críticos cargados, aprobaciones confirmadas; empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada (fuente: spec APXA-001, APXA-003).",
+      "  - Evidence: note"
+    ],
+    "2.11": [
+      "- Al llegar: confirme la dirección, el área de trabajo y el contacto en el sitio; estacione y acceda de forma adecuada; identifique mascotas y ocupantes; inspeccione el sitio frente a las instrucciones (fuente: spec APXA-002)."
+    ],
+    "2.12": [
+      "- Restrinja el acceso al área de trabajo y mantenga a los ocupantes, los niños y las mascotas fuera del área de la terraza en la que se trabaja; coloque la barricada, la cinta de precaución y las cubiertas para las aberturas antes de quitar cualquier tabla (fuente: spec HI-11.SAF \"restrinja el acceso\"; C-HI11-03; X-11)."
+    ],
+    "2.13": [
+      "- Fotos del estado existente antes del trabajo: el área de la terraza, cada tabla, poste y baranda que se va a trabajar, y la restricción de acceso colocada (fuente: spec START-008, APXA-002; 04 HI-11 evidencia de finalización, PROPUESTO \"fotos de antes\").",
+      "  - Evidence: photo"
+    ],
+    "2.14": [
+      "- Comprobación del clima antes del trabajo; si no es adecuado, registre No iniciar / Bloqueado (fuente: spec START-011 \"clima severo\", SCH-008; X-27).",
+      "  - Evidence: note"
+    ],
+    "2.15": [
+      "- Proteja el área de trabajo; identifique los servicios públicos y las restricciones de emergencia relevantes para la tarea, incluido cualquier cableado de iluminación de la terraza que el cliente haya informado (fuente: spec APXA-002; 04 HI-11 preparación del cliente, PROPUESTO)."
+    ],
+    "3.1": [
+      "Todas las líneas originales del procedimiento aparecen abajo sin cambios y en su orden original; los dos encabezados originales de \"Opción del problema\" bajan un nivel. Las líneas añadidas empiezan con `HOLD` o `FLAG` dentro de un bloque de cita y están pendientes de revisión calificada."
+    ],
+    "3.2": [
+      "> HOLD (HI-11.SAF): se aplica a cada paso de abajo. Deténgase y escale ante cualquier problema estructural mayor, de la viga adosada (ledger) o de los cimientos fuera de la reparación aprobada (sección 19), y use controles de caídas según corresponda: hasta que se apruebe la política de altura y acceso, el trabajo en un borde o una abertura elevados de la terraza queda retenido (sección 10). Pendiente de revisión calificada. (fuente: spec HI-11.SAF \"deténgase ante problemas estructurales mayores/de la viga adosada/de los cimientos fuera de la reparación aprobada; use controles de caídas según corresponda\"; 31 secciones 7.2 rango 3 y 10; 02 G-005)"
+    ],
+    "3.3": [
+      "> HOLD (C-HI11-03): antes de los pasos \"Extracción de tornillos\" e \"Inspección de viguetas\" de abajo: restrinja el acceso al área de trabajo y mantenga alejados a los ocupantes, los niños y las mascotas; inspeccione visualmente el soporte debajo de cada tabla antes de quitarla o cargarla; tenga en el sitio los medios para cubrir o poner barricadas en las aberturas, y cubra o ponga una barricada en cada abertura que deje una tabla retirada hasta que se cierre. Si hay dudas sobre el soporte, no quite ni cargue la tabla: deténgase y escale (sección 19). La inspección es una revisión visual, no una evaluación estructural (sección 2, entrada 11 de No realizar); cómo y desde dónde se hace, y los medios para cubrir las aberturas, los fija el profesional de seguridad calificado. El orden de los pasos de abajo, que levantan la tabla con palanca antes de inspeccionar la vigueta, está en revisión competente. Pendiente de revisión calificada. (fuente: spec HI-11.SAF \"restrinja el acceso; inspeccione el soporte antes de cargar/quitar tablas\"; HI-11.HAZ \"caídas, estructura inestable\"; 31 sección 10; X-11)"
+    ],
+    "3.4": [
+      "- [ ] **Extracción de tornillos:** Localice los sujetadores oxidados en la tabla podrida. Use un atornillador de impacto con una punta nueva para sacarlos. Si están barridos, use una sierra recíproca con una hoja metálica de demolición para deslizarla por debajo de la tabla y cortar los vástagos de los clavos/tornillos al ras de la parte superior de la vigueta."
+    ],
+    "3.5": [
+      "- [ ] **Inspección de viguetas:** Levante con palanca la tabla del piso podrida. Inspeccione la parte superior expuesta de las viguetas de madera de abajo en busca de podredumbre profunda. Si está esponjosa, coloque un bloque nuevo de 2x4 de madera tratada a presión junto a la vigueta dañada (sistering) como soporte estructural."
+    ],
+    "3.6": [
+      "> HOLD (C-HI11-01): la instrucción de refuerzo con pieza gemela (sistering) del paso anterior está suspendida hasta una revisión estructural: deténgase, deje el área en condición segura (JOB-006), registre (JOB-004), escale. Si la parte superior de una vigueta está esponjosa o muestra podredumbre profunda, no la refuerce, no fije nada a ella ni la cargue: mantenga la abertura cubierta o con barricada, registre la condición con fotos y su gravedad, y escale para una orden de cambio aprobada (FIN-008) o una derivación. Una preocupación estructural es una retención crítica: se libera solo con una evaluación calificada registrada y nunca se anula (31 sección 8.3 regla 2). El texto del paso anterior no ha cambiado. Pendiente de revisión calificada. REVISIÓN HUMANA: ingeniero estructural o funcionario de construcción. (fuente: spec HI-11.SAF \"deténgase ante problemas estructurales mayores/de la viga adosada/de los cimientos fuera de la reparación aprobada\"; spec FIN-008; 31 sección 10; manual de clasificación de riesgos \"No dé instrucciones de remediación (abatement) para hacerlo usted mismo ni instrucciones especulativas de reparación estructural.\")"
+    ],
+    "3.7": [
+      "- [ ] **Colocación de la tabla nueva:** Corte una tabla nueva de madera tratada a presión a la medida de la abertura, dejando una separación de expansión uniforme de 1/8 pulgada a los lados. Fíjela firmemente con tornillos para terraza exteriores de 3 pulgadas con recubrimiento de polímero, atornillados al ras."
+    ],
+    "3.8": [
+      "> FLAG (31 sección 3.5 regla 3): SIN FUENTE - verifique con las instrucciones del fabricante. La \"separación de expansión de 1/8 pulgada\" y los \"tornillos para terraza exteriores de 3 pulgadas con recubrimiento de polímero\" del paso anterior no tienen fuente; la separación entre tablas y el tipo, el tamaño y la colocación de los sujetadores salen de las instrucciones de los fabricantes de las tablas y de los sujetadores (spec HI-11.QAC \"sujetadores correctos\"; 02 G-044). El texto del paso anterior no ha cambiado."
+    ],
+    "3.9": [
+      "> HOLD (X-12): antes del paso \"Perforación para los pernos\" de abajo: no se puede depender de una baranda floja como protección contra caídas, por lo que el control de caídas en la baranda de protección floja está pendiente de revisión; hasta que el profesional de seguridad calificado apruebe un control de caídas bajo la política de altura y acceso, no trabaje en un borde elevado donde la baranda esté floja. La restricción de acceso y la inspección del soporte de la retención antes de la Opción A también se aplican aquí. Antes de perforar, busque cableado, por ejemplo de iluminación de la terraza, a lo largo del poste y de la vigueta perimetral (band joist); si hay alguno, deténgase (sección 10). Pendiente de revisión calificada. (fuente: 31 sección 10 \"Trabajo en una baranda de protección floja: control de caídas pendiente de revisión\"; spec HI-11.SAF \"use controles de caídas según corresponda\"; spec START-011; APXA-002; 04 HI-11 peligros \"perforar a través de la vigueta perimetral\")"
+    ],
+    "3.10": [
+      "- [ ] **Perforación para los pernos:** Taladre un orificio limpio de 1/2 pulgada que atraviese por completo la base del poste vertical flojo del pasamanos y la vigueta perimetral principal (fascia) del borde de la terraza."
+    ],
+    "3.11": [
+      "- [ ] **Instalación del perno pasante:** Clave con martillo un perno estructural de carruaje galvanizado de servicio pesado de 5 pulgadas a través de ambas piezas de madera."
+    ],
+    "3.12": [
+      "> FLAG (31 sección 10): HIPÓTESIS - la longitud del perno se debe medir en el sitio. El perno indicado en el paso anterior puede ser demasiado corto para dejar rosca para la arandela y la tuerca una vez que atraviesa el poste y la vigueta perimetral; el inventario también tiene un perno más largo. La longitud del perno, el tamaño del orificio en \"Perforación para los pernos\" y el método de conexión mismo salen del método revisado y de los datos del fabricante del perno. Si un solo perno pasante es una conexión aceptable para un poste de baranda de protección es una pregunta para el ingeniero estructural o el funcionario de construcción; ningún archivo de la bóveda establece criterios de carga para barandas de protección (32 registro B fila 49, disposición \"Retención\"). El texto del paso anterior no ha cambiado. REVISIÓN HUMANA: ingeniero estructural o funcionario de construcción."
+    ],
+    "3.13": [
+      "- [ ] **Bloqueo por apriete:** Coloque una arandela gruesa y una tuerca en el extremo saliente del perno detrás de la vigueta. Apriete firmemente con una llave de dado hasta que la madera se comprima un poco, eliminando por completo cualquier balanceo o juego en el pasamanos de seguridad."
+    ],
+    "3.14": [
+      "> FLAG: afirmación de resultado - revisión del dueño y del abogado (31 sección 10). \"eliminando por completo cualquier balanceo o juego en el pasamanos de seguridad\" en el paso anterior es un resultado absoluto juzgado al tacto; que la baranda de protección sea adecuada no lo puede verificar el trabajador ni se puede verificar con fotos. No lo repita al cliente (sección 17). La comprobación de estabilidad de la sección 13 es TBD, a cargo del revisor, y el punto de apriete sale del método de conexión revisado y de los datos del fabricante del perno. El texto del paso anterior no ha cambiado. REVISIÓN HUMANA: ingeniero estructural o funcionario de construcción; el dueño y el abogado para la redacción (Q-31-16)."
+    ],
+    "3.15": [
+      "> FLAG (C-HI11-04): el encabezado de la Opción B menciona \"Escalones\", pero ningún paso de este SOP cubre los peldaños de la escalera, el ajuste de la escalera, los largueros, las barandas ni los balaustres, aunque los precios, el acuerdo y el plan principal venden trabajo de escaleras. NINGÚN PROCEDIMIENTO APROBADO: no se puede programar hasta que se redacte y pase una revisión competente (sección 2, Fuera del alcance). Ofrecer, definir o retirar el trabajo de escaleras y barandas es una decisión del dueño. Pendiente de la decisión del dueño y de una revisión competente."
+    ],
+    "4.1": [
+      "> Tarjeta de la spec HI-11.QAC (sin cambios): \"elementos reemplazados firmes/al ras, escaleras/barandas estables, peligros de tropiezo eliminados, sujetadores correctos, preocupaciones estructurales sin resolver documentadas\""
+    ],
+    "4.2": [
+      "- Elementos reemplazados firmes y al ras: cada tabla nueva fijada con sus tornillos atornillados al ras, como indica \"Colocación de la tabla nueva\" (fuente: spec HI-11.QAC \"elementos reemplazados firmes/al ras\"; sección 12)."
+    ],
+    "4.3": [
+      "- Escaleras y barandas estables: para la Opción B, el poste apretado; el método de comprobación de estabilidad es TBD, a cargo del revisor, y aquí no se fija ninguna prueba de carga ni ningún criterio; la redacción \"cualquier balanceo o juego\" de \"Bloqueo por apriete\" está marcada (sección 12). Las escaleras no están cubiertas (sección 2) (fuente: spec HI-11.QAC \"escaleras/barandas estables\"; 32 registro B fila 49)."
+    ],
+    "4.4": [
+      "- Peligros de tropiezo eliminados: no queda sobre la terraza ningún sujetador levantado, tabla floja o desnivelada, resto cortado, sujetador retirado ni escombro (fuente: spec HI-11.QAC \"peligros de tropiezo eliminados\")."
+    ],
+    "4.5": [
+      "- Sujetadores correctos según las instrucciones de los fabricantes de las tablas, los sujetadores y los pernos (fuente: spec HI-11.QAC \"sujetadores correctos\")."
+    ],
+    "4.6": [
+      "- Preocupaciones estructurales sin resolver documentadas: cada deterioro, movimiento o conexión dañada que se observe se registra con fotos y su gravedad y se informa con la redacción aprobada, sin una conclusión estructural (fuente: spec HI-11.QAC \"preocupaciones estructurales sin resolver documentadas\"; JOB-004; manual del asistente de calidad).",
+      "  - Evidence: note"
+    ],
+    "4.7": [
+      "- Cada comprobación se responde, o se registra una excepción, antes de la finalización (fuente: spec QA-001). Si un supervisor, y no solo el trabajador, inspecciona alguna comprobación es una decisión del dueño (Q-31-15); la autocomprobación del trabajador no reemplaza una inspección requerida del supervisor (fuente: manual del asistente de calidad \"Evite que la autocomprobación de un trabajador reemplace la inspección requerida del supervisor.\").",
+      "  - Evidence: note"
+    ],
+    "5.1": [
+      "- Retire las tablas quitadas, los sujetadores, los recortes, los escombros y la protección, y restablezca el sitio (fuente: spec QA-002, APXA-005; HI-11.QAC \"peligros de tropiezo eliminados\")."
+    ],
+    "5.2": [
+      "- Las barricadas y las cubiertas se quitan solo cuando no queda ninguna abertura. Si el trabajo se pausa con una abertura sin cerrar, por ejemplo después de una detención estructural, la abertura se mantiene cubierta o con barricada y se informa al cliente con la redacción aprobada; la política para dejar el área en condición segura todavía no existe (fuente: spec JOB-006, NTF-007; 31 sección 5.8 módulo de condición segura; X-11)."
+    ],
+    "5.3": [
+      "- Dé cuenta de las herramientas y los materiales; devuelva los materiales sin usar (fuente: spec APXA-005, APXA-007)."
+    ],
+    "5.4": [
+      "- Tablas retiradas, recortes de madera tratada y sujetadores viejos: destino de desecho y cualquier regla para la madera tratada según la autoridad local; TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo. (fuente: spec QA-002 \"manejo de escombros/residuos\"; 02 G-078; Q-29-10)"
+    ],
+    "5.5": [
+      "- Los clavos y tornillos retirados se recogen; no se dejan sobre la terraza ni en el patio (fuente: spec HI-11.HAZ \"clavos/astillas\"; HI-11.QAC \"peligros de tropiezo eliminados\")."
+    ],
+    "5.6": [
+      "- Los residuos peligrosos no se manejan sin una política aprobada (fuente: 31 sección 3.1, sección 15 contenido mínimo)."
+    ],
+    "5.7": ["- Si el desecho se cobra es una decisión de precios del dueño (fuente: 28 Q-28-15)."],
+    "6.1": [
+      "- Antes: el área de la terraza y cada tabla, poste y baranda que se va a trabajar, y la restricción de acceso colocada (fuente: spec START-008, APXA-002; 04 HI-11 evidencia de finalización, PROPUESTO)."
+    ],
+    "6.2": [
+      "- Durante: fotos de condiciones ocultas de las viguetas expuestas después de levantar una tabla, y de cualquier deterioro, movimiento o conexión dañada que se encuentre (fuente: spec JOB-004; 04 HI-11 evidencia de finalización, PROPUESTO \"fotos de condiciones ocultas de las viguetas expuestas\").",
+      "  - Evidence: photo"
+    ],
+    "6.3": [
+      "- Después: por cada elemento reemplazado, asociadas a la tabla, el poste o el área (fuente: spec QA-003; 04 HI-11 evidencia de finalización, PROPUESTO \"fotos de después por cada elemento reemplazado\").",
+      "  - Evidence: photo"
+    ],
+    "6.4": [
+      "- Las fotos son internas por defecto; el uso para marketing necesita un consentimiento aparte; evite personas, propiedad de los vecinos que no se necesite para el trabajo, documentos y objetos de valor (fuente: spec REC-002, REC-003; 31 sección 3.5 regla 7)."
+    ],
+    "6.5": [
+      "- Los avisos de llegada y de finalización usan solo plantillas aprobadas (fuente: 31 sección 3.1, sección 17 contenido mínimo; spec NTF-007, UXE-008)."
+    ],
+    "6.6": [
+      "- Resultado del recorrido registrado: aceptado, aceptado con elementos pendientes, no disponible o en disputa (fuente: spec QA-004, APXA-006).",
+      "  - Evidence: note"
+    ],
+    "6.7": [
+      "- Las preocupaciones estructurales sin resolver se le comunican al cliente como observaciones con una derivación, con la redacción aprobada, nunca como una conclusión estructural ni como una afirmación de que la terraza es segura (fuente: spec HI-11.QAC; 32 registro B fila 42 \"Reformular como observación visual con derivación\"; manual del asistente de calidad)."
+    ],
+    "6.8": [
+      "- No prometa resultados, seguridad, solidez estructural, vida útil ni cumplimiento del código, y no repita afirmaciones no aprobadas como \"Garantice la seguridad de su patio\", \"restaura la seguridad y la vida útil del área de su terraza\" o la redacción \"cualquier balanceo o juego\" de \"Bloqueo por apriete\" (fuente: sección 2, entrada 8 de No realizar; 32 registro A fila 11 y registro B filas 41 y 49)."
+    ],
+    "6.9": [
+      "- Las notas de cuidado, incluido cuándo se puede teñir la madera nueva, salen solo de datos de productos y plantillas aprobados; el teñido es trabajo de PT-02 (fuente: spec QA-008; 04 HI-11 exclusiones \"teñido programado según las instrucciones del producto, no con un período de curado inventado\")."
+    ],
+    "6.10": [
+      "- Cuando el trabajo esté bloqueado, dígale al cliente solo lo que dice el mensaje aprobado de \"trabajo bloqueado\" (fuente: spec NTF-007)."
+    ],
+    "6.11": [
+      "- Explique la factura y el siguiente paso del pago sin hacer promesas no autorizadas (fuente: spec APXA-006)."
+    ],
+    "6.12": [
+      "- Cada comprobación de la sección 13 está respondida o tiene una excepción registrada (fuente: spec QA-001).",
+      "  - Evidence: note"
+    ],
+    "6.13": ["- Fotos de después asociadas a cada elemento reemplazado (fuente: spec QA-003).", "  - Evidence: photo"],
+    "6.14": [
+      "- No queda ningún hueco de tabla abierto sin cubrir: la restricción de acceso se quita solo cuando no queda ninguna abertura, o se mantiene colocada con el cliente informado (fuente: spec HI-11.SAF; sección 14)."
+    ],
+    "6.15": [
+      "- Limpieza y manejo de residuos completos; herramientas y materiales contabilizados (fuente: spec QA-002, APXA-005)."
+    ],
+    "6.16": [
+      "- Preocupaciones estructurales sin resolver documentadas y elementos pendientes registrados (fuente: spec HI-11.QAC, QA-005).",
+      "  - Evidence: note"
+    ],
+    "6.17": ["- Resultado del recorrido registrado (fuente: spec QA-004, APXA-006).", "  - Evidence: note"],
+    "6.18": [
+      "- No queda sin resolver ninguna retención ni ningún elemento para detener el trabajo (fuente: 31 sección 8.3)."
+    ],
+    "6.19": [
+      "- Se envían los problemas sin resolver, los incidentes y los seguimientos de cambios; el trabajo se cierra solo cuando los pasos operativos y financieros requeridos están completos (fuente: spec APXA-007)."
+    ],
+    "stop.1": [
+      "Este SOP formula su regla general para detener el trabajo de forma distinta a [[FACT-SVC-STOP-WORK-RULE]]; su propio texto, sin cambios:"
+    ],
+    "stop.2": [
+      "> **Regla para detener el trabajo (todos los servicios de HandyHub).** Usted tiene derecho a detener el trabajo. Ante cualquier condición de abajo, detenga el trabajo afectado y escale antes de continuar (fuente: spec START-011, JOB-004):",
+      "> - una condición insegura para usted, el cliente, los ocupantes, las mascotas o el público;",
+      "> - daños ocultos, falla del sustrato, humedad o una fuga activa;",
+      "> - sospecha de material peligroso, como posible asbesto, pintura con plomo o moho; no lo altere;",
+      "> - trabajo eléctrico, de plomería, de gas, de HVAC o estructural que no está en el alcance aprobado o que necesita un oficio con licencia;",
+      "> - un ocupante o un animal agresivo;",
+      "> - clima severo o calor o frío inseguros (fuente: spec BRF-008);",
+      "> - cualquier diferencia importante entre el sitio y las instrucciones, el alcance aprobado, los materiales, el acceso o las aprobaciones."
+    ],
+    "stop.3": [
+      "> No continúe a través de una condición insegura o restringida para cumplir con el horario (fuente: plan maestro sección 12). Una solicitud del cliente, una casilla o una firma no libera una retención de seguridad (fuente: datos del dueño 2026-10-02; manual de clasificación de riesgos L27). En una emergencia, aleje a las personas y llame primero a los servicios de emergencia (fuente: spec BRF-013; manual de clasificación de riesgos L7). Luego use \"Detener el trabajo\" / \"Reportar un peligro\" en la aplicación (fuente: spec UXE-004) y siga la sección 19.",
+      "> Tarjeta de la spec HI-11.SAF (sin cambios): \"restrinja el acceso; inspeccione el soporte antes de cargar/quitar tablas; deténgase ante problemas estructurales mayores/de la viga adosada/de los cimientos fuera de la reparación aprobada; use controles de caídas según corresponda\""
+    ],
+    "stop.4": ["Retenciones y activadores para detener el trabajo del servicio (pendientes de revisión calificada):"],
+    "stop.5": [
+      "- HOLD (C-HI11-03): restrinja el acceso, inspeccione el soporte antes de quitar o cargar tablas, y cubra o ponga barricadas en las aberturas (secciones 3 y 12); si hay dudas sobre el soporte, deténgase."
+    ],
+    "stop.6": [
+      "- HOLD (C-HI11-01): una vigueta esponjosa o deteriorada: la instrucción de refuerzo con pieza gemela (sistering) queda suspendida; deténgase, deje el área en condición segura (JOB-006), registre (JOB-004), escale; ninguna reparación estructural sin una orden de cambio aprobada (FIN-008) y una revisión estructural calificada. Una preocupación estructural es una retención crítica: se libera solo con una evaluación calificada registrada y nunca se anula (fuente: 31 secciones 8.3 regla 2 y 10).",
+      "  - Evidence: note"
+    ],
+    "stop.7": [
+      "- Deténgase ante problemas estructurales mayores, de la viga adosada (ledger) o de los cimientos fuera de la reparación aprobada (fuente: spec HI-11.SAF)."
+    ],
+    "stop.8": [
+      "- HOLD (X-12): el control de caídas en una baranda de protección floja y en los bordes y aberturas elevados de la terraza está pendiente de revisión; hasta que se apruebe la política de altura y acceso, esta retención no se puede liberar con una anulación (fuente: 31 secciones 8.4 regla 4 y 10)."
+    ],
+    "stop.9": [
+      "- Cableado, por ejemplo de iluminación de la terraza, encontrado en la trayectoria de una perforación o un corte: deténgase (fuente: spec START-011 \"alcance eléctrico/de plomería/de gas/estructural no aprobado\"; 04 HI-11 peligros)."
+    ],
+    "stop.10": [
+      "- Una solicitud del cliente de trabajo en escaleras, barandas, balaustres, largueros, la viga adosada (ledger) o debajo de la terraza: no está cubierta; registre la solicitud y escale (fuente: spec JOB-010; sección 2).",
+      "  - Evidence: note"
+    ],
+    "stop.11": ["- Clima severo o calor o frío inseguros (fuente: spec BRF-008; X-27)."],
+    "stop.12": [
+      "- Cualquier persona, incluida una mascota, entra en el área restringida o se acerca a un hueco abierto de tabla (fuente: X-11)."
+    ],
+    "stop.13": [
+      "- Superficies pintadas de edad antigua o desconocida: no las corte, no haga palanca en ellas ni las perfore; escale (fuente: spec START-011; Q-31-07)."
+    ],
+    "stop.14": ["Ruta general: [[FACT-SVC-ESCALATION-PATH]]."],
+    "stop.15": ["Ruta específica del servicio (los contactos son decisiones del dueño, Q-31-05):"],
+    "stop.16": [
+      "- Una vigueta, viga adosada (ledger), viga o poste esponjoso o deteriorado, o un movimiento de la estructura: deténgase, deje el área en condición segura solo según lo permita la política (JOB-006), registre (JOB-004) y escale al dueño para una orden de cambio o una derivación; las preguntas estructurales van al ingeniero estructural o al funcionario de construcción (fuente: sección 12 retención C-HI11-01; spec FIN-008; Q-30-15)."
+    ],
+    "stop.17": [
+      "- Movimiento estructural mientras hay personas en la terraza: es una emergencia, paso 2 de arriba (fuente: 31 sección 8.5 bloque de escalamiento \"movimiento estructural\")."
+    ],
+    "stop.18": [
+      "- Una pregunta sobre control de caídas o acceso en un borde elevado, una abertura o una baranda floja: registre No iniciar / Bloqueado para las tareas afectadas y escale al dueño y al profesional de seguridad calificado (fuente: retenciones de la sección 12; spec SCH-008; Q-31-09)."
+    ],
+    "stop.19": [
+      "- Cableado encontrado en la trayectoria de una perforación o un corte: al dueño; a un electricista con licencia solo si se necesitara trabajo de cableado (fuente: spec START-011)."
+    ],
+    "stop.20": [
+      "- Solicitudes de escaleras, barandas, balaustres, largueros o la viga adosada (ledger): regístrelas como solicitudes del cliente y escale al dueño (fuente: spec JOB-010; sección 2)."
+    ],
+    "stop.21": [
+      "- Sospecha de pintura con plomo en superficies pintadas de la terraza de edad antigua o desconocida: al dueño para la revisión por un renovador certificado EPA RRP; no se concluye la aplicabilidad (fuente: spec START-011; Q-31-07)."
+    ],
+    "stop.22": ["Ruta general: [[FACT-SVC-INCIDENT-REPORTING]]."]
+  },
+  "ambiguous": []
+}

@@ -8,8 +8,10 @@
 // - Nothing can be done before the worker's own Start Work, while the job is not in progress, or while a hold is open:
 //   the server says why. Progress is kept on the server, so the checklist resumes where it stopped.
 // - Handoff: a note for whoever continues (optionally a named worker).
-// The SOP text is English as imported (the Spanish safety release is TSK-0103).
-import type { StaffKey } from '@handyhub/i18n'
+// - The SOP text is English as imported. A Spanish-reading worker sees the Spanish text of a version released as
+//   AI-reviewed after its separate comparison (TSK-0103, OWN-DEC-79), labelled as such; otherwise the English text
+//   with "Spanish safety review pending" (Start Work stays blocked for them, the server decides).
+import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useState, type FormEvent } from 'react'
 import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
@@ -22,6 +24,8 @@ type StaffRef = { id: string; name: string | null }
 export type ChecklistStep = {
   stepId: string
   text: string
+  /** The Spanish text, only from a version released as AI-reviewed. */
+  textEs: string | null
   line: number | null
   required: boolean
   evidence: ('photo' | 'measurement' | 'note')[]
@@ -46,7 +50,13 @@ export type ChecklistData = {
     workPackageId: string
     code: string
     state: string
-    sop: { versionId: string; title: string | null; pendingReview: boolean } | null
+    sop: {
+      versionId: string
+      title: string | null
+      pendingReview: boolean
+      spanishStatus: 'ai_reviewed' | 'pending'
+      titleEs: string | null
+    } | null
     currentStage: number
     summary: {
       steps: number
@@ -56,7 +66,14 @@ export type ChecklistData = {
       requiredOpen: number
       complete: boolean
     }
-    stages: { stage: number; key: string; heading: string; open: boolean; steps: ChecklistStep[] }[]
+    stages: {
+      stage: number
+      key: string
+      heading: string
+      headingEs: string | null
+      open: boolean
+      steps: ChecklistStep[]
+    }[]
   }[]
   photos: { id: string; workPackageId: string; phase: string; areaLabel: string | null; uploadedAt: string }[]
   handoffs: {
@@ -87,11 +104,13 @@ const who = (r: StaffRef | null) => (r ? (r.name ?? r.id) : '')
 
 export function ChecklistPage({
   t,
+  locale = 'en',
   fetchImpl,
   jobId,
   href,
 }: {
   t: T
+  locale?: StaffLocale
   fetchImpl: Fetch
   jobId: string
   href: (to: string) => string
@@ -134,51 +153,68 @@ export function ChecklistPage({
           </ul>
         </StateView>
       ) : null}
-      <p className="staff-request__hint">{t('checklist.englishOnly')}</p>
-      {data.packages.map((p) => (
-        <section key={p.workPackageId} className="staff-request__section" data-testid="checklist-package">
-          <h2 className="staff-queue__heading">
-            {codeLabel(t, 'service', p.code)} · {p.code}
-          </h2>
-          {p.sop?.pendingReview ? (
-            <StateView kind="empty" title={t('sop.pendingReview.title')}>
-              <p>{t('sop.pendingReview.body')}</p>
-            </StateView>
-          ) : null}
-          {!p.sop ? <StateView kind="blocked" title={t('sop.notConfigured.title')} /> : null}
-          {p.state === 'blocked' ? <StateView kind="blocked" title={t('checklist.packageBlocked')} /> : null}
-          <p data-testid="checklist-summary">
-            {t('checklist.summary', {
-              completed: p.summary.completed,
-              steps: p.summary.steps,
-              skipped: p.summary.requiredSkipped,
-            })}
-          </p>
-          {p.stages.map((st) => (
-            <details key={st.stage} open={st.stage === p.currentStage} data-testid="checklist-stage">
-              <summary>
-                {t('sop.stageTitle', { n: st.stage, stage: codeLabel(t, 'sopStage', st.key) })}{' '}
-                {st.open ? null : <StatusBadge tone="neutral">{t('checklist.locked')}</StatusBadge>}
-              </summary>
-              {st.steps.length === 0 ? <p className="staff-request__hint">{t('sop.noStep')}</p> : null}
-              <ol className="staff-request__list">
-                {st.steps.map((s) => (
-                  <Step
-                    key={s.stepId}
-                    t={t}
-                    fetchImpl={fetchImpl}
-                    base={base}
-                    workPackageId={p.workPackageId}
-                    step={s}
-                    photos={data.photos.filter((f) => f.workPackageId === p.workPackageId)}
-                    onDone={load}
-                  />
-                ))}
-              </ol>
-            </details>
-          ))}
-        </section>
-      ))}
+      {data.packages.map((p) => {
+        // The Spanish text of a released version for a Spanish-reading worker; the English text otherwise.
+        const spanish = locale === 'es' && p.sop?.spanishStatus === 'ai_reviewed'
+        return (
+          <section key={p.workPackageId} className="staff-request__section" data-testid="checklist-package">
+            <h2 className="staff-queue__heading">
+              {codeLabel(t, 'service', p.code)} · {p.code}
+            </h2>
+            {p.sop?.pendingReview ? (
+              <StateView kind="empty" title={t('sop.pendingReview.title')}>
+                <p>{t('sop.pendingReview.body')}</p>
+              </StateView>
+            ) : null}
+            {!p.sop ? <StateView kind="blocked" title={t('sop.notConfigured.title')} /> : null}
+            {p.sop && spanish ? (
+              <p className="staff-request__hint" data-testid="checklist-language">
+                <StatusBadge tone="info">{t('sop.aiReviewed')}</StatusBadge> {t('checklist.spanishShown')}
+              </p>
+            ) : null}
+            {p.sop && !spanish ? (
+              <p className="staff-request__hint" data-testid="checklist-language">
+                {t('checklist.englishOnly')}
+              </p>
+            ) : null}
+            {p.sop && locale === 'es' && !spanish ? (
+              <StateView kind="blocked" title={t('sop.spanishNotReleased')} />
+            ) : null}
+            {p.state === 'blocked' ? <StateView kind="blocked" title={t('checklist.packageBlocked')} /> : null}
+            <p data-testid="checklist-summary">
+              {t('checklist.summary', {
+                completed: p.summary.completed,
+                steps: p.summary.steps,
+                skipped: p.summary.requiredSkipped,
+              })}
+            </p>
+            {p.stages.map((st) => (
+              <details key={st.stage} open={st.stage === p.currentStage} data-testid="checklist-stage">
+                <summary>
+                  {t('sop.stageTitle', { n: st.stage, stage: codeLabel(t, 'sopStage', st.key) })}{' '}
+                  {st.open ? null : <StatusBadge tone="neutral">{t('checklist.locked')}</StatusBadge>}
+                </summary>
+                {st.steps.length === 0 ? <p className="staff-request__hint">{t('sop.noStep')}</p> : null}
+                <ol className="staff-request__list">
+                  {st.steps.map((s) => (
+                    <Step
+                      key={s.stepId}
+                      t={t}
+                      fetchImpl={fetchImpl}
+                      base={base}
+                      workPackageId={p.workPackageId}
+                      step={s}
+                      spanish={spanish}
+                      photos={data.photos.filter((f) => f.workPackageId === p.workPackageId)}
+                      onDone={load}
+                    />
+                  ))}
+                </ol>
+              </details>
+            ))}
+          </section>
+        )
+      })}
       <section className="staff-request__section" aria-label={t('checklist.handoffs')}>
         <h2 className="staff-queue__heading">{t('checklist.handoffs')}</h2>
         {data.handoffs.length === 0 ? <p className="staff-request__hint">{t('checklist.noHandoffs')}</p> : null}
@@ -208,6 +244,7 @@ function Step({
   base,
   workPackageId,
   step,
+  spanish,
   photos,
   onDone,
 }: {
@@ -216,6 +253,7 @@ function Step({
   base: string
   workPackageId: string
   step: ChecklistStep
+  spanish: boolean
   photos: ChecklistData['photos']
   onDone: () => Promise<void>
 }) {
@@ -258,8 +296,8 @@ function Step({
         {step.required ? <StatusBadge tone="info">{t('sop.required')}</StatusBadge> : null}{' '}
         <span className="staff-request__hint">{t('sop.itemId', { id: step.stepId })}</span>
       </p>
-      <p>
-        {step.text.split('\n').map((l, i) => (
+      <p lang={spanish && step.textEs !== null ? 'es' : 'en'}>
+        {(spanish && step.textEs !== null ? step.textEs : step.text).split('\n').map((l, i) => (
           <span key={i}>
             {i > 0 ? <br /> : null}
             {l}

@@ -6,6 +6,9 @@
 // - NOT CONFIGURED is reported as such (no checklist at all), and so is a package that is not part of a job yet.
 // - The readiness part (sopReadiness) and the "Pending competent review" banner follow the environment: production
 //   needs the sign-off. An unknown environment counts as production (fail closed).
+// - The Spanish release of the pinned version (TSK-0103): its status ("ai_reviewed" or "pending"), the latest
+//   comparison's result per category, and the Spanish stages and stop-work section with the English ids, only when
+//   released. The open questions stay in English.
 // - Read inside the caller's DataScope: a package outside it is not found.
 import type { Db, Tx } from '@handyhub/db'
 import {
@@ -20,6 +23,7 @@ import {
 import { decide, type DataScope, type StaffActor } from '@handyhub/policy'
 import { ApiError } from '../../api/errors.js'
 import { jobInScope, projectInScope } from '../../platform/data-scope.js'
+import { spanishReleases } from './spanish.js'
 
 type Reader = Db | Tx
 export type SopEnvironment = 'local' | 'ci' | 'staging' | 'production'
@@ -101,7 +105,6 @@ export async function workPackageSopView(
           'v.version',
           'v.title',
           'v.review_state',
-          'v.spanish_status',
           'v.source_file',
           'v.content',
           'v.content_sha256',
@@ -124,6 +127,7 @@ export async function workPackageSopView(
     environment,
   })
   const content = v ? (v.content as unknown as SopContent) : null
+  const spanish = v ? (await spanishReleases(db, [v.id])).get(v.id) : undefined
   const state = v ? 'pinned' : wp.job_id ? 'not_configured' : 'no_job'
   const mayReview =
     decide(actor, 'sop.sign_off_review', {}, { now: new Date(), online: true }).effect === 'allow' &&
@@ -153,7 +157,26 @@ export async function workPackageSopView(
             title: v.title,
             reviewState: v.review_state as SopReviewState,
             current: v.review_state !== 'superseded',
-            spanishStatus: v.spanish_status as 'pending',
+            spanishStatus: spanish?.status ?? 'pending',
+            spanish: {
+              status: spanish?.status ?? 'pending',
+              check: spanish?.check ?? null,
+              title: spanish?.title ?? null,
+              stages:
+                spanish?.content?.stages.map((st) => ({
+                  stage: st.stage,
+                  key: st.key,
+                  heading: st.heading,
+                  steps: st.items.filter((i) => i.kind === 'step').length,
+                  items: st.items.map(itemView),
+                })) ?? null,
+              hazards: spanish?.content
+                ? {
+                    controls: hazardControls({ ...spanish.content, openQuestions: [] }).map(itemView),
+                    stopWork: spanish.content.stopWork.map(itemView),
+                  }
+                : null,
+            },
             sourceFile: v.source_file,
             contentSha256: v.content_sha256,
             hazardSha256: v.hazard_sha256,
