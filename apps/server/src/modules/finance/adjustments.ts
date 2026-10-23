@@ -112,11 +112,7 @@ async function insertRequest(tx: Tx, actor: StaffActor, jobId: string, input: Ad
   if (!(FINANCE_ADJUSTMENT_TYPES as readonly string[]).includes(input.type)) throw invalid('body.type', 'INVALID')
   if (!Number.isSafeInteger(input.amountCents) || input.amountCents <= 0) throw invalid('body.amountCents', 'INVALID')
   const reason = text(input.reason, 'body.reason', ADJUSTMENT_REQUEST_LIMITS.reason)
-  const job = await tx
-    .selectFrom('work.jobs')
-    .select(['id', 'project_id'])
-    .where('id', '=', jobId)
-    .executeTakeFirst()
+  const job = await tx.selectFrom('work.jobs').select(['id', 'project_id']).where('id', '=', jobId).executeTakeFirst()
   if (!job) throw new ApiError('NOT_FOUND')
   let paymentId: string | null = null
   let invoiceId: string | null = null
@@ -213,7 +209,8 @@ export async function decideAdjustment(
     .executeTakeFirst()
   if (!f || f.type !== input.type) throw new ApiError('NOT_FOUND')
   // The lock order of every money write: the invoice before the record.
-  if (f.invoice_id) await tx.selectFrom('finance.invoices').select('id').where('id', '=', f.invoice_id).forUpdate().execute()
+  if (f.invoice_id)
+    await tx.selectFrom('finance.invoices').select('id').where('id', '=', f.invoice_id).forUpdate().execute()
   await tx.selectFrom('finance.refunds').select('id').where('id', '=', id).forUpdate().execute()
   if (f.state !== 'requested') throw conflict(`ADJUSTMENT_${f.state.toUpperCase()}`)
   const decided = {
@@ -249,7 +246,14 @@ export async function decideAdjustment(
   await syncRequestItem(tx, f.job_id)
   // A credit that brings the invoice to $0.00 makes it Paid (announced once).
   await announcePaidInvoices(tx, f.job_id)
-  return { id, jobId: f.job_id, type: f.type as FinanceAdjustmentType, from: f.state, state: row.state, version: row.version }
+  return {
+    id,
+    jobId: f.job_id,
+    type: f.type as FinanceAdjustmentType,
+    from: f.state,
+    state: row.state,
+    version: row.version,
+  }
 }
 
 /** The Owner records a refund, credit or write-off directly: requested and approved in one step. */
@@ -398,7 +402,11 @@ function dateText(d: Date | string): string {
 }
 
 /** The job's refunds, credits and write-offs and what this caller may do now; null when there is no such job. */
-export async function adjustmentsView(db: Reader, actor: StaffActor, jobId: string): Promise<FinanceAdjustmentsView | null> {
+export async function adjustmentsView(
+  db: Reader,
+  actor: StaffActor,
+  jobId: string,
+): Promise<FinanceAdjustmentsView | null> {
   const job = await db.selectFrom('work.jobs').select(['id', 'project_id']).where('id', '=', jobId).executeTakeFirst()
   if (!job) return null
   const resource = { projectId: job.project_id }
@@ -437,7 +445,12 @@ export async function adjustmentsView(db: Reader, actor: StaffActor, jobId: stri
     .execute()
   const payments = await db
     .selectFrom('finance.payments')
-    .select(['id', 'method', 'received_on', sql<string>`(amount_cents - finance.payment_used_cents(id))::text`.as('left')])
+    .select([
+      'id',
+      'method',
+      'received_on',
+      sql<string>`(amount_cents - finance.payment_used_cents(id))::text`.as('left'),
+    ])
     .where('job_id', '=', jobId)
     .where('state', 'in', [...CONFIRMED])
     .orderBy('created_at')
@@ -518,7 +531,8 @@ export async function adjustmentsView(db: Reader, actor: StaffActor, jobId: stri
       refund: may('payment.refund'),
       credit: balance > 0 && may('payment.credit'),
       writeOff: balance > 0 && may('payment.write_off'),
-      request: decide(actor, 'finance_adjustment.request', resource, { now: new Date(), online: true }).effect === 'allow',
+      request:
+        decide(actor, 'finance_adjustment.request', resource, { now: new Date(), online: true }).effect === 'allow',
       voidInvoice: voidable.length > 0,
     },
   }

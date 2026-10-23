@@ -171,43 +171,43 @@ export function adjustmentRoutes(): RouteDef[] {
       audit: 'none',
       resource: jobProject,
       schema: { params: params('jobId'), response: { 200: VIEW } },
-      handler: async (ctx) => ({ body: await viewOrThrow(ctx, undefined, (ctx.req.params as { jobId: string }).jobId) }),
-    },
-    ...FINANCE_ADJUSTMENT_TYPES.map(
-      (type): RouteDef => ({
-        ...owner,
-        path: `/staff/jobs/:jobId/${PATH[type]}`,
-        operationId: `record${OPERATION[type]}`,
-        summary: `Record a ${WORDS[type]} (Owner only)`,
-        description:
-          `The Owner only (${TYPE_ACTION[type]}; OWN-DEC-138): a fresh sign-in (password or authenticator code within ` +
-          `${FRESH_AUTH_MINUTES} minutes, read again at the write) and a written reason. ${WHAT[type]} Requested and ` +
-          'approved in one step, never an edit; audited. Returns the job’s adjustments view.',
-        permission: TYPE_ACTION[type],
-        audit: `payment.${type}`,
-        resource: jobProject,
-        schema: { params: params('jobId'), body: AMOUNT_BODY(type), response: { 201: VIEW } },
-        handler: async (ctx) => {
-          const tx = ctx.tx as Tx
-          const { jobId } = ctx.req.params as { jobId: string }
-          const body = ctx.req.body as { paymentId?: string; amountCents: number; reason: string }
-          const out = await recordAdjustment(tx, staffActor(ctx), jobId, {
-            type,
-            paymentId: body.paymentId ?? null,
-            amountCents: body.amountCents,
-            reason: body.reason,
-            sessionId: sessionOf(ctx),
-          })
-          await ctx.audit({
-            target: { type: 'payment', id: out.id, version: out.version },
-            summary: { jobId, type, state: out.state, amountCents: body.amountCents, paymentId: body.paymentId ?? null },
-            reason: body.reason.trim(),
-            stepUpUsed: true,
-          })
-          return { status: 201, body: await viewOrThrow(ctx, tx, jobId) }
-        },
+      handler: async (ctx) => ({
+        body: await viewOrThrow(ctx, undefined, (ctx.req.params as { jobId: string }).jobId),
       }),
-    ),
+    },
+    ...FINANCE_ADJUSTMENT_TYPES.map((type): RouteDef => ({
+      ...owner,
+      path: `/staff/jobs/:jobId/${PATH[type]}`,
+      operationId: `record${OPERATION[type]}`,
+      summary: `Record a ${WORDS[type]} (Owner only)`,
+      description:
+        `The Owner only (${TYPE_ACTION[type]}; OWN-DEC-138): a fresh sign-in (password or authenticator code within ` +
+        `${FRESH_AUTH_MINUTES} minutes, read again at the write) and a written reason. ${WHAT[type]} Requested and ` +
+        'approved in one step, never an edit; audited. Returns the job’s adjustments view.',
+      permission: TYPE_ACTION[type],
+      audit: `payment.${type}`,
+      resource: jobProject,
+      schema: { params: params('jobId'), body: AMOUNT_BODY(type), response: { 201: VIEW } },
+      handler: async (ctx) => {
+        const tx = ctx.tx as Tx
+        const { jobId } = ctx.req.params as { jobId: string }
+        const body = ctx.req.body as { paymentId?: string; amountCents: number; reason: string }
+        const out = await recordAdjustment(tx, staffActor(ctx), jobId, {
+          type,
+          paymentId: body.paymentId ?? null,
+          amountCents: body.amountCents,
+          reason: body.reason,
+          sessionId: sessionOf(ctx),
+        })
+        await ctx.audit({
+          target: { type: 'payment', id: out.id, version: out.version },
+          summary: { jobId, type, state: out.state, amountCents: body.amountCents, paymentId: body.paymentId ?? null },
+          reason: body.reason.trim(),
+          stepUpUsed: true,
+        })
+        return { status: 201, body: await viewOrThrow(ctx, tx, jobId) }
+      },
+    })),
     {
       ...write,
       path: '/staff/jobs/:jobId/finance-adjustment-requests',
@@ -254,49 +254,47 @@ export function adjustmentRoutes(): RouteDef[] {
         return { status: 201, body: await viewOrThrow(ctx, tx, jobId) }
       },
     },
-    ...FINANCE_ADJUSTMENT_TYPES.map(
-      (type): RouteDef => ({
-        ...owner,
-        path: `/staff/${PATH[type]}/:id/decision`,
-        operationId: `decide${OPERATION[type]}Request`,
-        summary: `Approve or decline a requested ${WORDS[type]} (Owner only)`,
-        description:
-          `The Owner only (${TYPE_ACTION[type]}): a fresh sign-in and a written reason. approve: ${WHAT[type]} ` +
-          'decline: a refund is declined (its money is free again), a credit or write-off voided. A request already ' +
-          'decided is a CONFLICT. The Owner Decisions item follows. Audited. Returns the job’s adjustments view.',
-        permission: TYPE_ACTION[type],
-        audit: 'payment.adjustment_decision',
-        resource: adjustmentProject,
-        schema: {
-          params: params('id'),
-          body: {
-            type: 'object',
-            additionalProperties: false,
-            required: ['decision', 'reason'],
-            properties: { decision: { type: 'string', enum: ['approve', 'decline'] }, reason: REASON },
-          },
-          response: { 200: VIEW },
+    ...FINANCE_ADJUSTMENT_TYPES.map((type): RouteDef => ({
+      ...owner,
+      path: `/staff/${PATH[type]}/:id/decision`,
+      operationId: `decide${OPERATION[type]}Request`,
+      summary: `Approve or decline a requested ${WORDS[type]} (Owner only)`,
+      description:
+        `The Owner only (${TYPE_ACTION[type]}): a fresh sign-in and a written reason. approve: ${WHAT[type]} ` +
+        'decline: a refund is declined (its money is free again), a credit or write-off voided. A request already ' +
+        'decided is a CONFLICT. The Owner Decisions item follows. Audited. Returns the job’s adjustments view.',
+      permission: TYPE_ACTION[type],
+      audit: 'payment.adjustment_decision',
+      resource: adjustmentProject,
+      schema: {
+        params: params('id'),
+        body: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['decision', 'reason'],
+          properties: { decision: { type: 'string', enum: ['approve', 'decline'] }, reason: REASON },
         },
-        handler: async (ctx) => {
-          const tx = ctx.tx as Tx
-          const { id } = ctx.req.params as { id: string }
-          const body = ctx.req.body as { decision: Decision; reason: string }
-          const out = await decideAdjustment(tx, staffActor(ctx), id, {
-            type,
-            decision: body.decision,
-            reason: body.reason,
-            sessionId: sessionOf(ctx),
-          })
-          await ctx.audit({
-            target: { type: 'payment', id, version: out.version },
-            summary: { jobId: out.jobId, type, decision: body.decision, from: out.from, to: out.state },
-            reason: body.reason.trim(),
-            stepUpUsed: true,
-          })
-          return { body: await viewOrThrow(ctx, tx, out.jobId) }
-        },
-      }),
-    ),
+        response: { 200: VIEW },
+      },
+      handler: async (ctx) => {
+        const tx = ctx.tx as Tx
+        const { id } = ctx.req.params as { id: string }
+        const body = ctx.req.body as { decision: Decision; reason: string }
+        const out = await decideAdjustment(tx, staffActor(ctx), id, {
+          type,
+          decision: body.decision,
+          reason: body.reason,
+          sessionId: sessionOf(ctx),
+        })
+        await ctx.audit({
+          target: { type: 'payment', id, version: out.version },
+          summary: { jobId: out.jobId, type, decision: body.decision, from: out.from, to: out.state },
+          reason: body.reason.trim(),
+          stepUpUsed: true,
+        })
+        return { body: await viewOrThrow(ctx, tx, out.jobId) }
+      },
+    })),
     {
       ...owner,
       path: '/staff/refunds/:id/outcome',
