@@ -91,7 +91,10 @@ export async function packetContent(db: Reader, jobId: string): Promise<PacketCo
       'v.version',
       'v.title',
       'v.review_state',
-      'v.spanish_status',
+      // The Spanish release of the pinned version (TSK-0103): released as AI-reviewed, or pending.
+      sql<string | null>`CASE WHEN v.id IS NULL THEN NULL ELSE catalog.sop_spanish_status(v.id) END`.as(
+        'spanish_status',
+      ),
       'v.content_sha256',
       'v.hazard_sha256',
       'v.quality_sha256',

@@ -1,0 +1,390 @@
+{
+  "sopId": "SOP-PT-03",
+  "englishContentSha256": "ede9e11fe374bd7583f4848fe03ec59f255e59c8b8c621b0fe1550e08084e7d2",
+  "title": "SOP PT-03: Encalado de ladrillo y recubrimientos elastoméricos para mampostería",
+  "headings": [
+    "1. Preparación del sitio y protección de la propiedad",
+    "2. Preparación y mediciones/comprobaciones requeridas",
+    "3. Pasos de trabajo específicos del servicio",
+    "4. Comprobaciones de calidad",
+    "5. Limpieza y manejo de residuos",
+    "6. Comprobaciones finales, fotos de finalización y recorrido"
+  ],
+  "items": {
+    "1.1": ["Del acuerdo y la spec, pendiente de revisión:"],
+    "1.2": [
+      "- Los vehículos se mantienen lejos del edificio durante los períodos de rociado activo (fuente: \"Prevención del rocío\" del acuerdo; la distancia que indica está en revisión del abogado y de seguridad, 30 sección 5 fila 91)."
+    ],
+    "1.3": [
+      "- Opción, color o muestra elegidos antes de programar (fuente: spec PT-03.INT \"producto/sistema, color/muestra\"; casillas de la Opción A y B del acuerdo)."
+    ],
+    "1.4": [
+      "- Cada trabajo vuelve a confirmar que el acceso, los ocupantes, las mascotas, el estacionamiento, los peligros y las condiciones del área de trabajo siguen vigentes (fuente: spec CX-005)."
+    ],
+    "1.5": [
+      "FALTA - todavía no está en el acuerdo ni en ningún recordatorio (decisión del dueño; redacción por 30 y 32): cualquier aprobación de la asociación de propietarios (HOA) o del distrito histórico; acceso al agua y a la electricidad; ventanas y puertas cerradas; tomas de aire del HVAC; mascotas y niños dentro de la casa; muebles y artículos exteriores movidos; plantas; aviso a los vecinos (fuente: 04 PT-03 \"requisitos de preparación del cliente\"; X-11)."
+    ],
+    "2.1": ["Condiciones de despacho y de Iniciar trabajo (Start Job), pendientes de revisión:"],
+    "2.2": [
+      "- Versión aprobada del presupuesto con la opción seleccionada (Opción A encalado u Opción B recubrimiento elastomérico), las fachadas y las áreas, y cualquier alquiler, cada uno identificable por separado (fuente: spec CX-003, EST-005; APXA-001 \"revise el alcance/las exclusiones\")."
+    ],
+    "2.3": [
+      "- Solicitud registrada: tipo y estado de la mampostería, eflorescencia y grietas, fuente de humedad, producto o sistema, color o muestra, altura y acceso, clima (fuente: spec PT-03.INT).",
+      "  - Evidence: note"
+    ],
+    "2.4": [
+      "- Decisión sobre la fuente de humedad registrada por el revisor calificado antes de cualquier recubrimiento; desconocido significa no listo, y aquí no se fija ningún umbral de humedad (fuente: spec PT-03.SAF \"atienda la causa activa de humedad antes de recubrir cuando se requiera\"; C-PT03-05). REVISIÓN HUMANA: profesional calificado en mampostería o en envolvente del edificio.",
+      "  - Evidence: note"
+    ],
+    "2.5": [
+      "- Sistema de recubrimiento confirmado como compatible con la mampostería y con cualquier recubrimiento o sellador existente, a partir de los datos del fabricante del producto indicado (fuente: spec PT-03.SAF \"confirme un sistema de recubrimiento compatible\"; C-PT03-02). REVISIÓN HUMANA: profesional calificado en mampostería o en envolvente del edificio; datos técnicos del fabricante del recubrimiento."
+    ],
+    "2.6": [
+      "- Ladrillo pintado o sellado anteriormente y año de construcción registrados en la solicitud y evaluados con las preguntas de evaluación de propiedades antiguas. El umbral de edad de la propiedad que activa la evaluación de plomo es una pregunta abierta (Q-31-07), y una superficie pintada no queda liberada porque el cliente diga que parece segura (fuente: 04 sección 6.2 \"plomo (c)\"; 31 sección 5.8; manual de clasificación de riesgos). REVISIÓN HUMANA: renovador certificado EPA RRP; aquí no se concluye la aplicabilidad.",
+      "  - Evidence: note"
+    ],
+    "2.7": [
+      "- Cada producto químico aprobado con una SDS revisada: el limpiador de mampostería, cualquier cloro, el limpiador de eflorescencia, la cal apagada, el recubrimiento elastomérico, el limpiavidrios y cualquier combustible de motor. Un producto sin una SDS revisada no se lleva al trabajo (fuente: 29 sección 8.3 regla provisional, PROPUESTO; C-PT03-01)."
+    ],
+    "2.8": [
+      "- Plan de acceso aprobado para cualquier trabajo en el borde del techo, el sofito, la fascia, las canaletas o los pisos superiores y para cualquier plataforma elevadora; todavía no existe ninguna política de altura y acceso (fuente: spec PT-03.SAF \"controles de clima y de altura\"; C-PT03-04; X-12; Q-31-09). Una plataforma elevadora alquilada también necesita su registro de alquiler, la inspección de salida y un operador con la etiqueta de calificación correspondiente (fuente: 29 sección 9.2 pasos 4 y 5).",
+      "  - Evidence: note"
+    ],
+    "2.9": [
+      "- Clima aceptable según el módulo de clima y calor, que todavía no existe, y dentro de los límites de aplicación de los datos del producto; el clima severo es una condición para detenerse (fuente: spec PT-03.INT \"clima\", PT-03.SAF; X-27; START-011). TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo."
+    ],
+    "2.10": [
+      "- Agua y electricidad para lavar y rociar confirmadas en el sitio; quién las suministra es una decisión del dueño (fuente: 04 PT-03 \"requisitos de preparación del cliente\", FALTA)."
+    ],
+    "2.11": [
+      "- Manejo del agua de lavado y de la escorrentía decidido para el municipio del trabajo; desconocido no significa permitido (fuente: 04 PT-03 \"indicadores de permiso/licencia\"; manual de clasificación de riesgos paso 4). REVISIÓN HUMANA: autoridad local; aquí no se saca ninguna conclusión."
+    ],
+    "2.12": [
+      "- Si se aplica una aprobación del distrito histórico o de la asociación de propietarios (HOA), y quién la obtiene, registrado según lo informa el cliente (fuente: 04 PT-03 \"indicadores de permiso/licencia\", PREGUNTA ABIERTA). REVISIÓN HUMANA: abogado con licencia en KY/IN y la autoridad local; aquí no se saca ninguna conclusión.",
+      "  - Evidence: note"
+    ],
+    "2.13": [
+      "- EPP seleccionado y disponible, incluida la protección para la piel y protección ocular para la cal; herramientas, equipo de acceso, enmascarado y protección cargados; alquileres revisados (fuente: spec PT-03.SAF; START-004, START-005; APXA-001 \"revise los artículos que aporta el cliente/los alquileres\")."
+    ],
+    "2.14": [
+      "- Los trabajadores tienen las etiquetas de calificación para lavado a presión, rociado sin aire y uso de plataformas elevadoras una vez que se definan (fuente: spec SCH-003, START-010; Q-04-13)."
+    ],
+    "2.15": [
+      "- Indicadores de permiso, licencia y calificación de esta línea determinados; `desconocido` bloquea el inicio (Start) de la línea afectada (fuente: 04 sección 6.1; spec START-010)."
+    ],
+    "2.16": [
+      "- Empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada; las retenciones críticas no se pueden anular (fuente: APXA-003; 31 sección 8.3).",
+      "  - Evidence: note"
+    ],
+    "2.17": [
+      "Pendiente de revisión; los métodos salen de los módulos aprobados, de los cuales todavía no existe ninguno:"
+    ],
+    "2.18": [
+      "- Confirme la dirección, el área de trabajo y el contacto; identifique mascotas y ocupantes (fuente: APXA-002)."
+    ],
+    "2.19": [
+      "- Inspeccione el sitio real frente a las instrucciones y registre las diferencias (fuente: spec START-007).",
+      "  - Evidence: note"
+    ],
+    "2.20": [
+      "- Fotografíe cada fachada antes del trabajo: grietas existentes, desprendimientos, mortero suelto, eflorescencia, manchas y recubrimientos, vidrios de ventanas, jardinería, entradas de vehículos y propiedad adyacente (fuente: spec START-008; APXA-002; X-02; \"Defectos preexistentes de la mampostería\" del acuerdo)."
+    ],
+    "2.21": [
+      "- Instale barreras y mantenga a las personas y las mascotas fuera de las zonas de lavado y de rociado (fuente: X-08; X-11)."
+    ],
+    "2.22": [
+      "- Proteja los accesorios eléctricos, los tomacorrientes, los medidores y las aberturas del rocío directo antes de lavar; el orden original lava antes del enmascarado de la Fase 2, y esa secuencia está en revisión (fuente: 31 sección 10 PT-03; 04 PT-03 \"peligros\")."
+    ],
+    "2.23": [
+      "- Proteja la jardinería, las plantas, las entradas de vehículos y los vehículos antes de rociar: método todavía no definido (C-PT03-08). TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo."
+    ],
+    "2.24": [
+      "- Instale los controles de agua de enjuague y de escorrentía según lo decidido para el municipio (fuente: 04 PT-03 \"indicadores de permiso/licencia\"; Q-29-10)."
+    ],
+    "2.25": [
+      "- Instale el equipo de acceso solo bajo el plan de acceso aprobado; para una plataforma elevadora alquilada, registre la inspección de salida con fotos y adjunte las instrucciones de la empresa de alquiler (fuente: C-PT03-04; 29 sección 9.2 paso 5).",
+      "  - Evidence: note"
+    ],
+    "2.26": [
+      "- Inspeccione la lavadora a presión, el rociador sin aire, las mangueras y el equipo de acceso antes de usarlos según las instrucciones del fabricante o del alquiler (fuente: 31 sección 3.1 fila 7; spec START-005)."
+    ],
+    "2.27": [
+      "- Confirme el suministro de agua y de electricidad (fuente: 04 PT-03 \"requisitos de preparación del cliente\", FALTA)."
+    ],
+    "2.28": [
+      "- Complete las comprobaciones de seguridad, de EPP y del sitio y confirme que leyó el SOP y los peligros antes de empezar (fuente: APXA-003; spec START-004).",
+      "  - Evidence: note"
+    ],
+    "3.1": [
+      "*El procedimiento original sigue sin cambios y en su orden original; sus encabezados de fase bajan un nivel. Las líneas HOLD y FLAG citadas se añadieron el 2026-10-03 y están pendientes de revisión calificada. Una HOLD colocada antes de un paso se debe liberar antes de que empiece ese paso; una HOLD o FLAG colocada después de un paso lo suspende, lo limita o lo marca (36 D-36-17). Ninguna retención reformula, reordena ni elimina un paso.*"
+    ],
+    "3.2": [
+      "- [ ] **Raspado de eflorescencia:** Use un cepillo de alambre duro para restregar y quitar los depósitos de sal blanca calcárea (eflorescencia) de las caras del ladrillo viejo."
+    ],
+    "3.3": [
+      "> HOLD (C-PT03-05): el paso anterior quita la eflorescencia pero no atiende su causa. Fotografíe y registre dónde se encontró eflorescencia (spec PT-03.QAC \"defectos/limitaciones documentados\"), y no empiece ningún paso de la Fase 3 ni de la Fase 4 hasta que un revisor calificado haya registrado la decisión sobre la fuente de humedad. Aquí no se fija ningún umbral de humedad. Pendiente de revisión calificada. (fuente: spec PT-03.SAF \"atienda la causa activa de humedad antes de recubrir cuando se requiera\"; PT-03.INT \"eflorescencia/grietas, fuente de humedad\")"
+    ],
+    "3.4": [
+      "> HOLD (C-PT03-01): antes del paso \"Lavado del moho superficial\" de abajo - NO MEZCLAR - pendiente de la selección de productos basada en las SDS. No mezcle el limpiador de mampostería con cloro ni con ningún otro producto, y no lo aplique, hasta que se haya seleccionado un producto con nombre y el profesional de seguridad calificado haya revisado y aprobado su SDS y la SDS de cualquier cosa con la que se combinaría. Use, mezcle y aplique solo como lo permita la etiqueta aprobada; aquí no se fija ningún producto, proporción ni tiempo de reposo. Las plantas, las aberturas, las personas y las mascotas están protegidas y el control de la escorrentía está instalado antes de cualquier aplicación. Pendiente de revisión calificada. (fuente: spec PT-03.MAT \"limpiador de mampostería aprobado\"; PT-03.QAC \"aberturas/jardinería protegidas\"; 04 PT-03 \"indicadores de permiso/licencia\" (escorrentía); 29 sección 8.3; 31 sección 10 PT-03; X-11)"
+    ],
+    "3.5": [
+      "- [ ] **Lavado del moho superficial:** Rocíe un limpiador especializado para mampostería mezclado con cloro sobre las zonas oscuras de moho superficial (mildew)."
+    ],
+    "3.6": [
+      "> FLAG (X-06): el paso anterior trata las \"zonas oscuras de moho superficial\". La regla para detener el trabajo de la sección 10 incluye el posible moho; qué crecimiento exterior puede tratar este paso lo decide el revisor calificado una vez que exista la definición de la empresa que separa el moho superficial que se puede limpiar (mildew) y las manchas de la sospecha de crecimiento de moho (Q-31-10). Hasta entonces, la regla para detener el trabajo no se relaja. (fuente: 31 sección 5.8)"
+    ],
+    "3.7": [
+      "> HOLD (C-PT03-03, X-08, X-11, X-27): antes del paso \"Limpieza a alta presión\" de abajo - mantenga a las personas y las mascotas fuera de la zona de lavado; proteja los accesorios eléctricos, los tomacorrientes, los medidores, las puertas y las ventanas del rocío directo (en el orden original el enmascarado de la Fase 2 viene después de este paso, y esa secuencia está en revisión); confirme el método de lavado y la presión para esta mampostería según las instrucciones del fabricante y el profesional de seguridad calificado; y confirme un clima aceptable según los módulos de lavado a presión y de clima (todavía no existe ninguno de los dos). Si aparece mortero suelto o que se desmorona o ladrillo que se desprende, detenga el lavado de esa área y siga la sección 10. Pendiente de revisión calificada. (fuente: spec PT-03.HAZ \"lavado a presión\", PT-03.INT \"clima\"; \"Defectos preexistentes de la mampostería\" del acuerdo; 31 secciones 5.8 y 10)"
+    ],
+    "3.8": [
+      "- [ ] **Limpieza a alta presión:** Lave a presión toda la envolvente de ladrillo a 2,500-3,000 PSI para quitar la suciedad profunda, las salpicaduras de lodo y los residuos orgánicos de las juntas porosas de la mampostería."
+    ],
+    "3.9": [
+      "> FLAG (C-PT03-03): la presión del paso anterior NO ESTÁ VERIFICADA - confírmela según el estado de la mampostería y las instrucciones del producto (SIN FUENTE - verifique con las instrucciones del fabricante). Se mantiene sin cambios hasta que un revisor calificado la confirme o la reemplace; aquí no se fija ningún valor, y todavía no hay ninguna lavadora a presión en el inventario. (fuente: 31 sección 3.5 regla 3; 31 sección 10 PT-03)"
+    ],
+    "3.10": [
+      "> FLAG (C-PT03-08): esta fase no tiene ningún paso que proteja la jardinería, las plantas, los vehículos o la propiedad vecina, aunque el acuerdo promete \"protección de enmascarado de varias capas para ventanas y jardinería\"; ese trabajo no está cubierto - pendiente de revisión (sección 2). Un límite de viento para rociar es una pregunta abierta; aquí no se fija ningún valor."
+    ],
+    "3.11": [
+      "- [ ] **Envoltura total de ventanas:** Envuelva por completo todas las ventanas, los accesorios de iluminación exteriores, las puertas de entrada y los medidores de servicios públicos con película de enmascarar de 3 mil, asegurando bien los bordes con cinta exterior de alta adherencia."
+    ],
+    "3.12": [
+      "> HOLD (X-11; RIESGO, no determinado): el paso anterior queda limitado hasta la revisión - no envuelva, cubra ni obstruya los medidores de gas, los reguladores ni sus ventilaciones hasta que se registren las indicaciones de la compañía de gas o de un profesional de gas con licencia (entrada 10 de No realizar); antes de envolver las puertas de entrada, acuerde una ruta de salida con los ocupantes; si se pueden cubrir con película los accesorios de iluminación exteriores energizados es un punto de revisión. Pendiente de revisión calificada. (fuente: 31 sección 10 PT-03; 04 PT-03 \"peligros\")"
+    ],
+    "3.13": [
+      "> HOLD (C-PT03-04, X-12): antes de los pasos \"Protección de la línea del techo\" y \"Enmascarado del sofito\" de abajo - ningún trabajo en el borde del techo ni trabajo elevado hasta que se apruebe un plan de acceso bajo la política de altura y acceso de la empresa, que todavía no existe. Las escaleras, las plataformas elevadoras y la protección contra caídas las selecciona y aprueba el profesional de seguridad calificado; aquí no se fija ninguna tolerancia de instalación. Pendiente de revisión calificada. (fuente: spec PT-03.SAF \"controles de clima y de altura\"; PT-03.TLS \"equipo de acceso\"; 31 sección 10 PT-03; Q-31-09)"
+    ],
+    "3.14": [
+      "- [ ] **Protección de la línea del techo:** Meta una tapajuntas de plástico debajo de la primera hilera de tejas del techo para evitar que el rocío arrastrado por el viento manche el techo."
+    ],
+    "3.15": [
+      "- [ ] **Enmascarado del sofito:** Cubra con cinta todos los sofitos de vinilo debajo del techo, las tablas de fascia y las canaletas de aluminio."
+    ],
+    "3.16": [
+      "> FLAG (C-PT03-07): el acuerdo promete una sección de prueba con la aprobación firmada del cliente antes de toda la fachada y describe la aplicación como \"rociado\"; esta opción aplica el encalado con brocha y no tiene ningún paso de sección de prueba ni de aprobación firmada. No está cubierto - pendiente de revisión (sección 2); pregunta abierta registrada con C-PT03-07 en 02."
+    ],
+    "3.17": [
+      "> HOLD (C-PT03-05, C-PT03-02): antes de cualquier paso de esta opción - la decisión sobre la fuente de humedad, y la compatibilidad del sistema de encalado con esta mampostería y con cualquier recubrimiento existente, las registra el revisor calificado a partir de los datos del fabricante del producto. Pendiente de revisión calificada. (fuente: spec PT-03.SAF \"confirme un sistema de recubrimiento compatible\", \"atienda la causa activa de humedad antes de recubrir cuando se requiera\")"
+    ],
+    "3.18": [
+      "> HOLD (PT-03.SAF): antes del paso \"Mezcla de la lechada de cal apagada\" de abajo - se usa la protección para la piel y protección ocular seleccionada por el profesional de seguridad calificado para mezclar, mojar, aplicar con brocha y envejecer la cal. Las \"instrucciones\" mencionadas en ese paso son la etiqueta y la hoja de datos del producto de encalado aprobado; mezcle, moje previamente y aplique solo como ellas indican. Pendiente de revisión calificada. (fuente: spec PT-03.SAF \"EPP/protección de la piel/protección ocular\"; PT-03.HAZ \"materiales químicos/alcalinos\"; 29 sección 8.2 fila 8)"
+    ],
+    "3.19": [
+      "- [ ] **Mezcla de la lechada de cal apagada:** Mezcle cal apagada en polvo italiana auténtica Clase A con agua según las instrucciones hasta lograr una consistencia parecida a la leche."
+    ],
+    "3.20": [
+      "- [ ] **Saturación de la mampostería:** Rocíe la pared de ladrillo con agua justo antes de la aplicación—*El encalado necesita un lienzo de ladrillo mojado para unirse químicamente.*"
+    ],
+    "3.21": [
+      "- [ ] **Aplicación con brocha de mampostería:** Use una brocha de bloque grande y gruesa para trabajar la lechada de encalado dentro de los poros del ladrillo con pasadas cruzadas."
+    ],
+    "3.22": [
+      "> HOLD (C-PT03-03, X-08): antes del paso \"Envejecido artesanal\" de abajo - la \"neblina ligera de lavadora a presión\" de ese paso está bajo la misma retención de lavado a presión que \"Limpieza a alta presión\" (método y presión según las instrucciones del fabricante y el profesional de seguridad calificado; personas y mascotas fuera de la zona). Hasta que se libere esa retención, solo está disponible el método de la esponja húmeda mencionado en el mismo paso. Pendiente de revisión calificada. (fuente: spec PT-03.HAZ \"lavado a presión\"; 31 sección 10 PT-03)"
+    ],
+    "3.23": [
+      "- [ ] **Envejecido artesanal:** Espere 30 minutos a que el encalado fragüe parcialmente. Use una neblina ligera de lavadora a presión o una esponja húmeda para quitar de forma selectiva las capas de lechada de los bordes/esquinas, dejando ver toques del ladrillo natural para lograr un aspecto antiguo."
+    ],
+    "3.24": [
+      "> FLAG: SIN FUENTE - verifique con las instrucciones del fabricante (los datos del producto de encalado aprobado) el tiempo de espera del paso anterior; se mantiene sin cambios hasta que un revisor lo confirme o lo reemplace. (fuente: 31 sección 3.5 regla 3)"
+    ],
+    "3.25": [
+      "> HOLD (C-PT03-05, C-PT03-02): antes de cualquier paso de esta opción - la decisión sobre la fuente de humedad, y la compatibilidad del sistema de recubrimiento elastomérico con esta mampostería y con cualquier recubrimiento existente, las registra el revisor calificado a partir de los datos del fabricante del producto. Si el recubrimiento atraparía humedad en esta pared es parte de esa revisión (spec PT-03.HAZ \"humedad atrapada/recubrimiento incorrecto\"). Pendiente de revisión calificada. (fuente: spec PT-03.SAF \"confirme un sistema de recubrimiento compatible\", \"atienda la causa activa de humedad antes de recubrir cuando se requiera\")"
+    ],
+    "3.26": [
+      "> HOLD (X-08, X-11): antes del paso \"Preparación del rociador sin aire\" de abajo - opere el rociador solo según las instrucciones de seguridad de su fabricante, con las personas y las mascotas fuera de la zona de rociado y con las aberturas, la jardinería, los vehículos y la propiedad vecina protegidos. El tamaño de la boquilla, la presión y el traslape de las pasadas salen de las instrucciones de los fabricantes del rociador y del recubrimiento; los valores de los pasos de abajo se mantienen sin cambios y están SIN FUENTE - verifique con las instrucciones del fabricante. Pendiente de revisión calificada. (fuente: 31 sección 10 PT-03 \"Rociado sin aire según las instrucciones de seguridad del fabricante del rociador\"; 31 sección 7.2 rango 10)"
+    ],
+    "3.27": [
+      "- [ ] **Preparación del rociador sin aire:** Prepare un rociador sin aire de servicio pesado con una boquilla grande de tamaño 517 o 521 para manejar la pintura espesa para mampostería."
+    ],
+    "3.28": [
+      "- [ ] **Pasada de rociado de saturación:** Rocíe una capa pesada y gruesa de pintura elastomérica sobre las paredes de ladrillo secas, traslapando las pasadas en un 50%."
+    ],
+    "3.29": [
+      "- [ ] **Repaso con rodillo del ladrillo:** Haga que un segundo pintor siga al rociador con un rodillo grueso de pelo de 1-1/4 pulgada, empujando la pintura hacia el fondo de las juntas porosas de mortero para sellar las microgrietas y cubrir los huecos por completo."
+    ],
+    "3.30": [
+      "> FLAG: afirmación de resultado - revisión del dueño y del abogado (C-PT03-02). \"sellar las microgrietas y cubrir los huecos por completo\" en el paso anterior depende de los datos del fabricante del recubrimiento; es una descripción de trabajo, no una promesa al cliente (sección 17). Este paso necesita a ambos trabajadores al mismo tiempo (sección 4)."
+    ],
+    "4.1": [
+      "Comprobaciones observables de la tarjeta del servicio (fuente: spec PT-03.QAC; QA-001), con la evidencia entre corchetes. El trabajador hace la autocomprobación; qué comprobaciones necesitan un supervisor es una decisión del dueño (Q-31-15)."
+    ],
+    "4.2": [
+      "- Superficie preparada y limpia antes de recubrir [fotos por fachada después de la limpieza, spec QA-003].",
+      "  - Evidence: photo"
+    ],
+    "4.3": [
+      "- Muestra o aspecto aprobado registrado antes de la aplicación completa [registro de aprobación de la muestra con foto]. Todavía ningún paso lo registra (C-PT03-07, sección 2).",
+      "  - Evidence: note"
+    ],
+    "4.4": ["- Acabado uniforme en cada fachada [fotos de después por fachada].", "  - Evidence: photo"],
+    "4.5": [
+      "- Aberturas y jardinería protegidas [fotos después del enmascarado y después de quitarlo]. La protección de la jardinería todavía no tiene ningún paso (C-PT03-08)."
+    ],
+    "4.6": [
+      "- Defectos y limitaciones documentados: grietas, desprendimientos, mortero suelto, eflorescencia y hallazgos de humedad, y la variación que produce el envejecido [registro de defectos y limitaciones; fotos de llegada, spec START-008].",
+      "  - Evidence: photo, note"
+    ],
+    "4.7": [
+      "- Las comprobaciones originales de la Fase 5 (\"Raspado del rocío\", \"Revisión del suelo\") son comprobaciones internas; \"cero gotas de pintura\" es un objetivo de calidad, no una promesa al cliente (fuente: 31 sección 3.5 regla 5)."
+    ],
+    "5.1": [
+      "- [ ] **Retiro de la película:** Retire todas las cubiertas plásticas de ventanas y puertas mientras la película de pintura esté en condición segura."
+    ],
+    "5.2": [
+      "> HOLD (X-17): antes del paso \"Raspado del rocío\" de abajo - el vidrio se fotografió al llegar (sección 11); si el raspado con cuchilla es adecuado para vidrio con recubrimiento, polarizado o templado es un punto de revisión, y el acuerdo no tiene ninguna cláusula sobre raspado de vidrio. Pendiente de revisión calificada. (fuente: spec START-008; 04 PT-03 \"peligros\")"
+    ],
+    "5.3": [
+      "- [ ] **Raspado del rocío:** Inspeccione los vidrios de las ventanas en busca de pequeñas marcas de rocío; límpielas de inmediato con limpiavidrios y una cuchilla raspadora nueva."
+    ],
+    "5.4": [
+      "- [ ] **Revisión del suelo:** Asegúrese de que no haya caído ni una gota de pintura en las entradas de vehículos, las piedras decorativas del jardín ni los canteros con mantillo antes del recorrido final con el cliente."
+    ],
+    "5.5": ["Fuente: spec QA-002; APXA-005; pendiente de revisión:"],
+    "5.6": [
+      "- Retire la película de enmascarar, la cinta, la tapajuntas y cualquier otra protección (\"Retiro de la película\" original)."
+    ],
+    "5.7": [
+      "- Limpie el área de trabajo; guarde la película, la cinta, las cuchillas usadas, el agua de lavado de herramientas y los residuos para la ruta de residuos revisada (sección 15)."
+    ],
+    "5.8": [
+      "- Dé cuenta de las herramientas, el equipo y los materiales restantes; asegure los envases de cal, de recubrimiento y de químicos para el transporte bajo el programa de químicos, que todavía no existe (fuente: 29 sección 8.2 filas 5 y 6)."
+    ],
+    "5.9": [
+      "- Devuelva el equipo alquilado con fotos de la inspección de entrada y un recibo de devolución (fuente: APXA-007 \"devuelva los materiales sin usar/los alquileres\"; 29 sección 9.2 paso 7)."
+    ],
+    "5.10": ["- Restablezca todo lo modificado dentro del alcance (fuente: APXA-005)."],
+    "5.11": [
+      "TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo."
+    ],
+    "5.12": [
+      "- Flujos de residuos: agua de lavado y escorrentía que pueden llevar residuos de limpiador y de cloro y eflorescencia; lechada de cal y agua de lavado del encalado; agua de lavado del recubrimiento elastomérico y del enjuague del rociador; película de enmascarar y cinta usadas; cuchillas de afeitar usadas; envases vacíos de productos (fuente: 29 sección 8.2 fila 10; pasos originales; 31 sección 5.8 módulo de residuos)."
+    ],
+    "5.13": [
+      "- Destino y método según el municipio: REVISIÓN HUMANA: autoridad local y profesional de seguridad calificado (Q-29-10). Aquí no se saca ninguna conclusión sobre las reglas de descarga o de desecho."
+    ],
+    "5.14": ["- Los residuos peligrosos no se manejan sin una política aprobada (fuente: 31 sección 3.1 fila 15)."],
+    "6.1": [
+      "Las fotos son solo internas por defecto y evitan personas, documentos y objetos de valor que no se necesiten para el trabajo (fuente: spec REC-002; 31 sección 3.5 regla 7)."
+    ],
+    "6.2": [
+      "- Antes: cada fachada, con las grietas existentes, los desprendimientos, el mortero suelto, la eflorescencia, las manchas, los recubrimientos existentes, los vidrios de las ventanas, la jardinería, las entradas de vehículos, los vehículos y la propiedad adyacente (fuente: spec START-008; APXA-002; X-02)."
+    ],
+    "6.3": [
+      "- Durante: enmascarado completo; cualquier condición oculta que se encuentre, como mortero suelto o una fuente de humedad (fuente: spec JOB-004); la sección de prueba y la aprobación firmada del cliente una vez que exista un paso revisado (C-PT03-07).",
+      "  - Evidence: note"
+    ],
+    "6.4": [
+      "- Después: cada fachada asociada (fuente: spec QA-003); aberturas y vidrios sin enmascarado; el suelo y la jardinería (\"Revisión del suelo\" original); la nota de escorrentía y de limpieza (fuente: spec QA-002)."
+    ],
+    "6.5": [
+      "- Los avisos de llegada y de finalización son borradores; el trabajador o un administrador controla el envío real según la política (fuente: spec UXE-008)."
+    ],
+    "6.6": [
+      "- Informe el mortero suelto, los hallazgos de humedad y cualquier otro trabajo bloqueado solo con el mensaje aprobado de \"trabajo bloqueado\" (fuente: spec NTF-007; \"Defectos preexistentes de la mampostería\" del acuerdo).",
+      "  - Evidence: note"
+    ],
+    "6.7": [
+      "- Registre el resultado del recorrido: aceptado, aceptado con elementos pendientes, no disponible o en disputa (fuente: spec QA-004).",
+      "  - Evidence: note"
+    ],
+    "6.8": [
+      "- Las notas de curado, cuidado y nueva aplicación salen solo de los datos del producto aprobado (fuente: spec QA-008)."
+    ],
+    "6.9": [
+      "- No le diga al cliente que un recubrimiento es \"transpirable\" o \"impermeable\", que las grietas quedarán selladas o cubiertas, ni que la zona de rociado está completamente aislada (C-PT03-02, C-PT03-08; entrada 8 de No realizar). No describa el encabezado \"Garantía de protección y enmascarado del sitio\" del acuerdo como una garantía: no existen términos de garantía, y el encabezado está en revisión del abogado (30 sección 5 fila 6)."
+    ],
+    "6.10": ["Definición de terminado (fuente: spec QA-001 a QA-006; PT-03.QAC; APXA-005, APXA-006):"],
+    "6.11": [
+      "- Cada comprobación de la sección 13 está respondida o tiene una excepción registrada (QA-001).",
+      "  - Evidence: note"
+    ],
+    "6.12": ["- Fotos de después asociadas a las fachadas (QA-003).", "  - Evidence: photo"],
+    "6.13": ["- Limpieza hecha; enmascarado y protección retirados (QA-002)."],
+    "6.14": [
+      "- Equipo alquilado devuelto con los registros de la inspección de entrada (APXA-007; 29 sección 9.2).",
+      "  - Evidence: note"
+    ],
+    "6.15": ["- Todo lo modificado dentro del alcance está restablecido (APXA-005)."],
+    "6.16": [
+      "- Elementos pendientes registrados con un responsable y una fecha límite (QA-005).",
+      "  - Evidence: note"
+    ],
+    "6.17": ["- Resultado del recorrido registrado (QA-004).", "  - Evidence: note"],
+    "6.18": [
+      "- Ninguna retención queda abierta; cualquier incidente se reporta (sección 20; APXA-007).",
+      "  - Evidence: note"
+    ],
+    "stop.1": [
+      "La regla general para detener el trabajo es [[FACT-SVC-STOP-WORK-RULE]]. Activadores específicos del servicio:"
+    ],
+    "stop.2": [
+      "Activadores para detener el trabajo específicos del servicio (fuente: spec PT-03.SAF salvo que se indique otra; redacción PROPUESTA pendiente de revisión calificada):"
+    ],
+    "stop.3": [
+      "- Sistema de recubrimiento no confirmado como compatible con la mampostería y con cualquier recubrimiento o sellador existente: no recubra (\"confirme un sistema de recubrimiento compatible\")."
+    ],
+    "stop.4": [
+      "- Una fuente activa de humedad, o una eflorescencia que indica una, sin una decisión registrada: no recubra; deténgase y escale (\"atienda la causa activa de humedad antes de recubrir cuando se requiera\"; C-PT03-05)."
+    ],
+    "stop.5": [
+      "- El EPP requerido, incluida la protección para la piel y protección ocular, no está disponible: no manipule la cal ni los químicos (\"EPP/protección de la piel/protección ocular\")."
+    ],
+    "stop.6": [
+      "- Clima inadecuado, o altura o acceso más allá de la política aprobada: registre No iniciar / Bloqueado o deténgase (\"controles de clima y de altura\"; spec SCH-008, START-011).",
+      "  - Evidence: note"
+    ],
+    "stop.7": [
+      "- Se encuentra mortero suelto o que se desmorona o ladrillo que se desprende durante el lavado: detenga el lavado de esa área, fotografíela, regístrela (JOB-004) e infórmela con el mensaje aprobado (\"Defectos preexistentes de la mampostería\" del acuerdo; entrada 9 de No realizar).",
+      "  - Evidence: note"
+    ],
+    "stop.8": [
+      "- Personas o mascotas entran en la zona de lavado o de rociado, o el rocío se desvía hacia vehículos, plantas o propiedad vecina: deténgase (X-11; C-PT03-08)."
+    ],
+    "stop.9": [
+      "- Cualquier instrucción de mezclar el limpiador de mampostería con cloro antes de que haya un producto aprobado y una revisión de la SDS: no mezcle (C-PT03-01)."
+    ],
+    "stop.10": [
+      "- Habría que envolver o cubrir un medidor de gas, un regulador o una ventilación para continuar: deténgase y escale (entrada 10 de No realizar)."
+    ],
+    "stop.11": [
+      "Retenciones del servicio (insertadas en la sección 12). Las retenciones críticas no se pueden anular (31 sección 8.3); una retención que existe porque falta un módulo o una política requeridos (altura y acceso, lavado a presión, químicos y SDS, clima) se comporta como una retención crítica hasta que se apruebe ese módulo (31 sección 8.4 regla 4, PROPUESTO):"
+    ],
+    "stop.12": [
+      "| Retención | Dónde en la sección 12 | Rol que libera y evidencia |",
+      "|---|---|---|",
+      "| C-PT03-05: la eflorescencia es un indicador de humedad; ningún recubrimiento hasta que se registre la decisión sobre la fuente de humedad | Después de \"Raspado de eflorescencia\"; antes del primer paso de cada opción | Profesional calificado en mampostería o en envolvente del edificio: decisión registrada |",
+      "| C-PT03-01: NO MEZCLAR - pendiente de la selección de productos basada en las SDS | Antes de \"Lavado del moho superficial\" | Profesional de seguridad calificado: producto con nombre, SDS revisadas y método aprobado de la etiqueta registrados |",
+      "| C-PT03-03, X-08: lavado a presión; cifra de presión NO VERIFICADA; lavar antes de enmascarar es una secuencia en revisión | Antes y después de \"Limpieza a alta presión\"; antes de \"Envejecido artesanal\" | Profesional de seguridad calificado: método revisado frente al estado de la mampostería y las instrucciones del fabricante, aprobación registrada; el módulo de lavado a presión una vez aprobado |",
+      "| Medidores de gas, reguladores y salida de los ocupantes (31 sección 10 semilla; X-11) | Después de \"Envoltura total de ventanas\" | Compañía de gas o profesional de gas con licencia (medidores de gas); profesional de seguridad calificado |",
+      "| C-PT03-04, X-12: ningún trabajo en el borde del techo ni trabajo elevado hasta que se apruebe un plan de acceso | Antes de \"Protección de la línea del techo\" y \"Enmascarado del sofito\" | Profesional de seguridad calificado: política de altura y acceso aprobada y plan de acceso del trabajo registrados |",
+      "| C-PT03-02, C-PT03-05: sistema de recubrimiento compatible y decisión sobre la humedad antes de recubrir | Antes del primer paso de la Opción A y de la Opción B | Profesional calificado en mampostería o en envolvente del edificio, con los datos del fabricante del recubrimiento |",
+      "| EPP para la cal de PT-03.SAF: protección para la piel y protección ocular antes de apagar la cal | Antes de \"Mezcla de la lechada de cal apagada\" | Profesional de seguridad calificado: EPP seleccionado y disponible |",
+      "| X-08, X-11: rociado sin aire según las instrucciones de seguridad del fabricante del rociador | Antes de \"Preparación del rociador sin aire\" | Profesional de seguridad calificado; instrucciones del fabricante del rociador |",
+      "| X-17: estado del vidrio registrado antes de raspar | Antes de \"Raspado del rocío\" | Profesional de seguridad calificado (método de raspado) |",
+      "| X-27 clima | Dentro de las retenciones antes del paso de lavado | Profesional de seguridad calificado, una vez aprobado el módulo de clima y calor |"
+    ],
+    "stop.13": ["Ruta general: [[FACT-SVC-ESCALATION-PATH]]."],
+    "stop.14": ["Roles del servicio (los contactos son decisiones del dueño, Q-31-05):"],
+    "stop.15": [
+      "- Retenciones de seguridad de las secciones 10 y 12 (altura y plataformas elevadoras, lavado a presión, químicos, EPP para la cal, rociado sin aire): profesional de seguridad calificado."
+    ],
+    "stop.16": [
+      "- Fuente de humedad y compatibilidad del recubrimiento: profesional calificado en mampostería o en envolvente del edificio, con los datos técnicos del fabricante del recubrimiento."
+    ],
+    "stop.17": ["- Medidores de gas y reguladores: la compañía de gas o un profesional de gas con licencia."],
+    "stop.18": [
+      "- Preguntas de alcance (reparación de mampostería, sección de prueba, protección de la jardinería, trabajo comercial): dueño; derivaciones solo según la política de derivación del dueño (Q-30-15)."
+    ],
+    "stop.19": [
+      "- Reglas de escorrentía y de desecho: autoridad local, desde la perspectiva de cumplimiento legal; aquí no se saca ninguna conclusión."
+    ],
+    "stop.20": ["Ruta general: [[FACT-SVC-INCIDENT-REPORTING]]."],
+    "stop.21": [
+      "**REVISIÓN HUMANA:** abogado con licencia en KY y/o IN para la frase sobre culpa y responsabilidad; corredor de seguros para cualquier paso de notificación a la aseguradora que se añada más adelante."
+    ],
+    "stop.22": [
+      "Ejemplos para este servicio, todos reportados bajo JOB-008 (fuente: spec PT-03.HAZ): una caída o casi caída desde una escalera, una plataforma elevadora o el borde del techo; una lesión por inyección o un casi accidente con la lavadora a presión o el rociador sin aire; una salpicadura o exposición a la cal o a químicos; rocío sobre vehículos, plantas o propiedad vecina; vidrio rayado o roto; una falla del equipo o del alquiler. Las medidas de primera respuesta dependen del botiquín de seguridad del vehículo, que todavía no está definido (X-10)."
+    ]
+  },
+  "ambiguous": []
+}

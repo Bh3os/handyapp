@@ -1,0 +1,301 @@
+{
+  "sopId": "SOP-HI-03",
+  "englishContentSha256": "18abeba257777f630f8652b970628574d4685fa9b779115d674836b072ba6307",
+  "title": "SOP HI-03: Lavado a presión de entradas de auto y restauración de superficies",
+  "headings": [
+    "1. Preparación del sitio y protección de la propiedad",
+    "2. Preparación y mediciones/comprobaciones requeridas",
+    "3. Pasos de trabajo específicos del servicio",
+    "4. Comprobaciones de calidad",
+    "5. Limpieza y manejo de residuos",
+    "6. Comprobaciones finales, fotos de finalización y recorrido"
+  ],
+  "items": {
+    "1.1": ["Del acuerdo y de la spec, pendiente de revisión:"],
+    "1.2": [
+      "- Vehículos retirados de la entrada antes de que llegue la cuadrilla (fuente: acuerdo \"Retiro de vehículos\"; la distancia está bajo revisión del abogado y de seguridad)."
+    ],
+    "1.3": ["- Acceso a una llave de agua exterior (fuente: acuerdo \"Acceso al agua obligatorio\")."],
+    "1.4": [
+      "- Cada trabajo vuelve a confirmar que el acceso, los ocupantes, las mascotas, el estacionamiento, los peligros y las condiciones del área de trabajo siguen vigentes (fuente: spec CX-005)."
+    ],
+    "1.5": [
+      "- Las puertas, ventanas y jardinería cercanas y cualquier problema de drenaje se registran en la solicitud (fuente: spec HI-03.INT)."
+    ],
+    "1.6": [
+      "BRECHA - todavía no está en el acuerdo ni en ningún recordatorio (decisión del dueño; redacción a través de 30 y 32): ventanas y puertas cerradas; mascotas y niños dentro de la casa; objetos exteriores movidos; cabezales de rociadores y luces de jardín identificados; problemas de drenaje y reglas de la HOA (asociación de propietarios) informados (fuente: 04 HI-03 \"requisitos de preparación del cliente\"; X-11)."
+    ],
+    "2.1": ["Condiciones de despacho y de Iniciar trabajo (Start Job), pendientes de revisión:"],
+    "2.2": [
+      "- Versión de presupuesto aprobada con las superficies, las áreas y los tratamientos de manchas seleccionados, cada opción identificable por separado (fuente: spec CX-003, EST-005; APXA-001 \"revise el alcance/las exclusiones\")."
+    ],
+    "2.3": [
+      "- Solicitud registrada: tipo y estado de la superficie, área, drenaje, puertas, ventanas y jardinería cercanas, tipos de manchas, fuente de agua y clima (fuente: spec HI-03.INT).",
+      "  - Evidence: note"
+    ],
+    "2.4": [
+      "- Superficie confirmada como concreto; cualquier otra superficie, cualquier recubrimiento y cualquier sustrato dañado se envían a una evaluación en el sitio antes de un alcance firme (fuente: 04 HI-03 \"método de presupuesto\"; spec HI-03.SAF; C-HI03-08)."
+    ],
+    "2.5": [
+      "- Cada producto químico aprobado con una SDS revisada; un producto sin ella no se lleva al trabajo (fuente: 29 sección 8.3 regla provisional, PROPUESTO; C-HI03-02)."
+    ],
+    "2.6": [
+      "- Manejo del escurrimiento y del agua de lavado decidido para el municipio del trabajo; desconocido no significa permitido (fuente: 04 HI-03 \"requisitos previos\" e \"indicadores de permiso/licencia\"; manual de clasificación de riesgos paso 4). REVISIÓN HUMANA: autoridad local; aquí no se saca ninguna conclusión."
+    ],
+    "2.7": [
+      "- Hay disponible una llave de agua exterior sin restricciones; agua congelada o no disponible significa No iniciar / Bloqueado (No Start / Blocked), no un inicio forzado (fuente: acuerdo \"Acceso al agua obligatorio\"; spec SCH-008)."
+    ],
+    "2.8": [
+      "- Clima aceptable según el módulo de clima y calor, que todavía no existe; el clima severo es una condición para detener el trabajo (fuente: X-27; spec HI-03.INT \"clima\", START-011). TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo."
+    ],
+    "2.9": [
+      "- Vehículos movidos como lo requiere el acuerdo; la distancia que indica está bajo revisión del abogado y de seguridad (fuente: acuerdo \"Retiro de vehículos\"; notas de revisión del acuerdo)."
+    ],
+    "2.10": [
+      "- EPP seleccionado y disponible; herramientas, barreras y protección cargadas (fuente: spec START-004, START-005; APXA-001)."
+    ],
+    "2.11": [
+      "- El trabajador tiene la etiqueta de calificación para lavado a presión una vez que esté definida (fuente: spec SCH-003, PROPUESTO; Q-04-13)."
+    ],
+    "2.12": [
+      "- Indicadores de permiso, licencia y calificación de esta línea determinados; `unknown` (desconocido) bloquea el inicio de la línea afectada (fuente: 04 sección 6.1; spec START-010)."
+    ],
+    "2.13": [
+      "- Empiece solo cuando esté Listo o haya una excepción autorizada documentada; las retenciones críticas no se pueden anular (fuente: APXA-003; 31 sección 8.3).",
+      "  - Evidence: note"
+    ],
+    "2.14": [
+      "Pendiente de revisión; los métodos vienen de los módulos aprobados, ninguno de los cuales existe todavía:"
+    ],
+    "2.15": [
+      "- Confirme la dirección, el área de trabajo y el contacto; identifique mascotas y ocupantes (fuente: APXA-002)."
+    ],
+    "2.16": [
+      "- Inspeccione el sitio real frente a las instrucciones y registre las diferencias (fuente: spec START-007).",
+      "  - Evidence: note"
+    ],
+    "2.17": [
+      "- Fotografíe las grietas, el grabado, las manchas existentes y la propiedad adyacente antes del trabajo (fuente: spec START-008; APXA-002; X-02)."
+    ],
+    "2.18": [
+      "- Coloque barreras y mantenga a las personas y las mascotas fuera de la zona de lavado (fuente: spec HI-03.TLS \"barreras\", HI-03.SAF \"excluya a personas/mascotas\")."
+    ],
+    "2.19": [
+      "- Proteja los accesorios eléctricos, los tomacorrientes, las aberturas y la jardinería (fuente: spec HI-03.SAF)."
+    ],
+    "2.20": [
+      "- Instale los controles del agua de enjuague y del escurrimiento según sea necesario (fuente: spec HI-03.MAT; HI-03.SAF \"maneje el escurrimiento\")."
+    ],
+    "2.21": [
+      "- Conéctese a la llave de agua del cliente según lo acordado; si se necesita protección contra reflujo es una pregunta abierta (fuente: acuerdo \"Acceso al agua obligatorio\"; 04 HI-03 \"indicadores de permiso/licencia\"; REVISIÓN HUMANA: servicio de agua o inspector de plomería)."
+    ],
+    "2.22": [
+      "- Coloque la lavadora de gasolina y cárguele combustible solo bajo una regla revisada de combustible y escape: TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo. (fuente: 04 HI-03 \"peligros\")"
+    ],
+    "2.23": [
+      "- Inspeccione el equipo antes de usarlo según las instrucciones del fabricante (fuente: 31 sección 3.1 fila 7)."
+    ],
+    "2.24": [
+      "- Pruebe un área poco visible y registre el resultado antes del lavado completo (fuente: spec HI-03.SAF; 04 HI-03 \"evidencia de finalización\").",
+      "  - Evidence: note"
+    ],
+    "2.25": [
+      "- Complete las comprobaciones de seguridad, de EPP y del sitio y confirme que leyó el SOP y los peligros antes de empezar (fuente: APXA-003; spec START-004).",
+      "  - Evidence: note"
+    ],
+    "3.1": [
+      "*El procedimiento original sigue sin cambios y en su orden original; sus encabezados de opción bajan un nivel. Las líneas citadas HOLD y FLAG se añadieron el 2026-10-03 y están pendientes de revisión calificada. Un HOLD colocado antes de un paso debe liberarse antes de que empiece ese paso; un HOLD o FLAG colocado después de un paso lo suspende, lo limita o lo señala (36 D-36-17). Ninguna retención cambia la redacción, el orden ni elimina un paso.*"
+    ],
+    "3.2": [
+      "> FLAG (X-06): la redacción sobre moho de esta opción se mantiene sin cambios. La regla para detener el trabajo de la sección 10 incluye el posible moho; qué crecimiento exterior puede tratar esta opción lo decide el revisor calificado una vez que exista la definición de la empresa que separa el moho superficial (mildew), las algas y las manchas limpiables de una sospecha de crecimiento de moho (Q-31-10). Hasta entonces la regla para detener el trabajo no se flexibiliza. (fuente: 31 sección 5.8)"
+    ],
+    "3.3": [
+      "> HOLD (C-HI03-02, X-11): antes del paso de pretratamiento químico de abajo - no mezcle ni aplique ningún producto hasta que su SDS se haya revisado y el producto esté aprobado, el profesional de seguridad calificado haya seleccionado el EPP, las personas y las mascotas estén fuera del área de trabajo, las plantas y la jardinería, los accesorios eléctricos, los tomacorrientes, las puertas y las ventanas estén protegidos, y el control del escurrimiento esté instalado. Mezcle y aplique solo como lo permite la etiqueta del producto aprobado; aquí no se fija ninguna concentración, proporción ni tiempo de reposo. Pendiente de revisión calificada. (fuente: spec HI-03.SAF; 29 sección 8.2 filas 1 y 8; 31 sección 10)"
+    ],
+    "3.4": [
+      "- [ ] **Pretratamiento químico:** Mezcle una solución especial de hipoclorito de sodio (mezcla de lavado suave) con un surfactante espumante dentro de un rociador de bomba. Aplique una capa húmeda abundante sobre las áreas de moho oscuro."
+    ],
+    "3.5": [
+      "- [ ] **Período de reposo:** Deje que la solución repose durante 15 minutos para licuar las raíces microscópicas del moho en lo profundo de los poros del concreto. Mantenga la superficie húmeda."
+    ],
+    "3.6": [
+      "> FLAG: SIN FUENTE - verifique con las instrucciones del fabricante (etiqueta del producto y SDS) el tiempo de reposo del paso anterior; se mantiene sin cambios hasta que un revisor lo confirme o lo reemplace. (fuente: 31 sección 3.5 regla 3)"
+    ],
+    "3.7": [
+      "> HOLD (C-HI03-01, X-08, X-11, X-27): antes del paso de limpieza rotativa de superficies de abajo - pruebe un área poco visible y registre el resultado, mantenga a las personas y las mascotas fuera de la zona de lavado, proteja los accesorios eléctricos, los tomacorrientes y las aberturas, use el EPP que seleccione el profesional de seguridad calificado, y confirme una presión adecuada para la superficie y un clima aceptable según los módulos de lavado a presión y de clima (ninguno existe todavía). Pendiente de revisión calificada. (fuente: spec HI-03.SAF; HI-03.TLS \"EPP\"; HI-03.INT \"clima\"; 31 secciones 5.8 y 10)"
+    ],
+    "3.8": [
+      "- [ ] **Limpieza rotativa de superficies:** Conecte una plataforma circular de limpieza de superficies planas de 20 pulgadas a una lavadora a presión de gasolina de 3,000 PSI. Deslice la plataforma sobre el concreto en filas paralelas lentas y superpuestas para evitar líneas de rayas."
+    ],
+    "3.9": [
+      "> FLAG: SIN FUENTE - verifique con las instrucciones del fabricante el tamaño del equipo y la presión del paso anterior; no está confirmado que la presión sea adecuada para ninguna superficie (C-HI03-08). (fuente: spec HI-03.SAF \"use una presión adecuada para la superficie\"; 31 sección 3.5 regla 3)"
+    ],
+    "3.10": [
+      "> HOLD (C-HI03-02): esta opción termina sin un enjuague final del sitio, de las superficies adyacentes y de las plantas, y sin control del escurrimiento ni un destino para el agua de lavado; hay que añadir un método revisado antes de la activación. Pendiente de revisión calificada; las reglas de escurrimiento y de eliminación van a la autoridad local, y aquí no se saca ninguna conclusión. (fuente: spec HI-03.QAC \"escurrimiento controlado\", \"sitio seguro y enjuagado\"; 31 sección 10)"
+    ],
+    "3.11": [
+      "> FLAG (C-HI03-V01): los pasos de abajo están escritos para una mancha de aceite reciente; la saturación de aceite vieja o asentada, que según el acuerdo puede dejar un sombreado permanente, no tiene ningún paso. Registre el tipo de mancha, su antigüedad y el tratamiento (spec HI-03.QAC \"tratamiento de manchas documentado\"); alcance pendiente de decisión del dueño."
+    ],
+    "3.12": [
+      "> HOLD (C-HI03-02, X-11): antes del paso de levantamiento con absorbente de abajo - use solo un desengrasante o un producto de cataplasma (poultice) aprobado con una SDS revisada, use el EPP que seleccione el profesional de seguridad calificado, mantenga alejadas a las personas y las mascotas, y controle los residuos y el escurrimiento. Pendiente de revisión calificada. (fuente: spec HI-03.MAT; HI-03.SAF \"maneje el escurrimiento\"; 29 sección 8.3 regla provisional, PROPUESTO)"
+    ],
+    "3.13": [
+      "- [ ] **Levantamiento con absorbente:** Aplique una capa gruesa de desengrasante líquido o de polvo de arcilla para cataplasma directamente sobre la mancha de aceite reciente. Déjelo actuar durante 20 minutos para extraer el aceite del concreto poroso."
+    ],
+    "3.14": [
+      "> FLAG: SIN FUENTE - verifique con las instrucciones del fabricante (etiqueta del producto y SDS) el tiempo de contacto del paso anterior. (fuente: 31 sección 3.5 regla 3)"
+    ],
+    "3.15": [
+      "- [ ] **Restregado fuerte y agresivo:** Restriegue la mancha con fuerza usando un cepillo de piso de alambre de cerdas duras y agua tibia."
+    ],
+    "3.16": [
+      "> HOLD (C-HI03-01, X-08, X-11, X-27): antes del paso de la boquilla turbo de abajo - deben estar en su lugar el área de prueba, la exclusión de personas y mascotas de la zona de lavado, la protección de los accesorios eléctricos, los tomacorrientes y las aberturas, el EPP que seleccione el profesional de seguridad calificado y un clima aceptable según el módulo de clima (que todavía no existe); el método de boquilla de ese paso está a su vez suspendido (siguiente retención). Pendiente de revisión calificada. (fuente: spec HI-03.SAF; HI-03.HAZ \"lesión por inyección a alta presión\", \"cercanía eléctrica\"; HI-03.INT \"clima\")"
+    ],
+    "3.17": [
+      "- [ ] **Chorro con boquilla turbo:** Enjuague el área con una lanza de boquilla turbo oscilante de 0 grados a alta presión, sosteniendo la punta a 6 pulgadas de la mancha para quitar el sombreado residual."
+    ],
+    "3.18": [
+      "> HOLD (C-HI03-01): el paso anterior está suspendido pendiente de la revisión de seguridad. Su método de \"lanza de boquilla turbo oscilante de 0 grados, sosteniendo la punta a 6 pulgadas\" no está confirmado para ninguna superficie; la boquilla, la presión y la distancia vienen solo de las instrucciones del fabricante de la lavadora y de la boquilla y del profesional de seguridad calificado. Aquí no se fija ningún valor de reemplazo. (fuente: spec HI-03.SAF \"use una presión adecuada para la superficie\", HI-03.QAC \"sin grabado/rayas\"; 31 sección 10)"
+    ],
+    "3.19": [
+      "> HOLD (C-HI03-02): esta opción termina sin un enjuague final del área tratada y de las superficies adyacentes y sin recoger el desengrasante, los residuos de aceite y el agua de lavado; hay que añadir un método revisado antes de la activación. Pendiente de revisión calificada. (fuente: spec HI-03.QAC \"escurrimiento controlado\", \"sitio seguro y enjuagado\")"
+    ],
+    "4.1": [
+      "Comprobaciones observables de la tarjeta del servicio (fuente: spec HI-03.QAC; QA-001), con la evidencia entre corchetes. El trabajador hace la autocomprobación; qué comprobaciones necesitan un supervisor es una decisión del dueño (Q-31-15)."
+    ],
+    "4.2": ["- Limpieza uniforme sin grabado ni rayas [fotos de después por área, spec QA-003]."],
+    "4.3": [
+      "- Tratamiento de manchas documentado: tipo de mancha, producto usado y resultado [registro del tratamiento de manchas].",
+      "  - Evidence: note"
+    ],
+    "4.4": ["- Escurrimiento controlado [nota del control del escurrimiento, spec QA-002]."],
+    "4.5": [
+      "- Propiedad adyacente protegida: plantas, accesorios, aberturas y vehículos [fotos de después comparadas con las fotos de llegada, spec START-008].",
+      "  - Evidence: photo"
+    ],
+    "4.6": [
+      "- Sitio enjuagado, y los peligros creados por el trabajo eliminados o registrados. Esta es una comprobación observable, no una certificación de seguridad (fuente: spec HI-03.QAC \"sitio seguro y enjuagado\"; SKILL de clasificación de riesgos \"nunca certifique la seguridad del sitio\").",
+      "  - Evidence: note"
+    ],
+    "5.1": ["Fuente: spec QA-002; APXA-005; pendiente de revisión:"],
+    "5.2": ["- Retire las barreras, las cubiertas y la protección."],
+    "5.3": [
+      "- Limpie el área de trabajo; guarde el absorbente y la cataplasma usados para la ruta de residuos revisada (sección 15)."
+    ],
+    "5.4": [
+      "- Cuente las herramientas, el equipo y los materiales restantes; asegure los envases de químicos para el transporte según el programa de químicos, que todavía no existe (fuente: 29 sección 8.2 filas 5 y 6)."
+    ],
+    "5.5": [
+      "- Restablezca todo lo modificado dentro del alcance, como la conexión de agua del cliente (fuente: APXA-005)."
+    ],
+    "5.6": [
+      "TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo."
+    ],
+    "5.7": [
+      "- Tipos de residuos: agua de lavado y escurrimiento que pueden llevar hipoclorito, surfactante, desengrasante y residuos de aceite; absorbente y cataplasma usados; envases vacíos de químicos (fuente: 29 sección 8.2 fila 10; spec HI-03.MAT)."
+    ],
+    "5.8": [
+      "- Destino y método según el municipio: REVISIÓN HUMANA: autoridad local y profesional de seguridad calificado (Q-29-10; 31 sección 5.8 módulo de residuos, escurrimiento y eliminación). Aquí no se saca ninguna conclusión sobre las reglas de descarga o de eliminación."
+    ],
+    "5.9": ["- Los residuos peligrosos no se manejan sin una política aprobada (fuente: 31 sección 3.1 fila 15)."],
+    "6.1": [
+      "Las fotos son solo internas por defecto y evitan personas, documentos y objetos de valor que no se necesiten para el trabajo (fuente: spec REC-002; 31 sección 3.5 regla 7)."
+    ],
+    "6.2": [
+      "- Antes: fotos de llegada y del estado existente del área de trabajo, de las grietas, el grabado y las manchas existentes, y de la propiedad adyacente (fuente: spec START-008; APXA-002; X-02).",
+      "  - Evidence: photo"
+    ],
+    "6.3": [
+      "- Durante: el resultado del área de prueba y el tratamiento de manchas aplicado (fuente: spec HI-03.SAF, HI-03.QAC; 04 HI-03 \"evidencia de finalización\", PROPUESTO)."
+    ],
+    "6.4": [
+      "- Después: fotos de después asociadas a cada área (fuente: spec QA-003) y la nota del control del escurrimiento y de la limpieza (fuente: spec QA-002).",
+      "  - Evidence: photo"
+    ],
+    "6.5": [
+      "- Los avisos de llegada y de finalización son borradores; el trabajador o un administrador controla el envío real según la política (fuente: spec UXE-008)."
+    ],
+    "6.6": [
+      "- Registre el resultado del recorrido: aceptado, aceptado con elementos pendientes, no disponible o en disputa (fuente: spec QA-004).",
+      "  - Evidence: note"
+    ],
+    "6.7": ["- Las notas de cuidado salen solo de datos de producto aprobados (fuente: spec QA-008)."],
+    "6.8": ["- Trabajo bloqueado: use solo el mensaje aprobado de \"trabajo bloqueado\" (fuente: spec NTF-007)."],
+    "6.9": [
+      "- No le diga al cliente que todas las manchas saldrán (acuerdo \"Limitaciones de manchas\"), que los productos son \"ecológicamente seguros\" o inofensivos (C-HI03-V02), que la superficie es segura ni que el moho queda eliminado (X-06; No realice la entrada 8), y no ofrezca el bioescudo hasta que esté aprobado (C-HI03-05)."
+    ],
+    "6.10": ["Definición de terminado (fuente: spec QA-001 a QA-006; HI-03.QAC; APXA-005, APXA-006):"],
+    "6.11": [
+      "- Cada comprobación de la sección 13 respondida, o una excepción registrada (QA-001).",
+      "  - Evidence: note"
+    ],
+    "6.12": ["- Fotos de después asociadas a las áreas (QA-003).", "  - Evidence: photo"],
+    "6.13": ["- Limpieza hecha y protección retirada (QA-002)."],
+    "6.14": [
+      "- La conexión de agua del cliente y todo lo demás modificado dentro del alcance restablecidos (APXA-005)."
+    ],
+    "6.15": [
+      "- Elementos pendientes registrados con un responsable y una fecha límite (QA-005).",
+      "  - Evidence: note"
+    ],
+    "6.16": ["- Resultado del recorrido registrado (QA-004).", "  - Evidence: note"],
+    "6.17": [
+      "- Ninguna retención queda abierta; cualquier incidente reportado (sección 20; APXA-007).",
+      "  - Evidence: note"
+    ],
+    "stop.1": [
+      "La regla general para detener el trabajo es [[FACT-SVC-STOP-WORK-RULE]]. Activadores específicos del servicio:"
+    ],
+    "stop.2": [
+      "Activadores para detener el trabajo específicos del servicio (fuente: spec HI-03.SAF salvo que se indique otra cosa; redacción PROPUESTA pendiente de revisión calificada):"
+    ],
+    "stop.3": [
+      "- Personas o mascotas entran en la zona de lavado: detenga el lavado hasta que se hayan alejado (X-11)."
+    ],
+    "stop.4": [
+      "- La prueba en un área poco visible muestra grabado, rayas u otro daño: deténgase y escale (HI-03.SAF \"pruebe un área poco visible\"; HI-03.QAC \"sin grabado/rayas\")."
+    ],
+    "stop.5": [
+      "- No está confirmado que la presión sea adecuada para la superficie: no empiece a lavar (HI-03.SAF \"use una presión adecuada para la superficie\"; C-HI03-08)."
+    ],
+    "stop.6": [
+      "- Los accesorios eléctricos, los tomacorrientes, las aberturas o la jardinería no se pueden proteger: no lave hacia ellos; deténgase y escale (HI-03.SAF \"proteja lo eléctrico/las aberturas/la jardinería\")."
+    ],
+    "stop.7": ["- El escurrimiento no se puede manejar: deténgase (HI-03.SAF \"maneje el escurrimiento\")."],
+    "stop.8": [
+      "- Sustrato dañado: deténgase, registre (JOB-004) y escale (HI-03.SAF \"deténgase ante un sustrato dañado\").",
+      "  - Evidence: note"
+    ],
+    "stop.9": [
+      "- Agua congelada o no disponible, o clima severo: registre No iniciar / Bloqueado (No Start / Blocked) en lugar de empezar (spec SCH-008, START-011; acuerdo \"Acceso al agua obligatorio\").",
+      "  - Evidence: note"
+    ],
+    "stop.10": [
+      "Retenciones del servicio (insertadas en la sección 12). Las retenciones críticas no se pueden anular (31 sección 8.3); una retención que existe porque falta un módulo o una política requeridos (lavado a presión, químicos y SDS, clima) se comporta como una retención crítica hasta que se apruebe ese módulo (31 sección 8.4 regla 4, PROPUESTO):"
+    ],
+    "stop.11": [
+      "| Retención | Dónde en la sección 12 | Rol que la libera y evidencia |",
+      "|---|---|---|",
+      "| C-HI03-01: área de prueba, zona de exclusión, EPP y protección de accesorios, tomacorrientes y aberturas antes de lavar; método de boquilla turbo suspendido | Antes de los pasos rotativo y de boquilla turbo; después del paso de boquilla turbo | Profesional de seguridad calificado: método revisado a partir de las instrucciones del fabricante de la lavadora y de la boquilla, aprobación registrada |",
+      "| C-HI03-02: SDS, EPP, protección de la jardinería, enjuague final y control del escurrimiento para el programa de químicos | Antes de los pasos de pretratamiento químico y de levantamiento con absorbente; después del último paso de cada opción | Profesional de seguridad calificado (SDS y EPP); autoridad local para las reglas de descarga |",
+      "| X-08 módulo de lavado a presión; X-11 ocupantes y mascotas; X-27 módulo de clima | En las retenciones antes de los pasos de lavado | Profesional de seguridad calificado, una vez aprobados los módulos |"
+    ],
+    "stop.12": ["Ruta general: [[FACT-SVC-ESCALATION-PATH]]."],
+    "stop.13": ["Roles del servicio (los contactos son decisiones del dueño, Q-31-05):"],
+    "stop.14": ["- Retenciones de seguridad de las secciones 10 y 12: profesional de seguridad calificado."],
+    "stop.15": [
+      "- Preguntas de alcance (detallado del perímetro, bioescudo, otras superficies, manchas de aceite viejas): dueño."
+    ],
+    "stop.16": [
+      "- Reglas de escurrimiento y de eliminación: autoridad local, a través del enfoque de cumplimiento legal; aquí no se saca ninguna conclusión."
+    ],
+    "stop.17": ["Ruta general: [[FACT-SVC-INCIDENT-REPORTING]]."],
+    "stop.18": [
+      "**REVISIÓN HUMANA:** abogado con licencia en KY y/o IN para la oración sobre culpa y responsabilidad; corredor de seguros para cualquier paso de notificación a la aseguradora que se añada después."
+    ],
+    "stop.19": [
+      "Ejemplos para este servicio, todos reportados bajo JOB-008 (fuente: spec HI-03.HAZ): una lesión por inyección o un casi accidente; una salpicadura o exposición a químicos; superficies grabadas o dañadas; daños a plantas o vehículos; falla del equipo. Las medidas de primera respuesta dependen del botiquín de seguridad del vehículo, que todavía no está definido (X-10)."
+    ]
+  },
+  "ambiguous": []
+}

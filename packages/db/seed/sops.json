@@ -8,7 +8,6 @@
       "sourceFile": "Standard Of Operations/sop Routine Cleaning Checklist.md",
       "sourceSha256": "ac1e0ef89c92d938c58ee8c9812e8ffa1edbcd3855dc9b4f30a11b12b90b7667",
       "reviewState": "pending_competent_review",
-      "spanishStatus": "pending",
       "content": {
         "stages": [
           {
@@ -171,7 +170,6 @@
       "sourceFile": "Standard Of Operations/sop Deep Cleaning CheckList.md",
       "sourceSha256": "6197e2b72b3a6a329e9aff974ca7ae73eab0090b2bfe6ad630244273642d1f16",
       "reviewState": "pending_competent_review",
-      "spanishStatus": "pending",
       "content": {
         "stages": [
           {
@@ -353,7 +351,6 @@
       "sourceFile": "Standard Of Operations/sop Move-In and Move-Out Cleaning Checklist.md",
       "sourceSha256": "442f5ef4ad84a04dcbbbe38b52975cce4c51671f30d8725b4eb8894d02d1f47c",
       "reviewState": "pending_competent_review",
-      "spanishStatus": "pending",
       "content": {
         "stages": [
           {
@@ -527,7 +524,6 @@
       "sourceFile": "Standard Of Operations/sop Post-Construction Cleaning Checklist.md",
       "sourceSha256": "eb4f7f53653f7c6ad666a2cb075b32bdee0fce4390ff6e84171c22635bec0fd2",
       "reviewState": "pending_competent_review",
-      "spanishStatus": "pending",
       "content": {
         "stages": [
           {
@@ -710,7 +706,6 @@
       "sourceFile": "Standard Of Operations/sop Airbnb Cleaning and Turnover Checklist.md",
       "sourceSha256": "2e8336620f5936cff2f45485c7292ca17fd018519045a1114375c3d9ccfac0b7",
       "reviewState": "pending_competent_review",
-      "spanishStatus": "pending",
       "content": {
         "stages": [
           {
@@ -890,7 +885,6 @@
       "sourceFile": "Standard Of Operations/sop Hotel-Style Housekeeping Checklist.md",
       "sourceSha256": "9bfb9b374ea820d1865508b86fe4e9677e0cb6b015d382ad9436503c902cdf22",
       "reviewState": "pending_competent_review",
-      "spanishStatus": "pending",
       "content": {
         "stages": [
           {
@@ -1081,7 +1075,6 @@
       "sourceFile": "Standard Of Operations/sop Air Duct and Vent Cleaning Checklist.md",
       "sourceSha256": "2e67b2764b3c400c1f6f990721fadd7151afccda86ad0e8f227fa0ae798cf7c6",
       "reviewState": "pending_competent_review",
-      "spanishStatus": "pending",
       "content": {
         "stages": [
           {
@@ -1243,7 +1236,6 @@
       "sourceFile": "Standard Of Operations/sop drywall-patching.md",
       "sourceSha256": "0ae766f6635aefdbeee771b80d29b857a9da73baedf594b42a33e5cc861eb57c",
       "reviewState": "pending_competent_review",
-      "spanishStatus": "pending",
       "content": {
         "stages": [
           {
@@ -1427,7 +1419,6 @@
       "sourceFile": "Standard Of Operations/sop popcorn-removal.md",
       "sourceSha256": "71e31116b1ee099b01b3cf294790f7a65369f90039836bfde31926d4e1b9170e",
       "reviewState": "pending_competent_review",
-      "spanishStatus": "pending",
       "content": {
         "stages": [
           {
@@ -1614,7 +1605,6 @@
       "sourceFile": "Standard Of Operations/sop drywall-remodeling.md",
       "sourceSha256": "ef073f1438b9d6464c638b489fd5935eef6a9c90790e8da514d7a7ee542ea0e3",
       "reviewState": "pending_competent_review",
-      "spanishStatus": "pending",
       "content": {
         "stages": [
           {
@@ -1793,7 +1783,6 @@
       "sourceFile": "Standard Of Operations/sop new-construction.md",
       "sourceSha256": "ebeb523531c0e325314885e073630d5d0ea450127d18da7c82e0ac7e31da0451",
       "reviewState": "pending_competent_review",
-      "spanishStatus": "pending",
       "content": {
         "stages": [
           {
@@ -1981,7 +1970,6 @@
       "sourceFile": "Standard Of Operations/sop-picture-hanging.md",
       "sourceSha256": "ce22cf0bb0746fb9f37e81e55955057e261ff03498d9ef2f1128ab275a171e89",
       "reviewState": "pending_competent_review",
-      "spanishStatus": "pending",
       "content": {
         "stages": [
           {
@@ -2137,7 +2125,6 @@
       "sourceFile": "Standard Of Operations/sop-grill-cleaning.md",
       "sourceSha256": "e73c9d5de47a4ea9127632114d0f6d7870b869efafa1d5b10e80d4014fa90701",
       "reviewState": "pending_competent_review",
-      "spanishStatus": "pending",
       "content": {
         "stages": [
           {
@@ -2280,7 +2267,6 @@
       "sourceFile": "Standard Of Operations/sop-driveway-cleaning.md",
       "sourceSha256": "5b030fd9d518e82b65912361a2eafdd44541b4dd42bead464e8f27c9c0db58b7",
       "reviewState": "pending_competent_review",
-      "spanishStatus": "pending",
       "content": {
         "stages": [
           {
@@ -2452,7 +2438,6 @@
       "sourceFile": "Standard Of Operations/sop-tv-mounting.md",
       "sourceSha256": "429c31ef64d6038d12427d5cd251dd957aa327458abe9d887b7237fd7695c50f",
       "reviewState": "pending_competent_review",
-      "spanishStatus": "pending",
       "content": {
         "stages": [
           {
@@ -2609,7 +2594,6 @@
       "sourceFile": "Standard Of Operations/sop-smart-locks.md",
       "sourceSha256": "9a6935211e937e7e3695efc1cb5db649fc9a967769eb4a015591d8120c5b0d86",
       "reviewState": "pending_competent_review",
-      "spanishStatus": "pending",
       "content": {
         "stages": [
           {
@@ -2752,7 +2736,6 @@
       "sourceFile": "Standard Of Operations/sop-gutter-maintenance.md",
       "sourceSha256": "5a6a89488205405e7aea5d989f04228cfff771a044f6b3b70c532d08d93a151b",
       "reviewState": "pending_competent_review",
-      "spanishStatus": "pending",
       "content": {
         "stages": [
           {
@@ -2900,7 +2883,6 @@
       "sourceFile": "Standard Of Operations/sop-attic-insulation.md",
       "sourceSha256": "9b3b65fdd65fe04a72f8b61d2562ef9d58a953a2df953bae32129b3c26c95441",
       "reviewState": "pending_competent_review",
-      "spanishStatus": "pending",
       "content": {
         "stages": [
           {
@@ -3052,7 +3034,6 @@
       "sourceFile": "Standard Of Operations/sop-closet-shelving.md",
       "sourceSha256": "27bfd736834a1f61e6598842f4f7a1c7ef7270daf3bd25a9753cfa271d1c7c8e",
       "reviewState": "pending_competent_review",
-      "spanishStatus": "pending",
       "content": {
         "stages": [
           {
@@ -3202,7 +3183,6 @@
       "sourceFile": "Standard Of Operations/sop-trim-molding.md",
       "sourceSha256": "a78156ea49f423a1f1586b9d4de4dc3e7b3276b751bdf696a624ef32b662f1de",
       "reviewState": "pending_competent_review",
-      "spanishStatus": "pending",
       "content": {
         "stages": [
           {
@@ -3361,7 +3341,6 @@
       "sourceFile": "Standard Of Operations/sop-fence-repair.md",
       "sourceSha256": "8b19cf0c85038f8a7645c68e916d52faaefab6a6c3d530a1a5ba08e173b645f6",
       "reviewState": "pending_competent_review",
-      "spanishStatus": "pending",
       "content": {
         "stages": [
           {
@@ -3523,7 +3502,6 @@
       "sourceFile": "Standard Of Operations/sop-deck-repair.md",
       "sourceSha256": "c72deadd4fe093674d1b3bbfed36b11f01487f0b1fb9e9df3724731259e060b2",
       "reviewState": "pending_competent_review",
-      "spanishStatus": "pending",
       "content": {
         "stages": [
           {
@@ -3685,7 +3663,6 @@
       "sourceFile": "Standard Of Operations/sop-interior-painting.md",
       "sourceSha256": "c9502f307c0f6b409941ecc4403979c6d63650a19dac090490f913554e748970",
       "reviewState": "pending_competent_review",
-      "spanishStatus": "pending",
       "content": {
         "stages": [
           {
@@ -3861,7 +3838,6 @@
       "sourceFile": "Standard Of Operations/sop-deck-staining.md",
       "sourceSha256": "f21fcecb36e39609b096627806637dccb1afe1cb1b1d3883eeff5b0038954626",
       "reviewState": "pending_competent_review",
-      "spanishStatus": "pending",
       "content": {
         "stages": [
           {
@@ -4061,7 +4037,6 @@
       "sourceFile": "Standard Of Operations/sop-brick-limewashing.md",
       "sourceSha256": "399fc9b85a6fbe3e816f24c19ede98f2d5b6315191b48a8d4f72bae342d9ff22",
       "reviewState": "pending_competent_review",
-      "spanishStatus": "pending",
       "content": {
         "stages": [
           {
@@ -4259,7 +4234,6 @@
       "sourceFile": "Standard Of Operations/sop-wallpaper-removal.md",
       "sourceSha256": "4fdf12de0e5359ea00f5c37b4842fb7ebf41af6277dd291d4fde3fcbe26ad568",
       "reviewState": "pending_competent_review",
-      "spanishStatus": "pending",
       "content": {
         "stages": [
           {

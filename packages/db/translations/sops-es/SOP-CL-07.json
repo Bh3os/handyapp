@@ -1,0 +1,309 @@
+{
+  "sopId": "SOP-CL-07",
+  "englishContentSha256": "8bb56f382be4d80d41a9c0191e2824b6606672b2e2cf740c8fb3a8c26b0c6a83",
+  "title": "SOP CL-07: Limpieza de ductos de aire y ventilación",
+  "headings": [
+    "1. Preparación del sitio y protección de la propiedad",
+    "2. Preparación y mediciones/comprobaciones requeridas",
+    "3. Pasos de trabajo específicos del servicio",
+    "4. Comprobaciones de calidad",
+    "5. Limpieza y manejo de residuos",
+    "6. Comprobaciones finales, fotos de finalización y recorrido"
+  ],
+  "items": {
+    "1.1": [
+      "- Ningún archivo de CL-07 define la preparación del cliente (fuente: 04 CL-07 \"requisitos de preparación del cliente\", BRECHA)."
+    ],
+    "1.2": [
+      "- PROPUESTO para la lista de preparación, redacción para la aprobación del dueño y del abogado: acceso libre a todas las rejillas de suministro, los retornos y la unidad manejadora de aire; tamaño del filtro; ocupantes o mascotas con sensibilidad respiratoria; aceptación de una interrupción de la electricidad; objetos cerca de las rejillas movidos o cubiertos (fuente: 04 CL-07 \"requisitos de preparación del cliente\"; spec CL-07.INT)."
+    ],
+    "1.3": [
+      "- PROPUESTO: los ocupantes, los niños y las mascotas se mantienen fuera de las habitaciones con rejillas abiertas y lejos del equipo y las mangueras mientras se hace el trabajo (fuente: X-11; spec CX-005; 31 sección 5.8 módulo de ocupantes, pendiente)."
+    ],
+    "1.4": [
+      "- Cada trabajo vuelve a confirmar el acceso, los ocupantes, las mascotas, el estacionamiento, los peligros y las condiciones del área de trabajo (fuente: spec CX-005)."
+    ],
+    "1.5": [
+      "- Las comprobaciones previas al inicio propias de HandyHub nunca se trasladan al cliente (fuente: 30 sección 4.1 cláusula 5)."
+    ],
+    "1.6": [
+      "> HOLD (condición previa; C-CL07-V03; spec CL-07.INT, CL-07.SAF): antes de \"Apagado del sistema\" más abajo, confirme los datos de la solicitud (\"tipo de sistema HVAC, rejillas/retornos accesibles, problema reportado, tamaño del filtro, sospecha de moho/plagas/contaminación, capacidad del equipo\") frente al sitio, y fotografíe el área de la unidad manejadora de aire donde sea accesible, cada rejilla y retorno accesibles, y cualquier ducto visible; no entre a un ático ni a un espacio de acceso bajo el piso para esta revisión (sección 2, Fuera del alcance). Si ve una sospecha de moho importante, un material que se sospeche que contiene asbesto (por ejemplo, forro, cinta o masilla de ductos antiguos), ductos dañados, o un trabajo que necesita un profesional de HVAC con licencia, no empiece: regístrelo y escale (sección 10). Esta revisión es una retención de seguridad, no la \"Inspección base\" mencionada en el archivo de precios, y no certifica nada. Pendiente de revisión."
+    ],
+    "1.7": [
+      "> HOLD (condición previa; C-CL07-06; X-07; spec CL-07.SAF \"sistema apagado/aislamiento según el procedimiento\"): antes de \"Apagado del sistema\" más abajo, tenga en cuenta que el método de aislamiento está en revisión por un contratista de HVAC o un electricista con licencia: no están definidos todavía a qué interruptor (breaker) se refiere el paso (el interruptor (breaker) principal de la casa o el circuito propio del equipo de HVAC), el bloqueo contra la reenergización, la verificación ni el restablecimiento. El requisito de aislamiento sigue vigente; no lo omita y no improvise otro método. No apague ningún interruptor (breaker) hasta que se le haya dicho al cliente que se interrumpirá la electricidad y lo haya aceptado; si el cliente no lo acepta, o algo en la casa depende de electricidad sin interrupción, no empiece y escale (sección 19). Confirme antes del aislamiento cómo se alimentan la aspiradora, el taladro y el compresor, para que nada se reenergice a mitad del trabajo. Pendiente de revisión."
+    ],
+    "1.8": [
+      "- [ ] **Apagado del sistema:** Apague el sistema HVAC en el termostato y apague el interruptor (breaker) principal del circuito para garantizar la seguridad del operador."
+    ],
+    "1.9": [
+      "- [ ] **Contención:** Coloque lonas protectoras de plástico sobre todos los muebles, pisos y camas que estén justo debajo o cerca de las rejillas de aire para atrapar el hollín desprendido."
+    ],
+    "1.10": [
+      "> FLAG (C-CL07-V01; X-11): el paso anterior depende de las lonas protectoras para \"atrapar el hollín desprendido\" que cae en las habitaciones, y \"Retiro de rejillas\" más abajo abre todas las rejillas, mientras que el inventario tiene tapones de bloqueo de espuma y sellos magnéticos para rejillas para sellar las rejillas bajo presión negativa, que ningún paso usa. El método de contención para \"Pasada de agitación\" y \"Extracción por aspiración\" no está resuelto, pendiente de revisión de seguridad calificada (instrucciones del fabricante del equipo; contratista de HVAC con licencia para cualquier abertura de acceso); aquí no se escribe ningún método. Mantenga a los ocupantes, los niños y las mascotas fuera de las habitaciones con rejillas abiertas mientras se hace el trabajo (spec CX-005; X-11). Pendiente de revisión."
+    ],
+    "2.1": [
+      "*Condiciones de despacho y de Iniciar trabajo (Start Job) para este servicio (fuente: spec APXA-001, APXA-003; 31 sección 3.1 fila 3). Cada punto está pendiente de revisión.*"
+    ],
+    "2.2": [
+      "- Solicitud completa: \"tipo de sistema HVAC, rejillas/retornos accesibles, problema reportado, tamaño del filtro, sospecha de moho/plagas/contaminación, capacidad del equipo\" (fuente: spec CL-07.INT).",
+      "  - Evidence: note"
+    ],
+    "2.3": [
+      "- La sospecha de moho u otra condición peligrosa en la solicitud bloquea un presupuesto en firme y envía el trabajo primero a una evaluación en el sitio (fuente: manual del asistente de presupuestos \"Las decisiones faltantes sobre condiciones peligrosas bloquean un presupuesto en firme.\"; 04 CL-07 \"método de presupuesto\")."
+    ],
+    "2.4": [
+      "- Una versión aprobada del presupuesto cubre las tareas de la sección 2; empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada. El trabajo listado en \"Fuera del alcance\" no se realiza aunque se haya presupuestado (fuente: spec CX-003; APXA-003; 28 PRC-042, PROPUESTO).",
+      "  - Evidence: note"
+    ],
+    "2.5": [
+      "- CL-07 no se puede reservar hasta que esté activo un acuerdo o un anexo de alcance aprobado; el archivo del acuerdo es un esqueleto que solo tiene la estructura (fuente: 30 AGR-031, PROPUESTO; 02 G-001)."
+    ],
+    "2.6": [
+      "- Retenciones por tareas con licencia y por especialistas: donde la política marque acceso al plenum, una conexión al calentador (furnace), sospecha de moho, sospecha de asbesto o uso de biocidas, Iniciar trabajo (Start Job) sigue bloqueado hasta que se apruebe el requisito previo (fuente: spec START-010; 04 CL-07 \"requisitos previos\", PROPUESTO; C-CL07-07)."
+    ],
+    "2.7": [
+      "- Capacidad del equipo documentada: si la aspiradora HEPA de presión negativa, el compresor y el taladro son propios o alquilados, y cómo se alimentan mientras el sistema HVAC está aislado (fuente: spec CL-07.INT \"capacidad del equipo\"; datos del dueño 2026-10-02 \"La capacidad reportada no es prueba documental de ... equipo\"; C-CL07-06).",
+      "  - Evidence: note"
+    ],
+    "2.8": [
+      "- Se le ha dicho al cliente que se interrumpirá la electricidad y lo ha aceptado; redacción pendiente de revisión del dueño y del abogado (fuente: 04 CL-07 \"requisitos previos\" y \"requisitos de preparación del cliente\"; C-CL07-06)."
+    ],
+    "2.9": [
+      "- Altura y acceso: las rejillas y los ventiladores que necesitan equipo de acceso siguen bloqueados hasta que exista una política aprobada de altura y acceso (fuente: spec CL-07.HAZ \"escalera\"; 02 G-005; X-12; 31 sección 8.4 regla 4; manual del planificador de trabajos \"Una escalera faltante o un permiso no verificado mantiene bloqueadas las tareas afectadas.\")."
+    ],
+    "2.10": [
+      "- Cada producto químico que se lleve tiene una SDS revisada; todavía no se ha aprobado ninguno, así que no se lleva ninguno (fuente: 29 sección 8.3 regla provisional, PROPUESTO; X-09)."
+    ],
+    "2.11": [
+      "- Antes de que este SOP se pueda activar, los revisores nombrados aprueban: el método de aislamiento (C-CL07-06); el paso \"Pasada de agitación\" y la definición de moho de la empresa (C-CL07-01; Q-31-10); el método de contención (C-CL07-V01); la comprobación del tipo de ducto y de la herramienta antes de la agitación; el límite del alcance con licencia (C-CL07-07); la especificación del filtro (revisión de HVAC) (fuente: 31 sección 10 CL-07; datos del dueño L20)."
+    ],
+    "2.12": [
+      "- Al llegar: confirme la dirección, el área de trabajo y el contacto; identifique mascotas y ocupantes; inspeccione el sitio real frente a las instrucciones; tome las fotos requeridas del estado existente; proteja el área de trabajo; identifique los servicios públicos y las restricciones de emergencia relevantes para la tarea (fuente: spec APXA-002).",
+      "  - Evidence: photo"
+    ],
+    "2.13": [
+      "- Revisión previa al trabajo con fotos antes de cualquier paso, y una segunda revisión en cada rejilla abierta antes del aspirado de la bota (retenciones en la sección 12; fuente: C-CL07-V03; spec CL-07.SAF)."
+    ],
+    "2.14": [
+      "- Protección y contención: lonas protectoras según \"Contención\"; el método de contención no está resuelto (fuente: SOP \"Contención\"; C-CL07-V01)."
+    ],
+    "2.15": [
+      "- Aislar-verificar-restablecer: \"Apagado del sistema\" aísla el sistema, pero el punto de aislamiento, la verificación y el restablecimiento no están definidos, y el módulo compartido de aislar-verificar-restablecer no existe todavía (fuente: X-07; C-CL07-06; 31 sección 5.8)."
+    ],
+    "2.16": [
+      "- Organización de la unidad de aspiración, las mangueras, el compresor y el equipo de acceso: TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo."
+    ],
+    "2.17": [
+      "- Antes de empezar: complete las comprobaciones requeridas de seguridad, de EPP y del sitio; confirme que leyó el SOP y los peligros; empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada (fuente: spec APXA-003; START-004).",
+      "  - Evidence: note"
+    ],
+    "3.1": [
+      "*Las líneas del procedimiento original que siguen no han cambiado y están en su orden original. Las líneas que empiezan con \"HOLD\" o \"FLAG\" se añadieron el 2026-10-03; están pendientes de revisión y nunca reemplazan el texto del paso. Una retención colocada antes de un paso debe cumplirse antes de que ese paso empiece; una retención colocada después de un paso limita o suspende el paso que está encima.*"
+    ],
+    "3.2": [
+      "> HOLD (condición previa; X-12; spec CL-07.HAZ \"escalera\"; 02 G-005): antes de \"Retiro de rejillas\" más abajo, las rejillas del techo, y cualquier rejilla que usted no pueda alcanzar de pie en el piso, necesitan equipo de acceso bajo una política aprobada de altura y acceso; no existe ninguna y no hay ninguna escalera en el inventario. Hasta que exista, deje esas rejillas en su lugar y regístrelas como no hechas (sección 13). Pendiente de revisión."
+    ],
+    "3.3": [
+      "- [ ] **Retiro de rejillas:** Desatornille y retire con cuidado todas las rejillas de suministro (salida) y de retorno (entrada) de las paredes y los techos."
+    ],
+    "3.4": [
+      "- [ ] **Restregado profundo:** Sumerja las rejillas metálicas en agua tibia con jabón; restriegue la grasa, el polvo acumulado y la película de nicotina, y luego séquelas por completo."
+    ],
+    "3.5": [
+      "> HOLD (condición previa; spec CL-07.SAF; X-06): antes de \"Aspirado de la bota\" más abajo, mire dentro de la bota de cada rejilla abierta y fotografíela. Si ve una sospecha de crecimiento de moho, un material que se sospeche que contiene asbesto, un ducto dañado o un forro de ducto dañado, no aspire ni toque esa abertura: regístrelo y escale (sección 10). Hasta que exista la definición de moho de la empresa, la sospecha de crecimiento de moho se trata como una retención crítica (31 sección 8.4 regla 2; Q-31-10). Pendiente de revisión."
+    ],
+    "3.6": [
+      "- [ ] **Aspirado de la bota:** Use un accesorio de cepillo de la aspiradora para limpiar la conexión metálica inmediata (la \"bota\") dentro de la pared antes de entrar a fondo en el ducto."
+    ],
+    "3.7": [
+      "> FLAG (C-CL07-V01): el método de contención para \"Pasada de agitación\" y \"Extracción por aspiración\" más abajo no está resuelto - pendiente de revisión de seguridad (vea la marca bajo \"Contención\"). Aquí no se escribe ningún método de contención ni de presión negativa."
+    ],
+    "3.8": [
+      "> HOLD (condición previa; spec CL-07.HAZ \"daño al forro del ducto\"; 31 sección 10 CL-07): antes de \"Pasada de agitación\" más abajo, registre el tipo de ducto y el estado de cualquier forro de ducto en cada rejilla abierta, y confirme con las instrucciones de los fabricantes del cepillo y del látigo de aire que la herramienta es adecuada para ese tipo de ducto. Si el tipo de ducto es desconocido, el forro está dañado o la herramienta no está aprobada para él, no introduzca la herramienta: registre la limitación (sección 13) y escale. Pendiente de revisión."
+    ],
+    "3.9": [
+      "- [ ] **Pasada de agitación:** Introduzca cepillos rotativos flexibles de limpieza o látigos de aire neumáticos hasta el fondo de cada línea de ducto individual para desprender el polvo endurecido y las esporas de moho."
+    ],
+    "3.10": [
+      "> HOLD (C-CL07-01, crítica; X-06): el paso anterior está retenido pendiente de la revisión de un profesional de seguridad calificado y de un evaluador de moho. Trata el desprendimiento de \"esporas de moho\" como trabajo de rutina, mientras que la spec CL-07.SAF dice \"deténgase ante sospecha de moho importante, material que contiene asbesto, ductos dañados o un alcance que requiere trabajo de HVAC con licencia\". Hasta que los revisores liberen el paso y exista la definición de moho de la empresa (Q-31-10), el paso no se realiza; dondequiera que se sospeche crecimiento de moho, no lo agite, aspire ni trate - deténgase y escale (sección 10). La remediación de moho no se realiza bajo este SOP (sección 2, No realice 10). Pendiente de revisión."
+    ],
+    "3.11": [
+      "> HOLD (condición previa; C-CL07-07; spec CL-07.SAF \"alcance que requiere trabajo de HVAC con licencia\"): antes de \"Extracción por aspiración\" más abajo, tenga en cuenta que el paso no dice cómo se conecta la aspiradora a la línea troncal, y no hay ningún método de conexión aprobado. No corte, parche ni selle una abertura en el plenum o en una línea troncal, y no conecte ningún equipo al calentador (furnace): si eso es trabajo de HVAC con licencia o con permiso en el municipio del trabajo es una pregunta abierta, y solo lo hace un profesional de HVAC con licencia si la revisión de licencias lo permite (No realice 11; REVISIÓN HUMANA: autoridad de licencias del municipio, contratista de HVAC con licencia). Si la extracción necesita cualquiera de las dos cosas, deténgase y escale. Pendiente de revisión."
+    ],
+    "3.12": [
+      "- [ ] **Extracción por aspiración:** Opere un sistema de aspiración HEPA de presión negativa de servicio pesado, montado en camión o portátil, conectado a la línea troncal para succionar todos los residuos sueltos."
+    ],
+    "3.13": [
+      "> HOLD (C-CL07-03, crítica): después del paso anterior no se hace ninguna nebulización, rociado ni aspersión de ningún desinfectante, sanitizante o biocida. El archivo de precios vende la nebulización antimicrobiana \"después de aspirar\", pero la nebulización no está cubierta por este SOP y no se puede realizar hasta que se aprueben un producto específico con instrucciones de etiqueta para uso en ductos y su SDS, con controles para los ocupantes, las mascotas y el reingreso fijados por el revisor (31 sección 10 CL-07; 29 sección 8.2 punto 9; REVISIÓN HUMANA: profesional de seguridad calificado; regulador estatal de pesticidas). Pendiente de revisión."
+    ],
+    "3.14": [
+      "> HOLD (condición previa; spec CL-07.HAZ \"equipo eléctrico/mecánico\"; X-07; X-12): antes de \"Sistemas de extracción\" más abajo, confirme que el ventilador de la campana de la cocina y el extractor del baño están apagados y aislados para que no puedan arrancar mientras haya manos o herramientas dentro; si \"Apagado del sistema\" los cubre depende del método de aislamiento en revisión (C-CL07-06). Si no se puede confirmar el aislamiento, no meta las manos ni las herramientas en el ventilador; escale. Un ventilador montado en el techo que usted no pueda alcanzar de pie en el piso necesita equipo de acceso bajo la política de altura y acceso, que todavía no existe: déjelo y regístrelo como no hecho (sección 13). Pendiente de revisión."
+    ],
+    "3.15": [
+      "- [ ] **Sistemas de extracción:** Raspe meticulosamente la grasa endurecida de las aspas del ventilador de extracción de la campana de la cocina; aspire el polvo de los extractores del baño."
+    ],
+    "3.16": [
+      "> FLAG (C-CL07-05; X-23; C-CL07-04): el paso anterior cubre solo las aspas del ventilador de la campana de cocinas residenciales y los extractores de baño. La extracción de cocinas comerciales (campanas, recorridos de ventiladores y ductos) no está cubierta (C-CL07-05; X-23), y las líneas de ventilación de secadoras no están cubiertas (C-CL07-04). Bajo el límite PROPUESTO, los filtros de la campana pertenecen a CL-02 y los ventiladores y los ductos de la campana a CL-07 (04 sección 5; Q-04-15). El paso no nombra ningún producto químico; cualquier desengrasante debe ser un producto aprobado con una SDS revisada (29 sección 8.3). Pendiente de revisión."
+    ],
+    "3.17": [
+      "> HOLD (condición previa; spec CL-07.QAC \"filtro instalado si está incluido\"; spec CL-07.INT \"tamaño del filtro\"): antes de \"Retiro del filtro\" más abajo, confirme que el reemplazo del filtro está incluido en el presupuesto aprobado y que el filtro de reemplazo está en el sitio y coincide con el tamaño registrado en la solicitud. Si no, deje el filtro existente en su lugar, regístrelo como una limitación (sección 13) y avise al cliente (sección 17). Pendiente de revisión."
+    ],
+    "3.18": [
+      "- [ ] **Retiro del filtro:** Saque el filtro de aire HVAC viejo y tapado y séllelo de inmediato en una bolsa de plástico para evitar que suelte polvo."
+    ],
+    "3.19": [
+      "- [ ] **Instalación del filtro nuevo:** Verifique las dimensiones correctas y la flecha de dirección del flujo de aire, y luego deslice un filtro de aire completamente nuevo de alta clasificación MERV."
+    ],
+    "3.20": [
+      "> FLAG (31 sección 10 CL-07; REVISIÓN HUMANA: contratista de HVAC con licencia): \"filtro de aire de alta clasificación MERV\" en el paso anterior no es una regla de selección. La clasificación del filtro debe ser adecuada para este sistema según lo especifique el fabricante del equipo de HVAC (compatibilidad del sistema, revisión de HVAC); aquí no se fija ninguna clasificación. Un filtro que aporta el cliente necesita un registro START-009 (sección 8). Pendiente de revisión."
+    ],
+    "3.21": [
+      "> HOLD (condición previa; C-CL07-08; spec CL-07.QAC \"sistema restablecido\"; spec APXA-005): antes de \"Prueba del sistema\" más abajo, vuelva a instalar y asegure cada rejilla retirada en \"Retiro de rejillas\" en su ubicación original, y cuente las rejillas frente al número retirado; una rejilla de techo floja es un riesgo de caída de objetos. Una rejilla o un sujetador que no se puede asegurar se registra y se escala, y la prueba no se hace hasta que se resuelva. Confirme que no queda ninguna herramienta, manguera, varilla ni látigo en los ductos, la unidad manejadora de aire o un ventilador, y que todos están lejos de ellos, antes de restablecer la electricidad; la electricidad se restablece solo con el método de aislamiento en revisión (C-CL07-06; X-07). Pendiente de revisión."
+    ],
+    "3.22": [
+      "- [ ] **Prueba del sistema:** Restablezca la electricidad, haga funcionar el sistema en modo \"Solo ventilador\" durante 5 minutos, y verifique que cero partículas de polvo residual salen hacia la propiedad limpia."
+    ],
+    "3.23": [
+      "> FLAG (31 sección 10 CL-07; C-CL07-02): \"verifique que cero partículas de polvo residual salen hacia la propiedad limpia\" en el paso anterior no es medible. No es un criterio de aprobación y nunca se le dice al cliente; en su lugar, registre lo que se observó y documente las limitaciones (spec CL-07.QAC; sección 13). FLAG: SIN FUENTE - verificar con las instrucciones del fabricante: el tiempo de funcionamiento de \"5 minutos\" y la prueba en \"Solo ventilador\" no vienen de ninguna instrucción de un fabricante de equipos de HVAC (31 sección 3.5 regla 3; REVISIÓN HUMANA: contratista de HVAC con licencia). Pendiente de revisión."
+    ],
+    "4.1": [
+      "*De la spec CL-07.QAC. El trabajador no puede marcar el trabajo como completo sin responder las comprobaciones requeridas o registrar una excepción (fuente: spec QA-001). Qué comprobaciones necesitan una segunda persona en lugar de una autocomprobación es una pregunta abierta (Q-31-15).*"
+    ],
+    "4.2": [
+      "| Comprobación | Fuente | Inspector | Evidencia |",
+      "|---|---|---|---|",
+      "| Rejillas y alcance de ductos accesibles completados según lo aprobado: cada rejilla registrada como hecha, retenida o no hecha, con el motivo | spec CL-07.QAC \"rejillas/alcance de ductos accesibles completados\" | Trabajador; supervisor donde la política lo requiera (Q-31-15) | Fotos de después asociadas a las rejillas y las áreas (QA-003) |",
+      "| Cada rejilla retirada vuelta a instalar, asegurada y contada frente al número retirado | C-CL07-08; spec CL-07.QAC \"sistema restablecido\" | Trabajador | Conteo registrado; fotos de después |",
+      "| Residuos controlados | spec CL-07.QAC \"residuos controlados\" | Trabajador | Fotos de la limpieza (QA-002); método según la decisión de contención (C-CL07-V01) |",
+      "| Filtro instalado si está incluido, del tamaño registrado en la solicitud, con la dirección del flujo de aire que indica el paso | spec CL-07.QAC \"filtro instalado si está incluido\"; SOP \"Instalación del filtro nuevo\" | Trabajador | Foto del filtro instalado, o registro de \"no incluido\" / \"no reemplazado\" |",
+      "| Sistema restablecido: electricidad restablecida con el método de aislamiento revisado y el termostato devuelto a la configuración del cliente | spec CL-07.QAC \"sistema restablecido\"; APXA-005 | Trabajador; supervisor donde la política lo requiera | Respuesta en la lista de verificación; hasta que exista el método de aislamiento, se registra \"método pendiente de revisión\" (C-CL07-06) |",
+      "| Limitaciones y condiciones sin resolver documentadas: pasos retenidos, rejillas o ventiladores no alcanzados, condiciones sospechosas encontradas, filtro no reemplazado | spec CL-07.QAC \"limitaciones y condiciones sin resolver documentadas\" | Trabajador | Notas y fotos (JOB-004) |",
+      "| Funcionamiento en \"Solo ventilador\": lo que se observó, no una medición | SOP \"Prueba del sistema\" (marcado); 31 sección 10 CL-07 | Trabajador | Nota de observación; no se registra ni se afirma ningún valor de calidad del aire |"
+    ],
+    "4.3": [
+      "- Una firma o un reconocimiento del cliente no libera una retención de seguridad sin resolver (fuente: manual del asistente de calidad \"Un formulario firmado por el cliente no libera una retención de seguridad sin resolver.\").",
+      "  - Evidence: note"
+    ],
+    "4.4": [
+      "- La evidencia faltante se registra como desconocida, no como aprobada (fuente: manual del asistente de calidad).",
+      "  - Evidence: note"
+    ],
+    "5.1": [
+      "- Limpie el área, retire los residuos, las lonas protectoras y cualquier contención, y cuente las herramientas y los materiales, incluidas las varillas, los látigos, las mangueras y cualquier tapón o sello usado (fuente: spec APXA-005; QA-002)."
+    ],
+    "5.2": [
+      "- Restablezca los servicios y los componentes modificados dentro del alcance (fuente: spec APXA-005), y restablezca la electricidad solo con el método de aislamiento en revisión (C-CL07-06)."
+    ],
+    "5.3": ["- Devuelva los materiales no usados (fuente: spec APXA-007)."],
+    "5.4": [
+      "- Tipos de residuos: residuos recogidos por la aspiradora HEPA; filtros usados, embolsados como indica \"Retiro del filtro\"; grasa raspada de las aspas del ventilador de la campana; lonas protectoras usadas; agua de lavado de las rejillas (fuente: sección 12; 29 sección 8.2 punto 10 \"filtros usados\")."
+    ],
+    "5.5": [
+      "- No hay ningún método ni destino de desecho aprobado: contenga cada tipo de residuo y deséchelo solo con el método que el revisor apruebe para el municipio (fuente: 31 sección 3.1 fila 15; Q-29-10; REVISIÓN HUMANA: profesional de seguridad calificado; autoridad local)."
+    ],
+    "5.6": [
+      "- Si se encontró una sospecha de moho o un material que se sospeche que contiene asbesto, sus residuos no se manejan bajo este SOP hasta que decida un revisor calificado (fuente: spec CL-07.SAF; sección 10)."
+    ],
+    "6.1": [
+      "- Antes: fotos del estado existente de las áreas de trabajo, las rejillas de suministro, las rejillas retiradas, cualquier ducto visible y el área accesible de la unidad manejadora de aire, incluidas las revisiones previas al trabajo de la sección 12 (fuente: spec APXA-002 \"tome las fotos requeridas del estado existente\"; START-008; C-CL07-V03).",
+      "  - Evidence: photo"
+    ],
+    "6.2": [
+      "- Durante: condiciones ocultas o inesperadas - sospecha de moho, material sospechoso, ductos o forro dañados - con fotos y su gravedad (fuente: spec JOB-004; UXE-006)."
+    ],
+    "6.3": [
+      "- Después: fotos asociadas a las rejillas y las áreas, las rejillas vueltas a instalar y el filtro instalado (fuente: spec QA-003; 04 CL-07 \"evidencia de finalización\"). Una cámara de inspección se usa solo si el dueño lo aprueba (fuente: 04 CL-07 \"evidencia de finalización\", PROPUESTO).",
+      "  - Evidence: photo"
+    ],
+    "6.4": [
+      "- Cada foto es solo interna por defecto; el uso en mercadeo necesita un consentimiento aparte (fuente: spec REC-002, REC-003). Evite personas, documentos y objetos de valor que no se necesiten para el trabajo (fuente: 31 sección 3.5 regla 7)."
+    ],
+    "6.5": [
+      "- Los avisos de llegada y de finalización son borradores; el trabajador o el administrador controla el envío (fuente: spec UXE-008)."
+    ],
+    "6.6": [
+      "- Antes de \"Apagado del sistema\", se le dice al cliente, con la redacción aprobada, que se interrumpirá la electricidad (fuente: C-CL07-06; 04 CL-07 \"requisitos de preparación del cliente\"; redacción TBD - dueño y abogado)."
+    ],
+    "6.7": [
+      "- Registre el resultado del recorrido: aceptado, aceptado con elementos pendientes, no disponible o en disputa (fuente: spec QA-004).",
+      "  - Evidence: note"
+    ],
+    "6.8": [
+      "- Notas de cuidado solo a partir de datos aprobados del producto o del fabricante; todavía no hay ninguna aprobada (fuente: spec QA-008)."
+    ],
+    "6.9": [
+      "- Limitaciones, comunicadas con la redacción aprobada: pasos retenidos, rejillas o ventiladores no alcanzados, condiciones sospechosas encontradas y remitidas, filtro no reemplazado (fuente: spec CL-07.QAC; retenciones de la sección 12). Redacción TBD - dueño y revisor de seguridad calificado."
+    ],
+    "6.10": [
+      "- Trabajo bloqueado: solo el mensaje aprobado de \"trabajo bloqueado\"; ningún detalle de incidentes ni códigos de acceso por SMS o correo electrónico (fuente: spec NTF-007, COM-002)."
+    ],
+    "6.11": [
+      "- Lo que no se debe decir: \"Aire limpio, facturas de energía más bajas\", \"respire aire puro y limpio\", \"Eliminamos alérgenos, esporas de moho y caspa de mascotas\", \"elimine las esporas de moho persistentes\", \"ecológico\", \"cero partículas de polvo residual\", ni ningún resultado de calidad del aire, de salud, de ahorro de energía o de eliminación de moho (fuente: spec CL-07.SAF; C-CL07-01; C-CL07-02; C-CL07-03; 32 registro A fila 26 y registro B filas 8, 9 y 60)."
+    ],
+    "6.12": [
+      "- Comprobaciones de calidad requeridas respondidas o una excepción registrada (fuente: spec QA-001; sección 13).",
+      "  - Evidence: note"
+    ],
+    "6.13": ["- Fotos de después asociadas a las rejillas y las áreas (fuente: spec QA-003).", "  - Evidence: photo"],
+    "6.14": ["- Cada rejilla retirada vuelta a instalar, asegurada y contada (fuente: C-CL07-08; spec CL-07.QAC)."],
+    "6.15": [
+      "- Estado del filtro registrado: instalado como estaba incluido, no incluido, o no reemplazado con el motivo (fuente: spec CL-07.QAC \"filtro instalado si está incluido\").",
+      "  - Evidence: note"
+    ],
+    "6.16": [
+      "- Sistema restablecido, o el estado del restablecimiento registrado bajo la retención C-CL07-06 (fuente: spec CL-07.QAC \"sistema restablecido\"; APXA-005).",
+      "  - Evidence: note"
+    ],
+    "6.17": [
+      "- Limpieza y manejo de residuos hechos según lo aprobado; herramientas y materiales contados (fuente: spec QA-002; APXA-005; secciones 14 y 15)."
+    ],
+    "6.18": [
+      "- Limitaciones, retenciones abiertas y elementos pendientes registrados; resultado del recorrido registrado (fuente: spec CL-07.QAC; QA-004; APXA-006).",
+      "  - Evidence: note"
+    ],
+    "6.19": [
+      "- El trabajo se cierra solo cuando los pasos operativos y financieros requeridos están completos (fuente: spec APXA-007)."
+    ],
+    "stop.1": [
+      "La regla general para detener el trabajo es [[FACT-SVC-STOP-WORK-RULE]]. Activadores específicos del servicio:"
+    ],
+    "stop.2": [
+      "*Bloque estándar copiado sin cambios de 31 estándar de SOP sección 8.5 (redacción PROPUESTA; REVISIÓN HUMANA: profesional de seguridad calificado; abogado con licencia en KY y/o IN para la frase sobre el \"derecho a detener el trabajo\"; revisor bilingüe para el español).*"
+    ],
+    "stop.3": [
+      "**Activadores para detener el trabajo y retenciones del servicio (CL-07).** Indicación de la tarjeta para detener el trabajo (spec CL-07.SAF): \"sistema apagado/aislamiento según el procedimiento; no haga afirmaciones sin respaldo sobre la calidad del aire interior; deténgase ante sospecha de moho importante, material que contiene asbesto, ductos dañados o un alcance que requiere trabajo de HVAC con licencia\"."
+    ],
+    "stop.4": [
+      "| Activador o retención | Acción | Lo libera (evidencia) | Fuente |",
+      "|---|---|---|---|",
+      "| Sospecha de moho importante; hasta que exista la definición de moho de la empresa, cualquier sospecha de crecimiento de moho en ductos, botas, rejillas o la unidad manejadora de aire | No lo agite, aspire ni toque; detenga el trabajo afectado; fotos; escale | Evaluador de moho calificado y profesional de seguridad calificado (retención crítica) | spec CL-07.SAF; C-CL07-01; 31 sección 8.4 regla 2 |",
+      "| Material que se sospeche que contiene asbesto, por ejemplo forro, cinta o masilla de ductos | No lo toque; deténgase; escale | Inspector de asbesto acreditado (retención crítica) | spec CL-07.SAF; 31 sección 8.3 regla 2 |",
+      "| Ductos o forro de ducto dañados; tipo de ducto desconocido o no aprobado para el cepillo o el látigo de aire | No introduzca herramientas; registre; escale | Revisor de seguridad calificado; contratista de HVAC con licencia para daños en ductos | spec CL-07.SAF, CL-07.HAZ; 31 sección 10 CL-07 |",
+      "| Alcance que requiere trabajo de HVAC con licencia: aberturas en el plenum o en la línea troncal, conexión al calentador (furnace), trabajo en equipos de HVAC más allá de la sección 12 | No lo realice; registre la solicitud; remita | Revisión de licencias; contratista de HVAC con licencia (clase crítica) | spec CL-07.SAF; C-CL07-07; 31 sección 8.3 regla 2 |",
+      "| Aislamiento no confirmado, o la electricidad no se puede interrumpir de forma segura (el cliente no lo ha aceptado, o algo depende de electricidad sin interrupción) | No empiece, o detenga el paso afectado; escale | Contratista de HVAC o electricista con licencia (método); dueño | spec CL-07.SAF \"sistema apagado/aislamiento según el procedimiento\"; C-CL07-06; X-07 |",
+      "| La contención no se puede instalar como lo requiere el revisor | No agite ni extraiga | Profesional de seguridad calificado | C-CL07-V01; spec CL-07.QAC \"residuos controlados\" |",
+      "| Rejillas o ventiladores que necesitan equipo de acceso | Déjelos en su lugar; regístrelos como no hechos | Política aprobada de altura y acceso | spec CL-07.HAZ \"escalera\"; X-12; 02 G-005 |",
+      "| Una solicitud de nebulización, limpieza de ventilación de secadora o trabajo de extracción de cocina comercial | No lo realice; registre; remita al dueño | Dueño, después de la revisión del SOP, de licencias y de la SDS | C-CL07-03; C-CL07-04; C-CL07-05; 28 PRC-042 |",
+      "| Un producto químico sin una SDS revisada | No lo use | SDS revisada y producto aprobado | 29 sección 8.3 |",
+      "| Olor a gas | Emergencia (sección 19, paso 2) | Servicios de emergencia; reporte de incidente (sección 20) | 31 sección 8.5; 04 CL-07 \"peligros\" |"
+    ],
+    "stop.5": [
+      "Ningún rol puede anular las retenciones críticas; se liberan solo con una evaluación calificada registrada. El material que se sospeche peligroso y el alcance de HVAC no aprobado son clases críticas, y la sospecha de crecimiento de moho se trata como crítica hasta que exista la definición de moho de la empresa (fuente: 31 sección 8.3 regla 2 y sección 8.4 regla 2)."
+    ],
+    "stop.6": ["Ruta general: [[FACT-SVC-ESCALATION-PATH]]."],
+    "stop.7": [
+      "*Bloque estándar copiado sin cambios de 31 sección 8.5 (redacción PROPUESTA; REVISIÓN HUMANA: profesional de seguridad calificado).*"
+    ],
+    "stop.8": [
+      "**Rutas de escalamiento de CL-07 (decisiones del dueño pendientes, Q-31-05):** la sospecha de moho importante va al dueño, luego a un evaluador de moho calificado; el material que se sospeche que contiene asbesto, a un inspector de asbesto acreditado; el alcance de HVAC con licencia, los ductos dañados o las preocupaciones sobre equipos de HVAC, a un contratista de HVAC con licencia; las preocupaciones de aislamiento o eléctricas, a un electricista o contratista de HVAC con licencia; un olor a gas es una emergencia (paso 2) (fuente: 04 CL-07 lista de REVISIÓN HUMANA de \"indicadores de permiso/licencia\"; C-CL07-01; C-CL07-06; C-CL07-07). Contactos: `<decisión del dueño: contacto de emergencia>` y `<decisión del dueño: orden de escalamiento>` (Q-31-05)."
+    ],
+    "stop.9": ["Ruta general: [[FACT-SVC-INCIDENT-REPORTING]]."],
+    "stop.10": [
+      "*Bloque estándar copiado sin cambios de 31 sección 8.5 (redacción PROPUESTA). REVISIÓN HUMANA: abogado con licencia en KY y/o IN para la frase sobre culpa y responsabilidad; corredor de seguros para cualquier paso de notificación a la aseguradora que se añada más adelante.*"
+    ],
+    "stop.11": [
+      "- Ejemplos de CL-07 que se deben reportar: cortes con los bordes de ductos o rejillas; lesiones en los ojos o la cara por látigos de aire comprimido o por residuos; una caída desde el equipo de acceso; exposición al polvo o a un material que se sospeche peligroso; daños a ductos, forros de ductos, rejillas, equipos de HVAC o la propiedad del cliente; daños causados por la interrupción de la electricidad (fuente: spec CL-07.HAZ; C-CL07-06; JOB-008)."
+    ]
+  },
+  "ambiguous": []
+}

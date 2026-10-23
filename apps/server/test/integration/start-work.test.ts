@@ -1034,6 +1034,47 @@ describe('[T45][HH-PKT-04][HH-PKT-06] a critical shortage or an unreleased Spani
     expect((await start('ann', visitId, v)).statusCode).toBe(201)
   })
 
+  it('[HH-LANG-04][T70] once the Spanish text is released as AI-reviewed, the Spanish-reading worker reviews the updated packet and starts', async () => {
+    const p = await project()
+    const jobId = await approve(p)
+    const visitId = await fixtureVisit(p, jobId, ['ben'])
+    await prepare('ben', visitId, jobId)
+    expect(missingOf(await gate('ben', visitId))).toEqual(['SPANISH_SAFETY_REVIEW_PENDING'])
+    // The comparison of the pinned English version passes (synthetic Spanish lines: the English structure).
+    const wp = await t.db
+      .selectFrom('work.work_packages as w')
+      .innerJoin('catalog.sop_versions as v', 'v.id', 'w.sop_version_id')
+      .select(['v.id', 'v.sop_id', 'v.content', 'v.content_sha256'])
+      .where('w.job_id', '=', jobId)
+      .executeTakeFirstOrThrow()
+    const pass = { warnings: 'pass', ppe: 'pass', prohibited_actions: 'pass', measurements_units: 'pass' }
+    const results = { ...pass, step_order: 'pass', stop_work: 'pass' }
+    const content = wp.content as { stages: unknown[]; stopWork: unknown[] }
+    await t.db
+      .insertInto('catalog.sop_spanish_versions')
+      .values({
+        sop_version_id: wp.id,
+        sop_id: wp.sop_id,
+        english_content_sha256: wp.content_sha256,
+        title: 'SOP sintético',
+        content: JSON.stringify({ stages: content.stages, stopWork: content.stopWork }),
+        content_sha256: 'e'.repeat(64),
+        translation_sha256: 'f'.repeat(64),
+        comparison_tool: 'compare-safety-es@1',
+        checked_on: '2026-10-23',
+        results: JSON.stringify(results),
+        release_status: 'ai_reviewed',
+      })
+      .execute()
+    // The packet now says the Spanish text is released: it changed, so the worker reviews it again before starting.
+    const before = await gate('ben', visitId)
+    expect(missingOf(before)).not.toContain('SPANISH_SAFETY_REVIEW_PENDING')
+    expect(missingOf(before).some((c) => c.startsWith('PACKET_'))).toBe(true)
+    const v = await review('ben', jobId)
+    expect((await gate('ben', visitId)).outcome).toBe('ready')
+    expect((await start('ben', visitId, v)).statusCode).toBe(201)
+  })
+
   it('a critical loadout shortage blocks start for every role until the Owner resolves it', async () => {
     const p = await project()
     const jobId = await approve(p)

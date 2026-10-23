@@ -1,0 +1,260 @@
+{
+  "sopId": "SOP-HI-06",
+  "englishContentSha256": "4d359a8b240d1d0b840c7271c6bdfa2fb3ad7fca8045f4d4bc6b7379a2189579",
+  "title": "SOP HI-06: Mantenimiento de canaletas y protección contra hojas",
+  "headings": [
+    "1. Preparación del sitio y protección de la propiedad",
+    "2. Preparación y mediciones/comprobaciones requeridas",
+    "3. Pasos de trabajo específicos del servicio",
+    "4. Comprobaciones de calidad",
+    "5. Limpieza y manejo de residuos",
+    "6. Comprobaciones finales, fotos de finalización y recorrido"
+  ],
+  "items": {
+    "1.1": [
+      "- En cada trabajo, confirme que el acceso, los ocupantes, las mascotas, el estacionamiento, los peligros y las condiciones del área de trabajo siguen vigentes (fuente: spec CX-005)."
+    ],
+    "1.2": [
+      "- PROPUESTO, pendiente de revisión del dueño (fuente: 04 HI-06 tarjeta, fila de preparación del cliente): acceso a todos los lados de la casa; vehículos y objetos retirados de debajo de los aleros; mascotas adentro (X-11); acceso a una llave de agua exterior; filtraciones, hundimientos y drenajes subterráneos conocidos informados; información de la garantía del techo antes de instalar los protectores."
+    ],
+    "1.3": [
+      "- Los ocupantes, los niños y las mascotas se quedan fuera de la zona de exclusión durante el trabajo (fuente: spec HI-06.SAF \"mantener la zona de exclusión\"; X-11)."
+    ],
+    "2.1": [
+      "- HOLD (C-HI06-01): no se realiza ninguna parte de este SOP hasta que exista una política aprobada de altura/acceso y de protección contra caídas y este SOP pase una revisión competente; hasta entonces el trabajo en altura está bloqueado. Solo se libera con la aprobación registrada del profesional de seguridad calificado y del dueño (fuente: spec HI-06.SAF \"más allá de la política aprobada de altura/acceso\"; 02 G-005; 31 sección 7.2 rango 3).",
+      "  - Evidence: note"
+    ],
+    "2.2": [
+      "- Solicitud completa: altura del edificio/línea del techo, tipo/longitud de la canaleta, bajantes, acceso, condiciones del suelo, filtraciones/hundimientos conocidos, producto de protector (fuente: spec HI-06.INT)."
+    ],
+    "2.3": [
+      "- Versión aprobada del presupuesto y alcance; la Opción B solo cuando los protectores están en el alcance aceptado (fuente: spec CX-003; 04 HI-06 tarjeta, fila de requisitos previos)."
+    ],
+    "2.4": [
+      "- Etiqueta de calificación para trabajo en escalera para cada trabajador en el sitio, según la defina la política de altura/acceso (fuente: spec SCH-003, START-010; 04 HI-06 tarjeta, fila de requisitos previos)."
+    ],
+    "2.5": [
+      "- Clima y suelo adecuados al inicio; los umbrales los fija el profesional de seguridad calificado, aquí no se fija ninguno; si no son adecuados, registre No iniciar / Bloqueado (fuente: spec HI-06.SAF \"comprobación del clima/suelo\", SCH-008; X-27).",
+      "  - Evidence: note"
+    ],
+    "2.6": [
+      "- La antigüedad de la propiedad (año de construcción, o desconocido) se registra antes de cualquier trabajo con cepillo de alambre giratorio en canaletas o fascias pintadas. Hasta que un revisor calificado fije el umbral de evaluación (Q-31-07), una superficie pintada antigua o de antigüedad desconocida no se lija ni se raspa y se escala (fuente: spec BRF-003 \"antigüedad aproximada si se conoce\"; 31 secciones 5.8 y 7.2 rango 2).",
+      "  - Evidence: note"
+    ],
+    "2.7": [
+      "- Comprobaciones del Apéndice A antes de salir y antes de empezar: trabajo y dirección correctos, últimos cambios, alcance y exclusiones, peligros, herramientas y materiales críticos cargados, aprobaciones confirmadas; empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada (fuente: spec APXA-001, APXA-003).",
+      "  - Evidence: note"
+    ],
+    "2.8": [
+      "- Al llegar: confirme la dirección, el área de trabajo y el contacto en el sitio; estaciónese y acceda de forma adecuada; identifique mascotas y ocupantes; inspeccione el sitio frente a las instrucciones (fuente: spec APXA-002)."
+    ],
+    "2.9": [
+      "- Comprobación del clima y del suelo antes de levantar cualquier escalera; si no son adecuados, registre No iniciar / Bloqueado (fuente: spec HI-06.SAF \"comprobación del clima/suelo\"; SCH-008).",
+      "  - Evidence: note"
+    ],
+    "2.10": [
+      "> HOLD (C-HI06-01): antes de levantar cualquier escalera, busque líneas eléctricas aéreas y acometidas de servicio cerca del área de trabajo. Si una línea está cerca de donde estará la escalera o el trabajo, no levante la escalera: deténgase y escale. La distancia de separación la fija solo el profesional de seguridad calificado; aquí no se fija ninguna. Pendiente de revisión calificada. (fuente: spec HI-06.HAZ \"energía aérea\", HI-06.SAF \"detenerse cerca de líneas eléctricas inseguras\"; 31 secciones 7.2 rango 4 y 10)"
+    ],
+    "2.11": [
+      "- Instalación de la escalera según la política aprobada de altura/acceso y las instrucciones del fabricante de la escalera: TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo. (fuente: spec HI-06.SAF \"instalación de la escalera\"; manual de clasificación de riesgos: no se inventan tolerancias de instalación de escaleras)"
+    ],
+    "2.12": [
+      "- Zona de exclusión debajo del área de trabajo, libre de ocupantes, niños y mascotas (fuente: spec HI-06.SAF \"mantener la zona de exclusión\"; X-11)."
+    ],
+    "2.13": [
+      "- Fotos del estado existente antes del trabajo: hundimientos, filtraciones, fascia, borde del techo y bajantes (fuente: spec APXA-002, START-008; X-02).",
+      "  - Evidence: photo"
+    ],
+    "2.14": [
+      "- Proteja el área de trabajo; identifique los servicios públicos y las restricciones de emergencia relevantes para la tarea (fuente: spec APXA-002)."
+    ],
+    "3.1": [
+      "Todas las líneas originales del procedimiento aparecen abajo textualmente y en su orden original; los dos encabezados originales de \"Opción de problema\" bajan un nivel. Las líneas añadidas empiezan con `HOLD` o `FLAG` dentro de un bloque de cita y están pendientes de revisión calificada."
+    ],
+    "3.2": [
+      "> HOLD (C-HI06-01): retención de todo el SOP. Cada paso de abajo se hace a la altura de la canaleta o del borde del techo, y todavía no existe ningún control aprobado de altura/acceso, de protección contra caídas, de escalera, de líneas eléctricas ni de clima. No realice ningún paso de abajo hasta que exista la política aprobada de altura/acceso y este SOP pase una revisión competente. Solo se libera con la aprobación registrada del profesional de seguridad calificado y del dueño. (fuente: spec HI-06.HAZ, HI-06.SAF; 31 sección 10; datos del dueño 2026-10-02 \"Lo desconocido no es seguro\")"
+    ],
+    "3.3": [
+      "> HOLD (C-HI06-01): antes de levantar cualquier escalera para los pasos de abajo, complete las comprobaciones de la sección 11: clima y suelo, líneas eléctricas aéreas (aquí no se fija ninguna distancia de separación), instalación de la escalera según la política aprobada, y la zona de exclusión. Pendiente de revisión calificada. (fuente: spec HI-06.SAF; 31 sección 10)"
+    ],
+    "3.4": [
+      "- [ ] **Limpieza manual:** Saque con una pala las hojas compactadas de las líneas de canaleta y luego enjuague las bajantes con una manguera de alto caudal para despejar las obstrucciones subterráneas."
+    ],
+    "3.5": [
+      "> HOLD (31 sección 10): si el drenaje subterráneo de una bajante se regresa mientras la enjuaga en el paso anterior, deje de enjuagar (deténgase) y escale (sección 19). Pendiente de revisión calificada. (fuente: 31 sección 10; RIESGO, no verificado)"
+    ],
+    "3.6": [
+      "> HOLD (C-HI06-04): antes del paso \"Realineación de la pendiente\" de abajo, inspeccione y fotografíe la fascia detrás de cada sección hundida. Si la fascia está podrida o su estado es incierto, no clave sujetadores: deténgase, registre la condición (JOB-004) y escale para una orden de cambio o una remisión; la carpintería de fascias está fuera del catálogo (X-05). Pendiente de revisión del dueño y de un carpintero calificado. (fuente: cláusula \"Deterioro de la tabla de fascia\" del acuerdo; 02 C-HI06-04)"
+    ],
+    "3.7": [
+      "- [ ] **Realineación de la pendiente:** Localice las secciones hundidas de la canaleta. Clave clavos de aluminio para canaleta reforzados y de uso pesado de 7 pulgadas o tornillos estructurales para madera directamente a través del frente de la canaleta hasta la estructura sólida de la tabla de fascia para corregir la pendiente del flujo de agua hacia las bajantes."
+    ],
+    "3.8": [
+      "> FLAG (C-HI06-V01): el paso anterior no tiene un paso de medición de la pendiente ni una prueba de flujo, mientras que el plan principal dice \"Medimos las pendientes de las canaletas\" y la spec HI-06.QAC requiere \"flujo verificado\". Los valores de pendiente vienen solo del fabricante de la canaleta o de un revisor calificado; aquí no se fija ninguno. Vea la comprobación de flujo en la sección 13. Pendiente de revisión del dueño."
+    ],
+    "3.9": [
+      "- [ ] **Resellado de uniones:** Raspe el sellador viejo y agrietado de las esquinas y las tapas de los extremos que gotean usando un cepillo de alambre giratorio. Seque por completo la superficie de aluminio y aplique un cordón grueso de sellador comercial impermeable y autonivelante para canaletas."
+    ],
+    "3.10": [
+      "- [ ] **Dimensionado de secciones:** Mida y corte tramos de 4 pies de mallas finas de aluminio de primera calidad usando tijeras de hojalatero de uso pesado.",
+      "  - Evidence: measurement"
+    ],
+    "3.11": [
+      "> HOLD (C-HI06-01): antes del paso \"Deslizamiento bajo la línea del techo\" de abajo, confirme que la política aprobada de altura/acceso cubre el trabajo en el borde del techo; hasta que lo cubra, no realice el paso. Si las condiciones del techo son inseguras, deténgase (spec HI-06.SAF). La palabra \"con seguridad\" en el paso no es una determinación de seguridad. Si se ofrece o no la instalación de protectores en el borde del techo, y cómo se maneja con el cliente la alteración de las tejas, está abierto (Q-31-08). Pendiente de revisión del profesional de seguridad calificado y de un profesional de techos. (fuente: 31 sección 10; spec HI-06.HAZ \"borde del techo\")"
+    ],
+    "3.12": [
+      "- [ ] **Deslizamiento bajo la línea del techo:** Deslice con seguridad la pestaña trasera de la malla protectora de canaleta por debajo de la primera capa de tejas del techo."
+    ],
+    "3.13": [
+      "- [ ] **Fijación de los sujetadores:** Asegure firmemente el borde delantero de la malla protectora sobre el borde exterior de aluminio del marco de la canaleta usando tornillos autorroscantes de cabeza hexagonal espaciados cada 12 pulgadas."
+    ],
+    "4.1": [
+      "> Tarjeta de la spec HI-06.QAC (textual): \"residuos retirados, flujo verificado, filtraciones/hundimientos atendidos solo dentro del alcance aprobado, protectores seguros/alineados, sitio limpio\""
+    ],
+    "4.2": ["- Residuos retirados de las canaletas y las bajantes (fuente: spec HI-06.QAC \"residuos retirados\")."],
+    "4.3": [
+      "- Flujo verificado después de la limpieza y después de cualquier cambio de pendiente; el método y los valores de aceptación vienen del fabricante de la canaleta o de un revisor calificado (aquí no se fija ninguno); el resultado se registra (fuente: spec HI-06.QAC \"flujo verificado\"; C-HI06-V01; QA-001).",
+      "  - Evidence: note"
+    ],
+    "4.4": [
+      "- Filtraciones y hundimientos atendidos solo dentro del alcance aprobado; cualquier otra cosa se registra como solicitud del cliente u orden de cambio (fuente: spec HI-06.QAC; FIN-008; JOB-005).",
+      "  - Evidence: note"
+    ],
+    "4.5": [
+      "- Protectores seguros y alineados a lo largo de cada tramo (fuente: spec HI-06.QAC \"protectores seguros/alineados\")."
+    ],
+    "4.6": ["- Sitio limpio (fuente: spec HI-06.QAC \"sitio limpio\"; QA-002)."],
+    "4.7": [
+      "- Cada comprobación se responde, o se registra una excepción, antes de la finalización (fuente: spec QA-001). Si un supervisor, y no solo el trabajador, inspecciona alguna comprobación es una decisión del dueño (Q-31-15); la autocomprobación del trabajador no reemplaza una inspección del supervisor requerida (fuente: manual del asistente de calidad).",
+      "  - Evidence: note"
+    ],
+    "5.1": [
+      "- Retire los residuos, la protección y los marcadores de la zona de exclusión, y restablezca el sitio (fuente: spec QA-002, APXA-005)."
+    ],
+    "5.2": [
+      "- Baje y retire el equipo de acceso según la política aprobada (fuente: spec HI-06.SAF \"instalación de la escalera\"; APXA-005)."
+    ],
+    "5.3": [
+      "- Cuente las herramientas y los materiales; devuelva los materiales no usados (fuente: spec APXA-005, APXA-007)."
+    ],
+    "5.4": ["- Restablezca los componentes modificados dentro del alcance (fuente: spec APXA-005)."],
+    "5.5": [
+      "- Los residuos de las canaletas se embolsan (fuente: spec HI-06.MAT \"bolsas\"); destino de desecho: TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo. (Q-29-10)"
+    ],
+    "5.6": [
+      "- Tubos de sellador usados, trapos y sellador raspado: manejo según la hoja de datos de seguridad (SDS) del producto; destino TBD (fuente: 29 sección 8.2 control 10; X-09)."
+    ],
+    "5.7": [
+      "- Recortes de malla, sujetadores y herrajes retirados: destino TBD (fuente: spec QA-002 \"manejo de residuos/desechos\")."
+    ],
+    "5.8": [
+      "- Los residuos peligrosos no se manejan sin una política aprobada (fuente: 31 sección 3.1, sección 15 contenido mínimo)."
+    ],
+    "6.1": [
+      "- Antes: fotos del estado existente de los hundimientos, las filtraciones, el estado de la fascia, el borde del techo y las bajantes, asociadas a cada tramo (fuente: spec START-008, APXA-002; 04 HI-06 tarjeta, evidencia de finalización, PROPUESTO; X-02).",
+      "  - Evidence: photo"
+    ],
+    "6.2": [
+      "- Durante: la fascia detrás de cada sección hundida antes de fijar (C-HI06-04); cualquier condición oculta encontrada (fuente: spec JOB-004)."
+    ],
+    "6.3": [
+      "- Después: cada tramo después de la limpieza o de la instalación de protectores, la fijación y alineación de los protectores, y la evidencia de la comprobación de flujo (fuente: spec QA-003; HI-06.QAC)."
+    ],
+    "6.4": [
+      "- Las fotos son internas por defecto; el uso en mercadeo necesita un consentimiento aparte; evite personas, documentos y objetos de valor que no se necesiten para el trabajo (fuente: spec REC-002, REC-003; 31 sección 3.5 regla 7)."
+    ],
+    "6.5": [
+      "- Los avisos de llegada y de finalización usan solo plantillas aprobadas (fuente: 31 sección 3.1, sección 17 contenido mínimo; spec NTF-007)."
+    ],
+    "6.6": [
+      "- Resultado del recorrido registrado: aceptado, aceptado con elementos pendientes, no disponible o en disputa (fuente: spec QA-004, APXA-006).",
+      "  - Evidence: note"
+    ],
+    "6.7": [
+      "- Notas de cuidado o mantenimiento solo a partir de datos de productos y plantillas aprobados (fuente: spec QA-008)."
+    ],
+    "6.8": [
+      "- No prometa resultados, permanencia ni garantías, y no repita afirmaciones no aprobadas del plan principal como \"permanentemente\" (C-HI06-02) o \"Sin costuras\" (C-HI06-07) (fuente: sección 2, No realice la entrada 8; 32 registros de afirmaciones)."
+    ],
+    "6.9": [
+      "- Cuando el trabajo esté bloqueado, diga al cliente solo lo que dice el mensaje aprobado de \"trabajo bloqueado\" (fuente: spec NTF-007)."
+    ],
+    "6.10": [
+      "- Explique la factura y el siguiente paso del pago sin hacer promesas no autorizadas (fuente: spec APXA-006)."
+    ],
+    "6.11": [
+      "- Cada comprobación de la sección 13 está respondida, o tiene una excepción registrada (fuente: spec QA-001).",
+      "  - Evidence: note"
+    ],
+    "6.12": ["- Fotos de después asociadas a cada tramo o tarea (fuente: spec QA-003).", "  - Evidence: photo"],
+    "6.13": [
+      "- Limpieza y manejo de residuos completos; herramientas y materiales contados (fuente: spec QA-002, APXA-005)."
+    ],
+    "6.14": [
+      "- Resultado del recorrido y cualquier elemento pendiente registrados (fuente: spec QA-004, APXA-006).",
+      "  - Evidence: note"
+    ],
+    "6.15": [
+      "- Ninguna retención ni ningún elemento para detener el trabajo queda sin resolver (fuente: 31 sección 8.3)."
+    ],
+    "6.16": [
+      "- Se envían los problemas sin resolver, los incidentes y los seguimientos de cambios; el trabajo se cierra solo cuando los pasos operativos y financieros requeridos están completos (fuente: spec APXA-007)."
+    ],
+    "stop.1": [
+      "Este SOP redacta su regla general para detener el trabajo de forma distinta a [[FACT-SVC-STOP-WORK-RULE]]; su propio texto, textual:"
+    ],
+    "stop.2": [
+      "> **Regla para detener el trabajo (todos los servicios de HandyHub).** Usted tiene derecho a detener el trabajo. Ante cualquier condición de abajo, detenga el trabajo afectado y escale antes de continuar (fuente: spec START-011, JOB-004):",
+      "> - una condición insegura para usted, el cliente, los ocupantes, las mascotas o el público;",
+      "> - daños ocultos, falla de la base, humedad o una filtración activa;",
+      "> - sospecha de material peligroso, como posible asbesto, pintura con plomo o moho; no lo altere;",
+      "> - trabajo eléctrico, de plomería, de gas, de HVAC o estructural que no está en el alcance aprobado o que necesita un oficio con licencia;",
+      "> - un ocupante o un animal agresivo;",
+      "> - clima severo o calor o frío inseguros (fuente: spec BRF-008);",
+      "> - cualquier diferencia importante entre el sitio y las instrucciones, el alcance aprobado, los materiales, el acceso o las aprobaciones."
+    ],
+    "stop.3": [
+      "> No continúe a través de una condición insegura o restringida para cumplir el horario (fuente: maestro sección 12). Una solicitud del cliente, una casilla marcada o una firma no libera una retención de seguridad (fuente: datos del dueño 2026-10-02; manual de clasificación de riesgos L27). En una emergencia, aleje a las personas y llame primero a los servicios de emergencia (fuente: spec BRF-013; manual de clasificación de riesgos L7). Luego use \"Detener el trabajo\" / \"Reportar un peligro\" en la aplicación (fuente: spec UXE-004) y siga la sección 19.",
+      "> Tarjeta de la spec HI-06.SAF (textual): \"comprobación del clima/suelo; instalación de la escalera; mantener la zona de exclusión; detenerse cerca de líneas eléctricas o condiciones del techo inseguras o más allá de la política aprobada de altura/acceso\""
+    ],
+    "stop.4": ["Retenciones y activadores para detener el trabajo del servicio (pendientes de revisión calificada):"],
+    "stop.5": [
+      "- HOLD (C-HI06-01): retención de todo el SOP hasta que exista la política aprobada de altura/acceso y este SOP pase una revisión competente (secciones 3 y 12)."
+    ],
+    "stop.6": [
+      "- Deténgase cerca de líneas eléctricas o condiciones del techo inseguras, o más allá de la política aprobada de altura/acceso (fuente: spec HI-06.SAF)."
+    ],
+    "stop.7": [
+      "- Deténgase ante clima o suelo no adecuados; no levante una escalera sobre suelo inestable o resbaloso (fuente: spec HI-06.SAF \"comprobación del clima/suelo\"; HI-06.HAZ \"escaleras inestables\", \"superficies mojadas/resbalosas\"; X-27)."
+    ],
+    "stop.8": [
+      "- Deténgase cuando alguien entre en la zona de exclusión (fuente: spec HI-06.SAF \"mantener la zona de exclusión\"; X-11)."
+    ],
+    "stop.9": [
+      "- Fascia podrida o incierta detrás de una sección hundida: no clave sujetadores; deténgase, registre y escale para una orden de cambio o una remisión (fuente: cláusula \"Deterioro de la tabla de fascia\" del acuerdo; C-HI06-04; FIN-008; X-05).",
+      "  - Evidence: note"
+    ],
+    "stop.10": [
+      "- El drenaje subterráneo de una bajante se regresa mientras la enjuaga: deje de enjuagar (deténgase) y escale (fuente: 31 sección 10; RIESGO, no verificado)."
+    ],
+    "stop.11": [
+      "- Una superficie pintada antigua o de antigüedad desconocida: no la lije ni la raspe; escale (fuente: sección 3; 31 sección 7.2 rango 2)."
+    ],
+    "stop.12": ["Ruta general: [[FACT-SVC-ESCALATION-PATH]]."],
+    "stop.13": ["Ruta específica del servicio (los contactos son decisiones del dueño, Q-31-05):"],
+    "stop.14": [
+      "- Inquietudes sobre líneas eléctricas aéreas: al dueño, quien consulta a la compañía eléctrica (aquí no se saca ninguna conclusión) (fuente: 31 sección 7.2 rango 4; 04 HI-06 tarjeta, indicadores de permiso/licencia)."
+    ],
+    "stop.15": [
+      "- Fascia podrida: al dueño para una orden de cambio o una remisión; la carpintería de fascias está fuera del catálogo (fuente: cláusula \"Deterioro de la tabla de fascia\" del acuerdo; X-05; Q-30-15)."
+    ],
+    "stop.16": [
+      "- Daños en el techo o las tejas: al dueño para remitirlo a un profesional de techos (fuente: 04 sección 5.9)."
+    ],
+    "stop.17": [
+      "- Sospecha de pintura con plomo en superficies pintadas antiguas: al dueño para la revisión de un renovador certificado por la EPA en RRP; no se concluye la aplicabilidad (fuente: 04 HI-06 tarjeta, indicadores de permiso/licencia; 31 sección 7.2 rango 2)."
+    ],
+    "stop.18": ["Ruta general: [[FACT-SVC-INCIDENT-REPORTING]]."]
+  },
+  "ambiguous": []
+}

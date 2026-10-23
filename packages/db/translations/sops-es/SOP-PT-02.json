@@ -1,0 +1,398 @@
+{
+  "sopId": "SOP-PT-02",
+  "englishContentSha256": "0629e93bd4ef46244b25a7b43abdba686c363902af317a62842f7c5f11cbc9e3",
+  "title": "SOP PT-02: Tinte y sellado de terrazas (decks) y cercas exteriores",
+  "headings": [
+    "1. Preparación del sitio y protección de la propiedad",
+    "2. Preparación y mediciones/comprobaciones requeridas",
+    "3. Pasos de trabajo específicos del servicio",
+    "4. Comprobaciones de calidad",
+    "5. Limpieza y manejo de residuos",
+    "6. Comprobaciones finales, fotos de finalización y recorrido"
+  ],
+  "items": {
+    "1.1": ["Del acuerdo, la spec y los pasos originales, pendiente de revisión:"],
+    "1.2": [
+      "- Cada trabajo vuelve a confirmar que el acceso, los ocupantes, las mascotas, el estacionamiento, los peligros y las condiciones del área de trabajo siguen vigentes (fuente: spec CX-005)."
+    ],
+    "1.3": [
+      "- La especie y la edad de la madera, el recubrimiento existente, la elección del color y del producto, y la jardinería se registran en la solicitud (fuente: spec PT-02.INT)."
+    ],
+    "1.4": [
+      "- El cliente sabe que el horario depende del clima y del secado de la madera (fuente: \"Cláusula del clima del Medio Oeste\" y \"Garantía del límite de humedad\" del acuerdo; redacción en revisión del abogado)."
+    ],
+    "1.5": [
+      "- Después del tinte, el dueño de la casa recibe instrucciones para no pisar; los tiempos salen de los datos del producto aprobado (fuente: \"Letreros de secado\" de la Fase 5 original; C-PT02-V01)."
+    ],
+    "1.6": [
+      "FALTA - todavía no está en el acuerdo ni en ningún recordatorio (decisión del dueño; redacción por 30 y 32): artículos sobre la terraza (muebles, macetas, parrillas) retirados; mascotas y niños lejos durante el trabajo con químicos y el secado; ventanas y puertas cercanas cerradas; vehículos movidos fuera del alcance del rocío; acceso al agua confirmado; vecinos avisados del trabajo en la cerca; aprobación del color por la asociación de propietarios (HOA) donde se aplique (fuente: 04 PT-02 \"requisitos de preparación del cliente\" e \"indicadores de permiso/licencia\"; X-11)."
+    ],
+    "1.7": [
+      "- [ ] **Protección del revestimiento y del vidrio:** Pegue con cinta película plástica sobre el revestimiento de vinilo, las paredes de ladrillo y los vidrios de ventanas bajas cercanos a la terraza para protegerlos de los químicos que lleva el viento."
+    ],
+    "1.8": [
+      "- [ ] **Saturación del jardín:** Rocíe a fondo con agua sola el césped, los arbustos y los canteros de flores cercanos antes de aplicar químicos. *Las plantas mojadas no absorberán los agentes tóxicos para decapar madera.*"
+    ],
+    "1.9": [
+      "> FLAG: afirmación sin fuente - la frase \"Las plantas mojadas no absorberán los agentes tóxicos para decapar madera.\" del paso anterior se mantiene sin cambios pero no está verificada; el mojado previo queda como está escrito, y la protección de las plantas y el control de la escorrentía salen de la etiqueta del producto, la SDS y el profesional de seguridad calificado. La palabra \"tóxicos\" del propio SOP se mantiene; ninguna afirmación \"ecológica\" del plan principal, del acuerdo o del inventario se repite en este SOP ni a los clientes (C-PT02-01). (fuente: 31 sección 10 PT-02; spec PT-02.SAF \"proteja las plantas/las superficies adyacentes\")"
+    ],
+    "2.1": ["Condiciones de despacho y de Iniciar trabajo (Start Job), pendientes de revisión:"],
+    "2.2": [
+      "- Versión aprobada del presupuesto con las áreas seleccionadas (piso de la terraza, barandas, escalones), el producto y el color, cada opción identificable por separado (fuente: spec CX-003, EST-005; APXA-001 \"revise el alcance/las exclusiones\")."
+    ],
+    "2.3": [
+      "- Solicitud registrada: especie y edad de la madera, recubrimiento existente, condición de humedad, área, color y producto, pronóstico del clima y jardinería (fuente: spec PT-02.INT).",
+      "  - Evidence: note"
+    ],
+    "2.4": [
+      "- Solidez: la podredumbre, las tablas flojas, los sujetadores salidos u otros defectos estructurales encontrados en la evaluación o al llegar se derivan a HI-10 o HI-11 antes de cualquier recubrimiento; PT-02 no hace ningún trabajo estructural (fuente: 04 sección 5.4 reglas (a) y (d), PROPUESTO; \"Integridad estructural\" del acuerdo). La lista compartida de comprobación de solidez de la madera exterior todavía no existe: TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo."
+    ],
+    "2.5": [
+      "- Recubrimiento existente y edad de la propiedad: se registra el año aproximado de construcción, con \"desconocido\" como valor. Si decapar o lavar recubrimientos existentes en propiedades construidas antes de 1978 o de edad desconocida necesita una evaluación de plomo es una PREGUNTA ABIERTA (renovador certificado EPA RRP, Q-31-07); hasta que se responda, esos recubrimientos no se alteran. La madera tratada antigua con un tratamiento desconocido es una PREGUNTA ABIERTA para el profesional de seguridad calificado (fuente: 31 SOP-022 y sección 7.2 rango 2, PROPUESTO; 31 sección 10 PT-02; manual de clasificación de riesgos L27)."
+    ],
+    "2.6": [
+      "- Cada producto químico (decapante, abrillantador, tinte, limpiador de brochas, combustible del motor) aprobado con una SDS revisada; un producto sin SDS no se lleva al trabajo (fuente: 29 sección 8.3 regla provisional, PROPUESTO; X-09)."
+    ],
+    "2.7": [
+      "- Las instrucciones del producto del tinte aprobado están en el archivo; el clima y la temperatura de aplicación, el límite de humedad, los tiempos de secado y entre capas y los tiempos sin pisar salen de ellas (fuente: spec PT-02.SAF \"verifique que la madera esté lo bastante seca según el producto\"; C-PT02-05, C-PT02-08, C-PT02-V01)."
+    ],
+    "2.8": [
+      "- Clima adecuado para cada visita; un clima inadecuado significa posponer. La cláusula del clima del acuerdo fija parámetros que están en revisión frente a los datos del producto, y el módulo de clima y calor todavía no existe (fuente: spec PT-02.SAF \"posponga con clima inadecuado\"; \"Cláusula del clima del Medio Oeste\" del acuerdo; C-PT02-05; X-27)."
+    ],
+    "2.9": [
+      "- Dos visitas planificadas (día de lavado y día de tinte) con el intervalo de secado entre ellas; se necesitan ambos empleados el día del tinte porque el repaso con brocha sigue inmediatamente al rociador o al rodillo (fuente: línea \"Tarifa mínima de viaje para terrazas\" de los precios; \"Comprobación de humedad\" de la Fase 3 y \"Repaso obligatorio con brocha\" de la Fase 4 originales; manual del planificador de trabajos \"No trate al equipo de dos personas como dos equipos independientes cuando el trabajo necesita a ambos\").",
+      "  - Evidence: measurement"
+    ],
+    "2.10": [
+      "- Fuente de agua confirmada: manguera de HandyHub o la llave de agua del cliente (fuente: Fases 1 a 3 originales; C-PT02-V02; decisión del dueño)."
+    ],
+    "2.11": [
+      "- Manejo de la escorrentía y del agua de enjuague decidido para el municipio del trabajo; desconocido no significa permitido (fuente: 04 PT-02 \"indicadores de permiso/licencia\"; manual de clasificación de riesgos paso 4). REVISIÓN HUMANA: autoridad local; aquí no se saca ninguna conclusión."
+    ],
+    "2.12": [
+      "- Trabajo en cercas, cuando exista un procedimiento: permiso del lado del vecino registrado antes de trabajar en el lado del vecino (fuente: 04 PT-02 \"requisitos previos\", PROPUESTO; REVISIÓN HUMANA: abogado).",
+      "  - Evidence: note"
+    ],
+    "2.13": [
+      "- EPP seleccionado y disponible; herramientas, medidor de humedad y protección cargados (fuente: spec START-004, START-005; APXA-001).",
+      "  - Evidence: measurement"
+    ],
+    "2.14": [
+      "- Indicadores de permiso, licencia y calificación de esta línea determinados; `desconocido` bloquea el inicio (Start) de la línea afectada (fuente: 04 sección 6.1; spec START-010)."
+    ],
+    "2.15": [
+      "- Empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada; las retenciones críticas no se pueden anular (fuente: APXA-003; 31 sección 8.3).",
+      "  - Evidence: note"
+    ],
+    "2.16": [
+      "Pendiente de revisión; los métodos salen de los módulos aprobados, de los cuales todavía no existe ninguno:"
+    ],
+    "2.17": [
+      "- Confirme la dirección, el área de trabajo y el contacto; identifique mascotas y ocupantes (fuente: APXA-002)."
+    ],
+    "2.18": [
+      "- Inspeccione el sitio real frente a las instrucciones y registre las diferencias, incluidos el clima y el estado de la madera (fuente: spec START-007).",
+      "  - Evidence: note"
+    ],
+    "2.19": [
+      "- Recorra la terraza, las barandas y los escalones en busca de podredumbre, tablas flojas, sujetadores salidos y defectos estructurales antes de cualquier trabajo con químicos; derive los hallazgos a HI-10 o HI-11 (fuente: 04 sección 5.4 reglas (a) y (d), PROPUESTO; \"Integridad estructural\" del acuerdo)."
+    ],
+    "2.20": [
+      "- Fotografíe el recubrimiento existente, el estado de la madera y la propiedad adyacente antes del trabajo (fuente: spec START-008; APXA-002; X-02)."
+    ],
+    "2.21": [
+      "- Proteja las plantas y las superficies adyacentes (fuente: spec PT-02.SAF \"proteja las plantas/las superficies adyacentes\"; Fase 1 original). Si los tomacorrientes, los accesorios y los equipos exteriores cercanos a la terraza necesitan cubrirse antes de lavar o rociar es un punto de revisión (fuente: 31 sección 7.2 rango 4; REVISIÓN HUMANA: profesional de seguridad calificado)."
+    ],
+    "2.22": [
+      "- Mantenga a las personas y las mascotas fuera de las zonas de lavado y de rociado (fuente: 02 C-PT02-09; X-08, X-11)."
+    ],
+    "2.23": [
+      "- Instale los controles de escorrentía y de agua de enjuague según lo decidido para el municipio (fuente: 04 PT-02 \"indicadores de permiso/licencia\"; Q-29-10)."
+    ],
+    "2.24": [
+      "- Coloque la lavadora a gasolina y cárguele combustible solo bajo una regla revisada de combustible y escape: TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo. (fuente: 29 sección 7.2 punto 10)"
+    ],
+    "2.25": [
+      "- Inspeccione el equipo antes de usarlo según las instrucciones del fabricante (fuente: 31 sección 3.1 fila 7)."
+    ],
+    "2.26": [
+      "- Confirme la ventana de clima de esta visita frente a las instrucciones del producto aprobado y la cláusula del clima del acuerdo (fuente: spec PT-02.SAF; C-PT02-05)."
+    ],
+    "2.27": [
+      "- Complete las comprobaciones de seguridad, de EPP y del sitio y confirme que leyó el SOP y los peligros antes de empezar (fuente: APXA-003; spec START-004).",
+      "  - Evidence: note"
+    ],
+    "3.1": [
+      "*El procedimiento original sigue sin cambios y en su orden original; sus encabezados de fase bajan un nivel. Las líneas HOLD y FLAG citadas se añadieron el 2026-10-03 y están pendientes de revisión calificada. Una HOLD colocada antes de un paso se debe liberar antes de que empiece ese paso; una HOLD o FLAG colocada después de un paso lo suspende, lo limita o lo marca (36 D-36-17). Ninguna retención reformula, reordena ni elimina un paso.*"
+    ],
+    "3.2": [
+      "> HOLD (C-PT02-05, X-27): antes del paso de aplicación del decapante de abajo - confirme que el clima y la temperatura son adecuados para el trabajo y para los productos aprobados, según las instrucciones del producto y la cláusula del clima del acuerdo; si no, posponga y registre No iniciar / Bloqueado. Pendiente de revisión calificada. (fuente: spec PT-02.SAF \"posponga con clima inadecuado\"; spec SCH-008; 31 sección 10 PT-02)"
+    ],
+    "3.3": [
+      "> HOLD (solidez, 04 D-04-11; recubrimientos antiguos y madera tratada, PREGUNTA ABIERTA Q-31-07): antes del paso de aplicación del decapante de abajo - recorra la terraza en busca de podredumbre, tablas flojas y defectos estructurales, derive cualquier hallazgo a HI-10 o HI-11 y no aplique recubrimiento sobre él; donde la propiedad se construyó antes de 1978 o su edad es desconocida, no decape ni lave un recubrimiento existente hasta que una persona calificada registre una decisión; la madera tratada antigua con un tratamiento desconocido espera al profesional de seguridad calificado. Pendiente de revisión calificada. (fuente: \"Integridad estructural\" del acuerdo; 31 sección 7.2 rango 2; 31 sección 10 PT-02; manual de clasificación de riesgos L27)"
+    ],
+    "3.4": [
+      "> HOLD (C-PT02-02, X-11): antes del paso de aplicación del decapante de abajo - no vierta ni aplique el decapante de hidróxido de sodio hasta que se haya revisado su SDS y se haya aprobado el producto, el profesional de seguridad calificado haya seleccionado el EPP para verterlo, rociarlo y enjuagarlo, el rociador sea exclusivo y esté etiquetado para él (los productos ácidos y cáusticos nunca comparten un rociador a menos que ambas SDS lo permitan - RIESGO), y las personas y las mascotas estén fuera del área de trabajo. Aquí no se fija ninguna concentración, dilución ni tiempo de reposo. Pendiente de revisión calificada. (fuente: spec PT-02.HAZ \"químicos\"; 29 sección 8.2 filas 1, 3, 4 y 8; 31 sección 10 PT-02)"
+    ],
+    "3.5": [
+      "- [ ] **Aplicación del decapante:** Vierta decapante de madera de hidróxido de sodio de alta resistencia en un rociador plástico de bomba. Aplique una capa húmeda uniforme sobre las secciones de madera gris y desgastada por la intemperie."
+    ],
+    "3.6": [
+      "- [ ] **Control del tiempo de reposo:** Deje actuar el químico durante 15-20 minutos. *Nunca deje que la madera se seque; rocíe ligeramente con agua si empieza a evaporarse.*"
+    ],
+    "3.7": [
+      "> FLAG: SIN FUENTE - verifique con las instrucciones del fabricante (etiqueta del producto y SDS) el tiempo de reposo del paso anterior; se mantiene sin cambios hasta que un revisor lo confirme o lo reemplace. (fuente: 31 sección 3.5 regla 3; 31 sección 10 PT-02)"
+    ],
+    "3.8": [
+      "> HOLD (C-PT02-09, X-08): antes del paso de lavado a presión de abajo - confirme un método de presión adecuado para la madera según las instrucciones del fabricante de la lavadora y el revisor, mantenga a las personas y las mascotas fuera de una zona de exclusión, y use el EPP seleccionado por el profesional de seguridad calificado; el módulo de lavado a presión todavía no existe. Pendiente de revisión calificada. (fuente: spec PT-02.SAF \"presión adecuada\"; 02 C-PT02-09; 31 sección 5.8)"
+    ],
+    "3.9": [
+      "- [ ] **Lavado a baja presión:** Use una lavadora a presión con una boquilla de abanico ancha de 40 grados. Mantenga la punta de la lanza a 12 pulgadas de la madera y barra con movimientos fluidos *a favor de la veta*. Raspe la pulpa gris licuada sin romper las fibras blandas de la madera."
+    ],
+    "3.10": [
+      "> FLAG: SIN FUENTE - verifique con las instrucciones del fabricante el ángulo de la boquilla y la distancia de separación del paso anterior. \"Baja presión\" no está ligada a una presión indicada, y no está confirmado que la presión nominal de la lavadora de la lista sea adecuada para la madera (C-PT02-09). El paso queda como está escrito. (fuente: 31 sección 3.5 regla 3; 31 sección 10 PT-02)"
+    ],
+    "3.11": [
+      "> HOLD (C-PT02-02): antes del paso del abrillantador de abajo - aplique el abrillantador de ácido oxálico solo con su SDS revisada y el EPP seleccionado por el profesional de seguridad calificado (la línea de guantes y gafas de seguridad del inventario sigue siendo obligatoria), con un rociador exclusivo y etiquetado para el ácido; nunca el rociador del decapante a menos que ambas SDS lo permitan (RIESGO). Pendiente de revisión calificada. (fuente: línea \"Guantes resistentes a químicos hasta el codo y gafas contra salpicaduras\" del inventario; 29 sección 8.2 filas 3 y 4; 31 sección 10 PT-02)"
+    ],
+    "3.12": [
+      "- [ ] **Ajuste del pH:** Rocíe un abrillantador de madera de ácido oxálico sobre la madera recién lavada y mojada. Esto neutraliza al instante el decapante alcalino fuerte, mata las esporas de moho profundas y devuelve la madera a su tono rubio claro original."
+    ],
+    "3.13": [
+      "> FLAG (X-06): \"mata las esporas de moho profundas\" en el paso anterior se mantiene sin cambios. Es una afirmación antimicrobiana sin fundamento y no se repite a los clientes; qué crecimiento exterior puede tratar este paso espera la definición de la empresa que separa el moho superficial que se puede limpiar (mildew) de la sospecha de crecimiento de moho (Q-31-10). Mientras tanto, la regla para detener el trabajo de la sección 10 ante un posible moho no se relaja. (fuente: 31 sección 5.8; 04 PT-02 \"indicadores de permiso/licencia\")"
+    ],
+    "3.14": [
+      "- [ ] **Reposo y enjuague profundo:** Déjelo actuar durante 10 minutos y luego enjuague a fondo toda la estructura de la terraza y las plantas adyacentes con una manguera de jardín de alto caudal."
+    ],
+    "3.15": [
+      "> FLAG: SIN FUENTE - verifique con las instrucciones del fabricante (etiqueta del producto y SDS) el tiempo de reposo del paso anterior. A dónde pueden ir el agua de enjuague y los residuos se decide para el municipio (Q-29-10); aquí no se saca ninguna conclusión. (fuente: 31 sección 3.5 regla 3; 04 PT-02 \"indicadores de permiso/licencia\")"
+    ],
+    "3.16": [
+      "- [ ] **Comprobación de humedad:** Deje secar la madera durante un mínimo de 48 horas. Compruebe los niveles de humedad de la madera con un medidor digital—**deben estar por debajo del 12% al 15%** antes de aplicar tinte al aceite.",
+      "  - Evidence: measurement"
+    ],
+    "3.17": [
+      "> FLAG (C-PT02-08): SIN FUENTE - verifique con las instrucciones del fabricante el tiempo de secado y el rango de humedad del paso anterior. El rango es ambiguo y está indicado de forma distinta a la cláusula de humedad del acuerdo; el límite debe salir de las instrucciones del producto aprobado (spec PT-02.SAF \"verifique que la madera esté lo bastante seca según el producto\"). La comprobación existente sigue vigente hasta que un revisor calificado la reemplace. Registre la lectura del medidor como evidencia de finalización; el medidor no está en el inventario (allí se propone). (fuente: 31 sección 3.5 regla 3; 36 sección 3.4 regla 8)"
+    ],
+    "3.18": [
+      "> HOLD (C-PT02-05, C-PT02-02, X-27): antes del paso de corte del perímetro de abajo - empiece a teñir solo cuando la comprobación de humedad de arriba haya pasado y esté registrada, el clima y la temperatura sean adecuados para el tinte aprobado según sus instrucciones y la cláusula del clima del acuerdo, se haya revisado la SDS del tinte, y el profesional de seguridad calificado haya seleccionado el EPP para aplicarlo con brocha y rociarlo. Pendiente de revisión calificada. (fuente: spec PT-02.SAF \"verifique que la madera esté lo bastante seca según el producto\", \"posponga con clima inadecuado\"; 31 sección 10 PT-02)"
+    ],
+    "3.19": [
+      "- [ ] **Corte del perímetro:** Use una brocha gruesa para tinte de 4 pulgadas de ancho para pintar los bordes, los postes verticales, las barandas y los espacios entre las tablas de la terraza."
+    ],
+    "3.20": [
+      "> HOLD (X-08, X-11): antes del paso de rociado/rodillo de abajo - si se usa el rociador sin aire (airless), siga las instrucciones de seguridad del fabricante del rociador, mantenga a las personas y las mascotas fuera de la zona de rociado, proteja la propiedad adyacente del rocío y confirme que las condiciones permiten rociar sin que el viento lo arrastre; el método espera el módulo de lavado a presión y rociado sin aire. El propio paso también menciona un rodillo. Pendiente de revisión calificada. (fuente: paso original \"con un rodillo o un rociador sin aire\"; 31 sección 5.8; 31 sección 7.2 rango 10)"
+    ],
+    "3.21": [
+      "- [ ] **Rociado/rodillo general:** Aplique el tinte a base de aceite sobre las tablas planas del piso con un rodillo o un rociador sin aire."
+    ],
+    "3.22": [
+      "- [ ] **Repaso obligatorio con brocha:** Siga inmediatamente al rociador/rodillo con una brocha ancha para tinte, empujando a mano el líquido hacia el fondo de los poros de la madera para evitar acumulaciones, marcas de arrastre o manchas superficiales de brillo desigual."
+    ],
+    "3.23": [
+      "> FLAG (C-PT02-04): los pasos anteriores aplican solo tinte a base de aceite. El tinte acrílico sólido, que los precios venden como opción premium, y cualquier sellador no tienen ningún paso, producto ni comprobación de calidad aprobados; no están cubiertos (sección 2). (fuente: 31 sección 10 PT-02)"
+    ],
+    "4.1": [
+      "Comprobaciones observables de la tarjeta del servicio (fuente: spec PT-02.QAC; QA-001), con la evidencia entre corchetes. El trabajador hace la autocomprobación; qué comprobaciones necesitan un supervisor es una decisión del dueño (Q-31-15)."
+    ],
+    "4.2": [
+      "- Preparación pareja: madera decapada y abrillantada uniforme, sin fibras rotas ni arrancadas por el lavado [fotos después del lavado; spec PT-02.QAC \"preparación pareja\"; Fase 2 original \"sin romper las fibras blandas de la madera\"]."
+    ],
+    "4.3": [
+      "- Lectura de humedad dentro del límite del producto aprobado registrada antes del tinte [lectura del medidor; \"Comprobación de humedad\" de la Fase 3 original; C-PT02-08].",
+      "  - Evidence: measurement, note"
+    ],
+    "4.4": [
+      "- Recubrimiento parejo sin acumulaciones, marcas de arrastre ni manchas de brillo desigual después del repaso con brocha [fotos de después por área; \"Repaso obligatorio con brocha\" de la Fase 4 original; spec QA-003].",
+      "  - Evidence: photo"
+    ],
+    "4.5": [
+      "- Sin defectos de traslape ni de rocío más allá de la tolerancia acordada en la madera, el revestimiento, el vidrio, las plantas, los vehículos o la propiedad vecina; la tolerancia misma todavía no está definida (decisión del dueño) [fotos de después comparadas con las fotos de llegada; spec PT-02.QAC; spec START-008].",
+      "  - Evidence: photo"
+    ],
+    "4.6": [
+      "- Indicaciones de secado y curado dadas al cliente a partir de datos de productos aprobados [registro de la nota de cuidado; spec PT-02.QAC \"indicaciones de secado/curado entregadas\"; spec QA-008; C-PT02-V01].",
+      "  - Evidence: note"
+    ],
+    "4.7": [
+      "- Sitio protegido y limpio: enmascarado retirado, trapos y limpiadores controlados, letreros colocados [nota de limpieza; spec PT-02.QAC \"sitio protegido/limpio\"; spec QA-002]."
+    ],
+    "5.1": [
+      "- [ ] **Desecho de trapos con aceite:** *Advertencia de seguridad:* Sumerja de inmediato todos los paños empapados en aceite y los limpiadores de brochas en un balde metálico lleno de agua. Después déjelos secar al aire extendidos para evitar incendios por combustión espontánea."
+    ],
+    "5.2": [
+      "> FLAG (C-PT02-V02): el paso anterior se mantiene exactamente como está escrito; es el único control de incendios en cualquier archivo de PT-02. Los trapos y el limpiador de brochas no están en el inventario (allí se proponen); el limpiador de brochas se selecciona y se desecha según su SDS, y a dónde van después los trapos empapados y el limpiador usado se decide por municipio (Q-29-10). Pendiente de revisión calificada. (fuente: 29 sección 8.1; 31 sección 3.1 fila 15)"
+    ],
+    "5.3": [
+      "- [ ] **Letreros de secado:** Coloque letreros de \"Pintura/tinte fresco\" en las entradas de la terraza. Indíquele al dueño de la casa que no se pise durante 24 horas y que no se pongan muebles pesados durante 48 horas."
+    ],
+    "5.4": [
+      "> FLAG (C-PT02-V01): SIN FUENTE - verifique con las instrucciones del fabricante los tiempos sin pisar del paso anterior. Son distintos de la ventana de barrera del inventario y de la redacción de la ventana de secado del acuerdo; un solo conjunto de tiempos sin pisar tomado del producto debe aparecer en este SOP, el inventario, el acuerdo y la nota de cuidado para el cliente (deciden el dueño y el estimador; PREGUNTA ABIERTA). Hasta entonces, el paso queda como está escrito. (fuente: 02 C-PT02-V01; 31 sección 3.5 regla 3; spec QA-008)"
+    ],
+    "5.5": ["Fuente: spec QA-002; APXA-005; pendiente de revisión:"],
+    "5.6": [
+      "- Retire la película de enmascarar, la cinta y cualquier otra protección (fuente: Fase 1 original; spec QA-002)."
+    ],
+    "5.7": [
+      "- Maneje los trapos empapados en aceite y los limpiadores de brochas exactamente como dice el paso original de los trapos con aceite (fuente: \"Desecho de trapos con aceite\" de la Fase 5 original)."
+    ],
+    "5.8": [
+      "- Limpie el área de trabajo; guarde los residuos químicos y los materiales usados para la ruta de residuos revisada (sección 15)."
+    ],
+    "5.9": [
+      "- Dé cuenta de las herramientas, el equipo y los materiales restantes; asegure los envases de químicos para el transporte bajo el programa de químicos, que todavía no existe; la separación del decapante cáustico y del abrillantador ácido sale de los grupos basados en las SDS que defina el revisor (fuente: 29 sección 8.2 filas 5 y 6)."
+    ],
+    "5.10": [
+      "- Restablezca todo lo modificado dentro del alcance, como los artículos movidos o la conexión de agua del cliente (fuente: APXA-005)."
+    ],
+    "5.11": [
+      "TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo."
+    ],
+    "5.12": [
+      "- Flujos de residuos: agua de enjuague y escorrentía que pueden llevar decapante, abrillantador y recubrimiento decapado; residuos decapados raspados de la madera; trapos empapados en aceite y limpiador de brochas usado; envases vacíos de químicos; película de enmascarar usada (fuente: Fases 2, 3 y 5 originales; 29 sección 8.2 fila 10; 04 PT-02 \"indicadores de permiso/licencia\")."
+    ],
+    "5.13": [
+      "- El paso de los trapos con aceite del procedimiento original se mantiene exactamente como está escrito; es un control de incendios, no un destino de desecho (fuente: Fase 5 original; 29 sección 8.1)."
+    ],
+    "5.14": [
+      "- Destino y método según el municipio: REVISIÓN HUMANA: autoridad local y profesional de seguridad calificado (Q-29-10; 31 sección 5.8 módulo de residuos, escorrentía y desecho). Aquí no se saca ninguna conclusión sobre las reglas de descarga o de desecho."
+    ],
+    "5.15": [
+      "- Los residuos de recubrimientos existentes en propiedades antiguas siguen siendo una pregunta de material peligroso hasta que se registre la decisión sobre los recubrimientos antiguos (Q-31-07).",
+      "  - Evidence: note"
+    ],
+    "5.16": ["- Los residuos peligrosos no se manejan sin una política aprobada (fuente: 31 sección 3.1 fila 15)."],
+    "6.1": [
+      "Las fotos son solo internas por defecto y evitan personas, documentos y objetos de valor que no se necesiten para el trabajo (fuente: spec REC-002; 31 sección 3.5 regla 7)."
+    ],
+    "6.2": [
+      "- Antes: fotos de llegada y del estado existente del recubrimiento existente, del estado de la madera (podredumbre, rajaduras, tablas flojas) y de la propiedad, las plantas y el revestimiento adyacentes (fuente: spec START-008; APXA-002; 04 PT-02 \"evidencia de finalización\", PROPUESTO; X-02).",
+      "  - Evidence: photo"
+    ],
+    "6.3": [
+      "- Durante: fotos después del decapado y la lectura de humedad antes del tinte (fuente: 04 PT-02 \"evidencia de finalización\", PROPUESTO; C-PT02-08).",
+      "  - Evidence: measurement"
+    ],
+    "6.4": [
+      "- Después: fotos de después asociadas a cada área, como el piso de la terraza, las barandas y los escalones (fuente: spec QA-003), y la nota de limpieza (fuente: spec QA-002).",
+      "  - Evidence: photo"
+    ],
+    "6.5": [
+      "- Los avisos de llegada y de finalización son borradores; el trabajador o un administrador controla el envío real según la política (fuente: spec UXE-008)."
+    ],
+    "6.6": [
+      "- Retrasos por clima o por secado: la reprogramación se registra con su motivo y el resultado de la notificación al cliente (fuente: spec CX-006, SCH-007; \"Cláusula del clima del Medio Oeste\" del acuerdo).",
+      "  - Evidence: note"
+    ],
+    "6.7": [
+      "- Registre el resultado del recorrido: aceptado, aceptado con elementos pendientes, no disponible o en disputa (fuente: spec QA-004).",
+      "  - Evidence: note"
+    ],
+    "6.8": [
+      "- Las notas de cuidado, incluida la información sobre no pisar y sobre nuevas capas, salen solo de datos de productos aprobados (fuente: spec QA-008; C-PT02-V01)."
+    ],
+    "6.9": [
+      "- Explique la factura y el siguiente paso del pago sin hacer promesas no autorizadas; si el pago final puede vencer antes de un recorrido o de una comprobación del curado es una pregunta abierta (fuente: APXA-006; X-14)."
+    ],
+    "6.10": ["- Trabajo bloqueado: use solo el mensaje aprobado de \"trabajo bloqueado\" (fuente: spec NTF-007)."],
+    "6.11": [
+      "- No describa los químicos como ecológicos, seguros para el medio ambiente, no tóxicos ni inofensivos para las plantas, las mascotas o las personas (C-PT02-01); no diga que el moho queda eliminado (X-06); no prometa una vida útil del producto, impermeabilización ni ningún resultado (redacción de la \"Garantía del límite de humedad\" del acuerdo en revisión del abogado; entrada 8 de No realizar)."
+    ],
+    "6.12": ["Definición de terminado (fuente: spec QA-001 a QA-006; PT-02.QAC; APXA-005, APXA-006):"],
+    "6.13": [
+      "- Cada comprobación de la sección 13 está respondida o tiene una excepción registrada (QA-001).",
+      "  - Evidence: note"
+    ],
+    "6.14": ["- Lectura de humedad registrada antes del tinte (C-PT02-08).", "  - Evidence: measurement, note"],
+    "6.15": ["- Fotos de después asociadas a las áreas (QA-003).", "  - Evidence: photo"],
+    "6.16": [
+      "- Limpieza hecha, protección retirada, trapos con aceite y limpiadores manejados como dice el paso original (QA-002; Fase 5 original)."
+    ],
+    "6.17": [
+      "- Letreros de secado colocados y nota de cuidado entregada a partir de datos de productos aprobados (Fase 5 original; QA-008)."
+    ],
+    "6.18": ["- Todo lo modificado dentro del alcance está restablecido (APXA-005)."],
+    "6.19": [
+      "- Elementos pendientes registrados con un responsable y una fecha límite (QA-005).",
+      "  - Evidence: note"
+    ],
+    "6.20": ["- Resultado del recorrido registrado (QA-004).", "  - Evidence: note"],
+    "6.21": [
+      "- Ninguna retención queda abierta; cualquier incidente se reporta (sección 20; APXA-007).",
+      "  - Evidence: note"
+    ],
+    "stop.1": [
+      "La regla general para detener el trabajo es [[FACT-SVC-STOP-WORK-RULE]]. Activadores específicos del servicio:"
+    ],
+    "stop.2": [
+      "Activadores para detener el trabajo específicos del servicio (fuente: spec PT-02.SAF salvo que se indique otra; redacción PROPUESTA pendiente de revisión calificada):"
+    ],
+    "stop.3": [
+      "- Clima inadecuado para el trabajo o para el producto: posponga; registre No iniciar / Bloqueado en lugar de empezar, y deténgase si las condiciones cambian durante el trabajo (PT-02.SAF \"posponga con clima inadecuado\"; spec SCH-008, START-011; C-PT02-05).",
+      "  - Evidence: note"
+    ],
+    "stop.4": [
+      "- La madera no está lo bastante seca para el producto aprobado, o no hay ninguna lectura del medidor registrada: no aplique tinte (PT-02.SAF \"verifique que la madera esté lo bastante seca según el producto\"; C-PT02-08)."
+    ],
+    "stop.5": [
+      "- No se pueden proteger las plantas y las superficies adyacentes: no aplique químicos ni rocíe (PT-02.SAF \"proteja las plantas/las superficies adyacentes\")."
+    ],
+    "stop.6": [
+      "- Presión no confirmada como adecuada para la madera, o alguien en la zona de lavado o de rociado: no lave ni rocíe (PT-02.SAF \"presión adecuada\"; C-PT02-09; X-08)."
+    ],
+    "stop.7": [
+      "- Los trapos con aceite o los limpiadores de brochas no se pueden controlar como lo exige el paso de los trapos con aceite: deténgase (PT-02.SAF \"maneje los trapos con aceite\")."
+    ],
+    "stop.8": [
+      "- Se encuentra podredumbre, tablas flojas, sujetadores salidos u otros defectos estructurales: deténgase, registre (JOB-004) y derive a HI-10 o HI-11 (\"Integridad estructural\" del acuerdo; 04 sección 5.4 regla (a)).",
+      "  - Evidence: note"
+    ],
+    "stop.9": [
+      "- Recubrimiento existente en una propiedad construida antes de 1978 o de edad desconocida: no lo decape, no lo lave ni lo lije; escale (Q-31-07; 31 sección 7.2 rango 2)."
+    ],
+    "stop.10": [
+      "- No hay una SDS revisada o no hay EPP seleccionado para un paso con químicos: no empiece ese paso (C-PT02-02; 29 sección 8.3)."
+    ],
+    "stop.11": [
+      "Retenciones del servicio (insertadas en la sección 12). Las retenciones críticas no se pueden anular (31 sección 8.3); una retención que existe porque falta un módulo o una política requeridos (lavado a presión, químicos y SDS, clima, evaluación de propiedades antiguas) se comporta como una retención crítica hasta que se apruebe ese módulo (31 sección 8.4 regla 4, PROPUESTO):"
+    ],
+    "stop.12": [
+      "| Retención | Dónde en la sección 12 | Rol que libera y evidencia |",
+      "|---|---|---|",
+      "| C-PT02-05, X-27: clima y temperatura adecuados según las instrucciones del producto y la cláusula del clima del acuerdo | Antes de \"Aplicación del decapante\" y antes de \"Corte del perímetro\" | Dueño o estimador a partir de las instrucciones del producto; profesional de seguridad calificado (plan para el calor) |",
+      "| Recorrido de solidez (04 D-04-11, PROPUESTO; X-02) y recubrimientos antiguos y madera tratada (PREGUNTA ABIERTA, Q-31-07) | Antes de \"Aplicación del decapante\" | Evaluación de HI-10 o HI-11 para los defectos; renovador certificado EPA RRP y profesional de seguridad calificado para los recubrimientos antiguos y la madera |",
+      "| C-PT02-02: SDS revisada y EPP seleccionado para cada paso con químicos, incluido el decapante de hidróxido de sodio; los productos ácidos y cáusticos nunca comparten un rociador a menos que ambas SDS lo permitan (RIESGO) | Antes de \"Aplicación del decapante\", \"Ajuste del pH\" y \"Corte del perímetro\" | Profesional de seguridad calificado: selección de EPP basada en la SDS y regla del rociador registradas |",
+      "| X-08, C-PT02-09: módulo de lavado a presión y rociado sin aire (método, zona de exclusión, EPP) | Antes de \"Lavado a baja presión\" y \"Rociado/rodillo general\" | Profesional de seguridad calificado, una vez aprobado el módulo |",
+      "| C-PT02-08: límite de humedad según el producto aprobado | Después de \"Comprobación de humedad\" (la comprobación existente sigue vigente) | Dueño o estimador a partir de las instrucciones del producto |",
+      "| C-PT02-V01: tiempos sin pisar según el producto aprobado | Después de \"Letreros de secado\" | Dueño o estimador a partir de las instrucciones del producto |"
+    ],
+    "stop.13": ["Ruta general: [[FACT-SVC-ESCALATION-PATH]]."],
+    "stop.14": ["Roles del servicio (los contactos son decisiones del dueño, Q-31-05):"],
+    "stop.15": [
+      "- Retenciones por químicos, lavado a presión, rociado y clima de las secciones 10 y 12: profesional de seguridad calificado."
+    ],
+    "stop.16": [
+      "- Recubrimientos antiguos y madera tratada: renovador certificado EPA RRP y profesional de seguridad calificado (Q-31-07)."
+    ],
+    "stop.17": [
+      "- Podredumbre o hallazgos estructurales: dueño, con derivación a HI-10 o HI-11 mediante una orden de cambio."
+    ],
+    "stop.18": [
+      "- Límites del producto (humedad, clima, tiempos de secado y sin pisar): dueño o estimador a partir de las instrucciones del producto aprobado."
+    ],
+    "stop.19": [
+      "- Preguntas de alcance (cercas, trabajo debajo de la terraza, escaleras, lijado, tinte acrílico sólido, sellador): dueño."
+    ],
+    "stop.20": [
+      "- Reglas de escorrentía y de desecho: autoridad local, desde la perspectiva de cumplimiento legal; aquí no se saca ninguna conclusión."
+    ],
+    "stop.21": ["Ruta general: [[FACT-SVC-INCIDENT-REPORTING]]."],
+    "stop.22": [
+      "**REVISIÓN HUMANA:** abogado con licencia en KY y/o IN para la frase sobre culpa y responsabilidad; corredor de seguros para cualquier paso de notificación a la aseguradora que se añada más adelante."
+    ],
+    "stop.23": [
+      "Ejemplos para este servicio, todos reportados bajo JOB-008 (fuente: spec PT-02.HAZ): una salpicadura o exposición a un cáustico o un ácido; una lesión por inyección o un casi accidente con la lavadora o con el rociador sin aire; un resbalón en una superficie mojada o teñida; un incendio de trapos o de limpiador; daños a plantas, revestimiento, vehículos o propiedad vecina por químicos o por rocío; una falla del equipo. Las medidas de primera respuesta dependen del botiquín de seguridad del vehículo, que todavía no está definido (X-10)."
+    ]
+  },
+  "ambiguous": []
+}

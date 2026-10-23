@@ -2,7 +2,17 @@
 // RULE-NO-INVENTED-FACTS, RULE-SAFETY-GATES). Reviewer names are synthetic.
 import { sql } from 'kysely'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { loadServiceSeed, loadSopSeed, runSeeders, SEEDERS, syncServices, syncSops } from '../../src/index.js'
+import {
+  loadServiceSeed,
+  loadSopSeed,
+  loadSpanishSopSeed,
+  runSeeders,
+  SEEDERS,
+  syncServices,
+  syncSops,
+  syncSpanishSops,
+  type SpanishSopSeed,
+} from '../../src/index.js'
 import { createTestDatabase, type TestDatabase } from '../../src/testing.js'
 
 let t: TestDatabase
@@ -40,7 +50,6 @@ describe('SOP versions (TSK-0068, HH-PKT-03, ENT-SOPVersion)', () => {
         title: s?.title,
         source_file: s?.sourceFile,
         review_state: 'pending_competent_review',
-        spanish_status: 'pending',
         content_sha256: s?.contentSha256,
         hazard_sha256: s?.hazardSha256,
         quality_sha256: s?.qualitySha256,
@@ -164,7 +173,12 @@ describe('SOP versions (TSK-0068, HH-PKT-03, ENT-SOPVersion)', () => {
   })
 
   it('the seeders load the SOP versions after the service registry', async () => {
-    expect(SEEDERS.map((s) => s.name)).toEqual(['service-registry', 'sop-versions', 'loadout-versions'])
+    expect(SEEDERS.map((s) => s.name)).toEqual([
+      'service-registry',
+      'sop-versions',
+      'sop-spanish-versions',
+      'loadout-versions',
+    ])
     const fresh = await createTestDatabase()
     try {
       await runSeeders(fresh.db, SEEDERS, { environment: 'ci' })
@@ -173,8 +187,104 @@ describe('SOP versions (TSK-0068, HH-PKT-03, ENT-SOPVersion)', () => {
         .select(sql<number>`count(*)::int`.as('n'))
         .executeTakeFirstOrThrow()
       expect(n.n).toBe(26)
+      const es = await fresh.db
+        .selectFrom('catalog.sop_spanish_versions')
+        .select(sql<number>`count(*)::int`.as('n'))
+        .executeTakeFirstOrThrow()
+      expect(es.n).toBe(loadSpanishSopSeed().length)
     } finally {
       await fresh.drop()
     }
+  })
+})
+
+describe('Spanish SOP versions (TSK-0103, HH-LANG-04, HH-PKT-04)', () => {
+  const spanishSeed = loadSpanishSopSeed()
+  const hi05 = spanishSeed.find((s) => s.sopId === 'SOP-HI-05') as SpanishSopSeed
+  const status = async (versionId: string) =>
+    (await sql<{ s: string }>`SELECT catalog.sop_spanish_status(${versionId}::uuid) AS s`.execute(t.db)).rows[0]?.s
+
+  it('[HH-PKT-04] records each comparison against the English version it was made for; a repeated load changes nothing', async () => {
+    expect(hi05.releaseStatus).toBe('ai_reviewed')
+    const v = await current('SOP-HI-05')
+    expect(await status(v.id)).toBe('pending')
+    const r = await syncSpanishSops(t.db, [hi05])
+    expect(r).toEqual({ recorded: ['SOP-HI-05'], unchanged: [], unmatched: [] })
+    expect(await status(v.id)).toBe('ai_reviewed')
+    const row = await t.db
+      .selectFrom('catalog.sop_spanish_versions')
+      .selectAll()
+      .where('sop_version_id', '=', v.id)
+      .executeTakeFirstOrThrow()
+    expect(row).toMatchObject({
+      sop_id: 'SOP-HI-05',
+      english_content_sha256: v.content_sha256,
+      translation_method: 'ai_translation',
+      comparison_tool: hi05.check.tool,
+      release_status: 'ai_reviewed',
+    })
+    expect(row.results).toEqual(hi05.check.results)
+    expect(row.content).toEqual(hi05.content)
+    expect(await syncSpanishSops(t.db, [hi05])).toEqual({ recorded: [], unchanged: ['SOP-HI-05'], unmatched: [] })
+  })
+
+  it('[HH-LANG-04] a new English version stays pending in Spanish until it is compared again', async () => {
+    const stale = { ...hi05, englishContentSha256: 'd'.repeat(64) }
+    expect(await syncSpanishSops(t.db, [stale])).toEqual({ recorded: [], unchanged: [], unmatched: ['SOP-HI-05'] })
+    // Another English version of the same SOP has no Spanish row: pending.
+    const other = await current('SOP-HI-06')
+    expect(await status(other.id)).toBe('pending')
+  })
+
+  it('[HH-LANG-04][T45] the database refuses a release without a passing comparison, and keeps comparisons as made', async () => {
+    const v = await current('SOP-HI-05')
+    const insert = (over: Record<string, unknown>) =>
+      t.db
+        .insertInto('catalog.sop_spanish_versions')
+        .values({
+          sop_version_id: v.id,
+          sop_id: 'SOP-HI-05',
+          english_content_sha256: v.content_sha256,
+          title: 'Synthetic',
+          content: JSON.stringify(hi05.content),
+          content_sha256: 'e'.repeat(64),
+          translation_sha256: 'f'.repeat(64),
+          comparison_tool: 'compare-safety-es@1',
+          checked_on: '2026-10-23',
+          results: JSON.stringify(hi05.check.results),
+          release_status: 'ai_reviewed',
+          ...over,
+        })
+        .execute()
+    // A failed category, a recorded problem or an ambiguous flag is never released.
+    await expect(insert({ results: JSON.stringify({ ...hi05.check.results, warnings: 'fail' }) })).rejects.toThrow(
+      /sop_spanish_versions_release/,
+    )
+    await expect(insert({ ambiguous: JSON.stringify([{ item: '3.2', note: 'Synthetic ambiguity' }]) })).rejects.toThrow(
+      /sop_spanish_versions_release/,
+    )
+    await expect(
+      insert({ problems: JSON.stringify([{ category: 'ppe', item: '3.2', detail: 'synthetic' }]) }),
+    ).rejects.toThrow(/sop_spanish_versions_release/)
+    // A category missing from the results.
+    const five = Object.fromEntries(Object.entries(hi05.check.results).filter(([c]) => c !== 'stop_work'))
+    await expect(insert({ results: JSON.stringify(five), release_status: 'pending' })).rejects.toThrow()
+    // Compared with another English text than the version it names.
+    await expect(insert({ english_content_sha256: 'a'.repeat(64) })).rejects.toThrow(/exact English version/)
+    // A failed comparison is kept as pending, and the latest comparison decides.
+    await insert({
+      results: JSON.stringify({ ...hi05.check.results, measurements_units: 'fail' }),
+      problems: JSON.stringify([{ category: 'measurements_units', item: '3.3', detail: 'synthetic' }]),
+      release_status: 'pending',
+    })
+    expect(await status(v.id)).toBe('pending')
+    await expect(
+      sql`UPDATE catalog.sop_spanish_versions SET release_status = 'ai_reviewed' WHERE sop_version_id = ${v.id}`.execute(
+        t.db,
+      ),
+    ).rejects.toThrow(/kept as compared/)
+    await expect(
+      sql`DELETE FROM catalog.sop_spanish_versions WHERE sop_version_id = ${v.id}`.execute(t.db),
+    ).rejects.toThrow(/kept as compared/)
   })
 })

@@ -5,6 +5,10 @@
 //   the service registry: a new SOP is version 1, changed content (any line, the vault file or its hash) is the next
 //   version and supersedes the current one, unchanged content is left alone. Every new version is pending competent
 //   review; an import never approves anything and never resets the Owner's sign-off of an unchanged version.
+// - seed/sops-es.json holds the Spanish versions, compared with their English version by tools/compare-safety-es.mjs
+//   (TSK-0103, OWN-DEC-79). syncSpanishSops() records each one against the English version whose content digest it was
+//   compared with, after the English versions are loaded; one compared with an English version that no longer exists
+//   is left out, so a changed English SOP stays pending in Spanish until it is translated and compared again.
 // - pinJobSops() pins the current SOP version on each unpinned work package of a job, in the caller's transaction (the
 //   approval that creates the job). A service with no SOP version is recorded as NOT CONFIGURED for that package: no
 //   checklist is made up, and the package cannot become ready until a version is pinned. An import later pins the new
@@ -25,7 +29,6 @@ export interface SopSeed {
   sourceFile: string
   sourceSha256: string
   reviewState: 'pending_competent_review'
-  spanishStatus: 'pending'
   content: { stages: unknown[]; stopWork: unknown[]; openQuestions: unknown[] }
   contentSha256: string
   hazardSha256: string
@@ -34,6 +37,88 @@ export interface SopSeed {
 
 export function loadSopSeed(file = SOPS_SEED_FILE): SopSeed[] {
   return (JSON.parse(readFileSync(file, 'utf8')) as { sops: SopSeed[] }).sops
+}
+
+export const SOPS_ES_SEED_FILE = path.join(PACKAGE_ROOT, 'seed', 'sops-es.json')
+
+/** One entry of seed/sops-es.json: a Spanish version and the separate comparison of it with its English version. */
+export interface SpanishSopSeed {
+  sopId: string
+  englishContentSha256: string
+  title: string
+  translationSha256: string
+  content: { stages: unknown[]; stopWork: unknown[] }
+  contentSha256: string
+  check: {
+    tool: string
+    checkedOn: string
+    results: Record<string, 'pass' | 'fail'>
+    problems: unknown[]
+    ambiguous: unknown[]
+  }
+  releaseStatus: 'ai_reviewed' | 'pending'
+}
+
+export function loadSpanishSopSeed(file = SOPS_ES_SEED_FILE): SpanishSopSeed[] {
+  return (JSON.parse(readFileSync(file, 'utf8')) as { versions: SpanishSopSeed[] }).versions
+}
+
+export type SpanishSopSyncResult = { recorded: string[]; unchanged: string[]; unmatched: string[] }
+
+/**
+ * Records each Spanish version against the English version it was compared with (same SOP, same content digest).
+ * Recording the same comparison again changes nothing; a new comparison is a new row, and the latest one decides.
+ */
+export async function syncSpanishSops(db: Db | Tx, seeds: readonly SpanishSopSeed[]): Promise<SpanishSopSyncResult> {
+  const result: SpanishSopSyncResult = { recorded: [], unchanged: [], unmatched: [] }
+  const run = async (trx: Tx | Db) => {
+    for (const s of seeds) {
+      const versions = await trx
+        .selectFrom('catalog.sop_versions')
+        .select('id')
+        .where('sop_id', '=', s.sopId)
+        .where('content_sha256', '=', s.englishContentSha256)
+        .execute()
+      if (!versions.length) {
+        result.unmatched.push(s.sopId)
+        continue
+      }
+      let recorded = false
+      for (const v of versions) {
+        const known = await trx
+          .selectFrom('catalog.sop_spanish_versions')
+          .select('id')
+          .where('sop_version_id', '=', v.id)
+          .where('translation_sha256', '=', s.translationSha256)
+          .where('comparison_tool', '=', s.check.tool)
+          .executeTakeFirst()
+        if (known) continue
+        await trx
+          .insertInto('catalog.sop_spanish_versions')
+          .values({
+            sop_version_id: v.id,
+            sop_id: s.sopId,
+            english_content_sha256: s.englishContentSha256,
+            title: s.title,
+            content: JSON.stringify(s.content),
+            content_sha256: s.contentSha256,
+            translation_sha256: s.translationSha256,
+            comparison_tool: s.check.tool,
+            checked_on: s.check.checkedOn,
+            results: JSON.stringify(s.check.results),
+            problems: JSON.stringify(s.check.problems),
+            ambiguous: JSON.stringify(s.check.ambiguous),
+            release_status: s.releaseStatus,
+          })
+          .execute()
+        recorded = true
+      }
+      ;(recorded ? result.recorded : result.unchanged).push(s.sopId)
+    }
+  }
+  if (db.isTransaction) await run(db)
+  else await db.transaction().execute(run)
+  return result
 }
 
 export type SopSyncResult = { created: string[]; versioned: string[]; unchanged: string[]; pinned: number }

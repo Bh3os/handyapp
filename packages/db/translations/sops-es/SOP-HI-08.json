@@ -1,0 +1,250 @@
+{
+  "sopId": "SOP-HI-08",
+  "englishContentSha256": "746e0b386e7087f050210c382104e4fa66b83a2a7c0605865d56be9257aa7508",
+  "title": "SOP HI-08: Instalación de sistemas de clósets y repisas",
+  "headings": [
+    "1. Preparación del sitio y protección de la propiedad",
+    "2. Preparación y mediciones/comprobaciones requeridas",
+    "3. Pasos de trabajo específicos del servicio",
+    "4. Comprobaciones de calidad",
+    "5. Limpieza y manejo de residuos",
+    "6. Comprobaciones finales, fotos de finalización y recorrido"
+  ],
+  "items": {
+    "1.1": [
+      "- El cliente saca toda la ropa, las cajas y los objetos personales del clóset antes de que llegue el técnico (fuente: cláusula \"Despeje del clóset\" del acuerdo); la confirmación y el recordatorio de la cita incluyen esto como la lista de comprobación de preparación (fuente: spec NTF-004, NTF-005)."
+    ],
+    "1.2": [
+      "- El kit que aporta el cliente está en el sitio, completo, con las instrucciones de su fabricante (fuente: spec START-009; 29 sección 9.1)."
+    ],
+    "1.3": [
+      "- Las obstrucciones, como luces o tomacorrientes del clóset, se identifican en la solicitud; HandyHub no las mueve (fuente: spec HI-08.INT \"obstrucciones\"; No realice 10)."
+    ],
+    "1.4": [
+      "- Cada trabajo vuelve a confirmar el acceso, los ocupantes, las mascotas, el estacionamiento, los peligros y las condiciones del área de trabajo (fuente: spec CX-005)."
+    ],
+    "2.1": [
+      "- La versión aprobada del presupuesto indica el modelo del sistema y quién lo aporta, la distribución y las dimensiones, las alturas deseadas, la pared o la base, las obstrucciones y la carga que espera el cliente (fuente: spec HI-08.INT \"pared/base, dimensiones/distribución, carga esperada, modelo del sistema, obstrucciones, alturas deseadas\"; CX-003)."
+    ],
+    "2.2": [
+      "- La base es panel de yeso (drywall) sobre una cavidad hueca (Opción A) o montantes de madera de la estructura (Opción B); cualquier otra base es una condición para detener el trabajo (sección 10) (fuente: 31 sección 10 HI-08)."
+    ],
+    "2.3": [
+      "- Las instrucciones del fabricante del sistema y de los anclajes, la carga nominal y la separación están disponibles para el trabajo. Si se desconocen, la fijación no empieza (fuente: spec HI-08.SAF \"confirme la ruta de carga/la clasificación de los sujetadores ... siga la separación del fabricante\"; C-HI08-03)."
+    ],
+    "2.4": [
+      "- El kit que aporta el cliente está en el sitio; se registran su estado visible, modelo y cantidad, y las piezas faltantes o defectuosas se registran como una condición inesperada (fuente: spec START-009, JOB-004).",
+      "  - Evidence: note"
+    ],
+    "2.5": [
+      "- Las herramientas críticas están cargadas o se registra una excepción, incluido un escáner capaz de localizar montantes y servicios (fuente: spec START-005; HI-08.SAF; archivo de inventario, adiciones propuestas).",
+      "  - Evidence: note"
+    ],
+    "2.6": [
+      "- El cliente despeja el clóset (fuente: cláusula \"Despeje del clóset\" del acuerdo). Si no está despejado, registre el problema de acceso con evidencia y escale; el trabajador no cotiza ni aplica ningún cargo (fuente: spec SCH-008, JOB-004, JOB-005)."
+    ],
+    "2.7": [
+      "- Se registra el año aproximado de construcción (\"desconocido\" es un valor válido) para que las paredes pintadas o texturizadas antiguas se evalúen antes de perforar; los umbrales de antigüedad de la propiedad son una pregunta abierta (fuente: spec BRF-003 \"antigüedad aproximada si se conoce\"; 04 HI-08 peligros; Q-31-07).",
+      "  - Evidence: note"
+    ],
+    "2.8": [
+      "- Los ocupantes, los niños y las mascotas se identifican y se mantienen fuera del área de trabajo (fuente: spec APXA-002 \"identificar mascotas/ocupantes\", CX-005; X-11)."
+    ],
+    "2.9": [
+      "- El trabajo en altura se hace solo bajo una política aprobada de altura y acceso, que todavía no existe (fuente: 02 G-005; X-12)."
+    ],
+    "2.10": [
+      "- Empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada (fuente: spec APXA-003).",
+      "  - Evidence: note"
+    ],
+    "2.11": [
+      "- Al llegar: confirme la dirección, el área de trabajo y el contacto; identifique mascotas y ocupantes; inspeccione el sitio frente a las instrucciones; tome las fotos requeridas del estado existente; proteja el área de trabajo; identifique los servicios públicos y las restricciones de emergencia relevantes para la tarea (fuente: spec APXA-002).",
+      "  - Evidence: photo"
+    ],
+    "2.12": [
+      "- Antes de empezar: complete las comprobaciones requeridas de seguridad, de EPP y del sitio; confirme los materiales y los modelos frente al alcance aprobado; confirme que leyó el SOP y los peligros; empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada (fuente: spec APXA-003).",
+      "  - Evidence: note"
+    ],
+    "2.13": [
+      "- Confirme la distribución, las dimensiones y las alturas deseadas frente al alcance aprobado antes de \"Línea base con nivel láser\"; una distribución cambiada necesita una orden de cambio (fuente: spec HI-08.INT; JOB-005; FIN-008)."
+    ],
+    "2.14": [
+      "- Revise el kit que aporta el cliente frente a las instrucciones de su fabricante y el registro START-009 (fuente: spec START-009; 29 sección 9.1).",
+      "  - Evidence: note"
+    ],
+    "2.15": [
+      "- Registre en el registro del trabajo la carga nominal y la separación del fabricante del sistema y de los anclajes y la carga que espera el cliente antes de cualquier perforación (fuente: spec HI-08.SAF; C-HI08-03).",
+      "  - Evidence: note"
+    ],
+    "3.1": [
+      "El texto original del procedimiento se mantiene textual y en su orden original. Las líneas que empiezan con HOLD o FLAG son controles en borrador añadidos, pendientes de revisión calificada (fuente: 31 sección 10 HI-08). Un HOLD colocado antes de un paso debe liberarse antes de que ese paso empiece; un HOLD o FLAG colocado después de un paso limita o señala el paso de arriba."
+    ],
+    "3.2": [
+      "- [ ] **Línea base con nivel láser:** Proyecte una línea láser verde horizontal a lo largo de la pared del fondo a la altura exacta requerida para el riel de soporte principal."
+    ],
+    "3.3": [
+      "> HOLD (C-HI08-02): antes de \"Perforación del riel superior\" de abajo, escanee la ruta de perforación y de fijación en busca de cableado, tuberías, líneas de gas y otros servicios ocultos con un escáner capaz de localizarlos, usado según las instrucciones de su fabricante, y registre el resultado. No está demostrado que el detector magnético de montantes de la lista localice cableado o tuberías (sección 7; C-HI08-10); un escaneo con un dispositivo cuya capacidad para detectarlos no está establecida no despeja la ruta y cuenta como no concluyente. Si se detecta un servicio, el resultado no es concluyente o la cavidad no se puede despejar, DETÉNGASE y escale (sección 19). Liberación: sección 10. Pendiente de revisión calificada. (fuente: spec HI-08.HAZ \"perforar servicios ocultos\"; HI-08.SAF \"localizar montantes/servicios\"; datos del dueño 2026-10-02 \"Lo desconocido no es seguro\")"
+    ],
+    "3.4": [
+      "> HOLD (C-HI08-03): antes de \"Perforación del riel superior\" de abajo, confirme que la pared es panel de yeso (drywall) sobre una cavidad hueca; los montantes metálicos, el yeso tradicional (plaster), la mampostería y los azulejos no están cubiertos: DETÉNGASE y escale. Confirme la carga nominal y la separación del fabricante de los anclajes de mariposa y del sistema de rieles y regístrelas con la carga que espera el cliente; si alguna se desconoce, o la carga esperada supera la clasificación, DETÉNGASE. Liberación: sección 10. Pendiente de revisión calificada. (fuente: spec HI-08.SAF \"confirme la ruta de carga/la clasificación de los sujetadores ... siga la separación del fabricante; no sobrecargue la pared/la base\"; 31 sección 10 HI-08)"
+    ],
+    "3.5": [
+      "- [ ] **Perforación del riel superior:** Alinee el riel superior metálico, marque los agujeros pretaladrados y perfore agujeros de 1/2 pulgada a través del panel de yeso (drywall)."
+    ],
+    "3.6": [
+      "- [ ] **Fijación con pernos de mariposa:** Empuje anclajes metálicos de mariposa de uso pesado a través de los agujeros del riel, enrósquelos en la cavidad del panel de yeso (drywall) hasta que las alas de resorte se abran, y apriete los pernos usando un atornillador de impacto."
+    ],
+    "3.7": [
+      "> HOLD (C-HI08-03): el paso anterior está limitado por las instrucciones del fabricante de los anclajes: apriete según las instrucciones del fabricante de los anclajes y con la separación registrada para el trabajo - pendiente de revisión. \"apriete los pernos usando un atornillador de impacto\" no fija ningún torque y no anula esas instrucciones. (fuente: 02 C-HI08-03; spec sección 17 \"Los valores predeterminados de la tarjeta de servicio nunca anulan un peligro específico del sitio, una instrucción del fabricante\")"
+    ],
+    "3.8": [
+      "- [ ] **Colgado de los soportes verticales:** Cuelgue los soportes verticales de repisa en el riel superior, verifique una alineación perfectamente a escuadra y enganche en su lugar las ménsulas de repisa de alambre."
+    ],
+    "3.9": [
+      "- [ ] **Mapeo de montantes:** Localice todos los montantes verticales de madera de la estructura usando un sensor de escaneo profundo; trace las líneas de su centro a lo largo de la pared."
+    ],
+    "3.10": [
+      "> FLAG (C-HI08-10): el paso anterior nombra un \"sensor de escaneo profundo\", mientras que el inventario incluye un \"Detector magnético de montantes con láser de objetivo central\"; qué escáner es el estándar es una pregunta abierta. Mapear los montantes no es la comprobación de servicios ocultos, que sigue abajo. Si la estructura encontrada no es de madera, por ejemplo montantes metálicos, DETÉNGASE: la Opción B no la cubre. (fuente: archivo de inventario; 31 sección 10 HI-08)"
+    ],
+    "3.11": [
+      "> HOLD (C-HI08-02): antes de \"Atornillado directo en madera\" de abajo, escanee la ruta de fijación a lo largo del centro de cada montante trazado en busca de cableado, tuberías, líneas de gas y otros servicios ocultos con un escáner capaz de localizarlos, usado según las instrucciones de su fabricante, y registre el resultado. No está demostrado que el detector magnético de montantes de la lista localice cableado o tuberías (sección 7; C-HI08-10); un escaneo con un dispositivo cuya capacidad para detectarlos no está establecida no despeja la ruta y cuenta como no concluyente. Si se detecta un servicio, el resultado no es concluyente o la ruta no se puede despejar, DETÉNGASE y escale (sección 19). Liberación: sección 10. Pendiente de revisión calificada. (fuente: spec HI-08.HAZ \"perforar servicios ocultos\"; HI-08.SAF \"localizar montantes/servicios\"; datos del dueño 2026-10-02 \"Lo desconocido no es seguro\")"
+    ],
+    "3.12": [
+      "> HOLD (C-HI08-03): antes de \"Atornillado directo en madera\" de abajo, confirme la carga nominal y la separación del fabricante del sistema de rieles y de los sujetadores y regístrelas con la carga que espera el cliente; si alguna se desconoce, o la carga esperada supera la clasificación, DETÉNGASE. Liberación: sección 10. Pendiente de revisión calificada. (fuente: spec HI-08.SAF \"confirme la ruta de carga/la clasificación de los sujetadores ... siga la separación del fabricante; no sobrecargue la pared/la base\")"
+    ],
+    "3.13": [
+      "- [ ] **Atornillado directo en madera:** Atornille los rieles de soporte principales y las líneas de soportes verticales de repisa directamente en el centro de los montantes de madera usando tornillos estructurales para madera de 2.5 pulgadas sin anclajes de plástico. Esto garantiza límites de carga máximos para conjuntos de ropa pesada o cajas de almacenamiento del garaje."
+    ],
+    "3.14": [
+      "> FLAG: afirmación de resultado - revisión del dueño y del abogado (C-HI08-01). La oración \"Esto garantiza límites de carga máximos para conjuntos de ropa pesada o cajas de almacenamiento del garaje.\" del paso anterior se mantiene textual; no es una afirmación aprobada y no fija ningún límite de carga. Los límites de carga vienen solo de las clasificaciones del fabricante registradas para el trabajo (spec HI-08.SAF \"no sobrecargue la pared/la base\"); nunca repita la afirmación a un cliente (No realice 8). (fuente: 31 sección 10 HI-08; 02 C-HI08-01)"
+    ],
+    "4.1": [
+      "| Punto de control | Fuente | Evidencia | Inspector |",
+      "|---|---|---|---|",
+      "| Nivel y plomo: rieles, soportes verticales y repisas. \"Colgado de los soportes verticales\" comprueba la alineación a escuadra; los criterios de aprobación vienen del fabricante del sistema, y aquí no se fija ninguna tolerancia | spec HI-08.QAC \"nivel/plomo\"; sección 12 | Foto de la comprobación de nivel (sección 16) | TBD - autocomprobación o supervisor (Q-31-15) |",
+      "| Sujetadores seguros: cada anclaje y tornillo instalado y apretado según las instrucciones del fabricante con la separación registrada | spec HI-08.QAC \"sujetadores seguros\", HI-08.SAF | Fotos de la ubicación de los sujetadores antes de que los componentes los cubran | TBD - autocomprobación o supervisor (Q-31-15) |",
+      "| Componentes previstos instalados: todos los componentes del sistema aprobado según las instrucciones del kit; piezas faltantes o sobrantes registradas | spec HI-08.QAC \"componentes previstos instalados\"; START-009 | Foto de los componentes instalados; registro START-009 | TBD - autocomprobación o supervisor (Q-31-15) |",
+      "| Comprobación básica de carga/ajuste dentro de la clasificación del fabricante; ninguna prueba de carga ni certificación más allá de ella (C-HI08-01); método TBD por el revisor calificado | spec HI-08.QAC \"comprobación básica de carga/ajuste\", HI-08.SAF | Clasificación, separación y carga esperada registradas | TBD - autocomprobación o supervisor (Q-31-15) |",
+      "| Ninguna saliente filosa | spec HI-08.QAC \"ninguna saliente filosa\" | Comprobación visual registrada | TBD - autocomprobación o supervisor (Q-31-15) |",
+      "| Área limpia | spec HI-08.QAC \"área limpia\"; QA-002 | Foto de después o de la limpieza | TBD - autocomprobación o supervisor (Q-31-15) |"
+    ],
+    "4.2": [
+      "- El trabajador no puede marcar el trabajo como completo sin responder estas comprobaciones o registrar una excepción (fuente: spec QA-001).",
+      "  - Evidence: note"
+    ],
+    "4.3": [
+      "- Las fotos no pueden probar que la fijación oculta o la capacidad de carga sean adecuadas; una verificación del montaje que falta necesita una inspección, no una aprobación (fuente: manual del asistente de calidad; 04 HI-08 evidencia de finalización)."
+    ],
+    "5.1": [
+      "- Aspire el polvo de la perforación y retire los residuos y el empaque del área de trabajo (fuente: spec HI-08.QAC \"área limpia\", QA-002)."
+    ],
+    "5.2": [
+      "- Retire la protección, cuente las herramientas y los materiales, y restablezca los componentes modificados dentro del alcance (fuente: spec APXA-005)."
+    ],
+    "5.3": [
+      "- Devuelva los materiales no usados y registre las piezas sobrantes que aportó el cliente (fuente: spec APXA-007; 29 sección 9.1).",
+      "  - Evidence: note"
+    ],
+    "5.4": [
+      "- Residuos esperados de los pasos actuales: polvo de la perforación, empaque del kit, herrajes sobrantes y, si se autoriza cortar, recortes de alambre o de riel (fuente: sección 12; archivo de inventario)."
+    ],
+    "5.5": [
+      "- Destino, quién retira los residuos y cualquier cargo: TBD — decisión del dueño; no existe ninguna política de residuos (fuente: 31 sección 3.1; 02 G-078)."
+    ],
+    "5.6": ["- El retiro o el desecho de las repisas existentes no está cubierto (sección 2)."],
+    "6.1": [
+      "- Antes: fotos de llegada y del estado existente de la pared y del clóset, y del estado y el modelo del kit que aporta el cliente (fuente: spec START-008, START-009, APXA-002).",
+      "  - Evidence: photo"
+    ],
+    "6.2": [
+      "- Durante: la ubicación de los sujetadores antes de que las repisas o los componentes los cubran (fuente: 04 HI-08 evidencia de finalización, PROPUESTO; manual del asistente de calidad)."
+    ],
+    "6.3": [
+      "- Después: la comprobación de nivel, los componentes instalados y el área limpia, cada una asociada a su área de trabajo o tarea (fuente: spec QA-003; 04 HI-08 evidencia de finalización)."
+    ],
+    "6.4": [
+      "- Las fotos son solo internas por defecto y evitan personas, documentos y objetos de valor que no se necesiten para el trabajo (fuente: spec REC-002; 31 sección 3.5 regla 7)."
+    ],
+    "6.5": [
+      "- Los avisos de llegada y de finalización son borradores; el trabajador o el administrador controla el envío (fuente: spec UXE-008)."
+    ],
+    "6.6": [
+      "- Registre el resultado del recorrido: aceptado, aceptado con elementos pendientes, no disponible o en disputa (fuente: spec QA-004).",
+      "  - Evidence: note"
+    ],
+    "6.7": [
+      "- Notas de cuidado: dé al cliente los límites de carga nominal del fabricante del sistema y de los anclajes y las instrucciones de cuidado a partir de datos de productos aprobados (fuente: spec QA-008; 02 C-HI08-01)."
+    ],
+    "6.8": [
+      "- Describa el método que realmente se usó, Opción A (anclajes de mariposa en los huecos del panel de yeso) u Opción B (tornillos en montantes de madera); el texto del sitio web que los mezcla está señalado (fuente: C-HI08-11)."
+    ],
+    "6.9": [
+      "- Nunca afirme ni \"certifique\" una capacidad de carga, y nunca repita la redacción de \"garantía\" o \"certificación\" del SOP, del archivo de precios ni del plan principal (fuente: No realice 8; C-HI08-01)."
+    ],
+    "6.10": [
+      "- Trabajo bloqueado: diga al cliente solo lo que dice el mensaje aprobado de \"trabajo bloqueado\" (fuente: spec NTF-007, COM-002)."
+    ],
+    "6.11": [
+      "- Los cambios de precio o de alcance, incluido cualquier cargo, no se acuerdan en el sitio sin una orden de cambio registrada (fuente: spec JOB-005, FIN-008)."
+    ],
+    "6.12": [
+      "- Todas las comprobaciones de la sección 13 respondidas o una excepción registrada (fuente: spec QA-001).",
+      "  - Evidence: note"
+    ],
+    "6.13": ["- Fotos de después tomadas y asociadas a las tareas (fuente: spec QA-003).", "  - Evidence: photo"],
+    "6.14": [
+      "- Limpieza hecha, protección retirada, herramientas y materiales contados (fuente: spec QA-002, APXA-005)."
+    ],
+    "6.15": [
+      "- Clasificación del fabricante, separación y carga que espera el cliente registradas; notas de cuidado con los límites nominales entregadas (fuente: spec HI-08.SAF, QA-008).",
+      "  - Evidence: note"
+    ],
+    "6.16": [
+      "- Sobrantes del kit que aportó el cliente y cualquier pieza faltante registrados (fuente: spec START-009; 29 sección 9.1).",
+      "  - Evidence: note"
+    ],
+    "6.17": ["- Resultado del recorrido registrado (fuente: spec QA-004).", "  - Evidence: note"],
+    "6.18": [
+      "- Problemas sin resolver, incidentes y seguimientos de cambios enviados antes de cerrar el trabajo (fuente: spec APXA-007)."
+    ],
+    "6.19": [
+      "- El trabajador recomienda la finalización para la aprobación humana; la firma de un cliente no libera una retención de seguridad no resuelta (fuente: manual del asistente de calidad).",
+      "  - Evidence: note"
+    ],
+    "stop.1": [
+      "La regla general para detener el trabajo es [[FACT-SVC-STOP-WORK-RULE]]. Activadores específicos del servicio:"
+    ],
+    "stop.2": [
+      "**Activadores para detener el trabajo de HI-08 (borrador, pendiente de revisión calificada).** Además, detenga el trabajo afectado y escale (sección 19) cuando:"
+    ],
+    "stop.3": [
+      "- se detecta un servicio público u otro servicio oculto en la ruta de perforación o de fijación, el escaneo no es concluyente, o la cavidad no se puede despejar (fuente: spec HI-08.HAZ; HI-08.SAF \"localizar montantes/servicios\"; C-HI08-02);"
+    ],
+    "stop.4": [
+      "- se desconoce la carga nominal o la separación del fabricante del sistema o de los anclajes, o la carga que espera el cliente la supera (fuente: spec HI-08.SAF \"confirme la ruta de carga/la clasificación de los sujetadores ... siga la separación del fabricante; no sobrecargue la pared/la base\"; C-HI08-03);"
+    ],
+    "stop.5": [
+      "- la base no es panel de yeso (drywall) sobre una cavidad hueca (Opción A) ni montantes de madera de la estructura (Opción B), por ejemplo montantes metálicos, yeso tradicional (plaster), mampostería o azulejos (fuente: 31 sección 10 HI-08);"
+    ],
+    "stop.6": [
+      "- luces del clóset, tomacorrientes u otros elementos eléctricos estorban la distribución (fuente: No realice 10; spec START-011);"
+    ],
+    "stop.7": [
+      "- se encuentra material que se sospecha peligroso, o la evaluación del año de construcción o de la superficie no está liberada, antes de perforar paredes pintadas o texturizadas antiguas (fuente: spec START-011; 04 HI-08 peligros);"
+    ],
+    "stop.8": [
+      "- al kit que aporta el cliente le faltan piezas, está dañado o no es el modelo aprobado (fuente: spec START-009, JOB-004);"
+    ],
+    "stop.9": [
+      "- el trabajo necesita una escalera o un banquito y no existe una política aprobada de altura y acceso (fuente: spec HI-08.HAZ; 02 G-005; X-12);"
+    ],
+    "stop.10": ["- no se puede mantener a los ocupantes o las mascotas fuera del área de trabajo (fuente: X-11)."],
+    "stop.11": [
+      "Rol que libera y evidencia de liberación para cada activador: `<decisión del revisor: rol y evidencia de liberación>` (31 sección 8.3). Cuáles de estos activadores son retenciones críticas que ningún rol puede anular está pendiente (Q-31-18)."
+    ],
+    "stop.12": ["Ruta general: [[FACT-SVC-ESCALATION-PATH]]."],
+    "stop.13": ["- Roles y contactos de HI-08: `<decisión del dueño: orden de escalamiento y contactos>` (Q-31-05)."],
+    "stop.14": ["Ruta general: [[FACT-SVC-INCIDENT-REPORTING]]."]
+  },
+  "ambiguous": []
+}

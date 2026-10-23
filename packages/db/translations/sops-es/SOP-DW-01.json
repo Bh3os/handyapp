@@ -1,0 +1,358 @@
+{
+  "sopId": "SOP-DW-01",
+  "englishContentSha256": "794f590093d7a84edc043827ae2eee923f3ce87325c04b35dece5e9ed488d084",
+  "title": "SOP DW-01: Servicios profesionales de parcheo, reparación y mantenimiento general",
+  "headings": [
+    "1. Preparación del sitio y protección de la propiedad",
+    "2. Preparación y mediciones/comprobaciones requeridas",
+    "3. Pasos de trabajo específicos del servicio",
+    "4. Comprobaciones de calidad",
+    "5. Limpieza y manejo de residuos",
+    "6. Comprobaciones finales, fotos de finalización y recorrido"
+  ],
+  "items": {
+    "1.1": ["PROPUESTO para la aprobación del dueño; la redacción para el cliente pasa por 30 y 32."],
+    "1.2": [
+      "- El cliente retira los muebles, las decoraciones frágiles y los cuadros colgados de la zona de la pared o del techo donde se trabajará antes de que llegue el técnico, como pide la cláusula \"Espacio de trabajo\" del acuerdo; la distancia de la cláusula es un texto de borrador no aprobado (fuente: cláusula \"Espacio de trabajo\" del acuerdo). Esta preparación no reemplaza las comprobaciones previas al inicio propias de HandyHub (fuente: 30 sección 4.1 fila 5)."
+    ],
+    "1.3": [
+      "- Los ocupantes, los niños y las mascotas se mantienen lejos del área de trabajo y de su polvo (fuente: spec CX-005, BRF-005; X-11)."
+    ],
+    "1.4": [
+      "- El cliente indica la causa del daño, si hay alguna fuga activa o ya reparada, quién aporta la pintura, y lo que se sepa sobre la edad de la casa o pruebas anteriores (fuente: spec DW-01.INT; spec BRF-003)."
+    ],
+    "1.5": [
+      "- La pintura que aporta el cliente está en el sitio cuando el presupuesto aprobado depende de ella (fuente: líneas de pintura del archivo de precios; spec START-009)."
+    ],
+    "1.6": [
+      "- Las instrucciones de preparación salen con la confirmación y el recordatorio de la cita (fuente: spec NTF-004, NTF-005); cada trabajo vuelve a confirmar el acceso, los ocupantes, las mascotas, el estacionamiento, los peligros y las condiciones del área de trabajo (fuente: spec CX-005)."
+    ],
+    "2.1": [
+      "- Este SOP no está activo: ningún trabajo lo usa hasta una revisión competente y la activación por el dueño (fuente: datos del dueño 2026-10-02; 31 sección 2.1)."
+    ],
+    "2.2": [
+      "- Existe una versión aprobada del presupuesto, con el alcance, las exclusiones y la responsabilidad de la pintura, el imprimador y la textura indicados; el trabajador confirma el alcance y las exclusiones aprobados vigentes (fuente: spec CX-003, START-003; spec DW-01.INT \"responsabilidad de la pintura\")."
+    ],
+    "2.3": [
+      "- Solicitud completa: los datos de la spec DW-01.INT listados en la sección 2. La falta de la causa del daño o del estado de fuga activa bloquea un paquete listo para empezar (fuente: spec DW-01.INT; manual del planificador de trabajos \"Detenga la planificación de un paquete listo para empezar si faltan las decisiones requeridas sobre el alcance o los peligros\")."
+    ],
+    "2.4": [
+      "- Se confirma que la fuga o la fuente de agua está resuelta antes de cualquier trabajo en daños por agua; HOLD al inicio de la sección 12 (fuente: spec DW-01.SAF \"confirme que la fuga/la fuente está resuelta\")."
+    ],
+    "2.5": [
+      "- La edad de la propiedad se registra como un año de construcción aproximado o \"desconocido\". Año de construcción desconocido o anterior a 1978: HOLD para la revisión RRP antes de cortar, rayar o lijar superficies pintadas (HOLDs en la sección 12). Esta es una retención de evaluación conservadora pendiente de los revisores calificados, no una conclusión legal (fuente: 31 sección 10; spec BRF-003 \"edad aproximada si se conoce\"; X-13; Q-31-07).",
+      "  - Evidence: note"
+    ],
+    "2.6": [
+      "- Sospecha de moho, material sospechoso peligroso o daños ocultos extensos reportados antes de la visita: no empiece; escale (fuente: spec DW-01.SAF; 31 sección 8.4 regla 2).",
+      "  - Evidence: note"
+    ],
+    "2.7": [
+      "- Trabajo en el techo u otro trabajo en altura solo bajo una política aprobada de altura y acceso; no existe ninguna, así que esas tareas siguen bloqueadas (fuente: spec DW-01.HAZ \"escalera para techos\"; 02 G-005; X-12; 31 sección 8.4 regla 4; Q-31-09)."
+    ],
+    "2.8": [
+      "- Herramientas y materiales críticos marcados como cargados, o una excepción registrada; un artículo crítico faltante bloquea las tareas afectadas. El detector de montantes y de servicios, la escuadra de carpintero, el respaldo, la luz LED y el compuesto premezclado que usan los pasos no están hoy en el archivo de inventario (fuente: spec START-005, START-006, APXA-001; C-DW01-11; manual del planificador de trabajos \"Una escalera faltante o un permiso no verificado mantiene bloqueadas las tareas afectadas\").",
+      "  - Evidence: note"
+    ],
+    "2.9": [
+      "- Pintura que aporta el cliente, si el presupuesto aprobado depende de ella: en el sitio, con su estado, producto y cantidad registrados antes de usarla (fuente: spec START-009; 29 sección 9.1, PROPUESTO).",
+      "  - Evidence: note"
+    ],
+    "2.10": [
+      "- Los productos químicos (compuestos de fraguado y premezclados, imprimador sellador) se llevan solo con una SDS revisada (fuente: 29 sección 8.3, regla provisional PROPUESTA; spec BRF-008)."
+    ],
+    "2.11": [
+      "- Indicadores de permiso, licencia o calificación: la aplicabilidad para DW-01, incluidos el RRP de la EPA y el registro local, es desconocida y no se trata como \"no se necesita permiso\" (fuente: spec START-010; manual de clasificación de riesgos \"una aplicabilidad desconocida no debe equivaler por defecto a que no se necesita permiso\"; 04 fila de indicadores de permiso/licencia)."
+    ],
+    "2.12": [
+      "- Antes de salir: confirme el trabajo, el cliente, la dirección y la hora correctos; lea los últimos cambios; revise el alcance y las exclusiones; revise los peligros y la seguridad; cargue las herramientas, el equipo y los materiales críticos; revise los artículos que aporta el cliente; confirme los documentos y las aprobaciones requeridos (fuente: spec APXA-001)."
+    ],
+    "2.13": [
+      "- Antes de empezar: complete las comprobaciones requeridas de seguridad, de EPP y del sitio; confirme los materiales, los modelos y los colores; confirme que leyó el SOP y los peligros; empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada (fuente: spec APXA-003, START-004). Las retenciones críticas nunca se liberan por anulación (fuente: 31 sección 8.3).",
+      "  - Evidence: note"
+    ],
+    "2.14": [
+      "- Al llegar: confirme la dirección, el área de trabajo y el contacto; identifique mascotas y ocupantes; inspeccione el sitio real frente a las instrucciones y registre las diferencias; las diferencias importantes activan la Clasificación de riesgos (Risk Triage) o la revisión del supervisor (fuente: spec APXA-002, START-007).",
+      "  - Evidence: note"
+    ],
+    "2.15": [
+      "- Tome las fotos del estado existente del área dañada y sus alrededores, incluidas las manchas de agua (fuente: spec APXA-002, START-008; sección 16).",
+      "  - Evidence: photo"
+    ],
+    "2.16": [
+      "- Proteja el área de trabajo: \"Lonas protectoras\" en la sección 12 es el paso de protección original; el aislamiento del polvo más allá de eso lo fija el revisor de seguridad calificado (fuente: spec APXA-002 \"proteja el área de trabajo\"; spec DW-01.SAF \"aísle el polvo\")."
+    ],
+    "2.17": ["- Mantenga a los niños y las mascotas fuera del área de trabajo (fuente: X-11; spec CX-005)."],
+    "2.18": [
+      "- Identifique los servicios públicos y las restricciones de emergencia relevantes para la tarea (fuente: spec APXA-002)."
+    ],
+    "2.19": [
+      "- Antes de empezar: complete las comprobaciones requeridas de seguridad, de EPP y del sitio; confirme que leyó el SOP y los peligros; empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada (fuente: spec APXA-003, START-004).",
+      "  - Evidence: note"
+    ],
+    "2.20": [
+      "- La fase original de preparación, \"Fase 1: Protección del sitio y evaluación de daños\", se queda en la sección 12, sin cambios y en orden (fuente: 31 sección 9.2 paso 6)."
+    ],
+    "3.1": [
+      "*Procedimiento original, sin cambios y en su orden original; los cinco encabezados de fase originales bajan un nivel. Las líneas que empiezan con HOLD o FLAG se añadieron el 2026-10-03 como líneas separadas junto a los pasos afectados: una retención que debe cumplirse primero va justo antes del paso que bloquea; una marca, o una retención que limita un paso, va justo después del paso al que se refiere (36 D-36-17). Están pendientes de revisión calificada y no cambian ningún paso original. Las cifras de los pasos originales (tamaños, profundidades, grano, tiempos) se mantienen sin cambios y todavía necesitan confirmarse con las instrucciones del fabricante en una revisión competente; el tiempo de fraguado se marca más abajo porque 31 sección 10 lo menciona (31 sección 3.5 regla 3). Durante todo el procedimiento se aplican las reglas \"Durante el trabajo\" del Apéndice A: siga este SOP y las instrucciones del fabricante, mantenga la protección y la contención en su lugar, documente las condiciones ocultas, deténgase y escale ante condiciones inseguras o no aprobadas, registre el avance y los materiales, y obtenga la aprobación del cambio antes de un trabajo adicional (spec APXA-004).*"
+    ],
+    "3.2": [
+      "> HOLD (C-DW01-01): antes de \"Lonas protectoras\" más abajo y de cada paso posterior, confirme que cualquier fuga o fuente de agua detrás del daño está resuelta, y registre la causa del daño y el estado de fuga activa. Una fuga activa o no confirmada como resuelta: no empiece; DETÉNGASE y escale (secciones 10 y 19). La libera: TBD - profesional de seguridad calificado. Pendiente de revisión calificada. (fuente: spec DW-01.SAF \"confirme que la fuga/la fuente está resuelta\"; spec DW-01.INT \"causa del daño, estado de fuga activa\")"
+    ],
+    "3.3": [
+      "> HOLD (C-DW01-01, X-06): antes de \"Lonas protectoras\" más abajo, revise el área dañada en busca de material mojado o sospecha de crecimiento de moho sin tocarla; el método de comprobación de humedad es TBD por el revisor calificado. Material mojado o sospecha de moho: no empiece; DETÉNGASE y escale. Hasta que exista la definición de moho de la empresa, la sospecha de moho es una retención crítica (Q-31-10). La libera: TBD - evaluador de moho calificado. Pendiente de revisión calificada. (fuente: spec DW-01.HAZ \"posible moho/humedad\"; spec DW-01.SAF \"deténgase ante moho\"; 31 sección 8.4 regla 2)"
+    ],
+    "3.4": [
+      "> HOLD (C-DW01-01, X-12): parche en el techo u otro parche en altura: no empiece \"Lonas protectoras\" más abajo ni ningún paso posterior en altura mientras no existan una política aprobada de altura y acceso ni un procedimiento revisado para trabajo en altura; la tarea sigue bloqueada. La libera: TBD - profesional de seguridad calificado, después de que se apruebe la política. Pendiente de revisión calificada. (fuente: spec DW-01.HAZ \"escalera para techos\"; 02 G-005; 31 sección 8.4 regla 4)"
+    ],
+    "3.5": [
+      "- [ ] **Lonas protectoras:** Coloque lonas protectoras de tela directamente debajo del área de reparación. Pegue con cinta una lámina de plástico ligera debajo de la zona de la pared si trabaja sobre superficies pintadas o empapeladas."
+    ],
+    "3.6": [
+      "- [ ] **Escaneo estructural:** Use un detector de montantes para ubicar los montantes de madera/metal más cercanos a cada lado del agujero. Busque cables eléctricos o tuberías de cobre ocultos detrás del núcleo de yeso."
+    ],
+    "3.7": [
+      "> FLAG (C-DW01-11): el paso anterior depende de un detector de montantes que el archivo de inventario no incluye; si un aparato detecta cables o tuberías sale de la documentación de su fabricante. El nombre \"Escaneo estructural\" describe un escaneo de montantes y de servicios, no una evaluación estructural. Pendiente de revisión calificada. (fuente: 02 C-DW01-11; archivo de inventario)"
+    ],
+    "3.8": [
+      "- [ ] **Escuadrar el parche:** Use una escuadra de carpintero y un lápiz para trazar un rectángulo perfecto alrededor del daño. Evite formas irregulares para asegurar juntas de reemplazo limpias."
+    ],
+    "3.9": [
+      "> HOLD (C-DW01-01): no empiece \"Corte limpio\" más abajo hasta que el escaneo de \"Escaneo estructural\" anterior haya cubierto el rectángulo trazado y la pared alrededor donde se atornillará el respaldo, y no haya encontrado ahí ningún cable, tubería ni otro servicio. Un servicio en esa área o un resultado de escaneo dudoso: DETÉNGASE y escale; mover o reparar cables o plomería es trabajo de un oficio con licencia (sección 2, No realice). La libera: TBD - profesional de seguridad calificado. Pendiente de revisión calificada. (fuente: spec DW-01.SAF \"escanee antes de cortar\"; spec DW-01.HAZ \"servicios ocultos\"; spec START-011)"
+    ],
+    "3.10": [
+      "> HOLD (C-DW01-01, X-13): antes de \"Corte limpio\" más abajo, registre el año de construcción aproximado o \"desconocido\". Año de construcción desconocido o anterior a 1978: no corte, raye ni lije panel de yeso (drywall), yeso, compuesto o textura pintados hasta que una persona calificada registre una disposición (HOLD para la revisión RRP); el material sospechoso no se toca. Esta es una retención de evaluación conservadora, no una conclusión legal. La libera: TBD - renovador certificado en RRP por la EPA; inspector de asbesto acreditado para sospecha de asbesto. Pendiente de revisión calificada. (fuente: 31 sección 10 y sección 7.2 rango 2; spec DW-01.SAF \"material sospechoso peligroso\"; Q-31-07)"
+    ],
+    "3.11": [
+      "> HOLD (C-DW01-01): antes de \"Corte limpio\" más abajo, aísle el polvo del resto de la propiedad. Si las lonas protectoras y la lámina de plástico de \"Lonas protectoras\" son suficientes, cómo se aísla el polvo, si se usa la aspiradora HEPA del inventario y qué EPP se aplica (aquí no se nombra ninguna clase de respirador) lo fija el profesional de seguridad calificado (sección 6). La libera: TBD - profesional de seguridad calificado. Pendiente de revisión calificada. (fuente: spec DW-01.SAF \"aísle el polvo\"; spec DW-01.HAZ \"sílice/polvo\"; spec DW-01.TLS \"EPP\")"
+    ],
+    "3.12": [
+      "- [ ] **Corte limpio:** Corte el rectángulo trazado de forma limpia con una sierra manual para panel de yeso (drywall) o una navaja multiusos. Mantenga la hoja de la sierra vertical a un ángulo de 90 grados para no desmoronar el yeso del panel de alrededor."
+    ],
+    "3.13": [
+      "> HOLD (C-DW01-01, X-06): después del paso anterior y antes de \"Despeje del montante\", inspeccione la cavidad abierta sin alterarla más. Daños ocultos extensos, material mojado o deteriorado, sospecha de moho, estructura dañada, o un servicio en la abertura o detrás de ella: DETÉNGASE, fotografíelo y regístrelo con su gravedad (spec JOB-004) y escale. Continúe solo después de que se libere la retención y, donde cambien el alcance o el precio, exista una orden de cambio aprobada (spec FIN-008, JOB-005). La libera: TBD - profesional de seguridad calificado; ingeniero estructural para problemas de la estructura; evaluador de moho calificado para sospecha de moho. Pendiente de revisión calificada. (fuente: spec DW-01.SAF \"deténgase ante moho/material sospechoso peligroso o daños ocultos extensos\"; 31 sección 8.3)"
+    ],
+    "3.14": [
+      "- [ ] **Despeje del montante:** Si hay un montante, corte el panel de yeso (drywall) exactamente hasta la línea central del montante para dejar un borde de apoyo para la pieza nueva."
+    ],
+    "3.15": [
+      "- [ ] **Inserción del respaldo de madera:** Si no se alcanza ningún montante, corte un trozo de madera de 1x3 o una tira de madera contrachapada 4 pulgadas más largo que el agujero. Introdúzcalo dentro de la cavidad y fíjelo firmemente desde afuera con tornillos para panel de yeso de 1-1/4 pulgadas a través de la pared existente."
+    ],
+    "3.16": [
+      "- [ ] **Medir la pieza de inserción:** Mida la abertura cortada y reste 1/8 pulgada al ancho y al alto. Corte un panel de reemplazo del mismo grosor (1/2\" o 5/8\") de una hoja nueva.",
+      "  - Evidence: measurement"
+    ],
+    "3.17": [
+      "- [ ] **Fijación con tornillos:** Atornille firmemente el panel del parche al respaldo de madera o al montante. Hunda un poco los tornillos (1/32 pulgada) para formar una pequeña depresión sin romper el papel de la superficie."
+    ],
+    "3.18": [
+      "- [ ] **Biselado de bordes:** Use una navaja multiusos para marcar un ligero bisel en forma de ranura en V a lo largo de las juntas donde se unen el panel de yeso viejo y el nuevo (mejora la penetración del compuesto)."
+    ],
+    "3.19": [
+      "- [ ] **Aplicación de cinta de malla:** Aplique cinta de malla de fibra de vidrio autoadhesiva de alta resistencia centrada directamente sobre todas las juntas, sin traslapar ni arrugar."
+    ],
+    "3.20": [
+      "- [ ] **Primera capa (compuesto de fraguado):** Mezcle una tanda de compuesto de fraguado rápido (Sheetrock 20 o 45). Use una espátula para encintar de 6 pulgadas para presionar con firmeza el compuesto caliente (hot-mud) a través de la malla, llenando por completo la ranura en V. Alise al ras."
+    ],
+    "3.21": [
+      "> FLAG: el paso anterior mezcla un producto químico. Mézclelo y úselo solo como lo indican la etiqueta del producto y la SDS; los nombres de los productos se mantienen sin cambios y no son una lista de productos aprobados, y un producto sin una SDS revisada no se lleva a un trabajo (regla provisional PROPUESTA). Aquí no se añade ninguna proporción de mezcla. Pendiente de revisión calificada. (fuente: 31 sección 3.5 reglas 3 y 8; 29 sección 8.3)"
+    ],
+    "3.22": [
+      "- [ ] **Segunda capa (capa difuminada):** Cuando el compuesto caliente (hot-mud) esté sólido (aprox. 30 minutos), raspe los pequeños bordes con la hoja de la espátula. Cambie a una espátula de 10 pulgadas o de 12 pulgadas y aplique una capa delgada de compuesto premezclado ligero, difuminando los bordes 4 pulgadas hacia afuera más allá de la junta original."
+    ],
+    "3.23": [
+      "> FLAG: SIN FUENTE - verificar con las instrucciones del fabricante. El tiempo de fraguado de \"aprox. 30 minutos\" del paso anterior se da para dos compuestos de fraguado diferentes; los tiempos de fraguado, de secado y de nueva capa salen solo de las instrucciones del fabricante del producto. El paso se mantiene sin cambios hasta que un revisor calificado reemplace la cifra. (fuente: 31 sección 10; 02 G-044)"
+    ],
+    "3.24": [
+      "> FLAG (C-DW01-05, X-26): \"El acabado invisible\" en el encabezado anterior es un término de resultado sin un nivel de acabado definido. La calidad se comprueba con la redacción de la spec \"acabado plano/difuminado adecuado al alcance\" (spec DW-01.QAC; sección 13). Encabezado mantenido sin cambios; revisión del dueño y del abogado."
+    ],
+    "3.25": [
+      "> HOLD (C-DW01-01, X-13): antes de \"Lijado con control de polvo\" más abajo, la disposición sobre el año de construcción registrada antes de \"Corte limpio\" también debe cubrir el lijado de la pared pintada existente en los bordes difuminados; sin ella, no lije. Aislamiento del polvo y cualquier EPP según lo fije el profesional de seguridad calificado (sección 6). La libera: TBD - renovador certificado en RRP por la EPA. Pendiente de revisión calificada. (fuente: 31 sección 10; spec DW-01.HAZ \"sílice/polvo\")"
+    ],
+    "3.26": [
+      "- [ ] **Lijado con control de polvo:** Use una esponja de lijar de grano fino (grano 220) para alisar con suavidad los bordes secos. Integre meticulosamente los bordes difuminados con la textura de la pared original."
+    ],
+    "3.27": [
+      "> FLAG (C-DW01-04): integrar los bordes difuminados con la textura existente en el paso anterior no es un procedimiento de igualación de textura. La igualación de textura, que el acuerdo promete, no está cubierta por este SOP (sección 2). Pendiente de decisión del dueño."
+    ],
+    "3.28": [
+      "- [ ] **Inspección con linterna:** Sostenga una luz LED de alta potencia plana contra el perfil de la pared. Busque pequeñas sombras de hundimientos, poros o marcas de herramienta. Retoque con معجون en puntos si es necesario."
+    ],
+    "3.29": [
+      "> FLAG (C-DW01-13): la última oración del paso anterior contiene una palabra en árabe, mantenida sin cambios. Glosa en inglés propuesta para la confirmación del dueño y del revisor bilingüe: \"joint compound\" (compuesto para juntas) (02 C-DW01-13). Esto no es una traducción; el texto en español llega solo por el flujo de traducción (sección 22)."
+    ],
+    "3.30": [
+      "- [ ] **Limpieza en seco:** Limpie la zona de reparación con un paño de microfibra limpio y seco para quitar el polvo calcáreo."
+    ],
+    "3.31": [
+      "> FLAG (C-DW01-11): la limpieza en seco del paso anterior es el único paso para quitar el polvo, y ningún paso usa la aspiradora HEPA inalámbrica del inventario. El método de limpieza del polvo del lijado y el uso de la aspiradora los fija el profesional de seguridad calificado (sección 14). (fuente: spec DW-01.QAC \"polvo limpiado\"; archivo de inventario)"
+    ],
+    "3.32": [
+      "- [ ] **Imprimador sellador:** Aplique una capa uniforme de imprimador sellador para panel de yeso (drywall) de alta calidad. *Fundamental:* Nunca permita que los pintores apliquen la pintura final sobre compuesto sin imprimador; lo absorberá de manera diferente y dejará una mancha de silueta con brillo desigual."
+    ],
+    "3.33": [
+      "> FLAG (C-DW01-07): el paso anterior aplica imprimador a cada parche, mientras que la spec dice \"imprimador si está incluido\" (spec DW-01.MAT, DW-01.QAC) y el archivo de precios vende el imprimador dentro de un complemento. Si el imprimador está incluido es una decisión del dueño (Q-28-21); el paso y su justificación de calidad se mantienen sin cambios. Aplique el imprimador solo como lo indican la etiqueta del producto y la SDS. (fuente: 02 C-DW01-07; 31 sección 3.5 regla 8)"
+    ],
+    "4.1": [
+      "| Comprobación (spec DW-01.QAC) | Evidencia (borrador) | Inspector |",
+      "|---|---|---|",
+      "| Parche estable | Pieza de inserción fijada al respaldo o al montante (\"Fijación con tornillos\"); el método para comprobar que el parche está firme es TBD; las fotos no prueban la fijación oculta ni el estado de la estructura (manual de calidad) | Autocomprobación del trabajador o supervisor: TBD (Q-31-15) |",
+      "| Acabado plano/difuminado adecuado al alcance | \"Inspección con linterna\" en la sección 12; el nivel de acabado no está definido (X-26) | TBD (Q-31-15) |",
+      "| Igualación de textura dentro de la tolerancia acordada | No está cubierta: no existe ningún paso de textura ni una tolerancia acordada (C-DW01-04; sección 2) | TBD (Q-31-15) |",
+      "| Imprimado si está incluido | \"Imprimador sellador\" en la sección 12; inclusión según el presupuesto aprobado (C-DW01-07) | TBD (Q-31-15) |",
+      "| Polvo limpiado | Sección 14 completa; hoy solo \"Limpieza en seco\" quita el polvo (C-DW01-11) | TBD (Q-31-15) |"
+    ],
+    "4.2": [
+      "- El trabajo no se puede marcar como completo hasta que cada comprobación requerida esté respondida o haya una excepción registrada (fuente: spec QA-001, AT-039).",
+      "  - Evidence: note"
+    ],
+    "4.3": [
+      "- Una comprobación fallida se convierte en un elemento pendiente o en un escalamiento; la autocomprobación de un trabajador no reemplaza una inspección requerida del supervisor (fuente: manual de calidad \"Evite que la autocomprobación de un trabajador reemplace la inspección requerida del supervisor\")."
+    ],
+    "4.4": [
+      "- Las fotos por sí solas no prueban los sujetadores ocultos, la suficiencia estructural ni la liberación de materiales peligrosos (fuente: manual de calidad \"No deduzca a partir de una imagen los sujetadores ocultos, la suficiencia estructural, la liberación de materiales peligrosos ni la seguridad eléctrica\")."
+    ],
+    "4.5": [
+      "- Un reconocimiento del cliente no libera una retención de seguridad (fuente: manual de calidad \"Un formulario firmado por el cliente no libera una retención de seguridad sin resolver\").",
+      "  - Evidence: note"
+    ],
+    "5.1": [
+      "- Limpie el área de trabajo, incluidos el polvo del lijado y los residuos (fuente: spec QA-002; spec DW-01.QAC \"polvo limpiado\"). El método de limpieza más allá de \"Limpieza en seco\", incluido el uso de la aspiradora HEPA del inventario, está pendiente de revisión de seguridad (C-DW01-11)."
+    ],
+    "5.2": [
+      "- Retire las lonas protectoras, la película de enmascarar y cualquier otra protección o contención (fuente: spec QA-002, APXA-005)."
+    ],
+    "5.3": [
+      "- Cuente las herramientas y los materiales; devuelva los materiales no usados (fuente: spec APXA-005, APXA-007)."
+    ],
+    "5.4": [
+      "- Fotos de la limpieza donde se requieran para este servicio con polvo (fuente: spec QA-002).",
+      "  - Evidence: photo"
+    ],
+    "5.5": [
+      "TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo."
+    ],
+    "5.6": [
+      "- Tipos de residuos conocidos para esa revisión: recortes de panel de yeso (drywall) y material dañado retirado; polvo del lijado; esponjas, hojas y cinta de malla usadas; restos de compuesto y envases de imprimador; cualquier material dañado por agua o sospechoso, que no se maneja hasta que se libere su retención. No hay ningún destino de residuos definido (fuente: sección 12; 31 sección 3.1 fila 15; 02 G-078)."
+    ],
+    "5.7": [
+      "- Los residuos de material sospechoso peligroso no se manejan sin una política aprobada (fuente: 31 sección 3.1 fila 15; spec START-011)."
+    ],
+    "6.1": [
+      "- Antes: fotos de llegada y del estado existente del área dañada, incluidas las manchas visibles, y de la protección instalada (fuente: spec START-008, APXA-002, BRF-012; 04 fila de evidencia de finalización, PROPUESTO).",
+      "  - Evidence: photo"
+    ],
+    "6.2": [
+      "- Durante: la cavidad abierta después de \"Corte limpio\", antes de que se coloquen el respaldo o la pieza de inserción; cualquier condición oculta, con su gravedad (fuente: spec JOB-004; 04 fila de evidencia de finalización, PROPUESTO)."
+    ],
+    "6.3": [
+      "- Después: una foto por parche, asociada a su área de trabajo (fuente: spec QA-003); fotos de la limpieza donde se requieran (fuente: spec QA-002).",
+      "  - Evidence: photo"
+    ],
+    "6.4": [
+      "- Las fotos son solo internas por defecto y evitan personas, documentos y objetos de valor que no se necesiten para el trabajo (fuente: spec REC-002; 31 sección 3.5 regla 7)."
+    ],
+    "6.5": [
+      "- El conjunto de fotos requerido, y si Iniciar trabajo (Start Job) queda bloqueado sin las fotos de \"antes\": TBD - dueño (fuente: spec START-008)."
+    ],
+    "6.6": [
+      "- Los avisos de llegada y de finalización usan solo plantillas aprobadas; hasta que se aprueben son borradores (fuente: 31 sección 3.1 fila 17)."
+    ],
+    "6.7": [
+      "- Antes del trabajo: confirme el alcance con el cliente solo lo necesario, incluido si el imprimador, la pintura y la textura están incluidos; registre las solicitudes adicionales en lugar de aceptarlas fuera del proceso de cambios (fuente: spec APXA-003, JOB-005, FIN-008).",
+      "  - Evidence: note"
+    ],
+    "6.8": [
+      "- Si el trabajo está bloqueado (fuga activa, sospecha de moho, material sospechoso peligroso, daños ocultos), use solo el mensaje aprobado de \"trabajo bloqueado\" (fuente: spec NTF-007; 31 sección 8.5)."
+    ],
+    "6.9": [
+      "- En el recorrido, registre el resultado: aceptado, aceptado con elementos pendientes, no disponible o en disputa (fuente: spec QA-004, APXA-006).",
+      "  - Evidence: note"
+    ],
+    "6.10": [
+      "- Explique el siguiente paso de la factura y el pago sin hacer promesas no autorizadas (fuente: spec APXA-006)."
+    ],
+    "6.11": [
+      "- No prometa un resultado invisible o perfecto, la finalización en una sola visita, una igualación de textura ni durabilidad, y no hable de culpas; remita esas preguntas al dueño (fuente: entrada 8 de No realizar; 31 sección 8.5; C-DW01-05)."
+    ],
+    "6.12": [
+      "- Las notas de cuidado, como dejar secar antes de pintar, salen solo de datos aprobados del producto (fuente: spec QA-008; manual de calidad \"Prepare las instrucciones de entrega a partir de datos aprobados del producto\")."
+    ],
+    "6.13": [
+      "- Cada comprobación requerida de la sección 13 está respondida con evidencia, o hay una excepción registrada (fuente: spec QA-001, AT-039).",
+      "  - Evidence: note"
+    ],
+    "6.14": [
+      "- Las fotos de después están tomadas y asociadas a cada área de parche (fuente: spec QA-003).",
+      "  - Evidence: photo"
+    ],
+    "6.15": [
+      "- La limpieza está hecha, la protección retirada, y las herramientas y los materiales contados (fuente: spec QA-002, APXA-005)."
+    ],
+    "6.16": ["- La propiedad queda asegurada (fuente: 31 sección 3.1 fila 18)."],
+    "6.17": [
+      "- Los elementos pendientes y el resultado del recorrido están registrados (fuente: spec QA-004, QA-005, APXA-006).",
+      "  - Evidence: note"
+    ],
+    "6.18": [
+      "- Ninguna HOLD de la sección 12 queda abierta; los problemas sin resolver, los incidentes y los seguimientos de cambios se envían antes de que se cierre el trabajo (fuente: 31 sección 8.3; spec APXA-007, JOB-012)."
+    ],
+    "6.19": [
+      "- Cierre solo cuando los pasos operativos y financieros requeridos estén completos (fuente: spec APXA-007)."
+    ],
+    "stop.1": [
+      "La regla general para detener el trabajo es [[FACT-SVC-STOP-WORK-RULE]]. Activadores específicos del servicio:"
+    ],
+    "stop.2": [
+      "Activadores para detener el trabajo de DW-01 (primero la spec DW-01.SAF: \"confirme que la fuga/la fuente está resuelta; escanee antes de cortar; aísle el polvo; deténgase ante moho/material sospechoso peligroso o daños ocultos extensos\"; luego las retenciones del registro; todo pendiente de revisión calificada):"
+    ],
+    "stop.3": [
+      "- La fuga o la fuente de agua está activa o no se ha confirmado que esté resuelta: no empiece, corte, parche ni cierre la pared (fuente: spec DW-01.SAF; C-DW01-01)."
+    ],
+    "stop.4": [
+      "- El escaneo no se ha hecho, ha encontrado un servicio en la ruta del corte, o da un resultado dudoso: no corte (fuente: spec DW-01.SAF \"escanee antes de cortar\"; spec DW-01.HAZ \"servicios ocultos\")."
+    ],
+    "stop.5": ["- El polvo no se puede aislar: no corte ni lije (fuente: spec DW-01.SAF \"aísle el polvo\")."],
+    "stop.6": [
+      "- Sospecha de moho, material sospechoso peligroso o daños ocultos extensos: deténgase. La sospecha de moho se trata como una retención crítica hasta que exista la definición de moho de la empresa (fuente: spec DW-01.SAF; 31 sección 8.4 regla 2; X-06; Q-31-10)."
+    ],
+    "stop.7": [
+      "- Año de construcción desconocido o anterior a 1978 sin una disposición registrada: no corte, raye ni lije superficies pintadas (fuente: 31 sección 10; X-13)."
+    ],
+    "stop.8": [
+      "- Trabajo en el techo o en altura sin una política aprobada de altura y acceso: la tarea sigue bloqueada (fuente: 31 sección 3.3 entrada 5 y sección 8.4 regla 4; 02 G-005; X-12)."
+    ],
+    "stop.9": [
+      "- Resulta que se necesita trabajo estructural, eléctrico o de plomería: deténgase (sección 2, No realice)."
+    ],
+    "stop.10": [
+      "- La pintura que aporta el cliente falta, está dañada o no está identificada cuando el presupuesto aprobado depende de ella: la tarea afectada queda bloqueada (fuente: spec START-009; spec JOB-004 \"falta un artículo que aporta el cliente\")."
+    ],
+    "stop.11": [
+      "- Cada HOLD de la sección 12 nombra quién la libera; las retenciones críticas se liberan solo con una evaluación calificada registrada, nunca por anulación ni por solicitud del cliente (fuente: 31 sección 8.3).",
+      "  - Evidence: note"
+    ],
+    "stop.12": ["Ruta general: [[FACT-SVC-ESCALATION-PATH]]."],
+    "stop.13": ["Rutas de DW-01 (los contactos y el orden de escalamiento son decisiones del dueño, Q-31-05):"],
+    "stop.14": [
+      "- Una fuga activa o no confirmada, material mojado o sospecha de moho: deténgase antes de cualquier trabajo adicional en el parche afectado y escale; la sospecha de moho se libera solo con una evaluación registrada por un evaluador de moho calificado (fuente: 31 sección 8.4 regla 2; X-06; Q-31-10)."
+    ],
+    "stop.15": [
+      "- Un servicio en la ruta del corte, o cables o plomería en la abertura: deténgase; la oficina remite el trabajo a un oficio con licencia (sección 2, No realice)."
+    ],
+    "stop.16": [
+      "- Año de construcción desconocido o anterior a 1978 sin una disposición registrada, o material sospechoso: deténgase y escale; la liberación necesita una disposición registrada por un renovador certificado en RRP por la EPA, o por un inspector de asbesto acreditado para sospecha de asbesto (fuente: 31 sección 10; X-13; Q-31-07)."
+    ],
+    "stop.17": [
+      "- Daños ocultos extensos o estructura dañada: deténgase; los problemas estructurales van a un ingeniero estructural antes de que continúe cualquier trabajo (fuente: spec DW-01.SAF; 31 sección 8.3)."
+    ],
+    "stop.18": [
+      "- Trabajo en el techo que necesitaría equipo de acceso: deténgase; espera la política aprobada de altura y acceso (X-12; Q-31-09)."
+    ],
+    "stop.19": ["Ruta general: [[FACT-SVC-INCIDENT-REPORTING]]."],
+    "stop.20": [
+      "- Ejemplos de DW-01: un corte con una navaja o una sierra, un golpe a cables o tuberías ocultos, una caída desde el equipo de acceso, exposición al polvo de material sospechoso, y daños a los acabados o pertenencias del cliente (fuente: spec JOB-008; spec DW-01.HAZ)."
+    ]
+  },
+  "ambiguous": []
+}

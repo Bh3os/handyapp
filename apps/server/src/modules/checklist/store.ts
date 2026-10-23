@@ -25,6 +25,7 @@ import {
 import type { StaffActor } from '@handyhub/policy'
 import { sql } from 'kysely'
 import { ApiError, type FieldError } from '../../api/errors.js'
+import { spanishItem, spanishReleases, type SpanishRelease } from '../sops/spanish.js'
 
 type Reader = Db | Tx
 
@@ -76,6 +77,7 @@ type Package = {
   title: string | null
   signedOff: boolean
   content: SopContent | null
+  spanish: SpanishRelease | undefined
 }
 
 async function packagesOf(db: Reader, jobId: string): Promise<Package[]> {
@@ -87,6 +89,10 @@ async function packagesOf(db: Reader, jobId: string): Promise<Package[]> {
     .where('w.job_id', '=', jobId)
     .orderBy('w.position')
     .execute()
+  const spanish = await spanishReleases(
+    db,
+    rows.flatMap((r) => (r.sop_version_id ? [r.sop_version_id] : [])),
+  )
   return rows.map((r) => ({
     id: r.id,
     code: r.code,
@@ -96,6 +102,7 @@ async function packagesOf(db: Reader, jobId: string): Promise<Package[]> {
     title: r.title,
     signedOff: r.signed_off_at !== null,
     content: (r.content as unknown as SopContent | null) ?? null,
+    spanish: r.sop_version_id ? spanish.get(r.sop_version_id) : undefined,
   }))
 }
 
@@ -218,7 +225,15 @@ export async function checklistView(db: Reader, actor: StaffActor, jobId: string
         workPackageId: p.id,
         code: p.code,
         state: p.state,
-        sop: p.sopVersionId ? { versionId: p.sopVersionId, title: p.title, pendingReview: !p.signedOff } : null,
+        sop: p.sopVersionId
+          ? {
+              versionId: p.sopVersionId,
+              title: p.title,
+              pendingReview: !p.signedOff,
+              spanishStatus: p.spanish?.status ?? 'pending',
+              titleEs: p.spanish?.title ?? null,
+            }
+          : null,
         currentStage: stage,
         summary: checklistSummary(
           steps.map((s) => ({ id: s.id, required: s.required })),
@@ -230,6 +245,7 @@ export async function checklistView(db: Reader, actor: StaffActor, jobId: string
             stage: st.stage,
             key: st.key,
             heading: st.heading,
+            headingEs: p.spanish?.content?.stages.find((x) => x.stage === st.stage)?.heading ?? null,
             open,
             steps: steps
               .filter((s) => s.stage === st.stage)
@@ -245,6 +261,8 @@ export async function checklistView(db: Reader, actor: StaffActor, jobId: string
                 return {
                   stepId: s.id,
                   text: itemText(s),
+                  // The Spanish text only from a version released as AI-reviewed (TSK-0103).
+                  textEs: ((es) => (es ? itemText(es) : null))(spanishItem(p.spanish, s.id)),
                   line: s.line,
                   required: s.required,
                   evidence: [...s.evidence],

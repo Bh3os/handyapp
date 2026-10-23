@@ -18,7 +18,8 @@
 //   that file (sources/vault/, frozen) with link targets removed, searching onward from the previous item. A line the
 //   graph added (none in the vault) keeps `line: null`, so it is never presented as vault text.
 // - Every version is imported as "pending competent review" (OWN-DEC-17); the Owner's sign-off is recorded later on
-//   the version in the database. Spanish is "pending": no Spanish SOP text exists (OWN-DEC-79).
+//   the version in the database. The Spanish versions are compared and released separately (tools/compare-safety-es.mjs,
+//   TSK-0103, OWN-DEC-79).
 // - PROPOSED: every step is `required` (unknown is not safe, OWN-DEC-17); which steps are optional is not stated in
 //   the SOPs, so none is treated as optional.
 //
@@ -217,7 +218,6 @@ export function sopFromNode(node, readVault = (file) => readFileSync(join(VAULT,
     sourceFile,
     sourceSha256: sha256(vaultText),
     reviewState: 'pending_competent_review',
-    spanishStatus: 'pending',
     content,
     contentSha256: sha256(stable(content)),
     hazardSha256: sha256(stable(hazards)),

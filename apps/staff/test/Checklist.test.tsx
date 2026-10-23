@@ -20,6 +20,7 @@ const t = (locale: StaffLocale) => staffTranslator(locale).t
 const step = (over: Partial<ChecklistStep>): ChecklistStep => ({
   stepId: '1.1',
   text: 'Synthetic: cover the floor',
+  textEs: null,
   line: 12,
   required: true,
   evidence: [],
@@ -47,15 +48,16 @@ function data(over: Partial<ChecklistData> = {}): ChecklistData {
         workPackageId: WP,
         code: 'PT-01',
         state: 'in_progress',
-        sop: { versionId: 'v', title: 'Synthetic SOP', pendingReview: true },
+        sop: { versionId: 'v', title: 'Synthetic SOP', pendingReview: true, spanishStatus: 'pending', titleEs: null },
         currentStage: 1,
         summary: { steps: 2, completed: 0, skipped: 0, requiredSkipped: 0, requiredOpen: 2, complete: false },
         stages: [
-          { stage: 1, key: 'site_preparation', heading: 'Prep', open: true, steps: [step({})] },
+          { stage: 1, key: 'site_preparation', heading: 'Prep', headingEs: null, open: true, steps: [step({})] },
           {
             stage: 2,
             key: 'setup_checks',
             heading: 'Setup',
+            headingEs: null,
             open: false,
             steps: [step({ stepId: '2.1', evidence: ['note'], actions: ['skip'] })],
           },
@@ -141,5 +143,44 @@ describe('ChecklistPage (TSK-0075)', () => {
     expect(within(panel).queryByLabelText('Who did the walkthrough')).toBeNull()
     fireEvent.click(within(panel).getByRole('button', { name: 'Finished: submit for quality review' }))
     await waitFor(() => expect(posted).toEqual([{ outcome: 'customer_unavailable' }]))
+  })
+
+  it('[T45][T70][HH-LANG-04] Spanish-reading workers see released Spanish steps; pending ones stay English and blocked', async () => {
+    // The completion panel reads its own route.
+    const serve = (body: ChecklistData) =>
+      vi.fn(async (url: RequestInfo | URL) =>
+        String(url).endsWith('/completion') ? json(200, COMPLETION) : json(200, body),
+      )
+    const released = data()
+    const pkg = released.packages[0] as ChecklistData['packages'][number]
+    pkg.sop = {
+      versionId: 'v',
+      title: 'Synthetic SOP',
+      pendingReview: true,
+      spanishStatus: 'ai_reviewed',
+      titleEs: 'SOP sintético',
+    }
+    pkg.stages = pkg.stages.map((st) => ({
+      ...st,
+      steps: st.steps.map((x) => ({ ...x, textEs: 'Sintético: cubra el piso' })),
+    }))
+    render(<ChecklistPage t={t('es')} locale="es" fetchImpl={serve(released)} jobId={JOB} href={href} />)
+    const first = (await screen.findAllByTestId('checklist-step'))[0] as HTMLElement
+    expect(within(first).getByText('Sintético: cubra el piso').closest('[lang]')?.getAttribute('lang')).toBe('es')
+    expect(screen.getByTestId('checklist-language').textContent).toBe(
+      'Revisado por IA Los pasos del SOP se muestran en español, revisados por IA frente a la versión en inglés.',
+    )
+    expect(screen.queryByText('Revisión de seguridad en español pendiente')).toBeNull()
+    cleanup()
+    // Not released: the English text, "Spanish safety review pending" for the Spanish reader.
+    render(<ChecklistPage t={t('es')} locale="es" fetchImpl={serve(data())} jobId={JOB} href={href} />)
+    const pending = (await screen.findAllByTestId('checklist-step'))[0] as HTMLElement
+    expect(within(pending).getByText('Synthetic: cover the floor').closest('[lang]')?.getAttribute('lang')).toBe('en')
+    expect(screen.getByText('Revisión de seguridad en español pendiente')).toBeTruthy()
+    cleanup()
+    // English readers always read the English text.
+    render(<ChecklistPage t={t('en')} locale="en" fetchImpl={serve(released)} jobId={JOB} href={href} />)
+    expect(await screen.findAllByText('Synthetic: cover the floor')).toBeTruthy()
+    expect(screen.queryByText('Sintético: cubra el piso')).toBeNull()
   })
 })

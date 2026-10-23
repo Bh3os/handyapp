@@ -1,0 +1,240 @@
+{
+  "sopId": "SOP-HI-05",
+  "englishContentSha256": "ecdf509dc3c6ded7bbda4ce7a27c050688a057a7b10383a7cf40ff1d99d3b653",
+  "title": "SOP HI-05: Instalación de herrajes de puerta y cerraduras inteligentes",
+  "headings": [
+    "1. Preparación del sitio y protección de la propiedad",
+    "2. Preparación y mediciones/comprobaciones requeridas",
+    "3. Pasos de trabajo específicos del servicio",
+    "4. Comprobaciones de calidad",
+    "5. Limpieza y manejo de residuos",
+    "6. Comprobaciones finales, fotos de finalización y recorrido"
+  ],
+  "items": {
+    "1.1": [
+      "PROPUESTO a partir de los campos de la solicitud; la redacción para el cliente pasa por 30 y 32 (fuente: 04 HI-05 requisitos de preparación del cliente; spec HI-05.INT):"
+    ],
+    "1.2": ["- la cerradura compatible está en el sitio;"],
+    "1.3": ["- el cliente o un representante autorizado está presente con su propio teléfono y su propia cuenta;"],
+    "1.4": ["- hay un puente Wi-Fi disponible si el modelo de cerradura lo necesita;"],
+    "1.5": ["- todas las llaves existentes están disponibles;"],
+    "1.6": ["- el cliente ha decidido qué pasa con los herrajes viejos."],
+    "1.7": [
+      "Cada trabajo vuelve a confirmar que el acceso, los ocupantes, las mascotas, el estacionamiento, los peligros y las condiciones del área de trabajo siguen vigentes (fuente: spec CX-005)."
+    ],
+    "2.1": [
+      "- Este SOP es un borrador y no está activo; no se despacha ningún trabajo con él hasta que el dueño registre la aprobación después de una revisión competente (fuente: datos del dueño 2026-10-02; spec HND-004; 04 sección 2.4).",
+      "  - Evidence: note"
+    ],
+    "2.2": [
+      "- Antes de salir: confirme el trabajo, el cliente, la dirección y la hora; revise el alcance, las exclusiones, los peligros y la seguridad; cargue las herramientas y los materiales críticos; revise los artículos que aporta el cliente; confirme los documentos y las aprobaciones requeridos (fuente: spec APXA-001)."
+    ],
+    "2.3": [
+      "- Solicitud completa: material/grosor de la puerta, perforación/distancia al borde (backset) existentes, modelo de cerradura, mano de la puerta, alineación del cerradero, necesidades de Wi-Fi/aplicación, cuenta/privacidad del cliente (fuente: spec HI-05.INT)."
+    ],
+    "2.4": [
+      "- El proveedor de la cerradura queda registrado en el presupuesto (cliente, inventario de HandyHub o compra para el trabajo; Q-29-14). Una cerradura que aporta el cliente recibe un registro de su estado visible, modelo y cantidad antes de la instalación (fuente: spec START-009; 29 sección 9.1).",
+      "  - Evidence: note"
+    ],
+    "2.5": [
+      "- Para la Opción B, el cliente o un representante autorizado está presente para crear la cuenta de la aplicación y ser dueño de ella y de todos los códigos; el caso del cliente ausente (por ejemplo, un anfitrión de alquiler a distancia) es una PREGUNTA ABIERTA (fuente: 04 HI-05 requisitos previos, PROPUESTO; C-HI05-01)."
+    ],
+    "2.6": [
+      "- Se confirma la autoridad del solicitante para cambiar las cerraduras; cómo se verifica es una PREGUNTA ABIERTA para el abogado (fuente: 04 HI-05 requisitos previos; 31 sección 10)."
+    ],
+    "2.7": [
+      "- Indicadores de permiso, licencia y calificación: ninguno está marcado para HI-05. Si se aplica una licencia de cerrajería o de herrajes de seguridad en cada municipio de Kentucky e Indiana es una PREGUNTA ABIERTA, y una aplicabilidad desconocida no equivale por defecto a \"no se necesita permiso\". Iniciar trabajo (Start Job) sigue bloqueado donde la política administrativa marque un requisito (fuente: spec START-010; 04 HI-05 indicadores de permiso/licencia; manual de clasificación de riesgos)."
+    ],
+    "2.8": [
+      "- No se empieza sin revisión una puerta que se sospeche que es cortafuego o una puerta de salida de emergencia (fuente: 31 sección 10; PREGUNTA ABIERTA)."
+    ],
+    "2.9": [
+      "- La evaluación de propiedades antiguas para puertas y marcos pintados (edad de la propiedad, pintura antigua) está pendiente (fuente: 31 sección 5.8; 04 HI-05 peligros). Hasta que se resuelva, No realice la entrada 3 (sección 2) se aplica antes de cualquier trabajo con cincel, lima o perforación de una puerta o marco pintado en una casa construida antes de 1978 o de año de construcción desconocido; una declaración del cliente no lo libera (fuente: datos del dueño 2026-10-02 \"Lo desconocido no es seguro\"; manual de clasificación de riesgos \"Una superficie pintada antes de 1978 no queda liberada porque el cliente diga que parece segura\")."
+    ],
+    "2.10": [
+      "- Empiece solo cuando el trabajo muestre Listo o cuando haya una excepción autorizada documentada (fuente: spec APXA-003).",
+      "  - Evidence: note"
+    ],
+    "2.11": [
+      "- Al llegar: confirme la dirección, el área de trabajo y el contacto; identifique mascotas y ocupantes; inspeccione el sitio real frente a las instrucciones; tome las fotos requeridas del estado existente; proteja el área de trabajo (fuente: spec APXA-002).",
+      "  - Evidence: photo"
+    ],
+    "2.12": [
+      "- Antes de empezar: complete las comprobaciones requeridas de seguridad, de EPP y del sitio; confirme los materiales y los modelos; confirme que leyó el SOP y los peligros; empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada (fuente: spec APXA-003, START-004).",
+      "  - Evidence: note"
+    ],
+    "2.13": [
+      "- Cerradura que aporta el cliente: registre su estado visible, modelo y cantidad (fuente: spec START-009).",
+      "  - Evidence: note"
+    ],
+    "2.14": [
+      "- Detalles de protección de la puerta y del piso y de la organización del material: TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo."
+    ],
+    "3.1": [
+      "*El texto original del procedimiento que sigue no ha cambiado y está en su orden original. Las líneas HOLD y FLAG son elementos de revisión añadidos, pendientes de revisión calificada; nunca reemplazan ni reformulan un paso (fuente: 31 sección 9.2; 36 sección 3.4).*"
+    ],
+    "3.2": [
+      "- [ ] **Inspección de roce:** Cierre la puerta y gire a mano la perilla interior de la cerradura. Identifique si el pestillo roza contra la parte superior, inferior o del fondo de la cavidad del cerradero."
+    ],
+    "3.3": [
+      "- [ ] **Modificación del rebaje con cincel:** Desatornille el cerradero metálico del marco de la puerta. Use un cincel para madera afilado de 1/2 pulgada para quitar fibras de madera y ensanchar el rebaje de la cavidad en la dirección del roce del pestillo."
+    ],
+    "3.4": [
+      "- [ ] **Refuerzo con tornillos:** Vuelva a instalar el cerradero con tornillos gruesos para madera de 3 pulgadas, atornillados a fondo en los montantes estructurales del marco (esto estabiliza el marco flojo y evita futuros desalineamientos por asentamiento)."
+    ],
+    "3.5": [
+      "> FLAG (C-HI05-05): afirmación de resultado en el paso anterior - \"esto estabiliza el marco flojo y evita futuros desalineamientos por asentamiento\" - no está verificada y contradice la \"Exención de marco estructural\" del acuerdo. No la repita a los clientes. No diagnostique el asentamiento de los cimientos; registre el movimiento visible del marco (spec JOB-004) y escale (sección 10). Revisión del dueño y del abogado. (fuente: 31 sección 10)"
+    ],
+    "3.6": [
+      "> HOLD (C-HI05-02): antes de irse después de los pasos anteriores, compruebe con la puerta cerrada que traba y cierra con llave y que el pestillo se mueve con suavidad, incluso con la operación manual; no deje la propiedad sin asegurar - si la puerta no se puede cerrar con llave, deténgase y escale (sección 19). Pendiente de revisión calificada. (fuente: spec HI-05.SAF, HI-05.QAC; 31 sección 10)"
+    ],
+    "3.7": [
+      "> HOLD (C-HI05-02): antes de quitar la cerradura vieja y antes del paso siguiente, confirme la compatibilidad - grosor de la puerta, perforación/distancia al borde (backset), mano de la puerta y modelo de cerradura - con las instrucciones del fabricante de la cerradura; ante cualquier diferencia, no quite la cerradura vieja; deténgase y escale. Pendiente de revisión calificada. (fuente: spec HI-05.INT; 31 sección 10)"
+    ],
+    "3.8": [
+      "> FLAG (C-HI05-07): ningún paso cubre quitar la cerradura vieja ni registrar qué pasa con las llaves y los herrajes viejos; no está cubierto - pendiente de revisión (sección 2)."
+    ],
+    "3.9": [
+      "- [ ] **Montaje de los herrajes:** Monte de forma pareja el teclado exterior de la cerradura inteligente y la unidad interior del pestillo motorizado, asegurándose de que los cables no estorben el paso del eje del pasador y no queden pellizcados."
+    ],
+    "3.10": [
+      "- [ ] **Calibración del motor:** Ejecute el ciclo de calibración automática de la cerradura inteligente. La cerradura sacará el pestillo varias veces para confirmar que no hay fricción ni resistencia del motor eléctrico."
+    ],
+    "3.11": [
+      "- [ ] **Vinculación con la red:** Vincule la cerradura al concentrador Wi-Fi de la casa, configure códigos PIN temporales de acceso para invitados y pruebe los comandos remotos de cerrar/abrir desde el teléfono inteligente del cliente."
+    ],
+    "3.12": [
+      "> HOLD (C-HI05-01): el paso anterior está retenido (no se realiza tal como está escrito) hasta la revisión del responsable de privacidad y del abogado. Mientras tanto se aplica la regla de credenciales (31 sección 5.8, PROPUESTO): el cliente crea la cuenta de la aplicación y es su dueño, e ingresa la contraseña del Wi-Fi y todos los códigos maestros y de invitados en su propio dispositivo; el trabajador puede señalar los pasos de configuración del fabricante; los códigos y las contraseñas nunca se registran, fotografían ni envían. (fuente: spec HI-05.SAF, HI-05.QAC, COM-002; datos del dueño 2026-10-02)"
+    ],
+    "3.13": [
+      "> HOLD (C-HI05-02): antes de irse, prueba final de funcionamiento con la puerta cerrada - llave, perilla interior, y teclado y aplicación cuando estén dentro del alcance - incluida la operación de emergencia y manual según el fabricante de la cerradura; no deje la propiedad sin asegurar. Si la cerradura falla, deténgase y escale (sección 19); el plan de contingencia es una PREGUNTA ABIERTA para el dueño. Un reconocimiento no libera esta retención. Pendiente de revisión calificada. (fuente: spec HI-05.SAF, HI-05.QAC; 31 sección 10)"
+    ],
+    "4.1": [
+      "Comprobaciones observables de la tarjeta de la spec; el trabajador responde cada comprobación o registra una excepción (fuente: spec HI-05.QAC, QA-001). La autocomprobación del trabajador no reemplaza una inspección del supervisor donde se requiera (fuente: manual del asistente de calidad)."
+    ],
+    "4.2": [
+      "| Comprobación | Evidencia | Fuente |",
+      "|---|---|---|",
+      "| Funcionamiento suave del pasador y del pestillo (llave, perilla interior, y teclado y aplicación cuando estén dentro del alcance) | Registro de la prueba de funcionamiento | Spec HI-05.QAC; 04 HI-05 evidencia de finalización |",
+      "| Fijación segura de los herrajes | Fotos de después que no muestran códigos ni pantallas de cuentas | Spec HI-05.QAC, REC-002, COM-002 |",
+      "| La puerta cierra y traba; operación de emergencia y manual verificada según el fabricante de la cerradura | Registro de la prueba de funcionamiento (retención en la sección 12) | Spec HI-05.QAC, HI-05.SAF |",
+      "| El cliente controla los códigos y las cuentas | Confirmación del cliente; ningún valor de código o contraseña en ningún registro | Spec HI-05.QAC, COM-002; 27 AUTH-009 (PROPUESTO) |",
+      "| Destino de las llaves y los herrajes viejos confirmado | Registro del destino (el cliente se los queda o se desechan según la política - PREGUNTA ABIERTA, C-HI05-07) | Spec HI-05.QAC |"
+    ],
+    "5.1": [
+      "- Limpie el área, retire la protección, cuente las herramientas y los materiales, y restablezca los componentes modificados dentro del alcance (fuente: spec APXA-005, QA-002)."
+    ],
+    "5.2": [
+      "- Astillas y polvo de madera del trabajo con cincel: aspire según la lista de herramientas de la tarjeta; todavía no hay una aspiradora en el inventario (C-HI05-10) (fuente: spec HI-05.TLS)."
+    ],
+    "5.3": [
+      "- Registre qué pasa con el empaque, las piezas sobrantes de la cerradura y los herrajes viejos (fuente: 29 sección 9.1; spec HI-05.QAC).",
+      "  - Evidence: note"
+    ],
+    "5.4": [
+      "- Tipos de residuos: astillas y polvo de madera, empaque, herrajes retirados, baterías usadas, restos de lubricante. Destinos y reglas de desecho: TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo. Manejo de baterías según el fabricante y el revisor (fuente: 29 sección 8.1)."
+    ],
+    "5.5": ["- Los residuos peligrosos no se manejan sin una política aprobada (fuente: 31 sección 3.1; 02 G-078)."],
+    "5.6": [
+      "- El destino de los herrajes retirados y de las llaves viejas sigue una política del dueño que todavía no existe (PREGUNTA ABIERTA; C-HI05-07); regístrelo (fuente: spec HI-05.QAC).",
+      "  - Evidence: note"
+    ],
+    "6.1": [
+      "Todas las fotos son solo internas por defecto y nunca muestran códigos del teclado, pantallas de la aplicación o de cuentas, ni personas o documentos que no se necesiten para el trabajo (fuente: spec REC-002, COM-002; 31 sección 3.5 regla 7)."
+    ],
+    "6.2": [
+      "- Antes: fotos del estado existente de la puerta, el marco y los herrajes existentes (fuente: spec START-008; X-02, porque el acuerdo excluye las condiciones previas).",
+      "  - Evidence: photo"
+    ],
+    "6.3": [
+      "- Durante: daños ocultos, daños del marco u otras condiciones inesperadas, con su gravedad (fuente: spec JOB-004)."
+    ],
+    "6.4": [
+      "- Después: fotos de los herrajes interiores y exteriores asociadas a la puerta (fuente: spec QA-003; 04 HI-05 evidencia de finalización).",
+      "  - Evidence: photo"
+    ],
+    "6.5": [
+      "- Los avisos de llegada y de finalización son borradores; el trabajador o el administrador controla el envío (fuente: spec UXE-008)."
+    ],
+    "6.6": [
+      "- Recorrido: registre el resultado - aceptado, aceptado con elementos pendientes, no disponible o en disputa (fuente: spec QA-004).",
+      "  - Evidence: note"
+    ],
+    "6.7": ["- El cliente confirma que tiene todos los códigos y la cuenta (fuente: spec HI-05.QAC)."],
+    "6.8": [
+      "- Nunca envíe códigos, contraseñas, notas internas ni detalles de incidentes por SMS o correo electrónico (fuente: spec COM-002)."
+    ],
+    "6.9": [
+      "- Las notas de cuidado y de garantía salen solo de una plantilla aprobada; todavía no existe una posición de garantía o de visita de seguimiento para HI-05 (Q-30-07), y el manejo de la garantía del fabricante no está definido (fuente: spec QA-008; 04 HI-05 política de garantía o de visita de seguimiento)."
+    ],
+    "6.10": [
+      "- No repita la afirmación marcada de que los tornillos evitan el asentamiento futuro (C-HI05-05); no haga promesas de seguridad ni de resultados (fuente: 31 sección 3.3 entrada 8)."
+    ],
+    "6.11": ["- Trabajo bloqueado: use solo el mensaje aprobado de \"trabajo bloqueado\" (fuente: spec NTF-007)."],
+    "6.12": [
+      "- Cada comprobación de la sección 13 está respondida o tiene una excepción registrada (fuente: spec QA-001).",
+      "  - Evidence: note"
+    ],
+    "6.13": [
+      "- La puerta cierra y traba, la operación de emergencia y manual está verificada, y la propiedad queda asegurada (fuente: spec HI-05.SAF, HI-05.QAC)."
+    ],
+    "6.14": [
+      "- El cliente controla todos los códigos y las cuentas; ningún código ni contraseña aparece en ningún registro (fuente: spec HI-05.QAC, COM-002).",
+      "  - Evidence: note"
+    ],
+    "6.15": [
+      "- El destino de las llaves y los herrajes viejos queda registrado (fuente: spec HI-05.QAC).",
+      "  - Evidence: note"
+    ],
+    "6.16": [
+      "- Las fotos de después están tomadas y asociadas (QA-003); la limpieza está hecha (QA-002); el resultado del recorrido está registrado (QA-004) (fuente: spec QA-002 a QA-004).",
+      "  - Evidence: photo, note"
+    ],
+    "6.17": [
+      "- Una cerradura que aporta el cliente tiene su registro START-009 (fuente: spec START-009).",
+      "  - Evidence: note"
+    ],
+    "6.18": [
+      "- Cierre: se envían los problemas sin resolver y los seguimientos de incidentes o cambios; el trabajo se cierra solo cuando los pasos operativos y financieros requeridos están completos (fuente: spec APXA-006, APXA-007)."
+    ],
+    "stop.1": [
+      "La regla general para detener el trabajo es [[FACT-SVC-STOP-WORK-RULE]]. Activadores específicos del servicio:"
+    ],
+    "stop.2": [
+      "Activadores para detener el trabajo y retenciones específicos del servicio HI-05 (pendientes de revisión calificada):"
+    ],
+    "stop.3": [
+      "- Regla de la tarjeta: \"proteja las credenciales del cliente; haga que el cliente controle su cuenta/contraseña personal; verifique la operación de emergencia/manual; no deje la propiedad sin asegurar\" (fuente: spec HI-05.SAF)."
+    ],
+    "stop.4": [
+      "- HOLD (C-HI05-02): no deje la propiedad sin asegurar. Si la puerta no se puede cerrar y trabar, o no se puede verificar la operación de emergencia y manual, deténgase y escale; el plan de contingencia es una PREGUNTA ABIERTA para el dueño. Se trata como una retención crítica: un reconocimiento o la firma del cliente no la libera (fuente: spec HI-05.SAF; 31 sección 8.4 regla 3; manual del planificador de trabajos)."
+    ],
+    "stop.5": [
+      "- HOLD (C-HI05-02): la compatibilidad (grosor de la puerta, perforación/distancia al borde (backset), mano de la puerta, modelo de cerradura) se confirma antes de quitar la cerradura vieja; si no coincide, la cerradura vieja no se quita y el trabajo se escala. Solo la libera el rol autorizado con un registro de anulación (fuente: spec HI-05.INT, PERM-006; 31 secciones 8.4 regla 5 y 10).",
+      "  - Evidence: note"
+    ],
+    "stop.6": [
+      "- HOLD (C-HI05-01): el paso de vinculación con la red y de códigos de la Opción B queda retenido bajo la regla de credenciales; se libera solo después de la revisión del paso por el responsable de privacidad y el abogado (fuente: 31 secciones 5.8 y 10)."
+    ],
+    "stop.7": [
+      "- Deténgase ante una puerta que se sospeche que es cortafuego o una puerta de salida de emergencia; revisión por el funcionario de construcción o el jefe de bomberos (PREGUNTA ABIERTA) (fuente: 31 sección 10; 04 HI-05 condiciones para detener el trabajo, PROPUESTO)."
+    ],
+    "stop.8": [
+      "- Deténgase ante un movimiento visible del marco o de la estructura: registre la condición (spec JOB-004) y escale; no haga un diagnóstico (fuente: 04 HI-05 condiciones para detener el trabajo, PROPUESTO; C-HI05-05).",
+      "  - Evidence: note"
+    ],
+    "stop.9": [
+      "- Deténgase cuando no esté clara la autoridad del solicitante para cambiar las cerraduras (fuente: 31 sección 10; PREGUNTA ABIERTA)."
+    ],
+    "stop.10": ["Ruta general: [[FACT-SVC-ESCALATION-PATH]]."],
+    "stop.11": ["Específico del servicio (pendiente de revisión):"],
+    "stop.12": [
+      "- Una cerradura que falla después de quitar la vieja, o una puerta que no se puede cerrar con llave: deténgase y escale; solo una estabilización mínima si una política lo permite (fuente: spec JOB-006). El plan de contingencia y la política de estabilización son decisiones del dueño que todavía no se han tomado (PREGUNTA ABIERTA; 02 G-005)."
+    ],
+    "stop.13": ["Ruta general: [[FACT-SVC-INCIDENT-REPORTING]]."],
+    "stop.14": [
+      "Específico del servicio: posible exposición de un código o una contraseña del cliente (visto, registrado, fotografiado o enviado): TBD - requiere la revisión del responsable de privacidad (fuente: 31 sección 5.8 módulo de credenciales)."
+    ]
+  },
+  "ambiguous": []
+}

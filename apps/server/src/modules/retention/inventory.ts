@@ -179,6 +179,12 @@ export const TABLES = {
     categories: [NS],
     protectedEvidence: true,
   },
+  'catalog.sop_spanish_versions': {
+    holds: 'Spanish SOP versions with the separate comparison against their English version and its release status',
+    classes: ['configuration'],
+    categories: [NS],
+    protectedEvidence: true,
+  },
   'comms.conversations': {
     holds: 'One customer and one internal conversation per project',
     classes: ['request_details'],

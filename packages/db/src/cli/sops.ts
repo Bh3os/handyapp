@@ -1,8 +1,9 @@
 // pnpm db:sops - loads the SOP versions from seed/sops.json into DATABASE_URL (TSK-0068), after `pnpm db:services`.
 // Safe to repeat: unchanged SOPs stay as they are, changed content becomes a new version pending competent review, and
-// the unpinned work packages of planned jobs get the current version. Runs in every environment.
+// the unpinned work packages of planned jobs get the current version; then the Spanish versions and their comparisons
+// (TSK-0103). Runs in every environment.
 import { createDb } from '../client.js'
-import { loadSopSeed, syncSops } from '../sops.js'
+import { loadSopSeed, loadSpanishSopSeed, syncSops, syncSpanishSops } from '../sops.js'
 
 const url = process.env['DATABASE_URL']
 if (!url) {
@@ -15,6 +16,11 @@ try {
   process.stdout.write(
     `sops: ${r.created.length} created, ${r.versioned.length} new versions, ${r.unchanged.length} unchanged, ` +
       `${r.pinned} work packages pinned\n`,
+  )
+  const es = await syncSpanishSops(db, loadSpanishSopSeed())
+  process.stdout.write(
+    `sops (Spanish): ${es.recorded.length} comparisons recorded, ${es.unchanged.length} unchanged, ` +
+      `${es.unmatched.length} for an English version that no longer exists\n`,
   )
 } finally {
   await db.destroy()

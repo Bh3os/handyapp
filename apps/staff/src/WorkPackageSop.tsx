@@ -7,7 +7,10 @@
 // - NOT CONFIGURED (no SOP version for the service when the job was created) shows no checklist at all and says the
 //   work package cannot become ready. A package that is not part of a job yet says when its SOP is pinned.
 // - "Pending competent review" banner while the version has no sign-off; in production that also blocks readiness.
-//   Spanish-reading staff see "Spanish safety review pending": no Spanish SOP text is released (OWN-DEC-79).
+//   Spanish-reading staff see the Spanish text of a version released as AI-reviewed after its separate comparison
+//   (TSK-0103, OWN-DEC-79), labelled "AI-reviewed" with the comparison date; until then "Spanish safety review
+//   pending" and the English text. The section headings and the open questions stay in English. Every reader sees
+//   the Spanish status of the version.
 // - Licensed-trade, structural and hazardous-material work has no procedure here: the notice routes it to a hold and
 //   human review; nothing on this screen clears a hold or decides that work is safe.
 // - The Owner records the competent reviewer's sign-off (sop.sign_off_review) when the server offers it.
@@ -34,6 +37,8 @@ export type SopItemView = {
   ref?: string | null
   table?: { header: string[]; rows: string[][] }
 }
+export type SopStageView = { stage: number; key: string; heading: string; steps: number; items: SopItemView[] }
+type Lang = 'en' | 'es'
 export type WorkPackageSopView = {
   workPackage: { id: string; serviceCode: string; state: string; jobId: string | null }
   pin: { state: 'pinned' | 'not_configured' | 'no_job'; pinnedAt: string | null; source: string | null }
@@ -45,7 +50,21 @@ export type WorkPackageSopView = {
     title: string
     reviewState: string
     current: boolean
-    spanishStatus: string
+    spanishStatus: 'ai_reviewed' | 'pending'
+    spanish: {
+      status: 'ai_reviewed' | 'pending'
+      check: {
+        checkedOn: string
+        tool: string
+        englishContentSha256: string
+        results: Record<string, 'pass' | 'fail'>
+        problems: number
+        ambiguous: { item: string; note: string }[]
+      } | null
+      title: string | null
+      stages: SopStageView[] | null
+      hazards: { controls: SopItemView[]; stopWork: SopItemView[] } | null
+    }
     sourceFile: string
     contentSha256: string
     hazardSha256: string
@@ -58,7 +77,7 @@ export type WorkPackageSopView = {
       signedOffBy: { id: string; name: string | null }
       signedOffAt: string
     } | null
-    stages: { stage: number; key: string; heading: string; steps: number; items: SopItemView[] }[]
+    stages: SopStageView[]
     hazards: { controls: SopItemView[]; stopWork: SopItemView[] }
     openQuestions: SopItemView[]
   } | null
@@ -66,10 +85,10 @@ export type WorkPackageSopView = {
 }
 
 /** Verbatim SOP text with its own **bold** and [[link]] markers shown as plain emphasis and plain ids. */
-function Verbatim({ text }: { text: string }) {
+function Verbatim({ text, lang = 'en' }: { text: string; lang?: Lang }) {
   const parts = text.replace(/\[\[([^\]|]*)(\|[^\]]*)?\]\]/g, '$1').split(/(\*\*[^*]+\*\*)/)
   return (
-    <span className="staff-sop__text" lang="en">
+    <span className="staff-sop__text" lang={lang}>
       {parts.map((p, i) =>
         p.startsWith('**') && p.endsWith('**') && p.length > 4 ? (
           <strong key={i}>{p.slice(2, -2)}</strong>
@@ -87,7 +106,7 @@ function Source({ t, line }: { t: T; line: number | null }) {
   )
 }
 
-function Item({ t, item }: { t: T; item: SopItemView }) {
+function Item({ t, item, lang }: { t: T; item: SopItemView; lang: Lang }) {
   if (item.kind === 'step')
     return (
       <li className="staff-sop__item staff-sop__item--step" data-item={item.id}>
@@ -97,7 +116,7 @@ function Item({ t, item }: { t: T; item: SopItemView }) {
               ☐{' '}
             </span>
           ) : null}
-          <Verbatim text={item.text} />
+          <Verbatim text={item.text} lang={lang} />
         </p>
         <p className="staff-sop__meta">
           {item.required ? <StatusBadge tone="info">{t('sop.required')}</StatusBadge> : null}
@@ -117,7 +136,7 @@ function Item({ t, item }: { t: T; item: SopItemView }) {
           <StatusBadge tone={item.control === 'FLAG' ? 'info' : 'warning'}>
             {codeLabel(t, 'sopControl', item.control ?? 'FLAG')}
           </StatusBadge>{' '}
-          <Verbatim text={item.text} />
+          <Verbatim text={item.text} lang={lang} />
         </p>
         <p className="staff-sop__meta">
           <span>{t('sop.itemId', { id: item.id })}</span>
@@ -129,12 +148,12 @@ function Item({ t, item }: { t: T; item: SopItemView }) {
     return (
       <li className="staff-sop__item staff-sop__item--table" data-item={item.id}>
         <div className="staff-sop__table">
-          <table lang="en">
+          <table lang={lang}>
             <thead>
               <tr>
                 {item.table.header.map((h, i) => (
                   <th key={i} scope="col">
-                    <Verbatim text={h} />
+                    <Verbatim text={h} lang={lang} />
                   </th>
                 ))}
               </tr>
@@ -144,7 +163,7 @@ function Item({ t, item }: { t: T; item: SopItemView }) {
                 <tr key={i}>
                   {r.map((c, j) => (
                     <td key={j}>
-                      <Verbatim text={c} />
+                      <Verbatim text={c} lang={lang} />
                     </td>
                   ))}
                 </tr>
@@ -160,7 +179,7 @@ function Item({ t, item }: { t: T; item: SopItemView }) {
   return (
     <li className="staff-sop__item staff-sop__item--note" data-item={item.id}>
       <p>
-        <Verbatim text={item.text} />
+        <Verbatim text={item.text} lang={lang} />
       </p>
       <p className="staff-sop__meta">
         <Source t={t} line={item.line} />
@@ -170,7 +189,7 @@ function Item({ t, item }: { t: T; item: SopItemView }) {
 }
 
 /** Items with the vault section heading shown where it changes. */
-function Items({ t, items }: { t: T; items: SopItemView[] }) {
+function Items({ t, items, lang = 'en' }: { t: T; items: SopItemView[]; lang?: Lang }) {
   const out: ReactNode[] = []
   let section: string | null = null
   let group: SopItemView[] = []
@@ -185,7 +204,7 @@ function Items({ t, items }: { t: T; items: SopItemView[] }) {
         ) : null}
         <ol className="staff-sop__items">
           {group.map((i) => (
-            <Item key={i.id} t={t} item={i} />
+            <Item key={i.id} t={t} item={i} lang={lang} />
           ))}
         </ol>
       </Fragment>,
@@ -284,8 +303,13 @@ function Checklist({
         <p>{t('sop.notConfigured.body')}</p>
       </StateView>
     )
+  // A Spanish-reading reader sees the released Spanish text; everyone else, and every unreleased version, the English.
+  const spanish = locale === 'es' && sop.spanish.status === 'ai_reviewed' && sop.spanish.stages && sop.spanish.hazards
+  const stages = spanish ? (sop.spanish.stages ?? sop.stages) : sop.stages
+  const hazards = spanish ? (sop.spanish.hazards ?? sop.hazards) : sop.hazards
+  const lang: Lang = spanish ? 'es' : 'en'
   return (
-    <div className="staff-sop" data-testid="work-package-sop">
+    <div className="staff-sop" data-testid="work-package-sop" data-language={lang}>
       {view.readiness.pendingReviewBanner ? (
         <StateView
           kind={view.readiness.ok ? 'stale' : 'blocked'}
@@ -295,7 +319,11 @@ function Checklist({
           <p>{t('sop.pendingReview.body')}</p>
         </StateView>
       ) : null}
-      {locale === 'es' ? <StateView kind="stale" title={t('sop.spanishPending')} /> : null}
+      {locale === 'es' && !spanish ? (
+        <StateView kind="blocked" title={t('sop.spanishNotReleased')}>
+          <p>{t('sop.spanishPending')}</p>
+        </StateView>
+      ) : null}
       <StateView kind="blocked" title={t('sop.humanReview.title')}>
         <p>{t('sop.humanReview.body')}</p>
       </StateView>
@@ -305,6 +333,33 @@ function Checklist({
           <span lang="en">{sop.title}</span> · {t('sop.versionNumber', { version: sop.version })} ·{' '}
           {codeLabel(t, 'sopReviewState', sop.reviewState)}
           {sop.current ? null : <> · {t('sop.notCurrent')}</>}
+        </dd>
+        <dt>{t('sop.spanish')}</dt>
+        <dd data-testid="sop-spanish-status">
+          {sop.spanish.status === 'ai_reviewed' && sop.spanish.check ? (
+            <>
+              <StatusBadge tone="info">{t('sop.aiReviewed')}</StatusBadge>{' '}
+              {t('sop.spanishAiReviewed', { date: sop.spanish.check.checkedOn })}
+            </>
+          ) : (
+            <>
+              {/* Plain text, not a badge: badges do not wrap, and this one is long at phone width. */}
+              <strong>{t('sop.spanishNotReleased')}</strong>
+              {sop.spanish.check ? (
+                <>
+                  {' '}
+                  {t('sop.spanishCheckFailed', {
+                    date: sop.spanish.check.checkedOn,
+                    categories: Object.entries(sop.spanish.check.results)
+                      .filter(([, r]) => r === 'fail')
+                      .map(([c]) => codeLabel(t, 'spanishCheck', c))
+                      .join(', '),
+                    flags: sop.spanish.check.ambiguous.length,
+                  })}
+                </>
+              ) : null}
+            </>
+          )}
         </dd>
         <dt>{t('sop.sourceFile')}</dt>
         <dd lang="en">{sop.sourceFile}</dd>
@@ -333,7 +388,7 @@ function Checklist({
       </dl>
       <h4 id={`${ids}-stages`}>{t('sop.stages')}</h4>
       <ol className="staff-sop__stages" aria-labelledby={`${ids}-stages`}>
-        {sop.stages.map((s) => (
+        {stages.map((s) => (
           <li key={s.key} data-stage={s.key}>
             <details>
               <summary>
@@ -341,19 +396,19 @@ function Checklist({
                 {t('sop.stepCount', { count: s.steps })}
               </summary>
               {s.steps === 0 ? <StateView kind="empty" title={t('sop.noStep')} /> : null}
-              <Items t={t} items={s.items} />
+              <Items t={t} items={s.items} lang={lang} />
             </details>
           </li>
         ))}
       </ol>
       <h4>{t('sop.hazards')}</h4>
       <details>
-        <summary>{t('sop.hazardCount', { count: sop.hazards.controls.length })}</summary>
-        <Items t={t} items={sop.hazards.controls} />
+        <summary>{t('sop.hazardCount', { count: hazards.controls.length })}</summary>
+        <Items t={t} items={hazards.controls} lang={lang} />
       </details>
       <details>
         <summary>{t('sop.stopWork')}</summary>
-        <Items t={t} items={sop.hazards.stopWork} />
+        <Items t={t} items={hazards.stopWork} lang={lang} />
       </details>
       <h4>{t('sop.openQuestions')}</h4>
       <details>

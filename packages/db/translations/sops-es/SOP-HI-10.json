@@ -1,0 +1,296 @@
+{
+  "sopId": "SOP-HI-10",
+  "englishContentSha256": "46059fe17019abf934adc3b6763fe159434336aeaa26e5b7ac1930115b36d51a",
+  "title": "SOP HI-10: Mantenimiento estructural de cercas y reparaciones estructurales",
+  "headings": [
+    "1. Preparación del sitio y protección de la propiedad",
+    "2. Preparación y mediciones/comprobaciones requeridas",
+    "3. Pasos de trabajo específicos del servicio",
+    "4. Comprobaciones de calidad",
+    "5. Limpieza y manejo de residuos",
+    "6. Comprobaciones finales, fotos de finalización y recorrido"
+  ],
+  "items": {
+    "1.1": [
+      "- En cada trabajo, confirme que el acceso, los ocupantes, las mascotas, el estacionamiento, los peligros y las condiciones del área de trabajo siguen vigentes (fuente: spec CX-005)."
+    ],
+    "1.2": [
+      "- PROPUESTO, pendiente de revisión del dueño (fuente: 04 HI-10 fila de preparación del cliente): mascotas aseguradas; acceso al patio y al portón; línea de la cerca despejada; líneas enterradas privadas informadas; aviso al vecino en líneas compartidas; personas y mascotas mantenidas lejos de los refuerzos y del concreto fresco durante el curado."
+    ],
+    "1.3": [
+      "- Que un cliente informe sobre líneas enterradas nunca reemplaza la retención de localización de servicios públicos de la sección 3 (fuente: 30 sección 4.1 fila 5 \"nunca traslada al cliente las comprobaciones previas al inicio de HandyHub\")."
+    ],
+    "1.4": [
+      "- Los ocupantes, los niños y las mascotas se mantienen lejos del área de trabajo, de los hoyos abiertos, del concreto fresco y de los refuerzos (fuente: spec CX-005; X-11)."
+    ],
+    "2.1": [
+      "- HOLD (C-HI10-01): no se excava, no se perfora con barrena ni se instalan anclajes clavados en el suelo hasta que el estado de la localización de servicios públicos y la autorización de la propiedad queden registrados para este trabajo. Quién solicita las localizaciones, el tiempo de anticipación y la forma de la evidencia son decisiones del dueño tomadas con las indicaciones de la autoridad local y de localización de servicios públicos para cada municipio de Kentucky e Indiana; aquí no se concluye ninguna regla (Q-31-08). Hasta que se apruebe la política del dueño sobre localización de servicios públicos, esta retención no se puede liberar con una anulación (31 sección 8.4 regla 4). (fuente: spec HI-10.SAF \"política de localización de servicios/permisos antes de excavar\"; 02 G-005; 31 sección 10)",
+      "  - Evidence: note"
+    ],
+    "2.2": [
+      "- Autorización de la propiedad registrada antes de cualquier trabajo: la autoridad del cliente para que se repare esta línea de cerca (el acuerdo se basa en la declaración del cliente de \"propiedad legal o aprobación del vecino\"); deténgase ante cualquier incertidumbre sobre los linderos (fuente: spec HI-10.SAF \"verificar el alcance/la autorización de la propiedad\"; \"Descargo sobre linderos\" del acuerdo).",
+      "  - Evidence: note"
+    ],
+    "2.3": [
+      "- Solicitud completa: tipo/material de la cerca, postes/travesaños/tablas/portón dañados, suposiciones sobre la línea de propiedad, inquietudes sobre servicios subterráneos, suelo/acceso (fuente: spec HI-10.INT)."
+    ],
+    "2.4": [
+      "- Versión aprobada del presupuesto y alcance; una evaluación del sitio antes de un presupuesto firme para excavación o trabajo estructural (fuente: spec CX-003; 04 HI-10 método de presupuesto; 28 sección 5.3)."
+    ],
+    "2.5": [
+      "- Estado del permiso, la zonificación o la asociación de propietarios (HOA) registrado donde la política del dueño marque que el trabajo lo necesita; una aplicabilidad desconocida no equivale por defecto a \"no se necesita permiso\" (fuente: spec START-010, HND-005; 04 HI-10 indicadores de permiso/licencia; manual de clasificación de riesgos \"una aplicabilidad desconocida no debe equivaler por defecto a que no se necesita permiso\"; REVISIÓN HUMANA: oficina local de permisos).",
+      "  - Evidence: note"
+    ],
+    "2.6": [
+      "- Elementos críticos cargados: madera y estacas para refuerzos y el nivel para postes, que todavía no están en el inventario y allí se proponen (fuente: spec START-005, START-006; C-HI10-V01)."
+    ],
+    "2.7": [
+      "- Clima y suelo adecuados al inicio; los umbrales los fija el profesional de seguridad calificado, aquí no se fija ninguno; si no son adecuados, registre No iniciar / Bloqueado (fuente: spec START-011 \"clima severo\", SCH-008; X-27).",
+      "  - Evidence: note"
+    ],
+    "2.8": [
+      "- Comprobaciones del Apéndice A antes de salir y antes de empezar: trabajo y dirección correctos, últimos cambios, alcance y exclusiones, peligros, herramientas y materiales críticos cargados, aprobaciones confirmadas; empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada (fuente: spec APXA-001, APXA-003).",
+      "  - Evidence: note"
+    ],
+    "2.9": [
+      "- Al llegar: confirme la dirección, el área de trabajo y el contacto en el sitio; estaciónese y acceda de forma adecuada; identifique mascotas y ocupantes; inspeccione el sitio frente a las instrucciones (fuente: spec APXA-002)."
+    ],
+    "2.10": [
+      "- Confirme en el sitio que el área de trabajo es la línea de cerca registrada sobre el trazado existente, y que el estado de la localización de servicios públicos y la autorización de la propiedad están registrados antes de cualquier excavación (retención de la sección 3) (fuente: spec HI-10.SAF; APXA-002 \"identificar los servicios/las restricciones de emergencia relevantes para la tarea\").",
+      "  - Evidence: note"
+    ],
+    "2.11": [
+      "- Fotos del estado existente antes del trabajo: la línea de la cerca, cada poste, travesaño y portón dañado, y el registro de localización (fuente: spec START-008, APXA-002; 04 HI-10 evidencia de finalización, PROPUESTO).",
+      "  - Evidence: photo, note"
+    ],
+    "2.12": [
+      "- Comprobación del clima y del suelo antes del trabajo; si no son adecuados, registre No iniciar / Bloqueado (fuente: spec START-011 \"clima severo\", SCH-008; X-27).",
+      "  - Evidence: note"
+    ],
+    "2.13": [
+      "- Área de trabajo libre de ocupantes, niños y mascotas, incluida el área donde podría caer una sección inclinada (fuente: X-11; spec HI-10.HAZ \"derrumbe/secciones inestables\")."
+    ],
+    "2.14": [
+      "- Madera y estacas para refuerzos y el nivel para postes preparados antes de cualquier excavación o retiro de travesaños (retenciones de la sección 12) (fuente: spec HI-10.SAF \"reforzar las secciones inestables\"; C-HI10-V01)."
+    ],
+    "2.15": [
+      "- Proteja el área de trabajo; identifique los servicios públicos y las restricciones de emergencia relevantes para la tarea (fuente: spec APXA-002)."
+    ],
+    "3.1": [
+      "Todas las líneas originales del procedimiento aparecen abajo textualmente y en su orden original; los dos encabezados originales de \"Opción de problema\" bajan un nivel. Las líneas añadidas empiezan con `HOLD` o `FLAG` dentro de un bloque de cita y están pendientes de revisión calificada."
+    ],
+    "3.2": [
+      "> HOLD (HI-10.SAF): se aplica a cada paso de abajo. Deténgase y escale ante una incertidumbre estructural o de linderos importante: el área de trabajo no es la línea de cerca registrada sobre el trazado existente, la propiedad o la autorización está en disputa o no está clara, o una sección no se puede reforzar (sección 19). Pendiente de revisión calificada. (fuente: spec HI-10.SAF \"verificar el alcance/la autorización de la propiedad\", \"detenerse ante una incertidumbre estructural/de linderos importante\"; \"Descargo sobre linderos\" del acuerdo; 31 sección 10)"
+    ],
+    "3.3": [
+      "> HOLD (C-HI10-01): antes de la Opción A de abajo (\"Excavación para lechada\") y antes de cualquier otra excavación, perforación con barrena o instalación de anclajes clavados en el suelo: no excave hasta que el estado de la localización de servicios públicos y la autorización de la propiedad queden registrados para este trabajo (sección 3). Esta retención no se puede liberar con una anulación hasta que se apruebe la política del dueño sobre localización de servicios públicos (31 sección 8.4 regla 4). Quién solicita las localizaciones, el tiempo de anticipación y la evidencia son decisiones del dueño con las indicaciones de la autoridad local y de localización de servicios públicos (Q-31-08); aquí no se concluye ninguna regla. Pendiente de revisión calificada. (fuente: spec HI-10.SAF \"política de localización de servicios/permisos antes de excavar\"; HI-10.HAZ \"servicios subterráneos\"; 31 secciones 7.2 rango 8 y 10)"
+    ],
+    "3.4": [
+      "> HOLD (C-HI10-05): antes del paso \"Excavación para lechada\" de abajo: refuerce o sostenga la sección inclinada para que no pueda caer ni moverse mientras se excava su poste, y mantenga a las personas y las mascotas fuera del área donde podría caer. Si no se puede reforzar, deténgase y escale. El orden de \"Excavación para lechada\" y \"Refuerzo a plomo\" está en revisión competente (reforzar antes de alterar). Pendiente de revisión calificada. (fuente: spec HI-10.SAF \"reforzar las secciones inestables\"; HI-10.HAZ \"derrumbe/secciones inestables\"; 31 sección 10)"
+    ],
+    "3.5": [
+      "- [ ] **Excavación para lechada:** Excave una zanja en forma de cono de 24 pulgadas de profundidad alrededor de la base del poste de madera inclinado de la cerca usando una pala para zanjas, sin mover el poste."
+    ],
+    "3.6": [
+      "> FLAG (C-HI10-02): SIN FUENTE - verifique con las instrucciones del fabricante. \"de 24 pulgadas de profundidad\" en el paso anterior no tiene fuente. Ningún archivo del vault indica una profundidad de congelación para ningún municipio, así que se desconoce si esta profundidad llega \"por debajo de las líneas de congelación regionales\" (acuerdo) o \"por debajo de la línea de congelación\" (plan principal); la profundidad viene del método revisado, de las instrucciones del producto y de cualquier requisito local, verificados por separado para cada municipio de Kentucky e Indiana. La pala para zanjas no está en el inventario (C-HI10-V01). El texto del paso de arriba no ha cambiado. REVISIÓN HUMANA: profesional de oficio con licencia (estructural); funcionario de construcción local."
+    ],
+    "3.7": [
+      "- [ ] **Refuerzo a plomo:** Empuje la sección inclinada de la cerca de vuelta a una línea vertical a plomo usando un nivel para postes. Asegure al poste refuerzos diagonales temporales estructurales de madera de 2x4 para mantenerlo fijo en su lugar."
+    ],
+    "3.8": [
+      "> FLAG (C-HI10-05): SECUENCIA EN REVISIÓN - el paso anterior lleva la sección a plomo antes de asegurar los refuerzos diagonales. Hasta que una revisión competente fije el orden, la sección se mantiene reforzada o sostenida en todo momento (retención de arriba); si se mueve, deténgase. La madera para refuerzos y el nivel para postes no están en el inventario y son elementos críticos (C-HI10-V01). El texto del paso de arriba no ha cambiado. Pendiente de revisión calificada."
+    ],
+    "3.9": [
+      "- [ ] **Vaciado de concreto:** Vierta la mezcla seca de concreto de fraguado rápido directamente en la zanja abierta alrededor de la base del poste. Vierta 1–2 galones de agua simple directamente sobre el polvo seco. Use una barra metálica de excavar para picar la mezcla y eliminar las bolsas de aire ocultas. Deje curar durante 4 horas antes de quitar los refuerzos temporales."
+    ],
+    "3.10": [
+      "> FLAG (31 sección 10): SIN FUENTE - verifique con las instrucciones del fabricante. \"1–2 galones de agua simple\" y \"curar durante 4 horas\" en el paso anterior no tienen fuente; la cantidad de agua, el método para mojar la mezcla en su lugar y el tiempo de curado vienen solo de las instrucciones del producto de concreto (spec sección 17: \"Los valores predeterminados de la tarjeta de servicio nunca anulan un peligro específico del sitio, una instrucción del fabricante, un requisito de permiso/licencia o una orden de cambio aprobada.\"). La espera de curado antes de quitar los refuerzos nunca se acorta en el sitio: sigue vigente tal como está escrita hasta que un revisor calificado la reemplace. Los controles del polvo y del contacto con la piel y los ojos para la mezcla seca y húmeda vienen de la hoja de datos de seguridad (SDS) del producto (secciones 6 y 9). El texto del paso de arriba no ha cambiado. REVISIÓN HUMANA: profesional de seguridad calificado; profesional de oficio con licencia (estructural)."
+    ],
+    "3.11": [
+      "> HOLD (X-11): durante la espera de curado del paso anterior, el hoyo relleno, el concreto fresco y los refuerzos se quedan en el patio. Mantenga a los ocupantes, los niños y las mascotas lejos de ellos; los medios de protección, por ejemplo cubiertas o cinta de precaución, los elige el profesional de seguridad calificado, y el cliente recibe la nota de curado y de no cargar peso a partir de las instrucciones del producto (spec QA-008). Si el equipo de trabajo espera en el sitio o regresa para quitar los refuerzos es una decisión del dueño (04 HI-10 suposiciones de mano de obra). Pendiente de revisión calificada. (fuente: 29 sección 7.3 fila HI-10; spec QA-008)"
+    ],
+    "3.12": [
+      "> HOLD (C-HI10-05): antes del paso \"Retiro de travesaños\" de abajo: refuerce o sostenga la sección para que quitar un travesaño no pueda dejar caer la sección ni sus tablas, y mantenga a las personas y las mascotas fuera del área donde podría caer. Si no se puede reforzar, deténgase y escale. Pendiente de revisión calificada. (fuente: spec HI-10.SAF \"reforzar las secciones inestables\"; HI-10.HAZ \"derrumbe/secciones inestables\"; 31 sección 10)"
+    ],
+    "3.13": [
+      "- [ ] **Retiro de travesaños:** Destornille los sujetadores oxidados y baje los travesaños horizontales de 2x4 rotos."
+    ],
+    "3.14": [
+      "- [ ] **Colocación de travesaños nuevos:** Mida y corte travesaños nuevos de 2x4 de madera tratada a presión. Asegúrelos entre los postes usando soportes de cerca de acero galvanizado de uso pesado y tornillos exteriores de polímero para uso al aire libre.",
+      "  - Evidence: measurement"
+    ],
+    "3.15": [
+      "- [ ] **Re-escuadrado del portón:** Atornille un kit de cable de acero de uso pesado antihundimiento para portones en diagonal a través del armazón trasero del portón. Apriete el tensor central hasta que el portón se levante y cierre con suavidad sin arrastrar el pestillo de suelo."
+    ],
+    "3.16": [
+      "> FLAG (C-HI10-06, C-HI10-07): ningún paso de este SOP cubre el reemplazo de tablas, el reemplazo de postes, las férulas de acero para postes u otros anclajes clavados en el suelo, la barrena a gasolina, ni el reemplazo de bisagras, pestillos y varillas de tope del portón, aunque los precios, el acuerdo, el inventario o el plan principal los ofrecen. No se realizan bajo este SOP (sección 2, Fuera del alcance). Pendiente de la decisión del dueño y de una revisión competente."
+    ],
+    "4.1": [
+      "> Tarjeta de la spec HI-10.QAC (textual): \"postes/travesaños estables, piezas de reemplazo alineadas, el portón funciona, sujetadores adecuados, sitio/relleno limpio y seguro\""
+    ],
+    "4.2": [
+      "- Postes y travesaños estables (fuente: spec HI-10.QAC \"postes/travesaños estables\"). Cuándo se pueden quitar los refuerzos depende de la espera de curado de la sección 12, que sigue vigente hasta que un revisor calificado la reemplace; el método de comprobación de la estabilidad es TBD por el revisor, y aquí no se fija ninguna prueba de carga."
+    ],
+    "4.3": [
+      "- Piezas de reemplazo alineadas con la línea de cerca existente (fuente: spec HI-10.QAC \"piezas de reemplazo alineadas\")."
+    ],
+    "4.4": [
+      "- El portón funciona: la propia comprobación del paso \"Re-escuadrado del portón\" de que el portón \"se levante y cierre con suavidad sin arrastrar el pestillo de suelo\" (fuente: spec HI-10.QAC \"el portón funciona\"; sección 12)."
+    ],
+    "4.5": [
+      "- Sujetadores adecuados según las instrucciones de los fabricantes de los soportes y de los sujetadores (fuente: spec HI-10.QAC \"sujetadores adecuados\")."
+    ],
+    "4.6": [
+      "- Sitio y relleno limpios y seguros: ningún hoyo abierto, refuerzo suelto, resto cortado ni residuo queda sin proteger o sin informar al cliente (fuente: spec HI-10.QAC \"sitio/relleno limpio y seguro\"; X-11)."
+    ],
+    "4.7": [
+      "- Cada comprobación se responde, o se registra una excepción, antes de la finalización (fuente: spec QA-001). Si un supervisor, y no solo el trabajador, inspecciona alguna comprobación es una decisión del dueño (Q-31-15); la autocomprobación del trabajador no reemplaza una inspección del supervisor requerida (fuente: manual del asistente de calidad).",
+      "  - Evidence: note"
+    ],
+    "5.1": ["- Rellene y deje el sitio limpio y seguro (fuente: spec HI-10.QAC \"sitio/relleno limpio y seguro\")."],
+    "5.2": [
+      "- Retire los residuos, la protección y los marcadores, y restablezca el sitio (fuente: spec QA-002, APXA-005)."
+    ],
+    "5.3": [
+      "- Los refuerzos temporales se quitan solo después de la espera de curado de la sección 12. Si el equipo de trabajo se va antes, los refuerzos y el área quedan protegidos y el cliente tiene la nota de curado y de no cargar peso (fuente: retenciones de la sección 12; spec QA-008)."
+    ],
+    "5.4": [
+      "- Cuente las herramientas y los materiales; devuelva los materiales no usados (fuente: spec APXA-005, APXA-007)."
+    ],
+    "5.5": [
+      "- Tierra excavada: se usa como relleno o se retira dentro del alcance aprobado; destino de la tierra sobrante: TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo. (fuente: spec HI-10.QAC \"sitio/relleno limpio y seguro\"; QA-002; Q-29-10)"
+    ],
+    "5.6": [
+      "- Travesaños y tablas retirados, sujetadores viejos, bolsas de concreto vacías y recortes de madera tratada: destino de desecho y cualquier regla para la madera tratada según la autoridad local; TBD (fuente: spec QA-002 \"manejo de residuos/desechos\"; 02 G-078; Q-29-10)."
+    ],
+    "5.7": [
+      "- Restos y bolsas del producto de concreto: manejo según la hoja de datos de seguridad (SDS) del producto (fuente: 29 sección 8.2 fila 10)."
+    ],
+    "5.8": [
+      "- Los residuos peligrosos no se manejan sin una política aprobada (fuente: 31 sección 3.1, sección 15 contenido mínimo)."
+    ],
+    "5.9": ["- Si se cobra el desecho es una decisión de precios del dueño (fuente: 28 Q-28-15)."],
+    "6.1": [
+      "- Antes: la línea de la cerca y cada poste, travesaño, tabla y portón dañado; el registro y las marcas de localización de servicios públicos y el registro de autorización antes de excavar (fuente: spec START-008, APXA-002; 04 HI-10 evidencia de finalización, PROPUESTO).",
+      "  - Evidence: note"
+    ],
+    "6.2": [
+      "- Durante: el poste a plomo y los refuerzos antes del vaciado; el collar después del vaciado; cualquier condición oculta, como podredumbre a nivel del suelo o por debajo, o un objeto enterrado encontrado al excavar (fuente: spec JOB-004; 04 HI-10 evidencia de finalización, PROPUESTO)."
+    ],
+    "6.3": [
+      "- Después: travesaños, funcionamiento del portón, relleno y sitio limpio, asociados a cada poste, sección y portón (fuente: spec QA-003; HI-10.QAC)."
+    ],
+    "6.4": [
+      "- Las fotos son internas por defecto; el uso en mercadeo necesita un consentimiento aparte; evite personas, la propiedad de los vecinos que no se necesite para el trabajo, documentos y objetos de valor (fuente: spec REC-002, REC-003; 31 sección 3.5 regla 7)."
+    ],
+    "6.5": [
+      "- Los avisos de llegada y de finalización usan solo plantillas aprobadas (fuente: 31 sección 3.1, sección 17 contenido mínimo; spec NTF-007, UXE-008)."
+    ],
+    "6.6": [
+      "- Nota de curado y de no cargar peso, por ejemplo sobre el uso del portón o sobre apoyarse en un poste reparado; su contenido viene solo de las instrucciones del producto de concreto (fuente: spec QA-008; 04 HI-10 evidencia de finalización, PROPUESTO)."
+    ],
+    "6.7": [
+      "- Resultado del recorrido registrado: aceptado, aceptado con elementos pendientes, no disponible o en disputa (fuente: spec QA-004, APXA-006).",
+      "  - Evidence: note"
+    ],
+    "6.8": [
+      "- No prometa resultados, permanencia, resistencia a la carga del viento, profundidad de congelación ni cumplimiento del código, y no repita afirmaciones no aprobadas del plan principal como \"resistencia como nueva\" o \"por debajo de la línea de congelación\" (C-HI10-02) (fuente: sección 2, No realice la entrada 8; 32 registro B filas 39 y 40)."
+    ],
+    "6.9": [
+      "- No dé una opinión sobre dónde está la línea de propiedad ni resuelva en el sitio una cuestión con un vecino; remítala al dueño (fuente: \"Descargo sobre linderos\" del acuerdo; spec HI-10.SAF)."
+    ],
+    "6.10": [
+      "- Cuando el trabajo esté bloqueado, diga al cliente solo lo que dice el mensaje aprobado de \"trabajo bloqueado\" (fuente: spec NTF-007)."
+    ],
+    "6.11": [
+      "- Explique la factura y el siguiente paso del pago sin hacer promesas no autorizadas (fuente: spec APXA-006)."
+    ],
+    "6.12": [
+      "- Cada comprobación de la sección 13 está respondida, o tiene una excepción registrada (fuente: spec QA-001).",
+      "  - Evidence: note"
+    ],
+    "6.13": [
+      "- Fotos de después asociadas a cada poste, sección y portón (fuente: spec QA-003).",
+      "  - Evidence: photo"
+    ],
+    "6.14": [
+      "- Refuerzos quitados después de la espera de curado, o dejados protegidos con el cliente informado (fuente: sección 12; spec QA-008)."
+    ],
+    "6.15": [
+      "- Limpieza y manejo de residuos completos; herramientas y materiales contados (fuente: spec QA-002, APXA-005)."
+    ],
+    "6.16": [
+      "- Resultado del recorrido y cualquier elemento pendiente registrados (fuente: spec QA-004, APXA-006).",
+      "  - Evidence: note"
+    ],
+    "6.17": [
+      "- Ninguna retención ni ningún elemento para detener el trabajo queda sin resolver (fuente: 31 sección 8.3)."
+    ],
+    "6.18": [
+      "- Se envían los problemas sin resolver, los incidentes y los seguimientos de cambios; el trabajo se cierra solo cuando los pasos operativos y financieros requeridos están completos (fuente: spec APXA-007)."
+    ],
+    "stop.1": [
+      "Este SOP redacta su regla general para detener el trabajo de forma distinta a [[FACT-SVC-STOP-WORK-RULE]]; su propio texto, textual:"
+    ],
+    "stop.2": [
+      "> **Regla para detener el trabajo (todos los servicios de HandyHub).** Usted tiene derecho a detener el trabajo. Ante cualquier condición de abajo, detenga el trabajo afectado y escale antes de continuar (fuente: spec START-011, JOB-004):",
+      "> - una condición insegura para usted, el cliente, los ocupantes, las mascotas o el público;",
+      "> - daños ocultos, falla de la base, humedad o una filtración activa;",
+      "> - sospecha de material peligroso, como posible asbesto, pintura con plomo o moho; no lo altere;",
+      "> - trabajo eléctrico, de plomería, de gas, de HVAC o estructural que no está en el alcance aprobado o que necesita un oficio con licencia;",
+      "> - un ocupante o un animal agresivo;",
+      "> - clima severo o calor o frío inseguros (fuente: spec BRF-008);",
+      "> - cualquier diferencia importante entre el sitio y las instrucciones, el alcance aprobado, los materiales, el acceso o las aprobaciones."
+    ],
+    "stop.3": [
+      "> No continúe a través de una condición insegura o restringida para cumplir el horario (fuente: maestro sección 12). Una solicitud del cliente, una casilla marcada o una firma no libera una retención de seguridad (fuente: datos del dueño 2026-10-02; manual de clasificación de riesgos L27). En una emergencia, aleje a las personas y llame primero a los servicios de emergencia (fuente: spec BRF-013; manual de clasificación de riesgos L7). Luego use \"Detener el trabajo\" / \"Reportar un peligro\" en la aplicación (fuente: spec UXE-004) y siga la sección 19.",
+      "> Tarjeta de la spec HI-10.SAF (textual): \"verificar el alcance/la autorización de la propiedad; política de localización de servicios/permisos antes de excavar; reforzar las secciones inestables; detenerse ante una incertidumbre estructural/de linderos importante\""
+    ],
+    "stop.4": ["Retenciones y activadores para detener el trabajo del servicio (pendientes de revisión calificada):"],
+    "stop.5": [
+      "- HOLD (C-HI10-01): no se excava, no se perfora con barrena ni se instalan anclajes clavados en el suelo hasta que el estado de la localización de servicios públicos y la autorización de la propiedad queden registrados (secciones 3 y 12).",
+      "  - Evidence: note"
+    ],
+    "stop.6": [
+      "- HOLD (C-HI10-05): refuerce o sostenga las secciones inestables antes de la excavación o del retiro de travesaños (sección 12); si una sección no se puede reforzar, deténgase (fuente: spec HI-10.SAF \"reforzar las secciones inestables\")."
+    ],
+    "stop.7": ["- Deténgase ante una incertidumbre estructural o de linderos importante (fuente: spec HI-10.SAF)."],
+    "stop.8": [
+      "- Una línea, tubería, cable u otro objeto inesperado enterrado encontrado al excavar: deje de excavar (deténgase), mantenga a las personas lejos y escale; si está dañado o tiene fugas, trátelo como una emergencia (sección 19) (fuente: spec HI-10.HAZ \"servicios subterráneos\"; START-011; JOB-004)."
+    ],
+    "stop.9": ["- Materiales de cerca que no son de madera o desconocidos: deténgase (fuente: 31 sección 10)."],
+    "stop.10": [
+      "- Un poste que se encuentra podrido a nivel del suelo o por debajo, u otra condición oculta: detenga el trabajo afectado, regístrelo con fotos y escale para una orden de cambio (fuente: spec JOB-004, FIN-008; 04 HI-10 método de presupuesto).",
+      "  - Evidence: note"
+    ],
+    "stop.11": ["- Clima severo o calor o frío inseguros (fuente: spec BRF-008; X-27)."],
+    "stop.12": [
+      "- Cualquier persona, incluida una mascota, entra en el área de trabajo o llega a un hoyo abierto o a un refuerzo (fuente: X-11)."
+    ],
+    "stop.13": [
+      "- Componentes pintados antiguos o de antigüedad desconocida: no los corte ni los haga palanca; escale (fuente: spec START-011; Q-31-07)."
+    ],
+    "stop.14": ["Ruta general: [[FACT-SVC-ESCALATION-PATH]]."],
+    "stop.15": ["Ruta específica del servicio (los contactos son decisiones del dueño, Q-31-05):"],
+    "stop.16": [
+      "- Contacto con una línea enterrada o daño a ella: los servicios de emergencia y la compañía de servicios según lo requiera la situación, luego el dueño; aquí no se saca ninguna conclusión sobre los deberes de notificación (fuente: sección 19 paso 2; 31 sección 7.2 rango 8; REVISIÓN HUMANA: indicaciones de la autoridad local y de localización de servicios públicos)."
+    ],
+    "stop.17": [
+      "- Estado de la localización de servicios públicos faltante o poco claro antes de excavar: registre No iniciar / Bloqueado para las tareas de excavación y escale al dueño (fuente: retención de la sección 3; spec SCH-008)."
+    ],
+    "stop.18": [
+      "- Disputa de linderos o duda sobre la autorización: al dueño, quien lleva las cuestiones legales al abogado (fuente: \"Descargo sobre linderos\" del acuerdo; spec HI-10.SAF)."
+    ],
+    "stop.19": [
+      "- Una sección que no se puede reforzar, o podredumbre a nivel del suelo o por debajo: al dueño para una orden de cambio o una remisión; las cuestiones estructurales al profesional de oficio con licencia (estructural) (fuente: spec FIN-008, JOB-004; 31 sección 10)."
+    ],
+    "stop.20": [
+      "- Preguntas sobre el portón o el pestillo de una barrera de piscina: al dueño, quien consulta al funcionario de construcción local (aquí no se saca ninguna conclusión) (fuente: 04 HI-10 indicadores de permiso/licencia)."
+    ],
+    "stop.21": [
+      "- Sospecha de pintura con plomo en componentes de cerca pintados antiguos: al dueño para la revisión de un renovador certificado por la EPA en RRP; no se concluye la aplicabilidad (fuente: spec START-011; Q-31-07)."
+    ],
+    "stop.22": ["Ruta general: [[FACT-SVC-INCIDENT-REPORTING]]."]
+  },
+  "ambiguous": []
+}

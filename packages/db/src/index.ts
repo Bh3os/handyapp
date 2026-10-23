@@ -79,11 +79,16 @@ export {
 } from './loadouts.js'
 export {
   loadSopSeed,
+  loadSpanishSopSeed,
   pinJobSops,
+  SOPS_ES_SEED_FILE,
   SOPS_SEED_FILE,
   syncSops,
+  syncSpanishSops,
   type PinOutcome,
   type PinResult,
   type SopSeed,
   type SopSyncResult,
+  type SpanishSopSeed,
+  type SpanishSopSyncResult,
 } from './sops.js'

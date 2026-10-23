@@ -78,7 +78,16 @@ export const CHECKLIST_VIEW = obj({
       workPackageId: STR,
       code: STR,
       state: STR,
-      sop: nullable(obj({ versionId: STR, title: STR_OR_NULL, pendingReview: BOOL })),
+      // spanishStatus and the Spanish texts: TSK-0103 (only a version released as AI-reviewed has Spanish texts).
+      sop: nullable(
+        obj({
+          versionId: STR,
+          title: STR_OR_NULL,
+          pendingReview: BOOL,
+          spanishStatus: en(['ai_reviewed', 'pending']),
+          titleEs: STR_OR_NULL,
+        }),
+      ),
       currentStage: INT,
       summary: SUMMARY,
       stages: arr(
@@ -86,11 +95,13 @@ export const CHECKLIST_VIEW = obj({
           stage: INT,
           key: STR,
           heading: STR,
+          headingEs: STR_OR_NULL,
           open: BOOL,
           steps: arr(
             obj({
               stepId: STR,
               text: STR,
+              textEs: STR_OR_NULL,
               line: INT_OR_NULL,
               required: BOOL,
               evidence: arr(en(SOP_EVIDENCE_KINDS)),

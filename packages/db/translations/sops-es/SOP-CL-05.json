@@ -1,0 +1,349 @@
+{
+  "sopId": "SOP-CL-05",
+  "englishContentSha256": "3aab1c47afe8a50429b19ea332bd1be6cf7f8dc414d05d1fc31fed1ddd256f77",
+  "title": "SOP CL-05: Cambio de huéspedes de Airbnb y administración de alquileres vacacionales",
+  "headings": [
+    "1. Preparación del sitio y protección de la propiedad",
+    "2. Preparación y mediciones/comprobaciones requeridas",
+    "3. Pasos de trabajo específicos del servicio",
+    "4. Comprobaciones de calidad",
+    "5. Limpieza y manejo de residuos",
+    "6. Comprobaciones finales, fotos de finalización y recorrido"
+  ],
+  "items": {
+    "1.1": [
+      "PROPUESTO a partir de los campos de la solicitud; la redacción para el cliente pasa por 30 y 32 (fuente: spec CL-05.INT; 04 CL-05 requisitos de preparación del cliente):"
+    ],
+    "1.2": ["- las horas de salida y de llegada de los huéspedes para cada cambio;"],
+    "1.3": ["- la lista de verificación del anfitrión;"],
+    "1.4": [
+      "- ropa de cama y toallas: quién las aporta, los niveles de existencia y si la lavandería se hace en el sitio (C-CL05-12);"
+    ],
+    "1.5": [
+      "- amenidades y niveles de reposición, con los artículos de reposición guardados en el clóset de suministros cerrado con llave del anfitrión, como dice la cláusula \"Logística del inventario\" del acuerdo (conflicto sobre quién los aporta, Q-29-13);"
+    ],
+    "1.6": [
+      "- la regla de reporte de daños y la regla sobre los bienes de los huéspedes (C-CL05-10);",
+      "  - Evidence: note"
+    ],
+    "1.7": [
+      "- la política de acceso y de códigos de seguridad: el anfitrión ingresa los códigos en los campos protegidos de la aplicación, nunca por mensaje de texto o correo electrónico (spec COM-002; 31 sección 5.8 regla de credenciales, PROPUESTO);"
+    ],
+    "1.8": [
+      "- ubicación de la basura y el reciclaje, libro de bienvenida, preferencias de termostato y de Wi-Fi, y estacionamiento (04 CL-05 requisitos de preparación del cliente, GAP)."
+    ],
+    "1.9": [
+      "Cada cambio de huéspedes vuelve a confirmar que el acceso, los ocupantes, las mascotas, el estacionamiento, los peligros y las condiciones del área de trabajo siguen vigentes (fuente: spec CX-005)."
+    ],
+    "2.1": [
+      "- Este SOP es un borrador y no está activo; no se despacha ningún trabajo con él hasta que el dueño registre la aprobación después de una revisión competente (fuente: datos del dueño 2026-10-02; spec HND-004; 04 sección 2.4).",
+      "  - Evidence: note"
+    ],
+    "2.2": [
+      "- Antes de salir: confirme el trabajo, el cliente, la dirección y la hora; lea los últimos cambios; verifique el acceso y el estacionamiento; revise el alcance, las exclusiones, los peligros y la seguridad; cargue las herramientas, el equipo y los materiales críticos; revise los artículos que aporta el cliente; confirme los documentos y las aprobaciones requeridos (fuente: spec APXA-001)."
+    ],
+    "2.3": [
+      "- Solicitud completa para la propiedad: \"horas de salida/llegada de los huéspedes, lista de verificación del anfitrión, ropa de cama, amenidades/niveles de reposición, regla de reporte de daños, política de acceso/códigos de seguridad\" (fuente: spec CL-05.INT).",
+      "  - Evidence: note"
+    ],
+    "2.4": [
+      "- La regla del anfitrión sobre los bienes de los huéspedes (desechar, guardar o avisar) se registra en la solicitud; hasta que exista una política sobre bienes de los huéspedes aprobada por el dueño, no se desecha ningún bien de los huéspedes (fuente: spec CL-05.SAF; 02 C-CL05-10; 02 G-005).",
+      "  - Evidence: note"
+    ],
+    "2.5": [
+      "- La información de acceso está disponible solo en los campos protegidos de la aplicación para el día del servicio; nunca se escribe en notas, mensajes ni fotos (fuente: spec CL-05.SAF \"proteja los códigos de acceso\", COM-002; 27 AUTH-009, PROPUESTO)."
+    ],
+    "2.6": [
+      "- La salida de los huéspedes ya ocurrió: el acuerdo condiciona su ventana de tiempo al \"acceso inmediato a la propiedad\"; si todavía hay huéspedes presentes, el trabajador no entra (No realice, punto 9) (fuente: cláusula \"Cronograma operativo\" del acuerdo; 31 sección 10)."
+    ],
+    "2.7": [
+      "- Artículos de reposición: quién los aporta no está decidido (Q-29-13). Los artículos que aporta el anfitrión se quedan en el clóset de suministros cerrado con llave del anfitrión según el acuerdo; los artículos que faltan se registran (fuente: cláusula \"Logística del inventario\" del acuerdo; spec START-009, JOB-004).",
+      "  - Evidence: note"
+    ],
+    "2.8": [
+      "- Capacidad en el mismo día: cuántos cambios de huéspedes pueden hacer dos empleados en un día, y si los límites de tiempo del archivo de precios significan tiempo transcurrido o horas-persona, son decisiones del dueño; la programación debe respetar el horario de trabajo y la capacidad del trabajador (fuente: spec SCH-003; 04 CL-05 supuestos de mano de obra)."
+    ],
+    "2.9": [
+      "- Indicadores de permiso, licencia y calificación: ninguno está marcado para CL-05. Si el coanfitrión o cualquier otra parte de este servicio necesita una licencia en Kentucky o Indiana es una PREGUNTA ABIERTA, y una aplicabilidad desconocida no equivale por defecto a \"ningún requisito\" (fuente: spec START-010; 30 sección 8 fila 24; manual de triaje de riesgos)."
+    ],
+    "2.10": [
+      "- Empiece solo cuando el trabajo muestre Listo o cuando haya una excepción autorizada documentada (fuente: spec APXA-003).",
+      "  - Evidence: note"
+    ],
+    "2.11": [
+      "- Al llegar: confirme la dirección, el área de trabajo y el contacto; estacione y entre de forma adecuada; identifique mascotas y ocupantes; inspeccione el sitio real frente a las instrucciones; tome las fotos requeridas del estado existente; proteja el área de trabajo; identifique los servicios públicos y las restricciones de emergencia relevantes para la tarea (fuente: spec APXA-002).",
+      "  - Evidence: photo"
+    ],
+    "2.12": [
+      "- Antes de empezar: complete las comprobaciones requeridas de seguridad, de EPP y del sitio; confirme que leyó el SOP y los peligros; empiece solo cuando el trabajo muestre Listo o haya una excepción autorizada documentada (fuente: spec APXA-003, START-004).",
+      "  - Evidence: note"
+    ],
+    "2.13": [
+      "- Evidencia del estado existente: los pasos \"Revisión de daños\" y \"Recolección de evidencia\" de la Fase 1 son el registro de llegada, tomado en la aplicación (fuente: spec START-008; 27 AUTH-034, PROPUESTO).",
+      "  - Evidence: note"
+    ],
+    "2.14": [
+      "- Reposición y ropa de cama que aporta el anfitrión: registre lo que hay y lo que falta (fuente: spec START-009, JOB-004).",
+      "  - Evidence: note"
+    ],
+    "2.15": [
+      "- Organización del portaproductos, los suministros y las bolsas de lavandería: TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo."
+    ],
+    "2.16": [
+      "> HOLD (C-CL05-01): antes de entrar y antes del paso \"Revisión de daños\" siguiente - use la información de acceso solo de los campos protegidos de la aplicación el día del servicio; nunca escriba, fotografíe ni envíe un código de puerta, de caja de seguridad (lockbox) o de alarma. Pendiente de revisión del responsable de privacidad. (fuente: spec CL-05.SAF \"proteja los códigos de acceso\"; COM-002; 27 AUTH-009, PROPUESTO)"
+    ],
+    "2.17": [
+      "> HOLD (31 sección 10 semilla, PROPUESTO): antes de entrar - si todavía hay huéspedes en la unidad, no entre; registre la salida tardía en la aplicación y escale (sección 19). Pendiente de revisión de seguridad calificada. (fuente: 31 sección 10 \"no entre mientras haya huéspedes presentes\"; spec START-011 \"ocupantes/animales agresivos\")"
+    ],
+    "2.18": [
+      "- [ ] **Revisión de daños:** Recorra todas las habitaciones buscando artículos rotos, agujeros en las paredes, muebles manchados u olor a cigarro."
+    ],
+    "2.19": [
+      "> HOLD (C-CL05-01): si el recorrido anterior encuentra agujas, objetos punzocortantes, sangre o fluidos corporales, daños, o mantenimiento urgente como una fuga activa o una cerradura que no asegura, no lo manipule, limpie ni repare; regístrelo con fotos y su gravedad en la aplicación y escale (sección 19). Pendiente de revisión calificada. (fuente: spec CL-05.HAZ; CL-05.SAF \"escale los riesgos biológicos/daños; verifique el cierre y el mantenimiento urgente\"; JOB-004)"
+    ],
+    "2.20": [
+      "- [ ] **Recolección de evidencia:** Tome de inmediato fotos de alta resolución de cualquier daño causado por los huéspedes o de un desorden extremo y súbalas al portal del anfitrión.",
+      "  - Evidence: photo"
+    ],
+    "2.21": [
+      "> HOLD (Q-27-16): la parte de entrega del paso anterior (\"súbalas al portal del anfitrión\") queda retenida hasta que el dueño y el responsable de privacidad decidan los canales para las fotos. Mientras tanto, tome las fotos en la aplicación, donde se quedan en el registro del trabajo, solo internas por defecto, encuadradas para evitar códigos de acceso, personas, documentos y objetos de valor. Pendiente de revisión del responsable de privacidad. (fuente: 31 sección 10; 27 AUTH-034, PROPUESTO; spec REC-002; Q-31-12)"
+    ],
+    "2.22": [
+      "- [ ] **Revisión del inventario:** Verifique que las amenidades de alto valor (controles remotos de TV, secadoras de pelo, plancha, cafetera, llaveros electrónicos) estén presentes y funcionen."
+    ],
+    "2.23": [
+      "- [ ] **Termostato y tecnología:** Ajuste el termostato a la temperatura de bienvenida para los huéspedes que prefiere el anfitrión; asegúrese de que el router Wi-Fi esté en línea."
+    ],
+    "2.24": [
+      "> FLAG (decisión del dueño): \"asegúrese de que el router Wi-Fi esté en línea\" en el paso anterior - qué cubre \"asegúrese\" más allá de comprobar y reportar no está definido en el alcance. Nunca registre, fotografíe ni envíe contraseñas del Wi-Fi ni de cuentas. (fuente: 31 sección 5.8 regla de credenciales, D-31-16, PROPUESTO; 04 CL-05 requisitos de preparación del cliente \"preferencias de termostato/Wi-Fi\")"
+    ],
+    "3.1": [
+      "*El texto original del procedimiento que sigue no ha cambiado y está en su orden original. Las líneas HOLD y FLAG son elementos de revisión añadidos, pendientes de revisión calificada; nunca reemplazan ni reformulan un paso (fuente: 31 sección 9.2; 36 sección 3.4). La ventana de finalización del acuerdo nunca anula una retención ni la regla para detener el trabajo de la sección 10 (fuente: 31 sección 10).*"
+    ],
+    "3.2": [
+      "> HOLD (C-CL05-01): antes de los pasos \"Quitar la ropa de cama\" y \"Recolección de toallas\" siguientes - si se encuentran o se sospechan agujas, objetos punzocortantes, sangre o fluidos corporales en la ropa de cama, los protectores de colchón o las toallas, no los manipule; detenga esa tarea y escale (sección 19). EPP según la sección 6 (pendiente de revisión). Pendiente de revisión calificada. (fuente: spec CL-05.HAZ \"objetos punzocortantes/riesgos biológicos\"; CL-05.SAF \"escale los riesgos biológicos/daños\")"
+    ],
+    "3.3": [
+      "- [ ] **Quitar la ropa de cama:** Quite todas las sábanas, fundas de almohada y fundas de edredón de las camas; revise si los protectores de colchón tienen manchas."
+    ],
+    "3.4": ["- [ ] **Recolección de toallas:** Junte todas las toallas de baño, toallas de mano y toallitas usadas."],
+    "3.5": [
+      "- [ ] **Clasificación de la ropa:** Empiece de inmediato la primera carga de lavado (si la lavandería se hace en el sitio) para aprovechar al máximo el tiempo del cambio de huéspedes."
+    ],
+    "3.6": [
+      "> FLAG (C-CL05-12): el modelo de lavandería no está decidido - máquinas en el sitio (el paso anterior), sábanas \"lavadas profesionalmente\" (Fase 4) o ropa de cama limpia traída en un vehículo (archivo de inventario); no están fijados de quién es la ropa de cama ni los niveles de existencia. Decisión del dueño. (fuente: 02 C-CL05-12; spec CL-05.INT \"ropa de cama\")"
+    ],
+    "3.7": [
+      "- [ ] **Desinfección:** Higienice los artículos de mucho contacto con toallitas desinfectantes: controles remotos de TV, perillas de las cajas de seguridad, manijas de las puertas, interruptores de luz, mangos de las secadoras de pelo."
+    ],
+    "3.8": [
+      "> HOLD (C-CL05-01): el paso anterior toca las perillas de las cajas de seguridad - nunca registre, fotografíe ni envíe un código de caja de seguridad o de puerta. Pendiente de revisión del responsable de privacidad. (fuente: spec CL-05.SAF \"proteja los códigos de acceso\"; COM-002; 27 AUTH-009, PROPUESTO)"
+    ],
+    "3.9": [
+      "- [ ] **Revisión de la cocina:** Tire cualquier alimento perecedero que hayan dejado en el refrigerador los huéspedes anteriores; limpie las repisas y las barras de las manijas."
+    ],
+    "3.10": [
+      "> HOLD (C-CL05-10): la parte de desechar del paso anterior (\"Tire cualquier alimento perecedero que hayan dejado en el refrigerador los huéspedes anteriores\") queda retenida hasta que el dueño fije una política sobre bienes de los huéspedes y se registre la regla del anfitrión en la solicitud. Mientras tanto, no deseche comida ni otros bienes de los huéspedes; registre lo que se dejó y avise al anfitrión como una excepción. Pendiente de revisión del dueño y del abogado. (fuente: spec CL-05.SAF \"nunca deseche bienes de los huéspedes sin una política\"; CL-05.QAC \"anfitrión avisado de las excepciones\"; 31 sección 10; Q-30-17)"
+    ],
+    "3.11": [
+      "> FLAG (C-CL05-V01): estándar de cocina no definido - el paso anterior es el único paso de limpieza de la cocina (repisas del refrigerador y barras de las manijas), mientras que el plan principal vende \"Limpieza profunda de cocinas y baños\"; qué tareas de cocina pertenecen a un cambio de huéspedes estándar es una decisión del dueño, y no se redacta ningún paso sin revisión. (fuente: 02 C-CL05-V01; plan principal sección 5)"
+    ],
+    "3.12": [
+      "> HOLD (C-CL05-01): antes del paso \"Inspección del baño\" siguiente - la retención por objetos punzocortantes y riesgos biológicos de la Fase 2 se aplica al inodoro, el lavabo, la ducha, el desagüe y el piso: si se encuentra o se sospecha algo de ese tipo, no lo manipule; detenga esa tarea y escale (sección 19). Pendiente de revisión calificada. (fuente: spec CL-05.HAZ, CL-05.SAF)"
+    ],
+    "3.13": [
+      "- [ ] **Inspección del baño:** Limpie a fondo el inodoro, el lavabo y la ducha. *Fundamental:* Inspeccione minuciosamente el desagüe y el piso de la ducha para asegurarse de que no quede absolutamente ningún pelo suelto."
+    ],
+    "3.14": [
+      "- [ ] **Tendido de camas estilo hotel:** Tienda las camas con sábanas limpias lavadas profesionalmente; asegúrese de que no haya ninguna arruga y de que las almohadas estén esponjadas y derechas."
+    ],
+    "3.15": [
+      "- [ ] **Reposición de amenidades:** Rellene los dispensadores del baño: papel higiénico (doble la primera hoja en forma de triángulo), champú, acondicionador, gel de baño, jabón de manos."
+    ],
+    "3.16": [
+      "> HOLD (C-CL05-01): antes del paso \"Hospitalidad en la cocina\" siguiente - si se encuentran o se sospechan agujas, objetos punzocortantes, sangre o fluidos corporales en los botes o en la basura, no los manipule; detenga esa tarea y escale (sección 19). Pendiente de revisión calificada. (fuente: spec CL-05.HAZ; 04 CL-05 fila de EPP)"
+    ],
+    "3.17": [
+      "- [ ] **Hospitalidad en la cocina:** Reponga las cápsulas de café, las bolsitas de té, los sobres de azúcar y las toallas de papel, y ponga bolsas de basura nuevas en todos los botes."
+    ],
+    "3.18": [
+      "- [ ] **Presentación del espacio:** Doble las toallas en rollos o pilas uniformes; acomode con cuidado los cojines del sofá; coloque el libro/la guía de bienvenida en un lugar central."
+    ],
+    "3.19": [
+      "- [ ] **Cuidado de los pisos:** Aspire y trapee con un trapeador húmedo todos los pisos, avanzando hacia atrás hasta salir completamente por la puerta principal."
+    ],
+    "3.20": [
+      "- [ ] **Fotos finales:** Tome fotos de gran angular de la preparación del dormitorio, el baño y la cocina y envíelas por mensaje de texto al dueño de la propiedad como prueba de que está lista.",
+      "  - Evidence: photo"
+    ],
+    "3.21": [
+      "> HOLD (Q-27-16): la parte de entrega del paso anterior (\"envíelas por mensaje de texto al dueño de la propiedad\") queda retenida hasta que el dueño y el responsable de privacidad decidan los canales para las fotos. Mientras tanto, tome las fotos en la aplicación, asociadas al dormitorio, el baño y la cocina; se quedan en el registro del trabajo y nunca se envían desde un teléfono o una cuenta personal. Pendiente de revisión del responsable de privacidad. (fuente: 31 sección 10; 27 AUTH-034, PROPUESTO; spec REC-002, QA-003; Q-31-12)"
+    ],
+    "3.22": [
+      "> HOLD (C-CL05-01): antes de irse, después de los pasos anteriores - verifique que cada puerta de entrada esté cerrada con llave y que cualquier llave física o llavero electrónico esté de vuelta en su lugar registrado; reporte al anfitrión el mantenimiento urgente y otras excepciones como lo describe la sección 17. No deje la propiedad sin asegurar: si no se puede cerrar con llave, deténgase y escale (sección 19). Se trata como una retención crítica: un reconocimiento no la libera. Pendiente de revisión calificada. (fuente: spec CL-05.SAF \"verifique el cierre y el mantenimiento urgente\"; CL-05.QAC \"propiedad cerrada con llave y anfitrión avisado de las excepciones\"; 31 sección 8.4 regla 3; 27 AUTH-009, PROPUESTO)"
+    ],
+    "4.1": [
+      "Comprobaciones observables de la tarjeta de la spec; el trabajador responde cada comprobación o registra una excepción (fuente: spec CL-05.QAC, QA-001). La autocomprobación del trabajador no reemplaza una inspección del supervisor donde se requiera (fuente: manual del asistente de calidad)."
+    ],
+    "4.2": [
+      "| Comprobación | Evidencia | Fuente |",
+      "|---|---|---|",
+      "| Limpio y restablecido según la lista de verificación del anfitrión | Lista de verificación respondida por habitación o área | Spec CL-05.QAC, CL-05.INT \"lista de verificación del anfitrión\", QA-001 |",
+      "| Ropa de cama y amenidades | Camas tendidas, toallas presentadas y amenidades repuestas a los niveles del anfitrión; faltantes registrados | Spec CL-05.QAC, CL-05.INT \"amenidades/niveles de reposición\" |",
+      "| Daños documentados | Fotos y notas de los daños en el registro del trabajo, solo internas por defecto | Spec CL-05.QAC, JOB-004, REC-002 |",
+      "| Estándar de presentación | Fotos de después asociadas a las habitaciones | Spec CL-05.QAC, QA-003 |",
+      "| Propiedad cerrada con llave | Confirmación del cierre registrada (retención al final de la sección 12) | Spec CL-05.QAC, CL-05.SAF |",
+      "| Anfitrión avisado de las excepciones | Nota de excepción registrada en el trabajo y enviada por el canal aprobado (Q-27-16) | Spec CL-05.QAC, JOB-009 |"
+    ],
+    "4.3": [
+      "- Estándar de cocina: no definido (C-CL05-V01); no se añade ninguna comprobación de cocina más allá del paso \"Revisión de la cocina\" hasta que el dueño decida."
+    ],
+    "4.4": [
+      "- La redacción \"ningún pelo suelto\" (Fase 3) y \"ninguna arruga\" (Fase 4) de la sección 12 es un objetivo interno, no una promesa al cliente; se mantiene textual y nunca se repite a los anfitriones ni a los huéspedes como garantía (fuente: 31 sección 3.5 regla 5)."
+    ],
+    "5.1": [
+      "- Limpie el área, retire los residuos, cuente las herramientas y los materiales, y restablezca todo lo modificado dentro del alcance (fuente: spec APXA-005, QA-002)."
+    ],
+    "5.2": [
+      "- La secuencia de salida es el paso original \"Cuidado de los pisos\" de la Fase 5 (avanzando hacia atrás hasta salir por la puerta principal), seguido de la retención de cierre al final de la sección 12."
+    ],
+    "5.3": [
+      "- La ropa de cama sucia se mantiene separada de la ropa de cama limpia, como lo buscan las bolsas de lavandería con código de colores del archivo de inventario (fuente: archivo de inventario)."
+    ],
+    "5.4": [
+      "- Las llaves físicas o los llaveros electrónicos usados para entrar vuelven a su lugar registrado (fuente: 27 AUTH-009, PROPUESTO: las llaves físicas son artículos bajo custodia con un registro de entrega y devolución).",
+      "  - Evidence: note"
+    ],
+    "5.5": [
+      "- Tipos de residuos: basura doméstica y reciclaje de la unidad, toallitas usadas y residuos de limpieza, y empaques; la comida perecedera de los huéspedes no se desecha mientras su paso está retenido (C-CL05-10). Destino: el lugar para la basura y el reciclaje que indique el anfitrión, un elemento de la solicitud que todavía no está definido (04 CL-05 requisitos de preparación del cliente); si no, TBD — requiere la revisión del gerente de seguridad y responsabilidad y de una persona calificada; el dueño debe aprobarlo."
+    ],
+    "5.6": [
+      "- Los objetos punzocortantes y los residuos con riesgo biológico no se manejan sin una política aprobada; las reglas de desecho de cada municipio son una pregunta abierta (fuente: 31 sección 3.1; 29 sección 8.2 control 10; Q-29-10)."
+    ],
+    "5.7": ["- Los residuos peligrosos no se manejan sin una política aprobada (fuente: 31 sección 3.1; 02 G-078)."],
+    "6.1": [
+      "Todas las fotos se toman en la aplicación y se guardan en el registro del trabajo, solo internas por defecto; nunca muestran códigos de acceso, huéspedes u otras personas, documentos ni objetos de valor que no se necesiten para el trabajo (fuente: spec REC-002, COM-002; 31 sección 3.5 regla 7; 27 AUTH-034, PROPUESTO)."
+    ],
+    "6.2": [
+      "- Antes: fotos de daños y de desorden extremo de la revisión de daños de la Fase 1 (fuente: spec START-008; Fase 1 original)."
+    ],
+    "6.3": [
+      "- Durante: objetos punzocortantes, riesgo biológico, daños o mantenimiento urgente encontrados, con su gravedad (fuente: spec JOB-004)."
+    ],
+    "6.4": [
+      "- Después: fotos de finalización de gran angular del dormitorio, el baño y la cocina (Fase 5 original), asociadas a la habitación (fuente: spec QA-003).",
+      "  - Evidence: photo"
+    ],
+    "6.5": [
+      "- Entrega al anfitrión: retenida hasta que el dueño y el responsable de privacidad decidan los canales (Q-27-16, Q-31-12); una vez decidido, se comparten solo mediante las funciones de compartir o de mensajes de la aplicación (fuente: 27 AUTH-034, PROPUESTO)."
+    ],
+    "6.6": [
+      "- El cliente es el anfitrión o el administrador de la propiedad. Los avisos de llegada y de finalización son borradores, y el trabajador o el administrador controla el envío (fuente: spec UXE-008; preámbulo del acuerdo)."
+    ],
+    "6.7": [
+      "- Las excepciones - daños, amenidades que faltan o están rotas, artículos que dejaron los huéspedes, mantenimiento urgente y cualquier problema con el cierre - se reportan al anfitrión por el canal aprobado y se registran en el trabajo (fuente: spec CL-05.QAC \"anfitrión avisado de las excepciones\", JOB-009; Q-27-16).",
+      "  - Evidence: note"
+    ],
+    "6.8": [
+      "- La comunicación con los huéspedes es una posible exclusión que debe decidir el dueño (fuente: 04 CL-05 fila de exclusiones)."
+    ],
+    "6.9": [
+      "- Nunca envíe códigos de acceso, detalles de incidentes ni notas internas por SMS o correo electrónico (fuente: spec COM-002)."
+    ],
+    "6.10": [
+      "- Ninguna promesa de resultados de reseñas, de horas de finalización ni de resultados absolutos a los anfitriones o a los huéspedes (fuente: 31 sección 3.3 entrada 8; 31 sección 3.5 regla 5)."
+    ],
+    "6.11": ["- Trabajo bloqueado: use solo el mensaje aprobado de \"trabajo bloqueado\" (fuente: spec NTF-007)."],
+    "6.12": [
+      "- Recorrido: donde el anfitrión o un representante esté presente, registre el resultado - aceptado, aceptado con elementos pendientes, no disponible o en disputa (fuente: spec QA-004).",
+      "  - Evidence: note"
+    ],
+    "6.13": [
+      "- Cada comprobación de la sección 13 está respondida o tiene una excepción registrada (fuente: spec QA-001).",
+      "  - Evidence: note"
+    ],
+    "6.14": [
+      "- La propiedad está cerrada con llave y el anfitrión está avisado de las excepciones (fuente: spec CL-05.SAF, CL-05.QAC)."
+    ],
+    "6.15": [
+      "- Los daños están documentados, y las fotos de finalización están tomadas en la aplicación y asociadas a las habitaciones (fuente: spec CL-05.QAC, QA-003).",
+      "  - Evidence: photo, note"
+    ],
+    "6.16": [
+      "- No se desechó ningún bien de los huéspedes sin una política; los artículos que se dejaron están registrados (fuente: spec CL-05.SAF).",
+      "  - Evidence: note"
+    ],
+    "6.17": [
+      "- Ningún código de acceso aparece en ninguna nota, foto ni mensaje (fuente: spec COM-002; 27 AUTH-009, PROPUESTO)."
+    ],
+    "6.18": [
+      "- La limpieza está hecha y el resultado del recorrido está registrado (fuente: spec QA-002, QA-004).",
+      "  - Evidence: note"
+    ],
+    "6.19": [
+      "- La reposición y la ropa de cama que aporta el anfitrión tienen su registro START-009 (fuente: spec START-009).",
+      "  - Evidence: note"
+    ],
+    "6.20": [
+      "- Cierre: se envían los problemas sin resolver y los seguimientos de incidentes o cambios; el trabajo se cierra solo cuando los pasos operativos y financieros requeridos están completos (fuente: spec APXA-006, APXA-007)."
+    ],
+    "stop.1": [
+      "La regla general para detener el trabajo es [[FACT-SVC-STOP-WORK-RULE]]. Activadores específicos del servicio:"
+    ],
+    "stop.2": [
+      "Activadores para detener el trabajo y retenciones específicos del servicio CL-05 (pendientes de revisión calificada):"
+    ],
+    "stop.3": [
+      "- Regla de la tarjeta: \"proteja los códigos de acceso; nunca deseche bienes de los huéspedes sin una política; escale los riesgos biológicos/daños; verifique el cierre y el mantenimiento urgente\" (fuente: spec CL-05.SAF)."
+    ],
+    "stop.4": [
+      "- HOLD (C-CL05-01): agujas, objetos punzocortantes, sangre o fluidos corporales encontrados o sospechados en la ropa de cama, las toallas, los baños, los desagües, los botes o la basura - no los manipule; detenga esa tarea y escale (sección 19). No se realiza la limpieza que vaya más allá de la política (sección 2) (fuente: spec CL-05.HAZ, CL-05.SAF; 31 sección 10)."
+    ],
+    "stop.5": [
+      "- HOLD (C-CL05-01): los códigos de acceso se usan solo de los campos protegidos de la aplicación y nunca se escriben, fotografían ni envían (fuente: spec CL-05.SAF; COM-002; 27 AUTH-009, PROPUESTO)."
+    ],
+    "stop.6": [
+      "- HOLD (C-CL05-01): no deje la propiedad sin cerrar con llave. Si no se puede asegurar, deténgase y escale; esto se trata como una retención crítica, así que un reconocimiento o una firma no la libera (fuente: spec CL-05.SAF \"verifique el cierre\"; 31 sección 8.4 regla 3)."
+    ],
+    "stop.7": [
+      "- HOLD (C-CL05-01): daños o mantenimiento urgente encontrados (por ejemplo, una fuga activa o una cerradura que no asegura) - regístrelos con fotos y su gravedad y escale; no los repare (fuente: spec CL-05.SAF; JOB-004)."
+    ],
+    "stop.8": [
+      "- HOLD (C-CL05-10): no se desecha ningún bien de los huéspedes, incluida la comida perecedera, hasta que el dueño fije una política sobre bienes de los huéspedes (fuente: spec CL-05.SAF; 31 sección 10)."
+    ],
+    "stop.9": [
+      "- HOLD (Q-27-16): la entrega de fotos por el portal del anfitrión o por mensaje de texto queda retenida; las fotos se quedan en la aplicación (fuente: 31 sección 10; 27 AUTH-034, PROPUESTO)."
+    ],
+    "stop.10": [
+      "- Huéspedes que siguen en la unidad al llegar: no entre; registre la salida tardía y escale (PROPUESTO) (fuente: 31 sección 10).",
+      "  - Evidence: note"
+    ],
+    "stop.11": [
+      "- La ventana de finalización del acuerdo y cualquier retraso por una salida tardía nunca anulan una retención ni la regla para detener el trabajo (C-CL05-02) (fuente: 31 sección 10; sección maestra 12)."
+    ],
+    "stop.12": [
+      "- Desorden extremo o trabajo adicional más allá del cambio de huéspedes estándar: regístrelo con fotos; el trabajo adicional solo después de una orden de cambio aprobada (fuente: spec FIN-008, JOB-005; \"Recolección de evidencia\" de la Fase 1 original).",
+      "  - Evidence: note"
+    ],
+    "stop.13": ["Ruta general: [[FACT-SVC-ESCALATION-PATH]]."],
+    "stop.14": ["Específico del servicio (pendiente de revisión):"],
+    "stop.15": [
+      "- Riesgo biológico, daños, mantenimiento urgente, una cerradura que no asegura, una llave o un llavero electrónico que falta, o huéspedes todavía presentes: detenga la tarea afectada y escale; al anfitrión se le avisa solo por el canal aprobado (Q-27-16) (fuente: spec CL-05.SAF, CL-05.QAC; COM-002)."
+    ],
+    "stop.16": [
+      "- Los contactos de emergencia y de escalamiento y el orden de escalamiento son decisiones del dueño que todavía no se han tomado (Q-31-05) (fuente: 31 sección 8.5)."
+    ],
+    "stop.17": ["Ruta general: [[FACT-SVC-INCIDENT-REPORTING]]."],
+    "stop.18": ["Específico del servicio (pendiente de revisión):"],
+    "stop.19": [
+      "- Un pinchazo de aguja o un contacto con sangre o fluidos corporales se reporta en el formulario de incidente como una lesión o exposición; la primera respuesta sigue los arreglos aprobados de la empresa, que todavía no están definidos, y las decisiones médicas corresponden a los profesionales médicos (fuente: spec JOB-008; 31 sección 8.5)."
+    ],
+    "stop.20": [
+      "- Los daños a la propiedad causados durante el cambio de huéspedes se reportan como un incidente; la culpa y la responsabilidad no se discuten con el anfitrión (fuente: spec JOB-008; 31 sección 8.5)."
+    ],
+    "stop.21": [
+      "- Posible exposición de un código de acceso (visto, registrado, fotografiado o enviado): TBD - requiere la revisión del responsable de privacidad (fuente: 31 sección 5.8 módulo de credenciales)."
+    ]
+  },
+  "ambiguous": []
+}

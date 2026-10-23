@@ -247,6 +247,8 @@ export const PRESERVED = {
   services: 'catalog.services',
   service_versions: 'catalog.service_versions',
   sop_versions: 'catalog.sop_versions',
+  // TSK-0103 (0085): the Spanish SOP versions and their comparisons, configuration like the English versions.
+  sop_spanish_versions: 'catalog.sop_spanish_versions',
   loadout_versions: 'catalog.loadout_versions',
   configuration_versions: 'platform.policy_version',
   message_templates: 'platform.message_template_versions',
