@@ -937,6 +937,10 @@ export function JobPacketPage({
         <p className="staff-packet__screen-only">
           <a href={href(`/checklist/${v.job.id}`)} data-testid="packet-checklist-link">
             {t('checklist.open')}
+          </a>{' '}
+          · {/* TSK-0081: proposed changes stay on their own page, apart from the approved scope. */}
+          <a href={href(`/change-orders/${v.job.id}`)} data-testid="packet-change-orders-link">
+            {t('checklist.changeOrders')}
           </a>
         </p>
       </Section>

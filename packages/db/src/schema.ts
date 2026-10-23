@@ -1799,6 +1799,62 @@ export interface StagingTestDataSeedingsTable {
   request_id: string
 }
 
+export interface WorkChangeOrderLinesTable {
+  id: Generated<string>
+  version_id: string
+  position: number
+  kind: string
+  description: string
+  work_package_id: string | null
+  quantity_milli: Int8 | null
+  unit: string | null
+  unit_price_cents: Int8 | null
+  amount_cents: Int8 | null
+  currency: Generated<string>
+}
+
+export interface WorkChangeOrderVersionsTable {
+  id: Generated<string>
+  change_order_id: string
+  job_id: string
+  project_id: string
+  version: number
+  state: Generated<string>
+  reason: string
+  scope: string
+  schedule_impact: string | null
+  hazards: string | null
+  resources: string | null
+  measurements: string | null
+  photo_ids: Generated<string[]>
+  affected_steps: ColumnType<JsonValue, string | undefined, string>
+  base_snapshot_id: string
+  base_total_cents: Int8
+  charges_cents: Int8 | null
+  credits_cents: Int8 | null
+  revised_total_cents: Int8 | null
+  drafted_by: string
+  drafted_at: ColumnType<Date, Date | string | undefined, Date | string>
+  updated_by: string
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+  reviewed_by: string | null
+  reviewed_at: Timestamp | null
+  withdrawn_by: string | null
+  withdrawn_at: Timestamp | null
+  withdraw_reason: string | null
+  row_version: Generated<number>
+}
+
+export interface WorkChangeOrdersTable {
+  id: Generated<string>
+  project_id: string
+  job_id: string
+  number: number
+  origin: string
+  created_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface WorkChecklistHandoffsTable {
   id: Generated<string>
   job_id: string
@@ -2585,6 +2641,9 @@ export interface Database {
   'staging.reset_runs': StagingResetRunsTable
   'staging.reusable_test_accounts': StagingReusableTestAccountsTable
   'staging.test_data_seedings': StagingTestDataSeedingsTable
+  'work.change_order_lines': WorkChangeOrderLinesTable
+  'work.change_order_versions': WorkChangeOrderVersionsTable
+  'work.change_orders': WorkChangeOrdersTable
   'work.checklist_handoffs': WorkChecklistHandoffsTable
   'work.checklist_step_events': WorkChecklistStepEventsTable
   'work.checklist_steps': WorkChecklistStepsTable

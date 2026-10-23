@@ -27,6 +27,7 @@ import { auditModule } from './audit/index.js'
 import { capacityModule } from './capacity/index.js'
 import { casesModule } from './cases/index.js'
 import { qualityModule } from './quality/index.js'
+import { changeOrdersModule } from './change-orders/index.js'
 import { checklistModule } from './checklist/index.js'
 import { completionModule } from './completion/index.js'
 import { portalModule } from './portal/index.js'
@@ -170,6 +171,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     checklistModule(),
     // TSK-0083: the walkthrough and Finished, which submits the job for the Owner's quality review.
     completionModule(),
+    // TSK-0081: change orders: a worker's proposal or a staff draft, reviewed by an Estimator or the Owner; binds nothing.
+    changeOrdersModule(),
     // TSK-0142: the launch phase and its switches (the Owner moves it, with a recorded approval; phase 1 by default).
     launchModule({ environment: deps.environment ?? 'local', gate: deps.launchGate ?? null }),
   ]

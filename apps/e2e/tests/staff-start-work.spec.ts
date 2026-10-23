@@ -642,6 +642,39 @@ test.describe('Start Work: the server-side gate and the job-level Hold (TSK-0073
       await expect(finish.getByTestId('completion-problems')).toContainText('An after photo is missing.')
       await expect(finish.getByRole('button', { name: 'Finished: submit for quality review' })).toHaveCount(0)
       await axe(w)
+
+      // TSK-0081: the worker proposes a change from the checklist. It binds nothing: it is labelled not approved,
+      // apart from the approved total, and the packet stays at its version.
+      const packetBefore = (
+        (await (await w.request.get(`/api/v1/staff/jobs/${jobId}/packet`)).json()) as {
+          packet: { version: number }
+        }
+      ).packet.version
+      await checklist.getByTestId('checklist-change-orders-link').click()
+      const changes = w.getByTestId('change-orders')
+      await expect(changes.getByTestId('change-orders-approved')).toContainText('Approved total: $325.00')
+      await changes.getByRole('button', { name: 'Propose a change' }).click()
+      const form = changes.getByTestId('change-order-form')
+      await form.getByLabel('Reason for the change').fill('Synthetic: a second hole behind the door')
+      await form.getByLabel('Proposed scope').fill('Synthetic: patch the second hole')
+      const line = form.getByTestId('change-order-line-input')
+      await line.getByLabel('Description').fill('Synthetic: second patch')
+      await line.getByLabel('Quantity').fill('1')
+      await line.getByLabel('Unit price (USD)').fill('125.00')
+      await form.getByRole('button', { name: 'Save the draft' }).click()
+      const proposal = changes.getByTestId('change-order')
+      await expect(proposal.getByRole('heading', { name: /-C1 Draft$/ })).toBeVisible()
+      await expect(proposal.getByTestId('change-order-not-approved')).toBeVisible()
+      await expect(proposal.getByTestId('change-order-revised')).toHaveText('$450.00')
+      await expect(proposal.getByRole('button', { name: 'Mark as reviewed' })).toHaveCount(0)
+      const packetAfter = (
+        (await (await w.request.get(`/api/v1/staff/jobs/${jobId}/packet`)).json()) as {
+          packet: { version: number }
+        }
+      ).packet.version
+      expect(packetAfter).toBe(packetBefore)
+      await axe(w)
+      expect(await w.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
     } finally {
       await estimator.close()
       await office.close()

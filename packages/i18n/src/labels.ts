@@ -814,6 +814,8 @@ export const LABEL_FAMILIES = {
     'approval_receipt',
     'automation',
     'business_settings',
+    // TSK-0081: change orders.
+    'change_order',
     // TSK-0075: the job checklist and handoff notes.
     'checklist',
     // TSK-0093: cases (complaints, incident handling, referrals, customer updates).
@@ -1678,6 +1680,34 @@ export const LABEL_FAMILIES = {
     'INVALID_STATE',
     'HANDOFF_TO_SELF',
     'NOT_A_WORKER',
+    // TSK-0081 (HH-WORK-07): a step an open change order names.
+    'WAITS_FOR_CHANGE_ORDER',
+  ],
+  // TSK-0081 (HH-CHG-01, OWN-DEC-203): change orders.
+  changeOrderState: ['draft', 'reviewed', 'issued', 'approved', 'rejected', 'expired', 'superseded', 'withdrawn'],
+  changeOrderOrigin: ['worker_proposal', 'customer_request', 'estimator', 'emergency_follow_up'],
+  changeOrderLineKind: ['charge', 'credit'],
+  changeOrderRefusal: [
+    'JOB_NOT_OPEN_FOR_CHANGES',
+    'SCOPE_MISSING',
+    'WORKER_PROPOSAL_ONLY',
+    'NOT_A_WORK_PACKAGE_OF_THE_JOB',
+    'NOT_A_CHECKLIST_STEP_OF_THE_JOB',
+    'NOT_A_PHOTO_OF_THE_JOB',
+    'QUANTITY_NOT_POSITIVE',
+    'INVALID_QUANTITY',
+    'TOO_MANY_DECIMALS',
+    'NOT_A_DRAFT',
+    'APPROVED_SCOPE_CHANGED',
+    'TOTALS_CHANGED',
+    'NO_LINES',
+    'QUANTITY_UNKNOWN',
+    'UNIT_PRICE_MISSING',
+    'LINE_NOT_POSITIVE',
+    'CREDIT_EXCEEDS_REMAINING_CHARGE',
+    'REASON_REQUIRED',
+    'NOT_PRICED',
+    'INVALID_TRANSITION',
   ],
   // TSK-0083 (HH-QA-03, HH-WORK-12): the walkthrough and Finished.
   walkthroughOutcome: ['accepted', 'accepted_with_follow_up', 'disputed', 'customer_unavailable'],
