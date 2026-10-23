@@ -388,6 +388,30 @@ test.describe('Invoices drafted from the approved scope, issued after the qualit
       await expect(final.getByText('Partially paid')).toBeVisible()
       await axe(office.page)
 
+      // TSK-0087 (HH-FIN-08, HH-FIN-09, T60): Office pastes the invoice's Square link (a non-Square link is refused),
+      // records a verified Square payment once, and the same reference again is refused.
+      const linkForm = final.getByRole('form', { name: 'Card payment link' })
+      await linkForm.getByLabel(/Square payment link for this invoice/).fill('https://pay.example.test/synthetic')
+      await linkForm.getByRole('button', { name: 'Save the link' }).click()
+      await expect(invoices.getByRole('alert')).toBeVisible()
+      await expect(final.getByTestId('invoice-payment-link')).toHaveCount(0)
+      await linkForm.getByLabel(/Square payment link for this invoice/).fill('https://square.link/u/SYNTHE2E087')
+      await linkForm.getByRole('button', { name: 'Save the link' }).click()
+      await expect(final.getByTestId('invoice-payment-link').getByRole('link')).toHaveAttribute(
+        'href',
+        'https://square.link/u/SYNTHE2E087',
+      )
+      const squareRef = `SYNTH-SQ-${Date.now()}`
+      for (const attempt of [1, 2]) {
+        await form.getByLabel('Method').selectOption('square_payment_link')
+        await form.getByLabel(/Amount received/).fill('100.00')
+        await form.getByLabel(/Transaction reference/).fill(squareRef)
+        await form.getByRole('button', { name: 'Record payment' }).click()
+        if (attempt === 1) await expect(final.getByTestId('invoice-remaining')).toHaveText('$900.00')
+      }
+      await expect(invoices.getByText('A payment with this method and reference is already recorded.')).toBeVisible()
+      await expect(final.getByTestId('invoice-remaining')).toHaveText('$900.00')
+
       // The customer's Documents tab: the invoice, current, with the balance still owed.
       await page.goto(`/portal/p/${link.reference}/documents`)
       const list = page.getByTestId('documents-invoices')
@@ -400,8 +424,29 @@ test.describe('Invoices drafted from the approved scope, issued after the qualit
         if (!(await download.isVisible())) await page.reload()
         await expect(download).toBeVisible({ timeout: 2_000 })
       }).toPass({ timeout: 30_000 })
-      await expect(list.getByTestId('documents-invoice-balance')).toHaveText('Balance due: $1,000.00')
+      await expect(list.getByTestId('documents-invoice-balance')).toHaveText('Balance due: $900.00')
       await axe(page)
+
+      // TSK-0087 (HH-PORT-12, T60): the Payments tab matches the ledger, Pay by Card opens the staff-pasted link, and
+      // coming back from Square's "success" page marks nothing paid.
+      const payments = await withDb((db) =>
+        db.selectFrom('finance.payments').select('id').where('job_id', '=', jobId).execute(),
+      )
+      await page.goto(`/portal/p/${link.reference}/payments?status=success&transactionId=SYNTH-RETURN`)
+      const tab = page.getByTestId('payments-tab')
+      await expect(tab.getByTestId('payments-balance')).toHaveText('$900.00')
+      await expect(tab.getByTestId('payments-confirmed')).toHaveText('$375.00')
+      await expect(tab.getByRole('link', { name: 'Pay by Card' })).toHaveAttribute(
+        'href',
+        'https://square.link/u/SYNTHE2E087',
+      )
+      await expect(tab.getByTestId('payments-placeholder')).toHaveCount(4)
+      await expect(tab.getByText('Returning from the card payment page does not mark anything paid.')).toBeVisible()
+      expect(
+        await withDb((db) => db.selectFrom('finance.payments').select('id').where('job_id', '=', jobId).execute()),
+      ).toHaveLength(payments.length)
+      await axe(page)
+      await page.goto(`/portal/p/${link.reference}/documents`)
       await page.setViewportSize({ width: 375, height: 740 })
       await expect(list.getByText(`Invoice ${invoiceNumber}`, { exact: true })).toBeVisible()
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)

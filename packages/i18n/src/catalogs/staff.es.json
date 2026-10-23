@@ -4562,5 +4562,9 @@
   "fieldEvent.reviewed": "Revisado por {name} el {at}",
   "fieldEvent.noteRequired": "Escriba lo que se hizo.",
   "fieldEvent.alreadyReviewed": "Esta actualización del teléfono ya se revisó.",
-  "fieldEvent.saveFailed": "No se pudo registrar la revisión. Inténtelo de nuevo."
+  "fieldEvent.saveFailed": "No se pudo registrar la revisión. Inténtelo de nuevo.",
+  "invoice.linkTitle": "Enlace de pago con tarjeta",
+  "invoice.linkLabel": "Enlace de pago de Square para esta factura",
+  "invoice.linkHint": "Cree el enlace de la factura en la aplicación de Square y péguelo aquí. El cliente lo abre desde Pagar con tarjeta mientras quede saldo. No se marca nada como pagado hasta que usted registre el pago verificado.",
+  "invoice.linkSaved": "Enlace de pago guardado."
 }

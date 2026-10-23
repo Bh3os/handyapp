@@ -374,6 +374,12 @@ export const TABLES = {
     categories: [F],
     protectedEvidence: true,
   },
+  // TSK-0087 (0091): the Square payment links staff pasted on issued final invoices.
+  'finance.invoice_payment_links': {
+    holds: 'The Square payment links staff pasted on an issued invoice, who pasted each and when (never a payment)',
+    classes: ['payment_reference'],
+    categories: [F],
+  },
   'finance.invoice_lines': {
     holds: "An invoice's lines: description, quantity, unit price and amount in cents (charges and credits)",
     classes: ['payment_reference'],

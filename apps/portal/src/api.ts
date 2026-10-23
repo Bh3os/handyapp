@@ -383,6 +383,7 @@ export type TabData =
   | (TabHead & { tab: 'documents'; state: 'listed'; estimates: EstimateListItem[]; invoices: InvoiceListItem[] })
   | (TabHead & { tab: 'appointments' | 'payments'; state: 'none' })
   | (TabHead & { tab: 'appointments'; state: 'listed'; offers: WindowOffer[]; appointments: Appointment[] })
+  | (TabHead & { tab: 'payments'; state: 'listed' } & PaymentsData)
   | (TabHead & {
       tab: 'photos'
       photos: PhotoCounts
@@ -390,6 +391,56 @@ export type TabData =
       shared: SharedPair[]
       linkSeconds: number
     })
+
+/** TSK-0087 (HH-PORT-12): the Payments tab, every amount in integer cents from the shared records. */
+export const PAYMENT_METHODS = [
+  'square_payment_link',
+  'square_tap_to_pay',
+  'cash',
+  'check',
+  'zelle',
+  'cash_app',
+  'chime',
+] as const
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number]
+export type PaymentsData = {
+  approvedTotalCents: number | null
+  deposit: {
+    state: 'none' | 'deposit_due' | 'deposit_received'
+    amountCents: number | null
+    verifiedCents: number | null
+    pendingCents: number | null
+    payByCardUrl: string | null
+  }
+  invoices: {
+    number: string
+    kind: 'final' | 'deposit'
+    state: 'issued' | 'partially_paid' | 'paid'
+    totalCents: number
+    creditsCents: number
+    confirmedCents: number
+    pendingCents: number
+    balanceCents: number
+    payByCardUrl: string | null
+  }[]
+  payments: {
+    receivedOn: string
+    method: PaymentMethod
+    amountCents: number
+    state: 'confirmed' | 'pending' | 'returned'
+  }[]
+  confirmedCents: number
+  pendingCents: number
+  balanceCents: number
+  instructions: {
+    methods: PaymentMethod[]
+    placeholder: boolean
+    zelle: string | null
+    cashApp: string | null
+    chime: string | null
+    checkPayee: string | null
+  } | null
+}
 
 /** TSK-0076 (HH-PORT-11): one of the customer's own uploads, with its short-lived link once ready. */
 export type YourPhoto = {
@@ -493,9 +544,102 @@ export function parseTab(tab: WorkspaceTab, v: unknown): TabData | null {
       appointments: appointments as Appointment[],
     }
   }
+  if (tab === 'payments' && v['state'] === 'listed') {
+    const p = parsePayments(v)
+    return p ? { ...head, tab, state: 'listed', ...p } : null
+  }
   // Any other state (for example "paid" or "read") is not what the view declares: a failure, never shown as data.
   if (v['state'] !== TAB_STATE[tab]) return null
   return { ...head, tab, state: 'none' }
+}
+
+const centsOrNull = (v: unknown): v is number | null => v === null || (isInt(v) && v >= 0)
+const strOrNull = (v: unknown): v is string | null => v === null || isStr(v)
+/** The Payments answer; null when anything is not what the view declares (a Pay by Card link must be https). */
+function parsePayments(v: Record<string, unknown>): PaymentsData | null {
+  const d = v['deposit']
+  if (
+    !centsOrNull(v['approvedTotalCents']) ||
+    !isObj(d) ||
+    !oneOf(['none', 'deposit_due', 'deposit_received'] as const)(d['state']) ||
+    !centsOrNull(d['amountCents']) ||
+    !centsOrNull(d['verifiedCents']) ||
+    !centsOrNull(d['pendingCents']) ||
+    !httpsOrNull(d['payByCardUrl']) ||
+    !Array.isArray(v['invoices']) ||
+    !Array.isArray(v['payments'])
+  )
+    return null
+  const invoices = v['invoices'].map((i) =>
+    isObj(i) &&
+    isStr(i['number']) &&
+    oneOf(['final', 'deposit'] as const)(i['kind']) &&
+    oneOf(['issued', 'partially_paid', 'paid'] as const)(i['state']) &&
+    [i['totalCents'], i['creditsCents'], i['confirmedCents'], i['pendingCents'], i['balanceCents']].every(
+      (c) => isInt(c) && c >= 0,
+    ) &&
+    httpsOrNull(i['payByCardUrl'])
+      ? {
+          number: i['number'],
+          kind: i['kind'],
+          state: i['state'],
+          totalCents: i['totalCents'] as number,
+          creditsCents: i['creditsCents'] as number,
+          confirmedCents: i['confirmedCents'] as number,
+          pendingCents: i['pendingCents'] as number,
+          balanceCents: i['balanceCents'] as number,
+          payByCardUrl: i['payByCardUrl'],
+        }
+      : null,
+  )
+  const payments = v['payments'].map((p) =>
+    isObj(p) &&
+    isStr(p['receivedOn']) &&
+    oneOf(PAYMENT_METHODS)(p['method']) &&
+    isInt(p['amountCents']) &&
+    p['amountCents'] > 0 &&
+    oneOf(['confirmed', 'pending', 'returned'] as const)(p['state'])
+      ? { receivedOn: p['receivedOn'], method: p['method'], amountCents: p['amountCents'], state: p['state'] }
+      : null,
+  )
+  if (invoices.some((i) => i === null) || payments.some((p) => p === null)) return null
+  const ins = v['instructions']
+  let instructions: PaymentsData['instructions'] = null
+  if (ins !== null) {
+    if (
+      !isObj(ins) ||
+      !Array.isArray(ins['methods']) ||
+      !ins['methods'].every(oneOf(PAYMENT_METHODS)) ||
+      typeof ins['placeholder'] !== 'boolean' ||
+      ![ins['zelle'], ins['cashApp'], ins['chime'], ins['checkPayee']].every(strOrNull)
+    )
+      return null
+    instructions = {
+      methods: ins['methods'] as PaymentMethod[],
+      placeholder: ins['placeholder'],
+      zelle: ins['zelle'] as string | null,
+      cashApp: ins['cashApp'] as string | null,
+      chime: ins['chime'] as string | null,
+      checkPayee: ins['checkPayee'] as string | null,
+    }
+  }
+  if (![v['confirmedCents'], v['pendingCents'], v['balanceCents']].every((c) => isInt(c) && c >= 0)) return null
+  return {
+    approvedTotalCents: v['approvedTotalCents'],
+    deposit: {
+      state: d['state'],
+      amountCents: d['amountCents'],
+      verifiedCents: d['verifiedCents'],
+      pendingCents: d['pendingCents'],
+      payByCardUrl: d['payByCardUrl'],
+    },
+    invoices: invoices as PaymentsData['invoices'],
+    payments: payments as PaymentsData['payments'],
+    confirmedCents: v['confirmedCents'] as number,
+    pendingCents: v['pendingCents'] as number,
+    balanceCents: v['balanceCents'] as number,
+    instructions,
+  }
 }
 
 const FROM = ['you', 'handyhub'] as const

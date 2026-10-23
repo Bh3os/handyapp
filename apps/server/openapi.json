@@ -7805,7 +7805,7 @@
       "get": {
         "operationId": "getCustomerProjectPayments",
         "summary": "The project Payments tab",
-        "description": "The Payments tab. state \"none\": no approved total, deposit, invoice or recorded payment exists yet. With the server time of the read and the refresh interval (portal.refresh; 0 while NOT CONFIGURED). Any other project, an unknown or a malformed reference is the same NOT_FOUND (T19).",
+        "description": "The Payments tab (TSK-0087, HH-PORT-12). state \"listed\": the approved total (the current approved scope), the deposit (due with what is verified and pending and its Pay by Card link, received, or none), each issued invoice with its total, credits, confirmed, pending (a check until cleared) and balance in integer cents and its Pay by Card link (only while a balance remains and staff pasted a Square link), the recorded payments (date, method, amount, confirmed, pending or returned; never who recorded them), the totals, and the payment instructions from configuration with their placeholder flag (a placeholder is never a payment destination). Nothing here, and no return from a Square link, marks anything paid: staff record verified payments. state \"none\": no approved total, deposit, invoice or recorded payment exists yet. With the server time of the read and the refresh interval (portal.refresh; 0 while NOT CONFIGURED). Any other project, an unknown or a malformed reference is the same NOT_FOUND (T19).",
         "tags": [
           "portal"
         ],
@@ -7850,7 +7850,231 @@
                     "state": {
                       "type": "string",
                       "enum": [
-                        "none"
+                        "none",
+                        "listed"
+                      ]
+                    },
+                    "approvedTotalCents": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "deposit": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state",
+                        "amountCents",
+                        "verifiedCents",
+                        "pendingCents",
+                        "payByCardUrl"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "deposit_due",
+                            "deposit_received"
+                          ]
+                        },
+                        "amountCents": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "verifiedCents": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "pendingCents": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "payByCardUrl": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "invoices": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "number",
+                          "kind",
+                          "state",
+                          "totalCents",
+                          "creditsCents",
+                          "confirmedCents",
+                          "pendingCents",
+                          "balanceCents",
+                          "payByCardUrl"
+                        ],
+                        "properties": {
+                          "number": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "deposit",
+                              "final"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "issued",
+                              "partially_paid",
+                              "paid"
+                            ]
+                          },
+                          "totalCents": {
+                            "type": "integer"
+                          },
+                          "creditsCents": {
+                            "type": "integer"
+                          },
+                          "confirmedCents": {
+                            "type": "integer"
+                          },
+                          "pendingCents": {
+                            "type": "integer"
+                          },
+                          "balanceCents": {
+                            "type": "integer"
+                          },
+                          "payByCardUrl": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "payments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "receivedOn",
+                          "method",
+                          "amountCents",
+                          "state"
+                        ],
+                        "properties": {
+                          "receivedOn": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string",
+                            "enum": [
+                              "square_payment_link",
+                              "square_tap_to_pay",
+                              "cash",
+                              "check",
+                              "zelle",
+                              "cash_app",
+                              "chime"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": "integer"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "confirmed",
+                              "pending",
+                              "returned"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "confirmedCents": {
+                      "type": "integer"
+                    },
+                    "pendingCents": {
+                      "type": "integer"
+                    },
+                    "balanceCents": {
+                      "type": "integer"
+                    },
+                    "instructions": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "methods",
+                            "placeholder",
+                            "zelle",
+                            "cashApp",
+                            "chime",
+                            "checkPayee"
+                          ],
+                          "properties": {
+                            "methods": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "square_payment_link",
+                                  "square_tap_to_pay",
+                                  "cash",
+                                  "check",
+                                  "zelle",
+                                  "cash_app",
+                                  "chime"
+                                ]
+                              }
+                            },
+                            "placeholder": {
+                              "type": "boolean"
+                            },
+                            "zelle": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "cashApp": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "chime": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "checkPayee": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        }
                       ]
                     }
                   }
@@ -73415,6 +73639,7 @@
                             "document",
                             "testMark",
                             "version",
+                            "paymentLink",
                             "actions"
                           ],
                           "properties": {
@@ -73856,18 +74081,66 @@
                             "version": {
                               "type": "integer"
                             },
+                            "paymentLink": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "url",
+                                    "setBy",
+                                    "setAt"
+                                  ],
+                                  "properties": {
+                                    "url": {
+                                      "type": "string"
+                                    },
+                                    "setBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "setAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    }
+                                  }
+                                }
+                              ]
+                            },
                             "actions": {
                               "type": "object",
                               "additionalProperties": false,
                               "required": [
                                 "issue",
-                                "recordPayment"
+                                "recordPayment",
+                                "setPaymentLink"
                               ],
                               "properties": {
                                 "issue": {
                                   "type": "boolean"
                                 },
                                 "recordPayment": {
+                                  "type": "boolean"
+                                },
+                                "setPaymentLink": {
                                   "type": "boolean"
                                 }
                               }
@@ -73908,6 +74181,7 @@
                             "document",
                             "testMark",
                             "version",
+                            "paymentLink",
                             "actions"
                           ],
                           "properties": {
@@ -74349,18 +74623,66 @@
                             "version": {
                               "type": "integer"
                             },
+                            "paymentLink": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "url",
+                                    "setBy",
+                                    "setAt"
+                                  ],
+                                  "properties": {
+                                    "url": {
+                                      "type": "string"
+                                    },
+                                    "setBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "setAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    }
+                                  }
+                                }
+                              ]
+                            },
                             "actions": {
                               "type": "object",
                               "additionalProperties": false,
                               "required": [
                                 "issue",
-                                "recordPayment"
+                                "recordPayment",
+                                "setPaymentLink"
                               ],
                               "properties": {
                                 "issue": {
                                   "type": "boolean"
                                 },
                                 "recordPayment": {
+                                  "type": "boolean"
+                                },
+                                "setPaymentLink": {
                                   "type": "boolean"
                                 }
                               }
@@ -74523,6 +74845,1302 @@
         }
       }
     },
+    "/api/v1/staff/invoices/{invoiceId}/payment-link": {
+      "put": {
+        "operationId": "setInvoicePaymentLink",
+        "summary": "Enter the invoice's Square payment link",
+        "description": "Staff with invoice.enter_payment_link (the Owner, Office; OWN-DEC-138), on an issued final invoice that still has a balance (a deposit invoice uses the deposit’s own link: DEPOSIT_INVOICE_USES_DEPOSIT_LINK). The invoice-specific link staff created in the Square app: https on a host of payment.square_link_hosts (NOT_HTTPS, NOT_A_SQUARE_LINK, NOT_A_LINK, TOO_LONG; NOT CONFIGURED refuses). A new link replaces the shown one; every link stays recorded. The customer’s Pay by Card opens it while a balance remains. Nothing is charged here and nothing returns from Square: a redirect, a visit or a customer claim never marks anything paid; only a recorded verified payment does. Returns the job’s invoices.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "invoiceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "url"
+                ],
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "final",
+                    "deposit",
+                    "unallocatedCents",
+                    "actions"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "final": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "kind",
+                            "state",
+                            "number",
+                            "scopeVersion",
+                            "lines",
+                            "chargesCents",
+                            "creditLinesCents",
+                            "subtotalCents",
+                            "discount",
+                            "totalCents",
+                            "depositCreditCents",
+                            "paymentTermText",
+                            "preparedAt",
+                            "issuedAt",
+                            "issuedBy",
+                            "issuer",
+                            "money",
+                            "payments",
+                            "exceptions",
+                            "document",
+                            "testMark",
+                            "version",
+                            "paymentLink",
+                            "actions"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "deposit",
+                                "final"
+                              ]
+                            },
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "draft",
+                                "issued",
+                                "partially_paid",
+                                "paid",
+                                "voided"
+                              ]
+                            },
+                            "number": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "scopeVersion": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "lines": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "position",
+                                  "kind",
+                                  "source",
+                                  "lineKind",
+                                  "serviceCode",
+                                  "description",
+                                  "quantity",
+                                  "unit",
+                                  "unitPriceCents",
+                                  "amountCents"
+                                ],
+                                "properties": {
+                                  "position": {
+                                    "type": "integer"
+                                  },
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "charge",
+                                      "credit"
+                                    ]
+                                  },
+                                  "source": {
+                                    "type": "string",
+                                    "enum": [
+                                      "estimate_line",
+                                      "change_order",
+                                      "deposit"
+                                    ]
+                                  },
+                                  "lineKind": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "enum": [
+                                      "base",
+                                      "alternate",
+                                      "add_on",
+                                      null
+                                    ]
+                                  },
+                                  "serviceCode": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "description": {
+                                    "type": "string"
+                                  },
+                                  "quantity": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "unit": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "unitPriceCents": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ]
+                                  },
+                                  "amountCents": {
+                                    "type": "integer"
+                                  }
+                                }
+                              }
+                            },
+                            "chargesCents": {
+                              "type": "integer"
+                            },
+                            "creditLinesCents": {
+                              "type": "integer"
+                            },
+                            "subtotalCents": {
+                              "type": "integer"
+                            },
+                            "discount": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "category",
+                                    "percentBps",
+                                    "amountCents"
+                                  ],
+                                  "properties": {
+                                    "category": {
+                                      "type": "string"
+                                    },
+                                    "percentBps": {
+                                      "type": "integer"
+                                    },
+                                    "amountCents": {
+                                      "type": "integer"
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "totalCents": {
+                              "type": "integer"
+                            },
+                            "depositCreditCents": {
+                              "type": "integer"
+                            },
+                            "paymentTermText": {
+                              "type": "string"
+                            },
+                            "preparedAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "issuedAt": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              ]
+                            },
+                            "issuedBy": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "issuer": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "name",
+                                    "mailingAddress",
+                                    "phone",
+                                    "email"
+                                  ],
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "mailingAddress": {
+                                      "anyOf": [
+                                        {
+                                          "type": "null"
+                                        },
+                                        {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        }
+                                      ]
+                                    },
+                                    "phone": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "email": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "money": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "invoicedCents",
+                                    "depositCreditCents",
+                                    "appliedCreditsCents",
+                                    "creditsCents",
+                                    "confirmedCents",
+                                    "pendingCents",
+                                    "remainingCents"
+                                  ],
+                                  "properties": {
+                                    "invoicedCents": {
+                                      "type": "integer"
+                                    },
+                                    "depositCreditCents": {
+                                      "type": "integer"
+                                    },
+                                    "appliedCreditsCents": {
+                                      "type": "integer"
+                                    },
+                                    "creditsCents": {
+                                      "type": "integer"
+                                    },
+                                    "confirmedCents": {
+                                      "type": "integer"
+                                    },
+                                    "pendingCents": {
+                                      "type": "integer"
+                                    },
+                                    "remainingCents": {
+                                      "type": "integer"
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "payments": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "method",
+                                  "amountCents",
+                                  "appliedCents",
+                                  "receivedOn",
+                                  "reference",
+                                  "payerName",
+                                  "state",
+                                  "verified",
+                                  "collector",
+                                  "recordedAt",
+                                  "canMarkCleared"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "method": {
+                                    "type": "string",
+                                    "enum": [
+                                      "square_payment_link",
+                                      "square_tap_to_pay",
+                                      "cash",
+                                      "check",
+                                      "zelle",
+                                      "cash_app",
+                                      "chime"
+                                    ]
+                                  },
+                                  "amountCents": {
+                                    "type": "integer"
+                                  },
+                                  "appliedCents": {
+                                    "type": "integer"
+                                  },
+                                  "receivedOn": {
+                                    "type": "string"
+                                  },
+                                  "reference": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "payerName": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "state": {
+                                    "type": "string",
+                                    "enum": [
+                                      "recorded",
+                                      "reconciled",
+                                      "received",
+                                      "deposited",
+                                      "cleared",
+                                      "returned",
+                                      "voided"
+                                    ]
+                                  },
+                                  "verified": {
+                                    "type": "boolean"
+                                  },
+                                  "collector": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "id",
+                                      "name"
+                                    ],
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "recordedAt": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  },
+                                  "canMarkCleared": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              }
+                            },
+                            "exceptions": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "code",
+                                  "blocking"
+                                ],
+                                "properties": {
+                                  "code": {
+                                    "type": "string",
+                                    "enum": [
+                                      "QUALITY_REVIEW_NOT_RECORDED",
+                                      "QUALITY_REVIEW_BLOCKED",
+                                      "QUALITY_REVIEW_OWNER_ONLY",
+                                      "SCOPE_CHANGED",
+                                      "DEPOSIT_CHECK_PENDING",
+                                      "DEPOSIT_EXCEEDS_TOTAL",
+                                      "DEPOSIT_NOT_DUE",
+                                      "BUSINESS_NAME_NOT_CONFIGURED",
+                                      "DEPOSIT_WAIVED",
+                                      "DEPOSIT_NOT_PAID",
+                                      "UNALLOCATED_PAYMENT",
+                                      "MAILING_ADDRESS_NOT_CONFIGURED",
+                                      "PUBLIC_CONTACT_PLACEHOLDER",
+                                      "PAYMENT_INSTRUCTIONS_PLACEHOLDER"
+                                    ]
+                                  },
+                                  "blocking": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              }
+                            },
+                            "document": {
+                              "type": "string",
+                              "enum": [
+                                "none",
+                                "preparing",
+                                "issued"
+                              ]
+                            },
+                            "testMark": {
+                              "type": "boolean"
+                            },
+                            "version": {
+                              "type": "integer"
+                            },
+                            "paymentLink": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "url",
+                                    "setBy",
+                                    "setAt"
+                                  ],
+                                  "properties": {
+                                    "url": {
+                                      "type": "string"
+                                    },
+                                    "setBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "setAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "actions": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "issue",
+                                "recordPayment",
+                                "setPaymentLink"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "type": "boolean"
+                                },
+                                "recordPayment": {
+                                  "type": "boolean"
+                                },
+                                "setPaymentLink": {
+                                  "type": "boolean"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "deposit": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "kind",
+                            "state",
+                            "number",
+                            "scopeVersion",
+                            "lines",
+                            "chargesCents",
+                            "creditLinesCents",
+                            "subtotalCents",
+                            "discount",
+                            "totalCents",
+                            "depositCreditCents",
+                            "paymentTermText",
+                            "preparedAt",
+                            "issuedAt",
+                            "issuedBy",
+                            "issuer",
+                            "money",
+                            "payments",
+                            "exceptions",
+                            "document",
+                            "testMark",
+                            "version",
+                            "paymentLink",
+                            "actions"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "deposit",
+                                "final"
+                              ]
+                            },
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "draft",
+                                "issued",
+                                "partially_paid",
+                                "paid",
+                                "voided"
+                              ]
+                            },
+                            "number": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "scopeVersion": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "lines": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "position",
+                                  "kind",
+                                  "source",
+                                  "lineKind",
+                                  "serviceCode",
+                                  "description",
+                                  "quantity",
+                                  "unit",
+                                  "unitPriceCents",
+                                  "amountCents"
+                                ],
+                                "properties": {
+                                  "position": {
+                                    "type": "integer"
+                                  },
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "charge",
+                                      "credit"
+                                    ]
+                                  },
+                                  "source": {
+                                    "type": "string",
+                                    "enum": [
+                                      "estimate_line",
+                                      "change_order",
+                                      "deposit"
+                                    ]
+                                  },
+                                  "lineKind": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "enum": [
+                                      "base",
+                                      "alternate",
+                                      "add_on",
+                                      null
+                                    ]
+                                  },
+                                  "serviceCode": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "description": {
+                                    "type": "string"
+                                  },
+                                  "quantity": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "unit": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "unitPriceCents": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ]
+                                  },
+                                  "amountCents": {
+                                    "type": "integer"
+                                  }
+                                }
+                              }
+                            },
+                            "chargesCents": {
+                              "type": "integer"
+                            },
+                            "creditLinesCents": {
+                              "type": "integer"
+                            },
+                            "subtotalCents": {
+                              "type": "integer"
+                            },
+                            "discount": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "category",
+                                    "percentBps",
+                                    "amountCents"
+                                  ],
+                                  "properties": {
+                                    "category": {
+                                      "type": "string"
+                                    },
+                                    "percentBps": {
+                                      "type": "integer"
+                                    },
+                                    "amountCents": {
+                                      "type": "integer"
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "totalCents": {
+                              "type": "integer"
+                            },
+                            "depositCreditCents": {
+                              "type": "integer"
+                            },
+                            "paymentTermText": {
+                              "type": "string"
+                            },
+                            "preparedAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "issuedAt": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              ]
+                            },
+                            "issuedBy": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "issuer": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "name",
+                                    "mailingAddress",
+                                    "phone",
+                                    "email"
+                                  ],
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "mailingAddress": {
+                                      "anyOf": [
+                                        {
+                                          "type": "null"
+                                        },
+                                        {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        }
+                                      ]
+                                    },
+                                    "phone": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "email": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "money": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "invoicedCents",
+                                    "depositCreditCents",
+                                    "appliedCreditsCents",
+                                    "creditsCents",
+                                    "confirmedCents",
+                                    "pendingCents",
+                                    "remainingCents"
+                                  ],
+                                  "properties": {
+                                    "invoicedCents": {
+                                      "type": "integer"
+                                    },
+                                    "depositCreditCents": {
+                                      "type": "integer"
+                                    },
+                                    "appliedCreditsCents": {
+                                      "type": "integer"
+                                    },
+                                    "creditsCents": {
+                                      "type": "integer"
+                                    },
+                                    "confirmedCents": {
+                                      "type": "integer"
+                                    },
+                                    "pendingCents": {
+                                      "type": "integer"
+                                    },
+                                    "remainingCents": {
+                                      "type": "integer"
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "payments": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "method",
+                                  "amountCents",
+                                  "appliedCents",
+                                  "receivedOn",
+                                  "reference",
+                                  "payerName",
+                                  "state",
+                                  "verified",
+                                  "collector",
+                                  "recordedAt",
+                                  "canMarkCleared"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "method": {
+                                    "type": "string",
+                                    "enum": [
+                                      "square_payment_link",
+                                      "square_tap_to_pay",
+                                      "cash",
+                                      "check",
+                                      "zelle",
+                                      "cash_app",
+                                      "chime"
+                                    ]
+                                  },
+                                  "amountCents": {
+                                    "type": "integer"
+                                  },
+                                  "appliedCents": {
+                                    "type": "integer"
+                                  },
+                                  "receivedOn": {
+                                    "type": "string"
+                                  },
+                                  "reference": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "payerName": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "state": {
+                                    "type": "string",
+                                    "enum": [
+                                      "recorded",
+                                      "reconciled",
+                                      "received",
+                                      "deposited",
+                                      "cleared",
+                                      "returned",
+                                      "voided"
+                                    ]
+                                  },
+                                  "verified": {
+                                    "type": "boolean"
+                                  },
+                                  "collector": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "id",
+                                      "name"
+                                    ],
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "recordedAt": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  },
+                                  "canMarkCleared": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              }
+                            },
+                            "exceptions": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "code",
+                                  "blocking"
+                                ],
+                                "properties": {
+                                  "code": {
+                                    "type": "string",
+                                    "enum": [
+                                      "QUALITY_REVIEW_NOT_RECORDED",
+                                      "QUALITY_REVIEW_BLOCKED",
+                                      "QUALITY_REVIEW_OWNER_ONLY",
+                                      "SCOPE_CHANGED",
+                                      "DEPOSIT_CHECK_PENDING",
+                                      "DEPOSIT_EXCEEDS_TOTAL",
+                                      "DEPOSIT_NOT_DUE",
+                                      "BUSINESS_NAME_NOT_CONFIGURED",
+                                      "DEPOSIT_WAIVED",
+                                      "DEPOSIT_NOT_PAID",
+                                      "UNALLOCATED_PAYMENT",
+                                      "MAILING_ADDRESS_NOT_CONFIGURED",
+                                      "PUBLIC_CONTACT_PLACEHOLDER",
+                                      "PAYMENT_INSTRUCTIONS_PLACEHOLDER"
+                                    ]
+                                  },
+                                  "blocking": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              }
+                            },
+                            "document": {
+                              "type": "string",
+                              "enum": [
+                                "none",
+                                "preparing",
+                                "issued"
+                              ]
+                            },
+                            "testMark": {
+                              "type": "boolean"
+                            },
+                            "version": {
+                              "type": "integer"
+                            },
+                            "paymentLink": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "url",
+                                    "setBy",
+                                    "setAt"
+                                  ],
+                                  "properties": {
+                                    "url": {
+                                      "type": "string"
+                                    },
+                                    "setBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "setAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "actions": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "issue",
+                                "recordPayment",
+                                "setPaymentLink"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "type": "boolean"
+                                },
+                                "recordPayment": {
+                                  "type": "boolean"
+                                },
+                                "setPaymentLink": {
+                                  "type": "boolean"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "unallocatedCents": {
+                      "type": "integer"
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "prepareFinal",
+                        "prepareDeposit"
+                      ],
+                      "properties": {
+                        "prepareFinal": {
+                          "type": "boolean"
+                        },
+                        "prepareDeposit": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "invoice.enter_payment_link",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "invoice.payment_link_set",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/invoices.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/invoices/{invoiceId}/payments": {
       "post": {
         "operationId": "recordInvoicePayment",
@@ -74666,6 +76284,7 @@
                             "document",
                             "testMark",
                             "version",
+                            "paymentLink",
                             "actions"
                           ],
                           "properties": {
@@ -75107,18 +76726,66 @@
                             "version": {
                               "type": "integer"
                             },
+                            "paymentLink": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "url",
+                                    "setBy",
+                                    "setAt"
+                                  ],
+                                  "properties": {
+                                    "url": {
+                                      "type": "string"
+                                    },
+                                    "setBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "setAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    }
+                                  }
+                                }
+                              ]
+                            },
                             "actions": {
                               "type": "object",
                               "additionalProperties": false,
                               "required": [
                                 "issue",
-                                "recordPayment"
+                                "recordPayment",
+                                "setPaymentLink"
                               ],
                               "properties": {
                                 "issue": {
                                   "type": "boolean"
                                 },
                                 "recordPayment": {
+                                  "type": "boolean"
+                                },
+                                "setPaymentLink": {
                                   "type": "boolean"
                                 }
                               }
@@ -75159,6 +76826,7 @@
                             "document",
                             "testMark",
                             "version",
+                            "paymentLink",
                             "actions"
                           ],
                           "properties": {
@@ -75600,18 +77268,66 @@
                             "version": {
                               "type": "integer"
                             },
+                            "paymentLink": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "url",
+                                    "setBy",
+                                    "setAt"
+                                  ],
+                                  "properties": {
+                                    "url": {
+                                      "type": "string"
+                                    },
+                                    "setBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "setAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    }
+                                  }
+                                }
+                              ]
+                            },
                             "actions": {
                               "type": "object",
                               "additionalProperties": false,
                               "required": [
                                 "issue",
-                                "recordPayment"
+                                "recordPayment",
+                                "setPaymentLink"
                               ],
                               "properties": {
                                 "issue": {
                                   "type": "boolean"
                                 },
                                 "recordPayment": {
+                                  "type": "boolean"
+                                },
+                                "setPaymentLink": {
                                   "type": "boolean"
                                 }
                               }
@@ -84196,6 +85912,7 @@
                             "document",
                             "testMark",
                             "version",
+                            "paymentLink",
                             "actions"
                           ],
                           "properties": {
@@ -84637,18 +86354,66 @@
                             "version": {
                               "type": "integer"
                             },
+                            "paymentLink": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "url",
+                                    "setBy",
+                                    "setAt"
+                                  ],
+                                  "properties": {
+                                    "url": {
+                                      "type": "string"
+                                    },
+                                    "setBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "setAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    }
+                                  }
+                                }
+                              ]
+                            },
                             "actions": {
                               "type": "object",
                               "additionalProperties": false,
                               "required": [
                                 "issue",
-                                "recordPayment"
+                                "recordPayment",
+                                "setPaymentLink"
                               ],
                               "properties": {
                                 "issue": {
                                   "type": "boolean"
                                 },
                                 "recordPayment": {
+                                  "type": "boolean"
+                                },
+                                "setPaymentLink": {
                                   "type": "boolean"
                                 }
                               }
@@ -84689,6 +86454,7 @@
                             "document",
                             "testMark",
                             "version",
+                            "paymentLink",
                             "actions"
                           ],
                           "properties": {
@@ -85130,18 +86896,66 @@
                             "version": {
                               "type": "integer"
                             },
+                            "paymentLink": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "url",
+                                    "setBy",
+                                    "setAt"
+                                  ],
+                                  "properties": {
+                                    "url": {
+                                      "type": "string"
+                                    },
+                                    "setBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "setAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    }
+                                  }
+                                }
+                              ]
+                            },
                             "actions": {
                               "type": "object",
                               "additionalProperties": false,
                               "required": [
                                 "issue",
-                                "recordPayment"
+                                "recordPayment",
+                                "setPaymentLink"
                               ],
                               "properties": {
                                 "issue": {
                                   "type": "boolean"
                                 },
                                 "recordPayment": {
+                                  "type": "boolean"
+                                },
+                                "setPaymentLink": {
                                   "type": "boolean"
                                 }
                               }
@@ -85355,6 +87169,7 @@
                             "document",
                             "testMark",
                             "version",
+                            "paymentLink",
                             "actions"
                           ],
                           "properties": {
@@ -85796,18 +87611,66 @@
                             "version": {
                               "type": "integer"
                             },
+                            "paymentLink": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "url",
+                                    "setBy",
+                                    "setAt"
+                                  ],
+                                  "properties": {
+                                    "url": {
+                                      "type": "string"
+                                    },
+                                    "setBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "setAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    }
+                                  }
+                                }
+                              ]
+                            },
                             "actions": {
                               "type": "object",
                               "additionalProperties": false,
                               "required": [
                                 "issue",
-                                "recordPayment"
+                                "recordPayment",
+                                "setPaymentLink"
                               ],
                               "properties": {
                                 "issue": {
                                   "type": "boolean"
                                 },
                                 "recordPayment": {
+                                  "type": "boolean"
+                                },
+                                "setPaymentLink": {
                                   "type": "boolean"
                                 }
                               }
@@ -85848,6 +87711,7 @@
                             "document",
                             "testMark",
                             "version",
+                            "paymentLink",
                             "actions"
                           ],
                           "properties": {
@@ -86289,18 +88153,66 @@
                             "version": {
                               "type": "integer"
                             },
+                            "paymentLink": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "url",
+                                    "setBy",
+                                    "setAt"
+                                  ],
+                                  "properties": {
+                                    "url": {
+                                      "type": "string"
+                                    },
+                                    "setBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "setAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    }
+                                  }
+                                }
+                              ]
+                            },
                             "actions": {
                               "type": "object",
                               "additionalProperties": false,
                               "required": [
                                 "issue",
-                                "recordPayment"
+                                "recordPayment",
+                                "setPaymentLink"
                               ],
                               "properties": {
                                 "issue": {
                                   "type": "boolean"
                                 },
                                 "recordPayment": {
+                                  "type": "boolean"
+                                },
+                                "setPaymentLink": {
                                   "type": "boolean"
                                 }
                               }
@@ -86544,6 +88456,7 @@
                             "document",
                             "testMark",
                             "version",
+                            "paymentLink",
                             "actions"
                           ],
                           "properties": {
@@ -86985,18 +88898,66 @@
                             "version": {
                               "type": "integer"
                             },
+                            "paymentLink": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "url",
+                                    "setBy",
+                                    "setAt"
+                                  ],
+                                  "properties": {
+                                    "url": {
+                                      "type": "string"
+                                    },
+                                    "setBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "setAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    }
+                                  }
+                                }
+                              ]
+                            },
                             "actions": {
                               "type": "object",
                               "additionalProperties": false,
                               "required": [
                                 "issue",
-                                "recordPayment"
+                                "recordPayment",
+                                "setPaymentLink"
                               ],
                               "properties": {
                                 "issue": {
                                   "type": "boolean"
                                 },
                                 "recordPayment": {
+                                  "type": "boolean"
+                                },
+                                "setPaymentLink": {
                                   "type": "boolean"
                                 }
                               }
@@ -87037,6 +88998,7 @@
                             "document",
                             "testMark",
                             "version",
+                            "paymentLink",
                             "actions"
                           ],
                           "properties": {
@@ -87478,18 +89440,66 @@
                             "version": {
                               "type": "integer"
                             },
+                            "paymentLink": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "url",
+                                    "setBy",
+                                    "setAt"
+                                  ],
+                                  "properties": {
+                                    "url": {
+                                      "type": "string"
+                                    },
+                                    "setBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "setAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    }
+                                  }
+                                }
+                              ]
+                            },
                             "actions": {
                               "type": "object",
                               "additionalProperties": false,
                               "required": [
                                 "issue",
-                                "recordPayment"
+                                "recordPayment",
+                                "setPaymentLink"
                               ],
                               "properties": {
                                 "issue": {
                                   "type": "boolean"
                                 },
                                 "recordPayment": {
+                                  "type": "boolean"
+                                },
+                                "setPaymentLink": {
                                   "type": "boolean"
                                 }
                               }

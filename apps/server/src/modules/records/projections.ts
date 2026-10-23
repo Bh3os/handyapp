@@ -459,13 +459,6 @@ const tabHead = (r: TabRecord) => ({
   refreshedAt: r.refreshedAt.toISOString(),
   refreshSeconds: r.refreshSeconds,
 })
-function tabView<S extends string>(name: string, entity: Entity, states: readonly S[]) {
-  return customerView(name, entity, { ...TAB_FIELDS, state: enumOf(states) }, (r: TabRecord & { state: S }) => ({
-    ...tabHead(r),
-    state: r.state,
-  }))
-}
-
 /**
  * One message of the project conversation as the customer sees it (TSK-0050; C06, HH-PORT-08): from the customer
  * ('you') or HandyHub, by email or text, when, and the text exactly as written (customer free text is never
@@ -647,8 +640,165 @@ export const PROJECT_APPOINTMENTS: typeof appointmentsView = {
   // The lists are sent only with the "listed" state; "none" is the state alone, as before (TSK-0039).
   schema: { ...appointmentsView.schema, required: Object.keys(TAB_FIELDS).concat('state') },
 }
-/** The Payments tab: no estimate total, deposit, invoice or recorded payment exists yet (TSK-0087). */
-export const PROJECT_PAYMENTS = tabView('project.payments', 'Invoice', ['none'] as const)
+/**
+ * The Payments tab (TSK-0087; HH-PORT-12, HH-FIN-08, HH-FIN-10): "none" while the project has no approved total,
+ * deposit, issued invoice or recorded payment; otherwise "listed" with the approved total, the deposit, each current
+ * invoice's money and its Pay by Card link (only with a balance and a staff-pasted Square link), the recorded payments
+ * (confirmed, pending or returned; never who recorded them), the totals, and the payment instructions with their
+ * placeholder flag. Every amount is integer cents from the shared records (finance/customer-payments.ts).
+ */
+const NULLABLE_TEXT = { type: ['string', 'null'] } as const
+const PAYMENT_METHOD = enumOf([
+  'square_payment_link',
+  'square_tap_to_pay',
+  'cash',
+  'check',
+  'zelle',
+  'cash_app',
+  'chime',
+])
+type PaymentsRecord = {
+  approvedTotalCents: number | null
+  deposit:
+    | { state: 'none' }
+    | {
+        state: 'deposit_due'
+        amountCents: number
+        verifiedCents: number
+        pendingCents: number
+        payByCardUrl: string | null
+      }
+    | { state: 'deposit_received'; amountCents: number }
+  invoices: {
+    number: string
+    kind: string
+    state: string
+    totalCents: number
+    creditsCents: number
+    confirmedCents: number
+    pendingCents: number
+    balanceCents: number
+    payByCardUrl: string | null
+  }[]
+  payments: { receivedOn: string; method: string; amountCents: number; state: string }[]
+  confirmedCents: number
+  pendingCents: number
+  balanceCents: number
+  instructions: {
+    methods: string[]
+    placeholder: boolean
+    zelle: string | null
+    cashApp: string | null
+    chime: string | null
+    checkPayee: string | null
+  } | null
+}
+const paymentsView = customerView(
+  'project.payments',
+  'Invoice',
+  {
+    ...TAB_FIELDS,
+    state: enumOf(['none', 'listed']),
+    approvedTotalCents: NULLABLE_CENTS,
+    deposit: object({
+      state: enumOf(['none', 'deposit_due', 'deposit_received']),
+      amountCents: NULLABLE_CENTS,
+      verifiedCents: NULLABLE_CENTS,
+      pendingCents: NULLABLE_CENTS,
+      payByCardUrl: NULLABLE_TEXT,
+    }),
+    invoices: {
+      type: 'array',
+      items: object({
+        number: STRING,
+        kind: enumOf(['deposit', 'final']),
+        state: enumOf(['issued', 'partially_paid', 'paid']),
+        totalCents: CENTS,
+        creditsCents: CENTS,
+        confirmedCents: CENTS,
+        pendingCents: CENTS,
+        balanceCents: CENTS,
+        payByCardUrl: NULLABLE_TEXT,
+      }),
+    },
+    payments: {
+      type: 'array',
+      items: object({
+        receivedOn: STRING,
+        method: PAYMENT_METHOD,
+        amountCents: CENTS,
+        state: enumOf(['confirmed', 'pending', 'returned']),
+      }),
+    },
+    confirmedCents: CENTS,
+    pendingCents: CENTS,
+    balanceCents: CENTS,
+    instructions: {
+      anyOf: [
+        { type: 'null' },
+        object({
+          methods: { type: 'array', items: PAYMENT_METHOD },
+          placeholder: { type: 'boolean' },
+          zelle: NULLABLE_TEXT,
+          cashApp: NULLABLE_TEXT,
+          chime: NULLABLE_TEXT,
+          checkPayee: NULLABLE_TEXT,
+        }),
+      ],
+    },
+  },
+  (r: TabRecord & ({ state: 'none' } | ({ state: 'listed' } & PaymentsRecord))) => {
+    if (r.state === 'none') return { ...tabHead(r), state: r.state } as never
+    const d = r.deposit
+    return {
+      ...tabHead(r),
+      state: r.state,
+      approvedTotalCents: r.approvedTotalCents,
+      deposit: {
+        state: d.state,
+        amountCents: d.state === 'none' ? null : d.amountCents,
+        verifiedCents: d.state === 'deposit_due' ? d.verifiedCents : null,
+        pendingCents: d.state === 'deposit_due' ? d.pendingCents : null,
+        payByCardUrl: d.state === 'deposit_due' ? d.payByCardUrl : null,
+      },
+      invoices: r.invoices.map((i) => ({
+        number: i.number,
+        kind: i.kind,
+        state: i.state,
+        totalCents: i.totalCents,
+        creditsCents: i.creditsCents,
+        confirmedCents: i.confirmedCents,
+        pendingCents: i.pendingCents,
+        balanceCents: i.balanceCents,
+        payByCardUrl: i.payByCardUrl,
+      })),
+      payments: r.payments.map((p) => ({
+        receivedOn: p.receivedOn,
+        method: p.method,
+        amountCents: p.amountCents,
+        state: p.state,
+      })),
+      confirmedCents: r.confirmedCents,
+      pendingCents: r.pendingCents,
+      balanceCents: r.balanceCents,
+      instructions: r.instructions
+        ? {
+            methods: [...r.instructions.methods],
+            placeholder: r.instructions.placeholder,
+            zelle: r.instructions.zelle,
+            cashApp: r.instructions.cashApp,
+            chime: r.instructions.chime,
+            checkPayee: r.instructions.checkPayee,
+          }
+        : null,
+    }
+  },
+)
+export const PROJECT_PAYMENTS: typeof paymentsView = {
+  ...paymentsView,
+  // The money is sent only with the "listed" state; "none" is the state alone, as before (TSK-0039).
+  schema: { ...paymentsView.schema, required: Object.keys(TAB_FIELDS).concat('state') },
+}
 
 const COUNT = { type: 'integer', minimum: 0 } as const
 export type PhotoCounts = { received: number; processing: number; failed: number }

@@ -5,6 +5,7 @@
 //   POST /staff/jobs/:jobId/invoices/final-draft     prepare the final invoice draft again (invoice.issue)
 //   POST /staff/jobs/:jobId/invoices/deposit-draft   prepare the deposit invoice draft (invoice.issue)
 //   POST /staff/invoices/:invoiceId/issue            issue a draft (invoice.issue; the quality-review gate)
+//   PUT  /staff/invoices/:invoiceId/payment-link     the invoice's Square link (invoice.enter_payment_link, TSK-0087)
 //   POST /staff/invoices/:invoiceId/payments         record a verified payment on an issued invoice (payment.record)
 //   GET  /staff/payouts                              recorded Square payouts and fees (payment.view)
 //   POST /staff/payouts                              record a Square payout (payout.record)
@@ -37,6 +38,7 @@ import {
   recordPayout,
   recordProviderFee,
 } from './ledger.js'
+import { setInvoicePaymentLink } from './payment-links.js'
 
 const TEST = 'test/integration/invoices.test.ts'
 
@@ -135,7 +137,12 @@ const INVOICE = object({
   document: { type: 'string', enum: ['none', 'preparing', 'issued'] },
   testMark: { type: 'boolean' },
   version: INT,
-  actions: object({ issue: { type: 'boolean' }, recordPayment: { type: 'boolean' } }),
+  paymentLink: nullable(object({ url: { type: 'string' }, setBy: STAFF_REF, setAt: DATE_TIME })),
+  actions: object({
+    issue: { type: 'boolean' },
+    recordPayment: { type: 'boolean' },
+    setPaymentLink: { type: 'boolean' },
+  }),
 })
 const JOB_INVOICES = object({
   jobId: { type: 'string' },
@@ -305,6 +312,46 @@ export function invoiceRoutes(deps: InvoiceRouteDeps): RouteDef[] {
             depositCreditCents: out.depositCreditCents,
             state: out.state,
           },
+        })
+        return { body: await jobView(ctx, tx, out.jobId) }
+      },
+    },
+    {
+      ...write,
+      method: 'PUT',
+      path: '/staff/invoices/:invoiceId/payment-link',
+      operationId: 'setInvoicePaymentLink',
+      summary: "Enter the invoice's Square payment link",
+      description:
+        'Staff with invoice.enter_payment_link (the Owner, Office; OWN-DEC-138), on an issued final invoice that ' +
+        'still has a balance (a deposit invoice uses the deposit’s own link: DEPOSIT_INVOICE_USES_DEPOSIT_LINK). The ' +
+        'invoice-specific link staff created in the Square app: https on a host of payment.square_link_hosts ' +
+        '(NOT_HTTPS, NOT_A_SQUARE_LINK, NOT_A_LINK, TOO_LONG; NOT CONFIGURED refuses). A new link replaces the shown ' +
+        'one; every link stays recorded. The customer’s Pay by Card opens it while a balance remains. Nothing is ' +
+        'charged here and nothing returns from Square: a redirect, a visit or a customer claim never marks anything ' +
+        'paid; only a recorded verified payment does. Returns the job’s invoices.',
+      permission: 'invoice.enter_payment_link',
+      expectedVersion: 'none',
+      audit: 'invoice.payment_link_set',
+      resource: invoiceProject,
+      schema: {
+        params: params('invoiceId'),
+        body: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['url'],
+          properties: { url: { type: 'string', minLength: 1, maxLength: DEPOSIT_LIMITS.paymentLink } },
+        },
+        response: { 200: JOB_INVOICES },
+      },
+      handler: async (ctx) => {
+        const tx = ctx.tx as Tx
+        const { invoiceId } = ctx.req.params as { invoiceId: string }
+        const out = await setInvoicePaymentLink(tx, staffActor(ctx), invoiceId, ctx.req.body as { url: string })
+        // The host only: the link itself stays on the invoice.
+        await ctx.audit({
+          target: { type: 'invoice', id: invoiceId },
+          summary: { jobId: out.jobId, host: out.host, replaced: out.replaced },
         })
         return { body: await jobView(ctx, tx, out.jobId) }
       },

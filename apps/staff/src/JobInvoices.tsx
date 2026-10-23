@@ -70,7 +70,9 @@ export type Invoice = {
   exceptions: { code: string; blocking: boolean }[]
   document: 'none' | 'preparing' | 'issued'
   version: number
-  actions: { issue: boolean; recordPayment: boolean }
+  /** TSK-0087: the Square link the customer's Pay by Card opens (a final invoice only). */
+  paymentLink?: { url: string; setBy: { id: string; name: string | null }; setAt: string } | null
+  actions: { issue: boolean; recordPayment: boolean; setPaymentLink?: boolean }
 }
 export type JobInvoicesData = {
   jobId: string
@@ -118,13 +120,19 @@ export function JobInvoices({ t, fetchImpl, jobId }: { t: T; fetchImpl: Fetch; j
   }, [load])
   if (!data) return null
 
-  async function send(action: string, path: string, body: unknown, ifMatch?: number): Promise<boolean> {
+  async function send(
+    action: string,
+    path: string,
+    body: unknown,
+    ifMatch?: number,
+    method: 'POST' | 'PUT' = 'POST',
+  ): Promise<boolean> {
     setPending(action)
     setError(null)
     setDone(null)
     if (!keys.current.has(action)) keys.current.set(action, idempotencyKey())
     const r = await call<JobInvoicesData | unknown>(fetchImpl, path, {
-      method: 'POST',
+      method,
       body,
       headers: {
         'idempotency-key': keys.current.get(action) as string,
@@ -209,7 +217,7 @@ function InvoicePanel({
   t: T
   invoice: Invoice
   pending: string | null
-  send: (action: string, path: string, body: unknown, ifMatch?: number) => Promise<boolean>
+  send: (action: string, path: string, body: unknown, ifMatch?: number, method?: 'POST' | 'PUT') => Promise<boolean>
   setDone: (s: string | null) => void
 }) {
   // TSK-0079 (HH-OFF-04): this action needs the server; offline it is refused, never queued.
@@ -221,6 +229,7 @@ function InvoicePanel({
   const [receivedOn, setReceivedOn] = useState(today())
   const [reference, setReference] = useState('')
   const [payerName, setPayerName] = useState('')
+  const [link, setLink] = useState('')
   const draft = i.state === 'draft'
   const blocking = i.exceptions.filter((e) => e.blocking)
   const shown = i.exceptions.filter((e) => !e.blocking)
@@ -233,6 +242,16 @@ function InvoicePanel({
       : i.number
         ? t('invoice.finalNamed', { number: i.number })
         : t('invoice.finalDraft')
+
+  // TSK-0087 (HH-FIN-08): the invoice-specific Square link staff created in the Square app; never a payment.
+  async function saveLink(e: FormEvent) {
+    e.preventDefault()
+    const ok = await send(`link-${i.id}`, `${path}/payment-link`, { url: link.trim() }, undefined, 'PUT')
+    if (ok) {
+      setLink('')
+      setDone(t('invoice.linkSaved'))
+    }
+  }
 
   async function record(e: FormEvent) {
     e.preventDefault()
@@ -409,6 +428,41 @@ function InvoicePanel({
         </ul>
       ) : null}
 
+      {i.paymentLink ? (
+        <p data-testid="invoice-payment-link">
+          {t('deposit.link')}:{' '}
+          <a href={i.paymentLink.url} target="_blank" rel="noopener noreferrer">
+            {i.paymentLink.url}
+          </a>{' '}
+          <span className="staff-request__hint">
+            {t('deposit.linkBy', {
+              name: i.paymentLink.setBy.name ?? t('queue.unnamed'),
+              time: new Date(i.paymentLink.setAt),
+            })}
+          </span>
+        </p>
+      ) : null}
+      {i.actions.setPaymentLink ? (
+        <form onSubmit={(e) => void saveLink(e)} noValidate aria-label={t('invoice.linkTitle')}>
+          <Field
+            label={t('invoice.linkLabel')}
+            hint={t('invoice.linkHint')}
+            name="invoicePaymentLink"
+            type="url"
+            value={link}
+            onChange={(e) => setLink(e.target.value)}
+            required
+          />
+          <Button
+            type="submit"
+            variant="secondary"
+            pending={pending === `link-${i.id}`}
+            {...(!online ? { disabledReason: t('offline.needsConnection') } : {})}
+          >
+            {t('deposit.linkSave')}
+          </Button>
+        </form>
+      ) : null}
       {i.actions.recordPayment ? (
         <form onSubmit={(e) => void record(e)} noValidate aria-label={t('invoice.recordTitle')}>
           <p className="staff-request__hint">{t('deposit.recordHint')}</p>

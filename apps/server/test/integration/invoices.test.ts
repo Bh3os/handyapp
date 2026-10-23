@@ -380,7 +380,8 @@ type Invoice = {
   exceptions: { code: string; blocking: boolean }[]
   document: string
   version: number
-  actions: { issue: boolean; recordPayment: boolean }
+  paymentLink: { url: string; setBy: { id: string }; setAt: string } | null
+  actions: { issue: boolean; recordPayment: boolean; setPaymentLink: boolean }
 }
 type JobInvoices = {
   final: Invoice | null
@@ -1099,5 +1100,207 @@ describe('[OWN-DEC-152][HH-FIN-05] the deposit invoice bills the due deposit and
     await reviewOutcome(t.db, job.jobId, 'passed')
     const final = (await issue('owner', await finalOf(job.jobId))).json<JobInvoices>().final as Invoice
     expect(final).toMatchObject({ number: `${job.projectReference}-I2`, depositCreditCents: 22_500 })
+  })
+})
+
+type PaymentsTab = {
+  state: 'none' | 'listed'
+  approvedTotalCents: number | null
+  deposit: { state: string; amountCents: number | null; payByCardUrl: string | null }
+  invoices: {
+    number: string
+    kind: string
+    state: string
+    totalCents: number
+    creditsCents: number
+    confirmedCents: number
+    pendingCents: number
+    balanceCents: number
+    payByCardUrl: string | null
+  }[]
+  payments: { receivedOn: string; method: string; amountCents: number; state: string }[]
+  confirmedCents: number
+  pendingCents: number
+  balanceCents: number
+  instructions: {
+    methods: string[]
+    placeholder: boolean
+    zelle: string | null
+    cashApp: string | null
+    chime: string | null
+    checkPayee: string | null
+  } | null
+}
+const paymentsTab = async (reference: string, cookie: string, query = '') => {
+  const res = await app.inject({
+    method: 'GET',
+    url: `/api/v1/customer/projects/${reference}/payments${query}`,
+    headers: { cookie },
+  })
+  expect(res.statusCode, res.body).toBe(200)
+  return res.json<PaymentsTab>()
+}
+const setLink = (who: Person, invoiceId: string, url: string) =>
+  staffWrite(who, 'PUT', `/staff/invoices/${invoiceId}/payment-link`, { url })
+
+describe('[HH-FIN-08][HH-FIN-09][HH-PORT-12][T60] Square links, recorded payments and the Payments tab (TSK-0087)', () => {
+  it('[HH-FIN-08][T60] only the Owner or Office paste a link, https on a Square host only; a new one replaces the shown one', async () => {
+    const job = await approvedJob([{ kind: 'base', cents: 50_000 }])
+    await drain()
+    await reviewOutcome(t.db, job.jobId, 'passed')
+    const f = (await issue('office', await finalOf(job.jobId))).json<JobInvoices>().final as Invoice
+    expect(f).toMatchObject({ paymentLink: null, actions: { setPaymentLink: true } })
+    for (const who of ['estimator', 'worker'] as const)
+      expect((await setLink(who, f.id, 'https://square.link/u/SYNTH080')).statusCode).toBe(403)
+    for (const [url, code] of [
+      ['http://square.link/u/SYNTH080', 'NOT_HTTPS'],
+      ['https://square.link.example.test/u/SYNTH080', 'NOT_A_SQUARE_LINK'],
+      ['https://pay.example.test/square', 'NOT_A_SQUARE_LINK'],
+      ['not a link', 'NOT_A_LINK'],
+    ] as const) {
+      const res = await setLink('office', f.id, url)
+      expect(res.statusCode, res.body).toBe(400)
+      expect(codes(res)).toEqual([code])
+    }
+    const first = await setLink('office', f.id, ' https://square.link/u/SYNTH080A ')
+    expect(first.statusCode, first.body).toBe(200)
+    expect((first.json<JobInvoices>().final as Invoice).paymentLink).toMatchObject({
+      url: 'https://square.link/u/SYNTH080A',
+      setBy: { id: ids.office },
+    })
+    const second = await setLink('owner', f.id, 'https://checkout.square.site/merchant/SYNTH/checkout/SYNTH080B')
+    expect((second.json<JobInvoices>().final as Invoice).paymentLink?.url).toBe(
+      'https://checkout.square.site/merchant/SYNTH/checkout/SYNTH080B',
+    )
+    // Every link stays recorded, never changed; the audit keeps the host only.
+    const links = await t.db
+      .selectFrom('finance.invoice_payment_links')
+      .select('url')
+      .where('invoice_id', '=', f.id)
+      .execute()
+    expect(links).toHaveLength(2)
+    await expect(
+      sql`UPDATE finance.invoice_payment_links SET url = 'https://square.link/u/x' WHERE invoice_id = ${f.id}`.execute(
+        t.db,
+      ),
+    ).rejects.toThrow(/never changed or deleted/)
+    const audit = await t.db
+      .selectFrom('platform.audit_events')
+      .select('summary')
+      .where('action', '=', 'invoice.payment_link_set')
+      .where('target_id', '=', f.id)
+      .execute()
+    expect(audit.map((a) => a.summary)).toEqual([
+      expect.objectContaining({ host: 'square.link', replaced: false }),
+      expect.objectContaining({ host: 'checkout.square.site', replaced: true }),
+    ])
+    expect(JSON.stringify(audit)).not.toContain('SYNTH080')
+    // Once paid, no link is pasted any more.
+    await payInvoice('office', f.id, { method: 'cash', amountCents: 50_000 })
+    const late = await setLink('office', f.id, 'https://square.link/u/SYNTH080C')
+    expect(codes(late)).toEqual(['INVOICE_PAID'])
+  })
+
+  it('[HH-PORT-12][HH-FIN-09][HH-FIN-10][T59][T60] the Payments tab matches the ledger; a return from Square changes nothing', async () => {
+    const job = await scopedJob()
+    await drain()
+    // Before anything is paid: the approved total and the deposit due, nothing to pay by card yet.
+    let tab = await paymentsTab(job.reference, job.customerCookie)
+    expect(tab).toMatchObject({
+      state: 'listed',
+      approvedTotalCents: 112_500,
+      deposit: { state: 'deposit_due', amountCents: 22_500, payByCardUrl: null },
+      invoices: [],
+      payments: [],
+      balanceCents: 0,
+    })
+    // The handles are the Owner's labelled placeholders, never destinations (FACT-PAYMENT-INSTRUCTIONS).
+    expect(tab.instructions).toEqual({
+      methods: ['square_payment_link', 'square_tap_to_pay', 'cash', 'check', 'zelle', 'cash_app', 'chime'],
+      placeholder: true,
+      zelle: '[Payment email or phone]',
+      cashApp: '[$Cashtag]',
+      chime: '[Payment handle or details]',
+      checkPayee: '[Payee name]',
+    })
+    expect((await payDeposit('office', job.jobId, { method: 'cash', amountCents: 22_500 })).statusCode).toBe(201)
+    await reviewOutcome(t.db, job.jobId, 'passed')
+    const f = (await issue('office', await finalOf(job.jobId))).json<JobInvoices>().final as Invoice
+    tab = await paymentsTab(job.reference, job.customerCookie)
+    expect(tab.deposit).toMatchObject({ state: 'deposit_received', amountCents: 22_500 })
+    // No link yet: no Pay by Card, never a button that does nothing.
+    expect(tab.invoices).toEqual([
+      expect.objectContaining({
+        number: f.number,
+        kind: 'final',
+        state: 'issued',
+        balanceCents: 90_000,
+        payByCardUrl: null,
+      }),
+    ])
+    await setLink('office', f.id, 'https://square.link/u/SYNTH087')
+    tab = await paymentsTab(job.reference, job.customerCookie)
+    expect(tab.invoices[0]?.payByCardUrl).toBe('https://square.link/u/SYNTH087')
+
+    // The customer comes back from the Square "success" page: nothing is marked paid by the return.
+    const back = await paymentsTab(job.reference, job.customerCookie, '?status=success&transactionId=SYNTH-SQ-1')
+    expect(back.invoices[0]).toMatchObject({ state: 'issued', confirmedCents: 0, balanceCents: 90_000 })
+    expect(
+      await t.db.selectFrom('finance.payments').select('id').where('job_id', '=', job.jobId).execute(),
+    ).toHaveLength(1)
+
+    // Staff record the verified Square payment once; the same reference again is refused (T60).
+    const sq = ref('square')
+    const card = await payInvoice('office', f.id, { method: 'square_payment_link', amountCents: 40_000, reference: sq })
+    expect(card.statusCode, card.body).toBe(201)
+    const dup = await payInvoice('owner', f.id, { method: 'square_payment_link', amountCents: 40_000, reference: sq })
+    expect(dup.statusCode).toBe(409)
+    expect(codes(dup)).toContain('DUPLICATE_PAYMENT')
+    // A check is pending until cleared: it does not reduce the balance.
+    await payInvoice('office', f.id, {
+      method: 'check',
+      amountCents: 20_000,
+      reference: ref('check'),
+      payerName: 'Synthetic Payer',
+    })
+
+    const money = (await finalOf(job.jobId)).money as Money
+    tab = await paymentsTab(job.reference, job.customerCookie)
+    expect(tab.invoices).toEqual([
+      {
+        number: f.number,
+        kind: 'final',
+        state: 'partially_paid',
+        totalCents: money.invoicedCents,
+        creditsCents: money.creditsCents,
+        confirmedCents: money.confirmedCents,
+        pendingCents: money.pendingCents,
+        balanceCents: money.remainingCents,
+        payByCardUrl: 'https://square.link/u/SYNTH087',
+      },
+    ])
+    expect(tab).toMatchObject({ confirmedCents: 62_500, pendingCents: 20_000, balanceCents: money.remainingCents })
+    expect(money).toMatchObject({
+      creditsCents: 22_500,
+      confirmedCents: 40_000,
+      pendingCents: 20_000,
+      remainingCents: 50_000,
+    })
+    expect(tab.payments.map((p) => [p.method, p.amountCents, p.state])).toEqual([
+      ['cash', 22_500, 'confirmed'],
+      ['square_payment_link', 40_000, 'confirmed'],
+      ['check', 20_000, 'pending'],
+    ])
+    // Nothing about who recorded or collected a payment, and no reference, reaches the customer.
+    expect(JSON.stringify(tab)).not.toContain(sq)
+    expect(JSON.stringify(tab)).not.toMatch(/collector|recordedBy|staff/i)
+
+    // The Owner clears the check, the rest is paid in cash: Paid, and no Pay by Card any more.
+    const checkId = ((await finalOf(job.jobId)).payments.find((p) => p.state === 'received') as { id: string }).id
+    expect((await staffWrite('owner', 'POST', `/staff/payments/${checkId}/clear`, {})).statusCode).toBe(200)
+    await payInvoice('office', f.id, { method: 'cash', amountCents: 30_000 })
+    tab = await paymentsTab(job.reference, job.customerCookie)
+    expect(tab.invoices[0]).toMatchObject({ state: 'paid', balanceCents: 0, pendingCents: 0, payByCardUrl: null })
+    expect(tab.balanceCents).toBe(0)
   })
 })

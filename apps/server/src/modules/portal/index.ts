@@ -191,7 +191,15 @@ export function portalModule(
       tab: 'payments',
       operationId: 'getCustomerProjectPayments',
       view: PROJECT_PAYMENTS as CustomerView<never>,
-      says: 'The Payments tab. state "none": no approved total, deposit, invoice or recorded payment exists yet.',
+      says:
+        'The Payments tab (TSK-0087, HH-PORT-12). state "listed": the approved total (the current approved scope), the ' +
+        'deposit (due with what is verified and pending and its Pay by Card link, received, or none), each issued ' +
+        'invoice with its total, credits, confirmed, pending (a check until cleared) and balance in integer cents and ' +
+        'its Pay by Card link (only while a balance remains and staff pasted a Square link), the recorded payments ' +
+        '(date, method, amount, confirmed, pending or returned; never who recorded them), the totals, and the payment ' +
+        'instructions from configuration with their placeholder flag (a placeholder is never a payment destination). ' +
+        'Nothing here, and no return from a Square link, marks anything paid: staff record verified payments. state ' +
+        '"none": no approved total, deposit, invoice or recorded payment exists yet.',
     },
   ]
   const tabs: RouteDef[] = TABS.map(({ tab, operationId, view, says, permission }) => ({

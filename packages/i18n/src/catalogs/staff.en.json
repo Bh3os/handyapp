@@ -4562,5 +4562,9 @@
   "fieldEvent.reviewed": "Reviewed by {name} on {at}",
   "fieldEvent.noteRequired": "Write what was done.",
   "fieldEvent.alreadyReviewed": "This phone update was already reviewed.",
-  "fieldEvent.saveFailed": "The review could not be recorded. Try again."
+  "fieldEvent.saveFailed": "The review could not be recorded. Try again.",
+  "invoice.linkTitle": "Card payment link",
+  "invoice.linkLabel": "Square payment link for this invoice",
+  "invoice.linkHint": "Create the invoice link in the Square app, then paste it here. The customer opens it from Pay by Card while a balance remains. Nothing is marked paid until you record the verified payment.",
+  "invoice.linkSaved": "Payment link saved."
 }
