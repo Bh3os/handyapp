@@ -44,6 +44,9 @@ export const QUEUE_ACTIONS = [
   'review_job_hold',
   // TSK-0077: review a worker's issue report (resolved on site, or waiting for the Owner's next step).
   'review_issue',
+  // TSK-0084: review a job's quality (start, decide, re-check) or work its punch items.
+  'review_quality',
+  'review_punch_items',
 ] as const
 export type QueueAction = (typeof QUEUE_ACTIONS)[number]
 
@@ -394,6 +397,20 @@ export const QUEUE_ITEM_TYPES = [
     action: 'verify_time_zone',
     screen: 'properties',
   },
+  // TSK-0084 (HH-QA-04): a job's punch items not yet re-checked, one item per job, due on the earliest due date and
+  // assigned to that item's worker; opened and resolved with the items (open, then corrected and waiting for the
+  // re-check). Seen by the Owner (quality.manage_punch_items); the link opens the job's quality review. Band PROPOSED.
+  {
+    id: 'punch_items',
+    section: 'queue',
+    subject: 'job',
+    band: 'other',
+    view: 'quality.manage_punch_items',
+    reasons: ['punch_items_open', 'punch_items_corrected'],
+    action: 'review_punch_items',
+    screen: 'schedule',
+    path: 'quality-reviews',
+  },
   // Owner Decisions (HH-OPS-01 "Owner, additionally"): each decision is owner-only in the matrix.
   {
     id: 'deposit_waiver',
@@ -404,6 +421,20 @@ export const QUEUE_ITEM_TYPES = [
     reasons: ['deposit_waiver_requested'],
     action: 'decide',
     screen: 'payments',
+  },
+  // TSK-0084 (HH-QA-02, OWN-DEC-64): a job awaiting the Owner's quality review, and again once every punch item is
+  // corrected and waits for its re-check. One item per job; resolved when the review passes or asks for punch work.
+  // Seen by the Owner (quality.review); the link opens the review. Band PROPOSED.
+  {
+    id: 'quality_review',
+    section: 'owner_decisions',
+    subject: 'job',
+    band: 'other',
+    view: 'quality.review',
+    reasons: ['awaiting_quality_review', 'recheck_due'],
+    action: 'review_quality',
+    screen: 'schedule',
+    path: 'quality-reviews',
   },
   {
     id: 'start_work_exception',

@@ -989,6 +989,12 @@ export function JobPacketPage({
       <Section id={section('completion')} title={t('packet.section.completion')}>
         <Evidence t={t} items={v.sop.completion} empty="packet.noCompletion" />
         <p>{t('packet.qualityReviewNext')}</p>
+        {/* TSK-0084 (HH-QA-04): the punch items assigned to the caller on this job, to record the correction. */}
+        <p>
+          <a href={href(`/quality-reviews/${v.job.id}`)} data-testid="packet-punch-items-link">
+            {t('packet.punchItems')}
+          </a>
+        </p>
         <StateView kind="empty" title={t('packet.careNotesNone')} />
       </Section>
       {/* TSK-0093 (HH-INC-01): report an incident quickly from the job, and the caller's own reports on it. */}

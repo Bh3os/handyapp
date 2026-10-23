@@ -156,6 +156,8 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
     const decisions = await list('owner', '', 'owner-decisions')
     expect(decisions.types).toEqual([
       'deposit_waiver',
+      // TSK-0084: a job awaiting the Owner's quality review (quality.review).
+      'quality_review',
       'start_work_exception',
       // TSK-0086: a job's unallocated money (an overpayment) for the Owner's credit or refund decision.
       'unallocated_credit',

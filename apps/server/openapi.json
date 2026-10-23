@@ -68968,7 +68968,7 @@
       "post": {
         "operationId": "issueInvoice",
         "summary": "Issue an invoice draft",
-        "description": "Staff with invoice.issue (the Owner, Office; OWN-DEC-138). With If-Match: the invoice version shown. A final invoice is issued only once the Owner’s quality review lets it be (finance.invoice_quality_gate; TSK-0084 is not built, so CONFLICT QUALITY_REVIEW_NOT_RECORDED), from the job’s current approved scope (SCOPE_CHANGED otherwise), with no deposit check pending (DEPOSIT_CHECK_PENDING); the deposit’s verified money is credited once. A deposit invoice is issued while its deposit is still due. The issuer name NOT CONFIGURED is NOT_CONFIGURED; the missing mailing address and placeholder contact and payment details block nothing. Pins the number (project reference and -I<n>), issuer, contact and payment instructions; the invoice never changes afterwards. Writes invoice.issued or invoice.deposit_issued: the PDF and the one customer notice follow. Returns the job’s invoices.",
+        "description": "Staff with invoice.issue (the Owner, Office; OWN-DEC-138). With If-Match: the invoice version shown. A final invoice is issued only once the Owner’s quality review lets it be (finance.invoice_quality_gate: CONFLICT QUALITY_REVIEW_NOT_RECORDED, QUALITY_REVIEW_BLOCKED or QUALITY_REVIEW_OWNER_ONLY), from the job’s current approved scope (SCOPE_CHANGED otherwise), with no deposit check pending (DEPOSIT_CHECK_PENDING); the deposit’s verified money is credited once. A deposit invoice is issued while its deposit is still due. The issuer name NOT CONFIGURED is NOT_CONFIGURED; the missing mailing address and placeholder contact and payment details block nothing. Pins the number (project reference and -I<n>), issuer, contact and payment instructions; the invoice never changes afterwards. Writes invoice.issued or invoice.deposit_issued: the PDF and the one customer notice follow. Returns the job’s invoices.",
         "tags": [
           "finance"
         ],
@@ -75604,7 +75604,7 @@
       "get": {
         "operationId": "getJobInvoices",
         "summary": "A job's invoices, their money and what blocks issuing",
-        "description": "Staff with payment.view (the Owner, Office). The job’s final and deposit invoices: lines in integer cents (charges, and credit lines as positive magnitudes), the discount row, the total, the deposit credit (pinned at issue; for a draft, what the deposit’s verified money would credit now), and once issued the number, issuer, money (invoiced, credits, confirmed paid, pending checks, remaining) and the payments applied. A draft lists its exceptions; blocking ones refuse the issue (the Owner’s quality review, TSK-0084: until it is built every final invoice waits with QUALITY_REVIEW_NOT_RECORDED). Also the job’s unallocated money (for the Owner’s decision) and the actions the server would allow the caller now.",
+        "description": "Staff with payment.view (the Owner, Office). The job’s final and deposit invoices: lines in integer cents (charges, and credit lines as positive magnitudes), the discount row, the total, the deposit credit (pinned at issue; for a draft, what the deposit’s verified money would credit now), and once issued the number, issuer, money (invoiced, credits, confirmed paid, pending checks, remaining) and the payments applied. A draft lists its exceptions; blocking ones refuse the issue (the Owner’s quality review, TSK-0084: QUALITY_REVIEW_NOT_RECORDED until decided, QUALITY_REVIEW_BLOCKED while a major punch item is open). Also the job’s unallocated money (for the Owner’s decision) and the actions the server would allow the caller now.",
         "tags": [
           "finance"
         ],
@@ -84047,6 +84047,1834 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/field-photos.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/jobs/{jobId}/punch-items": {
+      "get": {
+        "operationId": "listOwnPunchItems",
+        "summary": "The caller's punch items on a job",
+        "description": "Staff with quality.correct_punch_item on the job (a worker assigned to it, inside the access window). Only the punch items assigned to the caller, with what to correct, the required evidence and the due date.",
+        "tags": [
+          "quality"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "punchItems"
+                  ],
+                  "properties": {
+                    "punchItems": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "workPackageId",
+                          "area",
+                          "kind",
+                          "severity",
+                          "description",
+                          "requiredEvidence",
+                          "assignedTo",
+                          "dueOn",
+                          "holdId",
+                          "state",
+                          "createdBy",
+                          "createdAt",
+                          "correctionNote",
+                          "correctedBy",
+                          "correctedAt",
+                          "recheckNote",
+                          "recheckedBy",
+                          "recheckedAt",
+                          "version",
+                          "actions"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "workPackageId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                          },
+                          "area": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "finish",
+                              "cleanup",
+                              "defect",
+                              "incomplete_scope",
+                              "failed_check",
+                              "safety_concern"
+                            ]
+                          },
+                          "severity": {
+                            "type": "string",
+                            "enum": [
+                              "minor",
+                              "major"
+                            ]
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "requiredEvidence": {
+                            "type": "string"
+                          },
+                          "assignedTo": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "dueOn": {
+                            "type": "string",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                          },
+                          "holdId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "open",
+                              "corrected",
+                              "rechecked"
+                            ]
+                          },
+                          "createdBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "correctionNote": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "correctedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "correctedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "recheckNote": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "recheckedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "recheckedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "actions": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "correct",
+                              "recheck"
+                            ],
+                            "properties": {
+                              "correct": {
+                                "type": "boolean"
+                              },
+                              "recheck": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "quality.correct_punch_item",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/quality-review.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/jobs/{jobId}/quality-review": {
+      "get": {
+        "operationId": "getQualityReview",
+        "summary": "A job's quality review",
+        "description": "Staff with quality.review (the Owner). What the Owner reviews (HH-QA-02): the approved scope lines, the work packages, the before/after photo counts, whether a checklist and a walkthrough are recorded (TSK-0075, TSK-0083), the open critical safety holds of the job; the review (state, reviewer, self-review, the area results), the final-invoice gate it gives, every punch item with its correction and re-check, the history, the workers an item may be assigned to and the actions the caller may take.",
+        "tags": [
+          "quality"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "projectId",
+                    "reference",
+                    "jobState",
+                    "review",
+                    "gate",
+                    "scope",
+                    "workPackages",
+                    "evidence",
+                    "checklistRecorded",
+                    "walkthroughRecorded",
+                    "safetyHolds",
+                    "workers",
+                    "punchItems",
+                    "history",
+                    "actions"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "projectId": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "jobState": {
+                      "type": "string"
+                    },
+                    "review": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state",
+                            "reviewer",
+                            "selfReview",
+                            "results",
+                            "note",
+                            "startedAt",
+                            "decidedAt",
+                            "passedAt",
+                            "version"
+                          ],
+                          "properties": {
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "pending",
+                                "in_review",
+                                "passed",
+                                "punch_required",
+                                "pending_recheck"
+                              ]
+                            },
+                            "reviewer": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "selfReview": {
+                              "type": "boolean"
+                            },
+                            "results": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "scope",
+                                    "checklist",
+                                    "evidence",
+                                    "walkthrough"
+                                  ],
+                                  "properties": {
+                                    "scope": {
+                                      "type": "string",
+                                      "enum": [
+                                        "ok",
+                                        "problem"
+                                      ]
+                                    },
+                                    "checklist": {
+                                      "type": "string",
+                                      "enum": [
+                                        "ok",
+                                        "problem"
+                                      ]
+                                    },
+                                    "evidence": {
+                                      "type": "string",
+                                      "enum": [
+                                        "ok",
+                                        "problem"
+                                      ]
+                                    },
+                                    "walkthrough": {
+                                      "type": "string",
+                                      "enum": [
+                                        "ok",
+                                        "problem"
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "note": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "startedAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            },
+                            "decidedAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            },
+                            "passedAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            },
+                            "version": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "gate": {
+                      "type": "string",
+                      "enum": [
+                        "quality_review_not_recorded",
+                        "passed",
+                        "owner_may_issue",
+                        "blocked"
+                      ]
+                    },
+                    "scope": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "version",
+                            "totalCents",
+                            "lines"
+                          ],
+                          "properties": {
+                            "version": {
+                              "type": "integer"
+                            },
+                            "totalCents": {
+                              "type": "integer"
+                            },
+                            "lines": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "workPackages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "code",
+                          "position",
+                          "state"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "position": {
+                            "type": "integer"
+                          },
+                          "state": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "evidence": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "beforePhotos",
+                        "afterPhotos"
+                      ],
+                      "properties": {
+                        "beforePhotos": {
+                          "type": "integer"
+                        },
+                        "afterPhotos": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "checklistRecorded": {
+                      "type": "boolean"
+                    },
+                    "walkthroughRecorded": {
+                      "type": "boolean"
+                    },
+                    "safetyHolds": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "category",
+                          "state",
+                          "raisedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "category": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string"
+                          },
+                          "raisedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "workers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "punchItems": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "workPackageId",
+                          "area",
+                          "kind",
+                          "severity",
+                          "description",
+                          "requiredEvidence",
+                          "assignedTo",
+                          "dueOn",
+                          "holdId",
+                          "state",
+                          "createdBy",
+                          "createdAt",
+                          "correctionNote",
+                          "correctedBy",
+                          "correctedAt",
+                          "recheckNote",
+                          "recheckedBy",
+                          "recheckedAt",
+                          "version",
+                          "actions"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "workPackageId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                          },
+                          "area": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "finish",
+                              "cleanup",
+                              "defect",
+                              "incomplete_scope",
+                              "failed_check",
+                              "safety_concern"
+                            ]
+                          },
+                          "severity": {
+                            "type": "string",
+                            "enum": [
+                              "minor",
+                              "major"
+                            ]
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "requiredEvidence": {
+                            "type": "string"
+                          },
+                          "assignedTo": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "dueOn": {
+                            "type": "string",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                          },
+                          "holdId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "open",
+                              "corrected",
+                              "rechecked"
+                            ]
+                          },
+                          "createdBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "correctionNote": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "correctedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "correctedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "recheckNote": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "recheckedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "recheckedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "actions": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "correct",
+                              "recheck"
+                            ],
+                            "properties": {
+                              "correct": {
+                                "type": "boolean"
+                              },
+                              "recheck": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "history": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "event",
+                          "punchItemId",
+                          "from",
+                          "to",
+                          "actor",
+                          "note",
+                          "at"
+                        ],
+                        "properties": {
+                          "event": {
+                            "type": "string"
+                          },
+                          "punchItemId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                          },
+                          "from": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "to": {
+                            "type": "string"
+                          },
+                          "actor": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "at": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "start",
+                        "addPunchItem",
+                        "decide"
+                      ],
+                      "properties": {
+                        "start": {
+                          "type": "boolean"
+                        },
+                        "addPunchItem": {
+                          "type": "boolean"
+                        },
+                        "decide": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "quality.review",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/quality-review.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/jobs/{jobId}/quality-review/actions/decide": {
+      "post": {
+        "operationId": "decideQualityReview",
+        "summary": "Decide the quality review",
+        "description": "Staff with quality.review (the Owner), with If-Match (the review version), on a review in review: a result (ok or problem) for the scope, the checklist, the before/after evidence and the walkthrough, and an optional note. With no punch item and every area ok the review passes and the job becomes operationally complete (HH-QA-09); with punch items it asks for punch work (the final invoice then follows the items: blocked while a major one is not re-checked, the Owner only while only minor ones remain). A problem with no punch item is refused (PROBLEM_NEEDS_PUNCH_ITEM): every problem becomes a punch item.",
+        "tags": [
+          "quality"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "results"
+                ],
+                "properties": {
+                  "results": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "scope",
+                      "checklist",
+                      "evidence",
+                      "walkthrough"
+                    ],
+                    "properties": {
+                      "scope": {
+                        "type": "string",
+                        "enum": [
+                          "ok",
+                          "problem"
+                        ]
+                      },
+                      "checklist": {
+                        "type": "string",
+                        "enum": [
+                          "ok",
+                          "problem"
+                        ]
+                      },
+                      "evidence": {
+                        "type": "string",
+                        "enum": [
+                          "ok",
+                          "problem"
+                        ]
+                      },
+                      "walkthrough": {
+                        "type": "string",
+                        "enum": [
+                          "ok",
+                          "problem"
+                        ]
+                      }
+                    }
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "state",
+                    "jobState",
+                    "version"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "in_review",
+                        "passed",
+                        "punch_required",
+                        "pending_recheck"
+                      ]
+                    },
+                    "jobState": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "quality.review",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "quality.decide_review",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/quality-review.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/jobs/{jobId}/quality-review/actions/start": {
+      "post": {
+        "operationId": "startQualityReview",
+        "summary": "Start the quality review of a job",
+        "description": "Staff with quality.review (the Owner), on a job awaiting quality review (CONFLICT JOB_NOT_AWAITING_REVIEW otherwise): pending -> in_review with the caller as the reviewer. Marked self-review when the reviewer started work on the job (OWN-DEC-64). Once only (REVIEW_ALREADY_STARTED).",
+        "tags": [
+          "quality"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "state",
+                    "jobState",
+                    "version"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "in_review",
+                        "passed",
+                        "punch_required",
+                        "pending_recheck"
+                      ]
+                    },
+                    "jobState": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "quality.review",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "quality.start_review",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/quality-review.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/jobs/{jobId}/quality-review/punch-items": {
+      "post": {
+        "operationId": "addPunchItem",
+        "summary": "Record a punch item",
+        "description": "Staff with quality.manage_punch_items (the Owner), while the review is in review, asks for punch work or waits for re-check (a new item then sends it back to punch work). The problem, its kind (finish or cleanup: minor; defect, incomplete scope, failed check or safety concern: major, OWN-DEC-64), the work package of the job or a named area, the required correction evidence, an active worker to correct it and a due date. A safety concern names the job's open critical safety hold (report it first through Stop Work / Report Hazard: SAFETY_HOLD_REQUIRED). Opens the punch-items queue item.",
+        "tags": [
+          "quality"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "description",
+                  "requiredEvidence",
+                  "assignedTo",
+                  "dueOn"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "finish",
+                      "cleanup",
+                      "defect",
+                      "incomplete_scope",
+                      "failed_check",
+                      "safety_concern"
+                    ]
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  },
+                  "requiredEvidence": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "pattern": "\\S"
+                  },
+                  "assignedTo": {
+                    "type": "string",
+                    "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                  },
+                  "dueOn": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  },
+                  "workPackageId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                  },
+                  "area": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120,
+                    "pattern": "\\S"
+                  },
+                  "holdId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "punchItemId",
+                    "state",
+                    "reviewState",
+                    "version"
+                  ],
+                  "properties": {
+                    "punchItemId": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "open",
+                        "corrected",
+                        "rechecked"
+                      ]
+                    },
+                    "reviewState": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "in_review",
+                        "passed",
+                        "punch_required",
+                        "pending_recheck"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "quality.manage_punch_items",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "quality.add_punch_item",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/quality-review.test.ts"
         }
       }
     },
@@ -107028,6 +108856,646 @@
         }
       }
     },
+    "/api/v1/staff/punch-items/{punchItemId}/actions/correct": {
+      "post": {
+        "operationId": "correctPunchItem",
+        "summary": "Record the correction of a punch item",
+        "description": "Staff with quality.correct_punch_item (the worker the item is assigned to, assigned to the job inside the access window), with If-Match: open -> corrected with what was done and the evidence. When no item stays open the review waits for the Owner's re-check.",
+        "tags": [
+          "quality"
+        ],
+        "parameters": [
+          {
+            "name": "punchItemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "note"
+                ],
+                "properties": {
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "punchItemId",
+                    "state",
+                    "reviewState",
+                    "version"
+                  ],
+                  "properties": {
+                    "punchItemId": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "open",
+                        "corrected",
+                        "rechecked"
+                      ]
+                    },
+                    "reviewState": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "in_review",
+                        "passed",
+                        "punch_required",
+                        "pending_recheck"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "quality.correct_punch_item",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "quality.correct_punch_item",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/quality-review.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/punch-items/{punchItemId}/actions/recheck": {
+      "post": {
+        "operationId": "recheckPunchItem",
+        "summary": "Re-check a corrected punch item",
+        "description": "Staff with quality.manage_punch_items (the Owner), with If-Match, on a corrected item: passed (rechecked) or failed (open again, the correction cleared; the note is kept in the history). Never by the person who corrected it, except on a self-review (RECHECKER_CORRECTED). A safety concern passes only once its safety hold is resolved (SAFETY_HOLD_UNRESOLVED). The last passed re-check passes the review and the job becomes operationally complete.",
+        "tags": [
+          "quality"
+        ],
+        "parameters": [
+          {
+            "name": "punchItemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "passed",
+                  "note"
+                ],
+                "properties": {
+                  "passed": {
+                    "type": "boolean"
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "punchItemId",
+                    "state",
+                    "reviewState",
+                    "version"
+                  ],
+                  "properties": {
+                    "punchItemId": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "open",
+                        "corrected",
+                        "rechecked"
+                      ]
+                    },
+                    "reviewState": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "in_review",
+                        "passed",
+                        "punch_required",
+                        "pending_recheck"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "quality.manage_punch_items",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "quality.recheck_punch_item",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/quality-review.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/quality-reviews": {
+      "get": {
+        "operationId": "listQualityReviews",
+        "summary": "Jobs awaiting quality review or with punch items",
+        "description": "Staff with quality.review (the Owner). Every job awaiting quality review and every job with a punch item not re-checked (at most 200, by project reference): the review state, the punch items still to re-check (and how many are major) and the earliest due date.",
+        "tags": [
+          "quality"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reviews"
+                  ],
+                  "properties": {
+                    "reviews": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "jobId",
+                          "reference",
+                          "jobState",
+                          "reviewState",
+                          "openPunchItems",
+                          "majorPunchItems",
+                          "nextDue"
+                        ],
+                        "properties": {
+                          "jobId": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": "string"
+                          },
+                          "jobState": {
+                            "type": "string"
+                          },
+                          "reviewState": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "pending",
+                              "in_review",
+                              "passed",
+                              "punch_required",
+                              "pending_recheck",
+                              null
+                            ]
+                          },
+                          "openPunchItems": {
+                            "type": "integer"
+                          },
+                          "majorPunchItems": {
+                            "type": "integer"
+                          },
+                          "nextDue": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "quality.review",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/quality-review.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/queue": {
       "get": {
         "operationId": "listActionQueue",
@@ -107066,7 +109534,9 @@
                 "loadout_shortage",
                 "job_hold",
                 "property_time_zone",
+                "punch_items",
                 "deposit_waiver",
+                "quality_review",
                 "start_work_exception",
                 "unallocated_credit",
                 "refund_request",
@@ -107200,7 +109670,9 @@
                               "loadout_shortage",
                               "job_hold",
                               "property_time_zone",
+                              "punch_items",
                               "deposit_waiver",
+                              "quality_review",
                               "start_work_exception",
                               "unallocated_credit",
                               "refund_request",
@@ -107423,7 +109895,9 @@
                               "review_shortage",
                               "verify_time_zone",
                               "review_job_hold",
-                              "review_issue"
+                              "review_issue",
+                              "review_quality",
+                              "review_punch_items"
                             ]
                           },
                           "link": {
@@ -107485,7 +109959,9 @@
                           "loadout_shortage",
                           "job_hold",
                           "property_time_zone",
+                          "punch_items",
                           "deposit_waiver",
+                          "quality_review",
                           "start_work_exception",
                           "unallocated_credit",
                           "refund_request",
@@ -107639,7 +110115,9 @@
                 "loadout_shortage",
                 "job_hold",
                 "property_time_zone",
+                "punch_items",
                 "deposit_waiver",
+                "quality_review",
                 "start_work_exception",
                 "unallocated_credit",
                 "refund_request",
@@ -107773,7 +110251,9 @@
                               "loadout_shortage",
                               "job_hold",
                               "property_time_zone",
+                              "punch_items",
                               "deposit_waiver",
+                              "quality_review",
                               "start_work_exception",
                               "unallocated_credit",
                               "refund_request",
@@ -107996,7 +110476,9 @@
                               "review_shortage",
                               "verify_time_zone",
                               "review_job_hold",
-                              "review_issue"
+                              "review_issue",
+                              "review_quality",
+                              "review_punch_items"
                             ]
                           },
                           "link": {
@@ -108058,7 +110540,9 @@
                           "loadout_shortage",
                           "job_hold",
                           "property_time_zone",
+                          "punch_items",
                           "deposit_waiver",
+                          "quality_review",
                           "start_work_exception",
                           "unallocated_credit",
                           "refund_request",

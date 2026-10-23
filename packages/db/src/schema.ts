@@ -1680,6 +1680,64 @@ export interface QualityIncidentReportsTable {
   recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface QualityPunchItemsTable {
+  id: Generated<string>
+  review_id: string
+  job_id: string
+  project_id: string
+  work_package_id: string | null
+  area: string | null
+  kind: string
+  severity: string
+  description: string
+  required_evidence: string
+  assigned_to: string
+  due_on: string
+  hold_id: string | null
+  state: Generated<string>
+  created_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  correction_note: string | null
+  corrected_by: string | null
+  corrected_at: Timestamp | null
+  recheck_note: string | null
+  rechecked_by: string | null
+  rechecked_at: Timestamp | null
+  version: Generated<number>
+}
+
+export interface QualityReviewEventsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  review_id: string
+  punch_item_id: string | null
+  event: string
+  from_state: string | null
+  to_state: string
+  actor_id: string
+  note: string | null
+  at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface QualityReviewsTable {
+  id: Generated<string>
+  job_id: string
+  project_id: string
+  state: Generated<string>
+  reviewer_id: string | null
+  self_review: Generated<boolean>
+  scope_result: string | null
+  checklist_result: string | null
+  evidence_result: string | null
+  walkthrough_result: string | null
+  note: string | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  started_at: Timestamp | null
+  decided_at: Timestamp | null
+  passed_at: Timestamp | null
+  version: Generated<number>
+}
+
 export interface StagingEnvironmentMarksTable {
   id: Generated<string>
   seq: GeneratedAlways<string>
@@ -2429,6 +2487,9 @@ export interface Database {
   'quality.case_referrals': QualityCaseReferralsTable
   'quality.cases': QualityCasesTable
   'quality.incident_reports': QualityIncidentReportsTable
+  'quality.punch_items': QualityPunchItemsTable
+  'quality.review_events': QualityReviewEventsTable
+  'quality.reviews': QualityReviewsTable
   'staging.environment_marks': StagingEnvironmentMarksTable
   'staging.reset_runs': StagingResetRunsTable
   'staging.reusable_test_accounts': StagingReusableTestAccountsTable

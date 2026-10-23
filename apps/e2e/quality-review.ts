@@ -1,9 +1,10 @@
-// A stand-in for the Owner's quality review (TSK-0084), which is not built: migration 0077's
-// finance.invoice_quality_gate answers 'quality_review_not_recorded' for every job, so no final invoice can be issued
-// in the product today. The invoice spec shows that refusal first, then, to show what issuing does once a review
-// passes, replaces the function in the spec run's own fresh e2e database with one that passes only the one job the
-// spec names (every other job keeps the product's answer), and restores the product's function afterwards. A test
-// fixture, never a recorded review: TSK-0084 replaces the function with the real review's outcome.
+// A stand-in for a passed Owner's quality review (TSK-0084) in the invoice spec. A real review needs a job awaiting
+// quality review, which only the worker's Finished (TSK-0083, not built) produces; the quality-review spec walks the
+// real review on a job moved there by its own fixture. The invoice spec shows the refusal first, then, to show what
+// issuing does once a review passes, replaces finance.invoice_quality_gate in the spec run's own fresh e2e database
+// with one that passes only the one job the spec names (every other job keeps the real review's answer,
+// quality.review_gate, migration 0082), and restores the product's function afterwards. A test fixture, never a
+// recorded review.
 import { createPool } from '@handyhub/db'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
@@ -23,15 +24,15 @@ export async function passQualityReview(databaseUrl: string, jobId: string): Pro
   await run(
     databaseUrl,
     `CREATE OR REPLACE FUNCTION finance.invoice_quality_gate(p_job uuid) RETURNS text LANGUAGE sql STABLE AS $$
-       SELECT CASE WHEN p_job = '${jobId}'::uuid THEN 'passed' ELSE 'quality_review_not_recorded' END $$`,
+       SELECT CASE WHEN p_job = '${jobId}'::uuid THEN 'passed' ELSE quality.review_gate(p_job) END $$`,
   )
 }
 
-/** Restores the product's gate: nothing passes until TSK-0084 records real reviews. */
+/** Restores the product's gate: the real review's answer (migration 0082). */
 export async function restoreQualityGate(databaseUrl: string): Promise<void> {
   await run(
     databaseUrl,
     `CREATE OR REPLACE FUNCTION finance.invoice_quality_gate(p_job uuid) RETURNS text LANGUAGE sql STABLE AS $$
-       SELECT 'quality_review_not_recorded'::text $$`,
+       SELECT quality.review_gate(p_job) $$`,
   )
 }

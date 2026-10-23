@@ -257,8 +257,8 @@ export function invoiceRoutes(deps: InvoiceRouteDeps): RouteDef[] {
         '(charges, and credit lines as positive magnitudes), the discount row, the total, the deposit credit (pinned ' +
         'at issue; for a draft, what the deposit’s verified money would credit now), and once issued the number, ' +
         'issuer, money (invoiced, credits, confirmed paid, pending checks, remaining) and the payments applied. A ' +
-        'draft lists its exceptions; blocking ones refuse the issue (the Owner’s quality review, TSK-0084: until it ' +
-        'is built every final invoice waits with QUALITY_REVIEW_NOT_RECORDED). Also the job’s unallocated money (for ' +
+        'draft lists its exceptions; blocking ones refuse the issue (the Owner’s quality review, TSK-0084: ' +
+        'QUALITY_REVIEW_NOT_RECORDED until decided, QUALITY_REVIEW_BLOCKED while a major punch item is open). Also the job’s unallocated money (for ' +
         'the Owner’s decision) and the actions the server would allow the caller now.',
       permission: 'payment.view',
       resource: jobProject,
@@ -277,8 +277,8 @@ export function invoiceRoutes(deps: InvoiceRouteDeps): RouteDef[] {
       summary: 'Issue an invoice draft',
       description:
         'Staff with invoice.issue (the Owner, Office; OWN-DEC-138). With If-Match: the invoice version shown. A ' +
-        'final invoice is issued only once the Owner’s quality review lets it be (finance.invoice_quality_gate; ' +
-        'TSK-0084 is not built, so CONFLICT QUALITY_REVIEW_NOT_RECORDED), from the job’s current approved scope ' +
+        'final invoice is issued only once the Owner’s quality review lets it be (finance.invoice_quality_gate: ' +
+        'CONFLICT QUALITY_REVIEW_NOT_RECORDED, QUALITY_REVIEW_BLOCKED or QUALITY_REVIEW_OWNER_ONLY), from the job’s current approved scope ' +
         '(SCOPE_CHANGED otherwise), with no deposit check pending (DEPOSIT_CHECK_PENDING); the deposit’s verified ' +
         'money is credited once. A deposit invoice is issued while its deposit is still due. The issuer name NOT ' +
         'CONFIGURED is NOT_CONFIGURED; the missing mailing address and placeholder contact and payment details block ' +

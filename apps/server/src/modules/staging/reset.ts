@@ -161,6 +161,10 @@ export const CLEARED_CATEGORIES = {
     'quality.case_referrals',
     'quality.case_customer_updates',
     'quality.case_events',
+    // TSK-0084 (0082): the Owner's quality reviews, punch items and their history.
+    'quality.reviews',
+    'quality.punch_items',
+    'quality.review_events',
   ],
   attachments: [
     'intake.photos',

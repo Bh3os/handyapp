@@ -18,6 +18,8 @@
 //   review." and nothing more: the hazard, its report and every staff detail stay on the server.
 import type { Db, Tx } from '@handyhub/db'
 import {
+  customerCompletion,
+  type QualityReviewState,
   customerStatus,
   type CustomerStatus,
   type CustomerTimelineKind,
@@ -167,6 +169,17 @@ async function overviewFor(db: Reader, project: { id: string; reference: string 
     .where('state', 'in', ['open', 'under_review'])
     .limit(1)
     .executeTakeFirst()
+  // TSK-0084 (HH-QA-02, T55): awaiting the Owner's review, follow-up work while punch items remain, or complete once
+  // the review passed. Never a punch item's wording: only the state.
+  const job = await db
+    .selectFrom('work.jobs as j')
+    .leftJoin('quality.reviews as q', 'q.job_id', 'j.id')
+    .select(['j.operational_state', 'q.state as review_state'])
+    .where('j.project_id', '=', project.id)
+    .executeTakeFirst()
+  const completion = job
+    ? customerCompletion(job.operational_state, (job.review_state as QualityReviewState | null) ?? null)
+    : null
   const facts: PortalFacts = {
     requestState: r.state as RequestState,
     projectState: p.state as ProjectState,
@@ -179,6 +192,7 @@ async function overviewFor(db: Reader, project: { id: string; reference: string 
     workWindowsOffered: visits.workWindowsOffered,
     ...(visits.visit ? { visit: visits.visit } : {}),
     ...(safety ? { hold: 'safety' as const } : {}),
+    ...(completion ? { completion } : {}),
   }
   const status = customerStatus(facts)
   // The entry that put the project where it is now dates the status and carries its customer text.

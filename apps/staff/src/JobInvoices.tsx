@@ -3,7 +3,7 @@
 // payments (the Owner, Office); for anyone else the server refuses the read and the panel is not shown.
 // - The final invoice draft, prepared automatically from the approved scope: its lines (charges, and credit lines as a
 //   reduction), the discount row, the total and the deposit credit it would carry; what must happen before it can be
-//   issued (the Owner's quality review, which is not built yet: the issue waits) and what is only shown (the missing
+//   issued (the Owner's quality review, TSK-0084: the issue waits until it allows it) and what is only shown (the missing
 //   mailing address, placeholder contact and payment details). Prepare it again after an approved change.
 // - The deposit invoice of a job whose deposit is still due (its own draft and issue; paid through the deposit).
 // - Once issued: the number, and the money from the ledger: invoiced, credits, confirmed paid, pending checks and the

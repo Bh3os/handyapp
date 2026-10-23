@@ -21,6 +21,7 @@ import { JobDepositPage } from './JobDeposit'
 import { JobPacketPage } from './JobPacket'
 import { LoadoutPage } from './Loadout'
 import { MyDay } from './MyDay'
+import { QualityReviewPage } from './QualityReview'
 import { QueueHome } from './Queue'
 import { MergeReview, RelinkRequest } from './RecordLinks'
 import { RequestRecord } from './Record'
@@ -230,12 +231,17 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
                 route.screen === 'loadouts' ||
                 route.screen === 'start' ||
                 route.screen === 'job-photos' ||
+                // TSK-0084: a worker opens their own punch items from the job; the Owner reviews from Owner Decisions.
+                (route.screen === 'quality-reviews' && !nav?.items.includes('queue')) ||
                 (route.screen === 'cases' && !nav?.items.includes('cases'))
               ? nav?.items.includes('my-day')
                 ? 'my-day'
                 : 'schedule'
               : // TSK-0070: a visit's Arrived and Finished times sit below the schedule; the server decides who sees them.
-                route.screen === 'visit-times' || route.screen === 'start-review' || route.screen === 'safety-holds'
+                route.screen === 'visit-times' ||
+                  route.screen === 'start-review' ||
+                  route.screen === 'safety-holds' ||
+                  route.screen === 'quality-reviews'
                 ? 'schedule'
                 : route.screen
           : route.page === 'home'
@@ -361,6 +367,9 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
             <JobPhotosPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} />
           ) : route.page === 'record' && route.screen === 'start-review' ? (
             <StartReviewPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} href={href} />
+          ) : route.page === 'record' && route.screen === 'quality-reviews' ? (
+            // TSK-0084: a job's quality review and punch items (the Owner), or a worker's own punch items on it.
+            <QualityReviewPage key={route.id} t={t} fetchImpl={doFetch} jobId={route.id} href={href} />
           ) : route.page === 'record' && route.screen === 'safety-holds' ? (
             // TSK-0077: a safety queue item's link (a critical hold) opens its job's review page.
             <SafetyHoldPage

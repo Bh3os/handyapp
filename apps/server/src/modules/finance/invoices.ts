@@ -13,8 +13,8 @@
 //   deposit-invoice message); its line is the deposit amount the approval pinned. PROPOSED: staff prepare it; it
 //   needs no quality review (HH-QA-02: deposit invoices follow their approved terms).
 // - Exceptions are shown to staff before issue; the blocking ones refuse the issue on the server: the Owner's quality
-//   review (finance.invoice_quality_gate: TSK-0084 is not built, so every final invoice waits with
-//   QUALITY_REVIEW_NOT_RECORDED), a scope that changed since the draft, a deposit check still pending, a verified
+//   review (finance.invoice_quality_gate, the review of TSK-0084: QUALITY_REVIEW_NOT_RECORDED until it is decided,
+//   QUALITY_REVIEW_BLOCKED while a major punch item is open, QUALITY_REVIEW_OWNER_ONLY with only minor ones), a scope that changed since the draft, a deposit check still pending, a verified
 //   deposit larger than the invoice (routed to the Owner), and an issuer name that is NOT CONFIGURED. The missing
 //   mailing address, the placeholder phone and email and the placeholder payment handles are shown, and block nothing
 //   (HH-FIN-04, FACT-BUSINESS-ADDRESS, FACT-PUBLIC-CONTACT, FACT-PAYMENT-INSTRUCTIONS).
@@ -412,7 +412,7 @@ const INVOICE_COLUMNS = [
   'version',
 ] as const
 
-/** The quality-review gate of a job's final invoice (finance.invoice_quality_gate, replaced by TSK-0084). */
+/** The quality-review gate of a job's final invoice (finance.invoice_quality_gate: the review of TSK-0084, 0082). */
 export async function qualityGate(db: Reader, jobId: string): Promise<string> {
   const r = await sql<{ gate: string | null }>`SELECT finance.invoice_quality_gate(${jobId}::uuid) AS gate`.execute(db)
   return r.rows[0]?.gate ?? 'quality_review_not_recorded'
