@@ -178,6 +178,8 @@ export const CLEARED_CATEGORIES = {
     'work.change_order_lines',
     // TSK-0082 (0088): the customer's decisions on change orders.
     'work.change_order_decisions',
+    // TSK-0078 (0089): visit outcomes and their follow-up.
+    'work.visit_outcomes',
   ],
   attachments: [
     'intake.photos',

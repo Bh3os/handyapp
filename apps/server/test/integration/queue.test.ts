@@ -139,6 +139,8 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       'deposit_due',
       // TSK-0097: appointments flagged for review (reassignment) are seen by the roles that reassign visits.
       'visit_flagged',
+      // TSK-0078: recorded visit outcomes to follow up (visit.reschedule: the Owner and Office).
+      'visit_outcome',
       // TSK-0123: properties whose time zone is unknown, seen by the roles that edit property records.
       'property_time_zone',
     ])

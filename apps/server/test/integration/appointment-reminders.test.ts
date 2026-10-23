@@ -602,7 +602,14 @@ describe('[HH-COM-11][T65][HH-COM-05][OWN-DEC-153] cancelled when the visit chan
 
   it('[HH-COM-11] the database cancels the scheduled reminder when the visit leaves confirmed any other way (migration 0060)', async () => {
     const { v } = await scheduled()
-    await sql`UPDATE work.visits SET state = 'no_access', version = version + 1 WHERE id = ${v.id}`.execute(t.db)
+    // TSK-0078 (migration 0089): no access comes with its recorded outcome, in the same transaction.
+    await t.db.transaction().execute(async (tx) => {
+      await sql`INSERT INTO work.visit_outcomes (visit_id, project_id, job_id, kind, note, visit_state, recorded_by)
+                SELECT v.id, v.project_id, v.job_id, 'no_access', 'Synthetic: gate locked', v.state, r.staff_user_id
+                  FROM work.visits v JOIN work.reservations r ON r.visit_id = v.id AND r.resource = 'worker'
+                 WHERE v.id = ${v.id} AND r.ended_at IS NULL LIMIT 1`.execute(tx)
+      await sql`UPDATE work.visits SET state = 'no_access', version = version + 1 WHERE id = ${v.id}`.execute(tx)
+    })
     expect((await reminders(v.id)).map((r) => [r.state, r.error_code, r.cancelled_by])).toEqual([
       ['cancelled', 'visit_no_access', 'system'],
       ['cancelled', 'visit_no_access', 'system'],

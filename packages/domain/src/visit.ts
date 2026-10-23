@@ -3,6 +3,7 @@
 //   tentative -> confirmed -> en_route -> arrived -> completed
 //   tentative -> expired                (24 hours after the offer, when its holds release)
 //   confirmed -> canceled / no_access
+//   en_route / arrived -> no_access    TSK-0078: the worker records no access on site (visit-outcome.ts)
 //
 // - The states and edges are ENT-Visit's (guide 23). A customer's timing preference, the staff scheduling task, a
 //   tentative visit and a confirmed appointment are four different things (HH-SCH-01): a preference lives on the
@@ -103,7 +104,7 @@ export const VISIT_MACHINE = defineMachine({
     { event: 'finish', from: ['arrived'], to: 'completed', actors: ['staff'] },
     // HH-SCH-07: a cancellation carries its reason.
     { event: 'cancel', from: ['confirmed'], to: 'canceled', actors: ['staff'], guards: [reason] },
-    { event: 'record_no_access', from: ['confirmed'], to: 'no_access', actors: ['staff'] },
+    { event: 'record_no_access', from: ['confirmed', 'en_route', 'arrived'], to: 'no_access', actors: ['staff'] },
   ],
 })
 export type VisitEvent = EventOf<typeof VISIT_MACHINE>

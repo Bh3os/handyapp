@@ -9,6 +9,11 @@
 //   POST /staff/visits/:visitId/timestamps/corrections the Owner's correction, with the reason (visit.correct_timestamps)
 //   POST /staff/timestamps/exports                     the accountant's CSV (export.accounting: the Owner, fresh sign-in,
 //                                                      with a reason)
+// TSK-0078 (HH-SCH-09): visit outcomes (outcomes.ts).
+//   POST /staff/visits/:visitId/outcomes               a delay, no access, customer absent, weather, missing resources or
+//                                                      readiness issue, with a note (the assigned worker or the Owner)
+//   GET  /staff/visit-outcomes/:outcomeId              one outcome and its follow-up (visit.reschedule: Owner, Office)
+//   POST /staff/visit-outcomes/:outcomeId/follow-up    the staff follow-up, once (visit.reschedule)
 // - A tap is decided by the policy (ROLE-MATRIX "Tap On my way, Arrived, Finished": Owner and Worker A, assigned to
 //   this visit until the end of its service day) and again inside its transaction from the visit's records (taps.ts).
 //   A worker assigned to someone else's visit, or reassigned away, is refused.
@@ -25,18 +30,25 @@ import {
   CORRECTION_BODY,
   EXPORT_BODY,
   EXPORT_FILE,
+  FOLLOW_UP_BODY,
   MY_DAY,
+  OUTCOME_BODY,
+  OUTCOME_PARAMS,
+  OUTCOME_RESULT,
+  OUTCOME_VIEW,
   TAP_BODY,
   TAP_RESULT,
   VISIT_PARAMS,
   VISIT_TIMES,
 } from './schemas.js'
+import { followUpVisitOutcome, recordVisitOutcome, visitOutcomeView } from './outcomes.js'
 import { recordTap, visitAssignments } from './taps.js'
 import { correctTimestamp, timestampsCsv, visitTimes, type CorrectionInput } from './timestamps.js'
 
 export { myDayItems, onMyWayRule } from './my-day.js'
 export { onTheWayAutomation, ON_THE_WAY_NOTICE } from './notice.js'
 export { ON_MY_WAY_EVENT, recordTap } from './taps.js'
+export { openVisitOutcome, VISIT_OUTCOME_QUEUE_TYPE } from './outcomes.js'
 export { csvCell, timestampsCsv, visitTimes } from './timestamps.js'
 
 const TEST = 'test/integration/my-day.test.ts'
@@ -302,5 +314,125 @@ export function fieldModule(): ApiModule {
     },
   }
 
-  return { name: 'field', routes: [myDay, ...taps, times, correct, exportCsv] }
+  // TSK-0078 (HH-SCH-09): visit outcomes. Recording one is the "Tap On my way, Arrived, Finished" row of the matrix
+  // (the assigned worker, the Owner), PROPOSED: the matrix names no separate outcome action.
+  const outcomeFacts: NonNullable<RouteDef['resource']> = async ({ req, db }) => {
+    const { outcomeId } = req.params as { outcomeId: string }
+    if (!UUID_RE.test(outcomeId)) return null
+    const o = await db
+      .selectFrom('work.visit_outcomes')
+      .select('project_id')
+      .where('id', '=', outcomeId)
+      .executeTakeFirst()
+    return o ? { projectId: o.project_id } : null
+  }
+  const recordOutcome: RouteDef = {
+    method: 'POST',
+    path: '/staff/visits/:visitId/outcomes',
+    operationId: 'recordVisitOutcome',
+    summary: 'Record a visit outcome',
+    description:
+      'A worker assigned to the visit (visit.tap_arrived: the assigned worker, the Owner; PROPOSED mapping) records ' +
+      'one explicit outcome with a note (HH-SCH-09): delay, no_access, customer_absent, weather, missing_resources or ' +
+      'readiness_issue, while the visit is confirmed, on the way or arrived (VISIT_NOT_OPEN otherwise). In one ' +
+      'transaction: the outcome and the staff follow-up item visit_outcome (today_change on the visit date; assigned ' +
+      'to the request’s responsible staff member when there is one). Only no_access changes the visit: to no_access ' +
+      '(final: its reservations end and its waiting reminders stop), refused once work started (WORK_STARTED). No ' +
+      'outcome completes a visit or marks work done; customer_absent never starts work (Start Work still needs the ' +
+      'customer present or the Owner-approved exception). The customer sees only "Update pending" until staff follow ' +
+      'up; nothing is sent and no arrival time is ever made up. Returns the visit as My Day shows it, or null once it ' +
+      'left My Day.',
+    actors: ['staff'],
+    permission: 'visit.tap_arrived',
+    kind: 'write',
+    idempotency: 'required',
+    expectedVersion: 'none',
+    rateLimit: 'none',
+    audit: 'visit.record_outcome',
+    pagination: false,
+    test: 'test/integration/visit-outcomes.test.ts',
+    resource: visitFacts,
+    schema: { params: VISIT_PARAMS, body: OUTCOME_BODY, response: { 201: OUTCOME_RESULT } },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const actor = staff(ctx)
+      const body = ctx.req.body as { kind: Parameters<typeof recordVisitOutcome>[3]['kind']; note: string }
+      const out = await recordVisitOutcome(tx, actor, visitIdOf(ctx), body)
+      // The worker's note stays in the record (staff only); the audit keeps what happened.
+      await ctx.audit({
+        target: { type: 'visit', id: out.visitId },
+        summary: { outcomeId: out.outcomeId, kind: out.kind, visitState: out.visitState, queueItemId: out.queueItemId },
+      })
+      const [visit] = await myDayItems(tx, actor, { visitId: out.visitId })
+      return {
+        status: 201,
+        body: {
+          outcomeId: out.outcomeId,
+          visitId: out.visitId,
+          kind: out.kind,
+          visitState: out.visitState,
+          recordedAt: out.recordedAt.toISOString(),
+          visit: visit ?? null,
+        },
+      }
+    },
+  }
+  const outcome: RouteDef = {
+    method: 'GET',
+    path: '/staff/visit-outcomes/:outcomeId',
+    operationId: 'getVisitOutcome',
+    summary: 'One visit outcome and its follow-up',
+    description:
+      'Staff with visit.reschedule (the Owner, Office): the outcome a worker recorded (kind, note, who and when, the ' +
+      'visit’s state then and now) and the follow-up once recorded. The queue item visit_outcome links here.',
+    actors: ['staff'],
+    permission: 'visit.reschedule',
+    kind: 'read',
+    idempotency: 'none',
+    expectedVersion: 'none',
+    rateLimit: 'none',
+    audit: 'none',
+    pagination: false,
+    test: 'test/integration/visit-outcomes.test.ts',
+    resource: outcomeFacts,
+    schema: { params: OUTCOME_PARAMS, response: { 200: OUTCOME_VIEW } },
+    handler: async (ctx) => {
+      const { outcomeId } = ctx.req.params as { outcomeId: string }
+      const v = await visitOutcomeView(ctx.db, outcomeId)
+      if (!v) throw new ApiError('NOT_FOUND')
+      return { body: { ...v, actions: { followUp: v.followUp === null } }, headers: { 'cache-control': 'no-store' } }
+    },
+  }
+  const followUp: RouteDef = {
+    method: 'POST',
+    path: '/staff/visit-outcomes/:outcomeId/follow-up',
+    operationId: 'followUpVisitOutcome',
+    summary: 'Record the follow-up of a visit outcome',
+    description:
+      'Staff with visit.reschedule (the Owner, Office) record what was done about the outcome (rescheduled, ' +
+      'cancelled, the customer contacted), once (ALREADY_FOLLOWED_UP); this resolves its queue item and the ' +
+      'customer’s "Update pending". Rescheduling or cancelling the visit itself stays the visit routes’.',
+    actors: ['staff'],
+    permission: 'visit.reschedule',
+    kind: 'write',
+    idempotency: 'required',
+    expectedVersion: 'none',
+    rateLimit: 'none',
+    audit: 'visit.follow_up_outcome',
+    pagination: false,
+    test: 'test/integration/visit-outcomes.test.ts',
+    resource: outcomeFacts,
+    schema: { params: OUTCOME_PARAMS, body: FOLLOW_UP_BODY, response: { 200: OUTCOME_VIEW } },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const { outcomeId } = ctx.req.params as { outcomeId: string }
+      const out = await followUpVisitOutcome(tx, staff(ctx), outcomeId, ctx.req.body as { note: string })
+      await ctx.audit({ target: { type: 'visit', id: out.visitId }, summary: { outcomeId } })
+      const v = await visitOutcomeView(tx, outcomeId)
+      if (!v) throw new ApiError('NOT_FOUND')
+      return { body: { ...v, actions: { followUp: false } } }
+    },
+  }
+
+  return { name: 'field', routes: [myDay, ...taps, times, correct, exportCsv, recordOutcome, outcome, followUp] }
 }

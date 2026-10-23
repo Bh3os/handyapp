@@ -24,6 +24,7 @@ import {
   SITE_ACCESS_DETAILS,
   type AcknowledgmentState,
   type PacketContent,
+  VISIT_OUTCOME_STATES,
 } from '@handyhub/domain'
 import type { StaffActor } from '@handyhub/policy'
 import { sql } from 'kysely'
@@ -32,6 +33,7 @@ import { jobLoadoutReadiness } from '../loadouts/store.js'
 import { acknowledgmentStatus, assignedNow } from '../packets/acknowledgments.js'
 import { packetVersion, refreshJobPacket } from '../packets/content.js'
 import { directionsUrl, lastViewed } from '../packets/view.js'
+import { outcomesOfVisit } from './outcomes.js'
 
 type Reader = Db | Tx
 
@@ -293,7 +295,15 @@ export async function myDayItems(db: Reader, actor: StaffActor, opts: { visitId?
       mine: { departedAt: iso(mine.departedAt), arrivedAt: iso(mine.arrivedAt), finishedAt: iso(mine.finishedAt) },
       next: actions.next,
       onMyWayOpensAt: confirmed ? iso(opensAt) : null,
-      actions: { onMyWay: actions.onMyWay, arrived: actions.arrived, finished: actions.finished },
+      // TSK-0078: the outcomes recorded on this visit, and whether the caller may record one now (a confirmed
+      // assignment on a booked visit not yet finished).
+      outcomes: confirmed ? await outcomesOfVisit(db, v.id) : [],
+      actions: {
+        onMyWay: actions.onMyWay,
+        arrived: actions.arrived,
+        finished: actions.finished,
+        recordOutcome: confirmed && (VISIT_OUTCOME_STATES as readonly string[]).includes(v.state),
+      },
     })
   }
   return out

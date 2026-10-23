@@ -10,7 +10,7 @@ source: "guide 22.1 Visit; 23 (Visit)"
 ---
 One scheduled occurrence of on-site work or an estimate visit. Fields per [[HH-SCH-01]].
 
-**States:** `tentative → confirmed → en_route → arrived → completed`; `tentative → expired` (24 hours after the offer, when its holds release, [[OWN-DEC-144]]); `confirmed → canceled / no_access`.
+**States:** `tentative → confirmed → en_route → arrived → completed`; `tentative → expired` (24 hours after the offer, when its holds release, [[OWN-DEC-144]]); `confirmed → canceled / no_access`; `en_route / arrived → no_access` (TSK-0078, [[HH-SCH-09]]: the worker records no access on site; PROPOSED in [[OQ-VISIT-OUTCOME-DETAILS]]).
 
 **Invariants:** every window it had is kept as history; one current committed version; confirmation needs a database-level reservation ([[ENT-Reservation]]) and the preconditions of [[HH-SCH-06]]; customer requests never change it; a canceled or superseded visit sends no notices.
 

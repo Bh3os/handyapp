@@ -101367,6 +101367,7 @@
                           "mine",
                           "next",
                           "onMyWayOpensAt",
+                          "outcomes",
                           "actions"
                         ],
                         "properties": {
@@ -101664,13 +101665,50 @@
                             ],
                             "format": "date-time"
                           },
+                          "outcomes": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "outcomeId",
+                                "kind",
+                                "recordedAt",
+                                "followedUp"
+                              ],
+                              "properties": {
+                                "outcomeId": {
+                                  "type": "string"
+                                },
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "delay",
+                                    "no_access",
+                                    "customer_absent",
+                                    "weather",
+                                    "missing_resources",
+                                    "readiness_issue"
+                                  ]
+                                },
+                                "recordedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "followedUp": {
+                                  "type": "boolean"
+                                }
+                              }
+                            }
+                          },
                           "actions": {
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
                               "onMyWay",
                               "arrived",
-                              "finished"
+                              "finished",
+                              "recordOutcome"
                             ],
                             "properties": {
                               "onMyWay": {
@@ -101680,6 +101718,9 @@
                                 "type": "boolean"
                               },
                               "finished": {
+                                "type": "boolean"
+                              },
+                              "recordOutcome": {
                                 "type": "boolean"
                               }
                             }
@@ -117270,6 +117311,7 @@
                 "question_reminder",
                 "deposit_due",
                 "visit_flagged",
+                "visit_outcome",
                 "loadout_shortage",
                 "job_hold",
                 "property_time_zone",
@@ -117407,6 +117449,7 @@
                               "question_reminder",
                               "deposit_due",
                               "visit_flagged",
+                              "visit_outcome",
                               "loadout_shortage",
                               "job_hold",
                               "property_time_zone",
@@ -117638,7 +117681,8 @@
                               "review_job_hold",
                               "review_issue",
                               "review_quality",
-                              "review_punch_items"
+                              "review_punch_items",
+                              "follow_up_visit"
                             ]
                           },
                           "link": {
@@ -117697,6 +117741,7 @@
                           "question_reminder",
                           "deposit_due",
                           "visit_flagged",
+                          "visit_outcome",
                           "loadout_shortage",
                           "job_hold",
                           "property_time_zone",
@@ -117854,6 +117899,7 @@
                 "question_reminder",
                 "deposit_due",
                 "visit_flagged",
+                "visit_outcome",
                 "loadout_shortage",
                 "job_hold",
                 "property_time_zone",
@@ -117991,6 +118037,7 @@
                               "question_reminder",
                               "deposit_due",
                               "visit_flagged",
+                              "visit_outcome",
                               "loadout_shortage",
                               "job_hold",
                               "property_time_zone",
@@ -118222,7 +118269,8 @@
                               "review_job_hold",
                               "review_issue",
                               "review_quality",
-                              "review_punch_items"
+                              "review_punch_items",
+                              "follow_up_visit"
                             ]
                           },
                           "link": {
@@ -118281,6 +118329,7 @@
                           "question_reminder",
                           "deposit_due",
                           "visit_flagged",
+                          "visit_outcome",
                           "loadout_shortage",
                           "job_hold",
                           "property_time_zone",
@@ -135051,6 +135100,563 @@
         }
       }
     },
+    "/api/v1/staff/visit-outcomes/{outcomeId}": {
+      "get": {
+        "operationId": "getVisitOutcome",
+        "summary": "One visit outcome and its follow-up",
+        "description": "Staff with visit.reschedule (the Owner, Office): the outcome a worker recorded (kind, note, who and when, the visit’s state then and now) and the follow-up once recorded. The queue item visit_outcome links here.",
+        "tags": [
+          "field"
+        ],
+        "parameters": [
+          {
+            "name": "outcomeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "outcomeId",
+                    "visitId",
+                    "reference",
+                    "kind",
+                    "note",
+                    "visitState",
+                    "visitNow",
+                    "localDate",
+                    "recordedBy",
+                    "recordedAt",
+                    "followUp",
+                    "actions"
+                  ],
+                  "properties": {
+                    "outcomeId": {
+                      "type": "string"
+                    },
+                    "visitId": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "delay",
+                        "no_access",
+                        "customer_absent",
+                        "weather",
+                        "missing_resources",
+                        "readiness_issue"
+                      ]
+                    },
+                    "note": {
+                      "type": "string"
+                    },
+                    "visitState": {
+                      "type": "string"
+                    },
+                    "visitNow": {
+                      "type": "string"
+                    },
+                    "localDate": {
+                      "type": "string"
+                    },
+                    "recordedBy": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "recordedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "followUp": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "by",
+                            "at",
+                            "note"
+                          ],
+                          "properties": {
+                            "by": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            },
+                            "at": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "note": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "followUp"
+                      ],
+                      "properties": {
+                        "followUp": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "visit.reschedule",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/visit-outcomes.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/visit-outcomes/{outcomeId}/follow-up": {
+      "post": {
+        "operationId": "followUpVisitOutcome",
+        "summary": "Record the follow-up of a visit outcome",
+        "description": "Staff with visit.reschedule (the Owner, Office) record what was done about the outcome (rescheduled, cancelled, the customer contacted), once (ALREADY_FOLLOWED_UP); this resolves its queue item and the customer’s \"Update pending\". Rescheduling or cancelling the visit itself stays the visit routes’.",
+        "tags": [
+          "field"
+        ],
+        "parameters": [
+          {
+            "name": "outcomeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "note"
+                ],
+                "properties": {
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "outcomeId",
+                    "visitId",
+                    "reference",
+                    "kind",
+                    "note",
+                    "visitState",
+                    "visitNow",
+                    "localDate",
+                    "recordedBy",
+                    "recordedAt",
+                    "followUp",
+                    "actions"
+                  ],
+                  "properties": {
+                    "outcomeId": {
+                      "type": "string"
+                    },
+                    "visitId": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "delay",
+                        "no_access",
+                        "customer_absent",
+                        "weather",
+                        "missing_resources",
+                        "readiness_issue"
+                      ]
+                    },
+                    "note": {
+                      "type": "string"
+                    },
+                    "visitState": {
+                      "type": "string"
+                    },
+                    "visitNow": {
+                      "type": "string"
+                    },
+                    "localDate": {
+                      "type": "string"
+                    },
+                    "recordedBy": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "recordedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "followUp": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "by",
+                            "at",
+                            "note"
+                          ],
+                          "properties": {
+                            "by": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            },
+                            "at": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "note": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "followUp"
+                      ],
+                      "properties": {
+                        "followUp": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "visit.reschedule",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "visit.follow_up_outcome",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/visit-outcomes.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/visits/{visitId}/arrived": {
       "post": {
         "operationId": "tapArrived",
@@ -135135,6 +135741,7 @@
                         "mine",
                         "next",
                         "onMyWayOpensAt",
+                        "outcomes",
                         "actions"
                       ],
                       "properties": {
@@ -135432,13 +136039,50 @@
                           ],
                           "format": "date-time"
                         },
+                        "outcomes": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "outcomeId",
+                              "kind",
+                              "recordedAt",
+                              "followedUp"
+                            ],
+                            "properties": {
+                              "outcomeId": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "delay",
+                                  "no_access",
+                                  "customer_absent",
+                                  "weather",
+                                  "missing_resources",
+                                  "readiness_issue"
+                                ]
+                              },
+                              "recordedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "followedUp": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        },
                         "actions": {
                           "type": "object",
                           "additionalProperties": false,
                           "required": [
                             "onMyWay",
                             "arrived",
-                            "finished"
+                            "finished",
+                            "recordOutcome"
                           ],
                           "properties": {
                             "onMyWay": {
@@ -135448,6 +136092,9 @@
                               "type": "boolean"
                             },
                             "finished": {
+                              "type": "boolean"
+                            },
+                            "recordOutcome": {
                               "type": "boolean"
                             }
                           }
@@ -139628,6 +140275,7 @@
                         "mine",
                         "next",
                         "onMyWayOpensAt",
+                        "outcomes",
                         "actions"
                       ],
                       "properties": {
@@ -139925,13 +140573,50 @@
                           ],
                           "format": "date-time"
                         },
+                        "outcomes": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "outcomeId",
+                              "kind",
+                              "recordedAt",
+                              "followedUp"
+                            ],
+                            "properties": {
+                              "outcomeId": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "delay",
+                                  "no_access",
+                                  "customer_absent",
+                                  "weather",
+                                  "missing_resources",
+                                  "readiness_issue"
+                                ]
+                              },
+                              "recordedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "followedUp": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        },
                         "actions": {
                           "type": "object",
                           "additionalProperties": false,
                           "required": [
                             "onMyWay",
                             "arrived",
-                            "finished"
+                            "finished",
+                            "recordOutcome"
                           ],
                           "properties": {
                             "onMyWay": {
@@ -139941,6 +140626,9 @@
                               "type": "boolean"
                             },
                             "finished": {
+                              "type": "boolean"
+                            },
+                            "recordOutcome": {
                               "type": "boolean"
                             }
                           }
@@ -141915,6 +142603,7 @@
                         "mine",
                         "next",
                         "onMyWayOpensAt",
+                        "outcomes",
                         "actions"
                       ],
                       "properties": {
@@ -142212,13 +142901,50 @@
                           ],
                           "format": "date-time"
                         },
+                        "outcomes": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "outcomeId",
+                              "kind",
+                              "recordedAt",
+                              "followedUp"
+                            ],
+                            "properties": {
+                              "outcomeId": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "delay",
+                                  "no_access",
+                                  "customer_absent",
+                                  "weather",
+                                  "missing_resources",
+                                  "readiness_issue"
+                                ]
+                              },
+                              "recordedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "followedUp": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        },
                         "actions": {
                           "type": "object",
                           "additionalProperties": false,
                           "required": [
                             "onMyWay",
                             "arrived",
-                            "finished"
+                            "finished",
+                            "recordOutcome"
                           ],
                           "properties": {
                             "onMyWay": {
@@ -142228,6 +142954,9 @@
                               "type": "boolean"
                             },
                             "finished": {
+                              "type": "boolean"
+                            },
+                            "recordOutcome": {
                               "type": "boolean"
                             }
                           }
@@ -142356,6 +143085,624 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/my-day.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/visits/{visitId}/outcomes": {
+      "post": {
+        "operationId": "recordVisitOutcome",
+        "summary": "Record a visit outcome",
+        "description": "A worker assigned to the visit (visit.tap_arrived: the assigned worker, the Owner; PROPOSED mapping) records one explicit outcome with a note (HH-SCH-09): delay, no_access, customer_absent, weather, missing_resources or readiness_issue, while the visit is confirmed, on the way or arrived (VISIT_NOT_OPEN otherwise). In one transaction: the outcome and the staff follow-up item visit_outcome (today_change on the visit date; assigned to the request’s responsible staff member when there is one). Only no_access changes the visit: to no_access (final: its reservations end and its waiting reminders stop), refused once work started (WORK_STARTED). No outcome completes a visit or marks work done; customer_absent never starts work (Start Work still needs the customer present or the Owner-approved exception). The customer sees only \"Update pending\" until staff follow up; nothing is sent and no arrival time is ever made up. Returns the visit as My Day shows it, or null once it left My Day.",
+        "tags": [
+          "field"
+        ],
+        "parameters": [
+          {
+            "name": "visitId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "note"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "delay",
+                      "no_access",
+                      "customer_absent",
+                      "weather",
+                      "missing_resources",
+                      "readiness_issue"
+                    ]
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "outcomeId",
+                    "visitId",
+                    "kind",
+                    "visitState",
+                    "recordedAt",
+                    "visit"
+                  ],
+                  "properties": {
+                    "outcomeId": {
+                      "type": "string"
+                    },
+                    "visitId": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "delay",
+                        "no_access",
+                        "customer_absent",
+                        "weather",
+                        "missing_resources",
+                        "readiness_issue"
+                      ]
+                    },
+                    "visitState": {
+                      "type": "string"
+                    },
+                    "recordedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "visit": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "visitId",
+                            "number",
+                            "purpose",
+                            "state",
+                            "version",
+                            "projectReference",
+                            "jobId",
+                            "assignment",
+                            "role",
+                            "window",
+                            "team",
+                            "address",
+                            "directionsUrl",
+                            "accessNotes",
+                            "preparation",
+                            "readiness",
+                            "mine",
+                            "next",
+                            "onMyWayOpensAt",
+                            "outcomes",
+                            "actions"
+                          ],
+                          "properties": {
+                            "visitId": {
+                              "type": "string"
+                            },
+                            "number": {
+                              "type": "integer"
+                            },
+                            "purpose": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string"
+                            },
+                            "version": {
+                              "type": "integer"
+                            },
+                            "projectReference": {
+                              "type": "string"
+                            },
+                            "jobId": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "assignment": {
+                              "type": "string",
+                              "enum": [
+                                "confirmed",
+                                "hold"
+                              ]
+                            },
+                            "role": {
+                              "type": "string"
+                            },
+                            "window": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "localDate",
+                                "start",
+                                "end",
+                                "timeZone",
+                                "startsAt",
+                                "endsAt"
+                              ],
+                              "properties": {
+                                "localDate": {
+                                  "type": "string"
+                                },
+                                "start": {
+                                  "type": "string"
+                                },
+                                "end": {
+                                  "type": "string"
+                                },
+                                "timeZone": {
+                                  "type": "string"
+                                },
+                                "startsAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "endsAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            },
+                            "team": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "name",
+                                  "role"
+                                ],
+                                "properties": {
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "role": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "address": {
+                              "type": [
+                                "object",
+                                "null"
+                              ],
+                              "additionalProperties": false,
+                              "required": [
+                                "street",
+                                "unit",
+                                "city",
+                                "state",
+                                "zip"
+                              ],
+                              "properties": {
+                                "street": {
+                                  "type": "string"
+                                },
+                                "unit": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "city": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string"
+                                },
+                                "zip": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "directionsUrl": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "accessNotes": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "detail",
+                                  "value",
+                                  "source",
+                                  "confirmedAt"
+                                ],
+                                "properties": {
+                                  "detail": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "source": {
+                                    "type": "string"
+                                  },
+                                  "confirmedAt": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  }
+                                }
+                              }
+                            },
+                            "preparation": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "customerPreparation",
+                                "instructions"
+                              ],
+                              "properties": {
+                                "customerPreparation": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "instructions": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            },
+                            "readiness": {
+                              "type": [
+                                "object",
+                                "null"
+                              ],
+                              "additionalProperties": false,
+                              "required": [
+                                "packetVersion",
+                                "lastViewedVersion",
+                                "changedSinceViewed",
+                                "criticalSinceViewed",
+                                "acknowledgment",
+                                "blockers"
+                              ],
+                              "properties": {
+                                "packetVersion": {
+                                  "type": "integer"
+                                },
+                                "lastViewedVersion": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "changedSinceViewed": {
+                                  "type": "boolean"
+                                },
+                                "criticalSinceViewed": {
+                                  "type": "boolean"
+                                },
+                                "acknowledgment": {
+                                  "type": "string",
+                                  "enum": [
+                                    "acknowledged",
+                                    "required",
+                                    "invalidated",
+                                    "not_assigned"
+                                  ]
+                                },
+                                "blockers": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "code",
+                                      "count"
+                                    ],
+                                    "properties": {
+                                      "code": {
+                                        "type": "string"
+                                      },
+                                      "count": {
+                                        "type": "integer"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "mine": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "departedAt",
+                                "arrivedAt",
+                                "finishedAt"
+                              ],
+                              "properties": {
+                                "departedAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date-time"
+                                },
+                                "arrivedAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date-time"
+                                },
+                                "finishedAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date-time"
+                                }
+                              }
+                            },
+                            "next": {
+                              "type": "string",
+                              "enum": [
+                                "not_confirmed",
+                                "wait",
+                                "not_configured",
+                                "on_my_way",
+                                "arrived",
+                                "finished",
+                                "done"
+                              ]
+                            },
+                            "onMyWayOpensAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            },
+                            "outcomes": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "outcomeId",
+                                  "kind",
+                                  "recordedAt",
+                                  "followedUp"
+                                ],
+                                "properties": {
+                                  "outcomeId": {
+                                    "type": "string"
+                                  },
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "delay",
+                                      "no_access",
+                                      "customer_absent",
+                                      "weather",
+                                      "missing_resources",
+                                      "readiness_issue"
+                                    ]
+                                  },
+                                  "recordedAt": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  },
+                                  "followedUp": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              }
+                            },
+                            "actions": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "onMyWay",
+                                "arrived",
+                                "finished",
+                                "recordOutcome"
+                              ],
+                              "properties": {
+                                "onMyWay": {
+                                  "type": "boolean"
+                                },
+                                "arrived": {
+                                  "type": "boolean"
+                                },
+                                "finished": {
+                                  "type": "boolean"
+                                },
+                                "recordOutcome": {
+                                  "type": "boolean"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "visit.tap_arrived",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "visit.record_outcome",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/visit-outcomes.test.ts"
         }
       }
     },

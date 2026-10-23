@@ -2397,6 +2397,21 @@ export interface WorkVisitDeparturesTable {
   recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface WorkVisitOutcomesTable {
+  id: Generated<string>
+  visit_id: string
+  project_id: string
+  job_id: string | null
+  kind: string
+  note: string
+  visit_state: string
+  recorded_by: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+  followed_up_by: string | null
+  followed_up_at: Timestamp | null
+  follow_up_note: string | null
+}
+
 export interface WorkVisitWindowsTable {
   visit_id: string
   window_version: number
@@ -2723,6 +2738,7 @@ export interface Database {
   'work.visit_change_requests': WorkVisitChangeRequestsTable
   'work.visit_changes': WorkVisitChangesTable
   'work.visit_departures': WorkVisitDeparturesTable
+  'work.visit_outcomes': WorkVisitOutcomesTable
   'work.visit_windows': WorkVisitWindowsTable
   'work.visits': WorkVisitsTable
   'work.walkthroughs': WorkWalkthroughsTable

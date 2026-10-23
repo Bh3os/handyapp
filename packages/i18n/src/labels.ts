@@ -87,6 +87,8 @@ export const LABEL_FAMILIES = {
     'question_reminder',
     'deposit_due',
     'visit_flagged',
+    // TSK-0078: a recorded visit outcome waiting for staff follow-up.
+    'visit_outcome',
     'loadout_shortage',
     // TSK-0074: a job-level Hold / Ready note blocks confirming and starting the job.
     'job_hold',
@@ -186,6 +188,13 @@ export const LABEL_FAMILIES = {
     'recheck_due',
     'punch_items_open',
     'punch_items_corrected',
+    // TSK-0078: the kind of a recorded visit outcome.
+    'delay',
+    'no_access',
+    'customer_absent',
+    'weather',
+    'missing_resources',
+    'readiness_issue',
   ],
   /** The one action button of a queue item (HH-OPS-02); it opens the record's screen. */
   queueAction: [
@@ -210,7 +219,11 @@ export const LABEL_FAMILIES = {
     'review_issue',
     'review_quality',
     'review_punch_items',
+    'follow_up_visit',
   ],
+  // TSK-0078 (HH-SCH-09): the outcomes a worker records on a visit, and why one is refused.
+  visitOutcomeKind: ['delay', 'no_access', 'customer_absent', 'weather', 'missing_resources', 'readiness_issue'],
+  visitOutcomeRefusal: ['VISIT_NOT_OPEN', 'WORK_STARTED', 'NOTE_REQUIRED', 'NOTE_TOO_LONG', 'ALREADY_FOLLOWED_UP'],
   /**
    * System health (TSK-0101; HH-NFR-02): the checks, their states, metrics and notes, as the server's health report
    * (apps/server/src/modules/system/health.ts) declares them, checked by its unit test.
