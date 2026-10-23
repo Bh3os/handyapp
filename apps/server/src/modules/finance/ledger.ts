@@ -22,6 +22,7 @@ import { ApiError, type FieldError } from '../../api/errors.js'
 import { loadConfig } from '../../platform/config/index.js'
 import { checkPaymentInput, type PaymentMethod, type PaymentState, type RecordPaymentInput } from './deposits.js'
 import { announcePaidInvoices, syncUnallocatedItem } from './money-events.js'
+import { syncCheckItem } from './payment-states.js'
 import { issuePaymentReceipt } from './receipts.js'
 
 type Reader = Db | Tx
@@ -89,12 +90,23 @@ export type InvoicePaymentView = {
   collector: StaffRef
   recordedAt: string
   canMarkCleared: boolean
+  /** TSK-0088 (HH-FIN-11, HH-FIN-12): the memo, the receipt, the deposit and reconciliation steps. */
+  memo: string | null
+  receiptNumber: string | null
+  depositedAt: string | null
+  reconciledAt: string | null
+  canMarkDeposited: boolean
+  canReconcile: boolean
 }
 
 function dateText(d: Date | string): string {
   if (typeof d === 'string') return d.slice(0, 10)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
+
+const mayReconcile = (actor: StaffActor, projectId: string, collector: string) =>
+  decide(actor, 'payment.reconcile', { projectId, collectedByStaffId: collector }, { now: new Date(), online: true })
+    .effect === 'allow'
 
 /** The payments applied to an invoice (a deposit invoice: to its deposit), oldest first. */
 export async function invoicePayments(db: Reader, actor: StaffActor, invoiceId: string): Promise<InvoicePaymentView[]> {
@@ -107,6 +119,7 @@ export async function invoicePayments(db: Reader, actor: StaffActor, invoiceId: 
     .selectFrom('finance.payment_allocations as a')
     .innerJoin('finance.payments as p', 'p.id', 'a.payment_id')
     .leftJoin('identity.staff_users as s', 's.id', 'p.collector_staff_id')
+    .leftJoin('finance.payment_receipts as rc', 'rc.payment_id', 'p.id')
     .select([
       'p.id',
       'p.method',
@@ -118,6 +131,10 @@ export async function invoicePayments(db: Reader, actor: StaffActor, invoiceId: 
       'p.collector_staff_id',
       's.display_name',
       'p.created_at',
+      'p.memo',
+      'p.deposited_at',
+      'p.reconciled_at',
+      'rc.number as receipt_number',
       'a.amount_cents as applied_cents',
     ])
     .where((eb) =>
@@ -149,6 +166,14 @@ export async function invoicePayments(db: Reader, actor: StaffActor, invoiceId: 
         { projectId: i.project_id, collectedByStaffId: p.collector_staff_id },
         { now: new Date(), online: true },
       ).effect === 'allow',
+    memo: p.memo,
+    receiptNumber: p.receipt_number,
+    depositedAt: p.deposited_at?.toISOString() ?? null,
+    reconciledAt: p.reconciled_at?.toISOString() ?? null,
+    canMarkDeposited:
+      p.method === 'check' && p.state === 'received' && mayReconcile(actor, i.project_id, p.collector_staff_id),
+    canReconcile:
+      p.method !== 'check' && p.state === 'recorded' && mayReconcile(actor, i.project_id, p.collector_staff_id),
   }))
 }
 
@@ -199,6 +224,7 @@ export async function recordInvoicePayment(
       recorded_by: actor.userId,
       reference: checked.reference,
       payer_name: checked.payerName,
+      memo: checked.memo,
       state: checked.method === 'check' ? 'received' : 'recorded',
       created_at: checked.now,
     })
@@ -218,6 +244,8 @@ export async function recordInvoicePayment(
   await announcePaidInvoices(tx, i.job_id)
   // TSK-0087: a confirmed payment's receipt, at once (a check's when it is cleared).
   await issuePaymentReceipt(tx, payment.id)
+  // TSK-0088: a check waits in the Owner's queue until it clears.
+  if (checked.method === 'check') await syncCheckItem(tx, i.job_id)
   const after = await tx.selectFrom('finance.invoices').select('state').where('id', '=', i.id).executeTakeFirstOrThrow()
   return {
     paymentId: payment.id,

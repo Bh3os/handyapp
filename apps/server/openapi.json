@@ -73981,7 +73981,13 @@
                                   "verified",
                                   "collector",
                                   "recordedAt",
-                                  "canMarkCleared"
+                                  "canMarkCleared",
+                                  "memo",
+                                  "receiptNumber",
+                                  "depositedAt",
+                                  "reconciledAt",
+                                  "canMarkDeposited",
+                                  "canReconcile"
                                 ],
                                 "properties": {
                                   "id": {
@@ -74059,6 +74065,46 @@
                                     "format": "date-time"
                                   },
                                   "canMarkCleared": {
+                                    "type": "boolean"
+                                  },
+                                  "memo": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "receiptNumber": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "depositedAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    ]
+                                  },
+                                  "reconciledAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    ]
+                                  },
+                                  "canMarkDeposited": {
+                                    "type": "boolean"
+                                  },
+                                  "canReconcile": {
                                     "type": "boolean"
                                   }
                                 }
@@ -74523,7 +74569,13 @@
                                   "verified",
                                   "collector",
                                   "recordedAt",
-                                  "canMarkCleared"
+                                  "canMarkCleared",
+                                  "memo",
+                                  "receiptNumber",
+                                  "depositedAt",
+                                  "reconciledAt",
+                                  "canMarkDeposited",
+                                  "canReconcile"
                                 ],
                                 "properties": {
                                   "id": {
@@ -74601,6 +74653,46 @@
                                     "format": "date-time"
                                   },
                                   "canMarkCleared": {
+                                    "type": "boolean"
+                                  },
+                                  "memo": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "receiptNumber": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "depositedAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    ]
+                                  },
+                                  "reconciledAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    ]
+                                  },
+                                  "canMarkDeposited": {
+                                    "type": "boolean"
+                                  },
+                                  "canReconcile": {
                                     "type": "boolean"
                                   }
                                 }
@@ -75287,7 +75379,13 @@
                                   "verified",
                                   "collector",
                                   "recordedAt",
-                                  "canMarkCleared"
+                                  "canMarkCleared",
+                                  "memo",
+                                  "receiptNumber",
+                                  "depositedAt",
+                                  "reconciledAt",
+                                  "canMarkDeposited",
+                                  "canReconcile"
                                 ],
                                 "properties": {
                                   "id": {
@@ -75365,6 +75463,46 @@
                                     "format": "date-time"
                                   },
                                   "canMarkCleared": {
+                                    "type": "boolean"
+                                  },
+                                  "memo": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "receiptNumber": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "depositedAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    ]
+                                  },
+                                  "reconciledAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    ]
+                                  },
+                                  "canMarkDeposited": {
+                                    "type": "boolean"
+                                  },
+                                  "canReconcile": {
                                     "type": "boolean"
                                   }
                                 }
@@ -75829,7 +75967,13 @@
                                   "verified",
                                   "collector",
                                   "recordedAt",
-                                  "canMarkCleared"
+                                  "canMarkCleared",
+                                  "memo",
+                                  "receiptNumber",
+                                  "depositedAt",
+                                  "reconciledAt",
+                                  "canMarkDeposited",
+                                  "canReconcile"
                                 ],
                                 "properties": {
                                   "id": {
@@ -75907,6 +76051,46 @@
                                     "format": "date-time"
                                   },
                                   "canMarkCleared": {
+                                    "type": "boolean"
+                                  },
+                                  "memo": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "receiptNumber": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "depositedAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    ]
+                                  },
+                                  "reconciledAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    ]
+                                  },
+                                  "canMarkDeposited": {
+                                    "type": "boolean"
+                                  },
+                                  "canReconcile": {
                                     "type": "boolean"
                                   }
                                 }
@@ -76248,6 +76432,13 @@
                       "null"
                     ],
                     "maxLength": 220
+                  },
+                  "memo": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 520
                   },
                   "collectorStaffId": {
                     "anyOf": [
@@ -76626,7 +76817,13 @@
                                   "verified",
                                   "collector",
                                   "recordedAt",
-                                  "canMarkCleared"
+                                  "canMarkCleared",
+                                  "memo",
+                                  "receiptNumber",
+                                  "depositedAt",
+                                  "reconciledAt",
+                                  "canMarkDeposited",
+                                  "canReconcile"
                                 ],
                                 "properties": {
                                   "id": {
@@ -76704,6 +76901,46 @@
                                     "format": "date-time"
                                   },
                                   "canMarkCleared": {
+                                    "type": "boolean"
+                                  },
+                                  "memo": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "receiptNumber": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "depositedAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    ]
+                                  },
+                                  "reconciledAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    ]
+                                  },
+                                  "canMarkDeposited": {
+                                    "type": "boolean"
+                                  },
+                                  "canReconcile": {
                                     "type": "boolean"
                                   }
                                 }
@@ -77168,7 +77405,13 @@
                                   "verified",
                                   "collector",
                                   "recordedAt",
-                                  "canMarkCleared"
+                                  "canMarkCleared",
+                                  "memo",
+                                  "receiptNumber",
+                                  "depositedAt",
+                                  "reconciledAt",
+                                  "canMarkDeposited",
+                                  "canReconcile"
                                 ],
                                 "properties": {
                                   "id": {
@@ -77246,6 +77489,46 @@
                                     "format": "date-time"
                                   },
                                   "canMarkCleared": {
+                                    "type": "boolean"
+                                  },
+                                  "memo": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "receiptNumber": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "depositedAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    ]
+                                  },
+                                  "reconciledAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    ]
+                                  },
+                                  "canMarkDeposited": {
+                                    "type": "boolean"
+                                  },
+                                  "canReconcile": {
                                     "type": "boolean"
                                   }
                                 }
@@ -83183,7 +83466,13 @@
                           "recordedAt",
                           "clearedBy",
                           "clearedAt",
-                          "canMarkCleared"
+                          "canMarkCleared",
+                          "memo",
+                          "receiptNumber",
+                          "depositedAt",
+                          "reconciledAt",
+                          "canMarkDeposited",
+                          "canReconcile"
                         ],
                         "properties": {
                           "id": {
@@ -83320,6 +83609,46 @@
                             ]
                           },
                           "canMarkCleared": {
+                            "type": "boolean"
+                          },
+                          "memo": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "receiptNumber": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "depositedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "reconciledAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "canMarkDeposited": {
+                            "type": "boolean"
+                          },
+                          "canReconcile": {
                             "type": "boolean"
                           }
                         }
@@ -83691,7 +84020,13 @@
                           "recordedAt",
                           "clearedBy",
                           "clearedAt",
-                          "canMarkCleared"
+                          "canMarkCleared",
+                          "memo",
+                          "receiptNumber",
+                          "depositedAt",
+                          "reconciledAt",
+                          "canMarkDeposited",
+                          "canReconcile"
                         ],
                         "properties": {
                           "id": {
@@ -83828,6 +84163,46 @@
                             ]
                           },
                           "canMarkCleared": {
+                            "type": "boolean"
+                          },
+                          "memo": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "receiptNumber": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "depositedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "reconciledAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "canMarkDeposited": {
+                            "type": "boolean"
+                          },
+                          "canReconcile": {
                             "type": "boolean"
                           }
                         }
@@ -84067,6 +84442,13 @@
                     ],
                     "maxLength": 220
                   },
+                  "memo": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 520
+                  },
                   "collectorStaffId": {
                     "anyOf": [
                       {
@@ -84273,7 +84655,13 @@
                           "recordedAt",
                           "clearedBy",
                           "clearedAt",
-                          "canMarkCleared"
+                          "canMarkCleared",
+                          "memo",
+                          "receiptNumber",
+                          "depositedAt",
+                          "reconciledAt",
+                          "canMarkDeposited",
+                          "canReconcile"
                         ],
                         "properties": {
                           "id": {
@@ -84410,6 +84798,46 @@
                             ]
                           },
                           "canMarkCleared": {
+                            "type": "boolean"
+                          },
+                          "memo": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "receiptNumber": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "depositedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "reconciledAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "canMarkDeposited": {
+                            "type": "boolean"
+                          },
+                          "canReconcile": {
                             "type": "boolean"
                           }
                         }
@@ -84802,7 +85230,13 @@
                           "recordedAt",
                           "clearedBy",
                           "clearedAt",
-                          "canMarkCleared"
+                          "canMarkCleared",
+                          "memo",
+                          "receiptNumber",
+                          "depositedAt",
+                          "reconciledAt",
+                          "canMarkDeposited",
+                          "canReconcile"
                         ],
                         "properties": {
                           "id": {
@@ -84939,6 +85373,46 @@
                             ]
                           },
                           "canMarkCleared": {
+                            "type": "boolean"
+                          },
+                          "memo": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "receiptNumber": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "depositedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "reconciledAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "canMarkDeposited": {
+                            "type": "boolean"
+                          },
+                          "canReconcile": {
                             "type": "boolean"
                           }
                         }
@@ -86254,7 +86728,13 @@
                                   "verified",
                                   "collector",
                                   "recordedAt",
-                                  "canMarkCleared"
+                                  "canMarkCleared",
+                                  "memo",
+                                  "receiptNumber",
+                                  "depositedAt",
+                                  "reconciledAt",
+                                  "canMarkDeposited",
+                                  "canReconcile"
                                 ],
                                 "properties": {
                                   "id": {
@@ -86332,6 +86812,46 @@
                                     "format": "date-time"
                                   },
                                   "canMarkCleared": {
+                                    "type": "boolean"
+                                  },
+                                  "memo": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "receiptNumber": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "depositedAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    ]
+                                  },
+                                  "reconciledAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    ]
+                                  },
+                                  "canMarkDeposited": {
+                                    "type": "boolean"
+                                  },
+                                  "canReconcile": {
                                     "type": "boolean"
                                   }
                                 }
@@ -86796,7 +87316,13 @@
                                   "verified",
                                   "collector",
                                   "recordedAt",
-                                  "canMarkCleared"
+                                  "canMarkCleared",
+                                  "memo",
+                                  "receiptNumber",
+                                  "depositedAt",
+                                  "reconciledAt",
+                                  "canMarkDeposited",
+                                  "canReconcile"
                                 ],
                                 "properties": {
                                   "id": {
@@ -86874,6 +87400,46 @@
                                     "format": "date-time"
                                   },
                                   "canMarkCleared": {
+                                    "type": "boolean"
+                                  },
+                                  "memo": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "receiptNumber": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "depositedAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    ]
+                                  },
+                                  "reconciledAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    ]
+                                  },
+                                  "canMarkDeposited": {
+                                    "type": "boolean"
+                                  },
+                                  "canReconcile": {
                                     "type": "boolean"
                                   }
                                 }
@@ -87511,7 +88077,13 @@
                                   "verified",
                                   "collector",
                                   "recordedAt",
-                                  "canMarkCleared"
+                                  "canMarkCleared",
+                                  "memo",
+                                  "receiptNumber",
+                                  "depositedAt",
+                                  "reconciledAt",
+                                  "canMarkDeposited",
+                                  "canReconcile"
                                 ],
                                 "properties": {
                                   "id": {
@@ -87589,6 +88161,46 @@
                                     "format": "date-time"
                                   },
                                   "canMarkCleared": {
+                                    "type": "boolean"
+                                  },
+                                  "memo": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "receiptNumber": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "depositedAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    ]
+                                  },
+                                  "reconciledAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    ]
+                                  },
+                                  "canMarkDeposited": {
+                                    "type": "boolean"
+                                  },
+                                  "canReconcile": {
                                     "type": "boolean"
                                   }
                                 }
@@ -88053,7 +88665,13 @@
                                   "verified",
                                   "collector",
                                   "recordedAt",
-                                  "canMarkCleared"
+                                  "canMarkCleared",
+                                  "memo",
+                                  "receiptNumber",
+                                  "depositedAt",
+                                  "reconciledAt",
+                                  "canMarkDeposited",
+                                  "canReconcile"
                                 ],
                                 "properties": {
                                   "id": {
@@ -88131,6 +88749,46 @@
                                     "format": "date-time"
                                   },
                                   "canMarkCleared": {
+                                    "type": "boolean"
+                                  },
+                                  "memo": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "receiptNumber": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "depositedAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    ]
+                                  },
+                                  "reconciledAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    ]
+                                  },
+                                  "canMarkDeposited": {
+                                    "type": "boolean"
+                                  },
+                                  "canReconcile": {
                                     "type": "boolean"
                                   }
                                 }
@@ -88798,7 +89456,13 @@
                                   "verified",
                                   "collector",
                                   "recordedAt",
-                                  "canMarkCleared"
+                                  "canMarkCleared",
+                                  "memo",
+                                  "receiptNumber",
+                                  "depositedAt",
+                                  "reconciledAt",
+                                  "canMarkDeposited",
+                                  "canReconcile"
                                 ],
                                 "properties": {
                                   "id": {
@@ -88876,6 +89540,46 @@
                                     "format": "date-time"
                                   },
                                   "canMarkCleared": {
+                                    "type": "boolean"
+                                  },
+                                  "memo": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "receiptNumber": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "depositedAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    ]
+                                  },
+                                  "reconciledAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    ]
+                                  },
+                                  "canMarkDeposited": {
+                                    "type": "boolean"
+                                  },
+                                  "canReconcile": {
                                     "type": "boolean"
                                   }
                                 }
@@ -89340,7 +90044,13 @@
                                   "verified",
                                   "collector",
                                   "recordedAt",
-                                  "canMarkCleared"
+                                  "canMarkCleared",
+                                  "memo",
+                                  "receiptNumber",
+                                  "depositedAt",
+                                  "reconciledAt",
+                                  "canMarkDeposited",
+                                  "canReconcile"
                                 ],
                                 "properties": {
                                   "id": {
@@ -89418,6 +90128,46 @@
                                     "format": "date-time"
                                   },
                                   "canMarkCleared": {
+                                    "type": "boolean"
+                                  },
+                                  "memo": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "receiptNumber": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "depositedAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    ]
+                                  },
+                                  "reconciledAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    ]
+                                  },
+                                  "canMarkDeposited": {
+                                    "type": "boolean"
+                                  },
+                                  "canReconcile": {
                                     "type": "boolean"
                                   }
                                 }
@@ -105212,7 +105962,13 @@
                           "recordedAt",
                           "clearedBy",
                           "clearedAt",
-                          "canMarkCleared"
+                          "canMarkCleared",
+                          "memo",
+                          "receiptNumber",
+                          "depositedAt",
+                          "reconciledAt",
+                          "canMarkDeposited",
+                          "canReconcile"
                         ],
                         "properties": {
                           "id": {
@@ -105349,6 +106105,46 @@
                             ]
                           },
                           "canMarkCleared": {
+                            "type": "boolean"
+                          },
+                          "memo": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "receiptNumber": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "depositedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "reconciledAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "canMarkDeposited": {
+                            "type": "boolean"
+                          },
+                          "canReconcile": {
                             "type": "boolean"
                           }
                         }
@@ -105496,6 +106292,1138 @@
           "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "check.mark_cleared",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/deposits.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/payments/{paymentId}/deposited": {
+      "post": {
+        "operationId": "markCheckDeposited",
+        "summary": "Mark a received check deposited",
+        "description": "The Owner or Office (payment.reconcile; never a check they collected). A received check becomes deposited: still pending, it counts toward nothing until the Owner clears it. Anything else is a CONFLICT (NOT_A_CHECK, CHECK_DEPOSITED, CHECK_CLEARED...). The job’s check_to_clear item follows. Returns the deposit view of the payment’s job.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "required",
+                    "state",
+                    "amountCents",
+                    "baseTotalCents",
+                    "ruleVersion",
+                    "verifiedCents",
+                    "pendingCents",
+                    "remainingCents",
+                    "workScheduling",
+                    "paymentLink",
+                    "waiver",
+                    "payments",
+                    "version",
+                    "actions"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "not_required",
+                        "required",
+                        "partly_satisfied",
+                        "satisfied",
+                        "applied",
+                        "waived"
+                      ]
+                    },
+                    "amountCents": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "baseTotalCents": {
+                      "type": "integer"
+                    },
+                    "ruleVersion": {
+                      "type": "integer"
+                    },
+                    "verifiedCents": {
+                      "type": "integer"
+                    },
+                    "pendingCents": {
+                      "type": "integer"
+                    },
+                    "remainingCents": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "workScheduling": {
+                      "type": "string",
+                      "enum": [
+                        "open",
+                        "blocked"
+                      ]
+                    },
+                    "paymentLink": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "url",
+                            "setBy",
+                            "setAt"
+                          ],
+                          "properties": {
+                            "url": {
+                              "type": "string"
+                            },
+                            "setBy": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "setAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "waiver": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "by",
+                            "at",
+                            "reason"
+                          ],
+                          "properties": {
+                            "by": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            },
+                            "at": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "reason": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "payments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "method",
+                          "amountCents",
+                          "appliedCents",
+                          "unappliedCents",
+                          "receivedOn",
+                          "reference",
+                          "payerName",
+                          "state",
+                          "verified",
+                          "collector",
+                          "recordedBy",
+                          "recordedAt",
+                          "clearedBy",
+                          "clearedAt",
+                          "canMarkCleared",
+                          "memo",
+                          "receiptNumber",
+                          "depositedAt",
+                          "reconciledAt",
+                          "canMarkDeposited",
+                          "canReconcile"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string",
+                            "enum": [
+                              "square_payment_link",
+                              "square_tap_to_pay",
+                              "cash",
+                              "check",
+                              "zelle",
+                              "cash_app",
+                              "chime"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": "integer"
+                          },
+                          "appliedCents": {
+                            "type": "integer"
+                          },
+                          "unappliedCents": {
+                            "type": "integer"
+                          },
+                          "receivedOn": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "payerName": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "recorded",
+                              "reconciled",
+                              "received",
+                              "deposited",
+                              "cleared",
+                              "returned",
+                              "voided"
+                            ]
+                          },
+                          "verified": {
+                            "type": "boolean"
+                          },
+                          "collector": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "recordedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "recordedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "clearedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "clearedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "canMarkCleared": {
+                            "type": "boolean"
+                          },
+                          "memo": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "receiptNumber": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "depositedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "reconciledAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "canMarkDeposited": {
+                            "type": "boolean"
+                          },
+                          "canReconcile": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "enterPaymentLink",
+                        "recordPayment",
+                        "waive"
+                      ],
+                      "properties": {
+                        "enterPaymentLink": {
+                          "type": "boolean"
+                        },
+                        "recordPayment": {
+                          "type": "boolean"
+                        },
+                        "waive": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "payment.reconcile",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "check.mark_deposited",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/deposits.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/payments/{paymentId}/reconcile": {
+      "post": {
+        "operationId": "reconcilePayment",
+        "summary": "Reconcile a recorded payment",
+        "description": "The Owner or Office (payment.reconcile; never a payment they collected). A recorded payment that is not a check (cash, card, Zelle, Cash App, Chime) is marked reconciled against the bank or Square: separate from recording it, it changes no balance and sends nothing. A check clears instead (CHECK_CLEARS_INSTEAD). Returns the deposit view of the payment’s job.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "required",
+                    "state",
+                    "amountCents",
+                    "baseTotalCents",
+                    "ruleVersion",
+                    "verifiedCents",
+                    "pendingCents",
+                    "remainingCents",
+                    "workScheduling",
+                    "paymentLink",
+                    "waiver",
+                    "payments",
+                    "version",
+                    "actions"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "not_required",
+                        "required",
+                        "partly_satisfied",
+                        "satisfied",
+                        "applied",
+                        "waived"
+                      ]
+                    },
+                    "amountCents": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "baseTotalCents": {
+                      "type": "integer"
+                    },
+                    "ruleVersion": {
+                      "type": "integer"
+                    },
+                    "verifiedCents": {
+                      "type": "integer"
+                    },
+                    "pendingCents": {
+                      "type": "integer"
+                    },
+                    "remainingCents": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "workScheduling": {
+                      "type": "string",
+                      "enum": [
+                        "open",
+                        "blocked"
+                      ]
+                    },
+                    "paymentLink": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "url",
+                            "setBy",
+                            "setAt"
+                          ],
+                          "properties": {
+                            "url": {
+                              "type": "string"
+                            },
+                            "setBy": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "setAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "waiver": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "by",
+                            "at",
+                            "reason"
+                          ],
+                          "properties": {
+                            "by": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            },
+                            "at": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "reason": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "payments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "method",
+                          "amountCents",
+                          "appliedCents",
+                          "unappliedCents",
+                          "receivedOn",
+                          "reference",
+                          "payerName",
+                          "state",
+                          "verified",
+                          "collector",
+                          "recordedBy",
+                          "recordedAt",
+                          "clearedBy",
+                          "clearedAt",
+                          "canMarkCleared",
+                          "memo",
+                          "receiptNumber",
+                          "depositedAt",
+                          "reconciledAt",
+                          "canMarkDeposited",
+                          "canReconcile"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string",
+                            "enum": [
+                              "square_payment_link",
+                              "square_tap_to_pay",
+                              "cash",
+                              "check",
+                              "zelle",
+                              "cash_app",
+                              "chime"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": "integer"
+                          },
+                          "appliedCents": {
+                            "type": "integer"
+                          },
+                          "unappliedCents": {
+                            "type": "integer"
+                          },
+                          "receivedOn": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "payerName": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "recorded",
+                              "reconciled",
+                              "received",
+                              "deposited",
+                              "cleared",
+                              "returned",
+                              "voided"
+                            ]
+                          },
+                          "verified": {
+                            "type": "boolean"
+                          },
+                          "collector": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "recordedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "recordedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "clearedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "clearedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "canMarkCleared": {
+                            "type": "boolean"
+                          },
+                          "memo": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "receiptNumber": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "depositedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "reconciledAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "canMarkDeposited": {
+                            "type": "boolean"
+                          },
+                          "canReconcile": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "enterPaymentLink",
+                        "recordPayment",
+                        "waive"
+                      ],
+                      "properties": {
+                        "enterPaymentLink": {
+                          "type": "boolean"
+                        },
+                        "recordPayment": {
+                          "type": "boolean"
+                        },
+                        "waive": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "payment.reconcile",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "payment.reconcile",
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/deposits.test.ts"
@@ -120250,6 +122178,7 @@
                 "question_replied",
                 "question_reminder",
                 "deposit_due",
+                "check_to_clear",
                 "visit_flagged",
                 "visit_outcome",
                 "field_event_review",
@@ -120389,6 +122318,7 @@
                               "question_replied",
                               "question_reminder",
                               "deposit_due",
+                              "check_to_clear",
                               "visit_flagged",
                               "visit_outcome",
                               "field_event_review",
@@ -120625,7 +122555,8 @@
                               "review_quality",
                               "review_punch_items",
                               "follow_up_visit",
-                              "review_field_event"
+                              "review_field_event",
+                              "clear_check"
                             ]
                           },
                           "link": {
@@ -120683,6 +122614,7 @@
                           "question_replied",
                           "question_reminder",
                           "deposit_due",
+                          "check_to_clear",
                           "visit_flagged",
                           "visit_outcome",
                           "field_event_review",
@@ -120842,6 +122774,7 @@
                 "question_replied",
                 "question_reminder",
                 "deposit_due",
+                "check_to_clear",
                 "visit_flagged",
                 "visit_outcome",
                 "field_event_review",
@@ -120981,6 +122914,7 @@
                               "question_replied",
                               "question_reminder",
                               "deposit_due",
+                              "check_to_clear",
                               "visit_flagged",
                               "visit_outcome",
                               "field_event_review",
@@ -121217,7 +123151,8 @@
                               "review_quality",
                               "review_punch_items",
                               "follow_up_visit",
-                              "review_field_event"
+                              "review_field_event",
+                              "clear_check"
                             ]
                           },
                           "link": {
@@ -121275,6 +123210,7 @@
                           "question_replied",
                           "question_reminder",
                           "deposit_due",
+                          "check_to_clear",
                           "visit_flagged",
                           "visit_outcome",
                           "field_event_review",

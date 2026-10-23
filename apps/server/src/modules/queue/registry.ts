@@ -51,6 +51,8 @@ export const QUEUE_ACTIONS = [
   'follow_up_visit',
   // TSK-0080: review a field event a phone uploaded that was not applied (a conflict, an assignment, a recovery).
   'review_field_event',
+  // TSK-0088: deposit or clear a check still pending.
+  'clear_check',
 ] as const
 export type QueueAction = (typeof QUEUE_ACTIONS)[number]
 
@@ -340,6 +342,19 @@ export const QUEUE_ITEM_TYPES = [
     view: 'payment.record',
     reasons: ['deposit_due', 'deposit_check_pending'],
     action: 'review_deposit',
+    screen: 'payments',
+  },
+  // TSK-0088 (HH-FIN-12): a job's checks still pending (received, or deposited and waiting to clear), one item per job
+  // until the last one clears. Seen by the Owner, who alone marks a check cleared (check.mark_cleared, OWN-DEC-138); the
+  // link opens the job's payments. Band PROPOSED.
+  {
+    id: 'check_to_clear',
+    section: 'queue',
+    subject: 'job',
+    band: 'time_sensitive',
+    view: 'check.mark_cleared',
+    reasons: ['check_received', 'check_deposited'],
+    action: 'clear_check',
     screen: 'payments',
   },
   // Appointments flagged by an availability change (HH-OPS-01 "upcoming assignments of a disabled account, to

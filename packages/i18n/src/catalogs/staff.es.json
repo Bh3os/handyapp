@@ -4566,5 +4566,22 @@
   "invoice.linkTitle": "Enlace de pago con tarjeta",
   "invoice.linkLabel": "Enlace de pago de Square para esta factura",
   "invoice.linkHint": "Cree el enlace de la factura en la aplicación de Square y péguelo aquí. El cliente lo abre desde Pagar con tarjeta mientras quede saldo. No se marca nada como pagado hasta que usted registre el pago verificado.",
-  "invoice.linkSaved": "Enlace de pago guardado."
+  "invoice.linkSaved": "Enlace de pago guardado.",
+  "enum.queueItemType.check_to_clear": "Cheques por compensar",
+  "enum.queueReason.check_received": "Cheque recibido, aún sin depositar",
+  "enum.queueReason.check_deposited": "Cheque depositado, esperando compensación",
+  "enum.queueAction.clear_check": "Abrir los pagos",
+  "payment.memo": "Nota (opcional)",
+  "payment.memoHint": "Por ejemplo, dónde se cobró el efectivo. Se guarda tal como se escribe; nunca se muestra al cliente.",
+  "payment.memoShown": "Nota: {memo}",
+  "payment.receiptShown": "Recibo {number}",
+  "payment.depositedShown": "Depositado en el banco {time, date, medium} {time, time, short}: sigue pendiente hasta que el Propietario lo compense.",
+  "payment.reconciledShown": "Conciliado {time, date, medium} {time, time, short}",
+  "payment.markDeposited": "Marcar como depositado",
+  "payment.reconcile": "Marcar como conciliado",
+  "payment.deposited": "Cheque marcado como depositado. Sigue pendiente hasta que el Propietario lo compense.",
+  "payment.reconciled": "Pago marcado como conciliado.",
+  "enum.depositRefusal.CHECK_DEPOSITED": "Este cheque ya está marcado como depositado.",
+  "enum.depositRefusal.CHECK_CLEARS_INSTEAD": "Un cheque no se concilia: se deposita y luego el Propietario lo compensa.",
+  "enum.depositRefusal.PAYMENT_RECONCILED": "Este pago ya está conciliado."
 }

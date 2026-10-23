@@ -16,6 +16,7 @@ import { call, idempotencyKey, setCsrfToken, type ApiErrorBody, type Fetch } fro
 import { JobInvoices } from './JobInvoices'
 import { codeLabel } from './Requests'
 import { useOnline } from './Shell'
+import { PaymentSteps, type PaymentStepFields } from './PaymentSteps'
 
 type T = (key: StaffKey, values?: Record<string, string | number | Date>) => string
 type StaffRef = { id: string; name: string | null }
@@ -43,7 +44,7 @@ export type Deposit = {
   workScheduling: 'open' | 'blocked'
   paymentLink: { url: string; setBy: StaffRef | null; setAt: string } | null
   waiver: { by: StaffRef; at: string; reason: string } | null
-  payments: {
+  payments: ({
     id: string
     method: string
     amountCents: number
@@ -60,7 +61,7 @@ export type Deposit = {
     clearedBy: StaffRef | null
     clearedAt: string | null
     canMarkCleared: boolean
-  }[]
+  } & PaymentStepFields)[]
   version: number
   actions: { enterPaymentLink: boolean; recordPayment: boolean; waive: boolean }
 }
@@ -134,6 +135,7 @@ export function JobDeposit({
   const [receivedOn, setReceivedOn] = useState(today())
   const [reference, setReference] = useState('')
   const [payerName, setPayerName] = useState('')
+  const [memo, setMemo] = useState('')
   const [reason, setReason] = useState('')
   const [reasonError, setReasonError] = useState<string | null>(null)
   const [reauth, setReauth] = useState(false)
@@ -200,11 +202,13 @@ export function JobDeposit({
       receivedOn,
       reference: reference.trim() === '' ? null : reference.trim(),
       payerName: payerName.trim() === '' ? null : payerName.trim(),
+      memo: memo.trim() === '' ? null : memo.trim(),
     })
     if (ok) {
       setAmount('')
       setReference('')
       setPayerName('')
+      setMemo('')
       setDone(t('deposit.recorded'))
     }
   }
@@ -326,6 +330,14 @@ export function JobDeposit({
                   {t('deposit.unapplied', { amount: usd(p.unappliedCents) })}
                 </>
               ) : null}
+              <PaymentSteps
+                t={t}
+                p={p}
+                pending={pending}
+                run={(action, path, doneKey) =>
+                  void send(action, path, 'POST', {}).then((ok) => ok && setDone(t(doneKey)))
+                }
+              />
               {p.canMarkCleared ? (
                 <div className="hh-button-row">
                   <Button variant="secondary" pending={pending === `clear-${p.id}`} onClick={() => void clear(p.id)}>
@@ -408,6 +420,14 @@ export function JobDeposit({
               required
             />
           ) : null}
+          <Field
+            label={t('payment.memo')}
+            hint={t('payment.memoHint')}
+            name="memo"
+            maxLength={500}
+            value={memo}
+            onChange={(e) => setMemo(e.target.value)}
+          />
           <Button
             type="submit"
             pending={pending === 'record'}

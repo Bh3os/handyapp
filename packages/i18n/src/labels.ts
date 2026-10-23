@@ -86,6 +86,8 @@ export const LABEL_FAMILIES = {
     'question_replied',
     'question_reminder',
     'deposit_due',
+    // TSK-0088: a job's checks still pending until cleared.
+    'check_to_clear',
     'visit_flagged',
     // TSK-0078: a recorded visit outcome waiting for staff follow-up.
     'visit_outcome',
@@ -201,6 +203,9 @@ export const LABEL_FAMILIES = {
     'sync_conflict',
     'sync_not_assigned',
     'sync_recovered',
+    // TSK-0088: a check still to deposit, or deposited and waiting to clear.
+    'check_received',
+    'check_deposited',
   ],
   /** The one action button of a queue item (HH-OPS-02); it opens the record's screen. */
   queueAction: [
@@ -227,6 +232,7 @@ export const LABEL_FAMILIES = {
     'review_punch_items',
     'follow_up_visit',
     'review_field_event',
+    'clear_check',
   ],
   // TSK-0078 (HH-SCH-09): the outcomes a worker records on a visit, and why one is refused.
   visitOutcomeKind: ['delay', 'no_access', 'customer_absent', 'weather', 'missing_resources', 'readiness_issue'],
@@ -1279,6 +1285,10 @@ export const LABEL_FAMILIES = {
     'CHECK_RETURNED',
     'CHECK_VOIDED',
     'NOT_CONFIGURED',
+    // TSK-0088: deposit and reconciliation steps.
+    'CHECK_DEPOSITED',
+    'CHECK_CLEARS_INSTEAD',
+    'PAYMENT_RECONCILED',
   ],
   /** The six ordered checklist stages of an SOP version (TSK-0068, HH-WORK-11, OWN-DEC-108). */
   sopStage: ['site_preparation', 'setup_checks', 'work_steps', 'quality_checks', 'cleanup_waste', 'final_checks'],

@@ -1404,3 +1404,126 @@ describe('[HH-FIN-11][OWN-DEC-152][FACT-AUTOMATIC-MESSAGES] a receipt for each c
     ).rejects.toThrow(/never changed or deleted/)
   })
 })
+
+describe('[HH-FIN-11][HH-FIN-12][T62] cash with its collector and receipt; checks pending until cleared (TSK-0088)', () => {
+  const payment = (id: string) =>
+    t.db.selectFrom('finance.payments').selectAll().where('id', '=', id).executeTakeFirstOrThrow()
+  const checkItem = (jobId: string) =>
+    t.db
+      .selectFrom('ops.queue_items')
+      .select(['reason', 'resolved_at', 'resolution'])
+      .where('type', '=', 'check_to_clear')
+      .where('subject_id', '=', jobId)
+      .orderBy('opened_at', 'desc')
+      .executeTakeFirst()
+  const step = (who: Person, id: string, what: 'deposited' | 'reconcile' | 'clear') =>
+    staffWrite(who, 'POST', `/staff/payments/${id}/${what}`, {})
+
+  it('[T62][HH-FIN-11] a cash record holds the collector, time, amount, invoice, memo and receipt; reconciling is separate', async () => {
+    const job = await approvedJob([{ kind: 'base', cents: 50_000 }])
+    await drain()
+    await reviewOutcome(t.db, job.jobId, 'passed')
+    const f = (await issue('office', await finalOf(job.jobId))).json<JobInvoices>().final as Invoice
+    const cash = await payInvoice('office', f.id, {
+      method: 'cash',
+      amountCents: 20_000,
+      collectorStaffId: ids.worker,
+      memo: ' Synthetic: paid at the door ',
+    })
+    expect(cash.statusCode, cash.body).toBe(201)
+    const p = ((cash.json<JobInvoices>().final as Invoice).payments as unknown as Record<string, unknown>[])[0] as {
+      id: string
+      memo: string
+      receiptNumber: string
+      canReconcile: boolean
+      canMarkDeposited: boolean
+    }
+    expect(p).toMatchObject({
+      memo: 'Synthetic: paid at the door',
+      receiptNumber: `${job.projectReference}-R1`,
+      canReconcile: true,
+      canMarkDeposited: false,
+    })
+    const row = await payment(p.id)
+    expect(row).toMatchObject({ collector_staff_id: ids.worker, recorded_by: ids.office, state: 'recorded' })
+    expect(row.created_at).toBeInstanceOf(Date)
+    const receipt = await t.db
+      .selectFrom('finance.payment_receipts')
+      .select(['invoice_id', 'amount_cents'])
+      .where('payment_id', '=', p.id)
+      .executeTakeFirstOrThrow()
+    expect(receipt).toMatchObject({ invoice_id: f.id })
+    expect(Number(receipt.amount_cents)).toBe(20_000)
+
+    // Reconciling: the Owner or Office, never for their own collection; it changes no balance.
+    for (const who of ['estimator', 'worker'] as const)
+      expect((await step(who, p.id, 'reconcile')).statusCode).toBe(403)
+    const before = (await finalOf(job.jobId)).money
+    const done = await step('office', p.id, 'reconcile')
+    expect(done.statusCode, done.body).toBe(200)
+    expect((await payment(p.id)).state).toBe('reconciled')
+    expect((await finalOf(job.jobId)).money).toEqual(before)
+    expect(codes(await step('office', p.id, 'reconcile'))).toContain('PAYMENT_RECONCILED')
+    const own = await payInvoice('owner', f.id, { method: 'cash', amountCents: 1_000 })
+    const ownId = (own.json<JobInvoices>().final as Invoice).payments.at(-1)?.id as string
+    expect((await step('owner', ownId, 'reconcile')).statusCode).toBe(403)
+    // The memo, like the rest of a recorded payment, never changes.
+    await expect(sql`UPDATE finance.payments SET memo = 'x' WHERE id = ${p.id}`.execute(t.db)).rejects.toThrow(
+      /never edited/,
+    )
+  })
+
+  it('[HH-FIN-12][T62] a check is received, deposited, then cleared by the Owner; pending until then, in the Owner queue', async () => {
+    const job = await approvedJob([{ kind: 'base', cents: 50_000 }])
+    await drain()
+    await reviewOutcome(t.db, job.jobId, 'passed')
+    const f = (await issue('office', await finalOf(job.jobId))).json<JobInvoices>().final as Invoice
+    const recorded = await payInvoice('office', f.id, {
+      method: 'check',
+      amountCents: 10_000,
+      reference: ref('check'),
+      payerName: 'Synthetic Payer',
+    })
+    expect(recorded.statusCode, recorded.body).toBe(201)
+    const id = (recorded.json<JobInvoices>().final as Invoice).payments[0]?.id as string
+    expect(await checkItem(job.jobId)).toMatchObject({ reason: 'check_received', resolved_at: null })
+    expect((await finalOf(job.jobId)).money).toMatchObject({ confirmedCents: 0, pendingCents: 10_000 })
+    // Office collected it: Office never marks its own check deposited; the Estimator and a Worker never do.
+    for (const who of ['office', 'estimator', 'worker'] as const)
+      expect((await step(who, id, 'deposited')).statusCode, who).toBe(403)
+    const deposited = await step('owner', id, 'deposited')
+    expect(deposited.statusCode, deposited.body).toBe(200)
+    expect(await payment(id)).toMatchObject({ state: 'deposited', deposited_by: ids.owner })
+    expect(await checkItem(job.jobId)).toMatchObject({ reason: 'check_deposited', resolved_at: null })
+    // Deposited is still pending: it counts toward nothing.
+    expect((await finalOf(job.jobId)).money).toMatchObject({ confirmedCents: 0, pendingCents: 10_000 })
+    expect(codes(await step('owner', id, 'deposited'))).toContain('CHECK_DEPOSITED')
+    expect(codes(await step('owner', id, 'reconcile'))).toContain('CHECK_CLEARS_INSTEAD')
+    expect(
+      await t.db.selectFrom('finance.payment_receipts').select('id').where('payment_id', '=', id).execute(),
+    ).toEqual([])
+    // Only the Owner clears it; then it counts, gets its receipt, and the item resolves.
+    expect((await step('office', id, 'clear')).statusCode).toBe(403)
+    expect((await step('owner', id, 'clear')).statusCode).toBe(200)
+    expect((await finalOf(job.jobId)).money).toMatchObject({ confirmedCents: 10_000, pendingCents: 0 })
+    expect(await checkItem(job.jobId)).toMatchObject({ resolution: 'cleared' })
+    expect(
+      await t.db.selectFrom('finance.payment_receipts').select('id').where('payment_id', '=', id).execute(),
+    ).toHaveLength(1)
+    // The database: a check is deposited only by the Owner or Office, and moves only forward.
+    const second = await payInvoice('office', f.id, {
+      method: 'check',
+      amountCents: 5_000,
+      reference: ref('check'),
+      payerName: 'Synthetic Payer',
+    })
+    const id2 = (second.json<JobInvoices>().final as Invoice).payments.at(-1)?.id as string
+    await expect(
+      sql`UPDATE finance.payments SET state = 'deposited', deposited_by = ${ids.worker}, deposited_at = now(),
+          version = version + 1 WHERE id = ${id2}`.execute(t.db),
+    ).rejects.toThrow(/Owner or Office marks a check deposited/)
+    await expect(
+      sql`UPDATE finance.payments SET state = 'received', version = version + 1 WHERE id = ${id}`.execute(t.db),
+    ).rejects.toThrow(/not available/)
+  })
+})
