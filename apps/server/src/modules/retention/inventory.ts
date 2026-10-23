@@ -774,6 +774,19 @@ export const TABLES = {
     classes: ['request_details'],
     categories: [J],
   },
+  // TSK-0083 (0084): the walkthrough and the submission for quality review are job records.
+  'work.walkthroughs': {
+    holds:
+      "End-of-job walkthroughs: the outcome, the participant's name and standing (none when the customer was " +
+      'unavailable), comments, the dispute case a concern opened, the worker and the time',
+    classes: ['contact', 'request_details'],
+    categories: [J],
+  },
+  'work.job_completions': {
+    holds: "The worker's Finished for a job: which walkthrough, who submitted it for quality review and when",
+    classes: ['request_details'],
+    categories: [J],
+  },
   'staging.environment_marks': {
     holds: 'Which environments identified themselves on this database (staging, local, ci or production) and when',
     classes: ['configuration'],

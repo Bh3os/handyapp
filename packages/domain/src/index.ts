@@ -397,5 +397,7 @@ export type {
 export * from './quality-review.js'
 // TSK-0075 (HH-WORK-11, HH-WORK-05, ENT-Task): the job checklist in six ordered stages.
 export * from './checklist.js'
+// TSK-0083 (HH-QA-01, HH-QA-03, HH-WORK-12, ENT-Walkthrough): the walkthrough and Finished for quality review.
+export * from './completion.js'
 // TSK-0142: the launch phases and their switches (OWN-DEC-191).
 export * from './launch.js'

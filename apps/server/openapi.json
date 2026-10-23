@@ -74963,6 +74963,533 @@
         }
       }
     },
+    "/api/v1/staff/jobs/{jobId}/completion": {
+      "get": {
+        "operationId": "getJobCompletion",
+        "summary": "What Finished needs for a job",
+        "description": "Staff with job.record_walkthrough: assigned to the job inside the access window. Per work package, whether its checklist is complete and how many before and after photos it has; every problem that blocks Finished (CHECKLIST_INCOMPLETE, BEFORE_PHOTO_MISSING, AFTER_PHOTO_MISSING per package; JOB_NOT_IN_PROGRESS, HOLD_OPEN, WORK_NOT_STARTED, ALREADY_SUBMITTED); and, once submitted, the walkthrough and who submitted it when.",
+        "tags": [
+          "completion"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "jobState",
+                    "packages",
+                    "problems",
+                    "submission",
+                    "actions"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "jobState": {
+                      "type": "string"
+                    },
+                    "packages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "code",
+                          "checklistComplete",
+                          "beforePhotos",
+                          "afterPhotos"
+                        ],
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "checklistComplete": {
+                            "type": "boolean"
+                          },
+                          "beforePhotos": {
+                            "type": "integer"
+                          },
+                          "afterPhotos": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "problems": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "code"
+                        ],
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "workPackage": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "submission": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "submittedAt",
+                            "worker",
+                            "walkthrough"
+                          ],
+                          "properties": {
+                            "submittedAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "worker": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            },
+                            "walkthrough": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "outcome",
+                                "participantName",
+                                "participantRole",
+                                "comments",
+                                "caseNumber"
+                              ],
+                              "properties": {
+                                "outcome": {
+                                  "type": "string",
+                                  "enum": [
+                                    "accepted",
+                                    "accepted_with_follow_up",
+                                    "disputed",
+                                    "customer_unavailable"
+                                  ]
+                                },
+                                "participantName": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "participantRole": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "enum": [
+                                    "customer",
+                                    "authorized_representative",
+                                    null
+                                  ]
+                                },
+                                "comments": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "caseNumber": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "submit"
+                      ],
+                      "properties": {
+                        "submit": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job.record_walkthrough",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/completion.test.ts"
+        }
+      },
+      "post": {
+        "operationId": "submitJobCompletion",
+        "summary": "Record the walkthrough and submit the job for quality review",
+        "description": "Staff with job.record_walkthrough, after their own Start Work on the job. The walkthrough outcome: accepted (\"Everything looks good\"), accepted_with_follow_up, disputed (\"I have a concern\") or customer_unavailable; the participant and their standing for every outcome but customer_unavailable (which names nobody and is never acceptance); comments, required for a concern or follow-up items. A concern opens a dispute case for the Owner. Then Finished: the job becomes ready_for_qa (\"Awaiting quality review\", never complete), its work packages complete, and the Owner’s quality review opens. Refused (CONFLICT, every problem named) unless every work package’s checklist is complete and has before and after photos, no hold is open, the job is in progress and not already submitted.",
+        "tags": [
+          "completion"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "outcome"
+                ],
+                "properties": {
+                  "outcome": {
+                    "type": "string",
+                    "enum": [
+                      "accepted",
+                      "accepted_with_follow_up",
+                      "disputed",
+                      "customer_unavailable"
+                    ]
+                  },
+                  "participantName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "\\S"
+                  },
+                  "participantRole": {
+                    "type": "string",
+                    "enum": [
+                      "customer",
+                      "authorized_representative"
+                    ]
+                  },
+                  "comments": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "completionId",
+                    "walkthroughId",
+                    "submittedAt",
+                    "jobState",
+                    "caseNumber",
+                    "reviewState"
+                  ],
+                  "properties": {
+                    "completionId": {
+                      "type": "string"
+                    },
+                    "walkthroughId": {
+                      "type": "string"
+                    },
+                    "submittedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "jobState": {
+                      "type": "string"
+                    },
+                    "caseNumber": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "reviewState": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "in_review",
+                        "passed",
+                        "punch_required",
+                        "pending_recheck"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job.record_walkthrough",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "work.submit_completion",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/completion.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/jobs/{jobId}/deposit": {
       "get": {
         "operationId": "getJobDeposit",
@@ -86709,6 +87236,7 @@
                     "checklistRecorded",
                     "checklist",
                     "walkthroughRecorded",
+                    "walkthrough",
                     "safetyHolds",
                     "workers",
                     "punchItems",
@@ -86998,6 +87526,58 @@
                     },
                     "walkthroughRecorded": {
                       "type": "boolean"
+                    },
+                    "walkthrough": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "outcome",
+                            "participantName",
+                            "participantRole",
+                            "comments",
+                            "caseNumber",
+                            "recordedAt"
+                          ],
+                          "properties": {
+                            "outcome": {
+                              "type": "string"
+                            },
+                            "participantName": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "participantRole": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "comments": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "caseNumber": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "recordedAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      ]
                     },
                     "safetyHolds": {
                       "type": "array",

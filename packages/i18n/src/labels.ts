@@ -1676,6 +1676,22 @@ export const LABEL_FAMILIES = {
     'HANDOFF_TO_SELF',
     'NOT_A_WORKER',
   ],
+  // TSK-0083 (HH-QA-03, HH-WORK-12): the walkthrough and Finished.
+  walkthroughOutcome: ['accepted', 'accepted_with_follow_up', 'disputed', 'customer_unavailable'],
+  participantRole: ['customer', 'authorized_representative'],
+  completionProblem: [
+    'ALREADY_SUBMITTED',
+    'JOB_NOT_IN_PROGRESS',
+    'HOLD_OPEN',
+    'WORK_NOT_STARTED',
+    'CHECKLIST_INCOMPLETE',
+    'BEFORE_PHOTO_MISSING',
+    'AFTER_PHOTO_MISSING',
+    'NO_PARTICIPANT_WHEN_UNAVAILABLE',
+    'PARTICIPANT_REQUIRED',
+    'PARTICIPANT_ROLE_REQUIRED',
+    'COMMENTS_REQUIRED',
+  ],
   // TSK-0084 (HH-QA-02, HH-QA-04): the Owner's quality review and punch items.
   qualityReviewState: ['pending', 'in_review', 'passed', 'punch_required', 'pending_recheck'],
   qualityArea: ['scope', 'checklist', 'evidence', 'walkthrough'],

@@ -1966,6 +1966,15 @@ export interface WorkIssueReportsTable {
   device_recorded_at: Timestamp | null
 }
 
+export interface WorkJobCompletionsTable {
+  id: Generated<string>
+  job_id: string
+  project_id: string
+  walkthrough_id: string
+  worker_id: string
+  submitted_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface WorkJobPacketAcknowledgmentInvalidationsTable {
   id: Generated<string>
   acknowledgment_id: string
@@ -2316,6 +2325,20 @@ export interface WorkVisitsTable {
   county_verification_id: string | null
 }
 
+export interface WorkWalkthroughsTable {
+  id: Generated<string>
+  job_id: string
+  project_id: string
+  visit_id: string | null
+  outcome: string
+  participant_name: string | null
+  participant_role: string | null
+  comments: string | null
+  case_id: string | null
+  worker_id: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface WorkWindowOfferOptionsTable {
   offer_id: string
   position: number
@@ -2553,6 +2576,7 @@ export interface Database {
   'work.issue_report_photos': WorkIssueReportPhotosTable
   'work.issue_report_reviews': WorkIssueReportReviewsTable
   'work.issue_reports': WorkIssueReportsTable
+  'work.job_completions': WorkJobCompletionsTable
   'work.job_packet_acknowledgment_invalidations': WorkJobPacketAcknowledgmentInvalidationsTable
   'work.job_packet_acknowledgments': WorkJobPacketAcknowledgmentsTable
   'work.job_packet_exports': WorkJobPacketExportsTable
@@ -2576,6 +2600,7 @@ export interface Database {
   'work.visit_departures': WorkVisitDeparturesTable
   'work.visit_windows': WorkVisitWindowsTable
   'work.visits': WorkVisitsTable
+  'work.walkthroughs': WorkWalkthroughsTable
   'work.window_offer_options': WorkWindowOfferOptionsTable
   'work.window_offers': WorkWindowOffersTable
   'work.work_package_loadouts': WorkWorkPackageLoadoutsTable

@@ -13,6 +13,7 @@ import type { StaffKey } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useState, type FormEvent } from 'react'
 import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
+import { CompletionPanel } from './Completion'
 import { codeLabel } from './Requests'
 
 type T = (key: StaffKey, values?: Record<string, string | number | Date>) => string
@@ -195,6 +196,8 @@ export function ChecklistPage({
         </ul>
         {data.actions.handoff ? <Handoff t={t} fetchImpl={fetchImpl} base={base} data={data} onDone={load} /> : null}
       </section>
+      {/* TSK-0083: the walkthrough and Finished, below the checklist. */}
+      <CompletionPanel t={t} fetchImpl={fetchImpl} jobId={data.jobId} />
     </section>
   )
 }

@@ -637,6 +637,10 @@ test.describe('Start Work: the server-side gate and the job-level Hold (TSK-0073
       const firstStep = checklist.getByTestId('checklist-step').first()
       await firstStep.getByRole('button', { name: 'Start', exact: true }).click()
       await expect(firstStep.getByText('In progress', { exact: true })).toBeVisible()
+      // TSK-0083: Finished names what it still needs (the checklist, the after photo); no submission is offered yet.
+      const finish = w.getByTestId('completion')
+      await expect(finish.getByTestId('completion-problems')).toContainText('An after photo is missing.')
+      await expect(finish.getByRole('button', { name: 'Finished: submit for quality review' })).toHaveCount(0)
       await axe(w)
     } finally {
       await estimator.close()

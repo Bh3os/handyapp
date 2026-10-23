@@ -143,6 +143,16 @@ export const REVIEW_VIEW = obj({
     }),
   ),
   walkthroughRecorded: BOOL,
+  walkthrough: nullable(
+    obj({
+      outcome: STR,
+      participantName: STR_OR_NULL,
+      participantRole: STR_OR_NULL,
+      comments: STR_OR_NULL,
+      caseNumber: { type: ['integer', 'null'] },
+      recordedAt: TIME,
+    }),
+  ),
   safetyHolds: arr(obj({ id: STR, category: STR, state: STR, raisedAt: TIME })),
   workers: arr(STAFF_REF),
   punchItems: arr(PUNCH_ITEM),

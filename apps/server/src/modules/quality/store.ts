@@ -663,6 +663,20 @@ export async function reviewView(db: Reader, actor: StaffActor, jobId: string) {
   ])
   const owner = allows(actor, 'quality.review', { projectId: job.project_id })
   const checklist = await checklistSummaries(db, jobId)
+  const walkthrough = await db
+    .selectFrom('work.walkthroughs as w')
+    .leftJoin('quality.cases as k', 'k.id', 'w.case_id')
+    .select([
+      'w.outcome',
+      'w.participant_name',
+      'w.participant_role',
+      'w.comments',
+      'w.recorded_at',
+      'k.number as case_number',
+    ])
+    .where('w.job_id', '=', jobId)
+    .orderBy('w.recorded_at', 'desc')
+    .executeTakeFirst()
   const lines = Array.isArray(snapshot?.lines) ? (snapshot.lines as { description?: string | null }[]) : []
   const counted = (phase: string) => Number(photos.find((p) => p.phase === phase)?.n ?? 0)
   const state = r?.state ?? null
@@ -700,11 +714,21 @@ export async function reviewView(db: Reader, actor: StaffActor, jobId: string) {
       : null,
     workPackages: packages.map((p) => ({ id: p.id, code: p.code, position: p.position, state: p.state })),
     evidence: { beforePhotos: counted('before'), afterPhotos: counted('after') },
-    // TSK-0075: the checklist of each work package (required steps open or skipped are shown, never as a pass). The
-    // walkthrough is recorded from TSK-0083.
+    // TSK-0075: the checklist of each work package (required steps open or skipped are shown, never as a pass).
     checklistRecorded: checklist.some((c) => c.summary.completed + c.summary.skipped > 0),
     checklist: checklist.map((c) => ({ workPackageId: c.workPackageId, code: c.code, ...c.summary })),
-    walkthroughRecorded: false,
+    // TSK-0083: the walkthrough recorded with Finished ("customer unavailable" is never acceptance).
+    walkthroughRecorded: walkthrough !== undefined,
+    walkthrough: walkthrough
+      ? {
+          outcome: walkthrough.outcome,
+          participantName: walkthrough.participant_name,
+          participantRole: walkthrough.participant_role,
+          comments: walkthrough.comments,
+          caseNumber: walkthrough.case_number ?? null,
+          recordedAt: iso(walkthrough.recorded_at) as string,
+        }
+      : null,
     safetyHolds: await openSafetyHolds(db, jobId),
     workers: owner ? await activeWorkers(db) : [],
     punchItems: items.map((i) => itemView(i, n, actor, owner)),

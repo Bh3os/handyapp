@@ -76,6 +76,14 @@ export type QualityReviewData = {
     complete: boolean
   }[]
   walkthroughRecorded: boolean
+  walkthrough: {
+    outcome: string
+    participantName: string | null
+    participantRole: string | null
+    comments: string | null
+    caseNumber: number | null
+    recordedAt: string
+  } | null
   safetyHolds: { id: string; category: string; state: string; raisedAt: string }[]
   workers: StaffRef[]
   punchItems: PunchItem[]
@@ -296,7 +304,22 @@ export function QualityReviewPage({
             <a href={href(`/job-photos/${data.jobId}`)}>{t('quality.openPhotos')}</a>
           </dd>
           <dt>{codeLabel(t, 'qualityArea', 'walkthrough')}</dt>
-          <dd>{data.walkthroughRecorded ? t('quality.recorded') : t('quality.notRecorded')}</dd>
+          <dd data-testid="quality-walkthrough">
+            {data.walkthrough ? (
+              <>
+                {codeLabel(t, 'walkthroughOutcome', data.walkthrough.outcome)}
+                {data.walkthrough.participantName
+                  ? ` · ${data.walkthrough.participantName} (${codeLabel(t, 'participantRole', data.walkthrough.participantRole ?? '')})`
+                  : ''}
+                {data.walkthrough.caseNumber !== null
+                  ? ` · ${t('quality.walkthroughCase', { number: data.walkthrough.caseNumber })}`
+                  : ''}
+                {data.walkthrough.comments ? <p className="staff-request__note">{data.walkthrough.comments}</p> : null}
+              </>
+            ) : (
+              t('quality.notRecorded')
+            )}
+          </dd>
         </dl>
       </Section>
 

@@ -1,9 +1,10 @@
 // The Owner's quality review and punch items in a real browser (TSK-0084; HH-QA-02, HH-QA-04, HH-FIN-05, T55, T56,
 // OWN-DEC-64).
 // This spec's Estimator publishes an $800.00 estimate (no deposit) that its customer approves. A job reaches "Awaiting
-// quality review" only through the worker's Finished (TSK-0083, not built), so the spec moves its job there directly
-// in its own fresh e2e database, a test fixture. Its Owner opens the review, starts it, records a minor punch item for
-// the spec's synthetic worker (an active staff record that never signs in) and decides the review with a problem:
+// quality review" only through the worker's Finished (TSK-0083), which needs the whole checklist and photos, so the
+// spec moves its job there directly in its own fresh e2e database, a test fixture (../quality-review.ts). Its Owner
+// opens the review, starts it, records a minor punch item for the spec's synthetic worker (an active staff record
+// that never signs in) and decides the review with a problem:
 // punch work is required, the final invoice may be issued only by the Owner, and the customer sees "Follow-up work".
 // The page is scanned with axe. No estimate terms version is in effect for real customers: a synthetic "approved and
 // attorney-reviewed" v1.0 is recorded for this run only and NOT CONFIGURED restored afterwards, a test fixture and
@@ -16,6 +17,7 @@ import { ESTIMATE_TERMS } from '@handyhub/domain/legal'
 import { expect, test, type APIRequestContext, type Browser, type Page } from '@playwright/test'
 import { accessTokenFor, codeFor } from '../codes.js'
 import { passSecondFactor } from '../mfa.js'
+import { awaitQualityReview } from '../quality-review.js'
 import { verifyPropertyZone } from '../zones.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
@@ -348,15 +350,8 @@ test.describe("The Owner's quality review and punch items (TSK-0084)", () => {
               .executeTakeFirstOrThrow()
           ).id,
       )
-      // The worker's Finished (TSK-0083, not built): the job awaits quality review (see the header).
-      await withDb(async (db) => {
-        const j = await db.selectFrom('work.jobs').select('version').where('id', '=', jobId).executeTakeFirstOrThrow()
-        await db
-          .updateTable('work.jobs')
-          .set({ operational_state: 'ready_for_qa', version: j.version + 1 })
-          .where('id', '=', jobId)
-          .execute()
-      })
+      // The worker's Finished (walked by completion.test.ts): the job awaits quality review (see the header).
+      await awaitQualityReview(databaseUrl as string, jobId)
       // The final invoice draft, prepared by the Owner (it waits for the review).
       await owner.write('POST', `/api/v1/staff/jobs/${jobId}/invoices/final-draft`, {})
 
